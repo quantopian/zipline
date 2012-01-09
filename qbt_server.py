@@ -10,18 +10,37 @@ import base64
 import uuid
 import os
 import logging
+import datetime
 
-logging.getLogger('qbt').setLevel(logging.DEBUG)
-logger = logging.getLogger('qbt')
+logging.getLogger().setLevel(logging.DEBUG)
+logger = logging.getLogger()
 
 define("port", default=8888, help="run the qbt on the given port", type=int)
 define("mongodb_host", default="127.0.0.1", help="mongodb host address")
 define("mongodb_port", default=27017, help="connect to the mongodb on the given port", type=int)
-define("mongodb_dbname", default="blog", help="database name")
-define("mongodb_user", default="blog", help="database user")
-define("mongodb_password", default="blog", help="database password")
+define("mongodb_dbname", default="qbt", help="database name")
+define("mongodb_user", default="qbt", help="database user")
+define("mongodb_password", default="qbt", help="database password")
 
 HASH_ALGO = 'sha256'
+
+def connect_db():
+    connection = pymongo.Connection(options.mongodb_host, options.mongodb_port)
+    db = connection[options.mongodb_dbname]
+    db.authenticate(options.mongodb_user, options.mongodb_password)
+    return connection, db
+    
+def encrypt_password(salt, password):
+    if(salt == None):
+        h1 = hashlib.new(HASH_ALGO)
+        h1.update(str(datetime.datetime.utcnow())+"--"+password)
+        salt = h1.hexdigest()
+        
+    h2 = hashlib.new(HASH_ALGO)
+    h2.update(salt+"--"+password)
+    encrypted_password = h2.hexdigest()
+    
+    return salt, encrypted_password
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -41,9 +60,7 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **settings)
 
         # Have one global connection to the blog DB across all handlers
-        self.connection = pymongo.Connection(options.mongodb_host, options.mongodb_port)
-        self.db = self.connection[options.mongodb_dbname]
-        self.db.authenticate(options.mongodb_user, options.mongodb_password)
+        self.connection, self.db = connect_db()
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -90,9 +107,7 @@ class LoginHandler(BaseHandler):
 
         
         #calculate password hash
-        h.update(user_record['salt']+"--"+password)
-        encrypted_password = h.hexdigest()
-        logger.debug("checking {password} as {encrypted_password} against {record}".format(password=password, encrypted_password=encrypted_password, record=user_record['encrypted_password']))
+        salt, encrypted_password = encrypt_password(user_record['salt'], password)
         if (user_record['encrypted_password'] == encrypted_password):
             #we have a match, so set the secure cookie to the salt
             logger.debug("setting user_id cookie to {id}".format(id=user_record['_id']))
