@@ -23,7 +23,8 @@ def db_main():
     #create a user for testing
     salt, encrypted_password = qbt_server.encrypt_password(None, options.password)
     
-    db.users.insert({'email':options.user_email, 'encrypted_password':encrypted_password, 'salt':salt})
+    if not db.users.find_one({'email':options.user_email}):
+        db.users.insert({'email':options.user_email, 'encrypted_password':encrypted_password, 'salt':salt})
     
 if __name__ == "__main__":
     db_main()
