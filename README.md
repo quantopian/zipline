@@ -2,33 +2,33 @@
 
 ##Development Quickstart
 Navigate to your mongodb installation and start your db server:
-~~~
+```
 	./bin/mongodb 
-~~~
+```
 
 Install the necessary python libraries:
-~~~
+```
 	easy_install tornado pymongo
-~~~
+```
 
 Create a development database with sample data, will create one qbt user:
-~~~
+```
 	python qbt_data_bootstrap.py --user_email=... --password=...
-~~~
+```
 
 To run the qbt against a local mongodb instance, navigate to the source dir and run
-~~~
+```
 	python qbt_server.py --mongodb_dbname=qbt 
-~~~
+```
 
 To see all the available options:
-~~~
+```
 	python qbt_server.py --help
-~~~
+```
 or
-~~~
+```
 	python qbt_data_bootstrap.py --help
-~~~
+```
 	
 
 qbt uses tornado to accept synchronous requests for backtesting sessions. 
