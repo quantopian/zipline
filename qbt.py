@@ -33,4 +33,3 @@ class Backtest(object):
     
     def __init__(self, port_start=10000):
         
-        40B8729046
