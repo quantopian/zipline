@@ -11,8 +11,8 @@ import uuid
 import os
 import logging
 import datetime
+import multiprocessing 
 
-logging.getLogger().setLevel(logging.DEBUG)
 logger = logging.getLogger()
 
 define("port", default=8888, help="run the qbt on the given port", type=int)
@@ -47,6 +47,7 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/", MainHandler),
             (r"/login", LoginHandler),
+            (r"/backtest", BacktestHandler)
         ]
         settings = dict(
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -81,8 +82,8 @@ class BaseHandler(tornado.web.RequestHandler):
 class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        self.write("Hello, world")
-
+        self.write("Hello, world. Try launching a <a href='/backtest'>backtest</a>.")
+                         
 class LoginHandler(BaseHandler):
     def get(self):
         self.write('<html><body><form action="/login" method="post">'
@@ -112,6 +113,17 @@ class LoginHandler(BaseHandler):
             #we have a match, so set the secure cookie to the salt
             logger.debug("setting user_id cookie to {id}".format(id=user_record['_id']))
             self.set_secure_cookie(u"user_id", unicode(user_record['_id']))
+
+class BacktestHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self):
+        self.write('<html><body><form action="/backtest" method="post">'
+                   '<input type="submit" value="Launch">'
+                   '</form></body></html>')
+    @tornado.web.authenticated
+    def post(self):
+        
+
 
 def main():
     tornado.options.parse_command_line()

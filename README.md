@@ -52,9 +52,14 @@ A backtesting session is comprised of:
 
 ## Pre-requisites
 You need to have the tornado and pymongo eggs installed:
-	easy_install tornado pymongo
+	
+	easy_install tornado pymongo pyzmq
 
 You need to have mongodb installed and running. Find your system at http://www.mongodb.org/downloads and set it up.
+
+You need to have zeromq installed - http://www.zeromq.org/intro:get-the-software. If you are on mac, get homebrew https://github.com/mxcl/homebrew then: 
+	
+	brew install zeromq
 
 ### Database and Collections expected in MongoDB ###
 QBT requires a running mongodb instance with a few collections:
