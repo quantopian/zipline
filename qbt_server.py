@@ -11,7 +11,10 @@ import uuid
 import os
 import logging
 import datetime
-import multiprocessing 
+import multiprocessing
+
+from qbt import *
+from qbt_client import * 
 
 logger = logging.getLogger()
 
@@ -56,7 +59,7 @@ class Application(tornado.web.Application):
             cookie_secret=base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes),
             login_url="/login",
             #autoescape=None,
-            debug=True,
+            #debug=True,
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
@@ -70,6 +73,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return self.application.db
 
     def get_current_user(self):
+        return "fawce"
         user_id = self.get_secure_cookie(u"user_id")
         logger.info("looking up user with id: {id}".format(id=user_id))
         if not user_id: return None
@@ -123,8 +127,16 @@ class BacktestHandler(BaseHandler):
     @tornado.web.authenticated
     def post(self):
         
+        bt = Backtest(self.db, logger)
+        #btc = BacktestClient(DATA_FEED_PORT, logger)
+        bt_proc = multiprocessing.Process(target=bt.run)
+        #btc_proc = multiprocessing.Process(target=btc.run)
+        bt_proc.start()
+        #btc_proc.start()
 
 
+
+    
 def main():
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
