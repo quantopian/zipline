@@ -39,24 +39,26 @@ from data.sources.equity import *
 
 
 
+CONTROLLER_PORT     =  9000
 DATA_SINK_PORT      = 10000
-CONTROLLER_PORT     = 10099
-DATA_FEED_PORT      = 10002
+DATA_FEED_PORT      = 30000
 
 class Backtest(object):
     
     def __init__(self, db, logger):
         self.logger = logger
         self.db = db
+        self.data_workers = {}
         
         
     def start_data_workers(self):
         """Start a sub-process for each datasource."""
         
-        emt1 = EquityMinuteTrades(133, self.db, self.data_socket, self.controller_socket, 1, self.logger)
+        emt1 = EquityMinuteTrades(133, self.db, DATA_SINK_PORT, 1, self.logger)
+        data_workers[1] = emt1
+        emt1.start()
         #emt2 = EquityMinuteTrades(134, self.db, self.data_socket, self.controller_socket, 2, self.logger)
-        multiprocessing.Process(target=emt1.run).start()
-        #multiprocessing.Process(target=emt2.run).start()
+        #emt2.start()
         self.logger.info("ds processes launched")
        
     def run(self):   
@@ -64,53 +66,50 @@ class Backtest(object):
         self.context = zmq.Context()
         
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
+        #see: http://zguide.zeromq.org/py:taskwork2
         self.data_socket = "tcp://127.0.0.1:{port}".format(port=DATA_SINK_PORT)
         self.data_sink = self.context.socket(zmq.PULL)
-        ##TODO: findout out why the * is necessary. localhost causes "not supported" exceptions.
-        #see: http://zguide.zeromq.org/py:tasksink2
-        #see: http://zguide.zeromq.org/py:taskwork2
         self.data_sink.bind(self.data_socket)
         
         #create the controller publishing socket.
         self.controller_socket = "tcp://127.0.0.1:{port}".format(port=CONTROLLER_PORT) 
-        self.controller = self.context.socket(zmq.PUB)
-        self.controller.bind(self.controller_socket)
+        #self.controller = self.context.socket(zmq.PUB)
+        #self.controller.bind(self.controller_socket)
         
         
         #create the merged dataset feed socket
-        #self.data_feed = self.context.socket(zmq.PUSH)
-        #self.data_feed.bind("tcp://127.0.0.1:{port}".format(port=DATA_FEED_PORT))
+        self.data_feed = self.context.socket(zmq.PUSH)
+        self.data_feed.bind("tcp://127.0.0.1:{port}".format(port=DATA_FEED_PORT))
         
         self.last_event_time = None
         self.data_workers = []
         
-        last_dt = "."
+        last_dt = None
         event_q = []
+        #data workers start in independent processes, connecting to the data_socket
         self.start_data_workers()
         while True:
-            #ask all data sources for next event in their sequence, which happened on or before last_dt.
-            #last_dt of None is interpreted as next, without regard to date.
-            self.logger.info("qbt sending dt message")
-            self.controller.send(last_dt)
-            #self.data_feed.send("2011/04/11-22:30:10.100")
-            #self.logger.info("qbt message sent")
-            
-            while True:
-                try:
-                    #self.logger.info("about to receive")
-                    message = self.data_sink.recv(zmq.NOBLOCK)
-                    event = json.loads(message)
-                    last_dt = event['dt']
-                    self.logger.info("got message: {msg} with dt : {dt}".format(msg=event, dt=last_dt))
-                    event_q.append(event)
-                except zmq.ZMQError as err:
-                    
-                    #EAGAIN indicates recv doesn't have messages now, and datasources are sending 
-                    #so only throw if we have an error other than EAGAIN.
-                    if err.errno != zmq.EAGAIN:
-                         raise err #real error, throw back to caller
-                    #self.logger.info("we received an error")
-                    break
+            try:
+                #self.logger.info("about to receive")
+                message = self.data_sink.recv()
+                event = json.loads(message)
+                last_dt = event['dt']
+                
+                event_q.append(event)
+                event_q = sorted(event_q, key=lambda event: event['dt'])
+                cur_event = event_q.pop(0)
+                self.data_feed.send(json.dumps(cur_event))
+                
+                #this signals loop at datasource should proceed... all sources will send all events as fast as possible.
+                self.data_sink.send(str(last_dt))
+            except zmq.ZMQError as err:
+                
+                #EAGAIN indicates recv doesn't have messages now, and datasources are sending 
+                #so only throw if we have an error other than EAGAIN.
+                if err.errno != zmq.EAGAIN:
+                     raise err #real error, throw back to caller
+                #self.logger.info("we received an error")
+                break
                 
             #no events in q at this point means we've processed all the data in all the sources!
             #if(len(event_q) == 0):
