@@ -4,6 +4,7 @@ import datetime
 import json
 import config
 import multiprocessing
+from backtest import util
 
 class Transform(object):
     """Parent class for feed transforms. Subclass to create a new derived value from the combined feed."""
@@ -23,6 +24,8 @@ class Transform(object):
         self.name               = self.config.get_string('name')
         self.state              = {}
         self.state['name']      = self.name
+        self.received_count     = 0
+        self.sent_count         = 0 
         
     def run(self):
         self.context = zmq.Context()
@@ -50,15 +53,20 @@ class Transform(object):
         
         while True:
             message = self.feed_socket.recv()
-            self.logger.info("got feed message at {name}".format(name=self.name))
+            self.received_count += 1
             if(message == "DONE"):
                 break;
             event = json.loads(message)
-            cur_state = update(event)
-            
+            cur_state = self.update(event)
             self.result_socket.send(json.dumps(cur_state))
-            self.logger.info("sent message from {name}".format(name=self.name))
+            self.sent_count += 1
+        
+        self.logger.info("Transform {name} recieved {r} and sent {s}".format(name=self.name, r=self.received_count, s=self.sent_count))
             
+        self.feed_socket.close()
+        self.result_socket.close()
+        self.context.term()
+        
     def update(self, event):
         return {}
         
@@ -136,7 +144,7 @@ class MovingAverage(Transform):
         self.events.append(event)
         
         #filter the event list to the window length.
-        self.events = [x for x in self.events if (x.dt - curTick.dt) <= self.window]
+        self.events = [x for x in self.events if (util.parse_date(x['dt']) - util.parse_date(event['dt'])) <= self.window]
         
         if(len(self.events) == 0):
             return 0.0

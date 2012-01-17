@@ -11,25 +11,27 @@ from qbt_client import TestClient
 def datafeed():
     connection, db = connect_db()
     logger = logging.getLogger()
-    feed = DataFeed(db, 1) #one merge, two moving averages.
+    feed = DataFeed(db, 1) #one moving average, one client
     feed_proc = multiprocessing.Process(target=feed.run)
     feed_proc.start()
     
-    #config = {}
-    #config['name'] = '**merged feed**'
-    #config['transforms'] = [{'name':'mavg1', 'class':'MovingAverage', 'hours':1},{'name':'mavg2', 'class':'MovingAverage', 'hours':2}]
+    config = {}
+    config['name'] = '**merged feed**'
+    config['transforms'] = [{'name':'mavg1', 'class':'MovingAverage', 'hours':1},{'name':'mavg2', 'class':'MovingAverage', 'hours':2}]
     
-    #result_address = "tcp://127.0.0.1:20202"
+    result_address = "tcp://127.0.0.1:20202"
     
-    #mavg = MovingAverage(feed.feed_address, result_address, feed.sync_address, config['transforms'][0])
-    #mavg.run()
+    mavg = MovingAverage(feed.feed_address, result_address, feed.sync_address, config['transforms'][0])
+    mavg.run()
+    #mavg_proc = multiprocessing.Process(target=mavg.run())
+    #mavg_proc.start()
     
     #merger = Merge(feed.feed_address, result_address, feed.sync_address, config)
     #merger_proc = multiprocessing.Process(target=merger.run)
     #merger_proc.start() 
     
-    client = TestClient(feed.feed_address, feed.sync_address)
-    client.run()
+    #client = TestClient(feed.feed_address, feed.sync_address)
+    #client.run()
     
     logger.info("feed has {pending} messages".format(pending=feed.pending_messages()))
     assert(feed.pending_messages() == 0)
