@@ -31,6 +31,9 @@ def datafeed():
     client = TestClient(feed.feed_address, feed.sync_address)
     client.run()
     
+    logger.info("feed has {pending} messages".format(pending=feed.pending_messages()))
+    assert(feed.pending_messages() == 0)
+    
 def pubsub():
     proc1 = multiprocessing.Process(target=sub)
     proc2 = multiprocessing.Process(target=pub)

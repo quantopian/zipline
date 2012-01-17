@@ -15,6 +15,9 @@ class DataFeed(object):
         self.data_buffer = {} #source_id -> []
         self.subscriber_count = subscriber_count
         
+        self.received_count = 0
+        self.sent_count = 0
+        
     def start_data_workers(self):
         """Start a sub-process for each datasource."""
         
@@ -51,9 +54,8 @@ class DataFeed(object):
         # Prepare our context and sockets
         self.context = zmq.Context()
         
-        counter = 0
-        self.start_data_workers()       
-        
+        ds_finished_counter = 0
+             
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
         #see: http://zguide.zeromq.org/py:taskwork2
         self.data_socket = self.context.socket(zmq.PULL)
@@ -63,6 +65,9 @@ class DataFeed(object):
         self.feed_socket = self.context.socket(zmq.PUSH)
         self.feed_socket.bind(self.feed_address)
         
+        #start the data source workers
+        self.start_data_workers()
+        
         #wait for all feed subscribers
         self.sync_clients()
         
@@ -71,40 +76,59 @@ class DataFeed(object):
         while True:
             message = self.data_socket.recv()
             event = json.loads(message)
-            #self.logger.info(" count " + str(counter) + " - " + str(event['dt']))
             if(event["type"] == "DONE"):
-                self.logger.info("DONE")
-                source = event[u's']
-                if(self.data_workers.has_key(source)):
-                    del(self.data_workers[source])
-                if(len(self.data_workers) == 0):
+                ds_finished_counter += 1
+                if(len(self.data_workers) == ds_finished_counter):
                     break
             else:
                 self.data_buffer[event[u's']].append(event)
-                counter = counter + 1
-                self.send_earliest_event()
+                self.received_count = self.received_count + 1
+                self.send_next()
             
                 
         #drain any remaining messages in the buffer
-        self.send_earliest_event(drain=True)
+        while(self.pending_messages() > 0):
+            self.send_next(drain=True)
         
-        self.logger.info("Collected {n} messages".format(n=counter))
+        #send the DONE message
+        self.feed_socket.send("DONE")
+        
+        self.logger.info("received {n} messages, sent {m} messages".format(n=self.received_count, m=self.sent_count))
         self.data_socket.close()
         self.feed_socket.close()
         self.context.term()
         
-    def send_earliest_event(self, drain=False):
+            
+    def send_next(self, drain=False):
+        if(not(self.buffers_full() or drain)):
+            return
+            
+        cur = None
         earliest = None
-        next_source = None
-        while True: #send messages as long as we have >0 messages from each source
-            for source, events in self.data_buffer.iteritems():
-                if(not drain and len(events) == 0 and self.data_workers.has_key(source)):
-                    #there's no way to know that we have the next message
-                    return 
-                if(len(events) > 0 and (earliest == None or earliest > events[0])):
-                    earliest = events[0]['dt']
-                    next_source = source
-                    
+        for source, events in self.data_buffer.iteritems():
+            if len(events) == 0:
+                continue
+            cur = events
+            if(earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+                earliest = cur
         
-            event = self.data_buffer[next_source].pop(0)
+        if(earliest != None):
+            event = earliest.pop(0)
             self.feed_socket.send(json.dumps(event))
+            self.sent_count += 1      
+        
+        
+    def buffers_full(self):
+        for source, events in self.data_buffer.iteritems():
+            if (len(events) == 0):
+                return False
+        return True
+    
+    def pending_messages(self):
+        total = 0
+        for source, events in self.data_buffer.iteritems():
+            total += len(events)
+        return total
+        
+    
+                
