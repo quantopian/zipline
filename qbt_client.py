@@ -2,10 +2,11 @@ import copy
 import multiprocessing
 import zmq
 import logging
+import json
 
 from backtest.util import *
 
-class BacktestClient(object):
+class TestClient(object):
     
     def __init__(self,feed_address, sync_address):
         self.context = zmq.Context()
@@ -28,8 +29,12 @@ class BacktestClient(object):
         sync_socket.close()
         
         counter = 0
+        prev_dt = None
         while True:
             counter += 1
             msg = self.data_feed.recv()
+            event = json.loads(msg)
+            if(prev_dt != None):
+                assert(event['dt'] >= prev_dt)
             self.logger.info("received {n} messages".format(n=counter))
             

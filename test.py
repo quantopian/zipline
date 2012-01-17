@@ -6,7 +6,7 @@ from data.feed import *
 from data.transforms import Merge, MovingAverage
 
 from qbt_server import connect_db
-from qbt_client import BacktestClient
+from qbt_client import TestClient
 
 def datafeed():
     connection, db = connect_db()
@@ -28,7 +28,7 @@ def datafeed():
     #merger_proc = multiprocessing.Process(target=merger.run)
     #merger_proc.start() 
     
-    client = BacktestClient(feed.feed_address, feed.sync_address)
+    client = TestClient(feed.feed_address, feed.sync_address)
     client.run()
     
 def pubsub():
