@@ -38,9 +38,10 @@ class DataFeed(object):
         self.syncservice = self.context.socket(zmq.REP)
         self.syncservice.bind(self.sync_address) 
         
-        subscribers = 0
-        while subscribers < (self.subscriber_count + len(self.data_workers)):
-            self.logger.info("sync'ing {count}".format(count=subscribers))
+        subscribers = 1
+        total =  self.subscriber_count + len(self.data_workers)
+        while subscribers <= total:
+            self.logger.info("sync'ing {count} of {total}".format(count=subscribers, total=total))
             # wait for synchronization request
             msg = self.syncservice.recv()
             # send synchronization reply

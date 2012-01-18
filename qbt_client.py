@@ -8,10 +8,11 @@ from backtest.util import *
 
 class TestClient(object):
     
-    def __init__(self,feed_address, sync_address):
+    def __init__(self,feed_address, sync_address, bind=False):
         self.logger = logging.getLogger()
         self.feed_address = feed_address
         self.sync_address = sync_address
+        self.bind = bind
         
     def run(self):
         
@@ -19,7 +20,14 @@ class TestClient(object):
         self.context = zmq.Context()
         
         self.data_feed = self.context.socket(zmq.PULL)
-        self.data_feed.connect(self.feed_address)
+
+        if(self.bind):
+            self.logger.info("binding to {feed_address}".format(feed_address=self.feed_address))
+            self.data_feed.bind(self.feed_address)
+        else:
+            self.data_feed.connect(self.feed_address)
+        
+        self.logger.info("synchronizing with data feed")
         
         #synchronize with feed
         sync_socket = self.context.socket(zmq.REQ)
@@ -30,6 +38,8 @@ class TestClient(object):
         sync_socket.recv()
         sync_socket.close()
         
+        self.logger.info("Starting the client loop")
+
         counter = 0
         prev_dt = None
         while True:

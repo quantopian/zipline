@@ -14,9 +14,11 @@ class Transform(object):
             feed_address    - zmq socket address, Transform will CONNECT a PULL socket and receive messages until "DONE" is received.
             result_address  - zmq socket address, Transform will CONNECT a PUSH socket and send messaes until feed_socket receives "DONE"
             sync_address    - zmq socket address, Transform will CONNECT a REQ socket and send/receive one message before entering feed loop
-            config - must be a config.Config object with at least an entry for 'name':string value
+            config          - must be a dict that can be wrapped in a config.Config object with at least an entry for 'name':string value
+            server          - if True, transform will bind to the result address (and act as a server), if False it will connect. The
+                              the last transform in a series should be server=True so that clients can connect.
         """
-        self.logger = logging.getLogger()
+        self.logger             = logging.getLogger()
         self.feed_address       = feed_address
         self.result_address     = result_address
         self.sync_address       = sync_address
@@ -55,9 +57,11 @@ class Transform(object):
             message = self.feed_socket.recv()
             self.received_count += 1
             if(message == "DONE"):
+                self.result_socket.send("DONE")
                 break;
             event = json.loads(message)
             cur_state = self.update(event)
+            cur_state['dt'] = event['dt']
             self.result_socket.send(json.dumps(cur_state))
             self.sent_count += 1
         
@@ -106,7 +110,7 @@ class Merge(Transform):
         if(self.transform_socket == None):
             #create the feed PULL. 
             self.transform_socket = self.context.socket(zmq.PULL)
-            self.transform_socket.connect(self.transform_address)
+            self.transform_socket.bind(self.transform_address)
     
     def update(self, event):
         
@@ -125,7 +129,7 @@ class Merge(Transform):
         
 class MovingAverage(Transform):
     
-    def __init__(self, feed_address, result_address, sync_address, props): 
+    def __init__(self, feed_address, result_address, sync_address, props, server=False): 
         Transform.__init__(self, feed_address, result_address, sync_address, props)
         self.events = []
         
@@ -156,3 +160,5 @@ class MovingAverage(Transform):
         self.average = total/len(self.events)
         
         self.state['avg'] = self.average
+        
+        return self.state

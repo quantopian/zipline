@@ -11,7 +11,7 @@ from qbt_client import TestClient
 def datafeed():
     connection, db = connect_db()
     logger = logging.getLogger()
-    feed = DataFeed(db, 1) #one moving average, one client
+    feed = DataFeed(db, 2) #one moving average, one client
     feed_proc = multiprocessing.Process(target=feed.run)
     feed_proc.start()
     
@@ -22,16 +22,22 @@ def datafeed():
     result_address = "tcp://127.0.0.1:20202"
     
     mavg = MovingAverage(feed.feed_address, result_address, feed.sync_address, config['transforms'][0])
-    mavg.run()
-    #mavg_proc = multiprocessing.Process(target=mavg.run())
-    #mavg_proc.start()
+    mavg_proc = multiprocessing.Process(target=mavg.run)
+    logger.info("about to launch moving average")
+    mavg_proc.start()
     
     #merger = Merge(feed.feed_address, result_address, feed.sync_address, config)
     #merger_proc = multiprocessing.Process(target=merger.run)
     #merger_proc.start() 
     
+    
+    #subscribe a client directly to the consolidated feed
     #client = TestClient(feed.feed_address, feed.sync_address)
-    #client.run()
+    
+    logger.info("starting the client")
+    #subscribe a client to the transformed feed
+    client = TestClient(result_address, feed.sync_address, bind=True)
+    client.run()
     
     logger.info("feed has {pending} messages".format(pending=feed.pending_messages()))
     assert(feed.pending_messages() == 0)
