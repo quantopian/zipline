@@ -4,7 +4,7 @@ import datetime
 import json
 import config
 import multiprocessing
-from backtest import util
+from backtest.util import *
 
 class Transform(object):
     """Parent class for feed transforms. Subclass to create a new derived value from the combined feed."""
@@ -52,6 +52,9 @@ class Transform(object):
         sync_socket.close()
         
         self.logger.info("starting {name} event loop".format(name = self.name))
+        self.run_loop()
+        
+    def run_loop(self):
         
         while True:
             message = self.feed_socket.recv()
@@ -73,8 +76,46 @@ class Transform(object):
         
     def update(self, event):
         return {}
+                    
         
-class Merge(Transform):
+class MovingAverage(Transform):
+    
+    def __init__(self, feed_address, result_address, sync_address, props, server=False): 
+        Transform.__init__(self, feed_address, result_address, sync_address, props)
+        self.events = []
+        
+        self.window = datetime.timedelta(days           = self.config.get_integer('days'), 
+                                        seconds         = self.config.get_integer('seconds'), 
+                                        microseconds    = self.config.get_integer('microseconds'), 
+                                        milliseconds    = self.config.get_integer('milliseconds'),
+                                        minutes         = self.config.get_integer('minutes'),
+                                        hours           = self.config.get_integer('hours'),
+                                        weeks           = self.config.get_integer('weeks'))
+    
+        
+  
+        
+    def update(self, event):
+        self.events.append(event)
+        
+        #filter the event list to the window length.
+        self.events = [x for x in self.events if (parse_date(x['dt']) - parse_date(event['dt'])) <= self.window]
+        
+        if(len(self.events) == 0):
+            return 0.0
+            
+        total = 0.0
+        for event in self.events:
+            total += event['price']
+        
+        self.average = total/len(self.events)
+        
+        self.state['avg'] = self.average
+        
+        return self.state
+        
+        
+class MergedTransformsFeed(Transform):
     """ Merge data feed and array of transform feeds into a single result vector.
         PULL from feed
         PULL from child transforms
@@ -100,10 +141,16 @@ class Merge(Transform):
                 mavg = MovingAverage(self.feed_address, self.transform_address, self.sync_address, props)
                 self.transforms[mavg.name] = mavg
         
+        self.data_buffer = ParallelBuffer(self.transforms.keys()) 
+        
         for name, transform in self.transforms.iteritems():
             self.logger.info("starting {name}".format(name=name))
             proc = multiprocessing.Process(target=transform.run)
             proc.start()
+            
+        self.buffers = {}
+        for name, transform in self.transforms:
+            self.buffers[name] = []
             
     def get_socket(self):
         
@@ -111,6 +158,29 @@ class Merge(Transform):
             #create the feed PULL. 
             self.transform_socket = self.context.socket(zmq.PULL)
             self.transform_socket.bind(self.transform_address)
+        return self.transform_socket
+    
+    def run_loop(self):
+        
+        while True:
+            #get original feed message
+            message = self.feed_socket.recv()
+            self.received_count += 1
+            if(message == "DONE"):
+                self.result_socket.send("DONE")
+                break;
+            event = json.loads(message)
+            self.data_buffer.append(event['name'], event)
+            merged_event = self.data_buffer.merge_next()
+            if(merged_event != None):
+                self.result_socket.send(json.dumps(merged_event))
+                self.sent_count += 1
+        
+        self.logger.info("Transform {name} recieved {r} and sent {s}".format(name=self.name, r=self.received_count, s=self.sent_count))
+            
+        self.feed_socket.close()
+        self.result_socket.close()
+        self.context.term()
     
     def update(self, event):
         
@@ -118,47 +188,12 @@ class Merge(Transform):
         state['feed'] = event
         
         count = 0
-        while count < len(transforms):
-            message = get_socket().recv
+        while count < len(self.transforms):
+            message = self.get_socket().recv()
+            if(message == "DONE"):
+                return "DONE"
             data = json.loads(message)
             state[data['name']] = data
             
-        return state
-            
-            
-        
-class MovingAverage(Transform):
-    
-    def __init__(self, feed_address, result_address, sync_address, props, server=False): 
-        Transform.__init__(self, feed_address, result_address, sync_address, props)
-        self.events = []
-        
-        self.window = datetime.timedelta(days           = self.config.get_integer('days'), 
-                                        seconds         = self.config.get_integer('seconds'), 
-                                        microseconds    = self.config.get_integer('microseconds'), 
-                                        milliseconds    = self.config.get_integer('milliseconds'),
-                                        minutes         = self.config.get_integer('minutes'),
-                                        hours           = self.config.get_integer('hours'),
-                                        weeks           = self.config.get_integer('weeks'))
-    
-        
-  
-        
-    def update(self, event):
-        self.events.append(event)
-        
-        #filter the event list to the window length.
-        self.events = [x for x in self.events if (util.parse_date(x['dt']) - util.parse_date(event['dt'])) <= self.window]
-        
-        if(len(self.events) == 0):
-            return 0.0
-            
-        total = 0.0
-        for event in self.events:
-            total += event['price']
-        
-        self.average = total/len(self.events)
-        
-        self.state['avg'] = self.average
-        
-        return self.state
+        return state    
+                

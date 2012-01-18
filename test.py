@@ -3,7 +3,7 @@ import logging
 import tornado
 from data.sources.equity import *
 from data.feed import *
-from data.transforms import Merge, MovingAverage
+from data.transforms import MergedTransformsFeed, MovingAverage
 
 from qbt_server import connect_db
 from qbt_client import TestClient
@@ -11,7 +11,8 @@ from qbt_client import TestClient
 def datafeed():
     connection, db = connect_db()
     logger = logging.getLogger()
-    feed = DataFeed(db, 2) #one moving average, one client
+    feed = DataFeed(db, 2) 
+    #feed.run()
     feed_proc = multiprocessing.Process(target=feed.run)
     feed_proc.start()
     
@@ -27,6 +28,7 @@ def datafeed():
     mavg_proc.start()
     
     #merger = Merge(feed.feed_address, result_address, feed.sync_address, config)
+    #merger.run()
     #merger_proc = multiprocessing.Process(target=merger.run)
     #merger_proc.start() 
     
@@ -39,8 +41,8 @@ def datafeed():
     client = TestClient(result_address, feed.sync_address, bind=True)
     client.run()
     
-    logger.info("feed has {pending} messages".format(pending=feed.pending_messages()))
-    assert(feed.pending_messages() == 0)
+    logger.info("feed has {pending} messages".format(pending=feed.data_buffer.pending_messages()))
+    assert(feed.data_buffer.pending_messages() == 0)
     
 def pubsub():
     proc1 = multiprocessing.Process(target=sub)

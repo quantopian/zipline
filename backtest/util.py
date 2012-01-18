@@ -4,6 +4,7 @@ Small classes to assist with db access, timezone calculations, and so on.
 
 import datetime
 import pytz
+import json
 
 class DocWrap():
     """
@@ -51,3 +52,75 @@ def format_date(dt):
         return None
     dt_str = dt.strftime('%Y/%m/%d-%H:%M:%S') + "." + str(dt.microsecond / 1000)
     return dt_str
+    
+    
+class ParallelBuffer(object):
+    """ holds several queues of events by key, allows retrieval in date order or by merging"""
+    def __init__(self, key_list):
+        self.out_socket = None
+        self.sent_count = 0
+        self.received_count = 0
+        self.draining = False
+        self.data_buffer = {}
+        for key in key_list:
+            self.data_buffer[key] = []
+            
+    def append(self, key, value):
+        self.data_buffer[key].append(value)
+        self.received_count += 1
+    
+    def next(self):
+        if(not(self.is_full() or self.draining)):
+            return
+            
+        cur = None
+        earliest = None
+        for source, events in self.data_buffer.iteritems():
+            if len(events) == 0:
+                continue
+            cur = events
+            if(earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+                earliest = cur
+        
+        if(earliest != None):
+            return earliest.pop(0)
+        
+    def is_full(self):
+        for source, events in self.data_buffer.iteritems():
+            if (len(events) == 0):
+                return False
+        return True
+    
+    def pending_messages(self):
+        total = 0
+        for source, events in self.data_buffer.iteritems():
+            total += len(events)
+        return total       
+        
+    def drain(self):
+        self.draining = True
+        while(self.pending_messages() > 0):
+            self.send_next()
+            
+    def send_next(self):
+        if(not(self.is_full() or self.draining)):
+            return
+            
+        event = self.next()
+        if(event != None):        
+            self.out_socket.send(json.dumps(event))
+            self.sent_count += 1   
+    
+    
+class MergedParallelBuffer(ParallelBuffer):
+    
+    def merge_next(self):
+        if(not(self.is_full() or self.draining)):
+            return
+            
+        result = {}
+        for source, events in self.data_buffer.iteritems():
+            if(len(events) > 0):
+                result[source] = events.pop(0)
+                
+        return result
