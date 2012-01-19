@@ -41,7 +41,6 @@ class TestClient(object):
                 self.logger.info("DONE!")
                 break
             self.received_count += 1
-            self.logger.info(msg)
             event = json.loads(msg)
             if(prev_dt != None):
                 if(not event['dt'] >= prev_dt):

@@ -67,7 +67,10 @@ class ParallelBuffer(object):
         self.data_buffer = {}
         for key in key_list:
             self.data_buffer[key] = []
-            
+    
+    def __len__(self):
+        return len(self.data_buffer)        
+    
     def append(self, key, value):
         self.data_buffer[key].append(value)
         self.received_count += 1
@@ -117,15 +120,22 @@ class ParallelBuffer(object):
     
 class MergedParallelBuffer(ParallelBuffer):
     
+    def __init__(self, keys):
+        ParallelBuffer.__init__(self, keys)
+        self.feed = []
+        self.data_buffer["feed"] = self.feed
+    
     def next(self):
         if(not(self.is_full() or self.draining)):
             return
-            
-        result = {}
+        
+        result = self.feed.pop(0)
         for source, events in self.data_buffer.iteritems():
+            if(source == "feed"):
+                continue
             if(len(events) > 0):
-                result[source] = events.pop(0)
-                
+                cur = events.pop(0)
+                result[source] = cur['value']
         return result
         
         

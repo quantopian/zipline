@@ -55,12 +55,13 @@ class Transform(object):
         
         while True:
             message = self.feed_socket.recv()
-            self.received_count += 1
             if(message == "DONE"):
+                self.logger.info("{name} received the Done message from the feed".format(name=self.name))
                 self.result_socket.send("DONE")
                 break;
+            self.received_count += 1
             event = json.loads(message)
-            cur_state = self.update(event)
+            cur_state = self.transform(event)
             cur_state['dt'] = event['dt']
             cur_state['name'] = self.name
             self.result_socket.send(json.dumps(cur_state))
@@ -73,13 +74,13 @@ class Transform(object):
         self.result_socket.close()
         self.context.term()
         
-    def update(self, event):
+    def transform(self, event):
         return {}
                     
         
 class MovingAverage(Transform):
     
-    def __init__(self, feed, props, result_address="tcp://127.0.0.1:20202"): 
+    def __init__(self, feed, props, result_address): 
         Transform.__init__(self, feed, props, result_address)
         self.events = []
         
@@ -94,7 +95,7 @@ class MovingAverage(Transform):
         
   
         
-    def update(self, event):
+    def transform(self, event):
         self.events.append(event)
         
         #filter the event list to the window length.
@@ -109,7 +110,7 @@ class MovingAverage(Transform):
         
         self.average = total/len(self.events)
         
-        self.state['avg'] = self.average
+        self.state['value'] = self.average
         
         return self.state
         
@@ -143,11 +144,6 @@ class MergedTransformsFeed(Transform):
         keys = copy.copy(self.transforms.keys())
         keys.append("feed") #for the raw feed
         self.data_buffer = MergedParallelBuffer(keys) 
-        
-        for name, transform in self.transforms.iteritems():
-            self.logger.info("starting {name}".format(name=name))
-            proc = multiprocessing.Process(target=transform.run)
-            proc.start()
             
         self.buffers = {}
         for name, transform in self.transforms.iteritems():
@@ -176,36 +172,55 @@ class MergedTransformsFeed(Transform):
         self.poller.register(self.feed_socket, zmq.POLLIN)
         self.poller.register(self.transform_socket, zmq.POLLIN)
         
+        for name, transform in self.transforms.iteritems():
+            self.logger.info("starting {name}".format(name=name))
+            proc = multiprocessing.Process(target=transform.run)
+            proc.start()
+            
+        self.sync.confirm()
+        
     def close(self):
         self.transform_socket.close()
         Transform.close(self)
         
     def process_all(self):
-        self.sync.confirm()
         
+        done_count = 0
         while True:
             socks = dict(self.poller.poll())
             
             if self.feed_socket in socks and socks[self.feed_socket] == zmq.POLLIN:
                 message = self.feed_socket.recv()
-                self.received_count += 1
-                if(message != "DONE"):
+                if(message == "DONE"):
+                    self.logger.info("finished receiving feed to merge")
+                    done_count += 1
+                else:
+                    self.received_count += 1
                     event = json.loads(message)
                     self.data_buffer.append("feed",event)
-            
+                
             if self.transform_socket in socks and socks[self.transform_socket] == zmq.POLLIN:
                 t_message = self.transform_socket.recv()
-                if(message != "DONE"):
+                if(t_message == "DONE"):
+                    self.logger.info("finished receiving a transform to merge")
+                    done_count += 1
+                else:
+                    self.received_count += 1
                     t_event = json.loads(t_message)
                     self.data_buffer.append(t_event['name'], t_event)
                 
-                        
+            if(done_count >= len(self.data_buffer)):
+                break #done!
+            
             self.data_buffer.send_next()
+            
+        self.logger.info("Transform {name} received {r} and sent {s}".format(name=self.name, r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
+        self.logger.info("about to drain {n} messages from merger's buffer".format(n=self.data_buffer.pending_messages()))
         
         #drain any remaining messages in the buffer
         self.data_buffer.drain()
         
         #signal to client that we're done
         self.result_socket.send("DONE")
-        self.logger.info("Transform {name} recieved {r} and sent {s}".format(name=self.name, r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
+        self.logger.info("Transform {name} received {r} and sent {s}".format(name=self.name, r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
                 
