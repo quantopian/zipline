@@ -5,6 +5,9 @@ Small classes to assist with db access, timezone calculations, and so on.
 import datetime
 import pytz
 import json
+import logging
+import uuid
+import zmq
 
 class DocWrap():
     """
@@ -114,7 +117,7 @@ class ParallelBuffer(object):
     
 class MergedParallelBuffer(ParallelBuffer):
     
-    def merge_next(self):
+    def next(self):
         if(not(self.is_full() or self.draining)):
             return
             
@@ -124,3 +127,26 @@ class MergedParallelBuffer(ParallelBuffer):
                 result[source] = events.pop(0)
                 
         return result
+        
+        
+class FeedSync(object):
+    
+    def __init__(self, feed, name):
+        self.feed = feed
+        self.id = "{name}-{id}".format(name=name, id=uuid.uuid1())
+        self.feed.register_sync(self.id)
+        self.logger = logging.getLogger()
+        #self.logger.info("registered {id} with feed".format(id=self.id))
+        
+    def confirm(self):
+        context = zmq.Context()
+        #synchronize with feed
+        sync_socket = context.socket(zmq.REQ)
+        sync_socket.connect(self.feed.sync_address)
+        # send a synchronization request to the feed
+        sync_socket.send(self.id)
+        # wait for synchronization reply from the feed
+        sync_socket.recv()
+        sync_socket.close()
+        context.term()
+        self.logger.info("sync'd feed from {id}".format(id = self.id))

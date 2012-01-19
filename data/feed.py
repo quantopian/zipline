@@ -6,24 +6,27 @@ import logging
 
 class DataFeed(object):
     
-    def __init__(self, db, subscriber_count):
+    def __init__(self, config):
         self.logger = logging.getLogger()
         
         self.data_address = "tcp://127.0.0.1:{port}".format(port=10101)
         self.sync_address = "tcp://127.0.0.1:{port}".format(port=10102)
         self.feed_address = "tcp://127.0.0.1:{port}".format(port=10103)
         
-        self.db = db
+        self.client_register = {}
+        
         self.data_workers = {}
-        emt1 = EquityMinuteTrades(133, self.db, self.data_address, self.sync_address, 1)
-        self.data_workers[1] = emt1
-        emt2 = EquityMinuteTrades(134, self.db, self.data_address, self.sync_address, 2)
-        self.data_workers[2] = emt2
-        
+        self.config = config
+        for name, info in config.iteritems():
+            if(info['class'] == "EquityMinuteTrades"):
+                emt = EquityMinuteTrades(info['sid'], self, name)
+                self.data_workers[name] = emt
+            elif(info['class'] == "RandomEquityTrades"):
+                ret = RandomEquityTrades(info['sid'], self, name, info['count'])
+                self.data_workers[name] = ret
+                
         self.data_buffer = ParallelBuffer(self.data_workers.keys())
-        self.sync_count = subscriber_count + len(self.data_workers)
-        
-        
+             
     def start_data_workers(self):
         """Start a sub-process for each datasource.""" 
         for source_id, source in self.data_workers.iteritems():
@@ -31,21 +34,29 @@ class DataFeed(object):
             source.start()
         self.logger.info("ds processes launched")
         
+    def register_sync(self, sync_id):
+        self.client_register[sync_id] = "UNCONFIRMED"
+        
+    def registration_complete(self):
+        for sync_id, status in self.client_register.iteritems():
+            if status == "UNCONFIRMED":
+                return False
+        
+        return True
+    
     def sync_clients(self):
         # Socket to receive signals
         self.logger.info("waiting for all datasources and clients to be ready")
         self.syncservice = self.context.socket(zmq.REP)
         self.syncservice.bind(self.sync_address) 
         
-        
-        subscribers = 1
-        while subscribers <= self.sync_count:
-            self.logger.info("sync'ing {count} of {total}".format(count=subscribers, total=self.sync_count))
+        while not self.registration_complete():
             # wait for synchronization request
             msg = self.syncservice.recv()
+            self.client_register[msg] = "CONFIRMED"
+            #self.logger.info("confirmed {id}".format(id=msg))
             # send synchronization reply
-            self.syncservice.send('')
-            subscribers += 1
+            self.syncservice.send('CONFIRMED')
         
         self.syncservice.close()
         self.logger.info("sync'd all datasources and clients")
@@ -62,7 +73,7 @@ class DataFeed(object):
         self.data_socket.bind(self.data_address)
         
         #create the feed
-        self.feed_socket = self.context.socket(zmq.PUSH)
+        self.feed_socket = self.context.socket(zmq.PUB)
         self.feed_socket.bind(self.feed_address)
         
         self.data_buffer.out_socket = self.feed_socket
@@ -92,7 +103,6 @@ class DataFeed(object):
         
         #send the DONE message
         self.feed_socket.send("DONE")
-        
         self.logger.info("received {n} messages, sent {m} messages".format(n=self.data_buffer.received_count, m=self.data_buffer.sent_count))
         self.data_socket.close()
         self.feed_socket.close()
