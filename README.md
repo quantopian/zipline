@@ -107,6 +107,7 @@ Scientific python on the Mac can be a bit confusing because of the many independ
 - XCode. XCode includes the gcc and g++ compilers and architecture specific assemblers. Your version of XCode will determine which compilers and assemblers are available. The most common issue I encountered with scientific python libraries is compilation errors of underlying C code. Most scientific libraries are optimized with C routines, so this is a major hurdle. In my environment (XCode 4.0.2 with iOS components installed) I ran into problems with -arch flags asking for power pc (-arch ppc passed to the compiler). Read this stackoverflow to see how to handle similar problems: http://stackoverflow.com/questions/5256397/python-easy-install-fails-with-assembler-for-architecture-ppc-not-installed-on
 - gfortran 	- you need this to build numpy. With brew you can install with just: ```brew install gfortran```
 - umfpack 	- you need this to build scipy. ```brew install umfpack```
+- swig		- you need this to build scipy. ```brew install swig```
 - hdf5	 	- you need this to build tables. ```brew install hdf5```
 - zeromq 	- you need this to run qbt. ```brew install zmq``` 
 
