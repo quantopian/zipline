@@ -1,12 +1,15 @@
+Cython==0.15.1
 ipython==0.12
+matplotlib==1.1.0
+numexpr==2.0.1
 numpy==1.6.1
-numscons==0.12.0
+pandas==0.7.0rc1
 pymongo==2.1.1
-## FIXME: could not find svn URL in dependency_links for this package:
-pyreadline==1.7.1.dev-r0
+python-dateutil==1.5
 pytz==2011n
 pyzmq==2.1.11
-readline==6.2.1
-scons==2.1.0
-tornado==2.1.1
+scikits.statsmodels==0.3.1
+scipy==0.10.0
+tables==2.3.1
+tornado==2.2
 wsgiref==0.1.2
