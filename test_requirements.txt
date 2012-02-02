@@ -1,0 +1,14 @@
+Cython==0.15.1
+ipython==0.12
+numpy==1.6.1
+numexpr==2.0.1
+pandas==0.7.0rc1
+pymongo==2.1.1
+python-dateutil==1.5
+pytz==2011n
+pyzmq==2.1.11
+scikits.statsmodels==0.3.1
+scipy==0.10.0
+tables==2.3.1
+tornado==2.2
+wsgiref==0.1.2
