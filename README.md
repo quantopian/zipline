@@ -2,36 +2,13 @@
 
 ##Development Setup
 
-Install the necessary python libraries:
+Install the necessary python libraries. Because there are dependencies between the various C packages that don't seem to be handled by ```pip install -r```. So, we provide a helper to install the libraries as listed in requirements.txt and requirements_dev.txt:
 
-```
-	easy_install tornado pymongo pytz
+	```
+	./ordered_pip.sh requirements.txt
+	./ordered_pip.sh requirements_dev.txt
+	```
 	
-	curl -L -O http://downloads.sourceforge.net/project/numpy/NumPy/1.6.1/numpy-1.6.1.tar.gz
-	tar -xvf numpy-1.6.1.tar.gz
-	cd numpy-1.6.1
-	python setup.py build
-	python setup.py install
-	cd ..
-	
-	curl -L -O http://downloads.sourceforge.net/project/scipy/scipy/0.10.0/scipy-0.10.0.tar.gz
-	tar -xvf scipy-0.10.0.tar.gz
-	cd scipy-0.10.0
-	python setup.py build
-	python setup.py install
-	cd ..
-	
-	curl -L -O http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.tar.gz
-	tar -xvf matplotlib-1.1.0.tar.gz
-	cd matplotlib-1.1.0
-	python setup.py build
-	python setup.py install
-	cd ..
-	
-	easy_install numexpr 
-	easy_install cython tables scikits.statsmodels pandas 
-```
-
 Navigate to your mongodb installation and start your db server:
 
 ```
