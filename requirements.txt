@@ -1,15 +1,25 @@
-Cython==0.15.1
-ipython==0.12
-matplotlib==1.1.0
-numexpr==2.0.1
-numpy==1.6.1
-pandas==0.7.0rc1
-pymongo==2.1.1
-python-dateutil==1.5
+#date manipulation
 pytz==2011n
-pyzmq==2.1.11
-scikits.statsmodels==0.3.1
+python-dateutil==1.5
+
+#data source related
+pymongo==2.1.1
+
+#core scientific python
+numpy==1.6.1
 scipy==0.10.0
+http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.tar.gz
+numexpr==2.0.1
+Cython==0.15.1
 tables==2.3.1
-tornado==2.2
-wsgiref==0.1.2
+scikits.statsmodels==0.3.1
+pandas==0.7.0rc1
+
+#zeromq related
+pyzmq==2.1.11
+
+
+
+
+
+
