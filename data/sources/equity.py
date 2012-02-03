@@ -12,7 +12,7 @@ from pymongo import ASCENDING, DESCENDING
 
 from backtest.util import *
 
-from qbt_server import connect_db
+from qbt_server import * #connect_db
 
 class DataSource(object):
     def __init__(self, feed, source_id):
