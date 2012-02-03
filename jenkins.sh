@@ -14,8 +14,8 @@ fi
 # Create virtualenv and install necessary packages
 virtualenv --no-site-packages $PYENV_HOME
 . $PYENV_HOME/bin/activate
-ordered_pip.sh $WORKSPACE/requirements.txt
-ordered_pip.sh $WORKSPACE/requirements_dev.txt
+./ordered_pip.sh $WORKSPACE/requirements.txt
+./ordered_pip.sh $WORKSPACE/requirements_dev.txt
 cp /mnt/jenkins_backup/host_settings.py ./
 
 #setup the local mongodb
