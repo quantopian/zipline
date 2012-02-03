@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 echo $hash
 while read line

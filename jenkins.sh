@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ -n "${VAR:-x}" ]; then
   WORKSPACE=.
 fi
