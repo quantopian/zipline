@@ -7,11 +7,12 @@ fi
 echo $WORKSPACE
 PYENV_HOME=$WORKSPACE/.pyenv/
 
+#leaving the old build in place because it takes >20 minutes to compile everything
   
 # Delete previously built virtualenv
-if [ -d $PYENV_HOME ]; then
-    rm -rf $PYENV_HOME
-fi
+#if [ -d $PYENV_HOME ]; then
+#    rm -rf $PYENV_HOME
+#fi
 
 # Create virtualenv and install necessary packages
 virtualenv --no-site-packages $PYENV_HOME
