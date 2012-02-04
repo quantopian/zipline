@@ -13,7 +13,7 @@ import logging
 import datetime
 import random
 
-import qbt_server
+import simulator.qbt_server as qbt_server
 
 MINUTE_COUNT=390
 
