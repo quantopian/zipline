@@ -49,7 +49,7 @@ class MessagingTestCase(unittest.TestCase):
         self.assertEqual(self.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
         self.assertEqual(self.total_data_count, client.received_count, "The client should have received the same number of messages as the feed sent.")
         
-    def test_merged_to_client(self):
+    def dtest_merged_to_client(self):
         merger = MergedTransformsFeed(self.feed, self.config)
         merger_proc = multiprocessing.Process(target=merger.run)
         merger_proc.start() 
