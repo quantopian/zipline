@@ -28,4 +28,7 @@ python dev_setup.py
 nosetests --with-xcoverage --with-xunit --cover-erase --cover-package=simulator,transforms
 pylint -f parseable . | tee pylint.out
 
+#run sloccount analysis
+sloccount --wide --details ./app/ ./test/ > sloccount.sc
+
 deactivate
