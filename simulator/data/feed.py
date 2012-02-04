@@ -1,6 +1,6 @@
 
-from data.sources.equity import *
-from backtest.util import *
+from simulator.data.sources.equity import *
+from simulator.backtest.util import *
 import time
 import logging
 

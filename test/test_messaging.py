@@ -2,11 +2,11 @@ import unittest2 as unittest
 import zmq
 import logging
 import tornado
-from data.sources.equity import *
-from data.feed import *
-from data.transforms import MergedTransformsFeed, MovingAverage
+from simulator.data.sources.equity import *
+from simulator.data.feed import *
+from transforms.transforms import MergedTransformsFeed, MovingAverage
 
-from qbt_client import TestClient
+from simulator.qbt_client import TestClient
 
 
 class MessagingTestCase(unittest.TestCase):

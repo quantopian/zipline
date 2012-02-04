@@ -2,11 +2,10 @@ import zmq
 import logging
 import datetime
 import json
-import config
 import copy
 import multiprocessing
-from backtest.util import *
-
+from simulator.backtest.util import *
+import simulator.config as config
 class Transform(object):
     """Parent class for feed transforms. Subclass to create a new derived value from the combined feed."""
     
