@@ -22,7 +22,7 @@ class MessagingTestCase(unittest.TestCase):
         self.config['name'] = '**merged feed**'
         self.config['transforms'] = [{'name':'mavg1', 'class':'MovingAverage', 'hours':1},{'name':'mavg2', 'class':'MovingAverage', 'hours':2}]  
 
-    def dtest_client(self):  
+    def test_client(self):  
         #subscribe a client to the transformed feed
         client = TestClient(self.feed, self.feed.feed_address)
     
