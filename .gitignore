@@ -9,6 +9,13 @@ doc/app
 *.swp
 *~
 .DS_Store
-*.pyc
+*.py[co]
 .tddium
 .tddium-deploy-key
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
