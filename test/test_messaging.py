@@ -12,7 +12,6 @@ from simulator.qbt_client import TestClient
 class MessagingTestCase(unittest.TestCase):
 
     def setUp(self):
-        tornado.options.parse_command_line()
         self.total_data_count = 800
         self.feed_config = {'emt1':{'sid':133, 'class':'RandomEquityTrades', 'count':400},
                             'emt2':{'sid':134, 'class':'RandomEquityTrades', 'count':400}}
