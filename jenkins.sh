@@ -1,28 +1,31 @@
 #!/bin/bash
 
-if [ -n "${VAR:-x}" ]; then
-  WORKSPACE=.
+#setup virtualenvironment 
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
+if [ ! -d $HOME/.venvs ]; then
+  mkdir $HOME/.venvs
 fi
+export WORKON_HOME=$HOME/.venvs
+source /usr/local/bin/virtualenvwrapper.sh
 
-echo $WORKSPACE
-PYENV_HOME=$WORKSPACE/.pyenv/
+#create the scientific python virtualenv and copy to provide qexec base
+mkvirtualenv --no-site-packages scientific_base
+workon scientific_base
+./ordered_pip.sh requirements_sci.txt
+deactivate
+#re-base qexec
+#rmvirtualenv qexec
+cpvirtualenv scientific_base qexec  
 
-#leaving the old build in place because it takes >20 minutes to compile everything
-  
-# Delete previously built virtualenv
-#if [ -d $PYENV_HOME ]; then
-#    rm -rf $PYENV_HOME
-#fi
-
-# Create virtualenv and install necessary packages
-virtualenv --no-site-packages $PYENV_HOME
-. $PYENV_HOME/bin/activate
-./ordered_pip.sh $WORKSPACE/requirements.txt
-./ordered_pip.sh $WORKSPACE/requirements_dev.txt
-cp /mnt/jenkins/host_settings.py ./
+workon qexec
+./ordered_pip.sh requirements.txt
+./ordered_pip.sh requirements_dev.txt
 
 #setup the local mongodb
 python dev_setup.py 
 
 #run all the tests in test
-nosetests
+nosetests --with-xcoverage --with-xunit --cover-package=myapp --cover-erase
+pylint -f parseable . | tee pylint.out
+
+deactivate

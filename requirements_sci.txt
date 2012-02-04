@@ -5,7 +5,8 @@ python-dateutil==1.5
 #core scientific python
 numpy==1.6.1
 scipy==0.10.0
-http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.tar.gz
+matplotlib==1.1.0
+#http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.tar.gz
 numexpr==2.0.1
 Cython==0.15.1
 tables==2.3.1
