@@ -29,6 +29,6 @@ nosetests --with-xcoverage --with-xunit --cover-erase --cover-package=simulator,
 pylint -f parseable . | tee pylint.out
 
 #run sloccount analysis
-sloccount --wide --details ./app/ ./test/ > sloccount.sc
+sloccount --wide --details ./  > sloccount.sc
 
 deactivate
