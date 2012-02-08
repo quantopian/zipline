@@ -25,6 +25,7 @@ pip-log.txt
 dist
 build
 eggs
+cover
 parts
 bin
 var
