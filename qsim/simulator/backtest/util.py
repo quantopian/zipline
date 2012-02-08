@@ -8,6 +8,9 @@ import json
 import logging
 import uuid
 import zmq
+from tornado.options import define, options
+
+logger = logging.getLogger('QSimLogger')
 
 class DocWrap():
     """
@@ -145,7 +148,7 @@ class FeedSync(object):
         self.feed = feed
         self.id = "{name}-{id}".format(name=name, id=uuid.uuid1())
         self.feed.register_sync(self.id)
-        self.logger = logging.getLogger()
+        self.logger = logger
         #self.logger.info("registered {id} with feed".format(id=self.id))
         
     def confirm(self):
@@ -160,3 +163,26 @@ class FeedSync(object):
         sync_socket.close()
         context.term()
         self.logger.info("sync'd feed from {id}".format(id = self.id))
+        
+        
+define("user_email", default="qbt@quantopian.com", help="email address for qbt user")
+define("password", default="foobar", help="password for qbt user")
+define("port", default=8888, help="run the qbt on the given port", type=int)
+define("mongodb_host", default="127.0.0.1", help="mongodb host address")
+define("mongodb_port", default=27017, help="connect to the mongodb on the given port", type=int)
+define("mongodb_dbname", default="qbt", help="database name")
+define("mongodb_user", default="qbt", help="database user")
+define("mongodb_password", default="qbt", help="database password")
+
+def connect_db():
+    connection = pymongo.Connection(options.mongodb_host, options.mongodb_port)
+    db = connection[options.mongodb_dbname]
+    db.authenticate(options.mongodb_user, options.mongodb_password)
+    return connection, db
+    
+def configure_logging(loglevel=logging.DEBUG):  
+    logger.setLevel(loglevel)
+    handler = logging.handlers.RotatingFileHandler("/tmp/{lfn}.log".format(lfn="qsim-log"), maxBytes=10*1024*1024, backupCount=5)  
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(filename)s %(funcName)s - %(message)s","%Y-%m-%d %H:%M:%S %Z")) 
+    logger.addHandler(handler) 
+    logger.info("logging started...")   

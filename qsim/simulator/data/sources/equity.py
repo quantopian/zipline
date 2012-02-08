@@ -10,16 +10,14 @@ import logging
 import random
 from pymongo import ASCENDING, DESCENDING
 
-from simulator.backtest.util import *
-
-from simulator.qbt_server import * #connect_db
+import qsim.simulator.backtest.util as qutil
 
 class DataSource(object):
     def __init__(self, feed, source_id):
         self.source_id              = source_id
-        self.logger                 = logging.getLogger()
+        self.logger                 = qutil.logger
         self.feed                   = feed
-        self.sync                   = FeedSync(self.feed, str(source_id))
+        self.sync                   = qutil.FeedSync(self.feed, str(source_id))
         self.data_address           = self.feed.data_address
         self.logger.info("data address is {ds}".format(ds=self.feed.data_address))        
         self.cur_event = None
@@ -46,7 +44,7 @@ class DataSource(object):
             self.send_all()
             self.close()    
         except Exception as err:
-            self.logger.error(err, "Unexpected failure running datasource - {name}.".format(name=name))
+            self.logger.exception("Unexpected failure running datasource - {name}.".format(name=self.source_id))
             
     def send(self, event):
         event['s'] = self.source_id             
@@ -66,7 +64,7 @@ class EquityMinuteTrades(DataSource):
     
     def __init__(self, sid, feed, source_id):
         self.sid = sid
-        self.connection, self.db    = connect_db()
+        self.connection, self.db    = qutil.connect_db()
         DataSource.__init__(self, feed, source_id)
                
      
@@ -79,7 +77,7 @@ class EquityMinuteTrades(DataSource):
         
         for doc in eventQS:
             doc_dt = doc['dt'].replace(tzinfo = pytz.utc)
-            doc_dt_str = format_date(doc_dt)
+            doc_dt_str = qutil.format_date(doc_dt)
             event = copy.copy(doc)
             event['dt'] = doc_dt_str
             del(event['_id'])
@@ -101,7 +99,7 @@ class RandomEquityTrades(DataSource):
         
         for i in range(self.count):
             price = price + random.uniform(-0.05,0.05)
-            event = {'sid':self.sid, 'dt':format_date(trade_start + (minute * i)),'price':price, 'volume':random.randrange(100,10000,100)}
+            event = {'sid':self.sid, 'dt':qutil.format_date(trade_start + (minute * i)),'price':price, 'volume':random.randrange(100,10000,100)}
             self.send(event)
           
    

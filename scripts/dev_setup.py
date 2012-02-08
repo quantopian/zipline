@@ -13,16 +13,13 @@ import logging
 import datetime
 import random
 
-import simulator.qbt_server as qbt_server
+import qsim.simulator.backtest.util as qutil
 
 MINUTE_COUNT=390
 
-define("user_email", default="qbt@quantopian.com", help="email address for qbt user")
-define("password", default="foobar", help="password for qbt user")
-
 def db_main():
     tornado.options.parse_command_line()
-    connection, db = qbt_server.connect_db()
+    connection, db = qutil.connect_db()
     
     #create a user for testing
     salt, encrypted_password = qbt_server.encrypt_password(None, options.password)

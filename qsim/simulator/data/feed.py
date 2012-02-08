@@ -1,13 +1,15 @@
 
-from simulator.data.sources.equity import *
-from simulator.backtest.util import *
+import qsim.simulator.data.sources.equity as qequity
+import qsim.simulator.backtest.util as qutil
+import zmq
 import time
 import logging
+import json
 
 class DataFeed(object):
     
     def __init__(self, config):
-        self.logger = logging.getLogger()
+        self.logger = qutil.logger
         
         self.data_address = "tcp://127.0.0.1:{port}".format(port=10101)
         self.sync_address = "tcp://127.0.0.1:{port}".format(port=10102)
@@ -22,10 +24,10 @@ class DataFeed(object):
                 emt = EquityMinuteTrades(info['sid'], self, name)
                 self.data_workers[name] = emt
             elif(info['class'] == "RandomEquityTrades"):
-                ret = RandomEquityTrades(info['sid'], self, name, info['count'])
+                ret = qequity.RandomEquityTrades(info['sid'], self, name, info['count'])
                 self.data_workers[name] = ret
                 
-        self.data_buffer = ParallelBuffer(self.data_workers.keys())
+        self.data_buffer = qutil.ParallelBuffer(self.data_workers.keys())
              
     def start_data_workers(self):
         """Start a sub-process for each datasource.""" 

@@ -2,16 +2,21 @@ import unittest2 as unittest
 import zmq
 import logging
 import tornado
-from simulator.data.sources.equity import *
-from simulator.data.feed import *
-from transforms.transforms import MergedTransformsFeed, MovingAverage
+import multiprocessing
 
-from simulator.qbt_client import TestClient
+from qsim.simulator.data.feed import DataFeed
+from qsim.transforms.transforms import MergedTransformsFeed, MovingAverage
+import qsim.simulator.backtest.util as qutil
+
+from qsim.simulator.qbt_client import TestClient
 
 
 class MessagingTestCase(unittest.TestCase):
 
     def setUp(self):
+        tornado.options.parse_command_line()
+        qutil.configure_logging()
+        qutil.logger.info("testing...")
         self.total_data_count = 800
         self.feed_config = {'emt1':{'sid':133, 'class':'RandomEquityTrades', 'count':400},
                             'emt2':{'sid':134, 'class':'RandomEquityTrades', 'count':400}}
@@ -23,7 +28,7 @@ class MessagingTestCase(unittest.TestCase):
         self.config['transforms'] = [{'name':'mavg1', 'class':'MovingAverage', 'hours':1},{'name':'mavg2', 'class':'MovingAverage', 'hours':2}]  
 
     def test_client(self):  
-        #subscribe a client to the transformed feed
+        #subscribe a client to the multiplexed feed
         client = TestClient(self.feed, self.feed.feed_address)
     
         feed_proc = multiprocessing.Process(target=self.feed.run)

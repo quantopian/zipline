@@ -4,8 +4,8 @@ import datetime
 import json
 import copy
 import multiprocessing
-from simulator.backtest.util import *
-import simulator.config as config
+import qsim.simulator.backtest.util as qutil
+import qsim.simulator.config as config
 class Transform(object):
     """Parent class for feed transforms. Subclass to create a new derived value from the combined feed."""
     
@@ -18,7 +18,7 @@ class Transform(object):
             server          - if True, transform will bind to the result address (and act as a server), if False it will connect. The
                               the last transform in a series should be server=True so that clients can connect.
         """
-        self.logger             = logging.getLogger()
+        self.logger             = qutil.logger
         self.feed               = feed
         self.feed_address       = feed.feed_address
         self.result_address     = result_address
@@ -98,7 +98,7 @@ class MovingAverage(Transform):
         self.events.append(event)
         
         #filter the event list to the window length.
-        self.events = [x for x in self.events if (parse_date(x['dt']) - parse_date(event['dt'])) <= self.window]
+        self.events = [x for x in self.events if (qutil.parse_date(x['dt']) - qutil.parse_date(event['dt'])) <= self.window]
         
         if(len(self.events) == 0):
             return 0.0

@@ -34,8 +34,8 @@ import copy
 import multiprocessing
 import zmq
 
-from backtest.util import *
-from data.sources.equity import *
+import qsim.backtest.util as qutil
+import qsim.data.sources.equity as qequity
 
 
 

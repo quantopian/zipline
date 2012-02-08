@@ -4,15 +4,15 @@ import zmq
 import logging
 import json
 
-from backtest.util import *
+import qsim.simulator.backtest.util as qutil
 
 class TestClient(object):
     
     def __init__(self,feed, address, bind=False):
-        self.logger         = logging.getLogger()
+        self.logger         = qutil.logger
         self.feed           = feed
         self.address        = address
-        self.sync           = FeedSync(feed, "testclient")
+        self.sync           = qutil.FeedSync(feed, "testclient")
         self.bind           = bind
         self.received_count = 0
         

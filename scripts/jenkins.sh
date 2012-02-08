@@ -11,15 +11,15 @@ source /usr/local/bin/virtualenvwrapper.sh
 #create the scientific python virtualenv and copy to provide qsim base
 mkvirtualenv --no-site-packages scientific_base
 workon scientific_base
-./ordered_pip.sh requirements_sci.txt
+./scripts/ordered_pip.sh ./scripts/requirements_sci.txt
 deactivate
 #re-base qsim
 #rmvirtualenv qsim
 cpvirtualenv scientific_base qsim  
 
 workon qsim
-./scripts/ordered_pip.sh requirements.txt
-./scripts/ordered_pip.sh requirements_dev.txt
+./scripts/ordered_pip.sh ./scripts/requirements.txt
+./scripts/ordered_pip.sh ./scripts/requirements_dev.txt
 
 #setup the local mongodb
 python ./scripts/dev_setup.py 
