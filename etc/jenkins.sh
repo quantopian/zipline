@@ -24,19 +24,16 @@ workon qsim
 # Show what we have installed
 pip freeze
 
+#documentation output
+paver apidocs html
+
 #run all the tests in test
-nosetests --with-xunit --cover-erase --cover-package=qsim
+nosetests --with-xunit --cover-erase --cover-package=qsim --cover-html-dir=./docs/_build/html/cover
 
 #run pylint checks
 pylint -f parseable . | tee pylint.out
 
 #run sloccount analysis
 sloccount --wide --details ./  > sloccount.sc
-
-#documentation output
-paver apidocs html
-
-#move coverage into apidocs
-mv ./cover ./docs/_build/html
 
 deactivate
