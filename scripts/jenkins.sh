@@ -21,9 +21,6 @@ workon qsim
 ./scripts/ordered_pip.sh ./scripts/requirements.txt
 ./scripts/ordered_pip.sh ./scripts/requirements_dev.txt
 
-#setup the local mongodb
-python ./dev_setup.py 
-
 #run all the tests in test
 nosetests --with-xcoverage --with-xunit --cover-erase --cover-package=qsim
 pylint -f parseable . | tee pylint.out
