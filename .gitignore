@@ -4,14 +4,11 @@ log/*.log
 *.log
 tmp/**/*
 tmp/*
-doc/api
-doc/app
 *.swp
 *~
+#mac autosaving file
 .DS_Store
 *.py[co]
-.tddium
-.tddium-deploy-key
 
 # Installer logs
 pip-log.txt
@@ -19,3 +16,24 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+
+*.py[co]
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+
+*.swp
+*.swo
+
+# Built documentation
+docs/_build/*
