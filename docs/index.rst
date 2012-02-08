@@ -14,6 +14,12 @@ Contents:
    notes.rst
    modules.rst
 
+
+
+Review the unit test coverage_.
+
+
+
 Indices and tables
 ==================
 
@@ -21,3 +27,4 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. _coverage: cover/index.html	

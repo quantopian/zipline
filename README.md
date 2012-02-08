@@ -42,11 +42,8 @@ For line count::
 
     $ paver sloccount
 
-For syntax checking::
-
-    $ paver pyflakes
-
 For building distributable egg::
+
 	$ paver bdist_egg
 
 Tooling hints

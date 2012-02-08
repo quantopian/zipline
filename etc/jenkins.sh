@@ -36,4 +36,7 @@ sloccount --wide --details ./  > sloccount.sc
 #documentation output
 paver apidocs html
 
+#move coverage into apidocs
+mv ./cover ./docs/_build/html
+
 deactivate
