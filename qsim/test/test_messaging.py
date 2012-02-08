@@ -9,7 +9,7 @@ from qsim.transforms.base import MergedTransformsFeed
 from qsim.transforms.technical import MovingAverage
 import qsim.util as qutil
 
-from qsim.simulator.qbt_client import TestClient
+from qsim.test.client import TestClient
 
 
 class MessagingTestCase(unittest.TestCase):

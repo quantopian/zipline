@@ -1,0 +1,471 @@
+<!doctype html PUBLIC "-//W3C//DTD html 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+    
+    
+    <meta http-equiv='X-UA-Compatible' content='IE=emulateIE7' />
+    <title>Coverage for qsim.transforms.base: 17%</title>
+    <link rel='stylesheet' href='style.css' type='text/css'>
+    <script type='text/javascript' src='jquery-1.4.3.min.js'></script>
+    <script type='text/javascript' src='jquery.hotkeys.js'></script>
+    <script type='text/javascript' src='jquery.isonscreen.js'></script>
+    <script type='text/javascript' src='coverage_html.js'></script>
+    <script type='text/javascript' charset='utf-8'>
+        jQuery(document).ready(coverage.pyfile_ready);
+    </script>
+</head>
+<body id='pyfile'>
+
+<div id='header'>
+    <div class='content'>
+        <h1>Coverage for <b>qsim.transforms.base</b> :
+            <span class='pc_cov'>17%</span>
+        </h1>
+        <img id='keyboard_icon' src='keybd_closed.png'>
+        <h2 class='stats'>
+            125 statements
+            <span class='run hide_run shortkey_r' onclick='coverage.toggle_lines(this, "run")'>21 run</span>
+            <span class='mis shortkey_m' onclick='coverage.toggle_lines(this, "mis")'>104 missing</span>
+            <span class='exc shortkey_x' onclick='coverage.toggle_lines(this, "exc")'>0 excluded</span>
+            
+        </h2>
+    </div>
+</div>
+
+<div class='help_panel'>
+    <img id='panel_icon' src='keybd_open.png'>
+<p class='legend'>Hot-keys on this page</p>
+    <div>
+<p class='keyhelp'>
+        <span class='key'>r</span>
+        <span class='key'>m</span>
+        <span class='key'>x</span>
+        <span class='key'>p</span> &nbsp; toggle line displays
+    </p>
+<p class='keyhelp'>
+        <span class='key'>j</span>
+        <span class='key'>k</span> &nbsp; next/prev highlighted chunk
+    </p>
+<p class='keyhelp'>
+        <span class='key'>0</span> &nbsp; (zero) top of page
+    </p>
+<p class='keyhelp'>
+        <span class='key'>1</span> &nbsp; (one) first highlighted chunk
+    </p>
+    </div>
+</div>
+
+<div id='source'>
+    <table cellspacing='0' cellpadding='0'>
+        <tr>
+            <td class='linenos' valign='top'>
+<p id='n1' class='stm run hide_run'><a href='#n1'>1</a></p>
+<p id='n2' class='stm run hide_run'><a href='#n2'>2</a></p>
+<p id='n3' class='stm run hide_run'><a href='#n3'>3</a></p>
+<p id='n4' class='stm run hide_run'><a href='#n4'>4</a></p>
+<p id='n5' class='stm run hide_run'><a href='#n5'>5</a></p>
+<p id='n6' class='stm run hide_run'><a href='#n6'>6</a></p>
+<p id='n7' class='stm run hide_run'><a href='#n7'>7</a></p>
+<p id='n8' class='stm run hide_run'><a href='#n8'>8</a></p>
+<p id='n9' class='pln'><a href='#n9'>9</a></p>
+<p id='n10' class='stm run hide_run'><a href='#n10'>10</a></p>
+<p id='n11' class='pln'><a href='#n11'>11</a></p>
+<p id='n12' class='pln'><a href='#n12'>12</a></p>
+<p id='n13' class='stm run hide_run'><a href='#n13'>13</a></p>
+<p id='n14' class='pln'><a href='#n14'>14</a></p>
+<p id='n15' class='pln'><a href='#n15'>15</a></p>
+<p id='n16' class='pln'><a href='#n16'>16</a></p>
+<p id='n17' class='pln'><a href='#n17'>17</a></p>
+<p id='n18' class='pln'><a href='#n18'>18</a></p>
+<p id='n19' class='pln'><a href='#n19'>19</a></p>
+<p id='n20' class='pln'><a href='#n20'>20</a></p>
+<p id='n21' class='pln'><a href='#n21'>21</a></p>
+<p id='n22' class='stm mis'><a href='#n22'>22</a></p>
+<p id='n23' class='stm mis'><a href='#n23'>23</a></p>
+<p id='n24' class='stm mis'><a href='#n24'>24</a></p>
+<p id='n25' class='stm mis'><a href='#n25'>25</a></p>
+<p id='n26' class='stm mis'><a href='#n26'>26</a></p>
+<p id='n27' class='stm mis'><a href='#n27'>27</a></p>
+<p id='n28' class='stm mis'><a href='#n28'>28</a></p>
+<p id='n29' class='stm mis'><a href='#n29'>29</a></p>
+<p id='n30' class='stm mis'><a href='#n30'>30</a></p>
+<p id='n31' class='stm mis'><a href='#n31'>31</a></p>
+<p id='n32' class='stm mis'><a href='#n32'>32</a></p>
+<p id='n33' class='pln'><a href='#n33'>33</a></p>
+<p id='n34' class='stm run hide_run'><a href='#n34'>34</a></p>
+<p id='n35' class='stm mis'><a href='#n35'>35</a></p>
+<p id='n36' class='stm mis'><a href='#n36'>36</a></p>
+<p id='n37' class='stm mis'><a href='#n37'>37</a></p>
+<p id='n38' class='pln'><a href='#n38'>38</a></p>
+<p id='n39' class='stm run hide_run'><a href='#n39'>39</a></p>
+<p id='n40' class='stm mis'><a href='#n40'>40</a></p>
+<p id='n41' class='pln'><a href='#n41'>41</a></p>
+<p id='n42' class='stm mis'><a href='#n42'>42</a></p>
+<p id='n43' class='pln'><a href='#n43'>43</a></p>
+<p id='n44' class='stm mis'><a href='#n44'>44</a></p>
+<p id='n45' class='stm mis'><a href='#n45'>45</a></p>
+<p id='n46' class='stm mis'><a href='#n46'>46</a></p>
+<p id='n47' class='pln'><a href='#n47'>47</a></p>
+<p id='n48' class='pln'><a href='#n48'>48</a></p>
+<p id='n49' class='stm mis'><a href='#n49'>49</a></p>
+<p id='n50' class='stm mis'><a href='#n50'>50</a></p>
+<p id='n51' class='pln'><a href='#n51'>51</a></p>
+<p id='n52' class='stm run hide_run'><a href='#n52'>52</a></p>
+<p id='n53' class='stm mis'><a href='#n53'>53</a></p>
+<p id='n54' class='stm mis'><a href='#n54'>54</a></p>
+<p id='n55' class='pln'><a href='#n55'>55</a></p>
+<p id='n56' class='stm mis'><a href='#n56'>56</a></p>
+<p id='n57' class='stm mis'><a href='#n57'>57</a></p>
+<p id='n58' class='stm mis'><a href='#n58'>58</a></p>
+<p id='n59' class='stm mis'><a href='#n59'>59</a></p>
+<p id='n60' class='stm mis'><a href='#n60'>60</a></p>
+<p id='n61' class='stm mis'><a href='#n61'>61</a></p>
+<p id='n62' class='stm mis'><a href='#n62'>62</a></p>
+<p id='n63' class='stm mis'><a href='#n63'>63</a></p>
+<p id='n64' class='stm mis'><a href='#n64'>64</a></p>
+<p id='n65' class='stm mis'><a href='#n65'>65</a></p>
+<p id='n66' class='stm mis'><a href='#n66'>66</a></p>
+<p id='n67' class='stm mis'><a href='#n67'>67</a></p>
+<p id='n68' class='stm mis'><a href='#n68'>68</a></p>
+<p id='n69' class='pln'><a href='#n69'>69</a></p>
+<p id='n70' class='stm run hide_run'><a href='#n70'>70</a></p>
+<p id='n71' class='stm mis'><a href='#n71'>71</a></p>
+<p id='n72' class='pln'><a href='#n72'>72</a></p>
+<p id='n73' class='stm mis'><a href='#n73'>73</a></p>
+<p id='n74' class='stm mis'><a href='#n74'>74</a></p>
+<p id='n75' class='stm mis'><a href='#n75'>75</a></p>
+<p id='n76' class='pln'><a href='#n76'>76</a></p>
+<p id='n77' class='stm run hide_run'><a href='#n77'>77</a></p>
+<p id='n78' class='pln'><a href='#n78'>78</a></p>
+<p id='n79' class='pln'><a href='#n79'>79</a></p>
+<p id='n80' class='pln'><a href='#n80'>80</a></p>
+<p id='n81' class='pln'><a href='#n81'>81</a></p>
+<p id='n82' class='pln'><a href='#n82'>82</a></p>
+<p id='n83' class='pln'><a href='#n83'>83</a></p>
+<p id='n84' class='stm mis'><a href='#n84'>84</a></p>
+<p id='n85' class='pln'><a href='#n85'>85</a></p>
+<p id='n86' class='pln'><a href='#n86'>86</a></p>
+<p id='n87' class='stm run hide_run'><a href='#n87'>87</a></p>
+<p id='n88' class='pln'><a href='#n88'>88</a></p>
+<p id='n89' class='pln'><a href='#n89'>89</a></p>
+<p id='n90' class='pln'><a href='#n90'>90</a></p>
+<p id='n91' class='pln'><a href='#n91'>91</a></p>
+<p id='n92' class='pln'><a href='#n92'>92</a></p>
+<p id='n93' class='pln'><a href='#n93'>93</a></p>
+<p id='n94' class='pln'><a href='#n94'>94</a></p>
+<p id='n95' class='stm run hide_run'><a href='#n95'>95</a></p>
+<p id='n96' class='pln'><a href='#n96'>96</a></p>
+<p id='n97' class='pln'><a href='#n97'>97</a></p>
+<p id='n98' class='pln'><a href='#n98'>98</a></p>
+<p id='n99' class='stm mis'><a href='#n99'>99</a></p>
+<p id='n100' class='stm mis'><a href='#n100'>100</a></p>
+<p id='n101' class='stm mis'><a href='#n101'>101</a></p>
+<p id='n102' class='stm mis'><a href='#n102'>102</a></p>
+<p id='n103' class='pln'><a href='#n103'>103</a></p>
+<p id='n104' class='pln'><a href='#n104'>104</a></p>
+<p id='n105' class='stm run hide_run'><a href='#n105'>105</a></p>
+<p id='n106' class='stm mis'><a href='#n106'>106</a></p>
+<p id='n107' class='stm mis'><a href='#n107'>107</a></p>
+<p id='n108' class='stm mis'><a href='#n108'>108</a></p>
+<p id='n109' class='stm mis'><a href='#n109'>109</a></p>
+<p id='n110' class='stm mis'><a href='#n110'>110</a></p>
+<p id='n111' class='stm mis'><a href='#n111'>111</a></p>
+<p id='n112' class='pln'><a href='#n112'>112</a></p>
+<p id='n113' class='stm mis'><a href='#n113'>113</a></p>
+<p id='n114' class='stm mis'><a href='#n114'>114</a></p>
+<p id='n115' class='stm mis'><a href='#n115'>115</a></p>
+<p id='n116' class='pln'><a href='#n116'>116</a></p>
+<p id='n117' class='stm mis'><a href='#n117'>117</a></p>
+<p id='n118' class='stm mis'><a href='#n118'>118</a></p>
+<p id='n119' class='stm mis'><a href='#n119'>119</a></p>
+<p id='n120' class='pln'><a href='#n120'>120</a></p>
+<p id='n121' class='stm run hide_run'><a href='#n121'>121</a></p>
+<p id='n122' class='stm mis'><a href='#n122'>122</a></p>
+<p id='n123' class='pln'><a href='#n123'>123</a></p>
+<p id='n124' class='stm mis'><a href='#n124'>124</a></p>
+<p id='n125' class='pln'><a href='#n125'>125</a></p>
+<p id='n126' class='stm mis'><a href='#n126'>126</a></p>
+<p id='n127' class='stm mis'><a href='#n127'>127</a></p>
+<p id='n128' class='stm mis'><a href='#n128'>128</a></p>
+<p id='n129' class='pln'><a href='#n129'>129</a></p>
+<p id='n130' class='pln'><a href='#n130'>130</a></p>
+<p id='n131' class='stm mis'><a href='#n131'>131</a></p>
+<p id='n132' class='stm mis'><a href='#n132'>132</a></p>
+<p id='n133' class='pln'><a href='#n133'>133</a></p>
+<p id='n134' class='pln'><a href='#n134'>134</a></p>
+<p id='n135' class='stm mis'><a href='#n135'>135</a></p>
+<p id='n136' class='stm mis'><a href='#n136'>136</a></p>
+<p id='n137' class='stm mis'><a href='#n137'>137</a></p>
+<p id='n138' class='pln'><a href='#n138'>138</a></p>
+<p id='n139' class='pln'><a href='#n139'>139</a></p>
+<p id='n140' class='stm mis'><a href='#n140'>140</a></p>
+<p id='n141' class='stm mis'><a href='#n141'>141</a></p>
+<p id='n142' class='stm mis'><a href='#n142'>142</a></p>
+<p id='n143' class='pln'><a href='#n143'>143</a></p>
+<p id='n144' class='stm mis'><a href='#n144'>144</a></p>
+<p id='n145' class='stm mis'><a href='#n145'>145</a></p>
+<p id='n146' class='stm mis'><a href='#n146'>146</a></p>
+<p id='n147' class='stm mis'><a href='#n147'>147</a></p>
+<p id='n148' class='pln'><a href='#n148'>148</a></p>
+<p id='n149' class='stm mis'><a href='#n149'>149</a></p>
+<p id='n150' class='pln'><a href='#n150'>150</a></p>
+<p id='n151' class='stm run hide_run'><a href='#n151'>151</a></p>
+<p id='n152' class='stm mis'><a href='#n152'>152</a></p>
+<p id='n153' class='stm mis'><a href='#n153'>153</a></p>
+<p id='n154' class='pln'><a href='#n154'>154</a></p>
+<p id='n155' class='stm run hide_run'><a href='#n155'>155</a></p>
+<p id='n156' class='pln'><a href='#n156'>156</a></p>
+<p id='n157' class='stm mis'><a href='#n157'>157</a></p>
+<p id='n158' class='stm mis'><a href='#n158'>158</a></p>
+<p id='n159' class='stm mis'><a href='#n159'>159</a></p>
+<p id='n160' class='pln'><a href='#n160'>160</a></p>
+<p id='n161' class='stm mis'><a href='#n161'>161</a></p>
+<p id='n162' class='stm mis'><a href='#n162'>162</a></p>
+<p id='n163' class='stm mis'><a href='#n163'>163</a></p>
+<p id='n164' class='stm mis'><a href='#n164'>164</a></p>
+<p id='n165' class='stm mis'><a href='#n165'>165</a></p>
+<p id='n166' class='pln'><a href='#n166'>166</a></p>
+<p id='n167' class='stm mis'><a href='#n167'>167</a></p>
+<p id='n168' class='stm mis'><a href='#n168'>168</a></p>
+<p id='n169' class='stm mis'><a href='#n169'>169</a></p>
+<p id='n170' class='pln'><a href='#n170'>170</a></p>
+<p id='n171' class='stm mis'><a href='#n171'>171</a></p>
+<p id='n172' class='stm mis'><a href='#n172'>172</a></p>
+<p id='n173' class='stm mis'><a href='#n173'>173</a></p>
+<p id='n174' class='stm mis'><a href='#n174'>174</a></p>
+<p id='n175' class='stm mis'><a href='#n175'>175</a></p>
+<p id='n176' class='pln'><a href='#n176'>176</a></p>
+<p id='n177' class='stm mis'><a href='#n177'>177</a></p>
+<p id='n178' class='stm mis'><a href='#n178'>178</a></p>
+<p id='n179' class='stm mis'><a href='#n179'>179</a></p>
+<p id='n180' class='pln'><a href='#n180'>180</a></p>
+<p id='n181' class='stm mis'><a href='#n181'>181</a></p>
+<p id='n182' class='stm mis'><a href='#n182'>182</a></p>
+<p id='n183' class='pln'><a href='#n183'>183</a></p>
+<p id='n184' class='stm mis'><a href='#n184'>184</a></p>
+<p id='n185' class='pln'><a href='#n185'>185</a></p>
+<p id='n186' class='stm mis'><a href='#n186'>186</a></p>
+<p id='n187' class='stm mis'><a href='#n187'>187</a></p>
+<p id='n188' class='pln'><a href='#n188'>188</a></p>
+<p id='n189' class='pln'><a href='#n189'>189</a></p>
+<p id='n190' class='stm mis'><a href='#n190'>190</a></p>
+<p id='n191' class='pln'><a href='#n191'>191</a></p>
+<p id='n192' class='pln'><a href='#n192'>192</a></p>
+<p id='n193' class='stm mis'><a href='#n193'>193</a></p>
+<p id='n194' class='stm mis'><a href='#n194'>194</a></p>
+<p id='n195' class='pln'><a href='#n195'>195</a></p>
+                
+            </td>
+            <td class='text' valign='top'>
+<p id='t1' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>zmq</span><span class='strut'>&nbsp;</span></p>
+<p id='t2' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>logging</span><span class='strut'>&nbsp;</span></p>
+<p id='t3' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>datetime</span><span class='strut'>&nbsp;</span></p>
+<p id='t4' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>json</span><span class='strut'>&nbsp;</span></p>
+<p id='t5' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>copy</span><span class='strut'>&nbsp;</span></p>
+<p id='t6' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>multiprocessing</span><span class='strut'>&nbsp;</span></p>
+<p id='t7' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>qsim</span><span class='op'>.</span><span class='nam'>util</span> <span class='key'>as</span> <span class='nam'>qutil</span><span class='strut'>&nbsp;</span></p>
+<p id='t8' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>qsim</span><span class='op'>.</span><span class='nam'>simulator</span><span class='op'>.</span><span class='nam'>config</span> <span class='key'>as</span> <span class='nam'>config</span><span class='strut'>&nbsp;</span></p>
+<p id='t9' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t10' class='stm run hide_run'><span class='key'>class</span> <span class='nam'>Transform</span><span class='op'>(</span><span class='nam'>object</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t11' class='pln'>&nbsp; &nbsp; <span class='str'>&quot;&quot;&quot;Parent class for feed transforms. Subclass and override transform method to create a new derived value from the combined feed.&quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t12' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t13' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>__init__</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>feed</span><span class='op'>,</span> <span class='nam'>config_dict</span><span class='op'>,</span> <span class='nam'>result_address</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t14' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='str'>&quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t15' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; feed_address&nbsp; &nbsp; - zmq socket address, Transform will CONNECT a PULL socket and receive messages until &quot;DONE&quot; is received.</span><span class='strut'>&nbsp;</span></p>
+<p id='t16' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; result_address&nbsp; - zmq socket address, Transform will CONNECT a PUSH socket and send messaes until feed_socket receives &quot;DONE&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t17' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; sync_address&nbsp; &nbsp; - zmq socket address, Transform will CONNECT a REQ socket and send/receive one message before entering feed loop</span><span class='strut'>&nbsp;</span></p>
+<p id='t18' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; config&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; - must be a dict that can be wrapped in a config.Config object with at least an entry for &#39;name&#39;:string value</span><span class='strut'>&nbsp;</span></p>
+<p id='t19' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; server&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; - if True, transform will bind to the result address (and act as a server), if False it will connect. The</span><span class='strut'>&nbsp;</span></p>
+<p id='t20' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; the last transform in a series should be server=True so that clients can connect.</span><span class='strut'>&nbsp;</span></p>
+<p id='t21' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t22' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>qutil</span><span class='op'>.</span><span class='nam'>logger</span><span class='strut'>&nbsp;</span></p>
+<p id='t23' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>feed</span><span class='strut'>&nbsp;</span></p>
+<p id='t24' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_address</span>&nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>feed</span><span class='op'>.</span><span class='nam'>feed_address</span><span class='strut'>&nbsp;</span></p>
+<p id='t25' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_address</span>&nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>result_address</span><span class='strut'>&nbsp;</span></p>
+<p id='t26' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>config</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>config</span><span class='op'>.</span><span class='nam'>Config</span><span class='op'>(</span><span class='nam'>config_dict</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t27' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>config</span><span class='op'>.</span><span class='nam'>get_string</span><span class='op'>(</span><span class='str'>&#39;name&#39;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t28' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>sync</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>FeedSync</span><span class='op'>(</span><span class='nam'>feed</span><span class='op'>,</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t29' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>state</span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='op'>=</span> <span class='op'>{</span><span class='op'>}</span><span class='strut'>&nbsp;</span></p>
+<p id='t30' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>state</span><span class='op'>[</span><span class='str'>&#39;name&#39;</span><span class='op'>]</span>&nbsp; &nbsp; &nbsp; <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='strut'>&nbsp;</span></p>
+<p id='t31' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>received_count</span>&nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='num'>0</span><span class='strut'>&nbsp;</span></p>
+<p id='t32' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>sent_count</span>&nbsp; &nbsp; &nbsp; &nbsp;&nbsp; <span class='op'>=</span> <span class='num'>0</span><span class='strut'>&nbsp;</span></p>
+<p id='t33' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t34' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>run</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t35' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>open</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t36' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>process_all</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t37' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>close</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t38' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t39' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>open</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t40' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span> <span class='op'>=</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>Context</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t41' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t42' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;starting {name} transform&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t43' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#create the feed SUB. </span><span class='strut'>&nbsp;</span></p>
+<p id='t44' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>socket</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>SUB</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t45' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>connect</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t46' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>setsockopt</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>SUBSCRIBE</span><span class='op'>,</span><span class='str'>&#39;&#39;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t47' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t48' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#create the result PUSH</span><span class='strut'>&nbsp;</span></p>
+<p id='t49' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>socket</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>PUSH</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t50' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>connect</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t51' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t52' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>process_all</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t53' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;starting {name} event loop&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t54' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>sync</span><span class='op'>.</span><span class='nam'>confirm</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t55' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t56' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>while</span> <span class='nam'>True</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t57' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>message</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>recv</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t58' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span><span class='op'>(</span><span class='nam'>message</span> <span class='op'>==</span> <span class='str'>&quot;DONE&quot;</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t59' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;{name} received the Done message from the feed&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t60' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>send</span><span class='op'>(</span><span class='str'>&quot;DONE&quot;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t61' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>break</span><span class='op'>;</span><span class='strut'>&nbsp;</span></p>
+<p id='t62' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>received_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t63' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>event</span> <span class='op'>=</span> <span class='nam'>json</span><span class='op'>.</span><span class='nam'>loads</span><span class='op'>(</span><span class='nam'>message</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t64' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>cur_state</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform</span><span class='op'>(</span><span class='nam'>event</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t65' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>cur_state</span><span class='op'>[</span><span class='str'>&#39;dt&#39;</span><span class='op'>]</span> <span class='op'>=</span> <span class='nam'>event</span><span class='op'>[</span><span class='str'>&#39;dt&#39;</span><span class='op'>]</span><span class='strut'>&nbsp;</span></p>
+<p id='t66' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>cur_state</span><span class='op'>[</span><span class='str'>&#39;name&#39;</span><span class='op'>]</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='strut'>&nbsp;</span></p>
+<p id='t67' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>send</span><span class='op'>(</span><span class='nam'>json</span><span class='op'>.</span><span class='nam'>dumps</span><span class='op'>(</span><span class='nam'>cur_state</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t68' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>sent_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t69' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t70' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>close</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t71' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;Transform {name} recieved {r} and sent {s}&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>,</span> <span class='nam'>r</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>received_count</span><span class='op'>,</span> <span class='nam'>s</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>sent_count</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t72' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t73' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>close</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t74' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>close</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t75' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>term</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t76' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t77' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>transform</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>event</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t78' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='str'>&quot;&quot;&quot; Must return the transformed value as a map with {name:&quot;name of new transform&quot;, value: &quot;value of new field&quot;}</span><span class='strut'>&nbsp;</span></p>
+<p id='t79' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Transforms run in parallel and results are merged into a single map, so transform names must be unique. </span><span class='strut'>&nbsp;</span></p>
+<p id='t80' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Best practice is to use the self.state object initialized from the transform configuration, and only set the</span><span class='strut'>&nbsp;</span></p>
+<p id='t81' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; transformed value:</span><span class='strut'>&nbsp;</span></p>
+<p id='t82' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; self.state[&#39;value&#39;] = transformed_value</span><span class='strut'>&nbsp;</span></p>
+<p id='t83' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t84' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>return</span> <span class='op'>{</span><span class='op'>}</span><span class='strut'>&nbsp;</span></p>
+<p id='t85' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t86' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t87' class='stm run hide_run'><span class='key'>class</span> <span class='nam'>MergedTransformsFeed</span><span class='op'>(</span><span class='nam'>Transform</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t88' class='pln'>&nbsp; &nbsp; <span class='str'>&quot;&quot;&quot; Merge data feed and array of transform feeds into a single result vector.</span><span class='strut'>&nbsp;</span></p>
+<p id='t89' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; PULL from feed</span><span class='strut'>&nbsp;</span></p>
+<p id='t90' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; PULL from child transforms</span><span class='strut'>&nbsp;</span></p>
+<p id='t91' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; PUSH merged message to client</span><span class='strut'>&nbsp;</span></p>
+<p id='t92' class='pln'><span class='str'>&nbsp; &nbsp; </span><span class='strut'>&nbsp;</span></p>
+<p id='t93' class='pln'><span class='str'>&nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t94' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t95' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>__init__</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>feed</span><span class='op'>,</span> <span class='nam'>props</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t96' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='str'>&quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t97' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; config - must have an entry for &#39;transforms&#39;:array of dicts, which are convertedto configs.</span><span class='strut'>&nbsp;</span></p>
+<p id='t98' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
+<p id='t99' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>Transform</span><span class='op'>.</span><span class='nam'>__init__</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>feed</span><span class='op'>,</span> <span class='nam'>props</span><span class='op'>,</span> <span class='str'>&quot;tcp://127.0.0.1:20202&quot;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t100' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_address</span>&nbsp; <span class='op'>=</span> <span class='str'>&quot;tcp://127.0.0.1:{port}&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>port</span><span class='op'>=</span><span class='num'>10104</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t101' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span>&nbsp;&nbsp; <span class='op'>=</span> <span class='nam'>None</span><span class='strut'>&nbsp;</span></p>
+<p id='t102' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>create_transforms</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>config</span><span class='op'>.</span><span class='nam'>transforms</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t103' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t104' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t105' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>create_transforms</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>configs</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t106' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transforms</span> <span class='op'>=</span> <span class='op'>{</span><span class='op'>}</span><span class='strut'>&nbsp;</span></p>
+<p id='t107' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>for</span> <span class='nam'>props</span> <span class='key'>in</span> <span class='nam'>configs</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t108' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>class_name</span> <span class='op'>=</span> <span class='nam'>props</span><span class='op'>[</span><span class='str'>&#39;class&#39;</span><span class='op'>]</span><span class='strut'>&nbsp;</span></p>
+<p id='t109' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span><span class='op'>(</span><span class='nam'>class_name</span> <span class='op'>==</span> <span class='str'>&#39;MovingAverage&#39;</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t110' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>mavg</span> <span class='op'>=</span> <span class='nam'>MovingAverage</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed</span><span class='op'>,</span> <span class='nam'>props</span><span class='op'>,</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t111' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transforms</span><span class='op'>[</span><span class='nam'>mavg</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>]</span> <span class='op'>=</span> <span class='nam'>mavg</span><span class='strut'>&nbsp;</span></p>
+<p id='t112' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t113' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>keys</span> <span class='op'>=</span> <span class='nam'>copy</span><span class='op'>.</span><span class='nam'>copy</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>transforms</span><span class='op'>.</span><span class='nam'>keys</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t114' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>keys</span><span class='op'>.</span><span class='nam'>append</span><span class='op'>(</span><span class='str'>&quot;feed&quot;</span><span class='op'>)</span> <span class='com'>#for the raw feed</span><span class='strut'>&nbsp;</span></p>
+<p id='t115' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span> <span class='op'>=</span> <span class='nam'>MergedParallelBuffer</span><span class='op'>(</span><span class='nam'>keys</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t116' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t117' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>buffers</span> <span class='op'>=</span> <span class='op'>{</span><span class='op'>}</span><span class='strut'>&nbsp;</span></p>
+<p id='t118' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>for</span> <span class='nam'>name</span><span class='op'>,</span> <span class='nam'>transform</span> <span class='key'>in</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transforms</span><span class='op'>.</span><span class='nam'>iteritems</span><span class='op'>(</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t119' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>buffers</span><span class='op'>[</span><span class='nam'>name</span><span class='op'>]</span> <span class='op'>=</span> <span class='op'>[</span><span class='op'>]</span><span class='strut'>&nbsp;</span></p>
+<p id='t120' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t121' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>open</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t122' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span> <span class='op'>=</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>Context</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t123' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t124' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;starting {name} transform&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t125' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#create the feed SUB. </span><span class='strut'>&nbsp;</span></p>
+<p id='t126' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>socket</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>SUB</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t127' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>connect</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t128' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>setsockopt</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>SUBSCRIBE</span><span class='op'>,</span><span class='str'>&#39;&#39;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t129' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t130' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#create the result PUSH</span><span class='strut'>&nbsp;</span></p>
+<p id='t131' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>socket</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>PUSH</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t132' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>bind</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t133' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t134' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#create the transform PULL. </span><span class='strut'>&nbsp;</span></p>
+<p id='t135' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>context</span><span class='op'>.</span><span class='nam'>socket</span><span class='op'>(</span><span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>PULL</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t136' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span><span class='op'>.</span><span class='nam'>bind</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_address</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t137' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>out_socket</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='strut'>&nbsp;</span></p>
+<p id='t138' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t139' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'># Initialize poll set</span><span class='strut'>&nbsp;</span></p>
+<p id='t140' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>poller</span> <span class='op'>=</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>Poller</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t141' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>poller</span><span class='op'>.</span><span class='nam'>register</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>,</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>POLLIN</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t142' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>poller</span><span class='op'>.</span><span class='nam'>register</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span><span class='op'>,</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>POLLIN</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t143' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t144' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>for</span> <span class='nam'>name</span><span class='op'>,</span> <span class='nam'>transform</span> <span class='key'>in</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transforms</span><span class='op'>.</span><span class='nam'>iteritems</span><span class='op'>(</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t145' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;starting {name}&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span><span class='op'>=</span><span class='nam'>name</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t146' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>proc</span> <span class='op'>=</span> <span class='nam'>multiprocessing</span><span class='op'>.</span><span class='nam'>Process</span><span class='op'>(</span><span class='nam'>target</span><span class='op'>=</span><span class='nam'>transform</span><span class='op'>.</span><span class='nam'>run</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t147' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>proc</span><span class='op'>.</span><span class='nam'>start</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t148' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t149' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>sync</span><span class='op'>.</span><span class='nam'>confirm</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t150' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t151' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>close</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t152' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span><span class='op'>.</span><span class='nam'>close</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t153' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>Transform</span><span class='op'>.</span><span class='nam'>close</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t154' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t155' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>process_all</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t156' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t157' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>done_count</span> <span class='op'>=</span> <span class='num'>0</span><span class='strut'>&nbsp;</span></p>
+<p id='t158' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>while</span> <span class='nam'>True</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t159' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>socks</span> <span class='op'>=</span> <span class='nam'>dict</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>poller</span><span class='op'>.</span><span class='nam'>poll</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t160' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t161' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span> <span class='key'>in</span> <span class='nam'>socks</span> <span class='key'>and</span> <span class='nam'>socks</span><span class='op'>[</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>]</span> <span class='op'>==</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>POLLIN</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t162' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>message</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>feed_socket</span><span class='op'>.</span><span class='nam'>recv</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t163' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span><span class='op'>(</span><span class='nam'>message</span> <span class='op'>==</span> <span class='str'>&quot;DONE&quot;</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t164' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;finished receiving feed to merge&quot;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t165' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>done_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t166' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>else</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t167' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>received_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t168' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>event</span> <span class='op'>=</span> <span class='nam'>json</span><span class='op'>.</span><span class='nam'>loads</span><span class='op'>(</span><span class='nam'>message</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t169' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>append</span><span class='op'>(</span><span class='str'>&quot;feed&quot;</span><span class='op'>,</span><span class='nam'>event</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t170' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t171' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span> <span class='key'>in</span> <span class='nam'>socks</span> <span class='key'>and</span> <span class='nam'>socks</span><span class='op'>[</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span><span class='op'>]</span> <span class='op'>==</span> <span class='nam'>zmq</span><span class='op'>.</span><span class='nam'>POLLIN</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t172' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>t_message</span> <span class='op'>=</span> <span class='nam'>self</span><span class='op'>.</span><span class='nam'>transform_socket</span><span class='op'>.</span><span class='nam'>recv</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t173' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span><span class='op'>(</span><span class='nam'>t_message</span> <span class='op'>==</span> <span class='str'>&quot;DONE&quot;</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t174' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;finished receiving a transform to merge&quot;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t175' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>done_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t176' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>else</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t177' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>received_count</span> <span class='op'>+=</span> <span class='num'>1</span><span class='strut'>&nbsp;</span></p>
+<p id='t178' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>t_event</span> <span class='op'>=</span> <span class='nam'>json</span><span class='op'>.</span><span class='nam'>loads</span><span class='op'>(</span><span class='nam'>t_message</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t179' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>append</span><span class='op'>(</span><span class='nam'>t_event</span><span class='op'>[</span><span class='str'>&#39;name&#39;</span><span class='op'>]</span><span class='op'>,</span> <span class='nam'>t_event</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t180' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t181' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>if</span><span class='op'>(</span><span class='nam'>done_count</span> <span class='op'>&gt;=</span> <span class='nam'>len</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>)</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t182' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>break</span> <span class='com'>#done!</span><span class='strut'>&nbsp;</span></p>
+<p id='t183' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t184' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>send_next</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t185' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t186' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;Transform {name} received {r} and sent {s}&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>,</span> <span class='nam'>r</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>received_count</span><span class='op'>,</span> <span class='nam'>s</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>sent_count</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t187' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;about to drain {n} messages from merger&#39;s buffer&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>n</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>pending_messages</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t188' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t189' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#drain any remaining messages in the buffer</span><span class='strut'>&nbsp;</span></p>
+<p id='t190' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>drain</span><span class='op'>(</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t191' class='pln'><span class='strut'>&nbsp;</span></p>
+<p id='t192' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='com'>#signal to client that we&#39;re done</span><span class='strut'>&nbsp;</span></p>
+<p id='t193' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>result_socket</span><span class='op'>.</span><span class='nam'>send</span><span class='op'>(</span><span class='str'>&quot;DONE&quot;</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t194' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>self</span><span class='op'>.</span><span class='nam'>logger</span><span class='op'>.</span><span class='nam'>info</span><span class='op'>(</span><span class='str'>&quot;Transform {name} received {r} and sent {s}&quot;</span><span class='op'>.</span><span class='nam'>format</span><span class='op'>(</span><span class='nam'>name</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>name</span><span class='op'>,</span> <span class='nam'>r</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>received_count</span><span class='op'>,</span> <span class='nam'>s</span><span class='op'>=</span><span class='nam'>self</span><span class='op'>.</span><span class='nam'>data_buffer</span><span class='op'>.</span><span class='nam'>sent_count</span><span class='op'>)</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
+<p id='t195' class='pln'><span class='strut'>&nbsp;</span></p>
+                
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div id='footer'>
+    <div class='content'>
+        <p>
+            <a class='nav' href='index.html'>&#xab; index</a> &nbsp; &nbsp; <a class='nav' href='http://nedbatchelder.com/code/coverage'>coverage.py v3.5.1</a>
+        </p>
+    </div>
+</div>
+
+</body>
+</html>
