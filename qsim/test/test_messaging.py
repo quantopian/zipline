@@ -4,9 +4,10 @@ import logging
 import tornado
 import multiprocessing
 
-from qsim.simulator.data.feed import DataFeed
-from qsim.transforms.transforms import MergedTransformsFeed, MovingAverage
-import qsim.simulator.backtest.util as qutil
+from qsim.simulator.feed import DataFeed
+from qsim.transforms.base import MergedTransformsFeed
+from qsim.transforms.technical import MovingAverage
+import qsim.util as qutil
 
 from qsim.simulator.qbt_client import TestClient
 

@@ -1,16 +1,13 @@
 import datetime
 import zmq
-import pymongo
-import pymongo.json_util
 import json
 import pytz
 import copy
 import multiprocessing
 import logging
 import random
-from pymongo import ASCENDING, DESCENDING
 
-import qsim.simulator.backtest.util as qutil
+import qsim.util as qutil
 
 class DataSource(object):
     def __init__(self, feed, source_id):
@@ -59,32 +56,7 @@ class DataSource(object):
         self.data_socket.close()
         self.context.term()
         self.logger.info("finished processing data source")
-
-class EquityMinuteTrades(DataSource):
-    
-    def __init__(self, sid, feed, source_id):
-        self.sid = sid
-        self.connection, self.db    = qutil.connect_db()
-        DataSource.__init__(self, feed, source_id)
-               
-     
-    def send_all(self):   
-        eventQS = self.db.equity.trades.minute.find(fields=["sid","price","volume","dt"],
-                                     spec={"sid":self.sid},
-                                     sort=[("dt",ASCENDING)],
-                                     slave_ok=True)
-        self.logger.info("found {count} events".format(count=eventQS.count()))
-        
-        for doc in eventQS:
-            doc_dt = doc['dt'].replace(tzinfo = pytz.utc)
-            doc_dt_str = qutil.format_date(doc_dt)
-            event = copy.copy(doc)
-            event['dt'] = doc_dt_str
-            del(event['_id'])
-            self.send(event)
-            
-        
-        
+       
 class RandomEquityTrades(DataSource):
     
     def __init__(self, sid, feed, source_id, count):

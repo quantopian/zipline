@@ -1,6 +1,6 @@
 
-import qsim.simulator.data.sources.equity as qequity
-import qsim.simulator.backtest.util as qutil
+import qsim.data.equity as qequity
+import qsim.util as qutil
 import zmq
 import time
 import logging

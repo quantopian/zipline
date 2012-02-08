@@ -4,7 +4,7 @@ import zmq
 import logging
 import json
 
-import qsim.simulator.backtest.util as qutil
+import qsim.util as qutil
 
 class TestClient(object):
     

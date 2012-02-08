@@ -4,10 +4,11 @@ import datetime
 import json
 import copy
 import multiprocessing
-import qsim.simulator.backtest.util as qutil
+import qsim.util as qutil
 import qsim.simulator.config as config
+
 class Transform(object):
-    """Parent class for feed transforms. Subclass to create a new derived value from the combined feed."""
+    """Parent class for feed transforms. Subclass and override transform method to create a new derived value from the combined feed."""
     
     def __init__(self, feed, config_dict, result_address):
         """
@@ -74,45 +75,14 @@ class Transform(object):
         self.context.term()
         
     def transform(self, event):
+        """ Must return the transformed value as a map with {name:"name of new transform", value: "value of new field"}
+            Transforms run in parallel and results are merged into a single map, so transform names must be unique. 
+            Best practice is to use the self.state object initialized from the transform configuration, and only set the
+            transformed value:
+                self.state['value'] = transformed_value
+        """
         return {}
                     
-        
-class MovingAverage(Transform):
-    
-    def __init__(self, feed, props, result_address): 
-        Transform.__init__(self, feed, props, result_address)
-        self.events = []
-        
-        self.window = datetime.timedelta(days           = self.config.get_integer('days'), 
-                                        seconds         = self.config.get_integer('seconds'), 
-                                        microseconds    = self.config.get_integer('microseconds'), 
-                                        milliseconds    = self.config.get_integer('milliseconds'),
-                                        minutes         = self.config.get_integer('minutes'),
-                                        hours           = self.config.get_integer('hours'),
-                                        weeks           = self.config.get_integer('weeks'))
-    
-        
-  
-        
-    def transform(self, event):
-        self.events.append(event)
-        
-        #filter the event list to the window length.
-        self.events = [x for x in self.events if (qutil.parse_date(x['dt']) - qutil.parse_date(event['dt'])) <= self.window]
-        
-        if(len(self.events) == 0):
-            return 0.0
-            
-        total = 0.0
-        for event in self.events:
-            total += event['price']
-        
-        self.average = total/len(self.events)
-        
-        self.state['value'] = self.average
-        
-        return self.state
-        
         
 class MergedTransformsFeed(Transform):
     """ Merge data feed and array of transform feeds into a single result vector.
