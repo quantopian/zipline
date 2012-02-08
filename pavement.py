@@ -13,6 +13,9 @@ from paved import *
 from paved.util import *
 from paved.pycheck import *
 
+#add setuputils tasks
+paver.setuputils.install_distutils_tasks()
+
 operating_system = platform.system()
 
 # ===========

@@ -11,15 +11,15 @@ source /usr/local/bin/virtualenvwrapper.sh
 #create the scientific python virtualenv and copy to provide qsim base
 mkvirtualenv --no-site-packages scientific_base
 workon scientific_base
-./scripts/ordered_pip.sh ./scripts/requirements_sci.txt
+./etc/ordered_pip.sh ./etc/requirements_sci.txt
 deactivate
 #re-base qsim
 #rmvirtualenv qsim
 cpvirtualenv scientific_base qsim  
 
 workon qsim
-./scripts/ordered_pip.sh ./scripts/requirements.txt
-./scripts/ordered_pip.sh ./scripts/requirements_dev.txt
+./etc/ordered_pip.sh ./etc/requirements.txt
+./etc/ordered_pip.sh ./etc/requirements_dev.txt
 
 #run all the tests in test
 nosetests --with-xcoverage --with-xunit --cover-erase --cover-package=qsim
