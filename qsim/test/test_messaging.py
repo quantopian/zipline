@@ -14,7 +14,6 @@ from qsim.simulator.qbt_client import TestClient
 class MessagingTestCase(unittest.TestCase):
 
     def setUp(self):
-        tornado.options.parse_command_line()
         qutil.configure_logging()
         qutil.logger.info("testing...")
         self.total_data_count = 800
