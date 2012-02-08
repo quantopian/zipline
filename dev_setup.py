@@ -21,12 +21,6 @@ def db_main():
     tornado.options.parse_command_line()
     connection, db = qutil.connect_db()
     
-    #create a user for testing
-    salt, encrypted_password = qbt_server.encrypt_password(None, options.password)
-    
-    if not db.users.find_one({'email':options.user_email}):
-        db.users.insert({'email':options.user_email, 'encrypted_password':encrypted_password, 'salt':salt})
-    
     #create one mythical company
     if not db.company_info.find_one({'sid':133}):
         db.company_info.insert({'sid':133, "exchange" : "NEW YORK STOCK EXCHANGE", "symbol" : "JHF", "first date" : "01/04/1993", "last date" : "10/01/2008", "sid" : 133, "industry code" : "130A", "company name" : "JACK INC"})    

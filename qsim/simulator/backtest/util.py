@@ -8,6 +8,7 @@ import json
 import logging
 import uuid
 import zmq
+import pymongo
 from tornado.options import define, options
 
 logger = logging.getLogger('QSimLogger')

@@ -22,7 +22,7 @@ workon qsim
 ./scripts/ordered_pip.sh ./scripts/requirements_dev.txt
 
 #setup the local mongodb
-python ./scripts/dev_setup.py 
+python ./dev_setup.py 
 
 #run all the tests in test
 nosetests --with-xcoverage --with-xunit --cover-erase --cover-package=simulator,transforms
