@@ -31,7 +31,7 @@ paver apidocs html
 nosetests --with-xunit --cover-erase --cover-package=qsim --cover-html-dir=./docs/_build/html/cover
 
 #run pylint checks
-pylint -f parseable . | tee pylint.out
+pylint -f parseable qsim | tee pylint.out
 
 #run sloccount analysis
 sloccount --wide --details ./  > sloccount.sc
