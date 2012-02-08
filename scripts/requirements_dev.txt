@@ -1,0 +1,14 @@
+# For debugger
+fancycompleter==0.2
+pyrepl==0.8.2
+Pygments==1.4
+pdbpp==0.7.2
+
+ipython==0.12
+
+# For unit tests
+nose==1.1.2
+unittest2==0.5.1
+requests==0.10.1
+nosexcover
+pylint

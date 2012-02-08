@@ -1,0 +1,8 @@
+tornado
+
+#data source related
+pymongo==2.1.1
+
+#zeromq related
+pyzmq==2.1.11
+
