@@ -1,6 +1,5 @@
-# qbt - Quantopian Backtesting Services
-
-##System Setup
+System Setup
+==============
 	
 You need to have zeromq installed - http://www.zeromq.org/intro:get-the-software. 
 
@@ -47,7 +46,11 @@ For syntax checking::
 
     $ paver pyflakes
 
-### Tooling hints
+For building distributable egg::
+	$ paver bdist_egg
+
+Tooling hints
+================
 QBT relies heavily on scientific python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
 
 - some kind of package manager for your platform. package managers generally give you a way to search, install, uninstall, and check currently installed packages. They also do a great job of managing dependencies.
@@ -60,7 +63,8 @@ QBT relies heavily on scientific python components (numpy, scikit, pandas, matpl
 - virtualenv and virtualenvwrapper are your very best friends. They complement your python package manager by allowing you to create and quickly switch between named configurations.
     - *Install all the versions of Python you like to use, but install setuptools, virtualenv, and virtualenvwrapper with the very latest python.* Use the latest python to install the latest setuptools, and the latest setuptools to install virtualenv and virtualenvwrapper. virtualenvwrapper allows you to specify the python version you wish to use (mkvirtualenv -p <python executable> <env name>), so you can create envs of any python denomination.
 
-### Mac OS hints
+Mac OS hints
+-------------
 
 Scientific python on the Mac can be a bit confusing because of the many independent variables. You need to have several components installed, and be aware of the versions of each:
 
@@ -71,20 +75,9 @@ Scientific python on the Mac can be a bit confusing because of the many independ
 - hdf5	 	- you need this to build tables. ```brew install hdf5```
 - zeromq 	- you need this to run qbt. ```brew install zmq``` 
 
-### Database and Collections expected in MongoDB ###
-QBT requires a running mongodb instance with a few collections:
 
-- user collection. See handlers.BaseHandler and handlers.LoginHandler for code using this collection. Documents must have:
-	- email - standard email address
-	- salt - sha256 hex of: datetime.utcnow()--password 
-	- encrypted_password - an sha256 hex digest of: salt--password
-	- _id - standard issue mongodb primary key
-
-## Authenticating
-
-## Requesting a Backtest
-
-#Data Sources
+Data Sources
+=============
 The Backtest can handle multiple concurrent data sources. QBT will start a subprocess to run each datasource, and merge all events from all sources into a single serial feed, ordered by date.
 
 Data sources have events with very different frequencies. For example, liquid stocks will trade many times per minute, while illiquid stocks may trade just once a day. In order to serialize events from all sources into a single feed, qbt loads events from all sources into memory, then sorts. The communication happens like this:
