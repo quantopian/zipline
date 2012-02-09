@@ -1,5 +1,5 @@
 
-import qsim.data.equity as qequity
+import qsim.simulator.sources as sources
 import qsim.util as qutil
 import zmq
 import time
@@ -24,7 +24,7 @@ class DataFeed(object):
                 emt = EquityMinuteTrades(info['sid'], self, name)
                 self.data_workers[name] = emt
             elif(info['class'] == "RandomEquityTrades"):
-                ret = qequity.RandomEquityTrades(info['sid'], self, name, info['count'])
+                ret = sources.RandomEquityTrades(info['sid'], self, name, info['count'])
                 self.data_workers[name] = ret
                 
         self.data_buffer = qutil.ParallelBuffer(self.data_workers.keys())

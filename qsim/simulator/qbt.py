@@ -35,7 +35,7 @@ import multiprocessing
 import zmq
 
 import qsim.util as qutil
-import qsim.data.equity as qequity
+import qsim.simulator.sources as sources
 
 
 
