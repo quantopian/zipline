@@ -1,9 +1,22 @@
-import qsim.transforms.base as base
+"""
+Transformations for common technical indicators.
+TODO: add MACD transform
+TODO: add trailing stop
 
-class MovingAverage(base.Transform):
+"""
+import datetime
+import qsim.util as qutil
+
+from core import BaseTransform
+
+class MovingAverage(BaseTransform):
+    """
+        Calculate a unweighted moving average for props['sid'] security
+        TODO: add sid filter.
+    """
     
     def __init__(self, feed, props, result_address): 
-        base.Transform.__init__(self, feed, props, result_address)
+        BaseTransform.__init__(self, feed, props, result_address)
         self.events = []
         
         self.window = datetime.timedelta(days           = self.config.get_integer('days'), 
@@ -18,6 +31,8 @@ class MovingAverage(base.Transform):
   
         
     def transform(self, event):
+        """Update the moving average with the latest data point."""
+        
         self.events.append(event)
         
         #filter the event list to the window length.

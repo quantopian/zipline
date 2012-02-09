@@ -5,7 +5,7 @@ import tornado
 import multiprocessing
 
 from qsim.simulator.feed import DataFeed
-from qsim.transforms.base import MergedTransformsFeed
+from qsim.transforms.merge import MergedTransformsFeed
 from qsim.transforms.technical import MovingAverage
 import qsim.util as qutil
 
@@ -40,8 +40,8 @@ class MessagingTestCase(unittest.TestCase):
         self.assertEqual(self.total_data_count, client.received_count, "The client should have received ({n}) the same number of messages as the feed sent ({m}).".format(n=client.received_count, m=self.total_data_count))
     
     
-    def dtest_moving_average_to_client(self):
-        mavg = MovingAverage(self.feed, self.config['transforms'][0])
+    def test_moving_average_to_client(self):
+        mavg = MovingAverage(self.feed, self.config['transforms'][0], result_address="tcp://127.0.0.1:20202")
         mavg_proc = multiprocessing.Process(target=mavg.run)
         mavg_proc.start()
     
