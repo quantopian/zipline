@@ -41,18 +41,28 @@ class Transform(object):
         self.feed               = feed
         self.result_address     = result_address
         self.config             = config.Config(config_dict)
-        self.sync               = FeedSync(feed, self.state['name'])
         self.state              = {}
         self.state['name']      = self.config.name
+        self.sync               = FeedSync(feed, self.state['name'])
         self.received_count     = 0
         self.sent_count         = 0 
      
     def run(self):
+        """Top level execution entry point for the transform::
+        
+                - connects to the feed socket to subscribe to events
+                - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
+                - processes all messages received from feed, until DONE message received
+                - pushes all transforms
+                - sends DONE to result socket, closes all sockets and context"""
         self.open()
         self.process_all()
         self.close()
      
     def open(self): 
+        """
+        Establishes zmq connections.
+        """
         self.context = zmq.Context()
         
         qutil.logger.info("starting {name} transform".format(name = self.state['name']))
@@ -66,6 +76,12 @@ class Transform(object):
         self.result_socket.connect(self.result_address)
         
     def process_all(self):
+        """
+        Loops until feed's DONE message is received:
+            - receive an event from the data feed 
+            - call transform (subclass' method) on event
+            - send the transformed event
+        """
         qutil.logger.info("starting {name} event loop".format(name = self.state['name']))
         self.sync.confirm()
         
@@ -84,6 +100,9 @@ class Transform(object):
             self.sent_count += 1
     
     def close(self):
+        """
+        Shut down zmq resources.
+        """
         qutil.logger.info("Transform {name} recieved {r} and sent {s}".format(name=self.state['name'], r=self.received_count, s=self.sent_count))
             
         self.feed_socket.close()
@@ -110,7 +129,8 @@ class MergedTransformsFeed(Transform):
 
     def __init__(self, feed, props):
         """
-            config - must have an entry for 'transforms':array of dicts, which are convertedto configs.
+            config - must have an entry for 'transforms':array of dicts, which are 
+            convertedto configs.
         """
         Transform.__init__(self, feed, props, "tcp://127.0.0.1:20202")
         self.transform_address  = "tcp://127.0.0.1:{port}".format(port=10104)
@@ -119,6 +139,11 @@ class MergedTransformsFeed(Transform):
         
         
     def create_transforms(self, configs):
+        """
+        Create transforms based on configs, set each transform's result address to
+        this object's transform_address, so that all transformed events will be delivered
+        to this object.
+        """
         self.transforms = {}
         for props in configs:
             class_name = props['class']
@@ -135,6 +160,9 @@ class MergedTransformsFeed(Transform):
             self.buffers[name] = []
             
     def open(self):
+        """Establish zmq context, feed socket, result socket for client, and transform 
+        socket to receive transformed events. Create and launch transforms. Will confirm 
+        ready with the DataFeed at the conclusion."""
         self.context = zmq.Context()
         
         qutil.logger.info("starting {name} transform".format(name = self.state['name']))
@@ -165,11 +193,19 @@ class MergedTransformsFeed(Transform):
         self.sync.confirm()
         
     def close(self):
+        """
+        Close all zmq sockets and context.
+        """
         self.transform_socket.close()
         Transform.close(self)
         
     def process_all(self):
-        
+        """
+        Uses a Poller to receive messages from all transforms and the feed.
+        All transforms corresponding to the same event are merged with each other
+        and the original feed event into a single message. That message is then
+        sent to the result socket.
+        """
         done_count = 0
         while True:
             socks = dict(self.poller.poll())
