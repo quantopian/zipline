@@ -27,8 +27,8 @@ pip freeze
 #documentation output
 paver apidocs html
 
-#run all the tests in test
-nosetests --with-xunit --cover-erase --cover-package=qsim --cover-html-dir=./docs/_build/html/cover
+#run all the tests in test. see setup.cfg for flags.
+nosetests 
 
 #run pylint checks
 pylint -f parseable qsim | tee pylint.out
