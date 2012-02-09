@@ -1,5 +1,5 @@
 """
-Provides data source handlers that can push messages to a qsim.simulator.DataFeed
+Provides data handlers that can push messages to a qsim.simulator.DataFeed
 """
 import datetime
 import zmq
@@ -8,6 +8,7 @@ import multiprocessing
 import random
 
 import qsim.util as qutil
+import qsim.messaging as qmsg
 
 class DataSource(object):
     """
@@ -18,40 +19,41 @@ class DataSource(object):
     def __init__(self, feed, source_id):
         self.source_id              = source_id
         self.feed                   = feed
-        self.sync                   = qutil.FeedSync(self.feed, str(source_id))
-        self.data_address           = self.feed.data_address
-        qutil.logger.info("data address is {ds}".format(ds=self.feed.data_address))        
-        self.cur_event = None
+        self.cur_event              = None
+        self.context                = None
+        self.data_socket            = None
 
     def start(self):
         """Launch the datasource in a separate process."""
-        self.proc = multiprocessing.Process(target=self.run)
-        self.proc.start()
+        proc = multiprocessing.Process(target=self.run)
+        proc.start()
         
         
     def open(self):    
         """create zmq context and socket"""
-        qutil.logger.info("starting data source:{source_id} on {addr}"
-                            .format(source_id=self.source_id, addr=self.feed.data_address))
+        qutil.logger.info(
+            "starting data source:{source_id} on {addr}"
+                .format(source_id=self.source_id, addr=self.feed.data_address))
         
         self.context = zmq.Context()
         
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
         self.data_socket = self.context.socket(zmq.PUSH)
-        self.data_socket.connect(self.data_address)
+        self.data_socket.connect(self.feed.data_address)
         
         #signal we are ready
-        self.sync.confirm()
+        sync = qmsg.FeedSync(self.feed, str(self.source_id))
+        sync.confirm()
     
     def run(self):  
         """Fully execute this datasource."""  
-        try:    
-            self.open()
-            self.send_all()
-            self.close()    
-        except Exception as err:
-            qutil.logger.exception("Unexpected failure running datasource - {name}."
-                                    .format(name=self.source_id))
+        self.open()
+        self.send_all()
+        self.close()    
+    
+    def send_all(self):
+        """Subclasses must implement this method."""
+        raise NotImplementedError()
             
     def send(self, event):
         """

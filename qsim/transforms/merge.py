@@ -5,6 +5,7 @@ import zmq
 import technical as ta
 from core import BaseTransform
 import qsim.util as qutil
+import qsim.messaging as qmsg
         
 class MergedTransformsFeed(BaseTransform):
     """ Merge data feed and array of transform feeds into a single result vector.
@@ -40,7 +41,7 @@ class MergedTransformsFeed(BaseTransform):
         
         keys = copy.copy(self.transforms.keys())
         keys.append("feed") #for the raw feed
-        self.data_buffer = qutil.MergedParallelBuffer(keys) 
+        self.data_buffer = qmsg.MergedParallelBuffer(keys) 
             
         self.buffers = {}
         for name, transform in self.transforms.iteritems():

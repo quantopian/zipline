@@ -1,6 +1,7 @@
 
 import qsim.simulator.sources as sources
 import qsim.util as qutil
+import qsim.messaging as qmsg
 import zmq
 import time
 import logging
@@ -9,7 +10,7 @@ import json
 class DataFeed(object):
     
     def __init__(self, config):
-        self.logger = qutil.logger
+        qutil.logger = qutil.logger
         
         self.data_address = "tcp://127.0.0.1:{port}".format(port=10101)
         self.sync_address = "tcp://127.0.0.1:{port}".format(port=10102)
@@ -27,14 +28,14 @@ class DataFeed(object):
                 ret = sources.RandomEquityTrades(info['sid'], self, name, info['count'])
                 self.data_workers[name] = ret
                 
-        self.data_buffer = qutil.ParallelBuffer(self.data_workers.keys())
+        self.data_buffer = qmsg.ParallelBuffer(self.data_workers.keys())
              
     def start_data_workers(self):
         """Start a sub-process for each datasource.""" 
         for source_id, source in self.data_workers.iteritems():
-            self.logger.info("starting {id}".format(id=source_id))
+            qutil.logger.info("starting {id}".format(id=source_id))
             source.start()
-        self.logger.info("ds processes launched")
+        qutil.logger.info("ds processes launched")
         
     def register_sync(self, sync_id):
         self.client_register[sync_id] = "UNCONFIRMED"
@@ -48,7 +49,7 @@ class DataFeed(object):
     
     def sync_clients(self):
         # Socket to receive signals
-        self.logger.info("waiting for all datasources and clients to be ready")
+        qutil.logger.info("waiting for all datasources and clients to be ready")
         self.syncservice = self.context.socket(zmq.REP)
         self.syncservice.bind(self.sync_address) 
         
@@ -56,12 +57,12 @@ class DataFeed(object):
             # wait for synchronization request
             msg = self.syncservice.recv()
             self.client_register[msg] = "CONFIRMED"
-            #self.logger.info("confirmed {id}".format(id=msg))
+            #qutil.logger.info("confirmed {id}".format(id=msg))
             # send synchronization reply
             self.syncservice.send('CONFIRMED')
         
         self.syncservice.close()
-        self.logger.info("sync'd all datasources and clients")
+        qutil.logger.info("sync'd all datasources and clients")
        
     def run(self):   
         # Prepare our context and sockets
@@ -86,7 +87,7 @@ class DataFeed(object):
         #wait for all feed subscribers
         self.sync_clients()
         
-        self.logger.info("entering feed loop on {addr}".format(addr=self.data_address))
+        qutil.logger.info("entering feed loop on {addr}".format(addr=self.data_address))
         
         while True:
             message = self.data_socket.recv()
@@ -105,7 +106,7 @@ class DataFeed(object):
         
         #send the DONE message
         self.feed_socket.send("DONE")
-        self.logger.info("received {n} messages, sent {m} messages".format(n=self.data_buffer.received_count, m=self.data_buffer.sent_count))
+        qutil.logger.info("received {n} messages, sent {m} messages".format(n=self.data_buffer.received_count, m=self.data_buffer.sent_count))
         self.data_socket.close()
         self.feed_socket.close()
         self.context.term()

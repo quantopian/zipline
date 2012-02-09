@@ -19,6 +19,7 @@ all the transforms of that event into a single new message.
 """
 import zmq
 import json
+import qsim.messaging as qmsg
 import qsim.util as qutil
 import qsim.simulator.config as config
 
@@ -42,7 +43,7 @@ class BaseTransform(object):
         self.config             = config.Config(config_dict)
         self.state              = {}
         self.state['name']      = self.config.name
-        self.sync               = qutil.FeedSync(feed, self.state['name'])
+        self.sync               = qmsg.FeedSync(feed, self.state['name'])
         self.received_count     = 0
         self.sent_count         = 0 
         self.context            = None
