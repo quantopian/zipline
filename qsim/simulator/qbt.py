@@ -46,7 +46,7 @@ DATA_FEED_PORT      = 30000
 class Backtest(object):
     
     def __init__(self, db, logger):
-        self.logger = logger
+        qutil.logger = logger
         self.db = db
         self.feed = DataFeed(db, logger)
         
