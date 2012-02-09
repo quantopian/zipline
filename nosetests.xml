@@ -1,1 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="2" errors="0" failures="0" skip="0"><testcase classname="qsim.test.test_messaging.MessagingTestCase" name="test_client" time="0.233" /><testcase classname="qsim.test.test_messaging.MessagingTestCase" name="test_moving_average_to_client" time="46.324" /></testsuite>

@@ -82,7 +82,7 @@ def coverage():
     Run the devsever under the coverage reporter, generate the
     coverage report.
     """
-    call('nosetests --with-coverage --cover-package qsim', shell=True)
+    call('nosetests qsim', shell=True)
     call('coverage html', shell=True)
     call('chromium %s/cover/index.html' % (os.path.abspath(".")), shell=True)
 
