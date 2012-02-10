@@ -1,7 +1,3 @@
-"""
-QBT - Quantopian Backtest
-====================================
-
 qbt runs backtests using multiple processes and zeromq messaging for communication and coordination. 
 
 Backtest is the primary process. It maintains both server and client sockets:
@@ -28,40 +24,3 @@ zmq sockets for backtest clients:
         - backtest will bind to this socket and respond to requests from client for more data. Response data will be the queue of events that
           transpired since the last request.
            
-    
-"""
-import copy
-import multiprocessing
-import zmq
-
-import qsim.util as qutil
-import qsim.simulator.sources as sources
-
-
-
-CONTROLLER_PORT     =  9000
-DATA_SINK_PORT      = 10000
-DATA_FEED_PORT      = 30000
-
-class Backtest(object):
-    
-    def __init__(self, db, logger):
-        qutil.logger = logger
-        self.db = db
-        self.feed = DataFeed(db, logger)
-        
-    def start_feed(self):
-        proc1 = multiprocessing.Process(target=feed.run)
-        proc1.start()
-       
-    def run(self):   
-        # Prepare our context and sockets
-        self.context = zmq.Context()
-        
-        #create the feed sink. 
-        self.feed_address = self.feed.data_address
-        self.feed_socket = self.context.connect(self.feed_address)
-        self.feed_socket.connect(zmq.PULL)
-        
-
-      

@@ -5,7 +5,7 @@ import json
 import uuid
 import zmq
 
-import util as qutil
+import qsim.util as qutil
 
 class ParallelBuffer(object):
     """ holds several queues of events by key, allows retrieval in date order 
@@ -20,13 +20,16 @@ class ParallelBuffer(object):
             self.data_buffer[key] = []
     
     def __len__(self):
+        """buffer's length is same as internal map holding separate sorted arrays of events keyed by source id"""
         return len(self.data_buffer)        
     
-    def append(self, key, value):
-        self.data_buffer[key].append(value)
+    def append(self, source_id, value):
+        """add an event to the buffer for the source specified by source_id"""
+        self.data_buffer[source_id].append(value)
         self.received_count += 1
     
     def next(self):
+        """Get the next message in chronological order"""
         if(not(self.is_full() or self.draining)):
             return
             
@@ -43,12 +46,14 @@ class ParallelBuffer(object):
             return earliest.pop(0)
         
     def is_full(self):
+        """indicates whether the buffer has messages in buffer for all un-DONE sources"""
         for source, events in self.data_buffer.iteritems():
             if (len(events) == 0):
                 return False
         return True
     
     def pending_messages(self):
+        """"""
         total = 0
         for source, events in self.data_buffer.iteritems():
             total += len(events)

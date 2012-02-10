@@ -3,9 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to QSim's documentation!
+Quantopian Simulator: QSim
 ================================
 
+Qsim runs backtests using asynchronous components and zeromq messaging for communication and coordination. 
+
+           
 Contents:
 
 .. toctree::
@@ -13,6 +16,7 @@ Contents:
 
    notes.rst
    modules.rst
+   messaging.rst
 
 
 

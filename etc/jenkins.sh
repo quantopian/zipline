@@ -31,6 +31,7 @@ paver apidocs html
 nosetests 
 
 #run pylint checks
+cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
 pylint -f parseable qsim | tee pylint.out
 
 #run sloccount analysis
