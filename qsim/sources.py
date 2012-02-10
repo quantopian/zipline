@@ -1,5 +1,5 @@
 """
-Provides data handlers that can push messages to a qsim.simulator.DataFeed
+Provides data handlers that can push messages to a qsim.core.DataFeed
 """
 import datetime
 import zmq
@@ -31,7 +31,7 @@ class DataSource(object):
         
     def open(self):    
         """create zmq context and socket"""
-        qutil.logger.info(
+        qutil.LOGGER.info(
             "starting data source:{source_id} on {addr}"
                 .format(source_id=self.source_id, addr=self.feed.data_address))
         
@@ -75,7 +75,7 @@ class DataSource(object):
         self.data_socket.send(json.dumps(done_msg))   
         self.data_socket.close()
         self.context.term()
-        qutil.logger.info("finished processing data source")
+        qutil.LOGGER.info("finished processing data source")
        
 class RandomEquityTrades(DataSource):
     """Generates a random stream of trades for testing."""

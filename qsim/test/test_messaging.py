@@ -6,7 +6,7 @@ Test suite for the messaging infrastructure of QSim.
 import unittest2 as unittest
 import multiprocessing
 
-from qsim.simulator.feed import DataFeed
+from qsim.core import DataFeed
 from qsim.transforms.merge import MergedTransformsFeed
 from qsim.transforms.technical import MovingAverage
 import qsim.util as qutil
@@ -21,7 +21,7 @@ class MessagingTestCase(unittest.TestCase):
         """generate some config objects for the datafeed, sources, and transforms."""
         
         qutil.configure_logging()
-        qutil.logger.info("testing...")
+        qutil.LOGGER.info("testing...")
         self.total_data_count = 800
         self.feed_config = {'emt1':{'sid':133, 'class':'RandomEquityTrades', 'count':400},
                             'emt2':{'sid':134, 'class':'RandomEquityTrades', 'count':400}}

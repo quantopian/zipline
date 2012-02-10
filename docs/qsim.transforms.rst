@@ -1,10 +1,18 @@
 transforms Package
 ==================
 
-:mod:`base` Module
+:mod:`core` Module
 ------------------
 
-.. automodule:: qsim.transforms.base
+.. automodule:: qsim.transforms.core
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`merge` Module
+-------------------
+
+.. automodule:: qsim.transforms.merge
     :members:
     :undoc-members:
     :show-inheritance:

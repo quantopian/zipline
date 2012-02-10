@@ -92,10 +92,10 @@ method-rgx=[a-z_][a-z0-9_]{2,30}$|setUp
 attr-rgx=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression which should only match correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{1,30}$
 
 # Regular expression which should only match correct variable names
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=[a-z_][a-z0-9_]{1,30}$
 
 # Regular expression which should only match correct list comprehension /
 # generator expression variable names
@@ -115,7 +115,7 @@ no-docstring-rgx=__.*__
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=125
+max-line-length=130
 
 # Maximum number of lines in a module
 max-module-lines=1000
@@ -211,10 +211,10 @@ max-statements=50
 max-parents=7
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=15
 
 # Minimum number of public methods for a class (see R0903).
-min-public-methods=2
+min-public-methods=1
 
 # Maximum number of public methods for a class (see R0904).
 max-public-methods=20

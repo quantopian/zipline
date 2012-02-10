@@ -18,27 +18,27 @@ class TestClient(object):
         
     def run(self):
         
-        qutil.logger.info("running the client")
+        qutil.LOGGER.info("running the client")
         self.context = zmq.Context()
         
         self.data_feed = self.context.socket(zmq.PULL)
 
         if(self.bind):
-            qutil.logger.info("binding to {address}".format(address=self.address))
+            qutil.LOGGER.info("binding to {address}".format(address=self.address))
             self.data_feed.bind(self.address)
         else:
-            qutil.logger.info("connecting to {address}".format(address=self.address))
+            qutil.LOGGER.info("connecting to {address}".format(address=self.address))
             self.data_feed.connect(self.address)
         
         self.sync.confirm()
         
-        qutil.logger.info("Starting the client loop")
+        qutil.LOGGER.info("Starting the client loop")
 
         prev_dt = None
         while True:
             msg = self.data_feed.recv()
             if(msg == "DONE"):
-                qutil.logger.info("DONE!")
+                qutil.LOGGER.info("DONE!")
                 break
             self.received_count += 1
             event = json.loads(msg)
@@ -48,8 +48,8 @@ class TestClient(object):
             
             prev_dt = event['dt']
             if(self.received_count % 100 == 0):
-                qutil.logger.info("received {n} messages".format(n=self.received_count))
+                qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
             
-        qutil.logger.info("received {n} messages".format(n=self.received_count))
+        qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
         self.data_feed.close()
         self.context.term()

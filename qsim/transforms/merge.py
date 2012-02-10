@@ -53,7 +53,7 @@ class MergedTransformsFeed(BaseTransform):
         ready with the DataFeed at the conclusion."""
         self.context = zmq.Context()
         
-        qutil.logger.info("starting {name} transform".format(name = self.state['name']))
+        qutil.LOGGER.info("starting {name} transform".format(name = self.state['name']))
         #create the feed SUB. 
         self.feed_socket = self.context.socket(zmq.SUB)
         self.feed_socket.connect(self.feed.feed_address)
@@ -74,7 +74,7 @@ class MergedTransformsFeed(BaseTransform):
         self.poller.register(self.transform_socket, zmq.POLLIN)
         
         for name, transform in self.transforms.iteritems():
-            qutil.logger.info("starting {name}".format(name=name))
+            qutil.LOGGER.info("starting {name}".format(name=name))
             proc = multiprocessing.Process(target=transform.run)
             proc.start()
             
@@ -101,7 +101,7 @@ class MergedTransformsFeed(BaseTransform):
             if self.feed_socket in socks and socks[self.feed_socket] == zmq.POLLIN:
                 message = self.feed_socket.recv()
                 if(message == "DONE"):
-                    qutil.logger.info("finished receiving feed to merge")
+                    qutil.LOGGER.info("finished receiving feed to merge")
                     done_count += 1
                 else:
                     self.received_count += 1
@@ -111,7 +111,7 @@ class MergedTransformsFeed(BaseTransform):
             if self.transform_socket in socks and socks[self.transform_socket] == zmq.POLLIN:
                 t_message = self.transform_socket.recv()
                 if(t_message == "DONE"):
-                    qutil.logger.info("finished receiving a transform to merge")
+                    qutil.LOGGER.info("finished receiving a transform to merge")
                     done_count += 1
                 else:
                     self.received_count += 1
@@ -123,13 +123,13 @@ class MergedTransformsFeed(BaseTransform):
             
             self.data_buffer.send_next()
             
-        qutil.logger.info("Transform {name} received {r} and sent {s}".format(name=self.state['name'], r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
-        qutil.logger.info("about to drain {n} messages from merger's buffer".format(n=self.data_buffer.pending_messages()))
+        qutil.LOGGER.info("Transform {name} received {r} and sent {s}".format(name=self.state['name'], r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
+        qutil.LOGGER.info("about to drain {n} messages from merger's buffer".format(n=self.data_buffer.pending_messages()))
         
         #drain any remaining messages in the buffer
         self.data_buffer.drain()
         
         #signal to client that we're done
         self.result_socket.send("DONE")
-        qutil.logger.info("Transform {name} received {r} and sent {s}".format(name=self.state['name'], r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
+        qutil.LOGGER.info("Transform {name} received {r} and sent {s}".format(name=self.state['name'], r=self.data_buffer.received_count, s=self.data_buffer.sent_count))  
                 

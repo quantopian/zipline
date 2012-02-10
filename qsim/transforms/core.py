@@ -3,7 +3,7 @@ Transforms
 ==========
 
 Transforms provide re-useable components for stream processing. All
-Transforms expect to receive data events from qsim.simulator.feed.DataFeed
+Transforms expect to receive data events from qsim.core.DataFeed
 asynchronously via zeromq. Each transform is designed to run in independent 
 process space, independently of all other transforms, to allow for parallel
 computation. 
@@ -21,7 +21,7 @@ import zmq
 import json
 import qsim.messaging as qmsg
 import qsim.util as qutil
-import qsim.simulator.config as config
+import qsim.config as config
 
 
 class BaseTransform(object):
@@ -66,7 +66,7 @@ class BaseTransform(object):
         """
         self.context = zmq.Context()
         
-        qutil.logger.info("starting {name} transform".
+        qutil.LOGGER.info("starting {name} transform".
                         format(name = self.state['name']))
         #create the feed SUB. 
         self.feed_socket = self.context.socket(zmq.SUB)
@@ -84,13 +84,13 @@ class BaseTransform(object):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        qutil.logger.info("starting {name} event loop".format(name = self.state['name']))
+        qutil.LOGGER.info("starting {name} event loop".format(name = self.state['name']))
         self.sync.confirm()
         
         while True:
             message = self.feed_socket.recv()
             if(message == "DONE"):
-                qutil.logger.info("{name} received the Done message from the feed".format(name=self.state['name']))
+                qutil.LOGGER.info("{name} received the Done message from the feed".format(name=self.state['name']))
                 self.result_socket.send("DONE")
                 break;
             self.received_count += 1
@@ -105,7 +105,7 @@ class BaseTransform(object):
         """
         Shut down zmq resources.
         """
-        qutil.logger.info("Transform {name} recieved {r} and sent {s}".format(name=self.state['name'], r=self.received_count, s=self.sent_count))
+        qutil.LOGGER.info("Transform {name} recieved {r} and sent {s}".format(name=self.state['name'], r=self.received_count, s=self.sent_count))
             
         self.feed_socket.close()
         self.result_socket.close()

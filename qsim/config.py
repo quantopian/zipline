@@ -1,4 +1,5 @@
 """Tools for managing configuration data for sources and transforms."""
+
 import json
 
 class Config(object):
@@ -38,9 +39,9 @@ class Config(object):
             if the property is missing, or is not of the right type, return default.
         """
         if(self.store.has_key(name)):
-                val = self.store[name]
-                if isinstance(val, expected_type):
-                    return val
+            val = self.store[name]
+            if isinstance(val, expected_type):
+                return val
         else:
             return default
                     

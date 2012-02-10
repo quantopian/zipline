@@ -32,6 +32,8 @@ var
 sdist
 develop-eggs
 .installed.cfg
+coverage.xml
+nosetests.xml
 
 *.swp
 *.swo
