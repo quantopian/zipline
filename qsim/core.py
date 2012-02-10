@@ -29,7 +29,6 @@ class Simulator(object):
         pass
 
 
-
 class DataFeed(object):
     """DataFeed is the heart of a simulation. It is initialized with a configuration for """
     
