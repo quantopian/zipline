@@ -24,7 +24,7 @@ class Simulator(object):
         
     def launch(self):
         """
-        Create all components specified in config
+        Create all components specified in config.
         """
         pass
 
