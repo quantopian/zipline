@@ -2,7 +2,7 @@
 
 #setup virtualenvironment 
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
-export WORKON_HOME=/mnt/jenkins_backup/virtual_envs
+export WORKON_HOME=/mnt/jenkins_backups/virtual_envs
 if [ ! -d $WORKON_HOME ]; then
   mkdir $WORKON_HOME
 fi
