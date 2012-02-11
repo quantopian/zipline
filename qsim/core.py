@@ -5,6 +5,8 @@ Provides simulated data feed services.
 import qsim.sources as sources
 import qsim.util as qutil
 import qsim.messaging as qmsg
+import qsim.transforms.technical as ta
+
 import zmq
 import time
 import logging
@@ -12,7 +14,7 @@ import json
 
 class Simulator(object):
     """
-    Simulator is the heart of QSim. The beating heart...
+    Simulator translates configuration data into running source, feed, transform, and merge components.
     """
     
     def __init__(self, config):
@@ -21,44 +23,74 @@ class Simulator(object):
         client algorithms that simulator should create.
         """
         self.config = config
+        self.data_workers = {}
+        
         
     def launch(self):
         """
         Create all components specified in config...
         """
-        pass
+        self.feed = DataFeed(self.config.sources.keys())
+        self.start_data_sources(self.config.sources)
+        self.create_transforms(self.config.transforms)
+        
+    def start_data_sources(self, configs):
+        """
+        :configs: array of dicts with properties
+        """
+        for name, info in configs.iteritems():
+            if(info['class'] == "EquityMinuteTrades"):
+                emt = EquityMinuteTrades(info['sid'], self.feed, name)
+                self.data_workers[name] = emt
+            elif(info['class'] == "RandomEquityTrades"):
+                ret = sources.RandomEquityTrades(info['sid'], self.feed, name, info['count'])
+                self.data_workers[name] = ret
+               
+            qutil.LOGGER.info("starting {id}".format(id=source_id))
+            self.data_workers[name].start()
+            
+        qutil.LOGGER.info("datasources processes launched")
+        
+    def start_transforms(self, configs):
+        """
+        :configs: Must be an array of dicts holding properties needed for each transform. See the classes in :py:module:`qsim.transforms`
+        Create transforms based on configs, set each transform's result address to
+        transforms_address. Each transform will connect to transforms_address that all transformed events will be PUSH'd
+        to this object.
+        """
+        self.transforms = {}
+        for props in configs:
+            class_name = props['class']
+            if(class_name == 'MovingAverage'):
+                mavg = ta.MovingAverage(self.feed, props, self.transform_address)
+                self.transforms[mavg.config.name] = mavg
+
+        keys = copy.copy(self.transforms.keys())
+        keys.append("feed") #for the raw feed
+        self.data_buffer = qmsg.MergedParallelBuffer(keys) 
+
+        self.buffers = {}
+        for name, transform in self.transforms.iteritems():
+            self.buffers[name] = []
+            qutil.LOGGER.info("starting {name}".format(name=name))
+            proc = multiprocessing.Process(target=transform.run)
+            proc.start()
 
 
 class DataFeed(object):
-    """DataFeed is the heart of a simulation. It is initialized with a configuration for """
     
-    def __init__(self, config):
-        qutil.LOGGER = qutil.LOGGER
+    def __init__(self, source_list):
+        """
+        :source_list: list of source IDs
+        """
         
         self.data_address = "tcp://127.0.0.1:{port}".format(port=10101)
         self.sync_address = "tcp://127.0.0.1:{port}".format(port=10102)
         self.feed_address = "tcp://127.0.0.1:{port}".format(port=10103)
         
         self.client_register = {}
-        
-        self.data_workers = {}
-        self.config = config
-        for name, info in config.iteritems():
-            if(info['class'] == "EquityMinuteTrades"):
-                emt = EquityMinuteTrades(info['sid'], self, name)
-                self.data_workers[name] = emt
-            elif(info['class'] == "RandomEquityTrades"):
-                ret = sources.RandomEquityTrades(info['sid'], self, name, info['count'])
-                self.data_workers[name] = ret
                 
-        self.data_buffer = qmsg.ParallelBuffer(self.data_workers.keys())
-             
-    def start_data_workers(self):
-        """Start a sub-process for each datasource.""" 
-        for source_id, source in self.data_workers.iteritems():
-            qutil.LOGGER.info("starting {id}".format(id=source_id))
-            source.start()
-        qutil.LOGGER.info("ds processes launched")
+        self.data_buffer = qmsg.ParallelBuffer(source_id_list)
         
     def register_sync(self, sync_id):
         self.client_register[sync_id] = "UNCONFIRMED"
@@ -103,9 +135,6 @@ class DataFeed(object):
         self.feed_socket.bind(self.feed_address)
         
         self.data_buffer.out_socket = self.feed_socket
-        
-        #start the data source workers
-        self.start_data_workers()
         
         #wait for all feed subscribers
         self.sync_clients()

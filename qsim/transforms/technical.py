@@ -7,7 +7,7 @@ TODO: add trailing stop
 import datetime
 import qsim.util as qutil
 
-from core import BaseTransform
+from qsim.transforms.core import BaseTransform
 
 class MovingAverage(BaseTransform):
     """

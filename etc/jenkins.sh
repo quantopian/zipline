@@ -2,10 +2,10 @@
 
 #setup virtualenvironment 
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
-if [ ! -d $HOME/.venvs ]; then
-  mkdir $HOME/.venvs
+export WORKON_HOME=/mnt/jenkins_backup/virtual_envs
+if [ ! -d $WORKON_HOME ]; then
+  mkdir $WORKON_HOME
 fi
-export WORKON_HOME=$HOME/.venvs
 source /usr/local/bin/virtualenvwrapper.sh
 
 #create the scientific python virtualenv and copy to provide qsim base

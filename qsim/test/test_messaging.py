@@ -7,7 +7,7 @@ import unittest2 as unittest
 import multiprocessing
 
 from qsim.core import DataFeed
-from qsim.transforms.merge import MergedTransformsFeed
+from qsim.transforms.core import MergedTransformsFeed
 from qsim.transforms.technical import MovingAverage
 import qsim.util as qutil
 
@@ -41,8 +41,7 @@ class MessagingTestCase(unittest.TestCase):
     
         feed_proc = multiprocessing.Process(target=self.feed.run)
         feed_proc.start()
-        
-        
+              
         client.run()
         self.assertEqual(self.feed.data_buffer.pending_messages(), 0, 
                         "The feed should be drained of all messages, found {n} remaining."
