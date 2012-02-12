@@ -101,29 +101,29 @@ class MergedParallelBuffer(ParallelBuffer):
         return result
         
         
-class FeedSync(object):
-    """FeedSync instances register themselves with a DataFeed. Once the FeedSync
-    is created, the DataFeed is guaranteed to block until confirm is called on this
-    instance (and all others registered with the feed). Components can use instances
-    to delay the start of the feed until initial setup is complete."""
+class Sync(object):
+    """Sync instances register themselves with a Host. Once the Sync
+    is created, the Host is guaranteed to block until confirm is called on this
+    instance (and all others registered with the host). Components can use instances
+    to delay the start of the host until initial setup is complete."""
     
-    def __init__(self, feed, name):
-        self.feed = feed
+    def __init__(self, host, name):
+        self.host = host
         self.sync_id = "{name}-{id}".format(name=name, id=uuid.uuid1())
-        self.feed.register_sync(self.sync_id)
-        #qutil.LOGGER.info("registered {id} with feed".format(id=self.sync_id))
+        self.host.register_sync(self.sync_id)
+        #qutil.LOGGER.info("registered {id} with host".format(id=self.sync_id))
         
     def confirm(self):
-        """Confirm readiness with the DataFeed."""
+        """Confirm readiness with the Host."""
         context = zmq.Context()
-        #synchronize with feed
+        #synchronize with host
         sync_socket = context.socket(zmq.REQ)
-        sync_socket.connect(self.feed.sync_address)
-        # send a synchronization request to the feed
+        sync_socket.connect(self.host.sync_address)
+        # send a synchronization request to the host
         sync_socket.send(self.sync_id)
-        # wait for synchronization reply from the feed
+        # wait for synchronization reply from the host
         sync_socket.recv()
         sync_socket.close()
         context.term()
-        qutil.LOGGER.info("sync'd feed from {id}".format(id = self.sync_id))
+        qutil.LOGGER.info("sync'd host from {id}".format(id = self.sync_id))
    

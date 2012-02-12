@@ -9,11 +9,9 @@ import qsim.messaging as qmsg
 
 class TestClient(object):
     
-    def __init__(self,feed, address, bind=False):
-        self.feed           = feed
-        self.address        = address
-        self.sync           = qmsg.FeedSync(feed, "testclient")
-        self.bind           = bind
+    def __init__(self):
+        self.address        = None
+        self.sync           = None
         self.received_count = 0
         
     def run(self):
@@ -23,12 +21,8 @@ class TestClient(object):
         
         self.data_feed = self.context.socket(zmq.PULL)
 
-        if(self.bind):
-            qutil.LOGGER.info("binding to {address}".format(address=self.address))
-            self.data_feed.bind(self.address)
-        else:
-            qutil.LOGGER.info("connecting to {address}".format(address=self.address))
-            self.data_feed.connect(self.address)
+        qutil.LOGGER.info("connecting to {address}".format(address=self.address))
+        self.data_feed.connect(self.address)
         
         self.sync.confirm()
         

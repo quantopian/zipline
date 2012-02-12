@@ -16,34 +16,27 @@ class DataSource(object):
     means looping through all records in a store, converting to a dict, and
     calling send(map).
     """
-    def __init__(self, feed, source_id):
+    def __init__(self, source_id):
         self.source_id              = source_id
-        self.feed                   = feed
+        self.data_address           = None
+        self.sync                   = None
         self.cur_event              = None
         self.context                = None
         self.data_socket            = None
-
-    def start(self):
-        """Launch the datasource in a separate process."""
-        proc = multiprocessing.Process(target=self.run)
-        proc.start()
-        
-        
+    
     def open(self):    
         """create zmq context and socket"""
         qutil.LOGGER.info(
             "starting data source:{source_id} on {addr}"
-                .format(source_id=self.source_id, addr=self.feed.data_address))
+                .format(source_id=self.source_id, addr=self.data_address))
         
         self.context = zmq.Context()
         
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
         self.data_socket = self.context.socket(zmq.PUSH)
-        self.data_socket.connect(self.feed.data_address)
+        self.data_socket.connect(self.data_address)
         
-        #signal we are ready
-        sync = qmsg.FeedSync(self.feed, str(self.source_id))
-        sync.confirm()
+        self.sync.confirm()
     
     def run(self):  
         """Fully execute this datasource."""  
@@ -80,8 +73,8 @@ class DataSource(object):
 class RandomEquityTrades(DataSource):
     """Generates a random stream of trades for testing."""
     
-    def __init__(self, sid, feed, source_id, count):
-        DataSource.__init__(self, feed, source_id)
+    def __init__(self, sid, source_id, count):
+        DataSource.__init__(self, source_id)
         self.count = count
         self.sid = sid
         
