@@ -28,16 +28,13 @@ class MessagingTestCase(unittest.TestCase):
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}
-        client = TestClient()
+        client = TestClient(self, expected_msg_count=800)
         sim = Simulator(sources, {}, client)
         sim.launch()
               
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, 
                         "The feed should be drained of all messages, found {n} remaining."
                             .format(n=sim.feed.data_buffer.pending_messages()))
-        self.assertEqual(800, client.received_count, 
-                        "The client should have received ({n}) the same number of messages as the feed sent ({m})."
-                            .format(n=client.received_count, m=800))
     
     
     def test_merged_to_client(self):
@@ -52,12 +49,10 @@ class MessagingTestCase(unittest.TestCase):
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
-        client = TestClient()
+        client = TestClient(self, expected_msg_count=800)
         sim = Simulator(sources, {}, client)
         sim.launch()
         
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
-        self.assertEqual(800, client.received_count, 
-                        "The client should have received the same number of messages as the feed sent.")
         
