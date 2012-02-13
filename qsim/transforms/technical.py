@@ -5,8 +5,6 @@ TODO: add trailing stop
 
 """
 import datetime
-import qsim.util as qutil
-
 from qsim.core import BaseTransform
 
 class MovingAverage(BaseTransform):
@@ -42,6 +40,6 @@ class MovingAverage(BaseTransform):
         #self.average = total/len(self.events)
         
         #self.state['value'] = self.average
-        self.stat['value'] = 10
+        self.state['value'] = 10
         return self.state
         

@@ -4,11 +4,9 @@ Provides data handlers that can push messages to a qsim.core.DataFeed
 import datetime
 import zmq
 import json
-import multiprocessing
 import random
 
 import qsim.util as qutil
-import qsim.messaging as qmsg
 
 class DataSource(object):
     """

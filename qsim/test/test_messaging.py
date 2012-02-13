@@ -50,7 +50,7 @@ class MessagingTestCase(unittest.TestCase):
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=800)
-        sim = Simulator(sources, {}, client)
+        sim = Simulator(sources, transforms, client)
         sim.launch()
         
         

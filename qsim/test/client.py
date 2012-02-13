@@ -1,11 +1,6 @@
-import copy
-import multiprocessing
 import zmq
-import logging
 import json
-
 import qsim.util as qutil
-import qsim.messaging as qmsg
 
 class TestClient(object):
     
@@ -14,8 +9,10 @@ class TestClient(object):
         self.sync               = None
         self.received_count     = 0
         self.expected_msg_count = expected_msg_count
-        self.ERROR              = False
+        self.error              = False
         self.utest              = utest
+        self.data_feed          = None
+        self.context            = None
         
     def run(self):
         
@@ -42,7 +39,7 @@ class TestClient(object):
                 event = json.loads(msg)
                 if(prev_dt != None):
                     if(not event['dt'] >= prev_dt):
-                        raise Exception("message arrived out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
+                        raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
             
                 prev_dt = event['dt']
                 if(self.received_count % 100 == 0):
@@ -50,7 +47,7 @@ class TestClient(object):
             
             qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
         except:
-            self.ERROR = True
+            self.error = True
             qutil.LOGGER.exception("Error in test client.")
         finally:
             self.data_feed.close()
