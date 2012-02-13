@@ -5,6 +5,7 @@ import multiprocessing
 import zmq
 import json
 import copy
+import threading
 
 import qsim.util as qutil
 import qsim.messaging as qmsg
@@ -32,7 +33,7 @@ class Simulator(object):
         self.merge_address  = "tcp://127.0.0.1:{port}".format(port=10103)
         self.result_address = "tcp://127.0.0.1:{port}".format(port=10104)
         
-    def launch(self):
+    def simulate(self):
         self.feed = DataFeed(self.sources.keys(), self.data_address, self.feed_address, qmsg.Sync(self,"DataFeed"))
         self.launch_component("DataFeed", self.feed)
         for name, data_source in self.sources.iteritems():
@@ -66,8 +67,14 @@ class Simulator(object):
         
         self.sync_components()
         client_proc.join() #wait for client to complete processing
-        
+    
     def launch_component(self, name, component):
+        qutil.LOGGER.info("starting {name}".format(name=name))
+        thread = threading.Thread(target=component.run)
+        thread.start()
+        return thread
+            
+    def launch_component_proc(self, name, component):
         qutil.LOGGER.info("starting {name}".format(name=name))
         proc = multiprocessing.Process(target=component.run)
         proc.start()

@@ -30,7 +30,7 @@ class MessagingTestCase(unittest.TestCase):
         sources = {"ret1":ret1, "ret2":ret2}
         client = TestClient(self, expected_msg_count=800)
         sim = Simulator(sources, {}, client)
-        sim.launch()
+        sim.simulate()
               
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, 
                         "The feed should be drained of all messages, found {n} remaining."
@@ -51,7 +51,7 @@ class MessagingTestCase(unittest.TestCase):
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=800)
         sim = Simulator(sources, transforms, client)
-        sim.launch()
+        sim.simulate()
         
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
