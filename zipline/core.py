@@ -472,7 +472,7 @@ class TransformsMerge(object):
         self.data_buffer.drain()
 
         #signal to client that we're done
-        self.result_socket.send("DONE")
+        self.result_socket.send("DONE", zmq.NOBLOCK)
 
 
 
