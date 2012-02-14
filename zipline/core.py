@@ -20,28 +20,33 @@ class SimulatorBase(object):
     def __init__(self, sources, transforms, client, feed=None, merge=None):
         """
         """
-        self.sources        = sources
-        self.transforms     = transforms
-        self.client         = client
-        self.merge          = None
-        self.feed           = None
-        self.context        = None
-        self.sync_context   = None
-        self.sync_socket    = None      
-        self.sync_register  = {}
-        self.sync_address   = "tcp://127.0.0.1:{port}".format(port=10100)     
-        self.data_address   = "tcp://127.0.0.1:{port}".format(port=10101)
-        self.feed_address   = "tcp://127.0.0.1:{port}".format(port=10102)
-        self.merge_address  = "tcp://127.0.0.1:{port}".format(port=10103)
-        self.result_address = "tcp://127.0.0.1:{port}".format(port=10104)
+        self.sources                = sources
+        self.transforms             = transforms
+        self.client                 = client
+        self.merge                  = None
+        self.feed                   = None
+        self.context                = None
+        self.sync_context           = None
+        self.sync_socket            = None      
+        self.sync_register          = {}
+        self.sync_address           = "tcp://127.0.0.1:{port}".format(port=10100)     
+        self.data_address           = "tcp://127.0.0.1:{port}".format(port=10101)
+        self.feed_address           = "tcp://127.0.0.1:{port}".format(port=10102)
+        self.merge_address          = "tcp://127.0.0.1:{port}".format(port=10103)
+        self.result_address         = "tcp://127.0.0.1:{port}".format(port=10104)
         
-        self.timeout        = datetime.timedelta(seconds=1)
+        self.performance_address    = "tcp://127.0.0.1:{port}".format(port=10105)
+        
+        self.timeout                = datetime.timedelta(seconds=1)
         
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
         
         if(feed == None):
-            self.feed = DataFeed(self.sources.keys(), self.data_address, self.feed_address, qmsg.Sync(self,"DataFeed"))
+            self.feed = DataFeed(self.sources.keys(), 
+                                self.data_address, 
+                                self.feed_address, 
+                                qmsg.Sync(self,"DataFeed"))
         else:
             self.feed = feed
             
@@ -164,18 +169,20 @@ class ProcessSimulator(SimulatorBase):
     
 class DataFeed(object):
     
-    def __init__(self, source_list, data_address, feed_address, sync):
+    def __init__(self, source_list, data_address, feed_address, performance_address, sync):
         """
         :source_list: list of data source IDs
         """
-        self.feed_address       = feed_address
-        self.data_address       = data_address     
-        self.data_buffer        = qmsg.ParallelBuffer(source_list)
-        self.sync               = sync
-        self.feed_socket        = None
-        self.data_socket        = None
-        self.context            = None
-        self.poller             = None
+        self.feed_address           = feed_address
+        self.performance_address    = performance_address
+        self.data_address           = data_address     
+        self.data_buffer            = qmsg.ParallelBuffer(source_list)
+        self.sync                   = sync
+        self.feed_socket            = None
+        self.data_socket            = None
+        self.perf_socket            = None
+        self.context                = None
+        self.poller                 = None
 
         
     def open(self):
@@ -195,12 +202,18 @@ class DataFeed(object):
         self.poller = zmq.Poller()
         self.poller.register(self.data_socket, zmq.POLLIN)
         
+        #create the performance results push
+        self.perf_socket = self.context.socket(zmq.PUSH)
+        self.perf_socket.bind(self.performance_address)
+        self.perf_socket.setsockopt(zmq.LINGER,0)
+        
         self.sync.open()
         
     def close(self):
         try:
             self.data_socket.close()
             self.feed_socket.close()
+            self.perf_socket.close()
             self.sync.close()
         except:
             qutil.LOGGER.exception("Error closing DataFeed")
@@ -225,6 +238,8 @@ class DataFeed(object):
                 else:
                     self.data_buffer.append(event[u's'], event)
                     self.data_buffer.send_next()
+                
+                self.perf_socket.send(message)
             
         #drain any remaining messages in the buffer
         self.data_buffer.drain()
