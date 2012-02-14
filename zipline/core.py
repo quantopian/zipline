@@ -37,7 +37,7 @@ class SimulatorBase(object):
         
         self.performance_address    = "tcp://127.0.0.1:{port}".format(port=10105)
         
-        self.timeout                = datetime.timedelta(seconds=1)
+        self.timeout                = datetime.timedelta(seconds=5)
         
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
@@ -46,6 +46,7 @@ class SimulatorBase(object):
             self.feed = DataFeed(self.sources.keys(), 
                                 self.data_address, 
                                 self.feed_address, 
+                                self.performance_address,
                                 qmsg.Sync(self,"DataFeed"))
         else:
             self.feed = feed
@@ -88,6 +89,7 @@ class SimulatorBase(object):
         client_proc = self.launch_component("client", self.client)           
         qutil.LOGGER.info("client process launched")
         
+        qutil.LOGGER.info("sync register starting with {count} members: {reg}".format(count=len(self.sync_register), reg=self.sync_register))
         self.sync_components()
         #client_proc.join() #wait for client to complete processing
     
@@ -98,8 +100,9 @@ class SimulatorBase(object):
         self.sync_register[sync_id] = datetime.datetime.utcnow()
     
     def unregister_sync(self, sync_id):
+        qutil.LOGGER.info("unregistering {sync_id}".format(sync_id=sync_id))
         del(self.sync_register[sync_id])
-    
+        
     def is_timed_out(self):
         cur_time = datetime.datetime.utcnow()
         if(len(self.sync_register) == 0):
@@ -107,7 +110,7 @@ class SimulatorBase(object):
             return True
         for source, last_dt in self.sync_register.iteritems():
             if((cur_time - last_dt) > self.timeout):
-                qutil.LOGGER.info("Time out for {source}".format(source=source))
+                qutil.LOGGER.info("Time out for {source}. Current registery: {reg}".format(source=source, reg=self.sync_register))
                 return True
         return False
 
@@ -117,7 +120,7 @@ class SimulatorBase(object):
         qutil.LOGGER.info("waiting for all datasources and clients to be ready")
         self.sync_socket = self.context.socket(zmq.REP)
         self.sync_socket.bind(self.sync_address) 
-        self.sync_socket.setsockopt(zmq.LINGER,0)
+        #self.sync_socket.setsockopt(zmq.LINGER,0)
         self.poller = zmq.Poller()
         self.poller.register(self.sync_socket, zmq.POLLIN)
 
@@ -137,9 +140,9 @@ class SimulatorBase(object):
                         self.sync_register[sync_id] = datetime.datetime.utcnow()
                     #qutil.LOGGER.info("confirmed {id}".format(id=msg))
                     # send synchronization reply
-                    self.sync_socket.send('ack')
+                    self.sync_socket.send('ack', zmq.NOBLOCK)
                 except:
-                    continue
+                    qutil.LOGGER.exception("Exception in sync components loop")
 
         self.sync_socket.close()
         qutil.LOGGER.info("simulator heartbeat stopped.")
@@ -196,7 +199,7 @@ class DataFeed(object):
         #create the feed
         self.feed_socket = self.context.socket(zmq.PUB)
         self.feed_socket.bind(self.feed_address)
-        self.feed_socket.setsockopt(zmq.LINGER,0)
+        #self.feed_socket.setsockopt(zmq.LINGER,0)
         
         self.data_buffer.out_socket = self.feed_socket
         self.poller = zmq.Poller()
@@ -205,7 +208,7 @@ class DataFeed(object):
         #create the performance results push
         self.perf_socket = self.context.socket(zmq.PUSH)
         self.perf_socket.bind(self.performance_address)
-        self.perf_socket.setsockopt(zmq.LINGER,0)
+        #self.perf_socket.setsockopt(zmq.LINGER,0)
         
         self.sync.open()
         
@@ -239,13 +242,13 @@ class DataFeed(object):
                     self.data_buffer.append(event[u's'], event)
                     self.data_buffer.send_next()
                 
-                self.perf_socket.send(message)
+                #self.perf_socket.send(message, zmq.NOBLOCK)
             
         #drain any remaining messages in the buffer
         self.data_buffer.drain()
     
         #send the DONE message
-        self.feed_socket.send("DONE")
+        self.feed_socket.send("DONE", zmq.NOBLOCK)
         qutil.LOGGER.info("received {n} messages, sent {m} messages".format(n=self.data_buffer.received_count, 
                                                                             m=self.data_buffer.sent_count))
 
@@ -315,7 +318,7 @@ class BaseTransform(object):
         #create the result PUSH
         self.result_socket = self.context.socket(zmq.PUSH)
         self.result_socket.connect(self.merge_address)
-        self.result_socket.setsockopt(zmq.LINGER,0)
+        #self.result_socket.setsockopt(zmq.LINGER,0)
         
         self.sync.open()
 
@@ -334,14 +337,14 @@ class BaseTransform(object):
                 message = self.feed_socket.recv()
                 if(message == "DONE"):
                     qutil.LOGGER.info("{name} received the Done message from the feed".format(name=self.state['name']))
-                    self.result_socket.send("DONE")
+                    self.result_socket.send("DONE", zmq.NOBLOCK)
                     break
                 self.received_count += 1
                 event = json.loads(message)
                 cur_state = self.transform(event)
                 cur_state['dt'] = event['dt']
                 cur_state['name'] = self.state['name']
-                self.result_socket.send(json.dumps(cur_state))
+                self.result_socket.send(json.dumps(cur_state), zmq.NOBLOCK)
                 self.sent_count += 1
 
     def close(self):
@@ -420,7 +423,7 @@ class TransformsMerge(object):
         #create the result PUSH
         self.result_socket = self.context.socket(zmq.PUSH)
         self.result_socket.bind(self.result_address)
-        self.result_socket.setsockopt(zmq.LINGER,0)
+        #self.result_socket.setsockopt(zmq.LINGER,0)
 
         #create the transform PULL. 
         self.transform_socket = self.context.socket(zmq.PULL)
@@ -439,6 +442,7 @@ class TransformsMerge(object):
         Close all zmq sockets and context.
         """
         try:
+            self.sync.close()
             self.transform_socket.close()
             self.feed_socket.close()
             self.result_socket.close()

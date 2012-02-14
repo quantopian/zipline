@@ -72,7 +72,7 @@ class ParallelBuffer(object):
   
         event = self.next()
         if(event != None):
-            self.out_socket.send(json.dumps(event))
+            self.out_socket.send(json.dumps(event), zmq.NOBLOCK)
             self.sent_count += 1   
     
     
@@ -130,12 +130,13 @@ class Sync(object):
         """Confirm readiness with the Host."""
         try:
             # send a synchronization request to the host
-            self.sync_socket.send(self.sync_id + ":RUNNING", zmq.NOBLOCK)
+            self.sync_socket.send(self.sync_id + ":RUNNING")
             # wait for synchronization reply from the host
             socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
 
             if self.sync_socket in socks and socks[self.sync_socket] == zmq.POLLIN:
                 message = self.sync_socket.recv()
+            
             return True
         except:
             qutil.LOGGER.exception("exception in confirmation for {source}. Exiting.".format(source=self.sync_id))
@@ -143,7 +144,7 @@ class Sync(object):
         
     def close(self):
         try:
-            self.sync_socket.send(self.sync_id + ":DONE", zmq.NOBLOCK) 
+            self.sync_socket.send(self.sync_id + ":DONE") 
             self.sync_socket.close()
         except:
             qutil.LOGGER.exception("Error closing Sync object")

@@ -15,18 +15,19 @@ import zipline.messaging as qmsg
 
 from zipline.test.client import TestClient
 
+qutil.configure_logging()
 
 class MessagingTestCase(unittest.TestCase):  
     """Tests the message passing: datasources -> feed -> transforms -> merge -> client"""
 
     def setUp(self):
         """generate some config objects for the datafeed, sources, and transforms."""
-        qutil.configure_logging() 
+        pass
 
     def get_simulator(self, sources, transforms, client, feed=None, merge=None):
         return ProcessSimulator(sources, transforms, client, feed=feed, merge=merge)
 
-    def test_sources_only(self):
+    def dtest_sources_only(self):
         """streams events from two data sources, no transforms."""
 
         ret1 = RandomEquityTrades(133, "ret1", 400)
@@ -47,13 +48,13 @@ class MessagingTestCase(unittest.TestCase):
         verify message count at client.
         """
         
-        ret1 = RandomEquityTrades(133, "ret1", 400)
-        ret2 = RandomEquityTrades(134, "ret2", 400)
+        ret1 = RandomEquityTrades(133, "ret1", 5000)
+        ret2 = RandomEquityTrades(134, "ret2", 5000)
         sources = {"ret1":ret1, "ret2":ret2}
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
-        client = TestClient(self, expected_msg_count=800)
+        client = TestClient(self, expected_msg_count=10000)
         sim = self.get_simulator(sources, transforms, client)
         sim.simulate()
         
@@ -69,14 +70,14 @@ class MessagingTestCase(unittest.TestCase):
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=0)
         sim = self.get_simulator(sources, transforms, client)
-        sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
+        sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, sim.performance_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
         sim.simulate()
         
 class DataFeedErr(DataFeed):
     """Helper class for testing, simulates exceptions inside the DataFeed"""
     
-    def __init__(self, source_list, data_address, feed_address, sync):
-        DataFeed.__init__(self, source_list, data_address, feed_address, sync)
+    def __init__(self, source_list, data_address, feed_address, perf_address, sync):
+        DataFeed.__init__(self, source_list, data_address, feed_address, perf_address, sync)
     
     def handle_all(self):
         #time.sleep(1000)
