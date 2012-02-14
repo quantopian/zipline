@@ -1,5 +1,5 @@
 """
-Provides simulated data feed services. 
+Provides simulated data feed services...
 """
 import multiprocessing
 import zmq
