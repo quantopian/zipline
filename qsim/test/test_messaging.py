@@ -7,7 +7,7 @@ import unittest2 as unittest
 import multiprocessing
 import time
 
-from qsim.core import Simulator, DataFeed
+from qsim.core import ThreadSimulator, DataFeed
 from qsim.transforms.technical import MovingAverage
 from qsim.sources import RandomEquityTrades
 import qsim.util as qutil
@@ -21,8 +21,10 @@ class MessagingTestCase(unittest.TestCase):
 
     def setUp(self):
         """generate some config objects for the datafeed, sources, and transforms."""
-        
         qutil.configure_logging() 
+
+    def get_simulator(self, sources, transforms, client, feed=None, merge=None):
+        return ThreadSimulator(sources, transforms, client, feed=feed, merge=merge)
 
     def test_sources_only(self):
         """streams events from two data sources, no transforms."""
@@ -31,7 +33,7 @@ class MessagingTestCase(unittest.TestCase):
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}
         client = TestClient(self, expected_msg_count=800)
-        sim = Simulator(sources, {}, client)
+        sim = self.get_simulator(sources, {}, client)
         sim.simulate()
               
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, 
@@ -52,7 +54,7 @@ class MessagingTestCase(unittest.TestCase):
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=800)
-        sim = Simulator(sources, transforms, client)
+        sim = self.get_simulator(sources, transforms, client)
         sim.simulate()
         
         
@@ -66,7 +68,7 @@ class MessagingTestCase(unittest.TestCase):
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=0)
-        sim = Simulator(sources, transforms, client)
+        sim = self.get_simulator(sources, transforms, client)
         sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
         sim.simulate()
         

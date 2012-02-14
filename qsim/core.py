@@ -11,7 +11,7 @@ import datetime
 import qsim.util as qutil
 import qsim.messaging as qmsg
 
-class Simulator(object):
+class SimulatorBase(object):
     """
     Simulator coordinates the launch and communication of source, feed, transform, and merge components.
     """
@@ -86,17 +86,8 @@ class Simulator(object):
         #client_proc.join() #wait for client to complete processing
     
     def launch_component(self, name, component):
-        qutil.LOGGER.info("starting {name}".format(name=name))
-        thread = threading.Thread(target=component.run)
-        thread.start()
-        return thread
-            
-    def launch_component_proc(self, name, component):
-        qutil.LOGGER.info("starting {name}".format(name=name))
-        proc = multiprocessing.Process(target=component.run)
-        proc.start()
-        return proc
-    
+        raise NotImplementedError
+        
     def register_sync(self, sync_id):
         self.sync_register[sync_id] = datetime.datetime.utcnow()
     
@@ -147,6 +138,27 @@ class Simulator(object):
         self.sync_socket.close()
         qutil.LOGGER.info("simulator heartbeat stopped.")
 
+class ThreadSimulator(SimulatorBase):
+    
+    def __init__(self, sources, transforms, client, feed=None, merge=None):
+        SimulatorBase.__init__(self, sources, transforms, client, feed, merge)
+        
+    def launch_component(self, name, component):
+        qutil.LOGGER.info("starting {name}".format(name=name))
+        thread = threading.Thread(target=component.run)
+        thread.start()
+        return thread
+    
+class ProcessSimulator(SimulatorBase):        
+    
+    def __init__(self, sources, transforms, client, feed=None, merge=None):
+        SimlulatorBase.__init__(self, sources, transforms, client, feed, merge)
+    
+    def launch_component(self, name, component):
+        qutil.LOGGER.info("starting {name}".format(name=name))
+        proc = multiprocessing.Process(target=component.run)
+        proc.start()
+        return proc
         
     
 class DataFeed(object):
