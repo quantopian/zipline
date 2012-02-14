@@ -72,20 +72,16 @@ class DataSource(object):
             done_msg['type'] = 'DONE'
             done_msg['s'] = self.source_id
             self.data_socket.send(json.dumps(done_msg), zmq.NOBLOCK)
+            
+            qutil.LOGGER.info("closing data socket")
+            self.data_socket.close()
+            qutil.LOGGER.info("closing sync")
+            self.sync.close()
+            qutil.LOGGER.info("closing context")
         except:
             qutil.LOGGER.exception("failed to send DONE message")
-            pass #continue with the closing.   
-        
-        qutil.LOGGER.info("closing data socket")
-        self.data_socket.close()
-        qutil.LOGGER.info("closing sync")
-        self.sync.close()
-        qutil.LOGGER.info("closing context")
-        try:
-            self.context.term()
-            qutil.LOGGER.info("done")
-        except:
-            qutil.LOGGER.exception("error closing context")
+        finally:
+            self.context.destroy()
         qutil.LOGGER.info("finished processing data source")
        
 class RandomEquityTrades(DataSource):

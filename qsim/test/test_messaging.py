@@ -24,9 +24,9 @@ class MessagingTestCase(unittest.TestCase):
         qutil.configure_logging() 
 
     def get_simulator(self, sources, transforms, client, feed=None, merge=None):
-        return ThreadSimulator(sources, transforms, client, feed=feed, merge=merge)
+        return ProcessSimulator(sources, transforms, client, feed=feed, merge=merge)
 
-    def dtest_sources_only(self):
+    def test_sources_only(self):
         """streams events from two data sources, no transforms."""
 
         ret1 = RandomEquityTrades(133, "ret1", 400)
@@ -41,7 +41,7 @@ class MessagingTestCase(unittest.TestCase):
                             .format(n=sim.feed.data_buffer.pending_messages()))
     
     
-    def dtest_merged_to_client(self):
+    def test_merged_to_client(self):
         """
         2 datasources -> feed -> 2 moving average transforms -> transform merge -> testclient
         verify message count at client.
@@ -60,7 +60,7 @@ class MessagingTestCase(unittest.TestCase):
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
         
-    def test_zerror_in_feed(self):
+    def dtest_error_in_feed(self):
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}

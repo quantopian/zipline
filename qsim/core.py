@@ -7,6 +7,7 @@ import json
 import copy
 import threading
 import datetime
+import atexit
 
 import qsim.util as qutil
 import qsim.messaging as qmsg
@@ -175,6 +176,7 @@ class DataFeed(object):
         self.data_socket        = None
         self.context            = None
         self.poller             = None
+
         
     def open(self):
         # Prepare our context and sockets
@@ -196,10 +198,14 @@ class DataFeed(object):
         self.sync.open()
         
     def close(self):
-        self.data_socket.close()
-        self.feed_socket.close()
-        self.sync.close()
-        self.context.term()
+        try:
+            self.data_socket.close()
+            self.feed_socket.close()
+            self.sync.close()
+        except:
+            qutil.LOGGER.exception("Error closing DataFeed")
+        finally:
+            self.context.destroy()
         
     def handle_all(self):   
         qutil.LOGGER.info("entering feed loop on {addr}".format(addr=self.data_address))
@@ -332,10 +338,14 @@ class BaseTransform(object):
                                                                         r=self.received_count, 
                                                                         s=self.sent_count))
 
-        self.feed_socket.close()
-        self.result_socket.close()
-        self.sync.close()
-        self.context.term()
+        try:
+            self.feed_socket.close()
+            self.result_socket.close()
+            self.sync.close()
+        except:
+            qutil.LOGGER.exception("Error closing Transforms")
+        finally:
+            self.context.destroy()
 
     def transform(self, event):
         """ Must return the transformed value as a map with {name:"name of new transform", value: "value of new field"}
@@ -413,10 +423,14 @@ class TransformsMerge(object):
         """
         Close all zmq sockets and context.
         """
-        self.transform_socket.close()
-        self.feed_socket.close()
-        self.result_socket.close()
-        self.context.term()
+        try:
+            self.transform_socket.close()
+            self.feed_socket.close()
+            self.result_socket.close()
+        except:
+            qutil.LOGGER.exception("Error closing merge")
+        finally:
+            self.context.destroy()
 
     def process_all(self):
         """

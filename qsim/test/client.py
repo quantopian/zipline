@@ -51,13 +51,13 @@ class TestClient(object):
                         qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
             
             qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
+            self.data_feed.close()
+            self.sync.close()
         except:
             self.error = True
             qutil.LOGGER.exception("**********************Error in test client.")
         finally:
-            self.data_feed.close()
-            self.sync.close()
-            self.context.term()
+            self.context.destroy()
         
         self.utest.assertEqual(self.expected_msg_count, self.received_count, 
                         "The client should have received ({n}) the same number of messages as the feed sent ({m})."

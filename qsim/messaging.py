@@ -145,7 +145,8 @@ class Sync(object):
         try:
             self.sync_socket.send(self.sync_id + ":DONE", zmq.NOBLOCK) 
             self.sync_socket.close()
-            self.context.term()
         except:
-            pass #just don't want to error out on closing
+            qutil.LOGGER.exception("Error closing Sync object")
+        finally:
+            self.context.destroy()
         
