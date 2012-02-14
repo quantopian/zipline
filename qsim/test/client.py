@@ -25,32 +25,38 @@ class TestClient(object):
             qutil.LOGGER.info("connecting to {address}".format(address=self.address))
             self.data_feed.connect(self.address)
         
-            self.sync.confirm()
+            self.sync.open()
         
+            self.poller = zmq.Poller()
+            self.poller.register(self.data_feed, zmq.POLLIN)
+            
             qutil.LOGGER.info("Starting the client loop")
 
             prev_dt = None
-            while True:
-                msg = self.data_feed.recv()
-                if(msg == "DONE"):
-                    qutil.LOGGER.info("DONE!")
-                    break
-                self.received_count += 1
-                event = json.loads(msg)
-                if(prev_dt != None):
-                    if(not event['dt'] >= prev_dt):
-                        raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
+            while self.sync.confirm():
+                socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+                if self.data_feed in socks and socks[self.data_feed] == zmq.POLLIN:   
+                    msg = self.data_feed.recv()
+                    if(msg == "DONE"):
+                        qutil.LOGGER.info("DONE!")
+                        break
+                    self.received_count += 1
+                    event = json.loads(msg)
+                    if(prev_dt != None):
+                        if(not event['dt'] >= prev_dt):
+                            raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
             
-                prev_dt = event['dt']
-                if(self.received_count % 100 == 0):
-                    qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
+                    prev_dt = event['dt']
+                    if(self.received_count % 100 == 0):
+                        qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
             
             qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
         except:
             self.error = True
-            qutil.LOGGER.exception("Error in test client.")
+            qutil.LOGGER.exception("**********************Error in test client.")
         finally:
             self.data_feed.close()
+            self.sync.close()
             self.context.term()
         
         self.utest.assertEqual(self.expected_msg_count, self.received_count, 

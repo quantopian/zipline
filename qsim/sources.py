@@ -33,14 +33,19 @@ class DataSource(object):
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
         self.data_socket = self.context.socket(zmq.PUSH)
         self.data_socket.connect(self.data_address)
+        self.data_socket.setsockopt(zmq.LINGER,0)
         
-        self.sync.confirm()
+        self.sync.open()
     
     def run(self):  
         """Fully execute this datasource."""  
-        self.open()
-        self.send_all()
-        self.close()    
+        try:
+            self.open()
+            self.send_all()
+        except:
+            qutil.LOGGER.info("Exception running datasource.")
+        finally:
+            self.close()    
     
     def send_all(self):
         """Subclasses must implement this method."""
@@ -52,20 +57,35 @@ class DataSource(object):
             sets source_id and type properties in the dict
             sends to the data_socket.
         """
+        self.sync.confirm()
         event['s'] = self.source_id             
         event['type'] = 'event'
-        self.data_socket.send(json.dumps(event))
+        self.data_socket.send(json.dumps(event), zmq.NOBLOCK)
     
     def close(self):
         """
             Close the zmq context and sockets.
         """
-        done_msg = {}
-        done_msg['type'] = 'DONE'
-        done_msg['s'] = self.source_id
-        self.data_socket.send(json.dumps(done_msg))   
+        qutil.LOGGER.info("sending DONE message.")
+        try:
+            done_msg = {}
+            done_msg['type'] = 'DONE'
+            done_msg['s'] = self.source_id
+            self.data_socket.send(json.dumps(done_msg), zmq.NOBLOCK)
+        except:
+            qutil.LOGGER.exception("failed to send DONE message")
+            pass #continue with the closing.   
+        
+        qutil.LOGGER.info("closing data socket")
         self.data_socket.close()
-        self.context.term()
+        qutil.LOGGER.info("closing sync")
+        self.sync.close()
+        qutil.LOGGER.info("closing context")
+        try:
+            self.context.term()
+            qutil.LOGGER.info("done")
+        except:
+            qutil.LOGGER.exception("error closing context")
         qutil.LOGGER.info("finished processing data source")
        
 class RandomEquityTrades(DataSource):
@@ -89,7 +109,6 @@ class RandomEquityTrades(DataSource):
                      'volume':random.randrange(100,10000,100)}
             self.send(event)
           
-   
        
         
         

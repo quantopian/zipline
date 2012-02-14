@@ -5,11 +5,13 @@ Test suite for the messaging infrastructure of QSim.
 
 import unittest2 as unittest
 import multiprocessing
+import time
 
-from qsim.core import Simulator
+from qsim.core import Simulator, DataFeed
 from qsim.transforms.technical import MovingAverage
 from qsim.sources import RandomEquityTrades
 import qsim.util as qutil
+import qsim.messaging as qmsg
 
 from qsim.test.client import TestClient
 
@@ -55,4 +57,27 @@ class MessagingTestCase(unittest.TestCase):
         
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
+        
+    def test_zerror_in_feed(self):
+        ret1 = RandomEquityTrades(133, "ret1", 400)
+        ret2 = RandomEquityTrades(134, "ret2", 400)
+        sources = {"ret1":ret1, "ret2":ret2}
+        mavg1 = MovingAverage("mavg1", 30)
+        mavg2 = MovingAverage("mavg2", 60)
+        transforms = {"mavg1":mavg1, "mavg2":mavg2}
+        client = TestClient(self, expected_msg_count=0)
+        sim = Simulator(sources, transforms, client)
+        sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
+        sim.simulate()
+        
+class DataFeedErr(DataFeed):
+    """Helper class for testing, simulates exceptions inside the DataFeed"""
+    
+    def __init__(self, source_list, data_address, feed_address, sync):
+        DataFeed.__init__(self, source_list, data_address, feed_address, sync)
+    
+    def handle_all(self):
+        #time.sleep(1000)
+        raise Exception("simulated error in data feed from test helper")
+    
         

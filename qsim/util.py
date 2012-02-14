@@ -15,7 +15,7 @@ def parse_date(dt_str):
     if(dt_str == None):
         return None
     parts = dt_str.split(".")
-    dt = datetime.datetime.strptime(parts[0], '%Y/%m/%d-%H:%M:%S').replace(microsecond=int(parts[1]+"000"), tzinfo = pytz.utc)
+    dt = datetime.datetime.strptime(parts[0], '%Y/%m/%d-%H:%M:%S').replace(microsecond=int(parts[1]+"000")).replace(tzinfo = pytz.utc)
     return dt
 
 def format_date(dt):

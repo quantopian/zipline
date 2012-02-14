@@ -108,22 +108,44 @@ class Sync(object):
     to delay the start of the host until initial setup is complete."""
     
     def __init__(self, host, name):
-        self.host = host
-        self.sync_id = "{name}-{id}".format(name=name, id=uuid.uuid1())
+        self.host           = host
+        self.sync_id        = "{name}-{id}".format(name=name, id=uuid.uuid1())
+        self.context        = None
+        self.sync_socket    = None
+        self.poller         = None
         self.host.register_sync(self.sync_id)
+        
         #qutil.LOGGER.info("registered {id} with host".format(id=self.sync_id))
+        
+    def open(self):
+        self.context = zmq.Context()
+        #synchronize with host
+        self.sync_socket = self.context.socket(zmq.REQ)
+        self.sync_socket.connect(self.host.sync_address)
+        self.sync_socket.setsockopt(zmq.LINGER,0)
+        self.poller = zmq.Poller()
+        self.poller.register(self.sync_socket, zmq.POLLIN)
         
     def confirm(self):
         """Confirm readiness with the Host."""
-        context = zmq.Context()
-        #synchronize with host
-        sync_socket = context.socket(zmq.REQ)
-        sync_socket.connect(self.host.sync_address)
-        # send a synchronization request to the host
-        sync_socket.send(self.sync_id)
-        # wait for synchronization reply from the host
-        sync_socket.recv()
-        sync_socket.close()
-        context.term()
-        qutil.LOGGER.info("sync'd host from {id}".format(id = self.sync_id))
-   
+        try:
+            # send a synchronization request to the host
+            self.sync_socket.send(self.sync_id + ":RUNNING", zmq.NOBLOCK)
+            # wait for synchronization reply from the host
+            socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+
+            if self.sync_socket in socks and socks[self.sync_socket] == zmq.POLLIN:
+                message = self.sync_socket.recv()
+            return True
+        except:
+            qutil.LOGGER.exception("exception in confirmation for {source}. Exiting.".format(source=self.sync_id))
+            return False
+        
+    def close(self):
+        try:
+            self.sync_socket.send(self.sync_id + ":DONE", zmq.NOBLOCK) 
+            self.sync_socket.close()
+            self.context.term()
+        except:
+            pass #just don't want to error out on closing
+        
