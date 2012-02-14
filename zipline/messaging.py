@@ -3,7 +3,7 @@ Commonly used messaging components.
 """
 import json
 import uuid
-import zmq
+from gevent_zeromq import zmq
 
 import zipline.util as qutil
 

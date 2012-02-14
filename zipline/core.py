@@ -2,7 +2,7 @@
 Provides simulated data feed services...
 """
 import multiprocessing
-import zmq
+from gevent_zeromq import zmq
 import json
 import copy
 import threading

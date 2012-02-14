@@ -2,7 +2,7 @@
 Provides data handlers that can push messages to a zipline.core.DataFeed
 """
 import datetime
-import zmq
+from gevent_zeromq import zmq
 import json
 import random
 

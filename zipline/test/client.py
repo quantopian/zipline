@@ -1,4 +1,4 @@
-import zmq
+from gevent_zeromq import zmq
 import json
 import zipline.util as qutil
 
