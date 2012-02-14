@@ -60,7 +60,7 @@ class MessagingTestCase(unittest.TestCase):
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
         
-    def dtest_error_in_feed(self):
+    def test_error_in_feed(self):
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}
