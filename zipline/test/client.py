@@ -1,4 +1,4 @@
-import zmq
+from gevent_zeromq import zmq
 import json
 import zipline.util as qutil
 
@@ -55,7 +55,7 @@ class TestClient(object):
             self.sync.close()
         except:
             self.error = True
-            qutil.LOGGER.exception("**********************Error in test client.")
+            qutil.LOGGER.exception("Error in test client.")
         finally:
             self.context.destroy()
         

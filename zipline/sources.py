@@ -2,7 +2,7 @@
 Provides data handlers that can push messages to a zipline.core.DataFeed
 """
 import datetime
-import zmq
+from gevent_zeromq import zmq
 import json
 import random
 
@@ -33,7 +33,7 @@ class DataSource(object):
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
         self.data_socket = self.context.socket(zmq.PUSH)
         self.data_socket.connect(self.data_address)
-        self.data_socket.setsockopt(zmq.LINGER,0)
+        #self.data_socket.setsockopt(zmq.LINGER,0)
         
         self.sync.open()
     
@@ -57,7 +57,6 @@ class DataSource(object):
             sets source_id and type properties in the dict
             sends to the data_socket.
         """
-        self.sync.confirm()
         event['s'] = self.source_id             
         event['type'] = 'event'
         self.data_socket.send(json.dumps(event), zmq.NOBLOCK)
@@ -98,6 +97,8 @@ class RandomEquityTrades(DataSource):
         price = random.uniform(5.0, 50.0)
         
         for i in range(self.count):
+            if not self.sync.confirm():
+                break
             price = price + random.uniform(-0.05, 0.05)
             event = {'sid':self.sid, 
                      'dt':qutil.format_date(trade_start + (minute * i)),
