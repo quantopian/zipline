@@ -7,7 +7,7 @@ import unittest2 as unittest
 import multiprocessing
 import time
 
-from qsim.core import ThreadSimulator, DataFeed
+from qsim.core import ThreadSimulator, ProcessSimulator, DataFeed
 from qsim.transforms.technical import MovingAverage
 from qsim.sources import RandomEquityTrades
 import qsim.util as qutil

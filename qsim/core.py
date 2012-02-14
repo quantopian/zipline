@@ -153,7 +153,7 @@ class ThreadSimulator(SimulatorBase):
 class ProcessSimulator(SimulatorBase):        
     
     def __init__(self, sources, transforms, client, feed=None, merge=None):
-        SimlulatorBase.__init__(self, sources, transforms, client, feed, merge)
+        SimulatorBase.__init__(self, sources, transforms, client, feed, merge)
     
     def launch_component(self, name, component):
         qutil.LOGGER.info("starting {name}".format(name=name))
