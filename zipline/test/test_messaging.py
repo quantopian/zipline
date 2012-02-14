@@ -7,13 +7,13 @@ import unittest2 as unittest
 import multiprocessing
 import time
 
-from qsim.core import ThreadSimulator, ProcessSimulator, DataFeed
-from qsim.transforms.technical import MovingAverage
-from qsim.sources import RandomEquityTrades
-import qsim.util as qutil
-import qsim.messaging as qmsg
+from zipline.core import ThreadSimulator, ProcessSimulator, DataFeed
+from zipline.transforms.technical import MovingAverage
+from zipline.sources import RandomEquityTrades
+import zipline.util as qutil
+import zipline.messaging as qmsg
 
-from qsim.test.client import TestClient
+from zipline.test.client import TestClient
 
 
 class MessagingTestCase(unittest.TestCase):  

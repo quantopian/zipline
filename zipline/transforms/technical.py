@@ -5,8 +5,8 @@ TODO: add trailing stop
 
 """
 import datetime
-from qsim.core import BaseTransform
-import qsim.util as qutil
+from zipline.core import BaseTransform
+import zipline.util as qutil
 
 class MovingAverage(BaseTransform):
     """

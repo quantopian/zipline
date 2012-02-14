@@ -4,7 +4,7 @@ test Package
 :mod:`client` Module
 --------------------
 
-.. automodule:: qsim.test.client
+.. automodule:: zipline.test.client
     :members:
     :undoc-members:
     :show-inheritance:
@@ -12,7 +12,7 @@ test Package
 :mod:`test_messaging` Module
 ----------------------------
 
-.. automodule:: qsim.test.test_messaging
+.. automodule:: zipline.test.test_messaging
     :members:
     :undoc-members:
     :show-inheritance:

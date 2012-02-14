@@ -1,6 +1,6 @@
 import zmq
 import json
-import qsim.util as qutil
+import zipline.util as qutil
 
 class TestClient(object):
     

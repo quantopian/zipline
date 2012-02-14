@@ -8,16 +8,16 @@ if [ ! -d $WORKON_HOME ]; then
 fi
 source /usr/local/bin/virtualenvwrapper.sh
 
-#create the scientific python virtualenv and copy to provide qsim base
+#create the scientific python virtualenv and copy to provide zipline base
 mkvirtualenv --no-site-packages scientific_base
 workon scientific_base
 ./etc/ordered_pip.sh ./etc/requirements_sci.txt
 deactivate
-#re-base qsim
-#rmvirtualenv qsim
-cpvirtualenv scientific_base qsim  
+#re-base zipline
+#rmvirtualenv zipline
+cpvirtualenv scientific_base zipline  
 
-workon qsim
+workon zipline
 ./etc/ordered_pip.sh ./etc/requirements.txt
 ./etc/ordered_pip.sh ./etc/requirements_dev.txt
 
@@ -32,7 +32,7 @@ nosetests
 
 #run pylint checks
 cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
-pylint -f parseable qsim | tee pylint.out
+pylint -f parseable zipline | tee pylint.out
 
 #run sloccount analysis
 sloccount --wide --details ./  > sloccount.sc

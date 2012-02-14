@@ -8,8 +8,8 @@ Running
 
 Initial `virtualenv` setup::
 
-    $ mkvirtualenv qsim
-    $ workon qsim
+    $ mkvirtualenv zipline
+    $ workon zipline
 	#go get coffee, this will compile a heap of C/C++ code
     $ ./etc/ordered_pip.sh requirements_sci.txt 
 	$ ./etc/ordered_pip.sh requirements.txt

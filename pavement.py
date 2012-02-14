@@ -44,7 +44,7 @@ options(
         builddir="_build",
         sourcedir=""
     ),
-    setup = Bunch(name='qsim',
+    setup = Bunch(name='zipline',
           version              = version,
           classifiers          = [],
           packages             = find_packages(),
@@ -68,7 +68,7 @@ options.paved.clean.patterns.extend([
 
 # Because I'm lazy
 stuff_i_want_in_my_debug_shell = [
-    ('qutil', 'qsim.util', []),
+    ('qutil', 'zipline.util', []),
     ('zmq', 'zmq', []),
 ]
 
@@ -82,7 +82,7 @@ def coverage():
     Run the devsever under the coverage reporter, generate the
     coverage report.
     """
-    call('nosetests qsim', shell=True)
+    call('nosetests zipline', shell=True)
     call('coverage html', shell=True)
     call('chromium %s/cover/index.html' % (os.path.abspath(".")), shell=True)
 
@@ -94,13 +94,13 @@ def profile():
     statistics about runtimes.
     """
     try:
-        call('python -m cProfile -o qsim.prof qexec/web/devserver.py --hostsettings', shell=True)
+        call('python -m cProfile -o zipline.prof qexec/web/devserver.py --hostsettings', shell=True)
     except KeyboardInterrupt:
         pass
     import pstats
     time.sleep(1) # wait for disk io
 
-    p = pstats.Stats('qsim.prof')
+    p = pstats.Stats('zipline.prof')
     # Print the hundred heaviest function calls
     p.sort_stats('time').print_stats(100)
 
@@ -156,21 +156,21 @@ def findbugs():
     hotspots in your code where bugs are likely to occur based on
     their git history.
     """
-    call('bugspot.py qsim', shell=True)
+    call('bugspot.py zipline', shell=True)
 
 @task
 def findtodos():
     """
     Grep for TODO
     """
-    call('grep TODO qsim/*/*.py -C 3 ', shell=True)
+    call('grep TODO zipline/*/*.py -C 3 ', shell=True)
 
 @task
 def findpdb():
     """
     find references to debugger
     """
-    call('grep "import pdb; pdb.set_trace()" qsim/*/*.py -C 3 ', shell=True)
+    call('grep "import pdb; pdb.set_trace()" zipline/*/*.py -C 3 ', shell=True)
 
 @task
 def guppy():
@@ -185,4 +185,4 @@ def apidocs():
     Recursively autogenerate the Sphinx autodoc for the module and
     its submodules.
     """
-    call('sphinx-apidoc -o docs/ qsim', shell=True)
+    call('sphinx-apidoc -o docs/ zipline', shell=True)

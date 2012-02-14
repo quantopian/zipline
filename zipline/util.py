@@ -27,10 +27,10 @@ def format_date(dt):
     return dt_str
 
 def configure_logging(loglevel=logging.DEBUG):
-    """configures qsim.util.LOGGER to write a rotating file (10M per file, 5 files) to /var/log/qsim.log"""
+    """configures zipline.util.LOGGER to write a rotating file (10M per file, 5 files) to /var/log/zipline.log"""
     LOGGER.setLevel(loglevel)
     handler = logging.handlers.RotatingFileHandler(
-                "/var/log/qsim/{lfn}.log".format(lfn="qsim"),
+                "/var/log/zipline/{lfn}.log".format(lfn="zipline"),
                 maxBytes=10*1024*1024, backupCount=5)
     handler.setFormatter(logging.Formatter(
                 "%(asctime)s %(levelname)s %(filename)s %(funcName)s - %(message)s","%Y-%m-%d %H:%M:%S %Z"))

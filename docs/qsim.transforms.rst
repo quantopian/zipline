@@ -4,7 +4,7 @@ transforms Package
 :mod:`core` Module
 ------------------
 
-.. automodule:: qsim.transforms.core
+.. automodule:: zipline.transforms.core
     :members:
     :undoc-members:
     :show-inheritance:
@@ -12,7 +12,7 @@ transforms Package
 :mod:`merge` Module
 -------------------
 
-.. automodule:: qsim.transforms.merge
+.. automodule:: zipline.transforms.merge
     :members:
     :undoc-members:
     :show-inheritance:
@@ -20,7 +20,7 @@ transforms Package
 :mod:`technical` Module
 -----------------------
 
-.. automodule:: qsim.transforms.technical
+.. automodule:: zipline.transforms.technical
     :members:
     :undoc-members:
     :show-inheritance:

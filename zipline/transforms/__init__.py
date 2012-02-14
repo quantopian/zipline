@@ -3,7 +3,7 @@ Transforms
 ==========
 
 Transforms provide re-useable components for stream processing. All
-Transforms expect to receive data events from qsim.core.DataFeed
+Transforms expect to receive data events from zipline.core.DataFeed
 asynchronously via zeromq. Each transform is designed to run in independent 
 process space, independently of all other transforms, to allow for parallel
 computation. 

@@ -1,12 +1,12 @@
 """
-Provides data handlers that can push messages to a qsim.core.DataFeed
+Provides data handlers that can push messages to a zipline.core.DataFeed
 """
 import datetime
 import zmq
 import json
 import random
 
-import qsim.util as qutil
+import zipline.util as qutil
 
 class DataSource(object):
     """

@@ -1,7 +1,7 @@
-qsim
+zipline
 ====
 
 .. toctree::
    :maxdepth: 4
 
-   qsim
+   zipline

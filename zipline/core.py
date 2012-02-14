@@ -9,8 +9,8 @@ import threading
 import datetime
 import atexit
 
-import qsim.util as qutil
-import qsim.messaging as qmsg
+import zipline.util as qutil
+import zipline.messaging as qmsg
 
 class SimulatorBase(object):
     """

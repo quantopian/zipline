@@ -1,14 +1,14 @@
 ============
-qsim Package
+zipline Package
 ============
 
 QSim API
 ===========================
 
-:mod:`qsim` Package
+:mod:`zipline` Package
 -------------------
 
-.. automodule:: qsim.__init__
+.. automodule:: zipline.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ QSim API
 :mod:`config` Module
 --------------------
 
-.. automodule:: qsim.config
+.. automodule:: zipline.config
     :members:
     :undoc-members:
     :show-inheritance:
@@ -24,7 +24,7 @@ QSim API
 :mod:`core` Module
 ------------------
 
-.. automodule:: qsim.core
+.. automodule:: zipline.core
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,7 +32,7 @@ QSim API
 :mod:`messaging` Module
 -----------------------
 
-.. automodule:: qsim.messaging
+.. automodule:: zipline.messaging
     :members:
     :undoc-members:
     :show-inheritance:
@@ -40,7 +40,7 @@ QSim API
 :mod:`sources` Module
 ---------------------
 
-.. automodule:: qsim.sources
+.. automodule:: zipline.sources
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,7 +48,7 @@ QSim API
 :mod:`util` Module
 ------------------
 
-.. automodule:: qsim.util
+.. automodule:: zipline.util
     :members:
     :undoc-members:
     :show-inheritance:
@@ -58,6 +58,6 @@ Subpackages
 
 .. toctree::
 
-    qsim.test
-    qsim.transforms
+    zipline.test
+    zipline.transforms
 

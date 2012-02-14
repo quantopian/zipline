@@ -5,7 +5,7 @@ import json
 import uuid
 import zmq
 
-import qsim.util as qutil
+import zipline.util as qutil
 
 class ParallelBuffer(object):
     """ holds several queues of events by key, allows retrieval in date order 
