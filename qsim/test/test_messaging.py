@@ -26,7 +26,7 @@ class MessagingTestCase(unittest.TestCase):
     def get_simulator(self, sources, transforms, client, feed=None, merge=None):
         return ThreadSimulator(sources, transforms, client, feed=feed, merge=merge)
 
-    def test_sources_only(self):
+    def dtest_sources_only(self):
         """streams events from two data sources, no transforms."""
 
         ret1 = RandomEquityTrades(133, "ret1", 400)
@@ -41,7 +41,7 @@ class MessagingTestCase(unittest.TestCase):
                             .format(n=sim.feed.data_buffer.pending_messages()))
     
     
-    def test_merged_to_client(self):
+    def dtest_merged_to_client(self):
         """
         2 datasources -> feed -> 2 moving average transforms -> transform merge -> testclient
         verify message count at client.
