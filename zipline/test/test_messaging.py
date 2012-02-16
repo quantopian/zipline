@@ -22,19 +22,23 @@ class MessagingTestCase(unittest.TestCase):
 
     def setUp(self):
         """generate some config objects for the datafeed, sources, and transforms."""
-        pass
+        self.addresses              = {'sync_address'           : "tcp://127.0.0.1:{port}".format(port=10100),
+                                       'data_address'           : "tcp://127.0.0.1:{port}".format(port=10101),
+                                       'feed_address'           : "tcp://127.0.0.1:{port}".format(port=10102),
+                                       'merge_address'          : "tcp://127.0.0.1:{port}".format(port=10103),
+                                       'result_address'         : "tcp://127.0.0.1:{port}".format(port=10104)
+                                      }
 
-    def get_simulator(self, sources, transforms, client, feed=None, merge=None):
-        return ProcessSimulator(sources, transforms, client, feed=feed, merge=merge)
+    def get_simulator(self):
+        return ProcessSimulator()
 
     def dtest_sources_only(self):
         """streams events from two data sources, no transforms."""
-
+        sim = self.get_simulator()
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
-        sources = {"ret1":ret1, "ret2":ret2}
         client = TestClient(self, expected_msg_count=800)
-        sim = self.get_simulator(sources, {}, client)
+        sim.register_components([ret1, ret2, client])
         sim.simulate()
               
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, 
@@ -47,21 +51,18 @@ class MessagingTestCase(unittest.TestCase):
         2 datasources -> feed -> 2 moving average transforms -> transform merge -> testclient
         verify message count at client.
         """
-        
+        sim = self.get_simulator()
         ret1 = RandomEquityTrades(133, "ret1", 5000)
         ret2 = RandomEquityTrades(134, "ret2", 5000)
-        sources = {"ret1":ret1, "ret2":ret2}
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
-        transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=10000)
-        sim = self.get_simulator(sources, transforms, client)
+        sim.register_components[ret1, ret2, mavg1, mavg2, client]
         sim.simulate()
-        
         
         self.assertEqual(sim.feed.data_buffer.pending_messages(), 0, "The feed should be drained of all messages.")
         
-    def test_error_in_feed(self):
+    def dtest_error_in_feed(self):
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}

@@ -7,26 +7,34 @@ import json
 import random
 
 import zipline.util as qutil
+import zipline.messaging as qmsg
 
-class DataSource(object):
+class DataSource(qmsg.Component):
     """
     Baseclass for data sources. Subclass and implement send_all - usually this 
     means looping through all records in a store, converting to a dict, and
     calling send(map).
     """
     def __init__(self, source_id):
-        self.source_id              = source_id
+        self.id                     = source_id
+        self.host                   = host
         self.data_address           = None
         self.sync                   = None
         self.cur_event              = None
         self.context                = None
         self.data_socket            = None
+        
+    def get_id(self):
+        return self.id
     
+    def set_addresses(self, addresses):
+        self.data_address = addresses['data_address']
+        
     def open(self):    
         """create zmq context and socket"""
         qutil.LOGGER.info(
-            "starting data source:{source_id} on {addr}"
-                .format(source_id=self.source_id, addr=self.data_address))
+            "starting data source:{id} on {addr}"
+                .format(id=self.id, addr=self.data_address))
         
         self.context = zmq.Context()
         
@@ -54,13 +62,16 @@ class DataSource(object):
     def send(self, event):
         """
             event is expected to be a dict
-            sets source_id and type properties in the dict
+            sets id and type properties in the dict
             sends to the data_socket.
         """
-        event['s'] = self.source_id             
-        event['type'] = 'event'
+        event['id'] = self.id             
+        event['type'] = self.get_type()
         self.data_socket.send(json.dumps(event), zmq.NOBLOCK)
-    
+        
+    def get_type(self):
+        raise NotImplemented
+        
     def close(self):
         """
             Close the zmq context and sockets.
@@ -69,7 +80,7 @@ class DataSource(object):
         try:
             done_msg = {}
             done_msg['type'] = 'DONE'
-            done_msg['s'] = self.source_id
+            done_msg['s'] = self.id
             self.data_socket.send(json.dumps(done_msg), zmq.NOBLOCK)
             
             qutil.LOGGER.info("closing data socket")
@@ -90,7 +101,10 @@ class RandomEquityTrades(DataSource):
         DataSource.__init__(self, source_id)
         self.count = count
         self.sid = sid
-        
+    
+    def get_type(self):
+        return 'equity_trade'    
+    
     def send_all(self):
         trade_start = datetime.datetime.now()
         minute = datetime.timedelta(minutes=1)
