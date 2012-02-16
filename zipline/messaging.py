@@ -3,7 +3,9 @@ Commonly used messaging components.
 """
 import json
 import uuid
-from gevent_zeromq import zmq
+import datetime
+#from gevent_zeromq import zmq
+import zmq
 import zipline.util as qutil
 
 class Component(object):
@@ -28,174 +30,223 @@ class Component(object):
         Bind/Connect methods will return the correct socket type for each address. Any sockets on which recv is expected to be called
         will also return a Poller.
         
-        """
-        self.context    = zmq.Context()
+        """    
+        self.zmq        = None
+        self.context    = None
         self.addresses  = addresses
-        self.sockets    = []
+        self.out_socket = None
       
     def get_id(self):
-        raise NotImplemented
+        NotImplemented
         
     def open(self):
-        raise NotImplemented
+        NotImplemented
         
     def do_work(self):
-        raise NotImplemented
+        NotImplemented
           
     def run(self):
         try:
+            #TODO: can't initialize a boolean in the __init__?
+            self.done       = False
+            #TODO: figure out why sockets can't be set in the __init__
+            self.sockets    = []
+            #TODO: figure out why addresses can't be set in the __init__
+            self.addresses = {'sync_address'           : "tcp://127.0.0.1:{port}".format(port=10100),
+                              'data_address'           : "tcp://127.0.0.1:{port}".format(port=10101),
+                              'feed_address'           : "tcp://127.0.0.1:{port}".format(port=10102),
+                              'merge_address'          : "tcp://127.0.0.1:{port}".format(port=10103),
+                              'result_address'         : "tcp://127.0.0.1:{port}".format(port=10104)
+                              }
+
+            self.context = self.zmq.Context()
             self.open()
-            self.connect_sync()
-            while self.confirm():
-                self.do_work()
-            #notify host we're done
-            self.sync_socket.send(self.sync_id + ":DONE") 
+            self.setup_sync()
+            self.loop()
             #close all the sockets
             for sock in self.sockets:
                 sock.close()
         finally:
             self.context.destroy()
+    
+    def loop(self):
+        while not self.done:
+            self.confirm()
+            self.do_work()
+                  
+    def signal_done(self):
+        #notify down stream components that we're done
+        if(self.out_socket != None):
+            self.out_socket.send("DONE")
+        #notify host we're done
+        self.sync_socket.send(self.get_id() + ":DONE")
+        self.receive_sync_ack()
+        #notify internal work look that we're done
+        self.done = True
+    
+    def is_done_message(self, message):
+        return message == "DONE"
+        
+    def confirm(self):  
+        # send a synchronization request to the host
+        self.sync_socket.send(self.get_id() + ":RUN")
+        self.receive_sync_ack()
+        
+    def receive_sync_ack(self):
+        # wait for synchronization reply from the host
+        socks = dict(self.sync_poller.poll(2000)) #timeout after 2 seconds.
 
-    def confirm(self):
-        try:
-            # send a synchronization request to the host
-            self.sync_socket.send(self.sync_id + ":RUNNING")
-            # wait for synchronization reply from the host
-            socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
-
-            if self.sync_socket in socks and socks[self.sync_socket] == zmq.POLLIN:
-                message = self.sync_socket.recv()
-
-            return True
-        except:
-            qutil.LOGGER.exception("exception in confirmation for {source}. Exiting.".format(source=self.sync_id))
-            return False
+        if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
+            message = self.sync_socket.recv()
             
     def bind_data(self):
-        return self.bind_pull_socket(self, self.addresses['data_address'])
+        return self.bind_pull_socket(self.addresses['data_address'])
         
     def connect_data(self):
-        return self.connect_push_socket(self, self.addresses['data_address'])
+        return self.connect_push_socket(self.addresses['data_address'])
         
     def bind_feed(self):
-        return self.bind_pub_socket(self, self.addresses['feed_address'])
+        return self.bind_pub_socket(self.addresses['feed_address'])
     
     def connect_feed(self):
-        return self.bind_sub_socket(self, self.addresses['feed_address'])
+        return self.connect_sub_socket(self.addresses['feed_address'])
         
     def bind_merge(self):
-        return self.bind_pull_socket(self, self.addresses['merge_address'])
+        return self.bind_pull_socket(self.addresses['merge_address'])
         
     def connect_merge(self):
-        return self.connect_push_socket(self, self.addresses['merge_address'])
+        return self.connect_push_socket(self.addresses['merge_address'])
         
     def bind_result(self):
-        return self.bind_pub_socket(self, self.addresses['result_address'])
+        return self.bind_pub_socket(self.addresses['result_address'])
 
     def connect_result(self):
-        return self.bind_sub_socket(self, self.addresses['result_address'])
+        return self.connect_sub_socket(self.addresses['result_address'])
             
     def bind_pull_socket(self, addr):
-        pull_socket = self.context.socket(zmq.PULL)
+        pull_socket = self.context.socket(self.zmq.PULL)
         pull_socket.bind(addr)
-        poller = zmq.Poller()
-        poller.register(self.pull_socket, zmq.POLLIN)
+        poller = self.zmq.Poller()
+        poller.register(pull_socket, self.zmq.POLLIN)
         self.sockets.append(pull_socket)
         return pull_socket, poller
         
     def connect_push_socket(self, addr):
-        push_socket = self.context.socket(zmq.PUSH)
-        push_socket.connect(self.merge_address)
-        #push_socket.setsockopt(zmq.LINGER,0)
+        push_socket = self.context.socket(self.zmq.PUSH)
+        push_socket.connect(addr)
+        #push_socket.setsockopt(self.zmq.LINGER,0)
         self.sockets.append(push_socket)
+        self.out_socket = push_socket
         return push_socket
     
     def bind_pub_socket(self, addr):
-        pub_socket = self.context.socket(zmq.PUB)
-        pub_socket.bind(self.pub_address)
-        #pub_socket.setsockopt(zmq.LINGER,0)
-        poller = zmq.Poller()
-        poller.register(self.pub_socket, zmq.POLLIN)
-        self.sockets.append(pub_socket)
-        return pub_socket, poller
+        pub_socket = self.context.socket(self.zmq.PUB)
+        pub_socket.bind(addr)
+        #pub_socket.setsockopt(self.zmq.LINGER,0)
+        self.out_socket = pub_socket
+        return pub_socket
         
     def connect_sub_socket(self, addr):
-        sub_socket = self.context.socket(zmq.SUB)
-        sub_socket.connect(self.feed_address)
-        sub_socket.setsockopt(zmq.SUBSCRIBE,'')
+        sub_socket = self.context.socket(self.zmq.SUB)
+        sub_socket.connect(addr)
+        sub_socket.setsockopt(self.zmq.SUBSCRIBE,'')
+        poller = self.zmq.Poller()
+        poller.register(sub_socket, self.zmq.POLLIN)
         self.sockets.append(sub_socket)
-        return sub_socket
-        
-    def bind_sync(self):
-        sync_socket = self.context.socket(zmq.REP)
-        sync_socket.bind(self.addresses['sync_address'])
-        poller = zmq.Poller()
-        poller.register(self.sync_socket, zmq.POLLIN)
-        self.sockets.append(sync_socket)
-        return sync_socket, poller
-        
-    def connect_sync(self):
-        self.sync_socket = self.context.socket(zmq.REQ)
+        return sub_socket, poller
+            
+    def setup_sync(self):
+        qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id()))
+        self.sync_socket = self.context.socket(self.zmq.REQ)
         self.sync_socket.connect(self.addresses['sync_address'])
-        self.sync_socket.setsockopt(zmq.LINGER,0)
-        self.poller = zmq.Poller()
-        self.poller.register(self.sync_socket, zmq.POLLIN)
-        self.sockets.append(sync_socket)
+        #self.sync_socket.setsockopt(self.zmq.LINGER,0)
+        self.sync_poller = self.zmq.Poller()
+        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
+        self.sockets.append(self.sync_socket)
         
 class ComponentHost(Component):
     """Component that can launch multiple sub-components, synchronize their start, and then wait for all
     components to be finished."""
-    def __init__(self, addresses):
+    def __init__(self, addresses, gevent_needed=False):
         Component.__init__(self, addresses)
-        self.components = {}
-        self.timeout    = datetime.timedelta(seconds=5)
+        if gevent_needed:
+            module = __import__('gevent_zmq', 'zmq')
+        else:
+            module = __import__('zmq')
+        self.zmq            = module
+        #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
+        qutil.parse_date("2012/02/13-10:04:28.114")
+        self.components     = {}
+        self.sync_register  = {}
+        self.timeout        = datetime.timedelta(seconds=5)
+        self.feed           = ParallelBuffer()
+        self.merge          = MergedParallelBuffer()
+        self.passthrough    = PassthroughTransform()
+        
+        #register the feed and the merge
+        self.register_components([self.feed, self.merge, self.passthrough])
     
     def register_components(self, component_list):
         for component in component_list:
+            component.zmq = self.zmq
             self.components[component.get_id()] = component
+            self.sync_register[component.get_id()] = datetime.datetime.utcnow()
+            if(isinstance(component, DataSource)):
+                self.feed.add_source(component.get_id())
+            if(isinstance(component, BaseTransform)):
+                self.merge.add_source(component.get_id())
     
     def unregister_component(self, component_id):
         del(self.components[component_id])
+        del(self.sync_register[component_id])
+    
+    def setup_sync(self):
+        """Start the sync server."""
+        qutil.LOGGER.debug("Connecting sync server.")
+        self.sync_socket = self.context.socket(self.zmq.REP)
+        self.sync_socket.bind(self.addresses['sync_address'])
+        self.poller = self.zmq.Poller()
+        self.poller.register(self.sync_socket, self.zmq.POLLIN)
+        self.sockets.append(self.sync_socket)
     
     def open(self):
-        self.sync_socket, self.poller = self.bind_sync()
         for component in self.components.values():
             self.launch_component(component)
     
     def is_timed_out(self):
         cur_time = datetime.datetime.utcnow()
-        if(len(self.sync_register) == 0):
+        if(len(self.components) == 0):
             qutil.LOGGER.info("Component register is empty.")
             return True
         for source, last_dt in self.sync_register.iteritems():
             if((cur_time - last_dt) > self.timeout):
-                qutil.LOGGER.info("Time out for {source}. Current registery: {reg}".format(source=source, reg=self.sync_register))
+                qutil.LOGGER.info("Time out for {source}. Current component registery: {reg}".format(source=source, reg=self.components))
                 return True
         return False
         
-    def run(self):
+    def loop(self):
         while not self.is_timed_out():
             # wait for synchronization request
             socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
 
-            if self.sync_socket in socks and socks[self.sync_socket] == zmq.POLLIN:
-                try:
-                    msg = self.sync_socket.recv()
-                    parts = msg.split(':')
-                    sync_id = parts[0]
-                    status  = parts[1]
-                    if(status == "DONE"):
-                        self.unregister_component(sync_id)
-                    else:        
-                        self.sync_register[sync_id] = datetime.datetime.utcnow()
-                    #qutil.LOGGER.info("confirmed {id}".format(id=msg))
-                    # send synchronization reply
-                    self.sync_socket.send('ack', zmq.NOBLOCK)
-                except:
-                    qutil.LOGGER.exception("Exception in sync components loop")
+            if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
+                msg = self.sync_socket.recv()
+                parts = msg.split(':')
+                if(len(parts) < 2):
+                    qutil.LOGGER.info("got bad confirm: {msg}".format(msg=msg))
+                sync_id = parts[0]
+                status  = parts[1]
+                if(self.is_done_message(status)):
+                    qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
+                    self.unregister_component(sync_id)
+                else:        
+                    self.sync_register[sync_id] = datetime.datetime.utcnow()
+                #qutil.LOGGER.info("confirmed {id}".format(id=msg))
+                # send synchronization reply
+                self.sync_socket.send('ack', self.zmq.NOBLOCK)
                     
-    def luanch_component(self, component):
-        raise NotImplemented
+    def launch_component(self, component):
+        NotImplemented
     
 class ParallelBuffer(Component):
     """Connects to N PULL sockets, publishing all messages received to a PUB socket.
@@ -224,21 +275,17 @@ class ParallelBuffer(Component):
         # wait for synchronization reply from the host
         socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
 
-        if self.pull_socket in socks and socks[self.pull_socket] == zmq.POLLIN:
+        if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
-
-            event = json.loads(message)
-            if(event["type"] == "DONE"):
-                ds_finished_counter += 1
-                if(len(self.data_buffer) == ds_finished_counter):
+            if(self.is_done_message(message)):
+                self.ds_finished_counter += 1
+                if(len(self.data_buffer) == self.ds_finished_counter):
                      #drain any remaining messages in the buffer
                     self.drain()
-                    #send the DONE message
-                    self.feed_socket.send("DONE", zmq.NOBLOCK)
-                    qutil.LOGGER.info("received {n} messages, sent {m} messages".format(n=self.received_count, 
-                                                                                        m=self.sent_count))
+                    self.signal_done()
             else:
-                self.append(event[u's'], event)
+                event = json.loads(message)
+                self.append(event[u'id'], event)
                 self.send_next()
 
     def __len__(self):
@@ -294,7 +341,7 @@ class ParallelBuffer(Component):
   
         event = self.next()
         if(event != None):
-            self.feed_socket.send(json.dumps(event), zmq.NOBLOCK)
+            self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
             self.sent_count += 1   
     
     
@@ -305,20 +352,28 @@ class MergedParallelBuffer(ParallelBuffer):
     
     def __init__(self):
         ParallelBuffer.__init__(self)
+        
+    def open(self):
+        self.pull_socket, self.poller   = self.bind_merge()
+        self.feed_socket                = self.bind_result()
     
     def next(self):
         """Get the next merged message from the feed buffer."""
         if(not(self.is_full() or self.draining)):
             return
         
-        result = self.feed.pop(0)
+        #get the raw event from the passthrough transform.
+        result = self.data_buffer["PASSTHROUGH"].pop(0)['value']
         for source, events in self.data_buffer.iteritems():
-            if(source == "feed"):
+            if(source == "PASSTHROUGH"):
                 continue
             if(len(events) > 0):
                 cur = events.pop(0)
                 result[source] = cur['value']
         return result
+        
+    def get_id(self):
+        return "MERGE"
         
 
 class BaseTransform(Component):
@@ -346,11 +401,9 @@ class BaseTransform(Component):
         """    
         #create the feed. 
         self.feed_socket, self.poller = self.connect_feed()
-
         #create the result PUSH
         self.result_socket = self.connect_merge()
         
-
     def do_work(self):
         """
         Loops until feed's DONE message is received:
@@ -358,21 +411,17 @@ class BaseTransform(Component):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        qutil.LOGGER.info("starting {name} event loop".format(name = self.state['name']))
         socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
-        if self.feed_socket in socks and socks[self.feed_socket] == zmq.POLLIN:
+        if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
-            if(message == "DONE"):
-                qutil.LOGGER.info("{name} received the Done message from the feed".format(name=self.state['name']))
-                self.result_socket.send("DONE", zmq.NOBLOCK)
+            if(self.is_done_message(message)):
+                self.signal_done()
                 return
-            self.received_count += 1
             event = json.loads(message)
             cur_state = self.transform(event)
             cur_state['dt'] = event['dt']
-            cur_state['name'] = self.state['name']
-            self.result_socket.send(json.dumps(cur_state), zmq.NOBLOCK)
-            self.sent_count += 1
+            cur_state['id'] = self.state['name']
+            self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
 
     def transform(self, event):
         """ Must return the transformed value as a map with {name:"name of new transform", value: "value of new field"}
@@ -381,5 +430,43 @@ class BaseTransform(Component):
             transformed value:
                 self.state['value'] = transformed_value
         """
-        return {'value'=event}
+        NotImplemented
         
+class PassthroughTransform(BaseTransform):
+    
+    def __init__(self):
+        BaseTransform.__init__(self, "PASSTHROUGH")
+
+    def transform(self, event):    
+        return {'value':event}
+        
+class DataSource(Component):
+    """
+    Baseclass for data sources. Subclass and implement send_all - usually this 
+    means looping through all records in a store, converting to a dict, and
+    calling send(map).
+    """
+    def __init__(self, source_id, addresses):
+        Component.__init__(self, addresses)
+        self.id                     = source_id
+        self.cur_event              = None
+
+    def get_id(self):
+        return self.id
+
+    def open(self):    
+        #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2 
+        self.data_socket = self.connect_data()
+
+    def send(self, event):
+        """
+            event is expected to be a dict
+            sets id and type properties in the dict
+            sends to the data_socket.
+        """
+        event['id'] = self.id             
+        event['type'] = self.get_type()
+        self.data_socket.send(json.dumps(event))
+
+    def get_type(self):
+        raise NotImplemented

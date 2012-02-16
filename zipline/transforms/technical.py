@@ -5,7 +5,7 @@ TODO: add trailing stop
 
 """
 import datetime
-from zipline.core import BaseTransform
+from zipline.messaging import BaseTransform
 import zipline.util as qutil
 
 class MovingAverage(BaseTransform):
