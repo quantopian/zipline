@@ -183,9 +183,9 @@ class ComponentHost(Component):
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
-        self.feed           = ParallelBuffer(addresses)
-        self.merge          = MergedParallelBuffer(addresses)
-        self.passthrough    = PassthroughTransform(addresses)
+        self.feed           = ParallelBuffer()
+        self.merge          = MergedParallelBuffer()
+        self.passthrough    = PassthroughTransform()
         
         #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
@@ -258,8 +258,8 @@ class ParallelBuffer(Component):
      Published messages are guaranteed to be in chronological order based on message property dt.
      Expects to be instantiated in one execution context (thread, process, etc) and run in another."""
      
-    def __init__(self, addresses):
-        Component.__init__(self, addresses)
+    def __init__(self):
+        Component.__init__(self)
         self.sent_count             = 0
         self.received_count         = 0
         self.draining               = False
@@ -356,8 +356,8 @@ class MergedParallelBuffer(ParallelBuffer):
     Merges multiple streams of events into single messages.
     """
     
-    def __init__(self, addresses):
-        ParallelBuffer.__init__(self, addresses)
+    def __init__(self):
+        ParallelBuffer.__init__(self)
         
     def open(self):
         self.pull_socket, self.poller   = self.bind_merge()
@@ -394,8 +394,8 @@ class BaseTransform(Component):
     Parent class for feed transforms. Subclass and override transform 
     method to create a new derived value from the combined feed."""
 
-    def __init__(self, name, addresses):
-        Component.__init__(self, addresses)
+    def __init__(self, name):
+        Component.__init__(self)
         self.state              = {}
         self.state['name']      = name
 
@@ -441,8 +441,8 @@ class BaseTransform(Component):
         
 class PassthroughTransform(BaseTransform):
     
-    def __init__(self, addresses):
-        BaseTransform.__init__(self, "PASSTHROUGH", addresses)
+    def __init__(self):
+        BaseTransform.__init__(self, "PASSTHROUGH")
 
     def transform(self, event):    
         return {'value':event}
