@@ -108,6 +108,12 @@ class Component(object):
     def connect_data(self):
         return self.connect_push_socket(self.addresses['data_address'])
         
+    def bind_order(self):
+        return self.bind_pull_socket(self.addresses['order_address'])
+
+    def connect_order(self):
+        return self.connect_push_socket(self.addresses['order_address'])
+        
     def bind_feed(self):
         return self.bind_pub_socket(self.addresses['feed_address'])
     
@@ -259,6 +265,7 @@ class ParallelBuffer(Component):
         self.sent_count             = 0
         self.received_count         = 0
         self.draining               = False
+        #data source component ID -> List of messages
         self.data_buffer            = {}
         self.ds_finished_counter    = 0
         
@@ -422,7 +429,8 @@ class BaseTransform(Component):
                 return
             event = json.loads(message)
             cur_state = self.transform(event)
-            cur_state['dt'] = event['dt']
+            #TODO: do we want to relay the datetime again? maybe drop this?
+            #cur_state['dt'] = event['dt']
             cur_state['id'] = self.state['name']
             self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
 
@@ -473,3 +481,36 @@ class DataSource(Component):
 
     def get_type(self):
         raise NotImplemented
+
+
+class Client(Component):
+
+    def __init__(self):
+        Component.__init__(self)
+        self.received_count     = 0
+        self.prev_dt            = None
+
+    def open(self):
+        self.data_feed, self.poller = self.connect_result()
+        self.order_feed, self.poller = self.connect_order()
+
+    def do_work(self):
+        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:   
+            msg = self.data_feed.recv()
+            if(self.is_done_message(msg)):
+                qutil.LOGGER.info("Client is DONE!")
+                self.signal_done()
+                return
+
+            self.received_count += 1
+            event = json.loads(msg)
+            self.handle_event(event)
+            
+    def handle_event(self, event):
+        NotImplemented
+        
+    
+    def order(self, sid, volume):
+        order = {'sid':sid, 'volume':volume}
+    

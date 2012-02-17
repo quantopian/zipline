@@ -26,11 +26,10 @@ class SimulatorTestCase(unittest.TestCase):
                                        'data_address'           : "tcp://127.0.0.1:10101",
                                        'feed_address'           : "tcp://127.0.0.1:10102",
                                        'merge_address'          : "tcp://127.0.0.1:10103",
-                                       'result_address'         : "tcp://127.0.0.1:10104"
+                                       'result_address'         : "tcp://127.0.0.1:10104",
+                                       'order_address'          : "tcp://127.0.0.1:10105"
                                       }
                                       
-        self.addressesblarg = "test"
-    
     def get_simulator(self):
         return ThreadSimulator(self.addresses)
 
