@@ -17,7 +17,7 @@ from zipline.test.client import TestClient
 
 qutil.configure_logging()
 
-class ThreadSimulatorTestCase(unittest.TestCase):  
+class SimulatorTestCase(unittest.TestCase):  
     """Tests the message passing: datasources -> feed -> transforms -> merge -> client"""
 
     def setUp(self):
@@ -78,7 +78,7 @@ class ThreadSimulatorTestCase(unittest.TestCase):
         sim.simulate()
         
     
-class ProcessSimulatorTestCase(ThreadSimulatorTestCase):
+class ProcessSimulatorTestCase(SimulatorTestCase):
     
     def get_simulator(self):
         return ProcessSimulator(self.addresses)

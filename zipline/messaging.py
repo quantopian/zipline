@@ -4,9 +4,8 @@ Commonly used messaging components.
 import json
 import uuid
 import datetime
-#from gevent_zeromq import zmq
-import zmq
 import zipline.util as qutil
+from gevent_zeromq import zmq as gzmq
 
 class Component(object):
     
@@ -48,11 +47,9 @@ class Component(object):
           
     def run(self):
         try:
-            #TODO: can't initialize a boolean in the __init__?
+            #TODO: can't initialize these values in the __init__?
             self.done       = False
-            #TODO: figure out why sockets can't be set in the __init__
             self.sockets    = []
-            
             if self.gevent_needed:
                 qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
                 module = __import__('gevent_zmq', 'zmq')
@@ -60,7 +57,6 @@ class Component(object):
                 qutil.LOGGER.debug("NOT Loading gevent specific zmq for {id}".format(id=self.get_id()))
                 module = __import__('zmq')
             self.zmq            = module
-            
             self.context = self.zmq.Context()
             self.open()
             self.setup_sync()
@@ -69,7 +65,8 @@ class Component(object):
             for sock in self.sockets:
                 sock.close()
         except:
-            qutil.LOGGER.exception("Problem running component {id}.".format(id=self.get_id()))
+            qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
+
         finally:
             self.context.destroy()
     
@@ -93,15 +90,22 @@ class Component(object):
         
     def confirm(self):  
         # send a synchronization request to the host
+        qutil.LOGGER.debug("sending confirmation...")
         self.sync_socket.send(self.get_id() + ":RUN")
         self.receive_sync_ack()
         
     def receive_sync_ack(self):
         # wait for synchronization reply from the host
+        qutil.LOGGER.debug("polling sync socket for response")
         socks = dict(self.sync_poller.poll(2000)) #timeout after 2 seconds.
-
+        qutil.LOGGER.debug("done polling")
         if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
+            qutil.LOGGER.debug("attempting to receive...")
             message = self.sync_socket.recv()
+            qutil.LOGGER.debug("confirm ack'd")
+        else:
+            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id()))
+            
             
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
@@ -179,9 +183,9 @@ class ComponentHost(Component):
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
-        self.feed           = ParallelBuffer()
-        self.merge          = MergedParallelBuffer()
-        self.passthrough    = PassthroughTransform()
+        self.feed           = ParallelBuffer(addresses)
+        self.merge          = MergedParallelBuffer(addresses)
+        self.passthrough    = PassthroughTransform(addresses)
         
         #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
@@ -254,7 +258,8 @@ class ParallelBuffer(Component):
      Published messages are guaranteed to be in chronological order based on message property dt.
      Expects to be instantiated in one execution context (thread, process, etc) and run in another."""
      
-    def __init__(self):
+    def __init__(self, addresses):
+        Component.__init__(self, addresses)
         self.sent_count             = 0
         self.received_count         = 0
         self.draining               = False
@@ -270,7 +275,7 @@ class ParallelBuffer(Component):
         
     def open(self):
         self.pull_socket, self.poller   = self.bind_data()
-        self.feed_socket                 = self.bind_feed() 
+        self.feed_socket                = self.bind_feed() 
 
     def do_work(self):   
         # wait for synchronization reply from the host
@@ -351,8 +356,8 @@ class MergedParallelBuffer(ParallelBuffer):
     Merges multiple streams of events into single messages.
     """
     
-    def __init__(self):
-        ParallelBuffer.__init__(self)
+    def __init__(self, addresses):
+        ParallelBuffer.__init__(self, addresses)
         
     def open(self):
         self.pull_socket, self.poller   = self.bind_merge()
@@ -389,7 +394,8 @@ class BaseTransform(Component):
     Parent class for feed transforms. Subclass and override transform 
     method to create a new derived value from the combined feed."""
 
-    def __init__(self, name):
+    def __init__(self, name, addresses):
+        Component.__init__(self, addresses)
         self.state              = {}
         self.state['name']      = name
 
@@ -435,8 +441,8 @@ class BaseTransform(Component):
         
 class PassthroughTransform(BaseTransform):
     
-    def __init__(self):
-        BaseTransform.__init__(self, "PASSTHROUGH")
+    def __init__(self, addresses):
+        BaseTransform.__init__(self, "PASSTHROUGH", addresses)
 
     def transform(self, event):    
         return {'value':event}
