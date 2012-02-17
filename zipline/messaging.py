@@ -43,43 +43,33 @@ class Component(object):
         
     def do_work(self):
         NotImplemented
-          
-    def run(self):
-        self.run_unsafe()
          
-    def run_safe(self):
+    def run(self):
         try:
-            self.run_unsafe()
-        except:
+            #TODO: can't initialize these values in the __init__?
+            self.done       = False
+            self.sockets    = []
+            if self.gevent_needed:
+                qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
+                import gevent_zeromq
+                self.zmq = gevent_zeromq.zmq
+            else:
+                import zmq
+                self.zmq = zmq
+            self.context = self.zmq.Context()
+            self.open()
+            self.setup_sync()
+            self.loop()
+            #close all the sockets
+            for sock in self.sockets:
+                sock.close()
+        except Exception as e:
             qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
-
+            raise e
         finally:
             if(self.context != None):
                 self.context.destroy()
                 
-    def run_unsafe(self):
-        #import pdb; pdb.set_trace()
-        #TODO: can't initialize these values in the __init__?
-        self.done       = False
-        self.sockets    = []
-        if self.gevent_needed:
-            qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
-            import gevent_zeromq 
-            self.zmq = gevent_zeromq.zmq
-        else:
-            qutil.LOGGER.debug("NOT Loading gevent specific zmq for {id}".format(id=self.get_id()))
-            import zmq
-            self.zmq = zmq
-        #self.zmq            = module
-        qutil.LOGGER.debug("zmq file: {file}".format(file=self.zmq.__file__))
-        self.context = self.zmq.Context()
-        self.open()
-        self.setup_sync()
-        self.loop()
-        #close all the sockets
-        for sock in self.sockets:
-            sock.close()
-
     def loop(self):
         while not self.done:
             self.confirm()
@@ -100,19 +90,14 @@ class Component(object):
         
     def confirm(self):  
         # send a synchronization request to the host
-        qutil.LOGGER.debug("sending confirmation...")
         self.sync_socket.send(self.get_id() + ":RUN")
         self.receive_sync_ack()
         
     def receive_sync_ack(self):
         # wait for synchronization reply from the host
-        qutil.LOGGER.debug("polling sync socket for response")
         socks = dict(self.sync_poller.poll(2000)) #timeout after 2 seconds.
-        qutil.LOGGER.debug("done polling")
         if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
-            qutil.LOGGER.debug("attempting to receive...")
             message = self.sync_socket.recv()
-            qutil.LOGGER.debug("confirm ack'd")
         else:
             raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id()))
             
