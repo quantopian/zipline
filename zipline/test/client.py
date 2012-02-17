@@ -4,8 +4,8 @@ import zipline.messaging as qmsg
 
 class TestClient(qmsg.Component):
     
-    def __init__(self, addresses, utest, expected_msg_count=0):
-        qmsg.Component.__init__(self, addresses)
+    def __init__(self, utest, expected_msg_count=0):
+        qmsg.Component.__init__(self)
         self.received_count     = 0
         self.expected_msg_count = expected_msg_count
         self.utest              = utest

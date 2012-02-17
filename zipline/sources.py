@@ -11,8 +11,8 @@ import zipline.messaging as qmsg
 class RandomEquityTrades(qmsg.DataSource):
     """Generates a random stream of trades for testing."""
     
-    def __init__(self, sid, source_id, count, addresses):
-        qmsg.DataSource.__init__(self, source_id, addresses)
+    def __init__(self, sid, source_id, count):
+        qmsg.DataSource.__init__(self, source_id)
         self.count          = count
         self.incr           = 0
         self.sid            = sid

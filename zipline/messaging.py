@@ -10,7 +10,7 @@ import zipline.util as qutil
 
 class Component(object):
     
-    def __init__(self, addresses):
+    def __init__(self):
         """
         :addresses: a dict of name_string -> zmq port address strings. Must have the following entries::
         
@@ -31,11 +31,12 @@ class Component(object):
         will also return a Poller.
         
         """    
-        self.zmq        = None
-        self.context    = None
-        self.addresses  = addresses
-        self.out_socket = None
-      
+        self.zmq            = None
+        self.context        = None
+        self.addresses      = None
+        self.out_socket     = None
+        self.gevent_needed  = False
+        
     def get_id(self):
         NotImplemented
         
@@ -51,14 +52,15 @@ class Component(object):
             self.done       = False
             #TODO: figure out why sockets can't be set in the __init__
             self.sockets    = []
-            #TODO: figure out why addresses can't be set in the __init__
-            self.addresses = {'sync_address'           : "tcp://127.0.0.1:{port}".format(port=10100),
-                              'data_address'           : "tcp://127.0.0.1:{port}".format(port=10101),
-                              'feed_address'           : "tcp://127.0.0.1:{port}".format(port=10102),
-                              'merge_address'          : "tcp://127.0.0.1:{port}".format(port=10103),
-                              'result_address'         : "tcp://127.0.0.1:{port}".format(port=10104)
-                              }
-
+            
+            if self.gevent_needed:
+                qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
+                module = __import__('gevent_zmq', 'zmq')
+            else:
+                qutil.LOGGER.debug("NOT Loading gevent specific zmq for {id}".format(id=self.get_id()))
+                module = __import__('zmq')
+            self.zmq            = module
+            
             self.context = self.zmq.Context()
             self.open()
             self.setup_sync()
@@ -66,6 +68,8 @@ class Component(object):
             #close all the sockets
             for sock in self.sockets:
                 sock.close()
+        except:
+            qutil.LOGGER.exception("Problem running component {id}.".format(id=self.get_id()))
         finally:
             self.context.destroy()
     
@@ -168,12 +172,8 @@ class ComponentHost(Component):
     """Component that can launch multiple sub-components, synchronize their start, and then wait for all
     components to be finished."""
     def __init__(self, addresses, gevent_needed=False):
-        Component.__init__(self, addresses)
-        if gevent_needed:
-            module = __import__('gevent_zmq', 'zmq')
-        else:
-            module = __import__('zmq')
-        self.zmq            = module
+        Component.__init__(self)
+        self.addresses = addresses
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
         self.components     = {}
@@ -188,7 +188,8 @@ class ComponentHost(Component):
     
     def register_components(self, component_list):
         for component in component_list:
-            component.zmq = self.zmq
+            component.gevent_needed = self.gevent_needed
+            component.addresses = self.addresses
             self.components[component.get_id()] = component
             self.sync_register[component.get_id()] = datetime.datetime.utcnow()
             if(isinstance(component, DataSource)):
@@ -446,8 +447,8 @@ class DataSource(Component):
     means looping through all records in a store, converting to a dict, and
     calling send(map).
     """
-    def __init__(self, source_id, addresses):
-        Component.__init__(self, addresses)
+    def __init__(self, source_id):
+        Component.__init__(self)
         self.id                     = source_id
         self.cur_event              = None
 

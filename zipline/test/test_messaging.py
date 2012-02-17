@@ -22,13 +22,14 @@ class ThreadSimulatorTestCase(unittest.TestCase):
 
     def setUp(self):
         """generate some config objects for the datafeed, sources, and transforms."""
-        self.addresses              = {'sync_address'           : "tcp://127.0.0.1:{port}".format(port=10100),
-                                       'data_address'           : "tcp://127.0.0.1:{port}".format(port=10101),
-                                       'feed_address'           : "tcp://127.0.0.1:{port}".format(port=10102),
-                                       'merge_address'          : "tcp://127.0.0.1:{port}".format(port=10103),
-                                       'result_address'         : "tcp://127.0.0.1:{port}".format(port=10104)
+        self.addresses              = {'sync_address'           : "tcp://127.0.0.1:10100",
+                                       'data_address'           : "tcp://127.0.0.1:10101",
+                                       'feed_address'           : "tcp://127.0.0.1:10102",
+                                       'merge_address'          : "tcp://127.0.0.1:10103",
+                                       'result_address'         : "tcp://127.0.0.1:10104"
                                       }
-
+                                      
+        self.addressesblarg = "test"
     
     def get_simulator(self):
         return ThreadSimulator(self.addresses)
@@ -37,9 +38,9 @@ class ThreadSimulatorTestCase(unittest.TestCase):
     def test_sources_only(self):
         """streams events from two data sources, no transforms."""
         sim = self.get_simulator()
-        ret1 = RandomEquityTrades(133, "ret1", 400, self.addresses)
-        ret2 = RandomEquityTrades(134, "ret2", 400, self.addresses)
-        client = TestClient(self.addresses, self, expected_msg_count=800)
+        ret1 = RandomEquityTrades(133, "ret1", 400)
+        ret2 = RandomEquityTrades(134, "ret2", 400)
+        client = TestClient(self, expected_msg_count=800)
         sim.register_components([ret1, ret2, client])
         sim.simulate()
               
@@ -54,11 +55,11 @@ class ThreadSimulatorTestCase(unittest.TestCase):
         verify message count at client.
         """
         sim = self.get_simulator()
-        ret1 = RandomEquityTrades(133, "ret1", 5000, self.addresses)
-        ret2 = RandomEquityTrades(134, "ret2", 5000, self.addresses)
+        ret1 = RandomEquityTrades(133, "ret1", 5000)
+        ret2 = RandomEquityTrades(134, "ret2", 5000)
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
-        client = TestClient(self.addresses, self, expected_msg_count=10000)
+        client = TestClient(self, expected_msg_count=10000)
         sim.register_components([ret1, ret2, mavg1, mavg2, client])
         sim.simulate()
         
@@ -71,7 +72,7 @@ class ThreadSimulatorTestCase(unittest.TestCase):
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
-        client = TestClient(self.addresses, self, expected_msg_count=0)
+        client = TestClient(self, expected_msg_count=0)
         sim = self.get_simulator(sources, transforms, client)
         sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, sim.performance_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
         sim.simulate()
