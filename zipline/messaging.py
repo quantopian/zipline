@@ -64,9 +64,10 @@ class Component(object):
             #close all the sockets
             for sock in self.sockets:
                 sock.close()
-        except:
-            qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
 
+        except Exception as e:
+            qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
+            raise e
         finally:
             self.context.destroy()
     
