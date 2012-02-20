@@ -65,7 +65,7 @@ class Component(object):
                 sock.close()
         except Exception as e:
             qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
-            raise e
+            raise
         finally:
             if(self.context != None):
                 self.context.destroy()
@@ -100,8 +100,7 @@ class Component(object):
             message = self.sync_socket.recv()
         else:
             raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id()))
-            
-            
+
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
         
