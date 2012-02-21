@@ -14,6 +14,8 @@ class Component(object):
 
             - sync_address: socket address used for synchronizing the start of all workers, heartbeating, and exit notification
                             will be used in REP/REQ sockets. Bind is always on the REP side.
+            - control_address: socket address used for controlling and
+                            monitoring the status of the simulation
             - data_address: socket address used for data sources to stream their records. 
                             will be used in PUSH/PULL sockets between data sources and a ParallelBuffer (aka the Feed). Bind
                             will always be on the PULL side (we always have N producers and 1 consumer)
@@ -34,6 +36,7 @@ class Component(object):
         self.addresses      = None
         self.out_socket     = None
         self.gevent_needed  = False
+        self.killed         = False
 
     # TODO: could probably mkae this into a property instead of a
     # method
@@ -41,6 +44,19 @@ class Component(object):
         raise NotImplementedError
 
     def open(self):
+        raise NotImplementedError
+
+    def destroy(self):
+        """
+        Tear down after normal operation.
+        """
+        raise NotImplementedError
+
+    def kill(self):
+        """
+        Tear down ( fast ) as a mode of failure in the
+        simulation.
+        """
         raise NotImplementedError
 
     def do_work(self):
@@ -66,6 +82,7 @@ class Component(object):
             self.context = self.zmq.Context()
             self.open()
             self.setup_sync()
+            self.setup_control()
             self.loop()
 
             #close all the sockets
@@ -172,6 +189,15 @@ class Component(object):
         poller.register(sub_socket, self.zmq.POLLIN)
         self.sockets.append(sub_socket)
         return sub_socket, poller
+
+    def setup_control(self):
+        """
+        Set up the control socket. Used to monitor the the
+        overall status of the simulation and to forcefully tear
+        down the simulation in case of a failure.
+        """
+        qutil.LOGGER.debug("Connecting control socket for {id}".format(id=self.get_id()))
+        #self.control_socket = self.context.socket(self.zmq.REQ)
 
     def setup_sync(self):
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id()))
