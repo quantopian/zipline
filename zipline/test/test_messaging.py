@@ -9,7 +9,6 @@ Test suite for the messaging infrastructure of QSim.
 #
 # nosetests --processes=5
 
-import zipline.util as qutil
 import zipline.messaging as qmsg
 
 from zipline.transforms.technical import MovingAverage
@@ -20,25 +19,6 @@ from zipline.test.client import TestClient
 # Should not inherit form TestCase since test runners will pick
 # it up as a test.
 class SimulatorTestCase(object):
-
-    def setUp(self):
-        qutil.configure_logging()
-
-        """
-        Generate some config objects for the datafeed, sources, and transforms.
-        """
-
-        # TODO: new logic so we don't have to hardcode these
-        self.addresses = {
-            'sync_address'   : "tcp://127.0.0.1:10100",
-            'data_address'   : "tcp://127.0.0.1:10101",
-            'feed_address'   : "tcp://127.0.0.1:10102",
-            'merge_address'  : "tcp://127.0.0.1:10103",
-            'result_address' : "tcp://127.0.0.1:10104"
-        }
-
-        # TODO: remove?
-        self.addressesblarg = "test"
 
     def get_simulator(self):
         """
