@@ -5,6 +5,133 @@ import json
 import uuid
 import datetime
 import zipline.util as qutil
+import zmq
+
+class Controller(object):
+    """
+    A broker of sorts.
+    """
+
+    polling = False
+    debug = False
+
+    def __init__(self, pull_socket, pub_socket, context=None, logging = None):
+
+
+        if not context:
+            self._ctx = zmq.Context()
+        else:
+            self._ctx = context
+
+        self.pull_socket = pull_socket
+        self.pub_socket = pub_socket
+
+        self.pull = self._ctx.socket(zmq.PULL)
+        self.pub = self._ctx.socket(zmq.PUB)
+
+        self.associated = [self.pull, self.pub]
+
+        if logging:
+            self.logging = logging
+            self.dologging = True
+        else:
+            self.logging = False
+            self.dologging = False
+
+        self.success = 0
+        self.failed = 0
+
+        try:
+            self.pull.bind(pull_socket)
+        except zmq.ZMQError:
+            raise Exception('Cannot not bind on %s' % pull_socket)
+
+        try:
+            self.pub.bind(pub_socket)
+        except zmq.ZMQError:
+            raise Exception('Cannot not bind on %s' % pub_socket)
+
+    def run(self, debug_step=False, stats=True):
+        self.polling = True
+
+        if self.debug or debug_step:
+            return self._poll_verbose(True, stats)
+        else:
+            return self._poll(False, stats)
+
+    def _poll(self, debug_step, stats):
+        while self.polling:
+            try:
+                self.logging.info('msg')
+                self.pub.send(self.pull.recv())
+            except KeyboardInterrupt:
+                self.polling = False
+                break
+            except Exception as e:
+                # Its common to wrap these in wildcard exceptions so
+                # that we don't loose messages, ever
+                self.logging.error(str(e))
+                self.failed += 1
+                continue
+
+    def _poll_verbose(self, debug_step, stats):
+        while self.polling:
+            try:
+                if debug_step:
+                    msg = self.pull.recv()
+                    if self.dologging:
+                        self.logging.info(msg)
+                    self.pub.send(msg)
+                    self.success += 1
+            except KeyboardInterrupt:
+                self.polling = False
+                break
+            except Exception as e:
+                # Its common to wrap these in wildcard exceptions so
+                # that we don't loose messages, ever
+                self.logging.error(str(e))
+                self.failed += 1
+                continue
+
+    def qos(self):
+        return float(self.success) / (self.success + self.failed)
+
+    def destroy(self):
+        """
+        Manual cleanup.
+        """
+        self.polling = False
+
+        for asoc in self.associated:
+            asoc.close()
+
+        #if self._ctx:
+            #self._ctx.destroy()
+
+    def __del__(self):
+        self.destroy()
+
+    def message_sender(self):
+        """
+        Spin off a socket used for sending messages to this
+        controller.
+        """
+        s = self._ctx.socket(zmq.PUSH)
+        s.connect(self.pull_socket)
+        s.setsockopt(zmq.LINGER, -1)
+        self.associated.append(s)
+        return s
+
+    def message_listener(self):
+        """
+        Spin off a socket used for receiving messages from this
+        controller.
+        """
+        s = self._ctx.socket(zmq.SUB)
+        s.connect(self.pub_socket)
+        s.setsockopt(zmq.SUBSCRIBE, '')
+        self.associated.append(s)
+        return s
 
 class Component(object):
 
@@ -196,8 +323,7 @@ class Component(object):
         overall status of the simulation and to forcefully tear
         down the simulation in case of a failure.
         """
-        qutil.LOGGER.debug("Connecting control socket for {id}".format(id=self.get_id()))
-        #self.control_socket = self.context.socket(self.zmq.REQ)
+        pass
 
     def setup_sync(self):
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id()))
@@ -209,11 +335,15 @@ class Component(object):
         self.sockets.append(self.sync_socket)
 
 class ComponentHost(Component):
-    """Component that can launch multiple sub-components, synchronize their start, and then wait for all
-    components to be finished."""
+    """
+    Component that can launch multiple sub-components, synchronize their start, and then wait for all
+    components to be finished.
+    """
+
     def __init__(self, addresses, gevent_needed=False):
         Component.__init__(self)
         self.addresses = addresses
+
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
         self.components     = {}
@@ -223,16 +353,28 @@ class ComponentHost(Component):
         self.merge          = MergedParallelBuffer()
         self.passthrough    = PassthroughTransform()
         self.gevent_needed  = gevent_needed
+        self.controller     = None
 
         #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
 
-    def register_components(self, component_list):
-        for component in component_list:
+    def register_controller(self, controller):
+        self.controller = controller
+
+        for component in self.components.itervalues():
+            component.controller = controller
+
+    def register_components(self, components):
+        for component in components:
             component.gevent_needed = self.gevent_needed
             component.addresses = self.addresses
+
+            if self.controller:
+                component.controller = self.controller
+
             self.components[component.get_id()] = component
             self.sync_register[component.get_id()] = datetime.datetime.utcnow()
+
             if(isinstance(component, DataSource)):
                 self.feed.add_source(component.get_id())
             if(isinstance(component, BaseTransform)):
@@ -254,6 +396,7 @@ class ComponentHost(Component):
     def open(self):
         for component in self.components.values():
             self.launch_component(component)
+        self.launch_controller()
 
     def is_timed_out(self):
         cur_time = datetime.datetime.utcnow()
@@ -286,6 +429,9 @@ class ComponentHost(Component):
                 #qutil.LOGGER.info("confirmed {id}".format(id=msg))
                 # send synchronization reply
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
+
+    def launch_controller(self, controller):
+        NotImplemented
 
     def launch_component(self, component):
         NotImplemented
