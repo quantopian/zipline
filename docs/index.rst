@@ -1,4 +1,4 @@
-.. QSim documentation master file, created by
+.. Zipline documentation master file, created by
    sphinx-quickstart on Wed Feb  8 15:29:56 2012.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -12,15 +12,15 @@ Contents:
    modules.rst
    messaging.rst
 
-Quantopian Simulator: QSim
-================================
+Zipline
+=======
 
-Qsim runs backtests using asynchronous components and zeromq messaging for communication and coordination. 
+Zipline runs backtests using asynchronous components and zeromq messaging for communication and coordination. 
 
-Simulator is the heart of QSim, and the primary access point for creating, launching, and tracking simulations. You can find it in :py:class:`~zipline.core.Simulator`
+Simulator is the heart of Zipline, and the primary access point for creating, launching, and tracking simulations. You can find it in :py:class:`~zipline.core.Simulator`
 
 Simulator Sub-Components
-==========================
+========================
 
 Each simulation contains numerous subcomponents, each operating asynchronously from all others, and communicating
 via zeromq.

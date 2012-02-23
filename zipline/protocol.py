@@ -1,4 +1,3 @@
-import msgpack
-
+#import msgpack
 #import ujson
 #import ultrajson_numpy

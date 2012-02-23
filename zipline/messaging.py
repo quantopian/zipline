@@ -9,7 +9,7 @@ from zipline.component import Component
 
 class ComponentHost(Component):
     """
-    Component that can launch multiple sub-components, synchronize their start, and then wait for all
+    Components that can launch multiple sub-components, synchronize their start, and then wait for all
     components to be finished.
     """
 
@@ -19,13 +19,15 @@ class ComponentHost(Component):
 
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
+
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
+        self.gevent_needed  = gevent_needed
+
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
         self.passthrough    = PassthroughTransform()
-        self.gevent_needed  = gevent_needed
         self.controller     = None
 
         #register the feed and the merge
@@ -54,14 +56,18 @@ class ComponentHost(Component):
                 self.merge.add_source(component.get_id())
 
     def unregister_component(self, component_id):
-        del(self.components[component_id])
-        del(self.sync_register[component_id])
+        del self.components[component_id]
+        del self.sync_register[component_id]
 
     def setup_sync(self):
-        """Start the sync server."""
+        """
+        Start the sync server.
+        """
         qutil.LOGGER.debug("Connecting sync server.")
+
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
+
         self.poller = self.zmq.Poller()
         self.poller.register(self.sync_socket, self.zmq.POLLIN)
         self.sockets.append(self.sync_socket)
@@ -73,7 +79,8 @@ class ComponentHost(Component):
 
     def is_timed_out(self):
         cur_time = datetime.datetime.utcnow()
-        if(len(self.components) == 0):
+
+        if len(self.components) == 0:
             qutil.LOGGER.info("Component register is empty.")
             return True
         for source, last_dt in self.sync_register.iteritems():
@@ -104,15 +111,18 @@ class ComponentHost(Component):
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
 
     def launch_controller(self, controller):
-        NotImplemented
+        raise NotImplementedError
 
     def launch_component(self, component):
-        NotImplemented
+        raise NotImplementedError
+
 
 class ParallelBuffer(Component):
-    """Connects to N PULL sockets, publishing all messages received to a PUB socket.
-     Published messages are guaranteed to be in chronological order based on message property dt.
-     Expects to be instantiated in one execution context (thread, process, etc) and run in another."""
+    """
+    Connects to N PULL sockets, publishing all messages received to a PUB socket.
+    Published messages are guaranteed to be in chronological order based on message property dt.
+    Expects to be instantiated in one execution context (thread, process, etc) and run in another.
+    """
 
     def __init__(self):
         Component.__init__(self)
@@ -130,8 +140,8 @@ class ParallelBuffer(Component):
         self.data_buffer[source_id] = []
 
     def open(self):
-        self.pull_socket, self.poller   = self.bind_data()
-        self.feed_socket                = self.bind_feed()
+        self.pull_socket, self.poller = self.bind_data()
+        self.feed_socket              = self.bind_feed()
 
     def do_work(self):
         # wait for synchronization reply from the host
@@ -139,9 +149,9 @@ class ParallelBuffer(Component):
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
-            if(self.is_done_message(message)):
+            if self.is_done_message(message):
                 self.ds_finished_counter += 1
-                if(len(self.data_buffer) == self.ds_finished_counter):
+                if len(self.data_buffer) == self.ds_finished_counter:
                      #drain any remaining messages in the buffer
                     self.drain()
                     self.signal_done()
@@ -151,17 +161,25 @@ class ParallelBuffer(Component):
                 self.send_next()
 
     def __len__(self):
-        """buffer's length is same as internal map holding separate sorted arrays of events keyed by source id"""
+        """
+        Buffer's length is same as internal map holding separate
+        sorted arrays of events keyed by source id.
+        """
         return len(self.data_buffer)
 
     def append(self, source_id, value):
-        """add an event to the buffer for the source specified by source_id"""
+        """
+        Add an event to the buffer for the source specified by
+        source_id.
+        """
         self.data_buffer[source_id].append(value)
         self.received_count += 1
 
     def next(self):
-        """Get the next message in chronological order"""
-        if(not(self.is_full() or self.draining)):
+        """
+        Get the next message in chronological order.
+        """
+        if not(self.is_full() or self.draining):
             return
 
         cur = None
@@ -170,34 +188,44 @@ class ParallelBuffer(Component):
             if len(events) == 0:
                 continue
             cur = events
-            if(earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+            if (earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
                 earliest = cur
 
-        if(earliest != None):
+        if earliest != None:
             return earliest.pop(0)
 
     def is_full(self):
-        """indicates whether the buffer has messages in buffer for all un-DONE sources"""
+        """
+        Indicates whether the buffer has messages in buffer for
+        all un-DONE sources.
+        """
         for events in self.data_buffer.values():
-            if (len(events) == 0):
+            if len(events) == 0:
                 return False
         return True
 
     def pending_messages(self):
-        """returns the count of all events from all sources in the buffer"""
+        """
+        Returns the count of all events from all sources in the
+        buffer.
+        """
         total = 0
         for events in self.data_buffer.values():
             total += len(events)
         return total
 
     def drain(self):
-        """send all messages in the buffer"""
+        """
+        Send all messages in the buffer
+        """
         self.draining = True
         while(self.pending_messages() > 0):
             self.send_next()
 
     def send_next(self):
-        """send the (chronologically) next message in the buffer."""
+        """
+        Send the (chronologically) next message in the buffer.
+        """
         if(not(self.is_full() or self.draining)):
             return
 
@@ -216,8 +244,8 @@ class MergedParallelBuffer(ParallelBuffer):
         ParallelBuffer.__init__(self)
 
     def open(self):
-        self.pull_socket, self.poller   = self.bind_merge()
-        self.feed_socket                = self.bind_result()
+        self.pull_socket, self.poller = self.bind_merge()
+        self.feed_socket              = self.bind_result()
 
     def next(self):
         """Get the next merged message from the feed buffer."""
@@ -227,9 +255,9 @@ class MergedParallelBuffer(ParallelBuffer):
         #get the raw event from the passthrough transform.
         result = self.data_buffer["PASSTHROUGH"].pop(0)['value']
         for source, events in self.data_buffer.iteritems():
-            if(source == "PASSTHROUGH"):
+            if source == "PASSTHROUGH":
                 continue
-            if(len(events) > 0):
+            if len(events) > 0:
                 cur = events.pop(0)
                 result[source] = cur['value']
         return result
@@ -252,8 +280,8 @@ class BaseTransform(Component):
 
     def __init__(self, name):
         Component.__init__(self)
-        self.state              = {}
-        self.state['name']      = name
+        self.state         = {}
+        self.state['name'] = name
 
     def get_id(self):
         return self.state['name']
@@ -277,9 +305,10 @@ class BaseTransform(Component):
         socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
-            if(self.is_done_message(message)):
+            if self.is_done_message(message):
                 self.signal_done()
                 return
+
             event = json.loads(message)
             cur_state = self.transform(event)
             cur_state['dt'] = event['dt']
@@ -287,13 +316,19 @@ class BaseTransform(Component):
             self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
 
     def transform(self, event):
-        """ Must return the transformed value as a map with {name:"name of new transform", value: "value of new field"}
-            Transforms run in parallel and results are merged into a single map, so transform names must be unique. 
-            Best practice is to use the self.state object initialized from the transform configuration, and only set the
-            transformed value:
-                self.state['value'] = transformed_value
         """
-        NotImplemented
+        Must return the transformed value as a map with::
+
+            {name:"name of new transform", value: "value of new field"}
+
+        Transforms run in parallel and results are merged into a single map, so transform names must be unique.
+        Best practice is to use the self.state object initialized from the transform configuration, and only set the
+        transformed value::
+
+            self.state['value'] = transformed_value
+        """
+        raise NotImplementedError
+
 
 class PassthroughTransform(BaseTransform):
 
@@ -303,6 +338,7 @@ class PassthroughTransform(BaseTransform):
     def transform(self, event):
         return {'value':event}
 
+
 class DataSource(Component):
     """
     Baseclass for data sources. Subclass and implement send_all - usually this
@@ -311,8 +347,8 @@ class DataSource(Component):
     """
     def __init__(self, source_id):
         Component.__init__(self)
-        self.id                     = source_id
-        self.cur_event              = None
+        self.id        = source_id
+        self.cur_event = None
 
     def get_id(self):
         return self.id
@@ -323,13 +359,13 @@ class DataSource(Component):
 
     def send(self, event):
         """
-            event is expected to be a dict
-            sets id and type properties in the dict
-            sends to the data_socket.
+        event is expected to be a dict
+        sets id and type properties in the dict
+        sends to the data_socket.
         """
         event['id'] = self.id
         event['type'] = self.get_type()
         self.data_socket.send(json.dumps(event))
 
     def get_type(self):
-        raise NotImplemented
+        raise NotImplementedError

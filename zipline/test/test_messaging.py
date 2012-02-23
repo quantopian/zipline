@@ -150,7 +150,7 @@ class SimulatorTestCase(object):
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
 
-        # Simulation 
+        # Simulation
         # ----------
         sim.simulate()
 
@@ -197,7 +197,7 @@ class SimulatorTestCase(object):
         sim.register_components([ret1, ret2, mavg1, mavg2, client])
         sim.register_controller( con )
 
-        # Simulation 
+        # Simulation
         # ----------
         sim.simulate()
 
