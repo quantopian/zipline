@@ -104,6 +104,8 @@ class SimulatorTestCase(object):
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
 
+        assert False
+
         # Simulation
         # ----------
         sim.simulate()
