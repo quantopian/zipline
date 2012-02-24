@@ -82,24 +82,6 @@ class Controller(object):
                 self.failed += 1
                 continue
 
-    def qos(self):
-        return float(self.success) / (self.success + self.failed)
-
-    def destroy(self):
-        """
-        Manual cleanup.
-        """
-        self.polling = False
-
-        for asoc in self.associated:
-            asoc.close()
-
-        #if self._ctx:
-            #self._ctx.destroy()
-
-    def __del__(self):
-        self.destroy()
-
     def message_sender(self):
         """
         Spin off a socket used for sending messages to this
@@ -121,4 +103,23 @@ class Controller(object):
         s.setsockopt(zmq.SUBSCRIBE, '')
         self.associated.append(s)
         return s
+    def destroy(self):
+        """
+        Manual cleanup.
+        """
+        self.polling = False
+
+        for asoc in self.associated:
+            asoc.close()
+
+        #if self._ctx:
+            #self._ctx.destroy()
+
+    def __del__(self):
+        self.destroy()
+
+    def qos(self):
+        if not self.debug:
+            return
+        return float(self.success) / (self.success + self.failed)
 

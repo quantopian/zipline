@@ -65,15 +65,20 @@ class ComponentHost(Component):
 
     def setup_sync(self):
         """
-        Start the sync server.
         """
         qutil.LOGGER.debug("Connecting sync server.")
 
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
 
-        self.poller = self.zmq.Poller()
-        self.poller.register(self.sync_socket, self.zmq.POLLIN)
+        # There is a namespace collision between three classes
+        # which use the self.poller property to mean different
+        # things.
+        # =====================================================
+        self.sync_poller = self.zmq.Poller()
+        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
+        # =====================================================
+
         self.sockets.append(self.sync_socket)
 
     def open(self):
@@ -102,7 +107,7 @@ class ComponentHost(Component):
 
         while not self.is_timed_out():
             # wait for synchronization request
-            socks = dict(self.poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+            socks = dict(self.sync_poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
