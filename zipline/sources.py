@@ -34,7 +34,6 @@ class RandomEquityTrades(qmsg.DataSource):
                  'volume':random.randrange(100,10000,100)}
         self.send(event)
         self.incr += 1
-          
-       
+               
         
         
