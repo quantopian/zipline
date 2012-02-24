@@ -1,10 +1,13 @@
 """
 Commonly used messaging components.
 """
-import json
+import os
 import uuid
-import datetime
+import socket
+import humanhash
+
 import zipline.util as qutil
+from zipline.protocol import CONTROL_PROTOCOL
 
 class Component(object):
 
@@ -14,8 +17,6 @@ class Component(object):
 
             - sync_address: socket address used for synchronizing the start of all workers, heartbeating, and exit notification
                             will be used in REP/REQ sockets. Bind is always on the REP side.
-            - control_address: socket address used for controlling and
-                            monitoring the status of the simulation
             - data_address: socket address used for data sources to stream their records. 
                             will be used in PUSH/PULL sockets between data sources and a ParallelBuffer (aka the Feed). Bind
                             will always be on the PULL side (we always have N producers and 1 consumer)
@@ -31,15 +32,22 @@ class Component(object):
         will also return a Poller.
 
         """
-        self.zmq            = None
-        self.context        = None
-        self.addresses      = None
-        self.out_socket     = None
-        self.gevent_needed  = False
-        self.killed         = False
+        self.zmq               = None
+        self.context           = None
+        self.addresses         = None
+        self.out_socket        = None
+        self.gevent_needed     = False
+        self.killed            = False
+        self.heartbeat_timeout = 2000
 
-    # TODO: could probably mkae this into a property instead of a
-    # method
+        self.guid = uuid.uuid4()
+        self.huid = humanhash.humanize(self.guid.hex)
+
+    # ------------
+    # Core Methods
+    # ------------
+
+    @property
     def get_id(self):
         raise NotImplementedError
 
@@ -62,17 +70,12 @@ class Component(object):
     def do_work(self):
         raise NotImplementedError
 
-    def run(self):
-
-        fail = None
-
-        #try:
-        #TODO: can't initialize these values in the __init__?
+    def _run(self):
         self.done       = False
         self.sockets    = []
 
         if self.gevent_needed:
-            qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
+            qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id))
             import gevent_zeromq
             self.zmq = gevent_zeromq.zmq
         else:
@@ -89,50 +92,68 @@ class Component(object):
         for sock in self.sockets:
             sock.close()
 
-        #except Exception as e:
-            #qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
-            #fail = e
+    def run(self, catch_exceptions=False):
 
-        #finally:
+        fail = None
 
-            #if(self.context != None):
-                #self.context.destroy()
-
-            #if fail:
-                #raise fail
+        # Catching all exceptions makes this really hard to
+        # debug, is it with care.
+        if catch_exceptions:
+            try:
+                self._run()
+            except Exception as e:
+                qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
+                fail = e
+            finally:
+                if(self.context != None):
+                    self.context.destroy()
+                if fail:
+                    raise fail
+        else:
+            self._run()
+            if(self.context != None):
+                self.context.destroy()
 
     def loop(self):
         while not self.done:
             self.confirm()
             self.do_work()
 
+    # -----------
+    #  Messaging
+    # -----------
+
     def signal_done(self):
         #notify down stream components that we're done
         if(self.out_socket != None):
-            self.out_socket.send("DONE")
+            self.out_socket.send(str(CONTROL_PROTOCOL.DONE))
         #notify host we're done
-        self.sync_socket.send(self.get_id() + ":DONE")
+
+        # TODO: proper framing
+        self.sync_socket.send(self.get_id + ":" + str(CONTROL_PROTOCOL.DONE))
+
         self.receive_sync_ack()
         #notify internal work look that we're done
         self.done = True
 
-    # TODO: probably don't need a method here ... or move into
-    # higher level framing protocol
-    def is_done_message(self, message):
-        return message == "DONE"
-
     def confirm(self):
         # send a synchronization request to the host
-        self.sync_socket.send(self.get_id() + ":RUN")
-        self.receive_sync_ack()
+
+        # TODO: proper framing
+        self.sync_socket.send(self.get_id + ":RUN")
+
+        self.receive_sync_ack() # blocking
 
     def receive_sync_ack(self):
-        # wait for synchronization reply from the host
-        socks = dict(self.sync_poller.poll(2000)) #timeout after 2 seconds.
+        """
+        Wait for synchronization reply from the host.
+        """
+
+        socks = dict(self.sync_poller.poll(self.heartbeat_timeout))
         if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
             message = self.sync_socket.recv()
         else:
-            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id()))
+            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
 
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
@@ -164,6 +185,7 @@ class Component(object):
         poller = self.zmq.Poller()
         poller.register(pull_socket, self.zmq.POLLIN)
         self.sockets.append(pull_socket)
+
         return pull_socket, poller
 
     def connect_push_socket(self, addr):
@@ -172,6 +194,7 @@ class Component(object):
         #push_socket.setsockopt(self.zmq.LINGER,0)
         self.sockets.append(push_socket)
         self.out_socket = push_socket
+
         return push_socket
 
     def bind_pub_socket(self, addr):
@@ -179,15 +202,19 @@ class Component(object):
         pub_socket.bind(addr)
         #pub_socket.setsockopt(self.zmq.LINGER,0)
         self.out_socket = pub_socket
+
         return pub_socket
 
     def connect_sub_socket(self, addr):
         sub_socket = self.context.socket(self.zmq.SUB)
         sub_socket.connect(addr)
         sub_socket.setsockopt(self.zmq.SUBSCRIBE,'')
+        self.sockets.append(sub_socket)
+
         poller = self.zmq.Poller()
         poller.register(sub_socket, self.zmq.POLLIN)
-        self.sockets.append(sub_socket)
+
+        # TODO: migrate tuple unpacking to be consistent
         return sub_socket, poller
 
     def setup_control(self):
@@ -196,10 +223,10 @@ class Component(object):
         overall status of the simulation and to forcefully tear
         down the simulation in case of a failure.
         """
-        pass
+        assert self.controller
 
     def setup_sync(self):
-        qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id()))
+        qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
 
         self.sync_socket = self.context.socket(self.zmq.REQ)
         self.sync_socket.connect(self.addresses['sync_address'])
@@ -208,3 +235,21 @@ class Component(object):
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
 
         self.sockets.append(self.sync_socket)
+
+    def debug(self):
+        return (
+            self.get_id          ,
+            self.huid            ,
+            socket.gethostname() ,
+            os.getpid()          ,
+            hex(id(self))        ,
+        )
+
+    def __repr__(self):
+        return "<{name} {uuid} at {host} {pid} {pointer}>".format(
+            name    = self.get_id          ,
+            uuid    = self.huid            ,
+            host    = socket.gethostname() ,
+            pid     = os.getpid()          ,
+            pointer = hex(id(self))        ,
+        )
