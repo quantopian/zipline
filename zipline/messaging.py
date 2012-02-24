@@ -5,338 +5,11 @@ import json
 import uuid
 import datetime
 import zipline.util as qutil
-import zmq
-
-class Controller(object):
-    """
-    A broker of sorts.
-    """
-
-    polling = False
-    debug = False
-
-    def __init__(self, pull_socket, pub_socket, context=None, logging = None):
-
-
-        if not context:
-            self._ctx = zmq.Context()
-        else:
-            self._ctx = context
-
-        self.pull_socket = pull_socket
-        self.pub_socket = pub_socket
-
-        self.pull = self._ctx.socket(zmq.PULL)
-        self.pub = self._ctx.socket(zmq.PUB)
-
-        self.associated = [self.pull, self.pub]
-
-        if logging:
-            self.logging = logging
-            self.dologging = True
-        else:
-            self.logging = False
-            self.dologging = False
-
-        self.success = 0
-        self.failed = 0
-
-        try:
-            self.pull.bind(pull_socket)
-        except zmq.ZMQError:
-            raise Exception('Cannot not bind on %s' % pull_socket)
-
-        try:
-            self.pub.bind(pub_socket)
-        except zmq.ZMQError:
-            raise Exception('Cannot not bind on %s' % pub_socket)
-
-    def run(self, debug_step=False, stats=True):
-        self.polling = True
-
-        if self.debug or debug_step:
-            return self._poll_verbose(True, stats)
-        else:
-            return self._poll(False, stats)
-
-    def _poll(self, debug_step, stats):
-        while self.polling:
-            try:
-                self.logging.info('msg')
-                self.pub.send(self.pull.recv())
-            except KeyboardInterrupt:
-                self.polling = False
-                break
-            except Exception as e:
-                # Its common to wrap these in wildcard exceptions so
-                # that we don't loose messages, ever
-                self.logging.error(str(e))
-                self.failed += 1
-                continue
-
-    def _poll_verbose(self, debug_step, stats):
-        while self.polling:
-            try:
-                if debug_step:
-                    msg = self.pull.recv()
-                    if self.dologging:
-                        self.logging.info(msg)
-                    self.pub.send(msg)
-                    self.success += 1
-            except KeyboardInterrupt:
-                self.polling = False
-                break
-            except Exception as e:
-                # Its common to wrap these in wildcard exceptions so
-                # that we don't loose messages, ever
-                self.logging.error(str(e))
-                self.failed += 1
-                continue
-
-    def qos(self):
-        return float(self.success) / (self.success + self.failed)
-
-    def destroy(self):
-        """
-        Manual cleanup.
-        """
-        self.polling = False
-
-        for asoc in self.associated:
-            asoc.close()
-
-        #if self._ctx:
-            #self._ctx.destroy()
-
-    def __del__(self):
-        self.destroy()
-
-    def message_sender(self):
-        """
-        Spin off a socket used for sending messages to this
-        controller.
-        """
-        s = self._ctx.socket(zmq.PUSH)
-        s.connect(self.pull_socket)
-        s.setsockopt(zmq.LINGER, -1)
-        self.associated.append(s)
-        return s
-
-    def message_listener(self):
-        """
-        Spin off a socket used for receiving messages from this
-        controller.
-        """
-        s = self._ctx.socket(zmq.SUB)
-        s.connect(self.pub_socket)
-        s.setsockopt(zmq.SUBSCRIBE, '')
-        self.associated.append(s)
-        return s
-
-class Component(object):
-
-    def __init__(self):
-        """
-        :addresses: a dict of name_string -> zmq port address strings. Must have the following entries::
-
-            - sync_address: socket address used for synchronizing the start of all workers, heartbeating, and exit notification
-                            will be used in REP/REQ sockets. Bind is always on the REP side.
-            - control_address: socket address used for controlling and
-                            monitoring the status of the simulation
-            - data_address: socket address used for data sources to stream their records. 
-                            will be used in PUSH/PULL sockets between data sources and a ParallelBuffer (aka the Feed). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - feed_address: socket address used to publish consolidated feed from serialization of data sources
-                            will be used in PUB/SUB sockets between Feed and Transforms. Bind is always on the PUB side.
-            - merge_address: socket address used to publish transformed values.
-                            will be used in PUSH/PULL from many transforms to one MergedParallelBuffer (aka the Merge). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - result_address: socket address used to publish merged data source feed and transforms to clients
-                            will be used in PUB/SUB from one Merge to one or many clients. Bind is always on the PUB side.
-
-        Bind/Connect methods will return the correct socket type for each address. Any sockets on which recv is expected to be called
-        will also return a Poller.
-
-        """
-        self.zmq            = None
-        self.context        = None
-        self.addresses      = None
-        self.out_socket     = None
-        self.gevent_needed  = False
-        self.killed         = False
-
-    # TODO: could probably mkae this into a property instead of a
-    # method
-    def get_id(self):
-        raise NotImplementedError
-
-    def open(self):
-        raise NotImplementedError
-
-    def destroy(self):
-        """
-        Tear down after normal operation.
-        """
-        raise NotImplementedError
-
-    def kill(self):
-        """
-        Tear down ( fast ) as a mode of failure in the
-        simulation.
-        """
-        raise NotImplementedError
-
-    def do_work(self):
-        raise NotImplementedError
-
-    def run(self):
-
-        fail = None
-
-        try:
-            #TODO: can't initialize these values in the __init__?
-            self.done       = False
-            self.sockets    = []
-
-            if self.gevent_needed:
-                qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id()))
-                import gevent_zeromq
-                self.zmq = gevent_zeromq.zmq
-            else:
-                import zmq
-                self.zmq = zmq
-
-            self.context = self.zmq.Context()
-            self.open()
-            self.setup_sync()
-            self.setup_control()
-            self.loop()
-
-            #close all the sockets
-            for sock in self.sockets:
-                sock.close()
-
-        except Exception as e:
-            qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id()))
-            fail = e
-
-        finally:
-
-            if(self.context != None):
-                self.context.destroy()
-
-            if fail:
-                raise fail
-
-    def loop(self):
-        while not self.done:
-            self.confirm()
-            self.do_work()
-
-    def signal_done(self):
-        #notify down stream components that we're done
-        if(self.out_socket != None):
-            self.out_socket.send("DONE")
-        #notify host we're done
-        self.sync_socket.send(self.get_id() + ":DONE")
-        self.receive_sync_ack()
-        #notify internal work look that we're done
-        self.done = True
-
-    # TODO: probably don't need a method here ... or move into
-    # higher level framing protocol
-    def is_done_message(self, message):
-        return message == "DONE"
-
-    def confirm(self):
-        # send a synchronization request to the host
-        self.sync_socket.send(self.get_id() + ":RUN")
-        self.receive_sync_ack()
-
-    def receive_sync_ack(self):
-        # wait for synchronization reply from the host
-        socks = dict(self.sync_poller.poll(2000)) #timeout after 2 seconds.
-        if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
-            message = self.sync_socket.recv()
-        else:
-            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id()))
-
-    def bind_data(self):
-        return self.bind_pull_socket(self.addresses['data_address'])
-
-    def connect_data(self):
-        return self.connect_push_socket(self.addresses['data_address'])
-
-    def bind_feed(self):
-        return self.bind_pub_socket(self.addresses['feed_address'])
-
-    def connect_feed(self):
-        return self.connect_sub_socket(self.addresses['feed_address'])
-
-    def bind_merge(self):
-        return self.bind_pull_socket(self.addresses['merge_address'])
-
-    def connect_merge(self):
-        return self.connect_push_socket(self.addresses['merge_address'])
-
-    def bind_result(self):
-        return self.bind_pub_socket(self.addresses['result_address'])
-
-    def connect_result(self):
-        return self.connect_sub_socket(self.addresses['result_address'])
-
-    def bind_pull_socket(self, addr):
-        pull_socket = self.context.socket(self.zmq.PULL)
-        pull_socket.bind(addr)
-        poller = self.zmq.Poller()
-        poller.register(pull_socket, self.zmq.POLLIN)
-        self.sockets.append(pull_socket)
-        return pull_socket, poller
-
-    def connect_push_socket(self, addr):
-        push_socket = self.context.socket(self.zmq.PUSH)
-        push_socket.connect(addr)
-        #push_socket.setsockopt(self.zmq.LINGER,0)
-        self.sockets.append(push_socket)
-        self.out_socket = push_socket
-        return push_socket
-
-    def bind_pub_socket(self, addr):
-        pub_socket = self.context.socket(self.zmq.PUB)
-        pub_socket.bind(addr)
-        #pub_socket.setsockopt(self.zmq.LINGER,0)
-        self.out_socket = pub_socket
-        return pub_socket
-
-    def connect_sub_socket(self, addr):
-        sub_socket = self.context.socket(self.zmq.SUB)
-        sub_socket.connect(addr)
-        sub_socket.setsockopt(self.zmq.SUBSCRIBE,'')
-        poller = self.zmq.Poller()
-        poller.register(sub_socket, self.zmq.POLLIN)
-        self.sockets.append(sub_socket)
-        return sub_socket, poller
-
-    def setup_control(self):
-        """
-        Set up the control socket. Used to monitor the the
-        overall status of the simulation and to forcefully tear
-        down the simulation in case of a failure.
-        """
-        pass
-
-    def setup_sync(self):
-        qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id()))
-        self.sync_socket = self.context.socket(self.zmq.REQ)
-        self.sync_socket.connect(self.addresses['sync_address'])
-        #self.sync_socket.setsockopt(self.zmq.LINGER,0)
-        self.sync_poller = self.zmq.Poller()
-        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
-        self.sockets.append(self.sync_socket)
+from zipline.component import Component
 
 class ComponentHost(Component):
     """
-    Component that can launch multiple sub-components, synchronize their start, and then wait for all
+    Components that can launch multiple sub-components, synchronize their start, and then wait for all
     components to be finished.
     """
 
@@ -346,13 +19,15 @@ class ComponentHost(Component):
 
         #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
+
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
+        self.gevent_needed  = gevent_needed
+
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
         self.passthrough    = PassthroughTransform()
-        self.gevent_needed  = gevent_needed
         self.controller     = None
 
         #register the feed and the merge
@@ -381,14 +56,18 @@ class ComponentHost(Component):
                 self.merge.add_source(component.get_id())
 
     def unregister_component(self, component_id):
-        del(self.components[component_id])
-        del(self.sync_register[component_id])
+        del self.components[component_id]
+        del self.sync_register[component_id]
 
     def setup_sync(self):
-        """Start the sync server."""
+        """
+        Start the sync server.
+        """
         qutil.LOGGER.debug("Connecting sync server.")
+
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
+
         self.poller = self.zmq.Poller()
         self.poller.register(self.sync_socket, self.zmq.POLLIN)
         self.sockets.append(self.sync_socket)
@@ -400,7 +79,8 @@ class ComponentHost(Component):
 
     def is_timed_out(self):
         cur_time = datetime.datetime.utcnow()
-        if(len(self.components) == 0):
+
+        if len(self.components) == 0:
             qutil.LOGGER.info("Component register is empty.")
             return True
         for source, last_dt in self.sync_register.iteritems():
@@ -431,15 +111,18 @@ class ComponentHost(Component):
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
 
     def launch_controller(self, controller):
-        NotImplemented
+        raise NotImplementedError
 
     def launch_component(self, component):
-        NotImplemented
+        raise NotImplementedError
+
 
 class ParallelBuffer(Component):
-    """Connects to N PULL sockets, publishing all messages received to a PUB socket.
-     Published messages are guaranteed to be in chronological order based on message property dt.
-     Expects to be instantiated in one execution context (thread, process, etc) and run in another."""
+    """
+    Connects to N PULL sockets, publishing all messages received to a PUB socket.
+    Published messages are guaranteed to be in chronological order based on message property dt.
+    Expects to be instantiated in one execution context (thread, process, etc) and run in another.
+    """
 
     def __init__(self):
         Component.__init__(self)
@@ -458,8 +141,8 @@ class ParallelBuffer(Component):
         self.data_buffer[source_id] = []
 
     def open(self):
-        self.pull_socket, self.poller   = self.bind_data()
-        self.feed_socket                = self.bind_feed()
+        self.pull_socket, self.poller = self.bind_data()
+        self.feed_socket              = self.bind_feed()
 
     def do_work(self):
         # wait for synchronization reply from the host
@@ -467,9 +150,9 @@ class ParallelBuffer(Component):
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
-            if(self.is_done_message(message)):
+            if self.is_done_message(message):
                 self.ds_finished_counter += 1
-                if(len(self.data_buffer) == self.ds_finished_counter):
+                if len(self.data_buffer) == self.ds_finished_counter:
                      #drain any remaining messages in the buffer
                     self.drain()
                     self.signal_done()
@@ -479,17 +162,25 @@ class ParallelBuffer(Component):
                 self.send_next()
 
     def __len__(self):
-        """buffer's length is same as internal map holding separate sorted arrays of events keyed by source id"""
+        """
+        Buffer's length is same as internal map holding separate
+        sorted arrays of events keyed by source id.
+        """
         return len(self.data_buffer)
 
     def append(self, source_id, value):
-        """add an event to the buffer for the source specified by source_id"""
+        """
+        Add an event to the buffer for the source specified by
+        source_id.
+        """
         self.data_buffer[source_id].append(value)
         self.received_count += 1
 
     def next(self):
-        """Get the next message in chronological order"""
-        if(not(self.is_full() or self.draining)):
+        """
+        Get the next message in chronological order.
+        """
+        if not(self.is_full() or self.draining):
             return
 
         cur = None
@@ -498,34 +189,44 @@ class ParallelBuffer(Component):
             if len(events) == 0:
                 continue
             cur = events
-            if(earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+            if (earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
                 earliest = cur
 
-        if(earliest != None):
+        if earliest != None:
             return earliest.pop(0)
 
     def is_full(self):
-        """indicates whether the buffer has messages in buffer for all un-DONE sources"""
+        """
+        Indicates whether the buffer has messages in buffer for
+        all un-DONE sources.
+        """
         for events in self.data_buffer.values():
-            if (len(events) == 0):
+            if len(events) == 0:
                 return False
         return True
 
     def pending_messages(self):
-        """returns the count of all events from all sources in the buffer"""
+        """
+        Returns the count of all events from all sources in the
+        buffer.
+        """
         total = 0
         for events in self.data_buffer.values():
             total += len(events)
         return total
 
     def drain(self):
-        """send all messages in the buffer"""
+        """
+        Send all messages in the buffer
+        """
         self.draining = True
         while(self.pending_messages() > 0):
             self.send_next()
 
     def send_next(self):
-        """send the (chronologically) next message in the buffer."""
+        """
+        Send the (chronologically) next message in the buffer.
+        """
         if(not(self.is_full() or self.draining)):
             return
 
@@ -544,8 +245,8 @@ class MergedParallelBuffer(ParallelBuffer):
         ParallelBuffer.__init__(self)
 
     def open(self):
-        self.pull_socket, self.poller   = self.bind_merge()
-        self.feed_socket                = self.bind_result()
+        self.pull_socket, self.poller = self.bind_merge()
+        self.feed_socket              = self.bind_result()
 
     def next(self):
         """Get the next merged message from the feed buffer."""
@@ -555,9 +256,9 @@ class MergedParallelBuffer(ParallelBuffer):
         #get the raw event from the passthrough transform.
         result = self.data_buffer["PASSTHROUGH"].pop(0)['value']
         for source, events in self.data_buffer.iteritems():
-            if(source == "PASSTHROUGH"):
+            if source == "PASSTHROUGH":
                 continue
-            if(len(events) > 0):
+            if len(events) > 0:
                 cur = events.pop(0)
                 result[source] = cur['value']
         return result
@@ -580,8 +281,8 @@ class BaseTransform(Component):
 
     def __init__(self, name):
         Component.__init__(self)
-        self.state              = {}
-        self.state['name']      = name
+        self.state         = {}
+        self.state['name'] = name
 
     def get_id(self):
         return self.state['name']
@@ -605,9 +306,10 @@ class BaseTransform(Component):
         socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
-            if(self.is_done_message(message)):
+            if self.is_done_message(message):
                 self.signal_done()
                 return
+
             event = json.loads(message)
             cur_state = self.transform(event)
             #TODO: do we want to relay the datetime again? maybe drop this?
@@ -616,13 +318,19 @@ class BaseTransform(Component):
             self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
 
     def transform(self, event):
-        """ Must return the transformed value as a map with {name:"name of new transform", value: "value of new field"}
-            Transforms run in parallel and results are merged into a single map, so transform names must be unique. 
-            Best practice is to use the self.state object initialized from the transform configuration, and only set the
-            transformed value:
-                self.state['value'] = transformed_value
         """
-        NotImplemented
+        Must return the transformed value as a map with::
+
+            {name:"name of new transform", value: "value of new field"}
+
+        Transforms run in parallel and results are merged into a single map, so transform names must be unique.
+        Best practice is to use the self.state object initialized from the transform configuration, and only set the
+        transformed value::
+
+            self.state['value'] = transformed_value
+        """
+        raise NotImplementedError
+
 
 class PassthroughTransform(BaseTransform):
 
@@ -632,6 +340,7 @@ class PassthroughTransform(BaseTransform):
     def transform(self, event):
         return {'value':event}
 
+
 class DataSource(Component):
     """
     Baseclass for data sources. Subclass and implement send_all - usually this
@@ -640,8 +349,8 @@ class DataSource(Component):
     """
     def __init__(self, source_id):
         Component.__init__(self)
-        self.id                     = source_id
-        self.cur_event              = None
+        self.id        = source_id
+        self.cur_event = None
 
     def get_id(self):
         return self.id
@@ -652,9 +361,9 @@ class DataSource(Component):
 
     def send(self, event):
         """
-            event is expected to be a dict
-            sets id and type properties in the dict
-            sends to the data_socket.
+        event is expected to be a dict
+        sets id and type properties in the dict
+        sends to the data_socket.
         """
         event['id'] = self.id
         event['type'] = self.get_type()
@@ -663,4 +372,3 @@ class DataSource(Component):
     def get_type(self):
         raise NotImplemented
 
-    

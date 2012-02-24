@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'QSim'
+project = u'Zipline'
 copyright = u'2012, Quantopian: jean, fawce, sdiehl'
 
 # The version info for the project you're documenting, acts as replacement for
