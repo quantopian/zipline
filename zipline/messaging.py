@@ -161,12 +161,12 @@ class ParallelBuffer(Component):
         self.data_buffer[source_id] = []
 
     def open(self):
-        self.pull_socket, self.poller = self.bind_data()
-        self.feed_socket              = self.bind_feed()
+        self.pull_socket = self.bind_data()
+        self.feed_socket = self.bind_feed()
 
     def do_work(self):
         # wait for synchronization reply from the host
-        socks = dict(self.poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
@@ -265,8 +265,8 @@ class MergedParallelBuffer(ParallelBuffer):
         ParallelBuffer.__init__(self)
 
     def open(self):
-        self.pull_socket, self.poller = self.bind_merge()
-        self.feed_socket              = self.bind_result()
+        self.pull_socket = self.bind_merge()
+        self.feed_socket = self.bind_result()
 
     def next(self):
         """Get the next merged message from the feed buffer."""
@@ -325,7 +325,7 @@ class BaseTransform(Component):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        socks = dict(self.poll.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
             if message == str(CONTROL_PROTOCOL.DONE):

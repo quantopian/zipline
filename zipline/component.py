@@ -188,7 +188,7 @@ class Component(object):
 
         self.sockets.append(pull_socket)
 
-        return pull_socket, self.poll
+        return pull_socket
 
     def connect_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)
@@ -246,20 +246,20 @@ class Component(object):
 
         self.sockets.append(self.sync_socket)
 
-    #def debug(self):
-        #return (
-            #self.get_id          ,
-            #self.huid            ,
-            #socket.gethostname() ,
-            #os.getpid()          ,
-            #hex(id(self))        ,
-        #)
+    def debug(self):
+        return (
+            self.get_id          ,
+            self.huid            ,
+            socket.gethostname() ,
+            os.getpid()          ,
+            hex(id(self))        ,
+        )
 
-    #def __repr__(self):
-        #return "<{name} {uuid} at {host} {pid} {pointer}>".format(
-            #name    = self.get_id          ,
-            #uuid    = self.huid            ,
-            #host    = socket.gethostname() ,
-            #pid     = os.getpid()          ,
-            #pointer = hex(id(self))        ,
-        #)
+    def __repr__(self):
+        return "<{name} {uuid} at {host} {pid} {pointer}>".format(
+            name    = self.get_id          ,
+            uuid    = self.huid            ,
+            host    = socket.gethostname() ,
+            pid     = os.getpid()          ,
+            pointer = hex(id(self))        ,
+        )
