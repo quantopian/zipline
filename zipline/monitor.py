@@ -44,15 +44,26 @@ class Controller(object):
         except zmq.ZMQError:
             raise Exception('Cannot not bind on %s' % pub_socket)
 
-    def run(self, debug_step=False, stats=True):
+    def run(self, debug=False):
         self.polling = True
 
-        if self.debug or debug_step:
-            return self._poll_verbose(True, stats)
+        if debug:
+            return self._poll(False)
         else:
-            return self._poll(False, stats)
+            return self._poll_fast()
 
-    def _poll(self, debug_step, stats):
+    def _poll_fast(self):
+        """
+        C version of the polling forwarder.
+        """
+        zmq.device(zmq.FORWARDER, self.pull, self.pub)
+
+    def _poll(self):
+        """
+        Python version of the polling forwarder. With logging,
+        mostly used for debugging.
+        """
+
         while self.polling:
             try:
                 self.logging.info('msg')
@@ -61,23 +72,7 @@ class Controller(object):
             except KeyboardInterrupt:
                 self.polling = False
                 break
-            except Exception as e:
-                # Its common to wrap these in wildcard exceptions so
-                # that we don't loose messages, ever
-                self.logging.error(str(e))
-                self.failed += 1
-                continue
-
-    def _poll_verbose(self, debug_step, stats):
-        while self.polling:
-            try:
-                if debug_step:
-                    msg = self.pull.recv(copy=False)
-                    if self.dologging:
-                        self.logging.info(msg)
-                    self.pub.send(msg)
-                    self.success += 1
-            except KeyboardInterrupt:
+            except zmq.ZMQError:
                 self.polling = False
                 break
             except Exception as e:

@@ -83,6 +83,8 @@ class Component(object):
             self.zmq = zmq
 
         self.context = self.zmq.Context()
+        self.setup_poller()
+
         self.open()
         self.setup_sync()
         self.setup_control()
@@ -182,11 +184,11 @@ class Component(object):
     def bind_pull_socket(self, addr):
         pull_socket = self.context.socket(self.zmq.PULL)
         pull_socket.bind(addr)
-        poller = self.zmq.Poller()
-        poller.register(pull_socket, self.zmq.POLLIN)
+        self.poll.register(pull_socket, self.zmq.POLLIN)
+
         self.sockets.append(pull_socket)
 
-        return pull_socket, poller
+        return pull_socket, self.poll
 
     def connect_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)
@@ -211,11 +213,17 @@ class Component(object):
         sub_socket.setsockopt(self.zmq.SUBSCRIBE,'')
         self.sockets.append(sub_socket)
 
-        poller = self.zmq.Poller()
-        poller.register(sub_socket, self.zmq.POLLIN)
+        self.poll.register(sub_socket, self.zmq.POLLIN)
 
-        # TODO: migrate tuple unpacking to be consistent
-        return sub_socket, poller
+        return sub_socket
+
+    def setup_poller(self):
+        """
+        Setup the poller used for multiplexing the incoming data
+        handling sockets.
+        """
+
+        self.poll = self.zmq.Poller()
 
     def setup_control(self):
         """
@@ -231,6 +239,8 @@ class Component(object):
         self.sync_socket = self.context.socket(self.zmq.REQ)
         self.sync_socket.connect(self.addresses['sync_address'])
         #self.sync_socket.setsockopt(self.zmq.LINGER,0)
+
+        # Explictly, a different poller for obvious reasons.
         self.sync_poller = self.zmq.Poller()
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
 

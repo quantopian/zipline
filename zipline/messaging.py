@@ -27,6 +27,7 @@ class ComponentHost(Component):
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
         self.gevent_needed  = gevent_needed
+        self.heartbeat_timeout = 2000
 
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
@@ -86,16 +87,22 @@ class ComponentHost(Component):
         if len(self.components) == 0:
             qutil.LOGGER.info("Component register is empty.")
             return True
+
         for source, last_dt in self.sync_register.iteritems():
-            if((cur_time - last_dt) > self.timeout):
-                qutil.LOGGER.info("Time out for {source}. Current component registery: {reg}".format(source=source, reg=self.components))
+            if (cur_time - last_dt) > self.timeout:
+                qutil.LOGGER.info(
+                    "Time out for {source}. Current component registery: {reg}".
+                    format(source=source, reg=self.components)
+                )
                 return True
+
         return False
 
     def loop(self):
+
         while not self.is_timed_out():
             # wait for synchronization request
-            socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+            socks = dict(self.poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
@@ -154,7 +161,7 @@ class ParallelBuffer(Component):
 
     def do_work(self):
         # wait for synchronization reply from the host
-        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
@@ -302,7 +309,7 @@ class BaseTransform(Component):
         Establishes zmq connections.
         """
         #create the feed.
-        self.feed_socket, self.poller = self.connect_feed()
+        self.feed_socket = self.connect_feed()
         #create the result PUSH
         self.result_socket = self.connect_merge()
 
@@ -313,7 +320,7 @@ class BaseTransform(Component):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(2000)) #timeout after 2 seconds.
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
             if message == str(CONTROL_PROTOCOL.DONE):
