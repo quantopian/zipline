@@ -233,6 +233,12 @@ class Component(object):
         """
         assert self.controller
 
+        self.control_out = self.controller.message_sender()
+        self.control_in = self.controller.message_listener()
+
+        self.poll.register(self.control_in, self.zmq.POLLIN)
+        self.sockets.extend([self.control_in, self.control_out])
+
     def setup_sync(self):
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
 

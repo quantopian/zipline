@@ -10,6 +10,7 @@ class Controller(object):
 
     def __init__(self, pull_socket, pub_socket, context=None, logging = None):
 
+        self.associated = []
 
         if not context:
             self._ctx = zmq.Context()
@@ -18,11 +19,6 @@ class Controller(object):
 
         self.pull_socket = pull_socket
         self.pub_socket = pub_socket
-
-        self.pull = self._ctx.socket(zmq.PULL)
-        self.pub = self._ctx.socket(zmq.PUB)
-
-        self.associated = [self.pull, self.pub]
 
         if logging:
             self.logging = logging
@@ -34,23 +30,13 @@ class Controller(object):
         self.success = 0
         self.failed = 0
 
-        try:
-            self.pull.bind(pull_socket)
-        except zmq.ZMQError:
-            raise Exception('Cannot not bind on %s' % pull_socket)
-
-        try:
-            self.pub.bind(pub_socket)
-        except zmq.ZMQError:
-            raise Exception('Cannot not bind on %s' % pub_socket)
-
     def run(self, debug=False):
         self.polling = True
 
-        if debug:
-            return self._poll(False)
-        else:
-            return self._poll_fast()
+        #if debug:
+        return self._poll()
+        #else:
+            #return self._poll_fast()
 
     def _poll_fast(self):
         """
@@ -64,11 +50,17 @@ class Controller(object):
         mostly used for debugging.
         """
 
+        self.pull = self._ctx.socket(zmq.PULL)
+        self.pub = self._ctx.socket(zmq.PUB)
+
+        self.associated.extend([self.pull, self.pub])
+
+        self.pull.bind(self.pull_socket)
+        self.pub.bind(self.pub_socket)
+
         while self.polling:
             try:
-                self.logging.info('msg')
                 self.pub.send(self.pull.recv())
-                #self.pub.send(self.pull.recv(copy=False))
             except KeyboardInterrupt:
                 self.polling = False
                 break
@@ -78,7 +70,8 @@ class Controller(object):
             except Exception as e:
                 # Its common to wrap these in wildcard exceptions so
                 # that we don't loose messages, ever
-                self.logging.error(str(e))
+                if self.logging:
+                    self.logging.error(str(e))
                 self.failed += 1
                 continue
 
@@ -89,7 +82,6 @@ class Controller(object):
         """
         s = self._ctx.socket(zmq.PUSH)
         s.connect(self.pull_socket)
-        s.setsockopt(zmq.LINGER, -1)
         self.associated.append(s)
         return s
 
@@ -103,6 +95,7 @@ class Controller(object):
         s.setsockopt(zmq.SUBSCRIBE, '')
         self.associated.append(s)
         return s
+
     def destroy(self):
         """
         Manual cleanup.
