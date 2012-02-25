@@ -124,9 +124,9 @@ def CONTORL_UNFRAME(msg):
     #except AssertionError:
         #raise INVALID_CONTROL_FRAME(msg)
 
-# ================
+# ==================
 # Heartbeat Protocol
-# ================
+# ==================
 
 # These encode the msgpack equivelant of 1 and 2. The heartbeat
 # frame should only be 1 byte on the wire.
@@ -135,3 +135,13 @@ HEARTBEAT_PROTOCOL = namedict({
     'REQ' : b'\x01',
     'REP' : b'\x02',
 })
+
+# ==================
+# Component State
+# ==================
+
+COMPONENT_STATE = Enum(
+    'OK'        , # 0
+    'DONE'      , # 1
+    'EXCEPTION' , # 2
+)
