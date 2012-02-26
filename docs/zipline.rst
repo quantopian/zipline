@@ -1,30 +1,26 @@
-============
 zipline Package
-============
-
-QSim API
-===========================
+===============
 
 :mod:`zipline` Package
--------------------
+----------------------
 
 .. automodule:: zipline.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`config` Module
---------------------
+:mod:`cli` Module
+-----------------
 
-.. automodule:: zipline.config
+.. automodule:: zipline.cli
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`core` Module
-------------------
+:mod:`component` Module
+-----------------------
 
-.. automodule:: zipline.core
+.. automodule:: zipline.component
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,6 +33,22 @@ QSim API
     :undoc-members:
     :show-inheritance:
 
+:mod:`monitor` Module
+---------------------
+
+.. automodule:: zipline.monitor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`protocol` Module
+----------------------
+
+.. automodule:: zipline.protocol
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`sources` Module
 ---------------------
 
@@ -45,10 +57,26 @@ QSim API
     :undoc-members:
     :show-inheritance:
 
+:mod:`topology` Module
+----------------------
+
+.. automodule:: zipline.topology
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`util` Module
 ------------------
 
 .. automodule:: zipline.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`webui` Module
+-------------------
+
+.. automodule:: zipline.webui
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,4 +1,0 @@
-[console_scripts]
-pip = pip:main
-pip-2.6 = pip:main
-

@@ -17,3 +17,11 @@ test Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`test_sanity` Module
+-------------------------
+
+.. automodule:: zipline.test.test_sanity
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

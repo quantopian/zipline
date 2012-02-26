@@ -185,4 +185,5 @@ def apidocs():
     Recursively autogenerate the Sphinx autodoc for the module and
     its submodules.
     """
+    call('rm docs/zipline*.rst', shell=True)
     call('sphinx-apidoc -o docs/ zipline', shell=True)

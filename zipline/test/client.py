@@ -3,20 +3,20 @@ import zipline.util as qutil
 import zipline.messaging as qmsg
 
 class TestClient(qmsg.Component):
-    
+
     def __init__(self, utest, expected_msg_count=0):
         qmsg.Component.__init__(self)
         self.received_count     = 0
         self.expected_msg_count = expected_msg_count
         self.utest              = utest
         self.prev_dt            = None
-    
+
     def get_id(self):
-        return "TEST_CLIENT"    
-    
+        return "TEST_CLIENT"
+
     def open(self):
         self.data_feed, self.poller = self.connect_result()
-        
+
     def do_work(self):
         socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
         if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:   
@@ -28,7 +28,7 @@ class TestClient(qmsg.Component):
                                 "The client should have received ({n}) the same number of messages as the feed sent ({m})."
                                     .format(n=self.received_count, m=self.expected_msg_count))
                 return
-            
+
             self.received_count += 1
             event = json.loads(msg)
             if(self.prev_dt != None):
@@ -38,7 +38,3 @@ class TestClient(qmsg.Component):
             self.prev_dt = event['dt']
             if(self.received_count % 100 == 0):
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
-            
-           
-        
-        

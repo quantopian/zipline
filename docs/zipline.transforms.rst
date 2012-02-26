@@ -1,18 +1,10 @@
 transforms Package
 ==================
 
-:mod:`core` Module
-------------------
+:mod:`transforms` Package
+-------------------------
 
-.. automodule:: zipline.transforms.core
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`merge` Module
--------------------
-
-.. automodule:: zipline.transforms.merge
+.. automodule:: zipline.transforms
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,70 +1,222 @@
 """
-Test suite for the messaging infrastructure of QSim.
+Test suite for the messaging infrastructure of Zipline.
 """
-#don't worry about excessive public methods pylint: disable=R0904  
+#don't worry about excessive public methods pylint: disable=R0904
 
-import unittest2 as unittest
-import multiprocessing
-import time
+from collections import defaultdict
+import zipline.messaging as qmsg
 
-from zipline.simulator import ThreadSimulator, ProcessSimulator
 from zipline.transforms.technical import MovingAverage
 from zipline.sources import RandomEquityTrades
-import zipline.util as qutil
-import zipline.messaging as qmsg
 
 from zipline.test.client import TestClient
 
-qutil.configure_logging()
 
-class SimulatorTestCase(unittest.TestCase):  
-    """Tests the message passing: datasources -> feed -> transforms -> merge -> client"""
+# Should not inherit form TestCase since test runners will pick
+# it up as a test. Its a Mixin of sorts at this point.
+class SimulatorTestCase(object):
+
+    leased_sockets = defaultdict(list)
 
     def setUp(self):
-        """generate some config objects for the datafeed, sources, and transforms."""
-        self.addresses              = {'sync_address'           : "tcp://127.0.0.1:10100",
-                                       'data_address'           : "tcp://127.0.0.1:10101",
-                                       'feed_address'           : "tcp://127.0.0.1:10102",
-                                       'merge_address'          : "tcp://127.0.0.1:10103",
-                                       'result_address'         : "tcp://127.0.0.1:10104",
-                                       'order_address'          : "tcp://127.0.0.1:10105"
-                                      }
-                                      
+        self.setup_logging()
+
+        # TODO: how to make Nose use this cross-process????
+        self.setup_allocator()
+
+    def tearDown(self):
+        pass
+        #self.unallocate_sockets()
+
+        # Assert the sockets were properly cleaned up
+        #self.assertEmpty(self.leased_sockets[self.id()].values())
+
+        # Assert they were returned to the heap
+        #self.allocator.socketheap.assert
+
     def get_simulator(self):
-        return ThreadSimulator(self.addresses)
+        """
+        Return a new simulator instance to be tested.
+        """
+        raise NotImplementedError
+
+    def get_controller(self):
+        """
+        Return a new controler for simulator instance to be tested.
+        """
+        raise NotImplementedError
+
+    def setup_allocator(self):
+        """
+        Setup the socket allocator for this test case.
+        """
+        raise NotImplementedError
+
+    def allocate_sockets(self, n):
+        """
+        Allocate sockets local to this test case, track them so
+        we can gc after test run.
+        """
+
+        assert isinstance(n, int)
+        assert n > 0
+
+        leased = self.allocator.lease(n)
+
+        self.leased_sockets[self.id()].extend(leased)
+        return leased
+
+    def unallocate_sockets(self):
+        self.allocator.reaquire(*self.leased_sockets[self.id()])
+
+    # -------
+    #  Cases
+    # -------
+
+    def test_simple(self):
+
+        # Simple test just to make sure that the archiecture is
+        # responding.
+
+        # Base Simuation
+        # --------------
+
+        # Allocate sockets for the simulator components
+        sockets = self.allocate_sockets(5)
+
+        addresses = {
+            'sync_address'   : sockets[0],
+            'data_address'   : sockets[1],
+            'feed_address'   : sockets[2],
+            'merge_address'  : sockets[3],
+            'result_address' : sockets[4]
+        }
+
+        sim = self.get_simulator(addresses)
+        con = self.get_controller()
+
+        # Simulation Components
+        # ---------------------
+
+        ret1 = RandomEquityTrades(133, "ret1", 1)
+        ret2 = RandomEquityTrades(134, "ret2", 1)
+        client = TestClient(self, expected_msg_count=ret1.count + ret2.count)
+
+        sim.register_controller( con )
+        sim.register_components([ret1, ret2, client])
+
+        # Simulation
+        # ----------
+        sim.simulate()
+
+        # Stop Running
+        # ------------
+
+        # TODO: less abrupt later, just shove a StopIteration
+        # down the pipe to make it stop spinning
+        sim.cuc._Thread__stop()
+
+        self.assertEqual(sim.feed.pending_messages(), 0,
+            "The feed should be drained of all messages, found {n} remaining."
+            .format(n=sim.feed.pending_messages())
+        )
 
 
     def test_sources_only(self):
-        """streams events from two data sources, no transforms."""
-        sim = self.get_simulator()
+
+        # Base Simuation
+        # --------------
+
+        # Allocate sockets for the simulator components
+        sockets = self.allocate_sockets(5)
+
+        addresses = {
+            'sync_address'   : sockets[0],
+            'data_address'   : sockets[1],
+            'feed_address'   : sockets[2],
+            'merge_address'  : sockets[3],
+            'result_address' : sockets[4]
+        }
+
+        sim = self.get_simulator(addresses)
+        con = self.get_controller()
+
+        # Simulation Components
+        # ---------------------
+
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
-        client = TestClient(self, expected_msg_count=800)
+        client = TestClient(self, expected_msg_count=ret1.count + ret2.count)
+
+        sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
+
+        # Simulation
+        # ----------
         sim.simulate()
-              
-        self.assertEqual(sim.feed.pending_messages(), 0, 
-                        "The feed should be drained of all messages, found {n} remaining."
-                            .format(n=sim.feed.pending_messages()))
-    
-    
+
+        # Stop Running
+        # ------------
+
+        # TODO: less abrupt later, just shove a StopIteration
+        # down the pipe to make it stop spinning
+        sim.cuc._Thread__stop()
+
+        self.assertEqual(sim.feed.pending_messages(), 0,
+            "The feed should be drained of all messages, found {n} remaining."
+            .format(n=sim.feed.pending_messages())
+        )
+
     def test_transforms(self):
-        """
-        2 datasources -> feed -> 2 moving average transforms -> transform merge -> testclient
-        verify message count at client.
-        """
-        sim = self.get_simulator()
+
+        # Base Simuation
+        # --------------
+
+        # Allocate sockets for the simulator components
+        sockets = self.allocate_sockets(5)
+
+        addresses = {
+            'sync_address'   : sockets[0],
+            'data_address'   : sockets[1],
+            'feed_address'   : sockets[2],
+            'merge_address'  : sockets[3],
+            'result_address' : sockets[4]
+        }
+
+        sim = self.get_simulator(addresses)
+        con = self.get_controller()
+
+        # Simulation Components
+        # ---------------------
+
         ret1 = RandomEquityTrades(133, "ret1", 5000)
         ret2 = RandomEquityTrades(134, "ret2", 5000)
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
         client = TestClient(self, expected_msg_count=10000)
+
         sim.register_components([ret1, ret2, mavg1, mavg2, client])
+        sim.register_controller( con )
+
+        # Simulation
+        # ----------
         sim.simulate()
-        
-        self.assertEqual(sim.feed.pending_messages(), 0, "The feed should be drained of all messages.")
-        
+
+        # Stop Running
+        # ------------
+
+        # TODO: less abrupt later, just shove a StopIteration
+        # down the pipe to make it stop spinning
+        sim.cuc._Thread__stop()
+
+        self.assertEqual(sim.feed.pending_messages(), 0,
+            "The feed should be drained of all messages, found {n} remaining."
+            .format(n=sim.feed.pending_messages())
+        )
+
+    # TODO used?
     def dtest_error_in_feed(self):
+
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
         sources = {"ret1":ret1, "ret2":ret2}
@@ -73,12 +225,9 @@ class SimulatorTestCase(unittest.TestCase):
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
         client = TestClient(self, expected_msg_count=0)
         sim = self.get_simulator(sources, transforms, client)
+
+        # TODO: way too long
         sim.feed = DataFeedErr(sources.keys(), sim.data_address, sim.feed_address, sim.performance_address, qmsg.Sync(sim, "DataFeedErrorGenerator"))
         sim.simulate()
-        
-    
-class ProcessSimulatorTestCase(SimulatorTestCase):
-    
-    def get_simulator(self):
-        return ProcessSimulator(self.addresses)
+
 
