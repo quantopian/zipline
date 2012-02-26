@@ -7,23 +7,27 @@ import datetime
 import zipline.util as qutil
 from zipline.component import Component
 
+from zipline.protocol import CONTROL_PROTOCOL
+
 class ComponentHost(Component):
     """
-    Components that can launch multiple sub-components, synchronize their start, and then wait for all
-    components to be finished.
+    Components that can launch multiple sub-components, synchronize their
+    start, and then wait for all components to be finished.
     """
 
     def __init__(self, addresses, gevent_needed=False):
         Component.__init__(self)
         self.addresses = addresses
 
-        #workaround for defect in threaded use of strptime: http://bugs.python.org/issue11108
+        # workaround for defect in threaded use of strptime:
+        # http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
 
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
         self.gevent_needed  = gevent_needed
+        self.heartbeat_timeout = 2000
 
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
@@ -47,13 +51,13 @@ class ComponentHost(Component):
             if self.controller:
                 component.controller = self.controller
 
-            self.components[component.get_id()] = component
-            self.sync_register[component.get_id()] = datetime.datetime.utcnow()
+            self.components[component.get_id] = component
+            self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
             if(isinstance(component, DataSource)):
-                self.feed.add_source(component.get_id())
+                self.feed.add_source(component.get_id)
             if(isinstance(component, BaseTransform)):
-                self.merge.add_source(component.get_id())
+                self.merge.add_source(component.get_id)
 
     def unregister_component(self, component_id):
         del self.components[component_id]
@@ -61,15 +65,20 @@ class ComponentHost(Component):
 
     def setup_sync(self):
         """
-        Start the sync server.
         """
         qutil.LOGGER.debug("Connecting sync server.")
 
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
 
-        self.poller = self.zmq.Poller()
-        self.poller.register(self.sync_socket, self.zmq.POLLIN)
+        # There is a namespace collision between three classes
+        # which use the self.poller property to mean different
+        # things.
+        # =====================================================
+        self.sync_poller = self.zmq.Poller()
+        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
+        # =====================================================
+
         self.sockets.append(self.sync_socket)
 
     def open(self):
@@ -83,29 +92,39 @@ class ComponentHost(Component):
         if len(self.components) == 0:
             qutil.LOGGER.info("Component register is empty.")
             return True
+
         for source, last_dt in self.sync_register.iteritems():
-            if((cur_time - last_dt) > self.timeout):
-                qutil.LOGGER.info("Time out for {source}. Current component registery: {reg}".format(source=source, reg=self.components))
+            if (cur_time - last_dt) > self.timeout:
+                qutil.LOGGER.info(
+                    "Time out for {source}. Current component registery: {reg}".
+                    format(source=source, reg=self.components)
+                )
                 return True
+
         return False
 
     def loop(self):
+
         while not self.is_timed_out():
             # wait for synchronization request
-            socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+            socks = dict(self.sync_poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
                 parts = msg.split(':')
-                if(len(parts) < 2):
+
+                if len(parts) != 2:
                     qutil.LOGGER.info("got bad confirm: {msg}".format(msg=msg))
-                sync_id = parts[0]
-                status  = parts[1]
-                if(self.is_done_message(status)):
+                    continue
+
+                sync_id, status = parts
+
+                if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
                     qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
                     self.unregister_component(sync_id)
                 else:
                     self.sync_register[sync_id] = datetime.datetime.utcnow()
+
                 #qutil.LOGGER.info("confirmed {id}".format(id=msg))
                 # send synchronization reply
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
@@ -119,9 +138,10 @@ class ComponentHost(Component):
 
 class ParallelBuffer(Component):
     """
-    Connects to N PULL sockets, publishing all messages received to a PUB socket.
-    Published messages are guaranteed to be in chronological order based on message property dt.
-    Expects to be instantiated in one execution context (thread, process, etc) and run in another.
+    Connects to N PULL sockets, publishing all messages received to a PUB
+    socket.  Published messages are guaranteed to be in chronological order
+    based on message property dt.  Expects to be instantiated in one execution
+    context (thread, process, etc) and run in another.
     """
 
     def __init__(self):
@@ -134,6 +154,7 @@ class ParallelBuffer(Component):
         self.ds_finished_counter    = 0
 
 
+    @property
     def get_id(self):
         return "FEED"
 
@@ -141,16 +162,16 @@ class ParallelBuffer(Component):
         self.data_buffer[source_id] = []
 
     def open(self):
-        self.pull_socket, self.poller = self.bind_data()
-        self.feed_socket              = self.bind_feed()
+        self.pull_socket = self.bind_data()
+        self.feed_socket = self.bind_feed()
 
     def do_work(self):
         # wait for synchronization reply from the host
-        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
-            if self.is_done_message(message):
+            if message == str(CONTROL_PROTOCOL.DONE):
                 self.ds_finished_counter += 1
                 if len(self.data_buffer) == self.ds_finished_counter:
                      #drain any remaining messages in the buffer
@@ -245,8 +266,8 @@ class MergedParallelBuffer(ParallelBuffer):
         ParallelBuffer.__init__(self)
 
     def open(self):
-        self.pull_socket, self.poller = self.bind_merge()
-        self.feed_socket              = self.bind_result()
+        self.pull_socket = self.bind_merge()
+        self.feed_socket = self.bind_result()
 
     def next(self):
         """Get the next merged message from the feed buffer."""
@@ -263,6 +284,7 @@ class MergedParallelBuffer(ParallelBuffer):
                 result[source] = cur['value']
         return result
 
+    @property
     def get_id(self):
         return "MERGE"
 
@@ -284,6 +306,7 @@ class BaseTransform(Component):
         self.state         = {}
         self.state['name'] = name
 
+    @property
     def get_id(self):
         return self.state['name']
 
@@ -292,7 +315,7 @@ class BaseTransform(Component):
         Establishes zmq connections.
         """
         #create the feed.
-        self.feed_socket, self.poller = self.connect_feed()
+        self.feed_socket = self.connect_feed()
         #create the result PUSH
         self.result_socket = self.connect_merge()
 
@@ -303,10 +326,10 @@ class BaseTransform(Component):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
-            if self.is_done_message(message):
+            if message == str(CONTROL_PROTOCOL.DONE):
                 self.signal_done()
                 return
 
@@ -315,6 +338,7 @@ class BaseTransform(Component):
             #TODO: do we want to relay the datetime again? maybe drop this?
             #cur_state['dt'] = event['dt']
             cur_state['id'] = self.state['name']
+
             self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
 
     def transform(self, event):
@@ -323,8 +347,9 @@ class BaseTransform(Component):
 
             {name:"name of new transform", value: "value of new field"}
 
-        Transforms run in parallel and results are merged into a single map, so transform names must be unique.
-        Best practice is to use the self.state object initialized from the transform configuration, and only set the
+        Transforms run in parallel and results are merged into a single map, so
+        transform names must be unique.  Best practice is to use the self.state
+        object initialized from the transform configuration, and only set the
         transformed value::
 
             self.state['value'] = transformed_value
@@ -352,6 +377,7 @@ class DataSource(Component):
         self.id        = source_id
         self.cur_event = None
 
+    @property
     def get_id(self):
         return self.id
 

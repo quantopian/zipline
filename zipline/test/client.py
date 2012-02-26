@@ -2,6 +2,8 @@ import json
 import zipline.util as qutil
 import zipline.messaging as qmsg
 
+from zipline.protocol import CONTROL_PROTOCOL
+
 class TestClient(qmsg.Component):
 
     def __init__(self, utest, expected_msg_count=0):
@@ -10,18 +12,22 @@ class TestClient(qmsg.Component):
         self.expected_msg_count = expected_msg_count
         self.utest              = utest
         self.prev_dt            = None
+        self.heartbeat_timeout = 2000
 
+    @property
     def get_id(self):
         return "TEST_CLIENT"
 
     def open(self):
-        self.data_feed, self.poller = self.connect_result()
+        self.data_feed = self.connect_result()
 
     def do_work(self):
-        socks = dict(self.poller.poll(2000)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout))
+
         if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:   
             msg = self.data_feed.recv()
-            if(self.is_done_message(msg)):
+
+            if msg == str(CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.signal_done()
                 self.utest.assertEqual(self.expected_msg_count, self.received_count, 
