@@ -130,12 +130,18 @@ class ComponentHost(Component):
                 # send synchronization reply
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
 
+    # ------------------
+    # Simulation Control
+    # ------------------
+
     def launch_controller(self, controller):
         raise NotImplementedError
 
     def launch_component(self, component):
         raise NotImplementedError
 
+    def teardown_component(self, component):
+        raise NotImplementedError
 
 class ParallelBuffer(Component):
     """

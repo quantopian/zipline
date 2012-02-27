@@ -63,13 +63,19 @@ class Component(object):
     def open(self):
         raise NotImplementedError
 
-    def destroy(self):
+    def teardown_sockets(self):
         """
-        Tear down after normal operation.
+        Close all zmq sockets safely.
         """
         #close all the sockets
         for sock in self.sockets:
             sock.close()
+
+    def destroy(self):
+        """
+        Tear down after normal operation.
+        """
+        pass
 
     def kill(self):
         """
@@ -102,6 +108,10 @@ class Component(object):
         self.loop()
 
         self.destroy()
+        self.teardown_sockets()
+
+        # shouldn't block if we've done our job correctly
+        # self.context.term()
 
     def run(self, catch_exceptions=False):
         """
