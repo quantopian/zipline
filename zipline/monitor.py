@@ -8,17 +8,16 @@ class Controller(object):
     polling = False
     debug = False
 
-    def __init__(self, pull_socket, pub_socket, context=None, logging = None):
+    def __init__(self, pull_socket, pub_socket, logging = None):
+
+        self._ctx = None
 
         self.associated = []
 
-        if not context:
-            self._ctx = zmq.Context()
-        else:
-            self._ctx = context
-
         self.pull_socket = pull_socket
+        self.push_socket = pull_socket # same port
         self.pub_socket = pub_socket
+        self.sub_socket = pub_socket # same port
 
         if logging:
             self.logging = logging
@@ -30,18 +29,26 @@ class Controller(object):
         self.success = 0
         self.failed = 0
 
-    def run(self, debug=False):
+    def run(self, debug=False, context=None):
         self.polling = True
 
-        #if debug:
-        return self._poll()
-        #else:
-            #return self._poll_fast()
+        if not context:
+            self._ctx = zmq.Context()
+        else:
+            self._ctx = context
+
+        if debug:
+            return self._poll_fast() # the c loop
+        else:
+            return self._poll() # use a python loop
 
     def _poll_fast(self):
         """
         C version of the polling forwarder.
         """
+        self.pull = self._ctx.socket(zmq.PULL)
+        self.pub = self._ctx.socket(zmq.PUB)
+
         zmq.device(zmq.FORWARDER, self.pull, self.pub)
 
     def _poll(self):
@@ -60,7 +67,9 @@ class Controller(object):
 
         while self.polling:
             try:
-                self.pub.send(self.pull.recv())
+                msg = self.pull.recv()
+                print msg
+                self.pub.send(msg)
             except KeyboardInterrupt:
                 self.polling = False
                 break
@@ -75,24 +84,36 @@ class Controller(object):
                 self.failed += 1
                 continue
 
-    def message_sender(self):
+    # -------------------
+    # Hooks for Endpoints
+    # -------------------
+
+    def message_sender(self, context=None):
         """
         Spin off a socket used for sending messages to this
         controller.
         """
-        s = self._ctx.socket(zmq.PUSH)
-        s.connect(self.pull_socket)
+
+        if not context:
+            context = zmq.Context()
+
+        s = context.socket(zmq.PUSH)
+        s.connect(self.push_socket)
         self.associated.append(s)
         return s
 
-    def message_listener(self):
+    def message_listener(self, context = None, filters=None):
         """
         Spin off a socket used for receiving messages from this
         controller.
         """
-        s = self._ctx.socket(zmq.SUB)
-        s.connect(self.pub_socket)
-        s.setsockopt(zmq.SUBSCRIBE, '')
+
+        if not context:
+            context = zmq.Context()
+
+        s = context.socket(zmq.SUB)
+        s.connect(self.sub_socket)
+        s.setsockopt(zmq.SUBSCRIBE, filters or '')
         self.associated.append(s)
         return s
 
@@ -116,3 +137,13 @@ class Controller(object):
             return
         return float(self.success) / (self.success + self.failed)
 
+if __name__ == '__main__':
+    print 'Running on ',\
+        'tcp://127.0.0.1:5000', \
+        'tcp://127.0.0.1:5001',
+
+    controller = Controller(
+        'tcp://127.0.0.1:5000',
+        'tcp://127.0.0.1:5001',
+    )
+    controller.run()
