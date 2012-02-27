@@ -2,7 +2,7 @@ import zmq
 
 class Controller(object):
     """
-    A N to N messaging system for inter component communication.
+    A N to M messaging system for inter component communication.
     Ostensibly a broker of sorts. Putting messages to the broker
     is durable, if the broker goes down messages will queue up
     until the HWM and then go out when the new broker comes up.
@@ -17,9 +17,9 @@ class Controller(object):
 
     :param pull_socket: Socket to subscribe to for republication of
                         published messages. The endpoint for
-                        :func message_sender:.
+                        :func message_sender: .
     :param pub_socket: Socket to publish messages, the starting
-                       point of :func message_listener:.
+                       point of :func message_listener: .
     :param logging: Logging interface for tracking broker state
         Defaults to None
 
@@ -43,12 +43,12 @@ class Controller(object):
 
     """
 
-    polling = False
     debug = False
 
     def __init__(self, pull_socket, pub_socket, logging = None):
 
         self._ctx = None
+        polling = False
 
         self.associated = []
 
@@ -78,10 +78,10 @@ class Controller(object):
         else:
             self._ctx = context
 
-        if debug:
-            return self._poll_fast() # the c loop
-        else:
-            return self._poll() # use a python loop
+        #if not debug:
+            #return self._poll_fast() # the c loop
+        #else:
+        return self._poll() # use a python loop
 
     def _poll_fast(self):
         """
@@ -89,6 +89,9 @@ class Controller(object):
         """
         self.pull = self._ctx.socket(zmq.PULL)
         self.pub = self._ctx.socket(zmq.PUB)
+
+        self.pull.bind(self.pull_socket)
+        self.pub.bind(self.pub_socket)
 
         zmq.device(zmq.FORWARDER, self.pull, self.pub)
 

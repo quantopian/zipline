@@ -31,7 +31,7 @@ def recv_zipped_pickle(socket, flags=0, protocol=-1):
     """
     z = socket.recv(flags)
     p = zlib.uncompress(z)
-    return pickle.loads(p)
+    return pickle.loads(p, protocol=protocol)
 
 # HDF5, Numpy Byte Strings, Pandas arrays should use
 # blosc and reconstruct the Python container from the byte string

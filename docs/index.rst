@@ -6,7 +6,7 @@
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    notes.rst
    modules.rst

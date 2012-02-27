@@ -1,6 +1,9 @@
 """
 Commonly used messaging components.
+
+Contains the base class for all components.
 """
+
 import os
 import uuid
 import socket
@@ -10,28 +13,46 @@ import zipline.util as qutil
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 
 class Component(object):
+    """
+    Base class for components. Defines the the base messaging
+    interface between components.
+
+    :param addresses: a dict of name_string -> zmq port address strings.
+                      Must have the following entries
+
+    :param sync_address: socket address used for synchronizing the start of
+                         all workers, heartbeating, and exit notification
+                         will be used in REP/REQ sockets. Bind is always on
+                         the REP side.
+
+    :param data_address: socket address used for data sources to stream
+                         their records. Will be used in PUSH/PULL sockets
+                         between data sources and a ParallelBuffer (aka
+                         the Feed). Bind will always be on the PULL side
+                         (we always have N producers and 1 consumer)
+
+    :param feed_address: socket address used to publish consolidated feed
+                         from serialization of data sources
+                         will be used in PUB/SUB sockets between Feed and
+                         Transforms. Bind is always on the PUB side.
+
+    :param merge_address: socket address used to publish transformed
+                          values.  will be used in PUSH/PULL from many
+                          transforms to one MergedParallelBuffer (aka the
+                          Merge). Bind will always be on the PULL side (we
+                          always have N producers and 1 consumer)
+
+    :param result_address: socket address used to publish merged data
+                           source feed and transforms to clients will be
+                           used in PUB/SUB from one Merge to one or many
+                           clients. Bind is always on the PUB side.
+
+    bind/connect methods will return the correct socket type for each
+    address.
+
+    """
 
     def __init__(self):
-        """
-        :addresses: a dict of name_string -> zmq port address strings. Must have the following entries::
-
-            - sync_address: socket address used for synchronizing the start of all workers, heartbeating, and exit notification
-                            will be used in REP/REQ sockets. Bind is always on the REP side.
-            - data_address: socket address used for data sources to stream their records. 
-                            will be used in PUSH/PULL sockets between data sources and a ParallelBuffer (aka the Feed). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - feed_address: socket address used to publish consolidated feed from serialization of data sources
-                            will be used in PUB/SUB sockets between Feed and Transforms. Bind is always on the PUB side.
-            - merge_address: socket address used to publish transformed values.
-                            will be used in PUSH/PULL from many transforms to one MergedParallelBuffer (aka the Merge). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - result_address: socket address used to publish merged data source feed and transforms to clients
-                            will be used in PUB/SUB from one Merge to one or many clients. Bind is always on the PUB side.
-
-        Bind/Connect methods will return the correct socket type for each address. Any sockets on which recv is expected to be called
-        will also return a Poller.
-
-        """
         self.zmq               = None
         self.context           = None
         self.addresses         = None
@@ -73,14 +94,18 @@ class Component(object):
 
     def destroy(self):
         """
+        Clean shutdown.
+
         Tear down after normal operation.
         """
         pass
 
     def kill(self):
         """
+        Unclean shutdown.
+
         Tear down ( fast ) as a mode of failure in the
-        simulation.
+        simulation or on service halt.
         """
         raise NotImplementedError
 

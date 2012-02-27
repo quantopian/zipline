@@ -78,7 +78,7 @@ class namedict(object):
         -- or --
         foo['BAR']
 
-    For more complex strcuts use collections.namedtuple:
+    For more complex structs use collections.namedtuple:
     """
 
     def __init__(self, dct):
