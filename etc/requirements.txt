@@ -3,3 +3,4 @@ pyzmq==2.1.11
 gevent-zeromq==0.2.2
 msgpack-python==0.1.12
 humanhash==0.0.1
+ujson=1.18

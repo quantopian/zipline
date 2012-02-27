@@ -5,6 +5,7 @@ TODO: add trailing stop
 """
 
 import datetime
+
 from zipline.messaging import BaseTransform
 import zipline.util as qutil
 
@@ -16,18 +17,25 @@ class MovingAverage(BaseTransform):
 
     def __init__(self, name, days):
         BaseTransform.__init__(self, name)
+        self.window = datetime.timedelta(days = days)
+
+        self.init()
+
+    def init(self):
         self.events         = []
         self.current_total  = 0
-        self.window         = datetime.timedelta(days = days)
 
     def transform(self, event):
-        """Update the moving average with the latest data point."""
+        """
+        Update the moving average with the latest data point.
+        """
 
         self.events.append(event)
         self.current_total += event['price']
         event_date = qutil.parse_date(event['dt'])
 
         index = 0
+
         for cur_event in self.events:
             cur_date = qutil.parse_date(cur_event['dt'])
             if(cur_date - event_date):
@@ -37,11 +45,10 @@ class MovingAverage(BaseTransform):
             else:
                 break
 
-        if(len(self.events) == 0):
+        if len(self.events) == 0:
             return 0.0
 
         self.average = self.current_total/len(self.events)
-
         self.state['value'] = self.average
-        return self.state
 
+        return self.state

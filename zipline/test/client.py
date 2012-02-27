@@ -1,18 +1,22 @@
-import json
+import ujson as json
+
 import zipline.util as qutil
 import zipline.messaging as qmsg
-
 from zipline.protocol import CONTROL_PROTOCOL
 
 class TestClient(qmsg.Component):
 
     def __init__(self, utest, expected_msg_count=0):
         qmsg.Component.__init__(self)
-        self.received_count     = 0
-        self.expected_msg_count = expected_msg_count
+
         self.utest              = utest
+        self.expected_msg_count = expected_msg_count
+
+        self.init()
+
+    def init(self):
+        self.received_count     = 0
         self.prev_dt            = None
-        self.heartbeat_timeout = 2000
 
     @property
     def get_id(self):
@@ -23,6 +27,9 @@ class TestClient(qmsg.Component):
 
     def do_work(self):
         socks = dict(self.poll.poll(self.heartbeat_timeout))
+
+        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
+            msg = self.control_in.recv()
 
         if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:   
             msg = self.data_feed.recv()
@@ -37,10 +44,12 @@ class TestClient(qmsg.Component):
 
             self.received_count += 1
             event = json.loads(msg)
+
             if(self.prev_dt != None):
-                if(not event['dt'] >= self.prev_dt):
+                if not event['dt'] >= self.prev_dt:
                     raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
 
             self.prev_dt = event['dt']
+
             if(self.received_count % 100 == 0):
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))

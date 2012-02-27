@@ -38,6 +38,7 @@ class Component(object):
         self.out_socket        = None
         self.gevent_needed     = False
         self.killed            = False
+        self.controller        = None
         self.heartbeat_timeout = 2000
         self.state_flag        = COMPONENT_STATE.OK # OK | DONE | EXCEPTION
 
@@ -45,6 +46,15 @@ class Component(object):
         # stick in your mind unlike a 32 byte string of random hex.
         self.guid = uuid.uuid4()
         self.huid = humanhash.humanize(self.guid.hex)
+
+        self.init()
+
+    def init(self):
+        """
+        Subclasses should override this to extend the setup for
+        the class. Shouldn't have side effects.
+        """
+        pass
 
     # ------------
     # Core Methods
@@ -57,7 +67,9 @@ class Component(object):
         """
         Tear down after normal operation.
         """
-        raise NotImplementedError
+        #close all the sockets
+        for sock in self.sockets:
+            sock.close()
 
     def kill(self):
         """
@@ -89,9 +101,7 @@ class Component(object):
         self.setup_control()
         self.loop()
 
-        #close all the sockets
-        for sock in self.sockets:
-            sock.close()
+        self.destroy()
 
     def run(self, catch_exceptions=False):
         """
@@ -258,8 +268,8 @@ class Component(object):
         """
         assert self.controller
 
-        self.control_out = self.controller.message_sender()
-        self.control_in = self.controller.message_listener()
+        self.control_out = self.controller.message_sender(context=self.context)
+        self.control_in = self.controller.message_listener(context=self.context)
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])
@@ -275,7 +285,7 @@ class Component(object):
         self.sync_socket.connect(self.addresses['sync_address'])
         #self.sync_socket.setsockopt(self.zmq.LINGER,0)
 
-        # Explictly, a different poller for obvious reasons.
+        # Explictly a different poller for obvious reasons.
         # I'm not fond of having this poller init'd as a side
         # effect of a method call. Still thinking about where to
         # put it at the moment though...
@@ -304,6 +314,12 @@ class Component(object):
             hex(id(self))        ,
             self.sockets         ,
         )
+
+    def __len__(self):
+        """
+        Some components overload this for debug purposes
+        """
+        raise NotImplementedError
 
     def __repr__(self):
         """

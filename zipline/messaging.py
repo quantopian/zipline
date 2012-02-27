@@ -1,12 +1,11 @@
 """
 Commonly used messaging components.
 """
-import json
-import uuid
 import datetime
+import ujson as json
+
 import zipline.util as qutil
 from zipline.component import Component
-
 from zipline.protocol import CONTROL_PROTOCOL
 
 class ComponentHost(Component):
@@ -18,6 +17,11 @@ class ComponentHost(Component):
     def __init__(self, addresses, gevent_needed=False):
         Component.__init__(self)
         self.addresses = addresses
+        self.gevent_needed  = gevent_needed
+
+        self.init()
+
+    def init(self):
 
         # workaround for defect in threaded use of strptime:
         # http://bugs.python.org/issue11108
@@ -26,13 +30,10 @@ class ComponentHost(Component):
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
-        self.gevent_needed  = gevent_needed
-        self.heartbeat_timeout = 2000
 
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
         self.passthrough    = PassthroughTransform()
-        self.controller     = None
 
         #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
@@ -112,12 +113,12 @@ class ComponentHost(Component):
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
                 parts = msg.split(':')
+                sync_id, status = parts
 
+                # TODO: move into frame protocol
                 if len(parts) != 2:
                     qutil.LOGGER.info("got bad confirm: {msg}".format(msg=msg))
                     continue
-
-                sync_id, status = parts
 
                 if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
                     qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
@@ -152,6 +153,8 @@ class ParallelBuffer(Component):
         self.data_buffer            = {}
         self.ds_finished_counter    = 0
 
+    def init(self):
+        pass
 
     @property
     def get_id(self):
@@ -168,25 +171,23 @@ class ParallelBuffer(Component):
         # wait for synchronization reply from the host
         socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
+        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
+            msg = self.control_in.recv()
+
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
+
             if message == str(CONTROL_PROTOCOL.DONE):
                 self.ds_finished_counter += 1
+
                 if len(self.data_buffer) == self.ds_finished_counter:
-                     #drain any remaining messages in the buffer
+                    #drain any remaining messages in the buffer
                     self.drain()
                     self.signal_done()
             else:
                 event = json.loads(message)
                 self.append(event[u'id'], event)
                 self.send_next()
-
-    def __len__(self):
-        """
-        Buffer's length is same as internal map holding separate
-        sorted arrays of events keyed by source id.
-        """
-        return len(self.data_buffer)
 
     def append(self, source_id, value):
         """
@@ -255,6 +256,13 @@ class ParallelBuffer(Component):
             self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
             self.sent_count += 1
 
+    def __len__(self):
+        """
+        Buffer's length is same as internal map holding separate
+        sorted arrays of events keyed by source id.
+        """
+        return len(self.data_buffer)
+
 
 class MergedParallelBuffer(ParallelBuffer):
     """
@@ -263,6 +271,15 @@ class MergedParallelBuffer(ParallelBuffer):
 
     def __init__(self):
         ParallelBuffer.__init__(self)
+
+        self.init()
+
+    def init(self):
+        pass
+
+    @property
+    def get_id(self):
+        return "MERGE"
 
     def open(self):
         self.pull_socket = self.bind_merge()
@@ -283,27 +300,30 @@ class MergedParallelBuffer(ParallelBuffer):
                 result[source] = cur['value']
         return result
 
-    @property
-    def get_id(self):
-        return "MERGE"
-
 
 class BaseTransform(Component):
-    """Top level execution entry point for the transform::
+    """
+    Top level execution entry point for the transform::
 
-            - connects to the feed socket to subscribe to events
-            - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
-            - processes all messages received from feed, until DONE message received
-            - pushes all transforms
-            - sends DONE to result socket, closes all sockets and context
+        - connects to the feed socket to subscribe to events
+        - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
+        - processes all messages received from feed, until DONE message received
+        - pushes all transforms
+        - sends DONE to result socket, closes all sockets and context
 
     Parent class for feed transforms. Subclass and override transform
-    method to create a new derived value from the combined feed."""
+    method to create a new derived value from the combined feed.
+    """
 
     def __init__(self, name):
         Component.__init__(self)
-        self.state         = {}
+        self.state = {}
         self.state['name'] = name
+
+        self.init()
+
+    def init(self):
+        pass
 
     @property
     def get_id(self):
@@ -325,7 +345,11 @@ class BaseTransform(Component):
             - call transform (subclass' method) on event
             - send the transformed event
         """
-        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout))
+
+        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
+            msg = self.control_in.recv()
+
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
             if message == str(CONTROL_PROTOCOL.DONE):
@@ -360,6 +384,9 @@ class PassthroughTransform(BaseTransform):
     def __init__(self):
         BaseTransform.__init__(self, "PASSTHROUGH")
 
+    def init(self):
+        pass
+
     def transform(self, event):
         return {'value':event}
 
@@ -373,6 +400,9 @@ class DataSource(Component):
     def __init__(self, source_id):
         Component.__init__(self)
         self.id        = source_id
+        self.init()
+
+    def init(self):
         self.cur_event = None
 
     @property
