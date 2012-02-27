@@ -2,7 +2,45 @@ import zmq
 
 class Controller(object):
     """
-    A broker of sorts.
+    A N to N messaging system for inter component communication.
+    Ostensibly a broker of sorts. Putting messages to the broker
+    is durable, if the broker goes down messages will queue up
+    until the HWM and then go out when the new broker comes up.
+
+    The other end is not durable, it is simply PUB/SUB which has
+    the benefit of of allowing more fluid time evolution of the
+    whole system since the messaging passing topology will not
+    alter itself as a result of more nodes listening.
+
+    The actual brokerin' is either a Python loop ( slow ) or a
+    zmq.FORWARDER device ( fast ).
+
+    :param pull_socket: Socket to subscribe to for republication of
+                        published messages. The endpoint for
+                        :func message_sender:.
+    :param pub_socket: Socket to publish messages, the starting
+                       point of :func message_listener:.
+    :param logging: Logging interface for tracking broker state
+        Defaults to None
+
+    Usage::
+
+        controller = Controller(
+            'tcp://127.0.0.1:5000',
+            'tcp://127.0.0.1:5001',
+        )
+
+        # typically you'd want to run this async to your main
+        # program since it blocks indefinetely.
+        controller.run()
+
+
+        sub = self.controller.message_listener()
+        push = self.controller.message_sender()
+
+        push.send('DIE')
+        sub.recv()
+
     """
 
     polling = False
@@ -30,6 +68,9 @@ class Controller(object):
         self.failed = 0
 
     def run(self, debug=False, context=None):
+        """
+        Run's the loop for the broker.
+        """
         self.polling = True
 
         if not context:
@@ -60,10 +101,10 @@ class Controller(object):
         self.pull = self._ctx.socket(zmq.PULL)
         self.pub = self._ctx.socket(zmq.PUB)
 
-        self.associated.extend([self.pull, self.pub])
-
         self.pull.bind(self.pull_socket)
         self.pub.bind(self.pub_socket)
+
+        self.associated.extend([self.pull, self.pub])
 
         while self.polling:
             try:

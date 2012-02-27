@@ -72,7 +72,7 @@ def FrameExceptionFactory(name):
 
 class namedict(object):
     """
-    So that you can use:
+    So that you can use::
 
         foo.BAR
         -- or --

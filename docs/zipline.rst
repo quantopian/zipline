@@ -49,6 +49,14 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`serial` Module
+--------------------
+
+.. automodule:: zipline.serial
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`sources` Module
 ---------------------
 
@@ -57,10 +65,10 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`topology` Module
-----------------------
+:mod:`topos` Module
+-------------------
 
-.. automodule:: zipline.topology
+.. automodule:: zipline.topos
     :members:
     :undoc-members:
     :show-inheritance:
@@ -69,14 +77,6 @@ zipline Package
 ------------------
 
 .. automodule:: zipline.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`webui` Module
--------------------
-
-.. automodule:: zipline.webui
     :members:
     :undoc-members:
     :show-inheritance:
