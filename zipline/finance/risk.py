@@ -1,9 +1,10 @@
 import datetime
-import quantoenv
 import math
 import pytz
 import numpy as np
 import numpy.linalg as la
+import zipline.util as qutil
+import zipline.db as db
 from pymongo import ASCENDING, DESCENDING
 
 class daily_return():
@@ -14,6 +15,7 @@ class daily_return():
         
 class periodmetrics():
     def __init__(self, start_date, end_date, returns, benchmark_returns):
+        self.db = db.DbConnection.get()[1]
         self.start_date = start_date
         self.end_date = end_date
         self.trading_calendar = trading_calendar
@@ -45,7 +47,7 @@ class periodmetrics():
         
     def calculate_period_returns(self, daily_returns):
         returns = [x.returns for x in daily_returns if x.date >= self.start_date and x.date <= self.end_date and self.trading_calendar.is_trading_day(x.date)]
-        #quantoenv.qlogger.debug("using {count} daily returns out of {total}".format(count=len(returns),total=len(daily_returns)))
+        #qutil.LOGGER.debug("using {count} daily returns out of {total}".format(count=len(returns),total=len(daily_returns)))
         period_returns = 1.0
         for r in returns:
             period_returns = period_returns * (1.0 + r)
@@ -53,14 +55,14 @@ class periodmetrics():
         return period_returns, returns
         
     def calculate_volatility(self, daily_returns):
-        #quantoenv.qlogger.debug("trading days {td}".format(td=self.trading_days))
+        #qutil.LOGGER.debug("trading days {td}".format(td=self.trading_days))
         return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
         
     def calculate_sharpe(self):
         return (self.algorithm_period_returns - self.treasury_period_return) / self.algorithm_volatility
         
     def calculate_beta(self):
-        #quantoenv.qlogger.debug("algorithm has {acount} days, benchmark has {bmcount} days".format(acount=len(self.algorithm_returns), bmcount=len(self.benchmark_returns)))
+        #qutil.LOGGER.debug("algorithm has {acount} days, benchmark has {bmcount} days".format(acount=len(self.algorithm_returns), bmcount=len(self.benchmark_returns)))
         #it doesn't make much sense to calculate beta for less than two days, so return none.
         if len(self.algorithm_returns) < 2:
             return 0.0, 0.0, 0.0, 0.0, []
@@ -71,7 +73,7 @@ class periodmetrics():
         algorithm_covariance = C[0][1]
         benchmark_variance = C[1][1]
         beta = C[0][1] / C[1][1]
-        #quantoenv.qlogger.debug("bm variance is {bmv}, returns matrix is {rm}, covariance is {c}, beta is {beta}".format(rm=returns_matrix, bmv=C[1][1], c=C, beta=beta))
+        #qutil.LOGGER.debug("bm variance is {bmv}, returns matrix is {rm}, covariance is {c}, beta is {beta}".format(rm=returns_matrix, bmv=C[1][1], c=C, beta=beta))
         
         return beta, algorithm_covariance, benchmark_variance, condition_number, eigen_values
         
@@ -86,11 +88,11 @@ class periodmetrics():
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
             else:
-                quantoenv.qlogger.warn("negative 100 percent return, zeroing the returns")
+                qutil.LOGGER.warn("negative 100 percent return, zeroing the returns")
                 cur_return = 0.0
             compounded_returns.append(cur_return)
             
-        #quantoenv.qlogger.debug("compounded returns are {cr}".format(cr=compounded_returns))
+        #qutil.LOGGER.debug("compounded returns are {cr}".format(cr=compounded_returns))
         cur_max = None
         max_drawdown = None
         for cur in compounded_returns:
@@ -101,7 +103,7 @@ class periodmetrics():
             if max_drawdown == None or drawdown < max_drawdown:
                 max_drawdown = drawdown
         
-        #quantoenv.qlogger.debug("max drawdown is: {dd}".format(dd=max_drawdown))
+        #qutil.LOGGER.debug("max drawdown is: {dd}".format(dd=max_drawdown))
         if max_drawdown == None:
             return 0.0
             
@@ -131,7 +133,7 @@ class periodmetrics():
         else:
             self.treasury_duration = '30year'
         
-        treasuryQS = quantoenv.getTickDB().treasury_curves.find(
+        treasuryQS = self.db.treasury_curves.find(
                                                             spec={"date" : {"$lte" : self.end_date}},
                                                             sort=[("date",DESCENDING)],
                                                             limit=3,
@@ -154,11 +156,11 @@ class riskmetrics():
     
     def __init__(self, algorithm_returns):
         """algorithm_returns needs to be a list of daily_return objects sorted in date ascending order"""
-        self.db = quantoenv.getTickDB()
+        self.db = db.DbConnection.get()[1]
         self.algorithm_returns = algorithm_returns
         self.bm_returns = [x for x in benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
         
-        quantoenv.qlogger.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
+        qutil.LOGGER.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
                                                                                            end=self.algorithm_returns[-1].date,
                                                                                            count=len(self.bm_returns),
                                                                                            total=len(benchmark_returns)))
@@ -187,7 +189,7 @@ class riskmetrics():
             cur_end = advance_by_months(cur_start, months_per) - one_day
             if(cur_end > the_end):
                 break
-            #quantoenv.qlogger.debug("start: {start}, end: {end}".format(start=cur_start, end=cur_end))
+            #qutil.LOGGER.debug("start: {start}, end: {end}".format(start=cur_start, end=cur_end))
             cur_period_metrics = periodmetrics(start_date=cur_start, end_date=cur_end, returns=self.algorithm_returns, benchmark_returns=self.bm_returns)
             ends.append(cur_period_metrics)
             cur_start = advance_by_months(cur_start, 1)
@@ -195,7 +197,7 @@ class riskmetrics():
         return ends
         
     def store_to_db(self, back_test_run_id):
-        col = quantoenv.getTickDB().risk_metrics
+        col = self.db.risk_metrics
         for period in self.month_periods:
             for metric in ["algorithm_period_returns", "benchmark_period_returns", "excess_return", "trading_days", "benchmark_volatility", "algorithm_volatility", "sharpe", "beta", "alpha", "max_drawdown"]:
                 record = {'back_test_run_id':back_test_run_id}
@@ -203,7 +205,7 @@ class riskmetrics():
                 record['metric_name']   = metric
                 for dur in ["month", "three_month", "six_month", "year", "three_year", "five_year"]:
                     record[dur] = self.find_metric_by_end(period.end_date, dur, metric)
-                    #quantoenv.qlogger.debug("storing {val} for {metric} and {dur}".format(val=record[dur], metric=metric, dur=dur))
+                    #qutil.LOGGER.debug("storing {val} for {metric} and {dur}".format(val=record[dur], metric=metric, dur=dur))
                 col.insert(record, safe=True)
     
     def find_metric_by_end(self, end_date, duration, metric):
@@ -253,13 +255,13 @@ class TradingCalendar(object):
 
        
 def get_benchmark_data():
-    bmQS = quantoenv.getTickDB().bench_marks.find(
+    bmQS = db.DbConnection.get()[1].bench_marks.find(
                                  spec={"symbol" : "GSPC", 
-                                        "date":{"$gte": quantoenv.getUTCFromExchangeTime(datetime.datetime.strptime('01/01/1990','%m/%d/%Y')), 
-                                                "$lte": quantoenv.getUTCFromExchangeTime(datetime.datetime.strptime('12/31/2010','%m/%d/%Y'))}},
+                                        "date":{"$gte": datetime.datetime.strptime('01/01/1990','%m/%d/%Y').replace(tzinfo = pytz.utc), 
+                                                "$lte": datetime.datetime.strptime('12/31/2010','%m/%d/%Y').replace(tzinfo = pytz.utc)}},
                                  sort=[("date",ASCENDING)],
                                  slave_ok=True,
-                                 as_class=quantoenv.DocWrap)
+                                 as_class=qutil.DocWrap)
     bm_returns = []
     for bm in bmQS:
         bm_r = daily_return(date=bm.date.replace(tzinfo=pytz.utc), returns=bm.returns)

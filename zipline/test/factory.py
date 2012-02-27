@@ -1,9 +1,6 @@
 import datetime
 import pytz
-from algorithm.quantoenv import *
-from algorithm.quantomodels import *
-from algorithm.hostedalgorithm import *
-from algorithm.risk import *
+import zipline.finance.risk as risk
 
 def createReturns(daycount, start):
     i = 0
@@ -15,7 +12,7 @@ def createReturns(daycount, start):
         r = daily_return(current, random.random())
         test_range.append(r)
         current = current + one_day
-    return [ x for x in test_range if(trading_calendar.is_trading_day(x.date)) ]
+    return [ x for x in test_range if(risk.trading_calendar.is_trading_day(x.date)) ]
 
 def createReturnsFromRange(start, end):
     current = start.replace(tzinfo=pytz.utc)
@@ -25,7 +22,7 @@ def createReturnsFromRange(start, end):
     i = 0
     while current <= end: 
         current = current + one_day
-        if(not trading_calendar.is_trading_day(current)):
+        if(not risk.trading_calendar.is_trading_day(current)):
             continue
         r = daily_return(current, random.random())
         i += 1
@@ -38,7 +35,7 @@ def createReturnsFromList(returns, start):
     test_range = []
     i = 0
     while len(test_range) < len(returns): 
-        if(trading_calendar.is_trading_day(current)):
+        if(risk.trading_calendar.is_trading_day(current)):
             r = daily_return(current, returns[i])
             i += 1
             test_range.append(r)
@@ -61,7 +58,7 @@ def getCodeFromFile(filename):
     return rVal
     
                           
-def createTrade(sid, price, amount, datetime):
+def create_trade(sid, price, amount, datetime):
     row = {}
     row['sid'] = sid
     row['dt'] = datetime
@@ -79,8 +76,8 @@ def create_trade_history(sid, prices, amounts, start_time, interval):
     trades = []
     current = start_time
     while i < len(prices):
-        if(trading_calendar.is_trading_day(current)):  
-            trades.append(createTrade(sid, priceList[i], amtList[i], current))
+        if(risk.trading_calendar.is_trading_day(current)):  
+            trades.append(create_trade(sid, priceList[i], amtList[i], current))
             current = current + interval
             i += 1
         else:
@@ -98,7 +95,7 @@ def createTxnHistory(sid, priceList, amtList, startTime, interval):
     txns = []
     current = startTime
     while i < len(priceList):
-        if(trading_calendar.is_trading_day(current)): 
+        if(risk.trading_calendar.is_trading_day(current)): 
             txns.append(createTxn(sid,priceList[i],amtList[i], current))
             current = current + interval
             i += 1

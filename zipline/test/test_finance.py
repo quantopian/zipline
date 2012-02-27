@@ -1,13 +1,17 @@
 """Tests for the zipline.finance package"""
+import mock
+import zipline.host_settings
 from unittest2 import TestCase
-
+from zipline.test.test_devsimulator import ThreadSimulator, DummyAllocator
 from zipline.test.test_messaging import SimulatorTestCase
 import zipline.test.factory as factory
 from zipline.monitor import Controller
 from zipline.messaging import DataSource
 import zipline.util as qutil
+import zipline.db as db
+import zipline.host_settings
 
-class ThreadPoolExecutor(SimulatorTestCase, TestCase):
+class FinanceTestCase(SimulatorTestCase, TestCase):
 
     allocator = DummyAllocator(100)
 
@@ -57,17 +61,14 @@ class ThreadPoolExecutor(SimulatorTestCase, TestCase):
         # Simulation Components
         # ---------------------
 
-        ret1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
-                                                                            [10.0,11.0,10.0,10.0], 
+        set1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
+                                                                            [10.0,10.0,10.0,10.0], 
                                                                             [100,100,100,100], 
                                                                             datetime.datetime.utcnow(), 
                                                                             datetime.timedelta(days=1)))
-        ret2 = RandomEquityTrades(134, "ret2", 5000)
-        mavg1 = MovingAverage("mavg1", 30)
-        mavg2 = MovingAverage("mavg2", 60)
-        client = TestClient(self, expected_msg_count=10000)
+        client = TestTradingClient(self, expected_msg_count=4)
 
-        sim.register_components([ret1, ret2, mavg1, mavg2, client])
+        sim.register_components([set1, client])
         sim.register_controller( con )
 
         # Simulation
