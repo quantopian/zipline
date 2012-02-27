@@ -74,11 +74,11 @@ def createTrade(sid, price, amount, datetime):
     dw.store = row
     return dw
  
-def createTradeHistory(sid, priceList, amtList, startTime, interval):
+def create_trade_history(sid, prices, amounts, start_time, interval):
     i = 0
     trades = []
-    current = startTime
-    while i < len(priceList):
+    current = start_time
+    while i < len(prices):
         if(trading_calendar.is_trading_day(current)):  
             trades.append(createTrade(sid, priceList[i], amtList[i], current))
             current = current + interval

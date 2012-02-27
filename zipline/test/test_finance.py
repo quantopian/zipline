@@ -2,6 +2,7 @@
 from unittest2 import TestCase
 
 from zipline.test.test_messaging import SimulatorTestCase
+import zipline.test.factory as factory
 from zipline.monitor import Controller
 from zipline.messaging import DataSource
 import zipline.util as qutil
@@ -56,7 +57,11 @@ class ThreadPoolExecutor(SimulatorTestCase, TestCase):
         # Simulation Components
         # ---------------------
 
-        ret1 = RandomEquityTrades(133, "ret1", 5000)
+        ret1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
+                                                                            [10.0,11.0,10.0,10.0], 
+                                                                            [100,100,100,100], 
+                                                                            datetime.datetime.utcnow(), 
+                                                                            datetime.timedelta(days=1)))
         ret2 = RandomEquityTrades(134, "ret2", 5000)
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
@@ -81,5 +86,3 @@ class ThreadPoolExecutor(SimulatorTestCase, TestCase):
             .format(n=sim.feed.pending_messages())
         )
         
-
-class PredefinedDataSource()
