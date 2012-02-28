@@ -9,18 +9,34 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`cli` Module
------------------
-
-.. automodule:: zipline.cli
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`component` Module
 -----------------------
 
 .. automodule:: zipline.component
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`daemon` Module
+--------------------
+
+.. automodule:: zipline.daemon
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`db` Module
+----------------
+
+.. automodule:: zipline.db
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`host_settings` Module
+---------------------------
+
+.. automodule:: zipline.host_settings
     :members:
     :undoc-members:
     :show-inheritance:
@@ -57,26 +73,10 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`topology` Module
-----------------------
-
-.. automodule:: zipline.topology
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`util` Module
 ------------------
 
 .. automodule:: zipline.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`webui` Module
--------------------
-
-.. automodule:: zipline.webui
     :members:
     :undoc-members:
     :show-inheritance:
@@ -86,6 +86,7 @@ Subpackages
 
 .. toctree::
 
+    zipline.finance
     zipline.test
     zipline.transforms
 

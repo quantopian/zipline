@@ -2,9 +2,11 @@ import json
 import zipline.util as qutil
 import zipline.messaging as qmsg
 
+from zipline.finance.trading import TradeSimulationClient
 from zipline.protocol import CONTROL_PROTOCOL
 
 class TestClient(qmsg.Component):
+    """no-op client - Just connects to the merge and counts messages. compares received message count to the expected count."""
 
     def __init__(self, utest, expected_msg_count=0):
         qmsg.Component.__init__(self)
@@ -36,7 +38,7 @@ class TestClient(qmsg.Component):
                 return
 
             self.received_count += 1
-            event = json.loads(msg)
+            event = zp.MERGE_UNFRAME(msg)
             if(self.prev_dt != None):
                 if(not event['dt'] >= self.prev_dt):
                     raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
@@ -44,3 +46,14 @@ class TestClient(qmsg.Component):
             self.prev_dt = event['dt']
             if(self.received_count % 100 == 0):
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
+
+class TestTradingClient(TradeSimulationClient):
+    
+    def __init__(self):
+        TradeSimulationClient.__init__(self)
+    
+    def handle_events(self, event_queue):
+        #place an order for 100 shares of sid:133
+        self.order(133,100)
+        
+    

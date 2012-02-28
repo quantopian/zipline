@@ -1,73 +1,19 @@
 """
-Test suite for the messaging infrastructure of QSim.
+Test suite for the messaging infrastructure of Zipline.
 """
 #don't worry about excessive public methods pylint: disable=R0904
 
-from collections import defaultdict
 import zipline.messaging as qmsg
 
 from zipline.transforms.technical import MovingAverage
 from zipline.sources import RandomEquityTrades
-
+from zipline.test.dummy import ThreadPoolExecutorMixin
 from zipline.test.client import TestClient
 
 # Should not inherit form TestCase since test runners will pick
 # it up as a test. Its a Mixin of sorts at this point.
-class SimulatorTestCase(object):
-
-    leased_sockets = defaultdict(list)
-
-    def setUp(self):
-        self.setup_logging()
-
-        # TODO: how to make Nose use this cross-process????
-        self.setup_allocator()
-
-    def tearDown(self):
-        pass
-        #self.unallocate_sockets()
-
-        # Assert the sockets were properly cleaned up
-        #self.assertEmpty(self.leased_sockets[self.id()].values())
-
-        # Assert they were returned to the heap
-        #self.allocator.socketheap.assert
-
-    def get_simulator(self):
-        """
-        Return a new simulator instance to be tested.
-        """
-        raise NotImplementedError
-
-    def get_controller(self):
-        """
-        Return a new controler for simulator instance to be tested.
-        """
-        raise NotImplementedError
-
-    def setup_allocator(self):
-        """
-        Setup the socket allocator for this test case.
-        """
-        raise NotImplementedError
-
-    def allocate_sockets(self, n):
-        """
-        Allocate sockets local to this test case, track them so
-        we can gc after test run.
-        """
-
-        assert isinstance(n, int)
-        assert n > 0
-
-        leased = self.allocator.lease(n)
-
-        self.leased_sockets[self.id()].extend(leased)
-        return leased
-
-    def unallocate_sockets(self):
-        self.allocator.reaquire(*self.leased_sockets[self.id()])
-
+class SimulatorTestCase(ThreadPoolExecutorMixin):
+    
     # -------
     #  Cases
     # -------

@@ -6,8 +6,9 @@ and other common operations.
 import datetime
 import pytz
 import logging
+import logging.handlers
 
-LOGGER = logging.getLogger('QSimLogger')
+LOGGER = logging.getLogger('ZiplineLogger')
 
 def configure_logging(loglevel=logging.DEBUG):
     """
@@ -48,4 +49,3 @@ def format_date(dt):
         return None
     dt_str = dt.strftime('%Y/%m/%d-%H:%M:%S') + "." + str(dt.microsecond / 1000)
     return dt_str
-
