@@ -5,6 +5,7 @@ import numpy as np
 import numpy.linalg as la
 import zipline.util as qutil
 import zipline.db as db
+import zipline.protocol as zp
 from pymongo import ASCENDING, DESCENDING
 
 class daily_return():
@@ -256,12 +257,10 @@ class TradingCalendar(object):
        
 def get_benchmark_data():
     bmQS = db.DbConnection.get()[1].bench_marks.find(
-                                 spec={"symbol" : "GSPC", 
-                                        "date":{"$gte": datetime.datetime.strptime('01/01/1990','%m/%d/%Y').replace(tzinfo = pytz.utc), 
-                                                "$lte": datetime.datetime.strptime('12/31/2010','%m/%d/%Y').replace(tzinfo = pytz.utc)}},
+                                 spec={"symbol" : "GSPC"}, 
                                  sort=[("date",ASCENDING)],
                                  slave_ok=True,
-                                 as_class=qutil.DocWrap)
+                                 as_class=zp.namedict)
     bm_returns = []
     for bm in bmQS:
         bm_r = daily_return(date=bm.date.replace(tzinfo=pytz.utc), returns=bm.returns)

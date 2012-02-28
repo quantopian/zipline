@@ -4,6 +4,7 @@ Commonly used messaging components.
 import json
 import uuid
 import datetime
+import zipline.protocol as zp
 import zipline.util as qutil
 from zipline.component import Component
 
@@ -136,6 +137,23 @@ class ComponentHost(Component):
         raise NotImplementedError
 
 
+class SimulatorBase(ComponentHost):
+    """
+    Simulator coordinates the launch and communication of source, feed, transform, and merge components.
+    """
+
+    def __init__(self, addresses, gevent_needed=False):
+        """
+        """
+        ComponentHost.__init__(self, addresses, gevent_needed)
+
+    def simulate(self):
+        self.run()
+
+    def get_id(self):
+        return "Simulator"
+
+
 class ParallelBuffer(Component):
     """
     Connects to N PULL sockets, publishing all messages received to a PUB
@@ -178,8 +196,8 @@ class ParallelBuffer(Component):
                     self.drain()
                     self.signal_done()
             else:
-                event = json.loads(message)
-                self.append(event[u'id'], event)
+                event = zp.DATASOURCE_UNFRAME(message)
+                self.append(event.source_id, event)
                 self.send_next()
 
     def __len__(self):
@@ -253,7 +271,7 @@ class ParallelBuffer(Component):
 
         event = self.next()
         if(event != None):
-            self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
+            self.feed_socket.send(zp.FEED_FRAME(event), self.zmq.NOBLOCK)
             self.sent_count += 1
 
 
@@ -333,13 +351,13 @@ class BaseTransform(Component):
                 self.signal_done()
                 return
 
-            event = json.loads(message)
+            event = qp.FEED_UNFRAME(message)
             cur_state = self.transform(event)
             #TODO: do we want to relay the datetime again? maybe drop this?
             #cur_state['dt'] = event['dt']
             cur_state['id'] = self.state['name']
 
-            self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
+            self.result_socket.send(qp.TRANSFORM_FRAME(cur_state), self.zmq.NOBLOCK)
 
     def transform(self, event):
         """
@@ -372,29 +390,31 @@ class DataSource(Component):
     means looping through all records in a store, converting to a dict, and
     calling send(map).
     """
-    def __init__(self, source_id):
+    def __init__(self, source_id, *args):
         Component.__init__(self)
-        self.id        = source_id
+        self.source_id        = source_id
         self.cur_event = None
+        self.init_ds(args)
+        
+    def init_ds(*args):
+        pass
 
     @property
     def get_id(self):
-        return self.id
+        return self.source_id
 
     def open(self):
         #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2
         self.data_socket = self.connect_data()
 
-    def send(self, event):
-        """
-        event is expected to be a dict
-        sets id and type properties in the dict
-        sends to the data_socket.
-        """
-        event['id'] = self.id
-        event['type'] = self.get_type()
-        self.data_socket.send(json.dumps(event))
-
     def get_type(self):
-        raise NotImplemented
+        raise NotImplementedError
+
+    
+    
+        
+
+
+
+
 

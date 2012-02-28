@@ -1,46 +1,32 @@
 """Tests for the zipline.finance package"""
+import datetime
 import mock
+import pytz
 import zipline.host_settings
 from unittest2 import TestCase
-from zipline.test.test_devsimulator import ThreadSimulator, DummyAllocator
-from zipline.test.test_messaging import SimulatorTestCase
 import zipline.test.factory as factory
-from zipline.monitor import Controller
-from zipline.messaging import DataSource
 import zipline.util as qutil
 import zipline.db as db
-import zipline.host_settings
+import zipline.finance.risk as risk
 
-class FinanceTestCase(SimulatorTestCase, TestCase):
+from zipline.test.client import TestTradingClient
+from zipline.test.dummy import ThreadPoolExecutorMixin
+from zipline.sources import SpecificEquityTrades
 
-    allocator = DummyAllocator(100)
 
-    def setup_logging(self):
-        qutil.configure_logging()
-
-        # lazy import by design
-        self.logger = mock.Mock()
-
-    def setup_allocator(self):
-        pass
-
-    def get_simulator(self, addresses):
-        return ThreadSimulator(addresses)
-
-    def get_controller(self):
-        # Allocate two more sockets
-        controller_sockets = self.allocate_sockets(2)
-
-        return Controller(
-            controller_sockets[0],
-            controller_sockets[1],
-            logging = self.logger,
-        )
-
-    #
+class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
+    
+    def test_trading_calendar(self):
+        known_trading_day = datetime.datetime.strptime("02/24/2012","%m/%d/%Y")
+        known_holiday     = datetime.datetime.strptime("02/20/2012", "%m/%d/%Y") #president's day
+        saturday          = datetime.datetime.strptime("02/25/2012", "%m/%d/%Y")
+        self.assertTrue(risk.trading_calendar.is_trading_day(known_trading_day))
+        self.assertFalse(risk.trading_calendar.is_trading_day(known_holiday))
+        self.assertFalse(risk.trading_calendar.is_trading_day(saturday))
+    
     def test_orders(self):
 
-        # Base Simuation
+        # Just verify sending and receiving orders.
         # --------------
 
         # Allocate sockets for the simulator components
@@ -64,9 +50,9 @@ class FinanceTestCase(SimulatorTestCase, TestCase):
         set1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
                                                                             [10.0,10.0,10.0,10.0], 
                                                                             [100,100,100,100], 
-                                                                            datetime.datetime.utcnow(), 
+                                                                            datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
                                                                             datetime.timedelta(days=1)))
-        client = TestTradingClient(self, expected_msg_count=4)
+        client = TestTradingClient()
 
         sim.register_components([set1, client])
         sim.register_controller( con )

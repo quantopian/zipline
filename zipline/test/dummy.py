@@ -6,7 +6,7 @@ import threading
 import mock
 from collections import defaultdict
 from zipline.monitor import Controller
-from zipline.messaging import ComponentHost
+from zipline.messaging import SimulatorBase
 import zipline.util as qutil
 
 class DummyAllocator(object):
@@ -26,21 +26,6 @@ class DummyAllocator(object):
     def reaquire(self, *conn):
         pass
 
-class SimulatorBase(ComponentHost):
-    """
-    Simulator coordinates the launch and communication of source, feed, transform, and merge components.
-    """
-
-    def __init__(self, addresses, gevent_needed=False):
-        """
-        """
-        ComponentHost.__init__(self, addresses, gevent_needed)
-
-    def simulate(self):
-        self.run()
-
-    def get_id(self):
-        return "Simulator"
 
 class ThreadSimulator(SimulatorBase):
 

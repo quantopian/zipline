@@ -1,5 +1,6 @@
 import datetime
 import pytz
+import zipline.util as qutil
 import zipline.finance.risk as risk
 
 def createReturns(daycount, start):
@@ -64,20 +65,15 @@ def create_trade(sid, price, amount, datetime):
     row['dt'] = datetime
     row['price'] = price
     row['volume'] = amount
-    row['exchange_code'] = "fake exchange"
-    db = getTickDB()
-    db.equity.trades.minute.insert(row,safe=True)
-    dw = DocWrap()
-    dw.store = row
-    return dw
+    return row
  
 def create_trade_history(sid, prices, amounts, start_time, interval):
     i = 0
     trades = []
-    current = start_time
+    current = start_time.replace(tzinfo = pytz.utc)
     while i < len(prices):
         if(risk.trading_calendar.is_trading_day(current)):  
-            trades.append(create_trade(sid, priceList[i], amtList[i], current))
+            trades.append(create_trade(sid, prices[i], amounts[i], current))
             current = current + interval
             i += 1
         else:

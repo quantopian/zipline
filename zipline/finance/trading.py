@@ -1,7 +1,11 @@
 import json
 import datetime
+
+from zmq.core.poll import select
+
 import zipline.messaging as qmsg
 import zipline.util as qutil
+import zipline.protocol as zp
 
 class TradeSimulationClient(qmsg.Component):
     
@@ -10,6 +14,7 @@ class TradeSimulationClient(qmsg.Component):
         self.received_count     = 0
         self.prev_dt            = None
     
+    @property
     def get_id(self):
         return "TRADING_CLIENT"
     
@@ -19,7 +24,7 @@ class TradeSimulationClient(qmsg.Component):
     
     def do_work(self):
         #next feed event
-        (rlist, wlist, xlist) = self.poller.selec([self.result_feed],
+        (rlist, wlist, xlist) = select([self.result_feed],
                                                   [],
                                                   [self.result_feed],
                                                   timeout=self.heartbeat_timeout/1000) #select timeout is in sec
@@ -32,7 +37,7 @@ class TradeSimulationClient(qmsg.Component):
             self.signal_done()
             return #leave open orders hanging? client requests for orders?
             
-        event = json.loads(message)
+        event = zp.MERGE_UNFRAME(message)
         self._handle_event(event)
     
     def connect_order(self):
@@ -51,7 +56,7 @@ class TradeSimulationClient(qmsg.Component):
     
     def order(self, sid, volume):
         order = {'sid':sid, 'volume':volume}
-        self.order_feed.send(json.dumps(order))
+        self.order_feed.send(zp.ORDER_FRAME(order))
     
 
 class TradeSimulator(qmsg.BaseTransform):
@@ -81,7 +86,7 @@ class TradeSimulator(qmsg.BaseTransform):
         """
         
         #next feed event
-        (rlist, wlist, xlist) = self.poller.selec([self.feed_socket],
+        (rlist, wlist, xlist) = select([self.feed_socket],
                                                   [],
                                                   [self.feed_socket],
                                                   timeout=self.heartbeat_timeout/1000) #select timeout is in sec
@@ -94,7 +99,7 @@ class TradeSimulator(qmsg.BaseTransform):
             self.signal_done()
             return #leave open orders hanging? client requests for orders?
             
-        event = json.loads(message)
+        event = qp.FEED_UNFRAME(message)
         
         if self.last_iteration_duration != None:
             self.algo_time = self.last_event_time + self.last_iteration_duration
@@ -113,11 +118,11 @@ class TradeSimulator(qmsg.BaseTransform):
         
         #mark the start time for client's processing of this event.
         self.event_start = datetime.datetime.utcnow()
-        self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
+        self.result_socket.send(qf.MERGE_FRAME(cur_state), self.zmq.NOBLOCK)
         
             
         while True: #this loop should also poll for portfolio state req/rep
-            (rlist, wlist, xlist) = self.poller.selec([self.order_socket],
+            (rlist, wlist, xlist) = select([self.order_socket],
                                                       [],
                                                       [self.order_socket],
                                                       timeout=self.heartbeat_timeout/1000) #select timeout is in sec
@@ -131,7 +136,7 @@ class TradeSimulator(qmsg.BaseTransform):
             if order_msg == str(CONTROL_PROTOCOL.DONE):
                 break
 
-            order = json.loads(order_msg)
+            order = qp.ORDER_UNFRAME(order_msg)
             self.add_open_order(order)
             
         #end of order processing loop

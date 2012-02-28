@@ -38,7 +38,7 @@ class TestClient(qmsg.Component):
                 return
 
             self.received_count += 1
-            event = json.loads(msg)
+            event = zp.MERGE_UNFRAME(msg)
             if(self.prev_dt != None):
                 if(not event['dt'] >= self.prev_dt):
                     raise Exception("Message out of order: {date} after {prev}".format(date=event['dt'], prev=prev_dt))
@@ -49,6 +49,8 @@ class TestClient(qmsg.Component):
 
 class TestTradingClient(TradeSimulationClient):
     
+    def __init__(self):
+        TradeSimulationClient.__init__(self)
     
     def handle_events(self, event_queue):
         #place an order for 100 shares of sid:133

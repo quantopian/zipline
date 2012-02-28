@@ -49,30 +49,3 @@ def format_date(dt):
         return None
     dt_str = dt.strftime('%Y/%m/%d-%H:%M:%S') + "." + str(dt.microsecond / 1000)
     return dt_str
-
-class DocWrap():
-    def __init__(self, store=None):
-        if(store == None):
-            self.store = {}
-        else:
-            self.store = store.copy()
-        if(self.store.has_key('_id')):
-            self.store['id'] = self.store['_id']
-            del(self.store['_id'])
-        
-    def __setitem__(self,key,value):
-        if(key == '_id'):
-            self.store['id'] = value
-        else:
-            self.store[key] = value
-        
-    def __getitem__(self, key):
-        if self.store.has_key(key):
-            return self.store[key]
-            
-    def __getattr__(self,attrname):
-        if self.store.has_key(attrname):
-            return self.store[attrname]
-        else:
-            raise AttributeError("No attribute named {name}".format(name=attrname))
-
