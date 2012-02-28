@@ -16,21 +16,6 @@ from zipline.sources import SpecificEquityTrades
 
 
 class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
-    
-    def test_trade_protocol(self):
-        trades = factory.create_trade_history(133,    
-                                            [10.0,10.0,10.0,10.0], 
-                                            [100,100,100,100], 
-                                            datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
-                                            datetime.timedelta(days=1))
-        for trade in trades:
-            msg = zp.TRADE_FRAME("fake_source", zp.namedict(trade))
-            recovered_trade = zp.DATASOURCE_UNFRAME(msg)
-            self.assertTrue(recovered_trade.type == "TRADE")
-            self.assertTrue(recovered_trade.source_id == "fake_source")
-            del(recovered_trade.__dict__['type'])
-            del(recovered_trade.__dict__['source_id'])
-            self.assertEqual(zp.namedict(trade), recovered_trade)
             
     def test_trade_feed_protocol(self):
         trades = factory.create_trade_history(133,    
@@ -60,6 +45,15 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
             merged_msg = zp.MERGE_FRAME(pt_recovered.PASSTHROUGH)
             #unframe the merge and validate values
             event = zp.MERGE_UNFRAME(merged_msg)
+            
+            #check the transformed value, should only be in event, not trade.
+            self.assertTrue(event.helloworld == 2345.6)
+            del(event.__dict__['helloworld'])
+            
+            self.assertEqual(zp.namedict(trade), event)
+            
+    def test_order_protocol(self):
+        raise NotImplementedError
     
     def test_trading_calendar(self):
         known_trading_day = datetime.datetime.strptime("02/24/2012","%m/%d/%Y")
