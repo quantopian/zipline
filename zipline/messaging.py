@@ -1,12 +1,14 @@
 """
 Commonly used messaging components.
 """
+
 import datetime
 import ujson as json
 
 import zipline.util as qutil
 from zipline.component import Component
-from zipline.protocol import CONTROL_PROTOCOL
+from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
+    COMPONENT_STATE
 
 class ComponentHost(Component):
     """
@@ -16,48 +18,67 @@ class ComponentHost(Component):
 
     def __init__(self, addresses, gevent_needed=False):
         Component.__init__(self)
-        self.addresses = addresses
-        self.gevent_needed  = gevent_needed
+        self.addresses     = addresses
+        self.gevent_needed = gevent_needed
+        self.running       = False
 
         self.init()
 
     def init(self):
 
+        # Component Registry
+        # ----------------------
+        self.components     = {}
+        # ----------------------
+
         # workaround for defect in threaded use of strptime:
         # http://bugs.python.org/issue11108
         qutil.parse_date("2012/02/13-10:04:28.114")
 
-        self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
 
         self.feed           = ParallelBuffer()
         self.merge          = MergedParallelBuffer()
         self.passthrough    = PassthroughTransform()
+        self.controller     = None
 
         #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
 
     def register_controller(self, controller):
+        """
+        Add the given components to the registry. Establish
+        communication with them.
+        """
+        if self.controller != None:
+            raise Exception("There can be only one!")
+
         self.controller = controller
 
+        # Propogate the controller to all the subcomponents
         for component in self.components.itervalues():
             component.controller = controller
 
     def register_components(self, components):
-        for component in components:
-            component.gevent_needed = self.gevent_needed
-            component.addresses = self.addresses
+        """
+        Add the given components to the registry. Establish
+        communication with them.
+        """
+        assert isinstance(components, list)
 
-            if self.controller:
-                component.controller = self.controller
+        for component in components:
+
+            component.gevent_needed = self.gevent_needed
+            component.addresses     = self.addresses
+            component.controller    = self.controller
 
             self.components[component.get_id] = component
             self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
-            if(isinstance(component, DataSource)):
+            if isinstance(component, DataSource):
                 self.feed.add_source(component.get_id)
-            if(isinstance(component, BaseTransform)):
+            if isinstance(component, BaseTransform):
                 self.merge.add_source(component.get_id)
 
     def unregister_component(self, component_id):
@@ -66,6 +87,7 @@ class ComponentHost(Component):
 
     def setup_sync(self):
         """
+        Setup the sync socket and poller. ( Bind )
         """
         qutil.LOGGER.debug("Connecting sync server.")
 
@@ -112,17 +134,17 @@ class ComponentHost(Component):
 
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
-                parts = msg.split(':')
-                sync_id, status = parts
 
-                # TODO: move into frame protocol
-                if len(parts) != 2:
-                    qutil.LOGGER.info("got bad confirm: {msg}".format(msg=msg))
-                    continue
+                try:
+                    parts = msg.split(':')
+                    sync_id, status = parts
+                except ValueError as exc:
+                    self.signal_exception(exc)
 
                 if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
                     qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
                     self.unregister_component(sync_id)
+                    self.state_flag = COMPONENT_STATE.DONE
                 else:
                     self.sync_register[sync_id] = datetime.datetime.utcnow()
 
@@ -143,6 +165,7 @@ class ComponentHost(Component):
     def teardown_component(self, component):
         raise NotImplementedError
 
+
 class ParallelBuffer(Component):
     """
     Connects to N PULL sockets, publishing all messages received to a PUB
@@ -153,11 +176,15 @@ class ParallelBuffer(Component):
 
     def __init__(self):
         Component.__init__(self)
+
         self.sent_count             = 0
         self.received_count         = 0
         self.draining               = False
-        self.data_buffer            = {}
         self.ds_finished_counter    = 0
+
+        # Depending on the size of this, might want to use a data
+        # structure with better asymptotics.
+        self.data_buffer            = {}
 
     def init(self):
         pass
@@ -166,8 +193,13 @@ class ParallelBuffer(Component):
     def get_id(self):
         return "FEED"
 
-    def add_source(self, source_id):
-        self.data_buffer[source_id] = []
+    @property
+    def get_type(self):
+        return COMPONENT_TYPE.CONDUIT
+
+    # -------------
+    # Core Methods
+    # -------------
 
     def open(self):
         self.pull_socket = self.bind_data()
@@ -191,9 +223,45 @@ class ParallelBuffer(Component):
                     self.drain()
                     self.signal_done()
             else:
-                event = json.loads(message)
-                self.append(event[u'id'], event)
-                self.send_next()
+                try:
+                    event = json.loads(message)
+
+                # JSON deserialization error
+                except ValueError as exc:
+                    return self.signal_exception(exc)
+
+                try:
+                    self.append(event[u'id'], event)
+                    self.send_next()
+
+                # Invalid message
+                except KeyError as exc:
+                    return self.signal_exception(exc)
+
+    # -------------
+    # Flow Control
+    # -------------
+
+    def drain(self):
+        """
+        Send all messages in the buffer.
+        """
+        self.draining = True
+        while self.pending_messages() > 0:
+            self.send_next()
+
+    def send_next(self):
+        """
+        Send the (chronologically) next message in the buffer.
+        """
+        if(not(self.is_full() or self.draining)):
+            return
+
+        event = self.next()
+
+        if event != None:
+            self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
+            self.sent_count += 1
 
     def append(self, source_id, value):
         """
@@ -242,25 +310,11 @@ class ParallelBuffer(Component):
             total += len(events)
         return total
 
-    def drain(self):
+    def add_source(self, source_id):
         """
-        Send all messages in the buffer
+        Add a data source to the buffer.
         """
-        self.draining = True
-        while(self.pending_messages() > 0):
-            self.send_next()
-
-    def send_next(self):
-        """
-        Send the (chronologically) next message in the buffer.
-        """
-        if(not(self.is_full() or self.draining)):
-            return
-
-        event = self.next()
-        if(event != None):
-            self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
-            self.sent_count += 1
+        self.data_buffer[source_id] = []
 
     def __len__(self):
         """
@@ -287,6 +341,10 @@ class MergedParallelBuffer(ParallelBuffer):
     def get_id(self):
         return "MERGE"
 
+    @property
+    def get_type(self):
+        return COMPONENT_TYPE.CONDUIT
+
     def open(self):
         self.pull_socket = self.bind_merge()
         self.feed_socket = self.bind_result()
@@ -309,13 +367,13 @@ class MergedParallelBuffer(ParallelBuffer):
 
 class BaseTransform(Component):
     """
-    Top level execution entry point for the transform::
+    Top level execution entry point for the transform
 
-        - connects to the feed socket to subscribe to events
-        - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
-        - processes all messages received from feed, until DONE message received
-        - pushes all transforms
-        - sends DONE to result socket, closes all sockets and context
+    - connects to the feed socket to subscribe to events
+    - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
+    - processes all messages received from feed, until DONE message received
+    - pushes all transforms
+    - sends DONE to result socket, closes all sockets and context
 
     Parent class for feed transforms. Subclass and override transform
     method to create a new derived value from the combined feed.
@@ -323,8 +381,10 @@ class BaseTransform(Component):
 
     def __init__(self, name):
         Component.__init__(self)
-        self.state = {}
-        self.state['name'] = name
+
+        self.state = {
+            'name': name
+        }
 
         self.init()
 
@@ -334,6 +394,10 @@ class BaseTransform(Component):
     @property
     def get_id(self):
         return self.state['name']
+
+    @property
+    def get_type(self):
+        return COMPONENT_TYPE.CONDUIT
 
     def open(self):
         """
@@ -347,9 +411,11 @@ class BaseTransform(Component):
     def do_work(self):
         """
         Loops until feed's DONE message is received:
-            - receive an event from the data feed
-            - call transform (subclass' method) on event
-            - send the transformed event
+
+        - receive an event from the data feed
+        - call transform (subclass' method) on event
+        - send the transformed event
+
         """
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
@@ -362,12 +428,28 @@ class BaseTransform(Component):
                 self.signal_done()
                 return
 
-            event = json.loads(message)
-            cur_state = self.transform(event)
-            cur_state['dt'] = event['dt']
-            cur_state['id'] = self.state['name']
+            try:
+                event = json.loads(message)
+            except ValueError as exc:
+                return self.signal_exception(exc)
 
-            self.result_socket.send(json.dumps(cur_state), self.zmq.NOBLOCK)
+            try:
+                cur_state = self.transform(event)
+                cur_state['dt'] = event['dt']
+                cur_state['id'] = self.state['name']
+
+            # This is overloaded, so it can fail in all sorts of
+            # unknown ways. Its best to catch it in the
+            # Transformer itself.
+            except Exception as exc:
+                return self.signal_exception(exc)
+
+            try:
+                json_frame = json.dumps(cur_state)
+            except ValueError as exc:
+                return self.signal_exception(exc)
+
+            self.result_socket.send(json_frame, self.zmq.NOBLOCK)
 
     def transform(self, event):
         """
@@ -386,15 +468,30 @@ class BaseTransform(Component):
 
 
 class PassthroughTransform(BaseTransform):
+    """
+    A bypass transform which is also an identity transform::
+
+            +-------+
+        +---|   f   |--->
+            +-------+
+        +------id------->
+
+    """
 
     def __init__(self):
         BaseTransform.__init__(self, "PASSTHROUGH")
 
+        self.init()
+
     def init(self):
         pass
 
+    @property
+    def get_type(self):
+        return COMPONENT_TYPE.CONDUIT
+
     def transform(self, event):
-        return {'value':event}
+        return { 'value': event }
 
 
 class DataSource(Component):
@@ -405,7 +502,8 @@ class DataSource(Component):
     """
     def __init__(self, source_id):
         Component.__init__(self)
-        self.id        = source_id
+
+        self.id = source_id
         self.init()
 
     def init(self):
@@ -415,19 +513,25 @@ class DataSource(Component):
     def get_id(self):
         return self.id
 
+    @property
+    def get_type(self):
+        return COMPONENT_TYPE.SOURCE
+
     def open(self):
-        #create the data sink. Based on http://zguide.zeromq.org/py:tasksink2
         self.data_socket = self.connect_data()
 
     def send(self, event):
         """
-        event is expected to be a dict
-        sets id and type properties in the dict
-        sends to the data_socket.
+        Emit data.
         """
+        assert isinstance(event, dict)
+
         event['id'] = self.id
         event['type'] = self.get_type()
-        self.data_socket.send(json.dumps(event))
 
-    def get_type(self):
-        raise NotImplementedError
+        try:
+            json_frame = json.dumps(event)
+        except ValueError as exc:
+            return self.signal_exception(exc)
+
+        self.data_socket.send(json_frame)

@@ -2,10 +2,12 @@
 Commonly used messaging components.
 
 Contains the base class for all components.
+
 """
 
 import os
 import uuid
+import time
 import socket
 import humanhash
 
@@ -15,7 +17,7 @@ from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 class Component(object):
     """
     Base class for components. Defines the the base messaging
-    interface between components.
+    interface for components.
 
     :param addresses: a dict of name_string -> zmq port address strings.
                       Must have the following entries
@@ -62,6 +64,10 @@ class Component(object):
         self.controller        = None
         self.heartbeat_timeout = 2000
         self.state_flag        = COMPONENT_STATE.OK # OK | DONE | EXCEPTION
+        self._exception        = None
+
+        self.start_tic         = None
+        self.stop_tic          = None
 
         # Humanhashes make this way easier to debug because they
         # stick in your mind unlike a 32 byte string of random hex.
@@ -82,37 +88,40 @@ class Component(object):
     # ------------
 
     def open(self):
-        raise NotImplementedError
-
-    def teardown_sockets(self):
         """
-        Close all zmq sockets safely.
-        """
-        #close all the sockets
-        for sock in self.sockets:
-            sock.close()
-
-    def destroy(self):
-        """
-        Clean shutdown.
-
-        Tear down after normal operation.
-        """
-        pass
-
-    def kill(self):
-        """
-        Unclean shutdown.
-
-        Tear down ( fast ) as a mode of failure in the
-        simulation or on service halt.
+        Open the connections needed to start doing work.
         """
         raise NotImplementedError
+
+    def ready(self):
+        """
+        Return ``True`` if and only if the component has finished execution.
+        """
+        return self.state_flag in [COMPONENT_STATE.DONE, \
+            COMPONENT_STATE.EXCEPTION]
+
+    def successful(self):
+        """
+        Return ``True`` if and only if the component has finished execution
+        successfully, that is, without raising an error.
+        """
+        return self.state_flag == COMPONENT_STATE.DONE and not \
+            self.exception
+
+    @property
+    def exception(self):
+        """
+        Holds the exception that the component failed on, or
+        ``None`` if the component has not failed.
+        """
+        return self._exception
 
     def do_work(self):
         raise NotImplementedError
 
     def _run(self):
+        self.start_tick = time.clock()
+
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
@@ -132,8 +141,10 @@ class Component(object):
         self.setup_control()
         self.loop()
 
-        self.destroy()
+        self.shutdown()
         self.teardown_sockets()
+
+        self.end_tick = time.clock()
 
         # shouldn't block if we've done our job correctly
         # self.context.term()
@@ -159,6 +170,7 @@ class Component(object):
                 self.signal_exception(exc)
                 fail = exc
             finally:
+                # TODO: cleaner
                 if self.context:
                     self.context.destroy()
                 if fail:
@@ -186,12 +198,50 @@ class Component(object):
 
         self.receive_sync_ack() # blocking
 
+    def runtime(self):
+        if self.ready():
+            return self.stop_tic - self.start_tic
+
+    # ----------------------------
+    #  Cleanup & Modes of Failure
+    # ----------------------------
+
+    def teardown_sockets(self):
+        """
+        Close all zmq sockets safely. This is universal, no matter
+        where this is running it will need the sockets closed.
+        """
+        #close all the sockets
+        for sock in self.sockets:
+            sock.close()
+
+    def shutdown(self):
+        """
+        Clean shutdown.
+
+        Tear down after normal operation.
+        """
+        pass
+
+    def kill(self):
+        """
+        Unclean shutdown.
+
+        Tear down ( fast ) as a mode of failure in the
+        simulation or on service halt.
+
+        Context specific.
+        """
+        raise NotImplementedError
+
     # ----------------------
     #  Internal Maintenance
     # ----------------------
 
     def signal_exception(self, exc=None):
         self.state_flag = COMPONENT_STATE.EXCEPTION
+        self._exception = exc
+
         qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
     def signal_done(self):
@@ -311,7 +361,7 @@ class Component(object):
 
     def setup_sync(self):
         """
-        Setup the sync socket and poller.
+        Setup the sync socket and poller. ( Connect )
         """
 
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
@@ -335,7 +385,32 @@ class Component(object):
 
     @property
     def get_id(self):
+        """
+        The descriptive name of the component.
+        """
         return 'UNKNOWN COMPONENT'
+
+    @property
+    def get_type(self):
+        """
+        The data flow type of the component.
+
+        - ``SOURCE``
+        - ``CONDUIT``
+        - ``SINK``
+
+        """
+        raise NotImplementedError
+
+    @property
+    def get_pure(self):
+        """
+        Describes whehter this component purely functional,
+        i.e.  for a given set of inputs is it guaranteed to
+        always give the same output . Components that are
+        side-effectful are, generally, not pure.
+        """
+        return False
 
     def debug(self):
         """

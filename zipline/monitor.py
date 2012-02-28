@@ -1,4 +1,5 @@
 import zmq
+from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME
 
 class Controller(object):
     """
@@ -56,6 +57,7 @@ class Controller(object):
         self.push_socket = pull_socket # same port
         self.pub_socket = pub_socket
         self.sub_socket = pub_socket # same port
+        self.terminated = False
 
         if logging:
             self.logging = logging
@@ -128,6 +130,8 @@ class Controller(object):
                 self.failed += 1
                 continue
 
+        self.terminated = True
+
     # -------------------
     # Hooks for Endpoints
     # -------------------
@@ -161,20 +165,29 @@ class Controller(object):
         self.associated.append(s)
         return s
 
+    def shutdown(self, context=None):
+        self.polling = False
+
+        if not context:
+            context = zmq.Context()
+
+        s = self.message_sender(context)
+        s.send(CONTROL_FRAME(
+            'controller',
+            CONTROL_PROTOCOL.SHUTDOWN,
+        ))
+
+        #for asoc in self.associated:
+            #asoc.close()
+
     def destroy(self):
         """
         Manual cleanup.
         """
-        self.polling = False
-
-        for asoc in self.associated:
-            asoc.close()
-
-        #if self._ctx:
-            #self._ctx.destroy()
+        self.shutdown()
 
     def __del__(self):
-        self.destroy()
+        self.shutdown()
 
     def qos(self):
         if not self.debug:
