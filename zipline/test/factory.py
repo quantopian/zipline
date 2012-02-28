@@ -61,6 +61,8 @@ def getCodeFromFile(filename):
                           
 def create_trade(sid, price, amount, datetime):
     row = {}
+    row['source_id'] = "test_factory"
+    row['type'] = "TRADE"
     row['sid'] = sid
     row['dt'] = datetime
     row['price'] = price

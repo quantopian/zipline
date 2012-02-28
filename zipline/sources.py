@@ -10,11 +10,11 @@ import zipline.protocol as zp
 
 class TradeDataSource(zm.DataSource):
     
-    def send(event):
+    def send(self, event):
         """ :param dict event: is a trade event with data as per :py:func: `zipline.protocol.TRADE_FRAME`
             :rtype: None
         """
-        message = zp.TRADE_FRAME(self.get_id, sid, price, volume, dt)
+        message = zp.TRADE_FRAME(self.get_id, event)
         self.data_socket.send(message)
 
 class RandomEquityTrades(TradeDataSource):

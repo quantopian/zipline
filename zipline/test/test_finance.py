@@ -8,6 +8,7 @@ import zipline.test.factory as factory
 import zipline.util as qutil
 import zipline.db as db
 import zipline.finance.risk as risk
+import zipline.protocol as zp
 
 from zipline.test.client import TestTradingClient
 from zipline.test.dummy import ThreadPoolExecutorMixin
@@ -15,6 +16,50 @@ from zipline.sources import SpecificEquityTrades
 
 
 class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
+    
+    def test_trade_protocol(self):
+        trades = factory.create_trade_history(133,    
+                                            [10.0,10.0,10.0,10.0], 
+                                            [100,100,100,100], 
+                                            datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
+                                            datetime.timedelta(days=1))
+        for trade in trades:
+            msg = zp.TRADE_FRAME("fake_source", zp.namedict(trade))
+            recovered_trade = zp.DATASOURCE_UNFRAME(msg)
+            self.assertTrue(recovered_trade.type == "TRADE")
+            self.assertTrue(recovered_trade.source_id == "fake_source")
+            del(recovered_trade.__dict__['type'])
+            del(recovered_trade.__dict__['source_id'])
+            self.assertEqual(zp.namedict(trade), recovered_trade)
+            
+    def test_trade_feed_protocol(self):
+        trades = factory.create_trade_history(133,    
+                                            [10.0,10.0,10.0,10.0], 
+                                            [100,100,100,100], 
+                                            datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
+                                            datetime.timedelta(days=1))
+        for trade in trades:
+            #simulate data source sending frame
+            msg = zp.DATASOURCE_FRAME(zp.namedict(trade))
+            #feed unpacking frame
+            recovered_trade = zp.DATASOURCE_UNFRAME(msg)
+            #feed sending frame
+            feed_msg = zp.FEED_FRAME(recovered_trade)
+            #transform unframing
+            recovered_feed = zp.FEED_UNFRAME(feed_msg)
+            #do a transform
+            trans_msg = zp.TRANSFORM_FRAME('helloworld', 2345.6)
+            #simulate passthrough transform -- passthrough shouldn't even unpack the msg, just resend.
+            passthrough_msg = zp.TRANSFORM_FRAME('PASSTHROUGH', feed_msg)
+            #merge unframes transform and passthrough
+            trans_recovered = zp.TRANSFORM_UNFRAME(trans_msg)
+            pt_recovered = zp.TRANSFORM_UNFRAME(passthrough_msg)
+            #simulated merge
+            pt_recovered.PASSTHROUGH.merge(trans_recovered)
+            #frame the merged event
+            merged_msg = zp.MERGE_FRAME(pt_recovered.PASSTHROUGH)
+            #unframe the merge and validate values
+            event = zp.MERGE_UNFRAME(merged_msg)
     
     def test_trading_calendar(self):
         known_trading_day = datetime.datetime.strptime("02/24/2012","%m/%d/%Y")
