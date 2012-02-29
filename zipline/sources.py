@@ -3,6 +3,7 @@ Provides data handlers that can push messages to a zipline.core.DataFeed
 """
 import datetime
 import random
+import pytz
 
 import zipline.util as qutil
 import zipline.messaging as zm
@@ -14,7 +15,8 @@ class TradeDataSource(zm.DataSource):
         """ :param dict event: is a trade event with data as per :py:func: `zipline.protocol.TRADE_FRAME`
             :rtype: None
         """
-        message = zp.TRADE_FRAME(self.get_id, event)
+        event.source_id = self.get_id
+        message = zp.DATASOURCE_FRAME(event)
         self.data_socket.send(message)
 
 class RandomEquityTrades(TradeDataSource):
@@ -25,7 +27,7 @@ class RandomEquityTrades(TradeDataSource):
         self.count          = count
         self.incr           = 0
         self.sid            = sid
-        self.trade_start    = datetime.datetime.now()
+        self.trade_start    = datetime.datetime.now().replace(tzinfo=pytz.utc)
         self.minute         = datetime.timedelta(minutes=1)
         self.price          = random.uniform(5.0, 50.0)
     
@@ -40,12 +42,12 @@ class RandomEquityTrades(TradeDataSource):
             return
         
         self.price = self.price + random.uniform(-0.05, 0.05)        
-        self.send(self.sid, self.price, random.randrange(100,10000,100), qutil.format_date(self.trade_start + (self.minute * self.incr)))
+        self._send(self.sid, self.price, random.randrange(100,10000,100), self.trade_start + (self.minute * self.incr))
         self.incr += 1        
 
-    def send(self, sid, price, volume, dt):
-        message = zp.TRADE_FRAME(self.get_id(), sid, price, volume, dt)
-        self.data_socket.send(message)
+    def _send(self, sid, price, volume, dt):
+        event = zp.namedict({'source_id': self.get_id, "type" : "TRADE", "sid":sid, "price":price, "volume":volume, "dt":dt})
+        self.send(event)
 
 
 class SpecificEquityTrades(TradeDataSource):

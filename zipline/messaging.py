@@ -20,10 +20,6 @@ class ComponentHost(Component):
         Component.__init__(self)
         self.addresses = addresses
 
-        # workaround for defect in threaded use of strptime:
-        # http://bugs.python.org/issue11108
-        qutil.parse_date("2012/02/13-10:04:28.114")
-
         self.components     = {}
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
@@ -196,10 +192,10 @@ class ParallelBuffer(Component):
                     self.drain()
                     self.signal_done()
             else:
-                event = zp.DATASOURCE_UNFRAME(message)
-                self.append(event.source_id, event)
+                event = self.unframe(message)
+                self.append(event)
                 self.send_next()
-
+                
     def __len__(self):
         """
         Buffer's length is same as internal map holding separate
@@ -207,12 +203,12 @@ class ParallelBuffer(Component):
         """
         return len(self.data_buffer)
 
-    def append(self, source_id, value):
+    def append(self, event):
         """
         Add an event to the buffer for the source specified by
         source_id.
         """
-        self.data_buffer[source_id].append(value)
+        self.data_buffer[event.source_id].append(event)
         self.received_count += 1
 
     def next(self):
@@ -228,7 +224,7 @@ class ParallelBuffer(Component):
             if len(events) == 0:
                 continue
             cur = events
-            if (earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+            if (earliest == None) or (cur[0].dt <= earliest[0].dt):
                 earliest = cur
 
         if earliest != None:
@@ -271,8 +267,14 @@ class ParallelBuffer(Component):
 
         event = self.next()
         if(event != None):
-            self.feed_socket.send(zp.FEED_FRAME(event), self.zmq.NOBLOCK)
+            self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
             self.sent_count += 1
+
+    def unframe(self, msg):
+        return zp.DATASOURCE_UNFRAME(msg)
+        
+    def frame(self, event):
+        return zp.FEED_FRAME(event)
 
 
 class MergedParallelBuffer(ParallelBuffer):
@@ -293,18 +295,35 @@ class MergedParallelBuffer(ParallelBuffer):
             return
 
         #get the raw event from the passthrough transform.
-        result = self.data_buffer["PASSTHROUGH"].pop(0)['value']
+        result = self.data_buffer["PASSTHROUGH"].pop(0).PASSTHROUGH
         for source, events in self.data_buffer.iteritems():
             if source == "PASSTHROUGH":
                 continue
             if len(events) > 0:
                 cur = events.pop(0)
-                result[source] = cur['value']
+                result.merge(cur)
         return result
 
     @property
     def get_id(self):
         return "MERGE"
+        
+    def unframe(self, msg):
+        return zp.TRANSFORM_UNFRAME(msg)
+        
+    def frame(self, event):
+        return zp.MERGE_FRAME(event)
+        
+    #
+    def append(self, event):
+        """
+        :param event: a namedict with one entry. key is the name of the transform, value is the transformed value.
+        Add an event to the buffer for the source specified by
+        source_id.
+        """
+        
+        self.data_buffer[event.__dict__.keys()[0]].append(event)
+        self.received_count += 1
 
 
 class BaseTransform(Component):
@@ -351,13 +370,10 @@ class BaseTransform(Component):
                 self.signal_done()
                 return
 
-            event = qp.FEED_UNFRAME(message)
+            event = zp.FEED_UNFRAME(message)
             cur_state = self.transform(event)
-            #TODO: do we want to relay the datetime again? maybe drop this?
-            #cur_state['dt'] = event['dt']
-            cur_state['id'] = self.state['name']
-
-            self.result_socket.send(qp.TRANSFORM_FRAME(cur_state), self.zmq.NOBLOCK)
+            qutil.LOGGER.info("state of transform is: {state}".format(state=cur_state))
+            self.result_socket.send(zp.TRANSFORM_FRAME(cur_state['name'], cur_state['value']), self.zmq.NOBLOCK)
 
     def transform(self, event):
         """
@@ -380,8 +396,21 @@ class PassthroughTransform(BaseTransform):
     def __init__(self):
         BaseTransform.__init__(self, "PASSTHROUGH")
 
-    def transform(self, event):
-        return {'value':event}
+    def do_work(self):
+        """
+        Loops until feed's DONE message is received:
+            - receive an event from the data feed
+            - call transform (subclass' method) on event
+            - send the transformed event
+        """
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
+            message = self.feed_socket.recv()
+            if message == str(CONTROL_PROTOCOL.DONE):
+                self.signal_done()
+                return
+        #message is already FEED_FRAMEd, send it as the value.
+        self.result_socket.send(zp.TRANSFORM_FRAME("PASSTHROUGH", message), self.zmq.NOBLOCK)
 
 
 class DataSource(Component):

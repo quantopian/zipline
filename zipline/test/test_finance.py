@@ -13,6 +13,7 @@ import zipline.protocol as zp
 from zipline.test.client import TestTradingClient
 from zipline.test.dummy import ThreadPoolExecutorMixin
 from zipline.sources import SpecificEquityTrades
+from zipline.finance.trading import TradeSimulator
 
 
 class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
@@ -53,7 +54,10 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
             self.assertEqual(zp.namedict(trade), event)
             
     def test_order_protocol(self):
-        raise NotImplementedError
+        order_msg = zp.ORDER_FRAME(133, 100)
+        sid, amount = zp.ORDER_UNFRAME(order_msg)
+        self.assertEqual(sid, 133)
+        self.assertEqual(amount, 100)
     
     def test_trading_calendar(self):
         known_trading_day = datetime.datetime.strptime("02/24/2012","%m/%d/%Y")
@@ -91,9 +95,10 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
                                                                             [100,100,100,100], 
                                                                             datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
                                                                             datetime.timedelta(days=1)))
-        client = TestTradingClient()
+        client = TestTradingClient(0)
+        order_sim = TradeSimulator()
 
-        sim.register_components([set1, client])
+        sim.register_components([client, order_sim, set1])
         sim.register_controller( con )
 
         # Simulation

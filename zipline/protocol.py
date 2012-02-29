@@ -107,6 +107,9 @@ class namedict(object):
     
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+    
+    def has_attr(self, name):
+        return self.__dict__.has_key(name)
 
 # ================
 # Control Protocol
@@ -235,7 +238,7 @@ def FEED_FRAME(event):
     assert isinstance(event, namedict)
     source_id = event.source_id
     ds_type = event.type
-    pack_date(event)
+    PACK_DATE(event)
     payload = event.__dict__
     return msgpack.dumps(payload)
     
@@ -245,7 +248,7 @@ def FEED_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         rval = namedict(payload)
-        unpack_date(rval)
+        UNPACK_DATE(rval)
         return rval
     except TypeError:
         raise INVALID_FEED_FRAME(msg)
@@ -265,21 +268,39 @@ def TRANSFORM_FRAME(name, value):
     """
     assert isinstance(name, basestring)
     assert value != None
+    
+    if(name == 'ALGO_TIME'):
+        value = PACK_ALGO_DT(value)
+        
     return msgpack.dumps(tuple([name, value]))
     
 def TRANSFORM_UNFRAME(msg):
+    """
+    :rtype: namedict with <transform_name>:<transform_value>
+    """
     try:
         name, value = msgpack.loads(msg)
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(name, basestring)
         if(name == "PASSTHROUGH"):
             value = FEED_UNFRAME(value)
+        elif(name == "ALGO_TIME"):
+            value = UNPACK_ALGO_DT(value)
         return namedict({name : value})
     except TypeError:
         raise INVALID_TRANSFORM_FRAME(msg)
     except ValueError:
         raise INVALID_TRANSFORM_FRAME(msg)
-        
+
+def PACK_ALGO_DT(value):
+    value = namedict({'dt' : value})
+    PACK_DATE(value)
+    return value.__dict__
+
+def UNPACK_ALGO_DT(value):    
+    value = namedict(value)
+    UNPACK_DATE(value)
+    return value.dt
 
 # ==================
 # Merge Protocol
@@ -294,7 +315,9 @@ def MERGE_FRAME(event):
     """
     assert isinstance(event, namedict)
     assert isinstance(event.dt, datetime.datetime)
-    pack_date(event)
+    PACK_DATE(event)
+    if(event.has_attr('ALGO_TIME')):
+        event.ALGO_TIME = PACK_ALGO_DT(event.ALGO_TIME)
     payload = event.__dict__
     return msgpack.dumps(payload)
     
@@ -304,9 +327,11 @@ def MERGE_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         payload = namedict(payload)
+        if(payload.has_attr('ALGO_TIME')):
+            payload.ALGO_TIME = UNPACK_ALGO_DT(payload.ALGO_TIME)
         assert isinstance(payload.epoch, numbers.Integral)
         assert isinstance(payload.micros, numbers.Integral)
-        unpack_date(payload)
+        UNPACK_DATE(payload)
         return payload
     except TypeError:
         raise INVALID_MERGE_FRAME(msg)
@@ -340,7 +365,7 @@ def TRADE_FRAME(event):
     assert isinstance(event.sid, int)
     assert isinstance(event.price, float)
     assert isinstance(event.volume, int)
-    pack_date(event)
+    PACK_DATE(event)
     qutil.LOGGER.info("event is: {event}".format(event=event.__dict__))
     return msgpack.dumps(tuple([event.sid, event.price, event.volume, event.epoch, event.micros, event.type, event.source_id]))
     
@@ -355,7 +380,7 @@ def TRADE_UNFRAME(msg):
         assert isinstance(epoch, numbers.Integral)
         assert isinstance(micros, numbers.Integral)
         rval = namedict({'sid' : sid, 'price' : price, 'volume' : volume, 'epoch' : epoch, 'micros' : micros, 'type' : source_type, 'source_id' : source_id})
-        unpack_date(rval)
+        UNPACK_DATE(rval)
         qutil.LOGGER.info("unpacked Trade: {trade}".format(trade=rval.__dict__))
         return rval
     except TypeError:
@@ -389,7 +414,7 @@ def ORDER_UNFRAME(msg):
 # Date Helpers
 # =================
 
-def pack_date(event):    
+def PACK_DATE(event):    
     assert isinstance(event.dt, datetime.datetime)
     assert event.dt.tzinfo == pytz.utc #utc only please
     epoch = long(event.dt.strftime('%s'))
@@ -398,7 +423,7 @@ def pack_date(event):
     del(event.__dict__['dt'])
     return event
 
-def unpack_date(payload):
+def UNPACK_DATE(payload):
     assert isinstance(payload.epoch, numbers.Integral)
     assert isinstance(payload.micros, numbers.Integral)
     dt = datetime.datetime.fromtimestamp(payload.epoch)
