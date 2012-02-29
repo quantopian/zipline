@@ -429,7 +429,7 @@ def UNPACK_DATE(payload):
     
 
 FINANCE_PROTOCOL = Enum(
-    'ORDER'         , # 0 - req
-    'TRANSACTION'   , # 1 - req
-    'STATUS'        , # 2 - req
+    'ORDER'         , # 0
+    'TRANSACTION'   , # 1
+    'TRADE'         , # 2
     )

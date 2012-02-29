@@ -71,12 +71,12 @@ class OrderDataSource(qmsg.DataSource):
                     'volume' : integer for volume
                 }
         """
-        zm.DataSource.__init__(self, "ORDER_SIM")
+        zm.DataSource.__init__(self, str(zp.FINANCE_PROTOCOL.ORDER))
         self.simulation_dt = simulation_dt
         self.last_iteration_duration = datetime.timedelta(seconds=0)
 
     def get_type(self):
-        return 'ORDER_SIM'
+        return str(zp.FINANCE_PROTOCOL.ORDER)
         
     def open(self):
         qmsg.DataSource.open(self)
@@ -88,7 +88,7 @@ class OrderDataSource(qmsg.DataSource):
     def do_work(self):
         #mark the start time for client's processing of this event.
         self.event_start = datetime.datetime.utcnow()
-        self.result_socket.send(zp.TRANSFORM_FRAME('ORDER_SIM', self.simulation_dt), self.zmq.NOBLOCK)
+        self.result_socket.send(zp.TRANSFORM_FRAME(str(zp.FINANCE_PROTOCOL.ORDER), self.simulation_dt), self.zmq.NOBLOCK)
         
         self.simulation_dt = self.simulation_dt + self.last_iteration_duration
         
@@ -139,10 +139,10 @@ class TransactionSimulator(qmsg.BaseTransform):
         Pulls one message from the event feed, then
         loops on orders until client sends DONE message.
         """
-        if(event.type == "ORDER_SIM"):
+        if(event.type == zp.FINANCE_PROTOCOL.ORDER):
             self.add_open_order(event.sid, event.amount)
             self.state['value'] = self.average
-        elif(event.type == "EQUITY_TRADE"):
+        elif(event.type == zp.FINANCE_PROTOCOL.TRADE):
             txn = apply_trade_to_open_orders(event)
             self.state['value'] = txn
         
