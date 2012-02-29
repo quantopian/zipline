@@ -133,7 +133,14 @@ class Component(object):
             import zmq
             self.zmq = zmq
 
+        # TODO: this can cause max fd errors on BSD machines with
+        # low ulimits, its perfectly fine to use one Context in
+        # multithreaded enviroments, its only in multiprocess
+        # systems where this becomes needed. Add this option.
+        # 
+        # http://zeromq.github.com/pyzmq/morethanbindings.html#thread-safety
         self.context = self.zmq.Context()
+
         self.setup_poller()
 
         self.open()
