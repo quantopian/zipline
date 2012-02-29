@@ -31,10 +31,6 @@ class ComponentHost(Component):
         self.components     = {}
         # ----------------------
 
-        # workaround for defect in threaded use of strptime:
-        # http://bugs.python.org/issue11108
-        qutil.parse_date("2012/02/13-10:04:28.114")
-
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
 
