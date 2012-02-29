@@ -2,7 +2,7 @@
 import datetime
 import mock
 import pytz
-import zipline.host_settings
+import host_settings
 from unittest2 import TestCase
 import zipline.test.factory as factory
 import zipline.util as qutil

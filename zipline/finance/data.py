@@ -17,7 +17,7 @@ from pymongo import ASCENDING, DESCENDING
 from zipline.daemon import Daemon
 import zipline.util as qutil
 import zipline.db as db
-import zipline.host_settings
+import host_settings
 
 class FinancialDataLoader():
     """
