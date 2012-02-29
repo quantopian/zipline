@@ -156,7 +156,8 @@ class SimulatorTestCase(object):
 
         # Simulation
         # ----------
-        sim.simulate()
+        sim_context = sim.simulate()
+        sim_context.join()
 
         # Stop Running
         # ------------
@@ -200,7 +201,8 @@ class SimulatorTestCase(object):
 
         # Simulation
         # ----------
-        sim.simulate()
+        sim_context = sim.simulate()
+        sim_context.join()
 
         # Stop Running
         # ------------
@@ -245,7 +247,8 @@ class SimulatorTestCase(object):
 
         # Simulation
         # ----------
-        sim.simulate()
+        sim_context = sim.simulate()
+        sim_context.join()
 
         # Stop Running
         # ------------
