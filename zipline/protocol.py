@@ -78,13 +78,13 @@ def FrameExceptionFactory(name):
 
 class namedict(object):
     """
-    So that you can use:
+    So that you can use::
 
         foo.BAR
         -- or --
         foo['BAR']
 
-    For more complex strcuts use collections.namedtuple:
+    For more complex structs use collections.namedtuple:
     """
 
     def __init__(self, dct=None):
@@ -130,18 +130,18 @@ CONTROL_PROTOCOL = Enum(
 )
 
 def CONTROL_FRAME(id, status):
-    assert isinstance(basestring, id)
-    assert isinstance(int, status)
+    assert isinstance(id, basestring,)
+    assert isinstance(status, int)
 
     return msgpack.dumps(tuple([id, status]))
 
 def CONTORL_UNFRAME(msg):
-    assert isinstance(basestring, msg)
+    assert isinstance(msg, basestring)
 
     try:
         id, status = msgpack.loads(msg)
-        assert isinstance(basestring, id)
-        assert isinstance(int, status)
+        assert isinstance(id, basestring)
+        assert isinstance(status, int)
 
         return id, status
     except TypeError:
@@ -166,6 +166,12 @@ HEARTBEAT_PROTOCOL = namedict({
 # ==================
 # Component State
 # ==================
+
+COMPONENT_TYPE = Enum(
+    'SOURCE'  , # 0
+    'CONDUIT' , # 1
+    'SINK'    , # 2
+)
 
 COMPONENT_STATE = Enum(
     'OK'        , # 0

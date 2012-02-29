@@ -9,22 +9,6 @@ test Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`dummy` Module
--------------------
-
-.. automodule:: zipline.test.dummy
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`factory` Module
----------------------
-
-.. automodule:: zipline.test.factory
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`test_devsimulator` Module
 -------------------------------
 
@@ -33,18 +17,18 @@ test Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_finance` Module
---------------------------
-
-.. automodule:: zipline.test.test_finance
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`test_messaging` Module
 ----------------------------
 
 .. automodule:: zipline.test.test_messaging
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_monitor` Module
+--------------------------
+
+.. automodule:: zipline.test.test_monitor
     :members:
     :undoc-members:
     :show-inheritance:
