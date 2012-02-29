@@ -302,7 +302,6 @@ class Component(object):
             socket.gethostname() ,
             os.getpid()          ,
             hex(id(self))        ,
-            self.sockets         ,
         )
 
     def __repr__(self):
