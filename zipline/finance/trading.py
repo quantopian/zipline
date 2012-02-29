@@ -61,14 +61,17 @@ class TradeSimulationClient(qmsg.Component):
 
 class TradeSimulator(qmsg.BaseTransform):
     
-    def __init__(self): 
+    def __init__(self, expected_orders): 
         qmsg.BaseTransform.__init__(self, "")
         self.open_orders            = {}
         self.algo_time              = None
         self.event_start            = None
         self.last_event_time        = None
         self.last_iteration_duration    = None
-    
+        self.expected_orders        = expected_orders
+        self.order_count            = 0
+        self.trade_count            = 0
+        
     @property
     def get_id(self):
         return "ALGO_TIME"    
@@ -91,13 +94,15 @@ class TradeSimulator(qmsg.BaseTransform):
                                                   [],
                                                   [self.feed_socket],
                                                   timeout=self.heartbeat_timeout/1000) #select timeout is in sec
-        #
+        self.trade_count += 1
         #no more orders, should be an error condition
         if len(rlist) == 0 or len(xlist) > 0: 
             raise Exception("unexpected end of feed stream")
         message = rlist[0].recv()    
         if message == str(zp.CONTROL_PROTOCOL.DONE):
             self.signal_done()
+            if(self.expected_orders > 0):
+                assert self.expected_orders == self.order_count
             return #leave open orders hanging? client requests for orders?
             
         event = zp.FEED_UNFRAME(message)
@@ -143,7 +148,7 @@ class TradeSimulator(qmsg.BaseTransform):
         
             
     def add_open_order(self, sid, amount):
-        pass
+        self.order_count = self.order_count + 1
         
     def process_orders(self, event):
         #TODO put real fill logic here, return a list of fills

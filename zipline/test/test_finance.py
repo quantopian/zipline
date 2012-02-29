@@ -91,12 +91,12 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
         # ---------------------
 
         set1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
-                                                                            [10.0,10.0,10.0,10.0], 
-                                                                            [100,100,100,100], 
-                                                                            datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
+                                                                            [10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0], 
+                                                                            [100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100], 
+                                                                            datetime.datetime.strptime("02/1/2012","%m/%d/%Y"),
                                                                             datetime.timedelta(days=1)))
-        client = TestTradingClient(1)
-        order_sim = TradeSimulator()
+        client = TestTradingClient(10)
+        order_sim = TradeSimulator(expected_orders=10)
 
         sim.register_components([client, order_sim, set1])
         sim.register_controller( con )

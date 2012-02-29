@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 #setup virtualenvironment 
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
 export WORKON_HOME=/mnt/jenkins_backups/virtual_envs

@@ -210,9 +210,7 @@ def DATASOURCE_UNFRAME(msg):
             - dt - a datetime object
     """
     try:
-        qutil.LOGGER.info("unpacking {msg}".format(msg = msg))
         ds_type, payload = msgpack.loads(msg)
-        qutil.LOGGER.info("unpacked a datasource frame! {ds_type} - {payload}".format(ds_type=ds_type, payload=payload) )
         assert isinstance(ds_type, basestring)
         if(ds_type == "TRADE"):
             return TRADE_UNFRAME(payload)
@@ -366,12 +364,10 @@ def TRADE_FRAME(event):
     assert isinstance(event.price, float)
     assert isinstance(event.volume, int)
     PACK_DATE(event)
-    qutil.LOGGER.info("event is: {event}".format(event=event.__dict__))
     return msgpack.dumps(tuple([event.sid, event.price, event.volume, event.epoch, event.micros, event.type, event.source_id]))
     
 def TRADE_UNFRAME(msg):
     try:
-        qutil.LOGGER.info("about to unpack TRADE: {trade}".format(trade=msg))
         sid, price, volume, epoch, micros, source_type, source_id = msgpack.loads(msg)
         
         assert isinstance(sid, int)
@@ -381,7 +377,6 @@ def TRADE_UNFRAME(msg):
         assert isinstance(micros, numbers.Integral)
         rval = namedict({'sid' : sid, 'price' : price, 'volume' : volume, 'epoch' : epoch, 'micros' : micros, 'type' : source_type, 'source_id' : source_id})
         UNPACK_DATE(rval)
-        qutil.LOGGER.info("unpacked Trade: {trade}".format(trade=rval.__dict__))
         return rval
     except TypeError:
         raise INVALID_TRADE_FRAME(msg)
