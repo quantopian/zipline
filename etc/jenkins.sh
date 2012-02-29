@@ -8,6 +8,7 @@ if [ ! -d $WORKON_HOME ]; then
 fi
 source /usr/local/bin/virtualenvwrapper.sh
 
+
 #create the scientific python virtualenv and copy to provide zipline base
 mkvirtualenv --no-site-packages scientific_base
 workon scientific_base
@@ -23,6 +24,9 @@ workon zipline
 
 # Show what we have installed
 pip freeze
+
+#copy the host_settings file into place
+cp /mnt/jenkins/zipline_host_settings.py ./host_settings.py
 
 #documentation output
 paver apidocs html

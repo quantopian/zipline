@@ -31,16 +31,16 @@ class MovingAverage(BaseTransform):
         """
 
         self.events.append(event)
-        self.current_total += event['price']
-        event_date = qutil.parse_date(event['dt'])
+        self.current_total += event.price
+        event_date = event.dt
 
         index = 0
 
         for cur_event in self.events:
-            cur_date = qutil.parse_date(cur_event['dt'])
-            if(cur_date - event_date):
+            cur_date = cur_event.dt
+            if(cur_date - event_date) >= self.window:
                 self.events.pop(index)
-                self.current_total -= cur_event['price']
+                self.current_total -= cur_event.price
                 index += 1
             else:
                 break
