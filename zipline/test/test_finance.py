@@ -95,7 +95,7 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
                                                                             [100,100,100,100], 
                                                                             datetime.datetime.strptime("02/15/2012","%m/%d/%Y"),
                                                                             datetime.timedelta(days=1)))
-        client = TestTradingClient(0)
+        client = TestTradingClient(1)
         order_sim = TradeSimulator()
 
         sim.register_components([client, order_sim, set1])
