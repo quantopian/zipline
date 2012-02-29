@@ -8,11 +8,10 @@ import zipline.protocol as zp
 class TestClient(qmsg.Component):
     """no-op client - Just connects to the merge and counts messages. compares received message count to the expected count."""
 
-    def __init__(self, utest, expected_msg_count=0):
+    def __init__(self, expected_msg_count=0):
         qmsg.Component.__init__(self)
         self.received_count     = 0
         self.expected_msg_count = expected_msg_count
-        self.utest              = utest
         self.prev_dt            = None
         self.heartbeat_timeout = 2000
 
@@ -32,9 +31,8 @@ class TestClient(qmsg.Component):
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.signal_done()
-                self.utest.assertEqual(self.expected_msg_count, self.received_count, 
-                                "The client should have received ({n}) the same number of messages as the feed sent ({m})."
-                                    .format(n=self.received_count, m=self.expected_msg_count))
+                if(self.expected_msg_count > 0):
+                    assert self.received_count == self.expected_msg_count
                 return
 
             self.received_count += 1
