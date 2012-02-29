@@ -33,7 +33,7 @@ class RandomEquityTrades(TradeDataSource):
     
     
     def get_type(self):
-        return 'equity_trade'
+        return 'EQUITY_TRADE'
     
     
     def do_work(self):
@@ -67,7 +67,7 @@ class SpecificEquityTrades(TradeDataSource):
         self.event_list = event_list
 
     def get_type(self):
-        return 'equity_trade'
+        return 'EQUITY_TRADE'
 
     def do_work(self):
         if(len(self.event_list) == 0):

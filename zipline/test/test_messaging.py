@@ -45,7 +45,7 @@ class SimulatorTestCase(ThreadPoolExecutorMixin):
 
         ret1 = RandomEquityTrades(133, "ret1", 1)
         ret2 = RandomEquityTrades(134, "ret2", 1)
-        client = TestClient(self, expected_msg_count=ret1.count + ret2.count)
+        client = TestClient(expected_msg_count=(ret1.count + ret2.count))
 
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
@@ -91,7 +91,7 @@ class SimulatorTestCase(ThreadPoolExecutorMixin):
 
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
-        client = TestClient(self, expected_msg_count=ret1.count + ret2.count)
+        client = TestClient(expected_msg_count=ret1.count + ret2.count)
 
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
@@ -138,7 +138,7 @@ class SimulatorTestCase(ThreadPoolExecutorMixin):
         ret2 = RandomEquityTrades(134, "ret2", 5000)
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
-        client = TestClient(self, expected_msg_count=10000)
+        client = TestClient(expected_msg_count=10000)
 
         sim.register_components([ret1, ret2, mavg1, mavg2, client])
         sim.register_controller( con )
@@ -168,7 +168,7 @@ class SimulatorTestCase(ThreadPoolExecutorMixin):
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
         transforms = {"mavg1":mavg1, "mavg2":mavg2}
-        client = TestClient(self, expected_msg_count=0)
+        client = TestClient(expected_msg_count=0)
         sim = self.get_simulator(sources, transforms, client)
 
         # TODO: way too long

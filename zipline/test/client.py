@@ -33,6 +33,7 @@ class TestClient(qmsg.Component):
                 self.signal_done()
                 if(self.expected_msg_count > 0):
                     assert self.received_count == self.expected_msg_count
+
                 return
 
             self.received_count += 1

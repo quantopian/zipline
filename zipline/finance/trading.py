@@ -28,7 +28,7 @@ class TradeSimulationClient(qmsg.Component):
         (rlist, wlist, xlist) = select([self.result_feed],
                                                   [],
                                                   [self.result_feed],
-                                                  timeout=self.heartbeat_timeout/1000) #select timeout is in sec
+                                                  timeout=self.heartbeat_timeout/100) #select timeout is in sec, use 10x
         #
         #no more orders, should be an error condition
         if len(rlist) == 0 or len(xlist) > 0: 
@@ -46,7 +46,7 @@ class TradeSimulationClient(qmsg.Component):
     
     def _handle_event(self, event):
         self.event_queue.append(event)
-        if event.ALGO_TIME <= event.dt:
+        if event.SIM_DT <= event.dt:
             #event occurred in the present, send the queue to be processed
             self.handle_events(self.event_queue)
         self.order_socket.send(str(zp.CONTROL_PROTOCOL.DONE))
@@ -57,75 +57,45 @@ class TradeSimulationClient(qmsg.Component):
     def order(self, sid, amount):
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
         
-    
+class OrderDataSource(qmsg.DataSource):
+    """DataSource that relays orders from the client"""
 
-class TradeSimulator(qmsg.BaseTransform):
-    
-    def __init__(self, expected_orders): 
-        qmsg.BaseTransform.__init__(self, "")
-        self.open_orders            = {}
-        self.algo_time              = None
-        self.event_start            = None
-        self.last_event_time        = None
-        self.last_iteration_duration    = None
-        self.expected_orders        = expected_orders
-        self.order_count            = 0
-        self.trade_count            = 0
+    def __init__(self, simulation_dt):
+        """
+        :param simulation_time: datetime in UTC timezone, sets the start time of simulation. orders
+            will be timestamped relative to this datetime.
+                event = {
+                    'sid'    : an integer for security id,
+                    'dt'     : datetime object,
+                    'price'  : float for price,
+                    'volume' : integer for volume
+                }
+        """
+        zm.DataSource.__init__(self, "ORDER_SIM")
+        self.simulation_dt = simulation_dt
+        self.last_iteration_duration = datetime.timedelta(seconds=0)
+
+    def get_type(self):
+        return 'ORDER_SIM'
         
-    @property
-    def get_id(self):
-        return "ALGO_TIME"    
-    
     def open(self):
-        qmsg.BaseTransform.open(self)
+        qmsg.DataSource.open(self)
         self.order_socket = self.bind_order()
         
     def bind_order(self):
         return self.bind_pull_socket(self.addresses['order_address'])
 
     def do_work(self):
-        """
-        Pulls one message from the event feed, then
-        loops on orders until client sends DONE message.
-        """
-        
-        #next feed event
-        (rlist, wlist, xlist) = select([self.feed_socket],
-                                                  [],
-                                                  [self.feed_socket],
-                                                  timeout=self.heartbeat_timeout/1000) #select timeout is in sec
-        self.trade_count += 1
-        #no more orders, should be an error condition
-        if len(rlist) == 0 or len(xlist) > 0: 
-            raise Exception("unexpected end of feed stream")
-        message = rlist[0].recv()    
-        if message == str(zp.CONTROL_PROTOCOL.DONE):
-            self.signal_done()
-            if(self.expected_orders > 0):
-                assert self.expected_orders == self.order_count
-            return #leave open orders hanging? client requests for orders?
-            
-        event = zp.FEED_UNFRAME(message)
-        
-        if self.last_iteration_duration != None:
-            self.algo_time = self.last_event_time + self.last_iteration_duration
-        else:
-            self.algo_time = event.dt #base case, first event we're transporting.
-        
-        self.last_event_time = event.dt
-        
-        if self.algo_time < self.last_event_time:
-            #compress time, move algo's clock to the time of this event
-            self.algo_time = self.last_event_time
-            
-        #self.process_orders(event)
-
         #mark the start time for client's processing of this event.
         self.event_start = datetime.datetime.utcnow()
-        self.result_socket.send(zp.TRANSFORM_FRAME('ALGO_TIME', self.algo_time), self.zmq.NOBLOCK)
+        self.result_socket.send(zp.TRANSFORM_FRAME('ORDER_SIM', self.simulation_dt), self.zmq.NOBLOCK)
         
-            
-        while True: #this loop should also poll for portfolio state req/rep
+        self.simulation_dt = self.simulation_dt + self.last_iteration_duration
+        
+        #pull all orders from client.
+        orders = []
+        order_dt = None
+        while True:
             (rlist, wlist, xlist) = select([self.order_socket],
                                            [],
                                            [self.order_socket],
@@ -141,15 +111,112 @@ class TradeSimulator(qmsg.BaseTransform):
                 break
 
             sid, amount = zp.ORDER_UNFRAME(order_msg)
-            self.add_open_order(sid, amount)
+            #send the order along
             
-        #end of order processing loop
-        self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
+            self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
+            dt = self.simulation_dt + self.last_iteration_duration
+            order_event = zp.namedict({"sid":sid, "amount":amount, "dt":dt, source_id=self.get_id})
+            
+            message = zp.DATASOURCE_FRAME(event)
+            self.data_socket.send(message)
+    
+    
+    
+
+class TransactionSimulator(qmsg.BaseTransform):
+    
+    def __init__(self): 
+        qmsg.BaseTransform.__init__(self, "TRANSACTION_SIM")
+        self.open_orders                = {}
+        self.order_count                = 0
+        self.tradeWindow                = datetime.timedelta(seconds=30)
+        self.orderTTL                   = datetime.timedelta(days=1)
+        self.volume_share               = 0.05
+        self.commission                 = 0.03
+            
+    def transform(self, event):
+        """
+        Pulls one message from the event feed, then
+        loops on orders until client sends DONE message.
+        """
+        if(event.type == "ORDER_SIM"):
+            self.add_open_order(event.sid, event.amount)
+            self.state['value'] = self.average
+        elif(event.type == "EQUITY_TRADE"):
+            txn = apply_trade_to_open_orders(event)
+            self.state['value'] = txn
         
+        return self.state
             
     def add_open_order(self, sid, amount):
-        self.order_count = self.order_count + 1
+        """Orders are captured in a buffer by sid. No calculations are done here.
+            Amount is explicitly converted to an int.
+            Orders of amount zero are ignored.
+        """
+        amount = int(amount)
+        if amount == 0:
+            qutil.LOGGER.debug("{title}:{id} requested to trade zero shares of {sid}".format(sid=sid,
+                                                                                            title=self.hostedAlgo.algo.title,
+                                                                                            id=self.hostedAlgo.algo.id))
+            return
+            
+        self.order_count += 1
+        order = zp.namedict({'sid' : sid, 
+                 'amount' : amount, 
+                 'dt' : self.algo_time},
+                 'filled': 0,
+                 'direction': math.fabs(amount) / amount)
         
-    def process_orders(self, event):
-        #TODO put real fill logic here, return a list of fills
-        return [{'sid':133, 'amount':-100}]
+        if(not self.open_orders.has_key(sid)):
+            self.open_orders[sid] = []
+        self.open_orders[sid].append(order)
+     
+    def apply_trade_to_open_orders(self, event):
+        
+        if(event.volume == 0):
+            #there are zero volume events bc some stocks trade less frequently than once per minute.
+            continue 
+        if self.open_orders.has_key(event.sid):
+            orders = self.open_orders[event.sid] 
+            remaining_orders = []
+            total_order = 0        
+            dt = event.dt
+        
+            for order in orders:
+                #we're using minute bars, so allow orders within 30 seconds of the trade
+                if((order.dt - event.dt) < self.tradeWindow):
+                    total_order += order.amount
+                    if(order.dt > dt):
+                        dt = order.dt
+                #if the order still has time to live (TTL) keep track
+                elif((self.algo_time - order.dt) < self.orderTTL):
+                    remaining_orders.append(order)
+        
+            self.open_orders[event.sid] = remaining_orders
+        
+            if(total_order != 0):
+                direction = total_order / math.fabs(total_order)
+                volume_share = (direction * total_order) / event.volume
+                if volume_share > .25:
+                    volume_share = .25
+                amount = volume_share * event.volume * direction
+                impact = (volShare)**2 * .1 * direction * event.price
+                return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
+        
+    
+        
+    def create_transaction(self, sid, amount, price, dt, direction):                
+        if(amount != 0):
+            txn = {'sid'                : sid, 
+                   'amount'             : amount, 
+                   'dt'                 : dt, 
+                   'price'              : price, 
+                   'back_test_run_id'   : self.btRun.id,
+                   'transaction_cost'   : -1*(price * amount),
+                   'commision'          : self.commission * amount * direction}
+            
+            return namedict(txn) 
+                
+                
+                
+

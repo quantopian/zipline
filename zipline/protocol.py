@@ -267,7 +267,7 @@ def TRANSFORM_FRAME(name, value):
     assert isinstance(name, basestring)
     assert value != None
     
-    if(name == 'ALGO_TIME'):
+    if(name == 'SIM_DT'):
         value = PACK_ALGO_DT(value)
         
     return msgpack.dumps(tuple([name, value]))
@@ -282,7 +282,7 @@ def TRANSFORM_UNFRAME(msg):
         assert isinstance(name, basestring)
         if(name == "PASSTHROUGH"):
             value = FEED_UNFRAME(value)
-        elif(name == "ALGO_TIME"):
+        elif(name == "SIM_DT"):
             value = UNPACK_ALGO_DT(value)
         return namedict({name : value})
     except TypeError:
@@ -314,8 +314,8 @@ def MERGE_FRAME(event):
     assert isinstance(event, namedict)
     assert isinstance(event.dt, datetime.datetime)
     PACK_DATE(event)
-    if(event.has_attr('ALGO_TIME')):
-        event.ALGO_TIME = PACK_ALGO_DT(event.ALGO_TIME)
+    if(event.has_attr('SIM_DT')):
+        event.SIM_DT = PACK_ALGO_DT(event.SIM_DT)
     payload = event.__dict__
     return msgpack.dumps(payload)
     
@@ -325,8 +325,8 @@ def MERGE_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         payload = namedict(payload)
-        if(payload.has_attr('ALGO_TIME')):
-            payload.ALGO_TIME = UNPACK_ALGO_DT(payload.ALGO_TIME)
+        if(payload.has_attr('SIM_DT')):
+            payload.SIM_DT = UNPACK_ALGO_DT(payload.SIM_DT)
         assert isinstance(payload.epoch, numbers.Integral)
         assert isinstance(payload.micros, numbers.Integral)
         UNPACK_DATE(payload)
@@ -340,7 +340,6 @@ def MERGE_UNFRAME(msg):
 # ==================
 # Finance Protocol
 # ==================
-
 INVALID_ORDER_FRAME = FrameExceptionFactory('ORDER')
 INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 
@@ -427,3 +426,10 @@ def UNPACK_DATE(payload):
     del(payload.__dict__['micros'])
     payload['dt'] = dt
     return payload
+    
+
+FINANCE_PROTOCOL = Enum(
+    'ORDER'         , # 0 - req
+    'TRANSACTION'   , # 1 - req
+    'STATUS'        , # 2 - req
+    )
