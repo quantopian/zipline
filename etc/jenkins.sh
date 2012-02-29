@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-set -x
 
 #setup virtualenvironment 
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
