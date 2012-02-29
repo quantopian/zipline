@@ -114,7 +114,6 @@ class Controller(object):
         while self.polling:
             try:
                 msg = self.pull.recv()
-                print msg
                 self.pub.send(msg)
             except KeyboardInterrupt:
                 self.polling = False
@@ -171,6 +170,8 @@ class Controller(object):
         if not context:
             context = zmq.Context()
 
+        #logging.info('Shutdown controller')
+
         s = self.message_sender(context)
         s.send(CONTROL_FRAME(
             'controller',
@@ -186,8 +187,8 @@ class Controller(object):
         """
         self.shutdown()
 
-    def __del__(self):
-        self.shutdown()
+    #def __del__(self):
+        #self.shutdown()
 
     def qos(self):
         if not self.debug:

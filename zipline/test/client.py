@@ -1,14 +1,18 @@
+#import logging
 import ujson as json
 
 import zipline.util as qutil
 import zipline.messaging as qmsg
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
 
+#qlogger = logging.getLogger('qexec')
+
 class TestClient(qmsg.Component):
 
     def __init__(self, utest, expected_msg_count=0):
         qmsg.Component.__init__(self)
 
+        # Generally shouldn't reference unit tests here.
         self.utest              = utest
         self.expected_msg_count = expected_msg_count
 
@@ -37,15 +41,16 @@ class TestClient(qmsg.Component):
 
         if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:
             msg = self.data_feed.recv()
+            #logger.info('msg:' + str(msg))
 
             if msg == str(CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.signal_done()
-                self.utest.assertEqual(
-                    self.expected_msg_count, self.received_count,
-                    "The client should have received ({n}) the same number of \
-                    messages as the feed sent ({m})."
-                    .format(n=self.received_count, m=self.expected_msg_count))
+                #self.utest.assertEqual(
+                    #self.expected_msg_count, self.received_count,
+                    #"The client should have received ({n}) the same number of \
+                    #messages as the feed sent ({m})."
+                    #.format(n=self.received_count, m=self.expected_msg_count))
                 return
 
             self.received_count += 1

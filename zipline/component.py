@@ -141,15 +141,13 @@ class Component(object):
         self.setup_control()
         self.loop()
 
-        self.shutdown()
-        self.teardown_sockets()
 
         self.end_tick = time.clock()
 
         # shouldn't block if we've done our job correctly
         # self.context.term()
 
-    def run(self, catch_exceptions=False):
+    def run(self, catch_exceptions=True):
         """
         Run the component.
 
@@ -170,15 +168,21 @@ class Component(object):
                 self.signal_exception(exc)
                 fail = exc
             finally:
-                # TODO: cleaner
+
+                self.shutdown()
+                self.teardown_sockets()
+
                 if self.context:
                     self.context.destroy()
                 if fail:
                     raise fail
         else:
-            self._run()
-            if(self.context != None):
-                self.context.destroy()
+            try:
+                self._run()
+            finally:
+                self.shutdown()
+                self.teardown_sockets()
+
 
     def loop(self):
         """
@@ -383,6 +387,18 @@ class Component(object):
     # Description and Debug
     # ---------------------
 
+    def extern_logger(self):
+        """
+        Pipe logs out to a provided logging interface.
+        """
+        pass
+
+    def setup_extern_logger(self):
+        """
+        Pipe logs out to a provided logging interface.
+        """
+        pass
+
     @property
     def get_id(self):
         """
@@ -416,14 +432,15 @@ class Component(object):
         """
         Debug information about the component.
         """
-        return (
-            self.get_id          ,
-            self.huid            ,
-            socket.gethostname() ,
-            os.getpid()          ,
-            hex(id(self))        ,
-            self.sockets         ,
-        )
+        return {
+            'id'         : self.get_id          ,
+            'huid'       : self.huid            ,
+            'host'       : socket.gethostname() ,
+            'pid'        : os.getpid()          ,
+            'memaddress' : hex(id(self))        ,
+            'ready'      : self.successful()    ,
+            'succesfull' : self.ready()         ,
+        }
 
     def __len__(self):
         """
