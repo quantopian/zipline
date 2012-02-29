@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+set -x
+
 #setup virtualenvironment 
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
 export WORKON_HOME=/mnt/jenkins_backups/virtual_envs
@@ -7,6 +9,7 @@ if [ ! -d $WORKON_HOME ]; then
   mkdir $WORKON_HOME
 fi
 source /usr/local/bin/virtualenvwrapper.sh
+
 
 #create the scientific python virtualenv and copy to provide zipline base
 mkvirtualenv --no-site-packages scientific_base
