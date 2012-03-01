@@ -476,7 +476,6 @@ class PassthroughTransform(BaseTransform):
 
     def __init__(self):
         BaseTransform.__init__(self, "PASSTHROUGH")
-
         self.init()
 
     def init(self):
@@ -486,8 +485,9 @@ class PassthroughTransform(BaseTransform):
     def get_type(self):
         return COMPONENT_TYPE.CONDUIT
 
+    #TODO, could save some cycles by skipping the _UNFRAME call and just setting value to original msg string.
     def transform(self, event):
-        return { 'value': event }
+        return {'name':zp.TRANSFORM_TYPE.PASSTHROUGH, 'value': zp.DATASOURCE_FRAME(event) }
 
 
 class DataSource(Component):
