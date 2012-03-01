@@ -1,8 +1,13 @@
 """
 Commonly used messaging components.
+
+Contains the base class for all components.
+
 """
+
 import os
 import uuid
+import time
 import socket
 import humanhash
 
@@ -10,66 +15,113 @@ import zipline.util as qutil
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 
 class Component(object):
+    """
+    Base class for components. Defines the the base messaging
+    interface for components.
+
+    :param addresses: a dict of name_string -> zmq port address strings.
+                      Must have the following entries
+
+    :param sync_address: socket address used for synchronizing the start of
+                         all workers, heartbeating, and exit notification
+                         will be used in REP/REQ sockets. Bind is always on
+                         the REP side.
+
+    :param data_address: socket address used for data sources to stream
+                         their records. Will be used in PUSH/PULL sockets
+                         between data sources and a ParallelBuffer (aka
+                         the Feed). Bind will always be on the PULL side
+                         (we always have N producers and 1 consumer)
+
+    :param feed_address: socket address used to publish consolidated feed
+                         from serialization of data sources
+                         will be used in PUB/SUB sockets between Feed and
+                         Transforms. Bind is always on the PUB side.
+
+    :param merge_address: socket address used to publish transformed
+                          values.  will be used in PUSH/PULL from many
+                          transforms to one MergedParallelBuffer (aka the
+                          Merge). Bind will always be on the PULL side (we
+                          always have N producers and 1 consumer)
+
+    :param result_address: socket address used to publish merged data
+                           source feed and transforms to clients will be
+                           used in PUB/SUB from one Merge to one or many
+                           clients. Bind is always on the PUB side.
+
+    bind/connect methods will return the correct socket type for each
+    address.
+
+    """
 
     def __init__(self):
-        """
-        :addresses: a dict of name_string -> zmq port address strings. Must have the following entries::
-
-            - sync_address: socket address used for synchronizing the start of all workers, heartbeating, and exit notification
-                            will be used in REP/REQ sockets. Bind is always on the REP side.
-            - data_address: socket address used for data sources to stream their records. 
-                            will be used in PUSH/PULL sockets between data sources and a ParallelBuffer (aka the Feed). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - feed_address: socket address used to publish consolidated feed from serialization of data sources
-                            will be used in PUB/SUB sockets between Feed and Transforms. Bind is always on the PUB side.
-            - merge_address: socket address used to publish transformed values.
-                            will be used in PUSH/PULL from many transforms to one MergedParallelBuffer (aka the Merge). Bind
-                            will always be on the PULL side (we always have N producers and 1 consumer)
-            - result_address: socket address used to publish merged data source feed and transforms to clients
-                            will be used in PUB/SUB from one Merge to one or many clients. Bind is always on the PUB side.
-
-        Bind/Connect methods will return the correct socket type for each address. Any sockets on which recv is expected to be called
-        will also return a Poller.
-
-        """
         self.zmq               = None
         self.context           = None
         self.addresses         = None
         self.out_socket        = None
         self.gevent_needed     = False
         self.killed            = False
+        self.controller        = None
         self.heartbeat_timeout = 2000
         self.state_flag        = COMPONENT_STATE.OK # OK | DONE | EXCEPTION
+        self._exception        = None
+
+        self.start_tic         = None
+        self.stop_tic          = None
 
         # Humanhashes make this way easier to debug because they
         # stick in your mind unlike a 32 byte string of random hex.
         self.guid = uuid.uuid4()
         self.huid = humanhash.humanize(self.guid.hex)
 
+        self.init()
+
+    def init(self):
+        """
+        Subclasses should override this to extend the setup for
+        the class. Shouldn't have side effects.
+        """
+        pass
+
     # ------------
     # Core Methods
     # ------------
 
     def open(self):
-        raise NotImplementedError
-
-    def destroy(self):
         """
-        Tear down after normal operation.
+        Open the connections needed to start doing work.
         """
         raise NotImplementedError
 
-    def kill(self):
+    def ready(self):
         """
-        Tear down ( fast ) as a mode of failure in the
-        simulation.
+        Return ``True`` if and only if the component has finished execution.
         """
-        raise NotImplementedError
+        return self.state_flag in [COMPONENT_STATE.DONE, \
+            COMPONENT_STATE.EXCEPTION]
+
+    def successful(self):
+        """
+        Return ``True`` if and only if the component has finished execution
+        successfully, that is, without raising an error.
+        """
+        return self.state_flag == COMPONENT_STATE.DONE and not \
+            self.exception
+
+    @property
+    def exception(self):
+        """
+        Holds the exception that the component failed on, or
+        ``None`` if the component has not failed.
+        """
+        return self._exception
 
     def do_work(self):
         raise NotImplementedError
 
     def _run(self):
+        self.start_tick = time.clock()
+
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
@@ -81,7 +133,14 @@ class Component(object):
             import zmq
             self.zmq = zmq
 
+        # TODO: this can cause max fd errors on BSD machines with
+        # low ulimits, its perfectly fine to use one Context in
+        # multithreaded enviroments, its only in multiprocess
+        # systems where this becomes needed. Add this option.
+        # 
+        # http://zeromq.github.com/pyzmq/morethanbindings.html#thread-safety
         self.context = self.zmq.Context()
+
         self.setup_poller()
 
         self.open()
@@ -89,11 +148,13 @@ class Component(object):
         self.setup_control()
         self.loop()
 
-        #close all the sockets
-        for sock in self.sockets:
-            sock.close()
 
-    def run(self, catch_exceptions=False):
+        self.end_tick = time.clock()
+
+        # shouldn't block if we've done our job correctly
+        # self.context.term()
+
+    def run(self, catch_exceptions=True):
         """
         Run the component.
 
@@ -114,14 +175,21 @@ class Component(object):
                 self.signal_exception(exc)
                 fail = exc
             finally:
+
+                self.shutdown()
+                self.teardown_sockets()
+
                 if self.context:
                     self.context.destroy()
                 if fail:
                     raise fail
         else:
-            self._run()
-            if(self.context != None):
-                self.context.destroy()
+            try:
+                self._run()
+            finally:
+                self.shutdown()
+                self.teardown_sockets()
+
 
     def loop(self):
         """
@@ -141,12 +209,50 @@ class Component(object):
 
         self.receive_sync_ack() # blocking
 
+    def runtime(self):
+        if self.ready():
+            return self.stop_tic - self.start_tic
+
+    # ----------------------------
+    #  Cleanup & Modes of Failure
+    # ----------------------------
+
+    def teardown_sockets(self):
+        """
+        Close all zmq sockets safely. This is universal, no matter
+        where this is running it will need the sockets closed.
+        """
+        #close all the sockets
+        for sock in self.sockets:
+            sock.close()
+
+    def shutdown(self):
+        """
+        Clean shutdown.
+
+        Tear down after normal operation.
+        """
+        pass
+
+    def kill(self):
+        """
+        Unclean shutdown.
+
+        Tear down ( fast ) as a mode of failure in the
+        simulation or on service halt.
+
+        Context specific.
+        """
+        raise NotImplementedError
+
     # ----------------------
     #  Internal Maintenance
     # ----------------------
 
     def signal_exception(self, exc=None):
         self.state_flag = COMPONENT_STATE.EXCEPTION
+        self._exception = exc
+
         qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
     def signal_done(self):
@@ -258,15 +364,15 @@ class Component(object):
         """
         assert self.controller
 
-        self.control_out = self.controller.message_sender()
-        self.control_in = self.controller.message_listener()
+        self.control_out = self.controller.message_sender(context=self.context)
+        self.control_in = self.controller.message_listener(context=self.context)
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])
 
     def setup_sync(self):
         """
-        Setup the sync socket and poller.
+        Setup the sync socket and poller. ( Connect )
         """
 
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
@@ -275,7 +381,7 @@ class Component(object):
         self.sync_socket.connect(self.addresses['sync_address'])
         #self.sync_socket.setsockopt(self.zmq.LINGER,0)
 
-        # Explictly, a different poller for obvious reasons.
+        # Explictly a different poller for obvious reasons.
         # I'm not fond of having this poller init'd as a side
         # effect of a method call. Still thinking about where to
         # put it at the moment though...
@@ -288,21 +394,66 @@ class Component(object):
     # Description and Debug
     # ---------------------
 
+    def extern_logger(self):
+        """
+        Pipe logs out to a provided logging interface.
+        """
+        pass
+
+    def setup_extern_logger(self):
+        """
+        Pipe logs out to a provided logging interface.
+        """
+        pass
+
     @property
     def get_id(self):
+        """
+        The descriptive name of the component.
+        """
         return 'UNKNOWN COMPONENT'
+
+    @property
+    def get_type(self):
+        """
+        The data flow type of the component.
+
+        - ``SOURCE``
+        - ``CONDUIT``
+        - ``SINK``
+
+        """
+        raise NotImplementedError
+
+    @property
+    def get_pure(self):
+        """
+        Describes whehter this component purely functional,
+        i.e.  for a given set of inputs is it guaranteed to
+        always give the same output . Components that are
+        side-effectful are, generally, not pure.
+        """
+        return False
 
     def debug(self):
         """
         Debug information about the component.
         """
-        return (
-            self.get_id          ,
-            self.huid            ,
-            socket.gethostname() ,
-            os.getpid()          ,
-            hex(id(self))        ,
-        )
+        return {
+            'id'         : self.get_id          ,
+            'huid'       : self.huid            ,
+            'host'       : socket.gethostname() ,
+            'pid'        : os.getpid()          ,
+            'memaddress' : hex(id(self))        ,
+            'ready'      : self.successful()    ,
+            'succesfull' : self.ready()         ,
+        }
+
+    def __len__(self):
+        """
+        Some components overload this for debug purposes
+        """
+        raise NotImplementedError
 
     def __repr__(self):
         """
