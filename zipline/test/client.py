@@ -51,9 +51,12 @@ class TestTradingClient(TradeSimulationClient):
         self.amount = amount
         self.incr = 0
     
-    def handle_events(self, event_queue):
+    def handle_event(self, event):
         #place an order for 100 shares of sid:133
         if(self.incr < self.count):
             self.order(self.sid, self.amount)
             self.incr += 1
+        else:
+            self.signal_order_done()
+            self.signal_done()
     

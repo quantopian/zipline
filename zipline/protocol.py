@@ -106,7 +106,7 @@ class namedict(object):
         return "namedict: " + str(self.__dict__)
     
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        return other != None and self.__dict__ == other.__dict__
     
     def has_attr(self, name):
         return self.__dict__.has_key(name)
@@ -263,13 +263,9 @@ def FEED_UNFRAME(msg):
 INVALID_TRANSFORM_FRAME = FrameExceptionFactory('TRANSFORM')
 
 def TRANSFORM_FRAME(name, value):
-    """
-    :event: a nameddict with at least::
-        - source_id 
-        - type
-    """
     assert isinstance(name, basestring)
-    assert value != None
+    if value == None:
+        return msgpack.dumps(tuple([name, TRANSFORM_TYPE.EMPTY]))
     if(name == TRANSFORM_TYPE.TRANSACTION):
         value = TRANSACTION_FRAME(value)
     return msgpack.dumps(tuple([name, value]))
@@ -279,13 +275,17 @@ def TRANSFORM_UNFRAME(msg):
     :rtype: namedict with <transform_name>:<transform_value>
     """
     try:
+        
         name, value = msgpack.loads(msg)
+        if(value == TRANSFORM_TYPE.EMPTY):
+            return namedict({name : None})
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(name, basestring)
         if(name == TRANSFORM_TYPE.PASSTHROUGH):
             value = FEED_UNFRAME(value)
         elif(name == TRANSFORM_TYPE.TRANSACTION):
             value = TRANSACTION_UNFRAME(value)
+        
         return namedict({name : value})
     except TypeError:
         raise INVALID_TRANSFORM_FRAME(msg)
@@ -305,6 +305,11 @@ def MERGE_FRAME(event):
     """
     assert isinstance(event, namedict)
     PACK_DATE(event)
+    if(event.has_attr(TRANSFORM_TYPE.TRANSACTION)):
+        if(event.TRANSACTION == None):
+            event.TRANSACTION = TRANSFORM_TYPE.EMPTY
+        else:
+            event.TRANSACTION = TRANSACTION_FRAME(event.TRANSACTION)
     payload = event.__dict__
     return msgpack.dumps(payload)
     
@@ -314,6 +319,11 @@ def MERGE_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         payload = namedict(payload)
+        if(payload.has_attr(TRANSFORM_TYPE.TRANSACTION)):
+            if(payload.TRANSACTION == TRANSFORM_TYPE.EMPTY):
+                payload.TRANSACTION = None
+            else:
+                payload.TRANSACTION = TRANSACTION_UNFRAME(payload.TRANSACTION)
         UNPACK_DATE(payload)
         return payload
     except TypeError:
@@ -476,9 +486,17 @@ DATASOURCE_TYPE = Enum(
     'TRADE'         ,
 )
 
+ORDER_PROTOCOL = Enum(
+    'DONE',
+    'BREAK'
+)
+
+
+#Transform type needs to be a namedict to facilitate merging.
 TRANSFORM_TYPE = namedict({
     'TRANSACTION':'TRANSACTION', #needed?
-    'PASSTHROUGH':'PASSTHROUGH'
+    'PASSTHROUGH':'PASSTHROUGH',
+    'EMPTY':''
     })
     
 

@@ -1,5 +1,7 @@
 import json
 import datetime
+import pytz
+import math
 
 from zmq.core.poll import select
 
@@ -35,24 +37,25 @@ class TradeSimulationClient(qmsg.Component):
                 self.signal_done()
                 return
             
-            event = zp.MERGE_UNFRAME(message)
+            event = zp.MERGE_UNFRAME(msg)
             self._handle_event(event)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def _handle_event(self, event):
-        self.event_queue.append(event)
-        if event.SIM_DT <= event.dt:
-            #event occurred in the present, send the queue to be processed
-            self.handle_events(self.event_queue)
-        self.order_socket.send(str(zp.CONTROL_PROTOCOL.DONE))
+        self.handle_event(event)
+        #signal done to order source.
+        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
-    def handle_events(self, event_queue):
+    def handle_event(self, event):
         raise NotImplementedError    
     
     def order(self, sid, amount):
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
+        
+    def signal_order_done(self):
+        self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
 class OrderDataSource(qmsg.DataSource):
     """DataSource that relays orders from the client"""
@@ -107,7 +110,11 @@ class OrderDataSource(qmsg.DataSource):
                 continue
                 
             order_msg = rlist[0].recv()
-            if order_msg == str(zp.CONTROL_PROTOCOL.DONE):
+            if order_msg == str(zp.ORDER_PROTOCOL.DONE):
+                self.signal_done()
+                return
+                
+            if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
                 qutil.LOGGER.info("order loop finished")
                 break
 
@@ -156,74 +163,77 @@ class TransactionSimulator(qmsg.BaseTransform):
         """
         #TODO: need a way to send a placeholder txn, to avoid blocking merge... maybe customize merge to not block on txn?
         if(event.type == zp.DATASOURCE_TYPE.ORDER):
-            self.add_open_order(event.sid, event.amount)
-            self.state['value'] = self.create_transaction(0, 0, 0.0, event.dt, 1)
+            self.add_open_order(event)
+            self.state['value'] = None
         elif(event.type == zp.DATASOURCE_TYPE.TRADE):
-            txn = apply_trade_to_open_orders(event)
+            txn = self.apply_trade_to_open_orders(event)
             self.state['value'] = txn
+        else:
+            self.state['value'] = None
+            qutil.LOGGER.info("unexpected event type in transform: {etype}".format(etype=event.type))
         #TODO: what to do if we get another kind of datasource event.type?
         
         return self.state
             
-    def add_open_order(self, sid, amount):
+    def add_open_order(self, event):
         """Orders are captured in a buffer by sid. No calculations are done here.
             Amount is explicitly converted to an int.
             Orders of amount zero are ignored.
         """
-        amount = int(amount)
-        if amount == 0:
-            qutil.LOGGER.debug("requested to trade zero shares of {sid}".format(sid=sid))
+        event.amount = int(event.amount)
+        if event.amount == 0:
+            qutil.LOGGER.debug("requested to trade zero shares of {sid}".format(sid=event.sid))
             return
             
         self.order_count += 1
-        order = zp.namedict({'sid' : sid, 
-                 'amount' : amount, 
-                 'dt' : self.algo_time,
-                 'filled': 0,
-                 'direction': math.fabs(amount) / amount
-                 })
         
-        if(not self.open_orders.has_key(sid)):
-            self.open_orders[sid] = []
-        self.open_orders[sid].append(order)
+        if(not self.open_orders.has_key(event.sid)):
+            self.open_orders[event.sid] = []
+        self.open_orders[event.sid].append(event)
      
     def apply_trade_to_open_orders(self, event):
         
         if(event.volume == 0):
             #there are zero volume events bc some stocks trade less frequently than once per minute.
-            return 
+            return self.create_dummy_txn(event.dt)
+            
         if self.open_orders.has_key(event.sid):
             orders = self.open_orders[event.sid] 
-            remaining_orders = []
-            total_order = 0        
-            dt = event.dt
-        
-            for order in orders:
-                #we're using minute bars, so allow orders within 30 seconds of the trade
-                if((order.dt - event.dt) < self.trade_windwo):
-                    total_order += order.amount
-                    if(order.dt > dt):
-                        dt = order.dt
-                #if the order still has time to live (TTL) keep track
-                elif((self.algo_time - order.dt) < self.orderTTL):
-                    remaining_orders.append(order)
-        
-            self.open_orders[event.sid] = remaining_orders
-        
-            if(total_order != 0):
-                direction = total_order / math.fabs(total_order)
-                volume_share = (direction * total_order) / event.volume
-                if volume_share > .25:
-                    volume_share = .25
-                amount = volume_share * event.volume * direction
-                impact = (volShare)**2 * .1 * direction * event.price
-                return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
-        
+        else:
+            return None
+            
+        remaining_orders = []
+        total_order = 0        
+        dt = event.dt
+    
+        for order in orders:
+            #we're using minute bars, so allow orders within 30 seconds of the trade
+            if((order.dt - event.dt) < self.trade_windwo):
+                total_order += order.amount
+                if(order.dt > dt):
+                    dt = order.dt
+            #if the order still has time to live (TTL) keep track
+            elif((self.algo_time - order.dt) < self.orderTTL):
+                remaining_orders.append(order)
+    
+        self.open_orders[event.sid] = remaining_orders
+    
+        if(total_order != 0):
+            direction = total_order / math.fabs(total_order)
+        else:
+            direction = 1
+            
+        volume_share = (direction * total_order) / event.volume
+        if volume_share > .25:
+            volume_share = .25
+        amount = volume_share * event.volume * direction
+        impact = (volume_share)**2 * .1 * direction * event.price
+        return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
     
         
     def create_transaction(self, sid, amount, price, dt, direction):                
         txn = {'sid'                : sid, 
-                'amount'             : amount, 
+                'amount'             : int(amount), 
                 'dt'                 : dt, 
                 'price'              : price, 
                 'commission'          : self.commission * amount * direction,

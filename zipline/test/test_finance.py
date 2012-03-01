@@ -127,11 +127,14 @@ class FinanceTestCase(ThreadPoolExecutorMixin, TestCase):
         # Simulation Components
         # ---------------------
 
-        set1 = SpecificEquityTrades("flat-133",factory.create_trade_history(133,    
-                                                                            [10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0], 
-                                                                            [100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100], 
-                                                                            datetime.datetime.strptime("02/1/2012","%m/%d/%Y"),
-                                                                            datetime.timedelta(days=1)))
+        set1 = SpecificEquityTrades("flat-133",
+                                    factory.create_trade_history(
+                                        133,    
+                                        [10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0,10.0], 
+                                        [100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100], 
+                                        datetime.datetime.strptime("02/1/2012","%m/%d/%Y"),
+                                        datetime.timedelta(days=1)))
+                                        
         #client sill send 10 orders for 100 shares of 133
         client = TestTradingClient(133, 100, 10)
         order_source = OrderDataSource(datetime.datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc))
