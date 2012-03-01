@@ -6,12 +6,11 @@ from zipline.finance.trading import TradeSimulationClient
 import zipline.protocol as zp
 
 class TestClient(qmsg.Component):
-    """no-op client - Just connects to the merge and counts messages. compares received message count to the expected count."""
+    """no-op client - Just connects to the merge and counts messages."""
 
-    def __init__(self, expected_msg_count=0):
+    def __init__(self):
         qmsg.Component.__init__(self)
         self.received_count     = 0
-        self.expected_msg_count = expected_msg_count
         self.prev_dt            = None
         self.heartbeat_timeout = 2000
 
@@ -31,9 +30,6 @@ class TestClient(qmsg.Component):
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.signal_done()
-                if(self.expected_msg_count > 0):
-                    assert self.received_count == self.expected_msg_count
-
                 return
 
             self.received_count += 1
@@ -48,14 +44,16 @@ class TestClient(qmsg.Component):
 
 class TestTradingClient(TradeSimulationClient):
     
-    def __init__(self, count):
+    def __init__(self, sid, amount, order_count):
         TradeSimulationClient.__init__(self)
-        self.count = count
+        self.count = order_count
+        self.sid = sid
+        self.amount = amount
         self.incr = 0
     
     def handle_events(self, event_queue):
         #place an order for 100 shares of sid:133
         if(self.incr < self.count):
-            self.order(133, 100)
+            self.order(self.sid, self.amount)
             self.incr += 1
     

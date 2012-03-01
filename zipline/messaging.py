@@ -409,8 +409,9 @@ class PassthroughTransform(BaseTransform):
             if message == str(CONTROL_PROTOCOL.DONE):
                 self.signal_done()
                 return
-        #message is already FEED_FRAMEd, send it as the value.
-        self.result_socket.send(zp.TRANSFORM_FRAME("PASSTHROUGH", message), self.zmq.NOBLOCK)
+            
+            #message is already FEED_FRAMEd, send it as the value.
+            self.result_socket.send(zp.TRANSFORM_FRAME("PASSTHROUGH", message), self.zmq.NOBLOCK)
 
 
 class DataSource(Component):
