@@ -157,13 +157,8 @@ class FinanceTestCase(TestCase):
         # ----------
         sim.simulate().join()
 
-        # Stop Running
-        # ------------
-
-        # TODO: less abrupt later, just shove a StopIteration
-        # down the pipe to make it stop spinning
-        sim.cuc._Thread__stop()
-
+        
+        # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0,
             "The feed should be drained of all messages, found {n} remaining."
             .format(n=sim.feed.pending_messages())

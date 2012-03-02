@@ -3,10 +3,10 @@ Commonly used messaging components.
 """
 
 import datetime
-import ujson as json
 
 import zipline.util as qutil
 from zipline.component import Component
+import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     COMPONENT_STATE
 
@@ -220,19 +220,26 @@ class ParallelBuffer(Component):
                     self.signal_done()
             else:
                 try:
-                    event = json.loads(message)
-
-                # JSON deserialization error
-                except ValueError as exc:
+                    event = self.unframe(message)
+                # deserialization error
+                except zp.InvalidFrame as exc:
                     return self.signal_exception(exc)
 
                 try:
-                    self.append(event[u'id'], event)
+                    self.append(event)
                     self.send_next()
 
                 # Invalid message
-                except KeyError as exc:
+                except zp.InvalidFrame as exc:
                     return self.signal_exception(exc)
+
+    #
+    def unframe(self, msg):
+        return zp.DATASOURCE_UNFRAME(msg)
+
+    def frame(self, event):
+        return zp.FEED_FRAME(event)
+    
 
     # -------------
     # Flow Control
@@ -254,17 +261,16 @@ class ParallelBuffer(Component):
             return
 
         event = self.next()
-
-        if event != None:
-            self.feed_socket.send(json.dumps(event), self.zmq.NOBLOCK)
+        if(event != None):
+            self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
             self.sent_count += 1
 
-    def append(self, source_id, value):
+    def append(self, event):
         """
         Add an event to the buffer for the source specified by
         source_id.
         """
-        self.data_buffer[source_id].append(value)
+        self.data_buffer[event.source_id].append(event)
         self.received_count += 1
 
     def next(self):
@@ -280,7 +286,7 @@ class ParallelBuffer(Component):
             if len(events) == 0:
                 continue
             cur = events
-            if (earliest == None) or (cur[0]['dt'] <= earliest[0]['dt']):
+            if (earliest == None) or (cur[0].dt <= earliest[0].dt):
                 earliest = cur
 
         if earliest != None:
@@ -350,15 +356,32 @@ class MergedParallelBuffer(ParallelBuffer):
         if(not(self.is_full() or self.draining)):
             return
 
+        #
         #get the raw event from the passthrough transform.
-        result = self.data_buffer["PASSTHROUGH"].pop(0)['value']
+        result = self.data_buffer[zp.TRANSFORM_TYPE.PASSTHROUGH].pop(0).PASSTHROUGH
         for source, events in self.data_buffer.iteritems():
-            if source == "PASSTHROUGH":
+            if source == zp.TRANSFORM_TYPE.PASSTHROUGH:
                 continue
             if len(events) > 0:
                 cur = events.pop(0)
-                result[source] = cur['value']
+                result.merge(cur)
         return result
+        
+    def unframe(self, msg):
+        return zp.TRANSFORM_UNFRAME(msg)   
+    
+    def frame(self, event):
+        return zp.MERGE_FRAME(event)
+
+    def append(self, event):
+        """
+        :param event: a namedict with one entry. key is the name of the transform, value is the transformed value.
+        Add an event to the buffer for the source specified by
+        source_id.
+        """
+
+        self.data_buffer[event.__dict__.keys()[0]].append(event)
+        self.received_count += 1
 
 
 class BaseTransform(Component):
@@ -425,14 +448,12 @@ class BaseTransform(Component):
                 return
 
             try:
-                event = json.loads(message)
-            except ValueError as exc:
+                event = self.unframe(message)
+            except zp.InvalidFrame as exc:
                 return self.signal_exception(exc)
 
             try:
                 cur_state = self.transform(event)
-                cur_state['dt'] = event['dt']
-                cur_state['id'] = self.state['name']
 
             # This is overloaded, so it can fail in all sorts of
             # unknown ways. Its best to catch it in the
@@ -441,12 +462,18 @@ class BaseTransform(Component):
                 return self.signal_exception(exc)
 
             try:
-                json_frame = json.dumps(cur_state)
-            except ValueError as exc:
+                transform_frame = self.frame(cur_state)
+            except zp.InvalidFrame as exc:
                 return self.signal_exception(exc)
 
-            self.result_socket.send(json_frame, self.zmq.NOBLOCK)
-
+            self.result_socket.send(transform_frame, self.zmq.NOBLOCK)
+            
+    def frame(self, cur_state):
+        return zp.TRANSFORM_FRAME(cur_state['name'], cur_state['value'])
+        
+    def unframe(self, msg):
+        return zp.FEED_UNFRAME(msg)
+        
     def transform(self, event):
         """
         Must return the transformed value as a map with::
@@ -487,7 +514,7 @@ class PassthroughTransform(BaseTransform):
 
     #TODO, could save some cycles by skipping the _UNFRAME call and just setting value to original msg string.
     def transform(self, event):
-        return {'name':zp.TRANSFORM_TYPE.PASSTHROUGH, 'value': zp.DATASOURCE_FRAME(event) }
+        return {'name':zp.TRANSFORM_TYPE.PASSTHROUGH, 'value': zp.FEED_FRAME(event) }
 
 
 class DataSource(Component):
@@ -520,14 +547,17 @@ class DataSource(Component):
         """
         Emit data.
         """
-        assert isinstance(event, dict)
+        assert isinstance(event, zp.namedict)
 
-        event['id'] = self.id
-        event['type'] = self.get_type()
+        event.__dict__['source_id'] = self.get_id
+        event.__dict__['type'] = self.get_type
 
         try:
-            json_frame = json.dumps(event)
-        except ValueError as exc:
+            ds_frame = self.frame(event)
+        except zp.InvalidFrame as exc:
             return self.signal_exception(exc)
 
-        self.data_socket.send(json_frame)
+        self.data_socket.send(ds_frame)
+
+    def frame(self, event):
+        return zp.DATASOURCE_FRAME(event)

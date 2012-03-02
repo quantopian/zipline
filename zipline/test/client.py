@@ -1,6 +1,3 @@
-#import logging
-import ujson as json
-
 import zipline.util as qutil
 import zipline.messaging as qmsg
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
@@ -45,10 +42,10 @@ class TestClient(qmsg.Component):
             self.received_count += 1
 
             try:
-                event = json.loads(msg)
+                event = self.unframe(msg)
 
-            # JSON deserialization error
-            except ValueError as exc:
+            # deserialization error
+            except zp.InvalidFrame as exc:
                 return self.signal_exception(exc)
 
             if self.prev_dt != None:
@@ -59,10 +56,14 @@ class TestClient(qmsg.Component):
                         )
                     )
             else:
-                self.prev_dt = event['dt']
+                self.prev_dt = event.dt
 
             if self.received_count % 100 == 0:
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
+            
+        def unframe(self, msg):
+            return zp.MERGE_UNFRARME(msg)
+
 
 class TestTradingClient(TradeSimulationClient):
     

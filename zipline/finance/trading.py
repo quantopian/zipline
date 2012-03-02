@@ -1,4 +1,3 @@
-import json
 import datetime
 import pytz
 import math
@@ -76,8 +75,9 @@ class OrderDataSource(qmsg.DataSource):
         self.last_iteration_duration = datetime.timedelta(seconds=0)
         self.sent_count         = 0
 
+    @property
     def get_type(self):
-        return zp.FINANCE_COMPONENT.ORDER_SOURCE
+        return zp.DATASOURCE_TYPE.ORDER
         
     def open(self):
         qmsg.DataSource.open(self)
@@ -123,7 +123,7 @@ class OrderDataSource(qmsg.DataSource):
             
             self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
             dt = self.simulation_dt + self.last_iteration_duration
-            order_event = zp.namedict({"sid":sid, "amount":amount, "dt":dt, "source_id":self.get_id, "type":zp.DATASOURCE_TYPE.ORDER})
+            order_event = zp.namedict({"sid":sid, "amount":amount, "dt":dt})
             
             self.send(order_event)
             count += 1
@@ -133,14 +133,10 @@ class OrderDataSource(qmsg.DataSource):
         if(count == 0):
             self.send_dummy()
             self.sent_count += 1
-    
-    def send(self, order_event):
-        message = zp.DATASOURCE_FRAME(order_event)
-        self.data_socket.send(message)
         
     def send_dummy(self):
         dt = self.simulation_dt + self.last_iteration_duration
-        dummy_order = zp.namedict({"sid":0, "amount":0, "dt":dt, "source_id":self.get_id, "type":zp.DATASOURCE_TYPE.ORDER})
+        dummy_order = zp.namedict({"sid":0, "amount":0, "dt":dt})
         self.send(dummy_order)
     
     
