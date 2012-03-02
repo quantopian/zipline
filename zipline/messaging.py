@@ -222,7 +222,7 @@ class ParallelBuffer(Component):
                 try:
                     event = self.unframe(message)
                 # deserialization error
-                except zp.InvalidFrame as exc:
+                except zp.INVALID_DATASOURE_FRAME as exc:
                     return self.signal_exception(exc)
 
                 try:
@@ -230,7 +230,7 @@ class ParallelBuffer(Component):
                     self.send_next()
 
                 # Invalid message
-                except zp.InvalidFrame as exc:
+                except zp.INVALID_DATASOURCE_FRAME as exc:
                     return self.signal_exception(exc)
 
     #
@@ -449,7 +449,7 @@ class BaseTransform(Component):
 
             try:
                 event = self.unframe(message)
-            except zp.InvalidFrame as exc:
+            except zp.INVALID_FEED_FRAME as exc:
                 return self.signal_exception(exc)
 
             try:
@@ -463,7 +463,7 @@ class BaseTransform(Component):
 
             try:
                 transform_frame = self.frame(cur_state)
-            except zp.InvalidFrame as exc:
+            except zp.INVALID_TRANSFORM_FRAME as exc:
                 return self.signal_exception(exc)
 
             self.result_socket.send(transform_frame, self.zmq.NOBLOCK)
@@ -554,7 +554,7 @@ class DataSource(Component):
 
         try:
             ds_frame = self.frame(event)
-        except zp.InvalidFrame as exc:
+        except zp.INVALID_DATASOURCE_FRAME as exc:
             return self.signal_exception(exc)
 
         self.data_socket.send(ds_frame)

@@ -61,15 +61,14 @@ def Enum(*options):
         _fields_ = [(o, c_ubyte) for o in options]
     return cstruct(*range(len(options)))
 
-class InvalidFrame(Exception):
-    def __init__(self, got):
-        self.got = got
-
 def FrameExceptionFactory(name):
     """
     Exception factory with a closure around the frame class name.
     """
-    class NamedInvalidFrame(InvalidFrame):
+    class InvalidFrame(Exception):
+        def __init__(self, got):
+            self.got = got
+            
         def __str__(self):
             return "Invalid {framecls} Frame: {got}".format(
                 framecls = name,
