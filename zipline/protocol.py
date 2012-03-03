@@ -10,7 +10,7 @@ Notes
 
 Msgpack
 -------
-Msgpack is the fastest seriaization protocol in Python at the
+Msgpack is the fastest serialization protocol in Python at the
 moment. Its 100% C is typically orders of magnitude faster than
 json and pickle making it awesome for ZeroMQ.
 
@@ -70,15 +70,15 @@ as well as being indexable and iterable::
         'REP' : b'\x02',
     })
     
-    HEARTBEAT_PROTOCOL.REQ # syntatic sugar
+    HEARTBEAT_PROTOCOL.REQ # syntactic sugar
     HEARTBEAT_PROTOCOL.REP # oh suga suga
 
     HEARTBEAT_PROTOCOL['REQ'] # classic dictionary index
 
-Nmaedtuple
+Namedtuple
 ----------
 
-From the standard library, namedtuples are great for specifing
+From the standard library, namedtuples are great for specifying
 containers for spec'ing data container objects::
 
     from collections import namedtuple
