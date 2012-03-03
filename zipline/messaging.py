@@ -280,17 +280,22 @@ class ParallelBuffer(Component):
         if not(self.is_full() or self.draining):
             return
 
-        cur = None
-        earliest = None
+        cur_source = None
+        earliest_source = None
+        earliest_event = None
+        #iterate over the queues of events from all sources (1 queue per datasource)
         for events in self.data_buffer.values():
             if len(events) == 0:
                 continue
-            cur = events
-            if (earliest == None) or (cur[0].dt <= earliest[0].dt):
-                earliest = cur
+            cur_source = events
+            first_in_list = events[0]
+            
+            if (earliest_event == None) or (first_in_list.dt <= earliest_event.dt):
+                earliest_event = first_in_list
+                earliest_source = cur_source
 
-        if earliest != None:
-            return earliest.pop(0)
+        if earliest_event != None:
+            return earliest_source.pop(0)
 
     def is_full(self):
         """
@@ -380,7 +385,7 @@ class MergedParallelBuffer(ParallelBuffer):
         source_id.
         """
 
-        self.data_buffer[event.__dict__.keys()[0]].append(event)
+        self.data_buffer[event.keys()[0]].append(event)
         self.received_count += 1
 
 
@@ -549,8 +554,8 @@ class DataSource(Component):
         """
         assert isinstance(event, zp.namedict)
 
-        event.__dict__['source_id'] = self.get_id
-        event.__dict__['type'] = self.get_type
+        event['source_id'] = self.get_id
+        event['type'] = self.get_type
 
         try:
             ds_frame = self.frame(event)

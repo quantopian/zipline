@@ -53,7 +53,7 @@ class FinanceTestCase(TestCase):
             
             #check the transformed value, should only be in event, not trade.
             self.assertTrue(event.helloworld == 2345.6)
-            del(event.__dict__['helloworld'])
+            event.delete('helloworld')
             
             self.assertEqual(zp.namedict(trade), event)
             

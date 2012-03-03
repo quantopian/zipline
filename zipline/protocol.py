@@ -98,6 +98,19 @@ class namedict(object):
             self.__dict__['id'] = value
         else:
             self.__dict__[key] = value
+            
+    def __getitem__(self, key):
+        return self.__dict__[key]
+        
+    def keys(self):
+        return self.__dict__.keys()
+        
+    def as_dict(self):
+        #TODO: make a copy?
+        return self.__dict__
+    
+    def delete(self, key):
+        del(self.__dict__[key])
     
     def merge(self, other_nd):
         assert isinstance(other_nd, namedict)
@@ -248,7 +261,7 @@ def FEED_FRAME(event):
     source_id = event.source_id
     ds_type = event.type
     PACK_DATE(event)
-    payload = event.__dict__
+    payload = event.as_dict()
     return msgpack.dumps(payload)
     
 def FEED_UNFRAME(msg):
@@ -317,7 +330,7 @@ def MERGE_FRAME(event):
             event.TRANSACTION = TRANSFORM_TYPE.EMPTY
         else:
             event.TRANSACTION = TRANSACTION_FRAME(event.TRANSACTION)
-    payload = event.__dict__
+    payload = event.as_dict()
     return msgpack.dumps(payload)
     
 def MERGE_UNFRAME(msg):
@@ -474,7 +487,7 @@ def PACK_DATE(event):
     epoch = long(event.dt.strftime('%s'))
     event['epoch'] = epoch
     event['micros'] = event.dt.microsecond
-    del(event.__dict__['dt'])
+    event.delete('dt')
     return event
 
 def UNPACK_DATE(payload):
@@ -482,9 +495,9 @@ def UNPACK_DATE(payload):
     assert isinstance(payload.micros, numbers.Integral)
     dt = datetime.datetime.fromtimestamp(payload.epoch)
     dt = dt.replace(microsecond = payload.micros, tzinfo = pytz.utc)
-    del(payload.__dict__['epoch'])
-    del(payload.__dict__['micros'])
-    payload['dt'] = dt
+    payload.delete('epoch')
+    payload.delete('micros')
+    payload.dt = dt
     return payload
 
 DATASOURCE_TYPE = Enum(
