@@ -139,7 +139,7 @@ class Component(object):
         # systems where this becomes needed. Add this option.
         # 
         # http://zeromq.github.com/pyzmq/morethanbindings.html#thread-safety
-        self.context = self.zmq.Context()
+        self.context = self.zmq.Context.instance()
 
         self.setup_poller()
 
@@ -179,8 +179,6 @@ class Component(object):
                 self.shutdown()
                 self.teardown_sockets()
 
-                if self.context:
-                    self.context.destroy()
                 if fail:
                     raise fail
         else:

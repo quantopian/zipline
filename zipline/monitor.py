@@ -76,7 +76,7 @@ class Controller(object):
         self.polling = True
 
         if not context:
-            self._ctx = zmq.Context()
+            self._ctx = zmq.Context.instance()
         else:
             self._ctx = context
 
@@ -142,7 +142,7 @@ class Controller(object):
         """
 
         if not context:
-            context = zmq.Context()
+            context = zmq.Context.instance()
 
         s = context.socket(zmq.PUSH)
         s.connect(self.push_socket)
@@ -156,7 +156,7 @@ class Controller(object):
         """
 
         if not context:
-            context = zmq.Context()
+            context = zmq.Context.instance()
 
         s = context.socket(zmq.SUB)
         s.connect(self.sub_socket)
@@ -168,7 +168,7 @@ class Controller(object):
         self.polling = False
 
         if not context:
-            context = zmq.Context()
+            context = zmq.Context.instance()
 
         #logging.info('Shutdown controller')
 
