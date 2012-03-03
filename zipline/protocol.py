@@ -39,12 +39,88 @@ that anything outside of UTF8 can cause serious problems, so if
 you have a strong desire to JSON encode ancient Sanskrit
 ( admit it, we all do ), just say no.
 
+Data Structures
+===============
+
+Enum
+----
+
+Classic C style enumeration::
+
+    opts = Enum('FOO', 'BAR')
+
+    opts.FOO # 0
+    opts.BAR # 1
+    opts.FOO = opts.BAR # False
+
+Oh, and if you do this::
+
+    protocol.Enum([1,2,3])
+
+Your interpreter will segfault, think of this like an extreme assert.
+
+Namedict
+--------
+
+Namedicts are dict like objects that have fields accessible by attribute lookup 
+as well as being indexable and iterable::
+
+    HEARTBEAT_PROTOCOL = namedict({
+        'REQ' : b'\x01',
+        'REP' : b'\x02',
+    })
+    
+    HEARTBEAT_PROTOCOL.REQ # syntatic sugar
+    HEARTBEAT_PROTOCOL.REP # oh suga suga
+
+    HEARTBEAT_PROTOCOL['REQ'] # classic dictionary index
+
+Nmaedtuple
+----------
+
+From the standard library, namedtuples are great for specifing
+containers for spec'ing data container objects::
+
+    from collections import namedtuple
+
+    Person = namedtuple('Person', 'name age gender')
+    bob = Person(name='Bob', age=30, gender='male')
+
+    bob.name   # 'Bob'
+    bob.age    # 30
+    bob.gender # male
+
+    # The slots on the tuple are also finite and read-only. This
+    # is a good thing, keeps us honest!
+
+    bob.hobby = 'underwater archery'
+    # Will raise:
+    # AttributeError: 'Person' object has no attribute 'hobby'
+
+    bob.name = 'joe'
+    # Will raise:
+    # AttributeError: can't set attribute
+
+    # Namedtuples are normally read-only, but you can change the
+    # internals using a private operation.
+    bob._replace(gender='female')
+
+    # You can also dump out to dictionary form:
+    OrderedDict([('name', 'Bob'), ('age', 30), ('gender', 'male')])
+
+    # Or JSON.
+    json.dumps(bob._asdict())
+    '{"gender":"male","age":30,"name":"Bob"}'
+
 """
 
 import msgpack
 import numbers
 import datetime
 import pytz
+import copy
+from collections import namedtuple
+
 import zipline.util as qutil
 #import ujson
 #import ultrajson_numpy
@@ -106,8 +182,8 @@ class namedict(object):
         return self.__dict__.keys()
         
     def as_dict(self):
-        #TODO: make a copy?
-        return self.__dict__
+        # shallow copy is O(n)
+        return copy.copy(self.__dict__)
     
     def delete(self, key):
         del(self.__dict__[key])
