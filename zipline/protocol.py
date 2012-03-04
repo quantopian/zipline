@@ -617,28 +617,52 @@ def ORDER_SOURCE_UNFRAME(msg):
 # =================
 
 def PACK_DATE(event):
+    """
+    Packs the datetime property of event into msgpack'able longs.
+    This function should be called purely for its side effects. 
+    The event's 'dt' property is replaced by two longs: epoch and micros. 
+    Epoch is the unix epoch time in UTC, and micros is the microsecond 
+    property of the original event.dt datetime object.
+    
+    PACK_DATE and UNPACK_DATE are inverse operations. 
+    
+    :param event: event must a namedict with a property named 'dt' that is a datetime.
+    :rtype: None
+    """
     assert isinstance(event.dt, datetime.datetime)
     assert event.dt.tzinfo == pytz.utc #utc only please
     epoch = long(event.dt.strftime('%s'))
     event['epoch'] = epoch
     event['micros'] = event.dt.microsecond
     event.delete('dt')
-    return event
 
-def UNPACK_DATE(payload):
-    assert isinstance(payload.epoch, numbers.Integral)
-    assert isinstance(payload.micros, numbers.Integral)
-    dt = datetime.datetime.fromtimestamp(payload.epoch)
-    dt = dt.replace(microsecond = payload.micros, tzinfo = pytz.utc)
-    payload.delete('epoch')
-    payload.delete('micros')
-    payload.dt = dt
-    return payload
+def UNPACK_DATE(event):
+    """
+    Unpacks the datetime property of event from msgpack'able longs.
+    This function should be called purely for its side effects. 
+    The event's 'dt' property is created by reading two longs: epoch and micros. 
+    
+    UNPACK_DATE and PACK_DATE are inverse operations. 
+    
+    :param event: event must a namedict with::
+            - a property named 'epoch' that is an integral representing the unix \
+             epoch time in UTC
+            - a property named 'micros' that is an integral the microsecond \
+            property of the original event.dt datetime object
+    :rtype: None
+    """
+    assert isinstance(event.epoch, numbers.Integral)
+    assert isinstance(event.micros, numbers.Integral)
+    dt = datetime.datetime.fromtimestamp(event.epoch)
+    dt = dt.replace(microsecond = event.micros, tzinfo = pytz.utc)
+    event.delete('epoch')
+    event.delete('micros')
+    event.dt = dt
 
 
 DATASOURCE_TYPE = Enum(
-    'ORDER'         ,
-    'TRADE'         ,
+    'ORDER',
+    'TRADE'
 )
 
 ORDER_PROTOCOL = Enum(
