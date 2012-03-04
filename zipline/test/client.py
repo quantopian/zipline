@@ -1,5 +1,6 @@
 import zipline.util as qutil
 import zipline.messaging as qmsg
+import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
 from zipline.finance.trading import TradeSimulationClient
 
@@ -45,7 +46,7 @@ class TestClient(qmsg.Component):
                 event = self.unframe(msg)
 
             # deserialization error
-            except zp.InvalidFrame as exc:
+            except zp.INVALID_MERGE_FRAME as exc:
                 return self.signal_exception(exc)
 
             if self.prev_dt != None:
@@ -61,8 +62,8 @@ class TestClient(qmsg.Component):
             if self.received_count % 100 == 0:
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
             
-        def unframe(self, msg):
-            return zp.MERGE_UNFRARME(msg)
+    def unframe(self, msg):
+        return zp.MERGE_UNFRAME(msg)
 
 
 class TestTradingClient(TradeSimulationClient):

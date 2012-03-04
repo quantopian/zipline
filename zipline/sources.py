@@ -49,16 +49,15 @@ class RandomEquityTrades(TradeDataSource):
         volume = random.randrange(100,10000,100)
 
         event = zp.namedict({
-            'source_id' : self.get_id,
-            "type"      : zp.DATASOURCE_TYPE.ORDER,
+            #'source_id' : self.get_id,
+            "type"      : zp.DATASOURCE_TYPE.TRADE,
             "sid"       : self.sid,
             "price"     : self.price,
             "volume"    : volume,
             "dt"        : self.trade_start + (self.minute * self.incr),
         })
 
-        message = zp.DATASOURCE_FRAME(event)
-        self.send(message)
+        self.send(event)
 
         self.incr += 1
 
