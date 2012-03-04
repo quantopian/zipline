@@ -11,6 +11,7 @@ from zipline.sources import RandomEquityTrades
 from zipline.test.client import TestClient
 from zipline.test.transform import DivideByZeroTransform
 
+from nose.tools import timed
 
 # Should not inherit form TestCase since test runners will pick
 # it up as a test. Its a Mixin of sorts at this point.
@@ -73,6 +74,7 @@ class SimulatorTestCase(object):
     #  Cases
     # -------
 
+    @timed(2)
     def test_simple(self):
 
         # Simple test just to make sure that the archiecture is
@@ -100,7 +102,7 @@ class SimulatorTestCase(object):
 
         ret1 = RandomEquityTrades(133, "ret1", 1)
         ret2 = RandomEquityTrades(134, "ret2", 1)
-        client = TestClient(expected_msg_count=(ret1.count + ret2.count))
+        client = TestClient()
 
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
@@ -149,7 +151,7 @@ class SimulatorTestCase(object):
         ret1 = RandomEquityTrades(133, "ret1", 1)
         ret2 = RandomEquityTrades(134, "ret2", 1)
         fail_transform = DivideByZeroTransform("fail")
-        client = TestClient(self, expected_msg_count=ret1.count + ret2.count)
+        client = TestClient()
 
         sim.register_controller( con )
         sim.register_components([ret1, ret2, fail_transform, client])
@@ -194,7 +196,7 @@ class SimulatorTestCase(object):
 
         ret1 = RandomEquityTrades(133, "ret1", 400)
         ret2 = RandomEquityTrades(134, "ret2", 400)
-        client = TestClient(expected_msg_count=ret1.count + ret2.count)
+        client = TestClient()
 
         sim.register_controller( con )
         sim.register_components([ret1, ret2, client])
@@ -240,7 +242,7 @@ class SimulatorTestCase(object):
         ret2 = RandomEquityTrades(134, "ret2", 5000)
         mavg1 = MovingAverage("mavg1", 30)
         mavg2 = MovingAverage("mavg2", 60)
-        client = TestClient(expected_msg_count=10000)
+        client = TestClient()
 
         sim.register_components([ret1, ret2, mavg1, mavg2, client])
         sim.register_controller( con )
