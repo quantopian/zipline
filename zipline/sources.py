@@ -49,7 +49,6 @@ class RandomEquityTrades(TradeDataSource):
         volume = random.randrange(100,10000,100)
 
         event = zp.namedict({
-            #'source_id' : self.get_id,
             "type"      : zp.DATASOURCE_TYPE.TRADE,
             "sid"       : self.sid,
             "price"     : self.price,
