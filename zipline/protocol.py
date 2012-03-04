@@ -62,14 +62,14 @@ Your interpreter will segfault, think of this like an extreme assert.
 Namedict
 --------
 
-Namedicts are dict like objects that have fields accessible by attribute lookup 
+Namedicts are dict like objects that have fields accessible by attribute lookup
 as well as being indexable and iterable::
 
     HEARTBEAT_PROTOCOL = namedict({
         'REQ' : b'\x01',
         'REP' : b'\x02',
     })
-    
+
     HEARTBEAT_PROTOCOL.REQ # syntactic sugar
     HEARTBEAT_PROTOCOL.REP # oh suga suga
 
@@ -144,13 +144,13 @@ def FrameExceptionFactory(name):
     class InvalidFrame(Exception):
         def __init__(self, got):
             self.got = got
-            
+
         def __str__(self):
             return "Invalid {framecls} Frame: {got}".format(
                 framecls = name,
                 got = self.got,
             )
-            
+
     return InvalidFrame
 
 class namedict(object):
@@ -167,37 +167,42 @@ class namedict(object):
     def __init__(self, dct=None):
         if(dct):
             self.__dict__.update(dct)
-    
+
     def __setitem__(self, key, value):
-        """Required for use by pymongo as_class parameter to find."""
+        """
+        Required for use by pymongo as_class parameter to find.
+        """
         if(key == '_id'):
             self.__dict__['id'] = value
         else:
             self.__dict__[key] = value
-            
+
     def __getitem__(self, key):
         return self.__dict__[key]
-        
+
     def keys(self):
         return self.__dict__.keys()
-        
+
     def as_dict(self):
         # shallow copy is O(n)
         return copy.copy(self.__dict__)
-    
+
     def delete(self, key):
         del(self.__dict__[key])
-    
+
     def merge(self, other_nd):
         assert isinstance(other_nd, namedict)
         self.__dict__.update(other_nd.__dict__)
-        
+
     def __repr__(self):
         return "namedict: " + str(self.__dict__)
-    
+
     def __eq__(self, other):
+        # !!!!!!!!!!!!!!!!!!!!
+        # !!!! DANGEROUS !!!!!
+        # !!!!!!!!!!!!!!!!!!!!
         return other != None and self.__dict__ == other.__dict__
-    
+
     def has_attr(self, name):
         return self.__dict__.has_key(name)
 
@@ -277,36 +282,44 @@ INVALID_DATASOURCE_FRAME = FrameExceptionFactory('DATASOURCE')
 
 def DATASOURCE_FRAME(event):
     """
-    wraps any datasource payload with id and type, so that unpacking may choose the write
-    UNFRAME for the payload.
-    ::ds_id:: an identifier that is unique to the datasource in the context of a component host (e.g. Simulator
+    Wraps any datasource payload with id and type, so that unpacking may choose
+    the write UNFRAME for the payload.
+
+    ::ds_id:: an identifier that is unique to the datasource in the context of
+    a component host (e.g. Simulator
     ::ds_type:: a string denoting the datasource type. Must be on of::
         TRADE
         (others to follow soon)
     ::payload:: a msgpack string carrying the payload for the frame
     """
+
     assert isinstance(event.source_id, basestring)
-    assert isinstance(event.type, int)
+    assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
+
     if(event.type == DATASOURCE_TYPE.TRADE):
         return msgpack.dumps(tuple([event.type, TRADE_FRAME(event)]))
     elif(event.type == DATASOURCE_TYPE.ORDER):
         return msgpack.dumps(tuple([event.type, ORDER_SOURCE_FRAME(event)]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
-    
+
 def DATASOURCE_UNFRAME(msg):
     """
-    extracts payload, and calls correct UNFRAME method based on the datasource type passed along
+    Extracts payload, and calls correct UNFRAME method based on the datasource
+    type passed along.
+
     returns a dict containing at least::
         - source_id
         - type
+
     other properties are added based on the datasource type::
         - TRADE::
             - sid - int security identifier
             - price - float
-            - volume - int 
+            - volume - int
             - dt - a datetime object
     """
+
     try:
         ds_type, payload = msgpack.loads(msg)
         assert isinstance(ds_type, int)
@@ -316,12 +329,12 @@ def DATASOURCE_UNFRAME(msg):
             return ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
-            
+
     except TypeError:
         raise INVALID_DATASOURCE_FRAME(msg)
     except ValueError:
         raise INVALID_DATASOURCE_FRAME(msg)
-        
+
 # ==================
 # Feed Protocol
 # ==================
@@ -330,7 +343,7 @@ INVALID_FEED_FRAME = FrameExceptionFactory('FEED')
 def FEED_FRAME(event):
     """
     :event: a nameddict with at least::
-        - source_id 
+        - source_id
         - type
     """
     assert isinstance(event, namedict)
@@ -339,7 +352,7 @@ def FEED_FRAME(event):
     PACK_DATE(event)
     payload = event.as_dict()
     return msgpack.dumps(payload)
-    
+
 def FEED_UNFRAME(msg):
     try:
         payload = msgpack.loads(msg)
@@ -352,7 +365,7 @@ def FEED_UNFRAME(msg):
         raise INVALID_FEED_FRAME(msg)
     except ValueError:
         raise INVALID_FEED_FRAME(msg)
-        
+
 # ==================
 # Transform Protocol
 # ==================
@@ -365,13 +378,13 @@ def TRANSFORM_FRAME(name, value):
     if(name == TRANSFORM_TYPE.TRANSACTION):
         value = TRANSACTION_FRAME(value)
     return msgpack.dumps(tuple([name, value]))
-    
+
 def TRANSFORM_UNFRAME(msg):
     """
     :rtype: namedict with <transform_name>:<transform_value>
     """
     try:
-        
+
         name, value = msgpack.loads(msg)
         if(value == TRANSFORM_TYPE.EMPTY):
             return namedict({name : None})
@@ -381,7 +394,7 @@ def TRANSFORM_UNFRAME(msg):
             value = FEED_UNFRAME(value)
         elif(name == TRANSFORM_TYPE.TRANSACTION):
             value = TRANSACTION_UNFRAME(value)
-        
+
         return namedict({name : value})
     except TypeError:
         raise INVALID_TRANSFORM_FRAME(msg)
@@ -396,7 +409,7 @@ INVALID_MERGE_FRAME = FrameExceptionFactory('MERGE')
 def MERGE_FRAME(event):
     """
     :event: a nameddict with at least::
-        - source_id 
+        - source_id
         - type
     """
     assert isinstance(event, namedict)
@@ -408,7 +421,7 @@ def MERGE_FRAME(event):
             event.TRANSACTION = TRANSACTION_FRAME(event.TRANSACTION)
     payload = event.as_dict()
     return msgpack.dumps(payload)
-    
+
 def MERGE_UNFRAME(msg):
     try:
         payload = msgpack.loads(msg)
@@ -427,7 +440,7 @@ def MERGE_UNFRAME(msg):
     except ValueError:
         raise INVALID_MERGE_FRAME(msg)
 
-    
+
 # ==================
 # Finance Protocol
 # ==================
@@ -445,7 +458,7 @@ def TRADE_FRAME(event):
             - price     -- float of the price printed for the trade
             - volume    -- int for shares in the trade
             - dt        -- datetime for the trade
-            
+
     """
     assert isinstance(event, namedict)
     assert isinstance(event.source_id, basestring)
@@ -454,16 +467,33 @@ def TRADE_FRAME(event):
     assert isinstance(event.price, float)
     assert isinstance(event.volume, int)
     PACK_DATE(event)
-    return msgpack.dumps(tuple([event.sid, event.price, event.volume, event.epoch, event.micros, event.type, event.source_id]))
-    
+    return msgpack.dumps(tuple([
+        event.sid,
+        event.price,
+        event.volume,
+        event.epoch,
+        event.micros,
+        event.type,
+        event.source_id
+    ]))
+
 def TRADE_UNFRAME(msg):
     try:
-        sid, price, volume, epoch, micros, source_type, source_id = msgpack.loads(msg)
-        
+        packed = msgpack.loads(msg)
+        sid, price, volume, epoch, micros, source_type, source_id = packed
+
         assert isinstance(sid, int)
         assert isinstance(price, float)
         assert isinstance(volume, int)
-        rval = namedict({'sid' : sid, 'price' : price, 'volume' : volume, 'epoch' : epoch, 'micros' : micros, 'type' : source_type, 'source_id' : source_id})
+        rval = namedict({
+            'sid'       : sid,
+            'price'     : price,
+            'volume'    : volume,
+            'epoch'     : epoch,
+            'micros'    : micros,
+            'type'      : source_type,
+            'source_id' : source_id
+        })
         UNPACK_DATE(rval)
         return rval
     except TypeError:
@@ -477,9 +507,9 @@ def TRADE_UNFRAME(msg):
 
 def ORDER_FRAME(sid, amount):
     assert isinstance(sid, int)
-    assert isinstance(amount, int) #no partial shares...   
+    assert isinstance(amount, int) #no partial shares...
     return msgpack.dumps(tuple([sid, amount]))
-    
+
 
 def ORDER_UNFRAME(msg):
     try:
@@ -492,7 +522,7 @@ def ORDER_UNFRAME(msg):
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
-        
+
 #
 # ==================
 # TRANSACTIONS - Should only be called from inside TRANSFORM_(UN)FRAME.
@@ -505,17 +535,32 @@ def TRANSACTION_FRAME(event):
     assert isinstance(event.commission, float)
     assert isinstance(event.amount, int)
     PACK_DATE(event)
-    return msgpack.dumps(tuple([event.sid, event.price, event.amount, event.commission, event.epoch, event.micros]))
-    
+    return msgpack.dumps(tuple([
+        event.sid,
+        event.price,
+        event.amount,
+        event.commission,
+        event.epoch,
+        event.micros
+    ]))
+
 def TRANSACTION_UNFRAME(msg):
     try:
         sid, price, amount, commission, epoch, micros = msgpack.loads(msg)
-        
+
         assert isinstance(sid, int)
         assert isinstance(price, float)
         assert isinstance(commission, float)
         assert isinstance(amount, int)
-        rval = namedict({'sid' : sid, 'price' : price, 'amount' : amount, 'commission':commission, 'epoch' : epoch, 'micros' : micros})
+        rval = namedict({
+            'sid'        : sid,
+            'price'      : price,
+            'amount'     : amount,
+            'commission' : commission,
+            'epoch'      : epoch,
+            'micros'     : micros
+        })
+
         UNPACK_DATE(rval)
         return rval
     except TypeError:
@@ -526,22 +571,36 @@ def TRANSACTION_UNFRAME(msg):
 
 # =========
 # Orders - from order source to feed
-#        - should only be called from inside DATASOURCE_(UN)FRAME   
+#        - should only be called from inside DATASOURCE_(UN)FRAME
 # =========
 
 def ORDER_SOURCE_FRAME(event):
     assert isinstance(event.sid, int)
-    assert isinstance(event.amount, int) #no partial shares...   
+    assert isinstance(event.amount, int) #no partial shares...
     assert isinstance(event.source_id, basestring)
     assert event.type == DATASOURCE_TYPE.ORDER
     PACK_DATE(event)
-    return msgpack.dumps(tuple([event.sid, event.amount, event.epoch, event.micros, event.source_id, event.type]))
-    
+    return msgpack.dumps(tuple([
+        event.sid,
+        event.amount,
+        event.epoch,
+        event.micros,
+        event.source_id,
+        event.type
+    ]))
+
 
 def ORDER_SOURCE_UNFRAME(msg):
     try:
         sid, amount, epoch, micros, source_id, source_type = msgpack.loads(msg)
-        event = namedict({"sid":sid, "amount":amount, "epoch":epoch, "micros":micros, "source_id":source_id, "type":source_type})
+        event = namedict({
+            "sid"       : sid,
+            "amount"    : amount,
+            "epoch"     : epoch,
+            "micros"    : micros,
+            "source_id" : source_id,
+            "type"      : source_type
+        })
         assert isinstance(sid, int)
         assert isinstance(amount, int)
         assert isinstance(source_id, basestring)
@@ -552,12 +611,12 @@ def ORDER_SOURCE_UNFRAME(msg):
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
-        
+
 # =================
 # Date Helpers
 # =================
 
-def PACK_DATE(event):    
+def PACK_DATE(event):
     assert isinstance(event.dt, datetime.datetime)
     assert event.dt.tzinfo == pytz.utc #utc only please
     epoch = long(event.dt.strftime('%s'))
@@ -576,8 +635,9 @@ def UNPACK_DATE(payload):
     payload.dt = dt
     return payload
 
+
 DATASOURCE_TYPE = Enum(
-    'ORDER'         , 
+    'ORDER'         ,
     'TRADE'         ,
 )
 
@@ -589,15 +649,15 @@ ORDER_PROTOCOL = Enum(
 
 #Transform type needs to be a namedict to facilitate merging.
 TRANSFORM_TYPE = namedict({
-    'TRANSACTION':'TRANSACTION', #needed?
-    'PASSTHROUGH':'PASSTHROUGH',
-    'EMPTY':''
-    })
-    
+    'TRANSACTION' : 'TRANSACTION', #needed?
+    'PASSTHROUGH' : 'PASSTHROUGH',
+    'EMPTY'       : ''
+})
+
 
 FINANCE_COMPONENT = namedict({
-    'TRADING_CLIENT':'TRADING_CLIENT',
-    'PORTFOLIO_CLIENT':'PORTFOLIO_CLIENT',
-    'ORDER_SOURCE':'ORDER_SOURCE',
-    'TRANSACTION_SIM':'TRANSACTION_SIM'
-    })
+    'TRADING_CLIENT'   : 'TRADING_CLIENT',
+    'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
+    'ORDER_SOURCE'     : 'ORDER_SOURCE',
+    'TRANSACTION_SIM'  : 'TRANSACTION_SIM'
+})
