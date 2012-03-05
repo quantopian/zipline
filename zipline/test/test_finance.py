@@ -158,7 +158,7 @@ class FinanceTestCase(TestCase):
 
         trade_history = factory.create_trade_history( a, b, c, ts, dt )
 
-        set1 = SpecificEquityTrades("flat-133",)
+        set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
         client = TestTradingClient(133, 100, 10)
