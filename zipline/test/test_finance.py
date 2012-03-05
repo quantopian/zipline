@@ -150,13 +150,13 @@ class FinanceTestCase(TestCase):
         # ---------------------
 
         # TODO: Perhaps something more self-documenting for variables names?
-        a = 133
-        b = [10.0] * 16
-        c = [100] * 16
-        ts = datetime.strptime("02/1/2012","%m/%d/%Y")
-        dt = timedelta(days=1)
+        sid = 133
+        price = [10.1] * 16
+        volume = [100] * 16
+        start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
+        trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( a, b, c, ts, dt )
+        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
