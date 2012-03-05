@@ -1,26 +1,18 @@
-#import logging
-import ujson as json
-
 import zipline.util as qutil
 import zipline.messaging as qmsg
+import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
-
-#qlogger = logging.getLogger('qexec')
+from zipline.finance.trading import TradeSimulationClient
 
 class TestClient(qmsg.Component):
 
-    def __init__(self, utest, expected_msg_count=0):
+    def __init__(self):
         qmsg.Component.__init__(self)
-
-        # Generally shouldn't reference unit tests here.
-        self.utest              = utest
-        self.expected_msg_count = expected_msg_count
-
         self.init()
 
     def init(self):
-        self.received_count = 0
-        self.prev_dt        = None
+        self.received_count     = 0
+        self.prev_dt            = None
 
     @property
     def get_id(self):
@@ -46,20 +38,15 @@ class TestClient(qmsg.Component):
             if msg == str(CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.signal_done()
-                #self.utest.assertEqual(
-                    #self.expected_msg_count, self.received_count,
-                    #"The client should have received ({n}) the same number of \
-                    #messages as the feed sent ({m})."
-                    #.format(n=self.received_count, m=self.expected_msg_count))
                 return
 
             self.received_count += 1
 
             try:
-                event = json.loads(msg)
+                event = self.unframe(msg)
 
-            # JSON deserialization error
-            except ValueError as exc:
+            # deserialization error
+            except zp.INVALID_MERGE_FRAME as exc:
                 return self.signal_exception(exc)
 
             if self.prev_dt != None:
@@ -70,7 +57,29 @@ class TestClient(qmsg.Component):
                         )
                     )
             else:
-                self.prev_dt = event['dt']
+                self.prev_dt = event.dt
 
             if self.received_count % 100 == 0:
                 qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
+            
+    def unframe(self, msg):
+        return zp.MERGE_UNFRAME(msg)
+
+
+class TestTradingClient(TradeSimulationClient):
+    
+    def __init__(self, sid, amount, order_count):
+        TradeSimulationClient.__init__(self)
+        self.count = order_count
+        self.sid = sid
+        self.amount = amount
+        self.incr = 0
+    
+    def handle_event(self, event):
+        #place an order for 100 shares of sid:133
+        if(self.incr < self.count):
+            self.order(self.sid, self.amount)
+            self.incr += 1
+        else:
+            self.signal_order_done()
+            self.signal_done()
