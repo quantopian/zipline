@@ -20,11 +20,14 @@ def create_trade_history(sid, prices, amounts, start_time, interval):
     i = 0
     trades = []
     current = start_time.replace(tzinfo = pytz.utc)
-    while i < len(prices):
+
+    for price, amount in zip(prices, amounts):
+
         if(risk.trading_calendar.is_trading_day(current)):
-            trades.append(create_trade(sid, prices[i], amounts[i], current))
+            trade = create_trade(sid, price, amount, current)
+            trades.append(trade)
+
             current = current + interval
-            i += 1
         else:
             current = current + datetime.timedelta(days=1)
 
