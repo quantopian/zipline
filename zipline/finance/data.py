@@ -41,7 +41,7 @@ class FinancialDataLoader():
         start = time.time()
         start_date = datetime.datetime(year=1950, month=1, day=3)
         end_date = datetime.datetime.utcnow()
-        file_path = self.data_file_path + "benchmark.csv"
+        file_path = os.path.join(self.data_file_path, "benchmark.csv")
         fp = open(file_path + ".tmp", "wb")
         
         #create benchmark files
@@ -76,11 +76,12 @@ class FinancialDataLoader():
             rcode = subprocess.call("tail -r {oldfile} > {newfile}".format(oldfile=tmp_file, newfile=reversed_tmp_file), shell=True)
         
         #tail -1 benchmark.csv.rev > benchmark.csv
-        subprocess.call("echo \"date,open,high,low,close,volume,adj_close\" > {result}".format(newfile=reversed_tmp_file, result=self.data_file_path), shell=True)
+        subprocess.call("echo \"date,open,high,low,close,volume,adj_close\" > {result}".format(newfile=reversed_tmp_file, result=file_path), shell=True)
         #sed '$d' < ~/fdl/benchmark.csv.rev >> ~/fdl/benchmark.csv   
-        subprocess.call("sed '$d' < {newfile} >> {result}".format(newfile=reversed_tmp_file, result=self.data_file_path), shell=True)
+        subprocess.call("sed '$d' < {newfile} >> {result}".format(newfile=reversed_tmp_file, result=file_path), shell=True)
         #clean up working files
-        subprocess.call("rm {tmp} {reversed}".format(tmp=tmp_file, reversed=reversed_tmp_file), shell=True)
+        subprocess.call("rm {file}".format(file=tmp_file), shell=True)
+        subprocess.call("rm {file}".format(file=reversed_tmp_file), shell=True)
         
         #load the records into mongodb
         self.db.bench_marks.drop()
