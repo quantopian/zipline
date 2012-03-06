@@ -464,8 +464,8 @@ def TRADE_FRAME(event):
     assert isinstance(event.source_id, basestring)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
-    assert isinstance(event.price, float)
-    assert isinstance(event.volume, int)
+    assert isinstance(event.price, numbers.Real)
+    assert isinstance(event.volume, numbers.Integral)
     PACK_DATE(event)
     return msgpack.dumps(tuple([
         event.sid,
@@ -483,8 +483,8 @@ def TRADE_UNFRAME(msg):
         sid, price, volume, epoch, micros, source_type, source_id = packed
 
         assert isinstance(sid, int)
-        assert isinstance(price, float)
-        assert isinstance(volume, int)
+        assert isinstance(price, numbers.Real)
+        assert isinstance(volume, numbers.Integral)
         rval = namedict({
             'sid'       : sid,
             'price'     : price,
@@ -531,8 +531,8 @@ def ORDER_UNFRAME(msg):
 def TRANSACTION_FRAME(event):
     assert isinstance(event, namedict)
     assert isinstance(event.sid, int)
-    assert isinstance(event.price, float)
-    assert isinstance(event.commission, float)
+    assert isinstance(event.price, numbers.Real)
+    assert isinstance(event.commission, numbers.Real)
     assert isinstance(event.amount, int)
     PACK_DATE(event)
     return msgpack.dumps(tuple([
@@ -549,8 +549,8 @@ def TRANSACTION_UNFRAME(msg):
         sid, price, amount, commission, epoch, micros = msgpack.loads(msg)
 
         assert isinstance(sid, int)
-        assert isinstance(price, float)
-        assert isinstance(commission, float)
+        assert isinstance(price, numbers.Real)
+        assert isinstance(commission, numbers.Real)
         assert isinstance(amount, int)
         rval = namedict({
             'sid'        : sid,
@@ -640,7 +640,8 @@ def UNPACK_DATE(event):
     """
     Unpacks the datetime property of event from msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is created by reading two longs: epoch and micros. 
+    The event's 'dt' property is created by reading and then combining two longs: epoch and micros. 
+    The epoch and micros properties are removed after dt is added.
     
     UNPACK_DATE and PACK_DATE are inverse operations. 
     

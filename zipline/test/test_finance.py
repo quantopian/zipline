@@ -26,14 +26,14 @@ class FinanceTestCase(TestCase):
     def test_trade_feed_protocol(self):
 
         # TODO: Perhaps something more self-documenting for variables names?
-        a = 133
-        b = [10] * 4
-        c = [100] * 4
+        sid = 133
+        price = [10.0] * 4
+        volume = [100] * 4
 
-        ts = datetime.strptime("02/15/2012","%m/%d/%Y")
-        dt = timedelta(days=1)
+        start_date = datetime.strptime("02/15/2012","%m/%d/%Y")
+        one_day_td = timedelta(days=1)
 
-        trades = factory.create_trade_history( a, b, c, ts, dt )
+        trades = factory.create_trade_history( sid, price, volume, start_date, one_day_td )
 
         for trade in trades:
             #simulate data source sending frame

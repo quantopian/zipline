@@ -222,7 +222,7 @@ class ParallelBuffer(Component):
                 try:
                     event = self.unframe(message)
                 # deserialization error
-                except zp.INVALID_DATASOURE_FRAME as exc:
+                except zp.INVALID_DATASOURCE_FRAME as exc:
                     return self.signal_exception(exc)
 
                 try:

@@ -31,6 +31,10 @@ cp /mnt/jenkins/zipline_host_settings.py ./host_settings.py
 #documentation output
 paver apidocs html
 
+#load treasury data
+python dataloader.py tr
+#load benchmark data
+python dataloader.py bm
 #run all the tests in test. see setup.cfg for flags.
 nosetests 
 
