@@ -12,7 +12,7 @@ class Risk(unittest.TestCase):
     def setUp(self):
         qutil.configure_logging()
         self.benchmark_returns, self.treasury_curves = factory.load_market_data()
-        self.trading_calendar = risk.TradingCalendar(self.benchmark_returns, self.treasury_curves)
+        self.trading_calendar = risk.TradingEnvironment(self.benchmark_returns, self.treasury_curves)
         
         self.onesec = datetime.timedelta(seconds=1)
         self.oneday = datetime.timedelta(days=1)

@@ -18,15 +18,14 @@ class daily_return():
         
 class periodmetrics():
     def __init__(self, start_date, end_date, returns, trading_environment):
-        """
-        :param treasury_curves: {datetime in utc -> {duration label -> interest rate}}
-        """
         
+        
+        self.trading_environment = trading_environment
+        bm_returns = [x for x in self.trading_environment.benchmark_returns if x.date >= returns[0].date and x.date <= returns[-1].date]
         self.start_date = start_date
         self.end_date = end_date
-        self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = self.calculate_period_returns(returns)
-        self.benchmark_period_returns, self.benchmark_returns = self.calculate_period_returns(trading_environment.benchmark_returns)
+        self.benchmark_period_returns, self.benchmark_returns = self.calculate_period_returns(bm_returns)
         if(len(self.benchmark_returns) != len(self.algorithm_returns)):
             raise Exception("Mismatch between benchmark_returns ({bm_count}) and algorithm_returns ({algo_count}) in range {start} : {end}".format(
                                                                                                                      bm_count=len(self.benchmark_returns),
@@ -168,14 +167,6 @@ class riskmetrics():
         
         self.algorithm_returns = algorithm_returns
         self.trading_environment = trading_environment
-        self.bm_returns = [x for x in self.trading_environmentself.benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
-        self.treasury_curves = self.trading_environment.treasury_curves
-        
-        
-        qutil.LOGGER.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
-                                                                                           end=self.algorithm_returns[-1].date,
-                                                                                           count=len(self.bm_returns),
-                                                                                           total=len(benchmark_returns)))
         
         #calculate month ends
         self.month_periods          = self.periods_in_range(1, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
@@ -205,8 +196,6 @@ class riskmetrics():
             cur_period_metrics = periodmetrics(start_date=cur_start, 
                                                end_date=cur_end, 
                                                returns=self.algorithm_returns, 
-                                               benchmark_returns=self.bm_returns, 
-                                               treasury_curves=self.treasury_curves,
                                                trading_environment=self.trading_environment)
             ends.append(cur_period_metrics)
             cur_start = advance_by_months(cur_start, 1)

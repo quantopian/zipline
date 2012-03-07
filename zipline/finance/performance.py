@@ -45,6 +45,7 @@ class PortfolioClient(qmsg.Component):
             msg = self.result_feed.recv()
 
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
+                self.handle_simulation_end()
                 qutil.LOGGER.info("Portfolio Client is DONE!")
                 self.signal_done()
                 return
@@ -74,7 +75,7 @@ class PortfolioClient(qmsg.Component):
             self.todays_performance.calculate_performance()
             
             
-    #
+    
     def handle_market_close(self):
         self.market_open = self.market_open + self.calendar_day
         while not self.trading_environment.is_trading_day(self.market_open):
@@ -99,7 +100,9 @@ class PortfolioClient(qmsg.Component):
                                                     self.todays_performance.ending_value, 
                                                     self.capital_base)
         
-    #
+    def handle_simulation_end(self):
+        self.risk_report = risk.riskmetrics(self.returns, self.trading_environment)
+    
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
 
