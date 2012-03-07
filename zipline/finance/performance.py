@@ -55,7 +55,7 @@ class PortfolioClient(qmsg.Component):
             if(event.dt >= self.market_close):
                 self.handle_market_close()
             
-            if event.TRANSACTION != None:
+            if event.TRANSACTION:
                 self.cumulative_performance.execute_transaction(event.TRANSACTION)
                 self.todays_performance.execute_transaction(event.TRANSACTION)
                 
@@ -85,14 +85,22 @@ class PortfolioClient(qmsg.Component):
         self.market_close = self.market_open + self.trading_day   
         self.day_count += 1.0
         self.progress = self.day_count / self.total_days
-        self.returns.append(risk.daily_return(self.todays_performance.period_end.replace(hour=0, minute=0, second=0), self.todays_performance.returns))
-        self.cur_period_metrics = risk.periodmetrics(start_date=self.period_start, 
-                                                    end_date=self.todays_performance.period_end.replace(hour=0, minute=0, second=0), 
+        #add the return results from today to the list of daily return objects.
+        todays_date = self.todays_performance.period_end.replace(hour=0, minute=0, second=0)
+        todays_return_obj = risk.daily_return(todays_date, self.todays_performance.returns)
+        self.returns.append(todays_return_obj)
+        
+        #calculate risk metrics for cumulative performance
+        self.cur_period_metrics = risk.RiskMetrics(start_date=self.cumulative_performance.period_start, 
+                                                    end_date=self.cumulative_performance.period_end.replace(hour=0, minute=0, second=0), 
                                                     returns=self.returns,
                                                     trading_environment=self.trading_environment)
-        ###############################################
-        #######TODO: report/relay metrics here#########
-        ###############################################
+                                                    
+        ######################################################################################################
+        #######TODO: report/relay metrics out to qexec -- values come from self.cur_period_metrics ###########
+        #######TODO: report/relay position data out to qexec -- values come from self.cumulative_performance #
+        ######################################################################################################
+        
         #roll over positions to current day.
         self.todays_performance = PerformancePeriod(self.market_open, 
                                                     self.market_close, 
@@ -101,7 +109,10 @@ class PortfolioClient(qmsg.Component):
                                                     self.capital_base)
         
     def handle_simulation_end(self):
-        self.risk_report = risk.riskmetrics(self.returns, self.trading_environment)
+        self.risk_report = risk.RiskReport(self.returns, self.trading_environment)
+        ######################################################################################################
+        #######TODO: report/relay metrics out to qexec -- values come from self.risk_report        ###########
+        ######################################################################################################
     
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -156,7 +167,7 @@ class PerformancePeriod():
         self.ending_value = self.calculate_positions_value()
         self.pnl = (self.ending_value - self.starting_value) - self.period_capital_used
         if(self.capital_base != 0):
-            self.returns = self.pnl / self.capital_base
+            self.returns = self.pnl / self.starting_value
         else:
             self.returns = 0.0
             

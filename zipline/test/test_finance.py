@@ -21,8 +21,13 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         qutil.configure_logging()
-        self.benchmark_returns, self.treasury_curves = factory.load_market_data()
-        self.trading_environment = risk.TradingEnvironment(self.benchmark_returns, self.treasury_curves)
+        self.benchmark_returns, self.treasury_curves = \
+        factory.load_market_data()
+        
+        self.trading_environment = risk.TradingEnvironment(
+            self.benchmark_returns, 
+            self.treasury_curves
+        )
         
 
     def test_trade_feed_protocol(self):
@@ -35,7 +40,14 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/15/2012","%m/%d/%Y")
         one_day_td = timedelta(days=1)
 
-        trades = factory.create_trade_history(sid, price, volume, start_date, one_day_td, self.trading_environment)
+        trades = factory.create_trade_history(
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            one_day_td, 
+            self.trading_environment
+        )
 
         for trade in trades:
             #simulate data source sending frame
@@ -150,7 +162,14 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_environment )
+        trade_history = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment 
+        )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
@@ -212,19 +231,36 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_environment )
+        trade_history = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
         client = TestTradingClient(133, 100, 10)
-        ts = datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc)
+        ts = datetime.strptime("02/1/2012","%m/%d/%Y")
+        ts = ts.replace(tzinfo=pytz.utc)
 
         order_source = OrderDataSource(ts)
         transaction_sim = TransactionSimulator()
-        portfolio_client = perf.PortfolioClient(trade_history[0]['dt'], trade_history[-1]['dt'], 1000000.0, self.trading_environment)
-
-        sim.register_components([client, order_source, transaction_sim, set1, portfolio_client])
+        portfolio_client = perf.PortfolioClient(
+            trade_history[0]['dt'], 
+            trade_history[-1]['dt'], 
+            1000000.0, 
+            self.trading_environment)
+    
+        sim.register_components([
+            client, 
+            order_source, 
+            transaction_sim, 
+            set1, 
+            portfolio_client,
+            ])
         sim.register_controller( con )
 
         # Simulation

@@ -11,18 +11,22 @@ class Risk(unittest.TestCase):
     
     def setUp(self):
         qutil.configure_logging()
-        self.benchmark_returns, self.treasury_curves = factory.load_market_data()
-        self.trading_calendar = risk.TradingEnvironment(self.benchmark_returns, self.treasury_curves)
+        self.benchmark_returns, self.treasury_curves = \
+        factory.load_market_data()
+        
+        self.trading_calendar = risk.TradingEnvironment(
+            self.benchmark_returns, 
+            self.treasury_curves
+        )
         
         self.onesec = datetime.timedelta(seconds=1)
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
         self.dt = datetime.datetime.utcnow()
-        returns = [0.0093,-0.0193,0.0351,0.0396,0.0338,-0.0211,0.0389,0.0326,-0.0137,-0.0411,-0.0032,0.0149,0.0133,0.0348,0.042,-0.0455,0.0262,-0.0461,0.0021,-0.0273,-0.0429,0.0427,-0.0104,0.0346,-0.0311,0.0003,0.0211,0.0248,-0.0215,0.004,0.0267,0.0029,-0.0369,0.0057,0.0298,-0.0179,-0.0361,-0.0401,-0.0123,-0.005,0.0203,-0.041,0.0011,0.0118,0.0103,-0.0184,-0.0437,0.0411,-0.0242,-0.0054,-0.0039,-0.0273,-0.0075,0.0064,-0.0376,0.0424,0.0399,0.019,0.0236,-0.0284,-0.0341,0.0266,0.05,0.0069,-0.0442,-0.016,0.0173,0.0348,-0.0404,-0.0068,-0.0376,0.0356,0.0043,-0.0481,-0.0134,0.0257,0.0442,0.0234,0.0394,0.0376,-0.0147,-0.0098,0.0474,-0.0102,0.0138,0.0286,0.0347,0.0279,-0.0067,0.0462,-0.0432,0.0247,0.0174,-0.0305,-0.0317,-0.0068,0.0264,-0.0257,-0.0328,0.0092,0.0288,-0.002,0.0288,0.028,-0.0093,0.0178,-0.0365,-0.0086,-0.0133,-0.0309,0.0473,-0.0149,0.0378,-0.0316,-0.0292,-0.0453,-0.0451,0.0093,0.0397,-0.0361,-0.0168,-0.0494,-0.0143,-0.0405,-0.0349,0.0069,0.0378,-0.0233,-0.0492,0.018,-0.0386,0.0339,0.0119,0.0454,0.0118,-0.011,-0.0254,0.0266,-0.0366,-0.0211,0.0399,0.0307,0.035,-0.0402,0.0304,-0.0031,0.0256,0.0134,-0.0019,-0.0235,-0.0058,-0.0117,0.0051,-0.0451,-0.0466,-0.0124,0.0283,-0.0499,0.0318,-0.0028,0.0203,0.005,0.0085,0.0048,0.0277,0.0159,-0.0149,0.035,0.0404,-0.01,0.0377,0.0302,0.0046,-0.0328,-0.0469,0.0071,-0.0382,-0.0214,0.0429,0.0145,-0.0279,-0.0172,0.0423,0.041,-0.0183,0.0137,-0.0412,-0.0348,0.0302,0.0248,0.0051,-0.0298,-0.0103,-0.0333,-0.0399,0.0485,-0.0166,0.0384,0.0259,-0.0163,0.0357,0.0308,-0.0386,0.0481,-0.0446,-0.0282,-0.0037,0.0202,0.0216,0.0113,0.0194,0.0392,0.0016,0.0268,-0.0155,-0.027,0.02,0.0216,-0.0009,0.022,0,0.041,0.0133,-0.0382,0.0495,-0.0221,-0.0329,-0.0033,-0.0089,-0.0129,-0.0252,0.048,-0.0307,-0.0357,0.0033,-0.0412,-0.0407,0.0455,0.0159,-0.0051,-0.0274,-0.0213,0.0361,0.0051,-0.0378,0.0084,0.0066,-0.0103,-0.0037,0.0478,-0.0278]
         start_date = datetime.datetime(year=2006, month=1, day=1, tzinfo=pytz.utc)
-        self.algo_returns_06 = factory.create_returns_from_list(returns, start_date, self.trading_calendar)
+        self.algo_returns_06 = factory.create_returns_from_list(RETURNS, start_date, self.trading_calendar)
         end_date = datetime.datetime(year=2006, month=12, day=31, tzinfo=pytz.utc)
-        self.metrics_06 = risk.riskmetrics(self.algo_returns_06, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        self.metrics_06 = risk.RiskReport(self.algo_returns_06, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         
     def tearDown(self):
         return
@@ -37,14 +41,14 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         returns = factory.create_returns_from_list([1.0,-0.5,0.8,.17,1.0,-0.1,-0.45], start_date, self.trading_calendar)
         #200, 100, 180, 210.6, 421.2, 379.8, 208.494
-        metrics = risk.periodmetrics(returns[0].date, returns[-1].date, returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskMetrics(returns[0].date, returns[-1].date, returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual(metrics.max_drawdown, 0.505)
     
     def test_benchmark_returns_06(self):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         end_date = datetime.datetime(year=2006, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([round(x.benchmark_period_returns, 4)  for x in metrics.month_periods],    
         [0.0255,0.0005,0.0111,0.0122,-0.0309,0.0001,0.0051,0.0213,0.0246,0.0315,0.0165,0.0126])
         self.assertEqual([round(x.benchmark_period_returns, 4) for x in metrics.three_month_periods],
@@ -57,7 +61,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         end_date = datetime.datetime(year=2006, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([x.trading_days for x in metrics.year_periods],[251])
         self.assertEqual([x.trading_days for x in metrics.month_periods],[20,19,23,19,22,22,20,23,20,22,21,20])
 
@@ -65,7 +69,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         end_date = datetime.datetime(year=2006, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([round(x.benchmark_volatility, 3) for x in metrics.month_periods],
         [0.031,0.026,0.024,0.025,0.037,0.047,0.039,0.022,0.023,0.021,0.025,0.019])
         self.assertEqual([round(x.benchmark_volatility, 3) for x in metrics.three_month_periods],
@@ -127,7 +131,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2008, month=1, day=1)
         end_date = datetime.datetime(year=2008, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([round(x.benchmark_period_returns, 3)  for x in metrics.month_periods],    
         [-0.061,-0.035,-0.006,0.048,0.011,-0.086,-0.01,0.012,-0.091,-0.169,-0.075,0.008])
         self.assertEqual([round(x.benchmark_period_returns, 3) for x in metrics.three_month_periods],
@@ -140,7 +144,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2008, month=1, day=1)
         end_date = datetime.datetime(year=2008, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([x.trading_days for x in metrics.year_periods],[253])
         self.assertEqual([x.trading_days for x in metrics.month_periods],[21,20,20,22,21,21,22,21,21,23,19,22])
         
@@ -148,7 +152,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2008, month=1, day=1)
         end_date = datetime.datetime(year=2008, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([round(x.benchmark_volatility, 3) for x in metrics.month_periods],
         [0.07,0.058,0.082,0.054,0.041,0.057,0.068,0.06,0.157,0.244,0.195,0.145])
         self.assertEqual([round(x.benchmark_volatility, 3) for x in metrics.three_month_periods],
@@ -162,7 +166,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         end_date = datetime.datetime(year=2006, month=12, day=31)
         returns = factory.create_returns_from_range(start_date, end_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         self.assertEqual([round(x.treasury_period_return, 4) for x in metrics.month_periods],
         [0.0037,0.0034,0.0039,0.0038,0.0040,0.0037,0.0043,0.0043,0.0038,0.0044,0.0043,0.0041])
         self.assertEqual([round(x.treasury_period_return, 4) for x in metrics.three_month_periods],
@@ -179,7 +183,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=1991, month=1, day=1)
         returns = factory.create_returns(365 * 5 + 2, start_date, self.trading_calendar) #1992 and 1996 were leap years
         returns = returns[:-10] #truncate the returns series to end mid-month
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         total_months = 60
         self.check_metrics(metrics, total_months, start_date)
         
@@ -190,7 +194,7 @@ class Risk(unittest.TestCase):
             #because we may catch the leap of the last year, and i think this func is [start,end)
             ld = calendar.leapdays(start_date.year, start_date.year + years + 1) 
         returns = factory.create_returns(365 * years + ld, start_date, self.trading_calendar)
-        metrics = risk.riskmetrics(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskReport(returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
         total_months = years * 12
         self.check_metrics(metrics, total_months, start_date)
         
@@ -236,3 +240,43 @@ class Risk(unittest.TestCase):
                                                                             ))
             self.assert_month(start_date.month, col[-1].end_date.month)
             self.assert_last_day(col[-1].end_date)
+            
+            
+RETURNS = [ 
+     0.0093, -0.0193,  0.0351,  0.0396,  0.0338, -0.0211,  0.0389,
+     0.0326, -0.0137, -0.0411, -0.0032,  0.0149,  0.0133,  0.0348,
+     0.042 , -0.0455,  0.0262, -0.0461,  0.0021, -0.0273, -0.0429,
+     0.0427, -0.0104,  0.0346, -0.0311,  0.0003,  0.0211,  0.0248,
+    -0.0215,  0.004 ,  0.0267,  0.0029, -0.0369,  0.0057,  0.0298,
+    -0.0179, -0.0361, -0.0401, -0.0123, -0.005 ,  0.0203, -0.041 ,
+     0.0011,  0.0118,  0.0103, -0.0184, -0.0437,  0.0411, -0.0242,
+    -0.0054, -0.0039, -0.0273, -0.0075,  0.0064, -0.0376,  0.0424,
+     0.0399,  0.019 ,  0.0236, -0.0284, -0.0341,  0.0266,  0.05  ,
+     0.0069, -0.0442, -0.016 ,  0.0173,  0.0348, -0.0404, -0.0068,
+    -0.0376,  0.0356,  0.0043, -0.0481, -0.0134,  0.0257,  0.0442,
+     0.0234,  0.0394,  0.0376, -0.0147, -0.0098,  0.0474, -0.0102,
+     0.0138,  0.0286,  0.0347,  0.0279, -0.0067,  0.0462, -0.0432,
+     0.0247,  0.0174, -0.0305, -0.0317, -0.0068,  0.0264, -0.0257,
+    -0.0328,  0.0092,  0.0288, -0.002 ,  0.0288,  0.028 , -0.0093,
+     0.0178, -0.0365, -0.0086, -0.0133, -0.0309,  0.0473, -0.0149,
+     0.0378, -0.0316, -0.0292, -0.0453, -0.0451,  0.0093,  0.0397,
+    -0.0361, -0.0168, -0.0494, -0.0143, -0.0405, -0.0349,  0.0069,
+     0.0378, -0.0233, -0.0492,  0.018 , -0.0386,  0.0339,  0.0119,
+     0.0454,  0.0118, -0.011 , -0.0254,  0.0266, -0.0366, -0.0211,
+     0.0399,  0.0307,  0.035 , -0.0402,  0.0304, -0.0031,  0.0256,
+     0.0134, -0.0019, -0.0235, -0.0058, -0.0117,  0.0051, -0.0451,
+    -0.0466, -0.0124,  0.0283, -0.0499,  0.0318, -0.0028,  0.0203,
+     0.005 ,  0.0085,  0.0048,  0.0277,  0.0159, -0.0149,  0.035 ,
+     0.0404, -0.01  ,  0.0377,  0.0302,  0.0046, -0.0328, -0.0469,
+     0.0071, -0.0382, -0.0214,  0.0429,  0.0145, -0.0279, -0.0172,
+     0.0423,  0.041 , -0.0183,  0.0137, -0.0412, -0.0348,  0.0302,
+     0.0248,  0.0051, -0.0298, -0.0103, -0.0333, -0.0399,  0.0485,
+    -0.0166,  0.0384,  0.0259, -0.0163,  0.0357,  0.0308, -0.0386,
+     0.0481, -0.0446, -0.0282, -0.0037,  0.0202,  0.0216,  0.0113,
+     0.0194,  0.0392,  0.0016,  0.0268, -0.0155, -0.027 ,  0.02  ,
+     0.0216, -0.0009,  0.022 ,  0.    ,  0.041 ,  0.0133, -0.0382,
+     0.0495, -0.0221, -0.0329, -0.0033, -0.0089, -0.0129, -0.0252,
+     0.048 , -0.0307, -0.0357,  0.0033, -0.0412, -0.0407,  0.0455,
+     0.0159, -0.0051, -0.0274, -0.0213,  0.0361,  0.0051, -0.0378,
+     0.0084,  0.0066, -0.0103, -0.0037,  0.0478, -0.0278
+]
