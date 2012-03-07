@@ -1,13 +1,11 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
-import host_settings
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 
 import zipline.test.factory as factory
 import zipline.util as qutil
-import zipline.db as db
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 
@@ -22,6 +20,9 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         qutil.configure_logging()
+        self.benchmark_returns, self.treasury_curves = factory.load_market_data()
+        self.trading_calendar = risk.TradingCalendar(self.benchmark_returns, self.treasury_curves)
+        
 
     def test_trade_feed_protocol(self):
 
@@ -33,7 +34,7 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/15/2012","%m/%d/%Y")
         one_day_td = timedelta(days=1)
 
-        trades = factory.create_trade_history( sid, price, volume, start_date, one_day_td )
+        trades = factory.create_trade_history(sid, price, volume, start_date, one_day_td, self.trading_calendar)
 
         for trade in trades:
             #simulate data source sending frame
@@ -112,14 +113,6 @@ class FinanceTestCase(TestCase):
         self.assertEqual(recovered_tx.sid, 133)
         self.assertEqual(recovered_tx.amount, 100)
 
-    def test_trading_calendar(self):
-        known_trading_day = datetime.strptime("02/24/2012","%m/%d/%Y")
-        known_holiday     = datetime.strptime("02/20/2012", "%m/%d/%Y") #president's day
-        saturday          = datetime.strptime("02/25/2012", "%m/%d/%Y")
-        self.assertTrue(risk.trading_calendar.is_trading_day(known_trading_day))
-        self.assertFalse(risk.trading_calendar.is_trading_day(known_holiday))
-        self.assertFalse(risk.trading_calendar.is_trading_day(saturday))
-
     def test_orders(self):
 
         # Just verify sending and receiving orders.
@@ -156,7 +149,7 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment )
+        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_calendar )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
