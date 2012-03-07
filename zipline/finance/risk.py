@@ -4,7 +4,6 @@ import pytz
 import numpy as np
 import numpy.linalg as la
 import zipline.util as qutil
-import zipline.db as db
 import zipline.protocol as zp
 from pymongo import ASCENDING, DESCENDING
 
@@ -13,10 +12,17 @@ class daily_return():
     def __init__(self, date, returns):
         self.date = date
         self.returns = returns
+    
+    def __repr__(self):
+        return str(self.date) + " - " + str(self.returns)
         
-class periodmetrics():
-    def __init__(self, start_date, end_date, returns, benchmark_returns):
-        self.db = db.DbConnection.get()[1]
+class RiskMetrics():
+    def __init__(self, start_date, end_date, returns, benchmark_returns, treasury_curves, trading_calendar):
+        """
+        :param treasury_curves: {datetime in utc -> {duration label -> interest rate}}
+        """
+        
+        self.treasury_curves = treasury_curves
         self.start_date = start_date
         self.end_date = end_date
         self.trading_calendar = trading_calendar
@@ -134,13 +140,18 @@ class periodmetrics():
         else:
             self.treasury_duration = '30year'
         
-        treasuryQS = self.db.treasury_curves.find(
-                                                            spec={"date" : {"$lte" : self.end_date}},
-                                                            sort=[("date",DESCENDING)],
-                                                            limit=3,
-                                                            slave_ok=True)
-    
-        for curve in treasuryQS:
+        
+        one_day = datetime.timedelta(days=1)
+        
+        curve = None
+        #in case end date is not a trading day, search for the next market day for an interest rate
+        for i in range(7): 
+            if(self.treasury_curves.has_key(self.end_date + i * one_day)):
+                #qutil.LOGGER.info(self.treasury_curves[self.end_date + i * one_day])
+                curve = self.treasury_curves[self.end_date + i * one_day]
+                break
+        
+        if curve:
             self.treasury_curve = curve
             rate = self.treasury_curve[self.treasury_duration]
             #1month note data begins in 8/2001, so we can use 3month instead.
@@ -149,17 +160,18 @@ class periodmetrics():
             if rate != None:
                 return rate * (td.days + 1) / 365
 
-        raise Exception("no rate for end date = {dt} and term = {term}, from {curve}. Using zero.".format(dt=self.end_date, 
-                                                                                                          term=self.treasury_duration, 
-                                                                                                          curve=self.treasury_curve['date']))
+        raise Exception("no rate for end date = {dt} and term = {term}. Using zero.".format(dt=self.end_date, 
+                                                                                                          term=self.treasury_duration))
         
-class riskmetrics():
+class RiskReport():
     
-    def __init__(self, algorithm_returns):
+    def __init__(self, algorithm_returns, benchmark_returns, treasury_curves, trading_calendar):
         """algorithm_returns needs to be a list of daily_return objects sorted in date ascending order"""
-        self.db = db.DbConnection.get()[1]
+        
         self.algorithm_returns = algorithm_returns
         self.bm_returns = [x for x in benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
+        self.treasury_curves = treasury_curves
+        self.trading_calendar = trading_calendar
         
         qutil.LOGGER.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
                                                                                            end=self.algorithm_returns[-1].date,
@@ -191,23 +203,16 @@ class riskmetrics():
             if(cur_end > the_end):
                 break
             #qutil.LOGGER.debug("start: {start}, end: {end}".format(start=cur_start, end=cur_end))
-            cur_period_metrics = periodmetrics(start_date=cur_start, end_date=cur_end, returns=self.algorithm_returns, benchmark_returns=self.bm_returns)
+            cur_period_metrics = RiskMetrics(start_date=cur_start, 
+                                               end_date=cur_end, 
+                                               returns=self.algorithm_returns, 
+                                               benchmark_returns=self.bm_returns, 
+                                               treasury_curves=self.treasury_curves,
+                                               trading_calendar=self.trading_calendar)
             ends.append(cur_period_metrics)
             cur_start = advance_by_months(cur_start, 1)
             
         return ends
-        
-    def store_to_db(self, back_test_run_id):
-        col = self.db.risk_metrics
-        for period in self.month_periods:
-            for metric in ["algorithm_period_returns", "benchmark_period_returns", "excess_return", "trading_days", "benchmark_volatility", "algorithm_volatility", "sharpe", "beta", "alpha", "max_drawdown"]:
-                record = {'back_test_run_id':back_test_run_id}
-                record['ending_on']     = period.end_date
-                record['metric_name']   = metric
-                for dur in ["month", "three_month", "six_month", "year", "three_year", "five_year"]:
-                    record[dur] = self.find_metric_by_end(period.end_date, dur, metric)
-                    #qutil.LOGGER.debug("storing {val} for {metric} and {dur}".format(val=record[dur], metric=metric, dur=dur))
-                col.insert(record, safe=True)
     
     def find_metric_by_end(self, end_date, duration, metric):
         col = getattr(self, duration + "_periods")
@@ -231,11 +236,12 @@ def advance_by_months(dt, jump_in_months):
     r = dt.replace(year = dt.year + years, month = month)
     return r
 
-class TradingCalendar(object):
+class TradingEnvironment(object):
 
-    def __init__(self, benchmark_returns):
+    def __init__(self, benchmark_returns, treasury_curves):
         self.trading_days = []
         self.trading_day_map = {}
+        self.treasury_curves = treasury_curves
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm
@@ -253,21 +259,4 @@ class TradingCalendar(object):
             return self.trading_day_map[date].returns
         else:
             return 0.0
-
-       
-def get_benchmark_data():
-    bmQS = db.DbConnection.get()[1].bench_marks.find(
-                                 spec={"symbol" : "GSPC"}, 
-                                 sort=[("date",ASCENDING)],
-                                 slave_ok=True,
-                                 as_class=zp.namedict)
-    bm_returns = []
-    for bm in bmQS:
-        bm_r = daily_return(date=bm.date.replace(tzinfo=pytz.utc), returns=bm.returns)
-        bm_returns.append(bm_r)    
-
-    cal = TradingCalendar(bm_returns)
-    return bm_returns, cal
-
-benchmark_returns, trading_calendar = get_benchmark_data() 
     

@@ -1,15 +1,14 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
-import host_settings
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 
 import zipline.test.factory as factory
 import zipline.util as qutil
-import zipline.db as db
 import zipline.finance.risk as risk
 import zipline.protocol as zp
+import zipline.finance.performance as perf
 
 from zipline.test.client import TestTradingClient
 from zipline.sources import SpecificEquityTrades
@@ -22,6 +21,14 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         qutil.configure_logging()
+        self.benchmark_returns, self.treasury_curves = \
+        factory.load_market_data()
+        
+        self.trading_environment = risk.TradingEnvironment(
+            self.benchmark_returns, 
+            self.treasury_curves
+        )
+        
 
     def test_trade_feed_protocol(self):
 
@@ -33,7 +40,14 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/15/2012","%m/%d/%Y")
         one_day_td = timedelta(days=1)
 
-        trades = factory.create_trade_history( sid, price, volume, start_date, one_day_td )
+        trades = factory.create_trade_history(
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            one_day_td, 
+            self.trading_environment
+        )
 
         for trade in trades:
             #simulate data source sending frame
@@ -112,14 +126,6 @@ class FinanceTestCase(TestCase):
         self.assertEqual(recovered_tx.sid, 133)
         self.assertEqual(recovered_tx.amount, 100)
 
-    def test_trading_calendar(self):
-        known_trading_day = datetime.strptime("02/24/2012","%m/%d/%Y")
-        known_holiday     = datetime.strptime("02/20/2012", "%m/%d/%Y") #president's day
-        saturday          = datetime.strptime("02/25/2012", "%m/%d/%Y")
-        self.assertTrue(risk.trading_calendar.is_trading_day(known_trading_day))
-        self.assertFalse(risk.trading_calendar.is_trading_day(known_holiday))
-        self.assertFalse(risk.trading_calendar.is_trading_day(saturday))
-
     def test_orders(self):
 
         # Just verify sending and receiving orders.
@@ -156,7 +162,14 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment )
+        trade_history = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment 
+        )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
@@ -168,6 +181,86 @@ class FinanceTestCase(TestCase):
         transaction_sim = TransactionSimulator()
 
         sim.register_components([client, order_source, transaction_sim, set1])
+        sim.register_controller( con )
+
+        # Simulation
+        # ----------
+        sim_context = sim.simulate()
+        sim_context.join()
+
+
+        # TODO: Make more assertions about the final state of the components.
+        self.assertEqual(sim.feed.pending_messages(), 0, \
+            "The feed should be drained of all messages, found {n} remaining." \
+            .format(n=sim.feed.pending_messages()))
+
+
+    def test_performance(self):
+
+        # verify order -> transaction -> portfolio position.
+        # --------------
+
+        # Allocate sockets for the simulator components
+        allocator = AddressAllocator(8)
+        sockets = allocator.lease(8)
+
+        addresses = {
+            'sync_address'   : sockets[0],
+            'data_address'   : sockets[1],
+            'feed_address'   : sockets[2],
+            'merge_address'  : sockets[3],
+            'result_address' : sockets[4],
+            'order_address'  : sockets[5]
+        }
+
+        con = Controller(
+            sockets[6],
+            sockets[7],
+            logging = qutil.LOGGER
+        )
+
+        sim = Simulator(addresses)
+
+        # Simulation Components
+        # ---------------------
+
+        # TODO: Perhaps something more self-documenting for variables names?
+        sid = 133
+        price = [10.1] * 16
+        volume = [100] * 16
+        start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
+        trade_time_increment = timedelta(days=1)
+
+        trade_history = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment )
+
+        set1 = SpecificEquityTrades("flat-133", trade_history)
+
+        #client sill send 10 orders for 100 shares of 133
+        client = TestTradingClient(133, 100, 10)
+        ts = datetime.strptime("02/1/2012","%m/%d/%Y")
+        ts = ts.replace(tzinfo=pytz.utc)
+
+        order_source = OrderDataSource(ts)
+        transaction_sim = TransactionSimulator()
+        portfolio_client = perf.PortfolioClient(
+            trade_history[0]['dt'], 
+            trade_history[-1]['dt'], 
+            1000000.0, 
+            self.trading_environment)
+    
+        sim.register_components([
+            client, 
+            order_source, 
+            transaction_sim, 
+            set1, 
+            portfolio_client,
+            ])
         sim.register_controller( con )
 
         # Simulation
