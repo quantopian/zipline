@@ -7,13 +7,13 @@ import zipline.finance.risk as risk
 import zipline.protocol as zp
 
 def load_market_data():
-    fp_bm = open("./etc/benchmark.msgpack", "rb")
+    fp_bm = open("./zipline/test/benchmark.msgpack", "rb")
     bm_map = msgpack.loads(fp_bm.read())
     bm_returns = []
     for epoch, returns in bm_map.iteritems():
         bm_returns.append(risk.daily_return(date=datetime.datetime.fromtimestamp(epoch).replace(hour=0, minute=0, second=0, tzinfo=pytz.utc), returns=returns))
     bm_returns = sorted(bm_returns, key=lambda(x): x.date) 
-    fp_tr = open("./etc/treasury_curves.msgpack", "rb")
+    fp_tr = open("./zipline/test/treasury_curves.msgpack", "rb")
     tr_map = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for epoch, curve in tr_map.iteritems():

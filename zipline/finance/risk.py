@@ -17,17 +17,16 @@ class daily_return():
         return str(self.date) + " - " + str(self.returns)
         
 class periodmetrics():
-    def __init__(self, start_date, end_date, returns, benchmark_returns, treasury_curves, trading_calendar):
+    def __init__(self, start_date, end_date, returns, trading_environment):
         """
         :param treasury_curves: {datetime in utc -> {duration label -> interest rate}}
         """
         
-        self.treasury_curves = treasury_curves
         self.start_date = start_date
         self.end_date = end_date
-        self.trading_calendar = trading_calendar
+        self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = self.calculate_period_returns(returns)
-        self.benchmark_period_returns, self.benchmark_returns = self.calculate_period_returns(benchmark_returns)
+        self.benchmark_period_returns, self.benchmark_returns = self.calculate_period_returns(trading_environment.benchmark_returns)
         if(len(self.benchmark_returns) != len(self.algorithm_returns)):
             raise Exception("Mismatch between benchmark_returns ({bm_count}) and algorithm_returns ({algo_count}) in range {start} : {end}".format(
                                                                                                                      bm_count=len(self.benchmark_returns),
@@ -53,7 +52,7 @@ class periodmetrics():
         return '\n'.join(statements)
         
     def calculate_period_returns(self, daily_returns):
-        returns = [x.returns for x in daily_returns if x.date >= self.start_date and x.date <= self.end_date and self.trading_calendar.is_trading_day(x.date)]
+        returns = [x.returns for x in daily_returns if x.date >= self.start_date and x.date <= self.end_date and self.trading_environment.is_trading_day(x.date)]
         #qutil.LOGGER.debug("using {count} daily returns out of {total}".format(count=len(returns),total=len(daily_returns)))
         period_returns = 1.0
         for r in returns:
@@ -146,9 +145,8 @@ class periodmetrics():
         curve = None
         #in case end date is not a trading day, search for the next market day for an interest rate
         for i in range(7): 
-            if(self.treasury_curves.has_key(self.end_date + i * one_day)):
-                #qutil.LOGGER.info(self.treasury_curves[self.end_date + i * one_day])
-                curve = self.treasury_curves[self.end_date + i * one_day]
+            if(self.trading_environment.treasury_curves.has_key(self.end_date + i * one_day)):
+                curve = self.trading_environment.treasury_curves[self.end_date + i * one_day]
                 break
         
         if curve:
@@ -165,13 +163,14 @@ class periodmetrics():
         
 class riskmetrics():
     
-    def __init__(self, algorithm_returns, benchmark_returns, treasury_curves, trading_calendar):
+    def __init__(self, algorithm_returns, trading_environment):
         """algorithm_returns needs to be a list of daily_return objects sorted in date ascending order"""
         
         self.algorithm_returns = algorithm_returns
-        self.bm_returns = [x for x in benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
-        self.treasury_curves = treasury_curves
-        self.trading_calendar = trading_calendar
+        self.trading_environment = trading_environment
+        self.bm_returns = [x for x in self.trading_environmentself.benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
+        self.treasury_curves = self.trading_environment.treasury_curves
+        
         
         qutil.LOGGER.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
                                                                                            end=self.algorithm_returns[-1].date,
@@ -179,20 +178,20 @@ class riskmetrics():
                                                                                            total=len(benchmark_returns)))
         
         #calculate month ends
-        self.month_periods          = self.periodsInRange(1, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.month_periods          = self.periods_in_range(1, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         #calculate 3 month ends
-        self.three_month_periods    = self.periodsInRange(3, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.three_month_periods    = self.periods_in_range(3, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         #calculate 6 month ends
-        self.six_month_periods      = self.periodsInRange(6, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.six_month_periods      = self.periods_in_range(6, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         #calculate 1 year ends
-        self.year_periods           = self.periodsInRange(12, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.year_periods           = self.periods_in_range(12, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         #calculate 3 year ends
-        self.three_year_periods     = self.periodsInRange(36, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.three_year_periods     = self.periods_in_range(36, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         #calculate 5 year ends
-        self.five_year_periods      = self.periodsInRange(60, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
+        self.five_year_periods      = self.periods_in_range(60, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
         
         
-    def periodsInRange(self, months_per, start, end):
+    def periods_in_range(self, months_per, start, end):
         one_day = datetime.timedelta(days = 1)
         ends = []
         cur_start = start.replace(day=1)
@@ -208,7 +207,7 @@ class riskmetrics():
                                                returns=self.algorithm_returns, 
                                                benchmark_returns=self.bm_returns, 
                                                treasury_curves=self.treasury_curves,
-                                               trading_calendar=self.trading_calendar)
+                                               trading_environment=self.trading_environment)
             ends.append(cur_period_metrics)
             cur_start = advance_by_months(cur_start, 1)
             
@@ -236,12 +235,13 @@ def advance_by_months(dt, jump_in_months):
     r = dt.replace(year = dt.year + years, month = month)
     return r
 
-class TradingCalendar(object):
+class TradingEnvironment(object):
 
     def __init__(self, benchmark_returns, treasury_curves):
         self.trading_days = []
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
+        self.benchmark_returns = benchmark_returns
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm

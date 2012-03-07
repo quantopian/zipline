@@ -8,6 +8,7 @@ import zipline.test.factory as factory
 import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
+import zipline.finance.performance as perf
 
 from zipline.test.client import TestTradingClient
 from zipline.sources import SpecificEquityTrades
@@ -20,13 +21,11 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         qutil.configure_logging()
-        self.benchmark_returns, self.treasury_curves = factory.load_market_data()
-        self.trading_calendar = risk.TradingCalendar(self.benchmark_returns, self.treasury_curves)
+        benchmark_returns, treasury_curves = factory.load_market_data()
+        self.trading_env = risk.TradingEnvironment(benchmark_returns, treasury_curves)
         
 
     def test_trade_feed_protocol(self):
-
-        # TODO: Perhaps something more self-documenting for variables names?
         sid = 133
         price = [10.0] * 4
         volume = [100] * 4
@@ -34,7 +33,7 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/15/2012","%m/%d/%Y")
         one_day_td = timedelta(days=1)
 
-        trades = factory.create_trade_history(sid, price, volume, start_date, one_day_td, self.trading_calendar)
+        trades = factory.create_trade_history(sid, price, volume, start_date, one_day_td, self.trading_env)
 
         for trade in trades:
             #simulate data source sending frame
@@ -149,7 +148,7 @@ class FinanceTestCase(TestCase):
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
-        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_calendar )
+        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_env )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
@@ -161,6 +160,69 @@ class FinanceTestCase(TestCase):
         transaction_sim = TransactionSimulator()
 
         sim.register_components([client, order_source, transaction_sim, set1])
+        sim.register_controller( con )
+
+        # Simulation
+        # ----------
+        sim_context = sim.simulate()
+        sim_context.join()
+
+
+        # TODO: Make more assertions about the final state of the components.
+        self.assertEqual(sim.feed.pending_messages(), 0, \
+            "The feed should be drained of all messages, found {n} remaining." \
+            .format(n=sim.feed.pending_messages()))
+
+
+    def test_performance(self):
+
+        # verify order -> transaction -> portfolio position.
+        # --------------
+
+        # Allocate sockets for the simulator components
+        allocator = AddressAllocator(8)
+        sockets = allocator.lease(8)
+
+        addresses = {
+            'sync_address'   : sockets[0],
+            'data_address'   : sockets[1],
+            'feed_address'   : sockets[2],
+            'merge_address'  : sockets[3],
+            'result_address' : sockets[4],
+            'order_address'  : sockets[5]
+        }
+
+        con = Controller(
+            sockets[6],
+            sockets[7],
+            logging = qutil.LOGGER
+        )
+
+        sim = Simulator(addresses)
+
+        # Simulation Components
+        # ---------------------
+
+        # TODO: Perhaps something more self-documenting for variables names?
+        sid = 133
+        price = [10.1] * 16
+        volume = [100] * 16
+        start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
+        trade_time_increment = timedelta(days=1)
+
+        trade_history = factory.create_trade_history( sid, price, volume, start_date, trade_time_increment, self.trading_env )
+
+        set1 = SpecificEquityTrades("flat-133", trade_history)
+
+        #client sill send 10 orders for 100 shares of 133
+        client = TestTradingClient(133, 100, 10)
+        ts = datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc)
+
+        order_source = OrderDataSource(ts)
+        transaction_sim = TransactionSimulator()
+        portfolio_client = perf.PortfolioClient(trade_history[0]['dt'], trade_history[-1]['dt'], 1000000.0, self.trading_env)
+
+        sim.register_components([client, order_source, transaction_sim, set1, portfolio_client])
         sim.register_controller( con )
 
         # Simulation
