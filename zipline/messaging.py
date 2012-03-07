@@ -26,9 +26,12 @@ class ComponentHost(Component):
 
     def init(self):
 
-        # Component Registry
+        # Component Registry, keyed by get_id
         # ----------------------
         self.components     = {}
+        # ----------------------
+        # Internal Registry, keyed by guid
+        self._components     = {}
         # ----------------------
 
         self.sync_register  = {}
@@ -69,6 +72,7 @@ class ComponentHost(Component):
             component.addresses     = self.addresses
             component.controller    = self.controller
 
+            self._components[component.guid] = component
             self.components[component.get_id] = component
             self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
