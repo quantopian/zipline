@@ -274,6 +274,27 @@ COMPONENT_STATE = Enum(
     'EXCEPTION' , # 2
 )
 
+# NOFAILURE  - Component is either not running or has not failed
+# ALGOEXCEPT - Exception thrown in the given algorithm
+# HOSTEXCEPT - Exception thrown on our end.
+# INTERRUPT  - Manually interuptted by user
+
+COMPONENT_FAILURE = Enum(
+    'NOFAILURE'  ,
+    'ALGOEXCEPT' ,
+    'HOSTEXCEPT' ,
+    'INTERRUPT'  ,
+)
+
+BACKTEST_STATE = Enum(
+    'IDLE'       ,
+    'QUEUED'     ,
+    'INPROGRESS' ,
+    'CANCELLED'  , # cancelled ( before natural completion )
+    'EXCEPTION'  , # failure ( due to unnatural causes )
+    'DONE'       , # done ( naturally completed )
+)
+
 # ==================
 # Datasource Protocol
 # ==================
