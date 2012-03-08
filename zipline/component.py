@@ -14,7 +14,8 @@ import humanhash
 from datetime import datetime
 
 import zipline.util as qutil
-from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
+from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
+    COMPONENT_FAILURE, BACKTEST_STATE
 
 class Component(object):
     """
@@ -66,6 +67,7 @@ class Component(object):
         self.controller        = None
         self.heartbeat_timeout = 2000
         self.state_flag        = COMPONENT_STATE.OK
+        self.error_state       = COMPONENT_FAILURE.NOFAILURE
         self.on_done           = None
 
         self._exception        = None
@@ -254,8 +256,17 @@ class Component(object):
     #  Internal Maintenance
     # ----------------------
 
-    def signal_exception(self, exc=None):
+    def signal_exception(self, exc=None, scope=None):
+
+        if scope == 'algo':
+            self.error_state = COMPONENT_FAILURE.ALGOEXCEPT
+        else:
+            self.error_state = COMPONENT_FAILURE.HOSTEXCEPT
+
         self.state_flag = COMPONENT_STATE.EXCEPTION
+        # mark the time of failure so we can track the failure
+        # progogation through the system.
+
         self.stop_tic = time.time()
 
         self._exception = exc
