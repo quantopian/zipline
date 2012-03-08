@@ -28,7 +28,9 @@ class TradeSimulationClient(qmsg.Component):
         #next feed event
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
-        if self.result_feed in socks and socks[self.result_feed] == self.zmq.POLLIN:   
+        if self.result_feed in socks and \
+            socks[self.result_feed] == self.zmq.POLLIN:   
+            
             msg = self.result_feed.recv()
 
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
@@ -61,7 +63,8 @@ class OrderDataSource(qmsg.DataSource):
 
     def __init__(self, simulation_dt):
         """
-        :param simulation_time: datetime in UTC timezone, sets the start time of simulation. orders
+        :param simulation_time: datetime in UTC timezone, sets the start 
+        time of simulation. orders
             will be timestamped relative to this datetime.
                 event = {
                     'sid'    : an integer for security id,
@@ -129,7 +132,8 @@ class OrderDataSource(qmsg.DataSource):
             count += 1
             self.sent_count += 1
     
-        #TODO: we have to send at least one dummy order per do_work iteration or the feed will block waiting for our messages.
+        #TODO: we have to send at least one dummy order per do_work iteration 
+        # or the feed will block waiting for our messages.
         if(count == 0):
             self.send_dummy()
             self.sent_count += 1

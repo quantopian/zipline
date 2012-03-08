@@ -384,7 +384,8 @@ class MergedParallelBuffer(ParallelBuffer):
 
     def append(self, event):
         """
-        :param event: a namedict with one entry. key is the name of the transform, value is the transformed value.
+        :param event: a namedict with one entry. key is the name of the 
+        transform, value is the transformed value.
         Add an event to the buffer for the source specified by
         source_id.
         """
@@ -398,7 +399,7 @@ class BaseTransform(Component):
     Top level execution entry point for the transform
 
     - connects to the feed socket to subscribe to events
-    - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
+    - connects to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
     - processes all messages received from feed, until DONE message received
     - pushes all transforms
     - sends DONE to result socket, closes all sockets and context
