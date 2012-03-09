@@ -47,6 +47,7 @@ class TradeSimulationClient(qmsg.Component):
                 return
             
             event = zp.MERGE_UNFRAME(msg)
+            
             for cb in self.event_callbacks:
                 cb(event)
                 
@@ -57,6 +58,10 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
+        qutil.LOGGER.debug("ordering {amt} of {sid}".format(
+            amt=amount, 
+            sid=sid
+        ))
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
         
     def signal_order_done(self):
@@ -100,7 +105,7 @@ class OrderDataSource(qmsg.DataSource):
         
         #TODO: if this is the first iteration, break deadlock by sending a dummy order
         if(self.sent_count == 0):
-            self.send_dummy()
+            self.send(zp.namedict({}))
         
         #pull all orders from client.
         orders = []
@@ -127,25 +132,19 @@ class OrderDataSource(qmsg.DataSource):
 
             sid, amount = zp.ORDER_UNFRAME(order_msg)
             #send the order along
-            
             self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
             dt = self.simulation_dt + self.last_iteration_duration
-            order_event = zp.namedict({"sid":sid, "amount":amount, "dt":dt})
+            order = zp.namedict({"dt":dt, 'sid':sid, 'amount':amount})
             
-            self.send(order_event)
+            self.send(order)
             count += 1
             self.sent_count += 1
     
         #TODO: we have to send at least one dummy order per do_work iteration 
         # or the feed will block waiting for our messages.
         if(count == 0):
-            self.send_dummy()
+            self.send(zp.namedict({}))
             self.sent_count += 1
-        
-    def send_dummy(self):
-        dt = self.simulation_dt + self.last_iteration_duration
-        dummy_order = zp.namedict({"sid":0, "amount":0, "dt":dt})
-        self.send(dummy_order)
     
     
 
@@ -166,7 +165,6 @@ class TransactionSimulator(qmsg.BaseTransform):
         Pulls one message from the event feed, then
         loops on orders until client sends DONE message.
         """
-        #TODO: need a way to send a placeholder txn, to avoid blocking merge... maybe customize merge to not block on txn?
         if(event.type == zp.DATASOURCE_TYPE.ORDER):
             self.add_open_order(event)
             self.state['value'] = None
@@ -199,7 +197,8 @@ class TransactionSimulator(qmsg.BaseTransform):
     def apply_trade_to_open_orders(self, event):
         
         if(event.volume == 0):
-            #there are zero volume events bc some stocks trade less frequently than once per minute.
+            #there are zero volume events bc some stocks trade 
+            #less frequently than once per minute.
             return self.create_dummy_txn(event.dt)
             
         if self.open_orders.has_key(event.sid):
@@ -212,7 +211,8 @@ class TransactionSimulator(qmsg.BaseTransform):
         dt = event.dt
     
         for order in orders:
-            #we're using minute bars, so allow orders within 30 seconds of the trade
+            #we're using minute bars, so allow orders within 
+            #30 seconds of the trade
             if((order.dt - event.dt) < self.trade_windwo):
                 total_order += order.amount
                 if(order.dt > dt):
@@ -233,7 +233,13 @@ class TransactionSimulator(qmsg.BaseTransform):
             volume_share = .25
         amount = volume_share * event.volume * direction
         impact = (volume_share)**2 * .1 * direction * event.price
-        return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
+        return self.create_transaction(
+            event.sid, 
+            amount, 
+            event.price + impact, 
+            dt.replace(tzinfo = pytz.utc), 
+            direction
+        )
     
         
     def create_transaction(self, sid, amount, price, dt, direction):   

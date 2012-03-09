@@ -295,11 +295,27 @@ def DATASOURCE_FRAME(event):
 
     assert isinstance(event.source_id, basestring)
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
+    
+    #datasources will send sometimes send empty msgs to feel gaps
+    if len(event.keys()) == 2:
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            DATASOURCE_TYPE.EMPTY
+        ]))
 
     if(event.type == DATASOURCE_TYPE.TRADE):
-        return msgpack.dumps(tuple([event.type, TRADE_FRAME(event)]))
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            TRADE_FRAME(event)
+        ]))
     elif(event.type == DATASOURCE_TYPE.ORDER):
-        return msgpack.dumps(tuple([event.type, ORDER_SOURCE_FRAME(event)]))
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            ORDER_SOURCE_FRAME(event)
+        ]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
 
@@ -321,15 +337,21 @@ def DATASOURCE_UNFRAME(msg):
     """
 
     try:
-        ds_type, payload = msgpack.loads(msg)
+        ds_type, source_id, payload = msgpack.loads(msg)
         assert isinstance(ds_type, int)
-        if(ds_type == DATASOURCE_TYPE.TRADE):
-            return TRADE_UNFRAME(payload)
+        rval = namedict({'source_id':source_id})
+        if payload == DATASOURCE_TYPE.EMPTY:
+            child_value = namedict({'dt':None})
+        elif(ds_type == DATASOURCE_TYPE.TRADE):
+            child_value = TRADE_UNFRAME(payload)
         elif(ds_type == DATASOURCE_TYPE.ORDER):
-            return ORDER_SOURCE_UNFRAME(payload)
+            child_value = ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
-
+            
+        rval.merge(child_value)
+        return rval
+        
     except TypeError:
         raise INVALID_DATASOURCE_FRAME(msg)
     except ValueError:
@@ -461,7 +483,6 @@ def TRADE_FRAME(event):
 
     """
     assert isinstance(event, namedict)
-    assert isinstance(event.source_id, basestring)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
@@ -474,13 +495,12 @@ def TRADE_FRAME(event):
         event.epoch,
         event.micros,
         event.type,
-        event.source_id
     ]))
 
 def TRADE_UNFRAME(msg):
     try:
         packed = msgpack.loads(msg)
-        sid, price, volume, epoch, micros, source_type, source_id = packed
+        sid, price, volume, epoch, micros, source_type = packed
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -491,8 +511,7 @@ def TRADE_UNFRAME(msg):
             'volume'    : volume,
             'epoch'     : epoch,
             'micros'    : micros,
-            'type'      : source_type,
-            'source_id' : source_id
+            'type'      : source_type
         })
         UNPACK_DATE(rval)
         return rval
@@ -663,12 +682,13 @@ def UNPACK_DATE(event):
 
 DATASOURCE_TYPE = Enum(
     'ORDER',
-    'TRADE'
+    'TRADE',
+    'EMPTY',
 )
 
 ORDER_PROTOCOL = Enum(
     'DONE',
-    'BREAK'
+    'BREAK',
 )
 
 

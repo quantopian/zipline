@@ -293,7 +293,11 @@ class ParallelBuffer(Component):
                 continue
             cur_source = events
             first_in_list = events[0]
-            
+            if first_in_list.dt == None:
+                #this is a filler event, discard
+                events.pop(0)
+                continue
+                
             if (earliest_event == None) or (first_in_list.dt <= earliest_event.dt):
                 earliest_event = first_in_list
                 earliest_source = cur_source

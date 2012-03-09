@@ -86,10 +86,11 @@ class PerformanceTracker():
         self.returns.append(todays_return_obj)
         
         #calculate risk metrics for cumulative performance
-        self.cur_period_metrics = risk.RiskMetrics(start_date=self.cumulative_performance.period_start, 
-                                                    end_date=self.cumulative_performance.period_end.replace(hour=0, minute=0, second=0), 
-                                                    returns=self.returns,
-                                                    trading_environment=self.trading_environment)
+        self.cur_period_metrics = risk.RiskMetrics(
+            start_date=self.cumulative_performance.period_start, 
+            end_date=self.cumulative_performance.period_end.replace(hour=0, minute=0, second=0), 
+            returns=self.returns,
+            trading_environment=self.trading_environment)
                                                     
         ######################################################################################################
         #######TODO: report/relay metrics out to qexec -- values come from self.cur_period_metrics ###########
@@ -97,14 +98,20 @@ class PerformanceTracker():
         ######################################################################################################
         
         #roll over positions to current day.
-        self.todays_performance = PerformancePeriod(self.market_open, 
-                                                    self.market_close, 
-                                                    self.todays_performance.positions, 
-                                                    self.todays_performance.ending_value, 
-                                                    self.capital_base)
-        
+        self.todays_performance = PerformancePeriod(
+            self.market_open, 
+            self.market_close, 
+            self.todays_performance.positions, 
+            self.todays_performance.ending_value, 
+            self.capital_base
+        )
+
     def handle_simulation_end(self):
-        self.risk_report = risk.RiskReport(self.returns, self.trading_environment)
+        self.risk_report = risk.RiskReport(
+            self.returns, 
+            self.trading_environment
+        )
+        
         ######################################################################################################
         #######TODO: report/relay metrics out to qexec -- values come from self.risk_report        ###########
         ######################################################################################################

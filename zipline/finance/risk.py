@@ -202,13 +202,15 @@ class RiskReport():
             cur_end = advance_by_months(cur_start, months_per) - one_day
             if(cur_end > the_end):
                 break
-            #qutil.LOGGER.debug("start: {start}, end: {end}".format(start=cur_start, end=cur_end))
-            cur_period_metrics = RiskMetrics(start_date=cur_start, 
-                                               end_date=cur_end, 
-                                               returns=self.algorithm_returns, 
-                                               benchmark_returns=self.bm_returns, 
-                                               treasury_curves=self.treasury_curves,
-                                               trading_calendar=self.trading_calendar)
+            cur_period_metrics = RiskMetrics(
+                start_date=cur_start, 
+                end_date=cur_end, 
+                returns=self.algorithm_returns, 
+                benchmark_returns=self.bm_returns, 
+                treasury_curves=self.treasury_curves,
+                trading_calendar=self.trading_calendar
+            )
+            
             ends.append(cur_period_metrics)
             cur_start = advance_by_months(cur_start, 1)
             

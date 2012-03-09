@@ -202,8 +202,7 @@ class FinanceTestCase(TestCase):
             .format(n=sim.feed.pending_messages()))
 
 
-    def test_performance(self):
-
+    def test_performance(self): 
         # verify order -> transaction -> portfolio position.
         # --------------
 
@@ -278,12 +277,17 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
-        
-
-        # TODO: Make more assertions about the final state of the components.
-        self.assertEqual(sim.feed.pending_messages(), 0, \
+        self.assertEqual(
+            sim.feed.pending_messages(), 
+            0, 
             "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=sim.feed.pending_messages()))
+            .format(n=sim.feed.pending_messages())
+        )
+
+        self.assertEqual(
+            test_algo.count,
+            test_algo.incr,
+            "The test algorithm should send as many orders as specified.")
             
         self.assertEqual(
             order_source.sent_count, 
