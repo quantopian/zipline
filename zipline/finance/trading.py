@@ -15,10 +15,18 @@ class TradeSimulationClient(qmsg.Component):
         self.received_count     = 0
         self.prev_dt            = None
         self.event_queue        = []
+        self.event_callbacks    = []
     
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
+    
+    def add_event_callback(self, callback):
+        """
+        :param callable callback: must be a function with the signature
+        f(frame).
+        """
+        self.event_callbacks.append(callback)
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -39,18 +47,14 @@ class TradeSimulationClient(qmsg.Component):
                 return
             
             event = zp.MERGE_UNFRAME(msg)
-            self._handle_event(event)
+            for cb in self.event_callbacks:
+                cb(event)
+                
+            #signal done to order source.
+            self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
-    
-    def _handle_event(self, event):
-        self.handle_event(event)
-        #signal done to order source.
-        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
-    
-    def handle_event(self, event):
-        raise NotImplementedError    
     
     def order(self, sid, amount):
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
@@ -151,6 +155,7 @@ class TransactionSimulator(qmsg.BaseTransform):
         qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
+        self.txn_count                  = 0
         self.trade_windwo                = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
         self.volume_share               = 0.05
@@ -231,7 +236,8 @@ class TransactionSimulator(qmsg.BaseTransform):
         return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
     
         
-    def create_transaction(self, sid, amount, price, dt, direction):                
+    def create_transaction(self, sid, amount, price, dt, direction):   
+        self.txn_count += 1             
         txn = {'sid'                : sid, 
                 'amount'             : int(amount), 
                 'dt'                 : dt, 

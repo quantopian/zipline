@@ -9,10 +9,9 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
-class PortfolioClient(qmsg.Component):
+class PerformanceTracker():
     
     def __init__(self, period_start, period_end, capital_base, trading_environment):
-        qmsg.Component.__init__(self)
         self.trading_day            = datetime.timedelta(hours=6, minutes=30)
         self.calendar_day           = datetime.timedelta(hours=24)
         self.period_start           = period_start
@@ -27,35 +26,33 @@ class PortfolioClient(qmsg.Component):
         self.capital_base           = capital_base
         self.trading_environment    = trading_environment
         self.returns                = []
-        self.cumulative_performance = PerformancePeriod(self.period_start, self.period_end, {}, 0, capital_base = capital_base)
-        self.todays_performance     = PerformancePeriod(self.market_open, self.market_close, {}, 0, capital_base = capital_base)
-    
-    @property
-    def get_id(self):
-        return str(zp.FINANCE_COMPONENT.PORTFOLIO_CLIENT)
-    
-    def open(self):
-        self.result_feed = self.connect_result()
-    
-    def do_work(self):
-        #next feed event
-        socks = dict(self.poll.poll(self.heartbeat_timeout))
-
-        if self.result_feed in socks and socks[self.result_feed] == self.zmq.POLLIN:   
-            msg = self.result_feed.recv()
-
-            if msg == str(zp.CONTROL_PROTOCOL.DONE):
-                self.handle_simulation_end()
-                qutil.LOGGER.info("Portfolio Client is DONE!")
-                self.signal_done()
-                return
+        self.txn_count              = 0 
+        self.event_count            = 0
+        self.cumulative_performance = PerformancePeriod(
+            self.period_start, 
+            self.period_end, 
+            {}, 
+            capital_base, 
+            capital_base = capital_base
+        )
             
-            event = zp.MERGE_UNFRAME(msg)
-            
+        self.todays_performance     = PerformancePeriod(
+            self.market_open, 
+            self.market_close, 
+            {}, 
+            capital_base, 
+            capital_base = capital_base
+        )
+        
+        
+    
+    def update(self, event):
+            self.event_count += 1
             if(event.dt >= self.market_close):
                 self.handle_market_close()
             
-            if event.TRANSACTION:
+            if event.TRANSACTION != None:                
+                self.txn_count += 1
                 self.cumulative_performance.execute_transaction(event.TRANSACTION)
                 self.todays_performance.execute_transaction(event.TRANSACTION)
                 
@@ -73,9 +70,7 @@ class PortfolioClient(qmsg.Component):
             #calculate performance as of last trade
             self.cumulative_performance.calculate_performance()
             self.todays_performance.calculate_performance()
-            
-            
-    
+               
     def handle_market_close(self):
         self.market_open = self.market_open + self.calendar_day
         while not self.trading_environment.is_trading_day(self.market_open):

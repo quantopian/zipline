@@ -10,9 +10,10 @@ import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.test.client import TestTradingClient
+from zipline.test.client import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, OrderDataSource
+from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
+TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 
@@ -172,15 +173,21 @@ class FinanceTestCase(TestCase):
         )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
-
-        #client sill send 10 orders for 100 shares of 133
-        client = TestTradingClient(133, 100, 10)
+        
+        trading_client = TradeSimulationClient()
+        #client will send 10 orders for 100 shares of 133
+        test_algo = TestAlgorithm(133, 100, 10, trading_client)
         ts = datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc)
 
         order_source = OrderDataSource(ts)
         transaction_sim = TransactionSimulator()
 
-        sim.register_components([client, order_source, transaction_sim, set1])
+        sim.register_components([
+            trading_client, 
+            order_source, 
+            transaction_sim, 
+            set1
+        ])
         sim.register_controller( con )
 
         # Simulation
@@ -242,24 +249,27 @@ class FinanceTestCase(TestCase):
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
-        client = TestTradingClient(133, 100, 10)
+        trading_client = TradeSimulationClient()
+        test_algo = TestAlgorithm(133, 100, 10, trading_client)
         ts = datetime.strptime("02/1/2012","%m/%d/%Y")
         ts = ts.replace(tzinfo=pytz.utc)
 
         order_source = OrderDataSource(ts)
         transaction_sim = TransactionSimulator()
-        portfolio_client = perf.PortfolioClient(
+        perf_tracker = perf.PerformanceTracker(
             trade_history[0]['dt'], 
             trade_history[-1]['dt'], 
             1000000.0, 
             self.trading_environment)
+        
+        #register perf_tracker to receive callbacks from the client.
+        trading_client.add_event_callback(perf_tracker.update)
     
         sim.register_components([
-            client, 
+            trading_client, 
             order_source, 
             transaction_sim, 
             set1, 
-            portfolio_client,
             ])
         sim.register_controller( con )
 
@@ -268,8 +278,34 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
+        
 
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=sim.feed.pending_messages()))
+            
+        self.assertEqual(
+            order_source.sent_count, 
+            test_algo.count, 
+            "The order source should have sent as many orders as the algo."
+        )
+            
+        self.assertEqual(
+            transaction_sim.txn_count,
+            perf_tracker.txn_count,
+            "The perf tracker should handle the same number of transactions as\
+            as the simulator emits."
+        ) 
+        
+        self.assertEqual(
+            len(perf_tracker.cumulative_performance.positions), 
+            1, 
+            "Portfolio should have one position."
+        )
+        
+        self.assertEqual(
+            perf_tracker.cumulative_performance.positions[133].sid, 
+            133, 
+            "Portfolio should have one position in 133."
+        )
