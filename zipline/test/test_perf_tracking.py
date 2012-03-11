@@ -5,7 +5,6 @@ import datetime
 
 import zipline.test.factory as factory
 import zipline.util as qutil
-import zipline.protocol as zp
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
 class PerformanceTestCase(unittest.TestCase):

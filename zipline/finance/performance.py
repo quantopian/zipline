@@ -29,19 +29,15 @@ class PerformanceTracker():
         self.txn_count              = 0 
         self.event_count            = 0
         self.cumulative_performance = PerformancePeriod(
-            self.period_start, 
-            self.period_end, 
             {}, 
             capital_base, 
-            capital_base = capital_base
+            starting_cash = capital_base
         )
             
         self.todays_performance     = PerformancePeriod(
-            self.market_open, 
-            self.market_close, 
             {}, 
             capital_base, 
-            capital_base = capital_base
+            starting_cash = capital_base
         )
         
         
@@ -72,26 +68,33 @@ class PerformanceTracker():
             self.todays_performance.calculate_performance()
                
     def handle_market_close(self):
-        qutil.LOGGER.debug("###########market close###############")
-        self.market_open = self.market_open + self.calendar_day
-        while not self.trading_environment.is_trading_day(self.market_open):
-            if self.market_open > self.trading_environment.trading_days[-1]:
-                raise Exception("Attempting to backtest beyond available history.")
-            self.market_open = self.market_open + self.calendar_day
-        self.market_close = self.market_open + self.trading_day   
-        self.day_count += 1.0
-        self.progress = self.day_count / self.total_days
-        #add the return results from today to the list of daily return objects.
-        todays_date = self.todays_performance.period_end.replace(hour=0, minute=0, second=0)
+         #add the return results from today to the list of daily return objects.
+        todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.daily_return(todays_date, self.todays_performance.returns)
         self.returns.append(todays_return_obj)
         
         #calculate risk metrics for cumulative performance
-        self.cur_period_metrics = risk.RiskMetrics(
-            start_date=self.cumulative_performance.period_start, 
-            end_date=self.cumulative_performance.period_end.replace(hour=0, minute=0, second=0), 
+        self.cumulative_risk_metrics = risk.RiskMetrics(
+            start_date=self.period_start, 
+            end_date=self.market_close.replace(hour=0, minute=0, second=0), 
             returns=self.returns,
-            trading_environment=self.trading_environment)
+            trading_environment=self.trading_environment
+        )
+        
+        #move the market day markers forward
+        self.market_open = self.market_open + self.calendar_day
+        while not self.trading_environment.is_trading_day(self.market_open):
+            if self.market_open > self.trading_environment.trading_days[-1]:
+                raise Exception("Attempt to backtest beyond available history.")
+            self.market_open = self.market_open + self.calendar_day
+        self.market_close = self.market_open + self.trading_day   
+        self.day_count += 1.0
+        
+        #calculate progress of test
+        self.progress = self.day_count / self.total_days
+       
+        
+        
                                                     
         ######################################################################################################
         #######TODO: report/relay metrics out to qexec -- values come from self.cur_period_metrics ###########
@@ -101,8 +104,6 @@ class PerformanceTracker():
         #roll over positions to current day.
         self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
-            self.market_open, 
-            self.market_close, 
             self.todays_performance.positions, 
             self.todays_performance.ending_value, 
             self.todays_performance.ending_cash
@@ -201,7 +202,7 @@ class PerformancePeriod():
         return mktValue
                 
     def update_last_sale(self, event):
-        if self.positions.has_key(event.sid):
+        if self.positions.has_key(event.sid) and event.type == zp.DATASOURCE_TYPE.TRADE:
             self.positions[event.sid].last_sale = event.price 
             self.positions[event.sid].last_date = event.dt
         

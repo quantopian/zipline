@@ -492,15 +492,14 @@ def TRADE_FRAME(event):
         event.sid,
         event.price,
         event.volume,
-        event.epoch,
-        event.micros,
+        event.dt,
         event.type,
     ]))
 
 def TRADE_UNFRAME(msg):
     try:
         packed = msgpack.loads(msg)
-        sid, price, volume, epoch, micros, source_type = packed
+        sid, price, volume, dt, source_type = packed
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -509,8 +508,7 @@ def TRADE_UNFRAME(msg):
             'sid'       : sid,
             'price'     : price,
             'volume'    : volume,
-            'epoch'     : epoch,
-            'micros'    : micros,
+            'dt'        : dt,
             'type'      : source_type
         })
         UNPACK_DATE(rval)
@@ -559,13 +557,12 @@ def TRANSACTION_FRAME(event):
         event.price,
         event.amount,
         event.commission,
-        event.epoch,
-        event.micros
+        event.dt
     ]))
 
 def TRANSACTION_UNFRAME(msg):
     try:
-        sid, price, amount, commission, epoch, micros = msgpack.loads(msg)
+        sid, price, amount, commission, dt = msgpack.loads(msg)
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -576,8 +573,7 @@ def TRANSACTION_UNFRAME(msg):
             'price'      : price,
             'amount'     : amount,
             'commission' : commission,
-            'epoch'      : epoch,
-            'micros'     : micros
+            'dt'      : dt
         })
 
         UNPACK_DATE(rval)
@@ -602,8 +598,7 @@ def ORDER_SOURCE_FRAME(event):
     return msgpack.dumps(tuple([
         event.sid,
         event.amount,
-        event.epoch,
-        event.micros,
+        event.dt,
         event.source_id,
         event.type
     ]))
@@ -611,12 +606,11 @@ def ORDER_SOURCE_FRAME(event):
 
 def ORDER_SOURCE_UNFRAME(msg):
     try:
-        sid, amount, epoch, micros, source_id, source_type = msgpack.loads(msg)
+        sid, amount, dt, source_id, source_type = msgpack.loads(msg)
         event = namedict({
             "sid"       : sid,
             "amount"    : amount,
-            "epoch"     : epoch,
-            "micros"    : micros,
+            "dt"        : dt,
             "source_id" : source_id,
             "type"      : source_type
         })
@@ -639,9 +633,8 @@ def PACK_DATE(event):
     """
     Packs the datetime property of event into msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is replaced by two longs: epoch and micros. 
-    Epoch is the unix epoch time in UTC, and micros is the microsecond 
-    property of the original event.dt datetime object.
+    The event's 'dt' property is replaced by a tuple of integers::
+        - year, month, day, hour, minute, second, microsecond
     
     PACK_DATE and UNPACK_DATE are inverse operations. 
     
@@ -650,33 +643,32 @@ def PACK_DATE(event):
     """
     assert isinstance(event.dt, datetime.datetime)
     assert event.dt.tzinfo == pytz.utc #utc only please
-    epoch = long(event.dt.strftime('%s'))
-    event['epoch'] = epoch
-    event['micros'] = event.dt.microsecond
-    event.delete('dt')
+    year, month, day, hour, minute, second =  event.dt.timetuple()[0:6]
+    micros = event.dt.microsecond
+    event['dt'] = tuple([year, month, day, hour, minute, second, micros])
 
 def UNPACK_DATE(event):
     """
     Unpacks the datetime property of event from msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is created by reading and then combining two longs: epoch and micros. 
-    The epoch and micros properties are removed after dt is added.
+    The event's 'dt' property is converted to a datetime by reading and then 
+    combining a tuple of integers.
     
     UNPACK_DATE and PACK_DATE are inverse operations. 
     
-    :param event: event must a namedict with::
-            - a property named 'epoch' that is an integral representing the unix \
-             epoch time in UTC
-            - a property named 'micros' that is an integral the microsecond \
-            property of the original event.dt datetime object
+    :param tuple event: event must a namedict with::
+            - a property named 'dt_tuple' that is a tuple of integers 
+            representing the date and time in UTC. dt_tumple must have year, 
+            month, day, hour, minute, second, and microsecond
     :rtype: None
     """
-    assert isinstance(event.epoch, numbers.Integral)
-    assert isinstance(event.micros, numbers.Integral)
-    dt = datetime.datetime.fromtimestamp(event.epoch)
-    dt = dt.replace(microsecond = event.micros, tzinfo = pytz.utc)
-    event.delete('epoch')
-    event.delete('micros')
+    assert isinstance(event.dt, tuple)
+    assert len(event.dt) == 7
+    for item in event.dt:
+        assert isinstance(item, numbers.Integral)
+    year, month, day, hour, minute, second, micros = event.dt
+    dt = datetime.datetime(year, month, day, hour, minute, second)
+    dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     event.dt = dt
 
 

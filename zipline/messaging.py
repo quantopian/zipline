@@ -287,7 +287,8 @@ class ParallelBuffer(Component):
         cur_source = None
         earliest_source = None
         earliest_event = None
-        #iterate over the queues of events from all sources (1 queue per datasource)
+        #iterate over the queues of events from all sources 
+        #(1 queue per datasource)
         for events in self.data_buffer.values():
             if len(events) == 0:
                 continue

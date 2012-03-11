@@ -231,9 +231,10 @@ class FinanceTestCase(TestCase):
         # ---------------------
 
         # TODO: Perhaps something more self-documenting for variables names?
+        trade_count = 100
         sid = 133
-        price = [10.1] * 16
-        volume = [100] * 16
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
@@ -283,6 +284,13 @@ class FinanceTestCase(TestCase):
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=sim.feed.pending_messages())
         )
+        
+        self.assertEqual(
+            sim.merge.pending_messages(), 
+            0, 
+            "The merge should be drained of all messages, found {n} remaining." \
+            .format(n=sim.merge.pending_messages())
+        )
 
         self.assertEqual(
             test_algo.count,
@@ -299,7 +307,7 @@ class FinanceTestCase(TestCase):
             transaction_sim.txn_count,
             perf_tracker.txn_count,
             "The perf tracker should handle the same number of transactions as\
-            as the simulator emits."
+as the simulator emits."
         ) 
         
         self.assertEqual(

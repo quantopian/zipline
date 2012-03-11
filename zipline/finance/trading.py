@@ -16,6 +16,7 @@ class TradeSimulationClient(qmsg.Component):
         self.prev_dt            = None
         self.event_queue        = []
         self.event_callbacks    = []
+        self.txn_count          = 0
     
     @property
     def get_id(self):
@@ -47,6 +48,9 @@ class TradeSimulationClient(qmsg.Component):
                 return
             
             event = zp.MERGE_UNFRAME(msg)
+            
+            if(event.TRANSACTION != None):
+                self.txn_count += 1
             
             for cb in self.event_callbacks:
                 cb(event)
@@ -123,6 +127,7 @@ class OrderDataSource(qmsg.DataSource):
                 
             order_msg = rlist[0].recv()
             if order_msg == str(zp.ORDER_PROTOCOL.DONE):
+                qutil.LOGGER.debug("Order source received done message.")
                 self.signal_done()
                 return
                 
@@ -144,7 +149,6 @@ class OrderDataSource(qmsg.DataSource):
         # or the feed will block waiting for our messages.
         if(count == 0):
             self.send(zp.namedict({}))
-            self.sent_count += 1
     
     
 
