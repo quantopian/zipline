@@ -72,6 +72,7 @@ class PerformanceTracker():
             self.todays_performance.calculate_performance()
                
     def handle_market_close(self):
+        qutil.LOGGER.debug("###########market close###############")
         self.market_open = self.market_open + self.calendar_day
         while not self.trading_environment.is_trading_day(self.market_open):
             if self.market_open > self.trading_environment.trading_days[-1]:
@@ -98,12 +99,13 @@ class PerformanceTracker():
         ######################################################################################################
         
         #roll over positions to current day.
+        self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
             self.market_open, 
             self.market_close, 
             self.todays_performance.positions, 
             self.todays_performance.ending_value, 
-            self.capital_base
+            self.todays_performance.ending_cash
         )
 
     def handle_simulation_end(self):
@@ -133,14 +135,18 @@ class Position():
     
     def update(self, txn):
         if(self.sid != txn.sid):
-            raise NameError('attempt to update position with transaction in different sid')
+            raise NameError('updating position with txn for a different sid')
             #throw exception
         
         if(self.amount + txn.amount == 0): #we're covering a short or closing a position
             self.cost_basis = 0.0
             self.amount = 0
         else:
-            self.cost_basis = (self.cost_basis*self.amount + (txn.amount*txn.price))/(self.amount + txn.amount)
+            prev_cost = self.cost_basis*self.amount
+            txn_cost = txn.amount*txn.price
+            total_cost = prev_cost + txn_cost
+            total_shares = self.amount + txn.amount
+            self.cost_basis = total_cost/total_shares
             self.amount = self.amount + txn.amount
             
     def currentValue(self):
@@ -148,35 +154,40 @@ class Position():
         
         
     def __repr__(self):
-        return "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, last_sale: {last_sale}".format(
-        sid=self.sid, amount=self.amount, cost_basis=self.cost_basis, last_sale=self.last_sale)
+        template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
+        last_sale: {last_sale}" 
+        return template.format(
+            sid=self.sid, 
+            amount=self.amount, 
+            cost_basis=self.cost_basis, 
+            last_sale=self.last_sale
+        )
         
 class PerformancePeriod():
     
-    def __init__(self, period_start, period_end, initial_positions, initial_value, capital_base = None):
+    def __init__(self, initial_positions, starting_value, starting_cash):
         self.ending_value        = 0.0
         self.period_capital_used  = 0.0
-        self.period_start       = period_start
-        self.period_end         = period_end
         self.positions          = initial_positions #sid => position object
-        self.starting_value      = initial_value
-        if(capital_base != None):
-            self.capital_base   = capital_base
-        else:
-            self.capital_base   = 0
+        self.starting_value      = starting_value
+        #cash balance at start of period
+        self.starting_cash       = starting_cash
+        self.ending_cash        = starting_cash
             
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
-        self.pnl = (self.ending_value - self.starting_value) - self.period_capital_used
-        if(self.capital_base != 0):
-            self.returns = self.pnl / self.starting_value
+        
+        total_at_start      = self.starting_cash + self.starting_value
+        self.ending_cash    = self.starting_cash + self.period_capital_used
+        total_at_end        = self.ending_cash + self.ending_value
+        
+        self.pnl            = total_at_end - total_at_start
+        if(total_at_start != 0):
+            self.returns = self.pnl / total_at_start
         else:
             self.returns = 0.0
             
     def execute_transaction(self, txn):
-        if(txn.dt > self.period_end):
-            raise Exception("transaction dated {dt} attempted for period ending {ending}".
-                            format(dt=txn.dt, ending=self.period_end))
         if(not self.positions.has_key(txn.sid)):
             self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
@@ -195,5 +206,4 @@ class PerformancePeriod():
             self.positions[event.sid].last_date = event.dt
         
         
-
     

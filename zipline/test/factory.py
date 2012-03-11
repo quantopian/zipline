@@ -23,14 +23,14 @@ def load_market_data():
     
 
 def create_trade(sid, price, amount, datetime):
-    row = {
+    row = zp.namedict({
         'source_id' : "test_factory",
         'type'      : zp.DATASOURCE_TYPE.TRADE,
         'sid'       : sid,
         'dt'        : datetime,
         'price'     : price,
         'volume'    : amount
-    }
+    })
     return row
 
 def create_trade_history(sid, prices, amounts, start_time, interval, trading_calendar):
@@ -50,19 +50,23 @@ def create_trade_history(sid, prices, amounts, start_time, interval, trading_cal
 
     return trades
 
-def createTxn(sid, price, amount, datetime, btrid=None):
-    txn = Transaction(sid=sid, amount=amount, dt = datetime,
-                      price=price, transaction_cost=-1*price*amount)
+def create_txn(sid, price, amount, datetime, btrid=None):
+    txn = zp.namedict({
+        'sid':sid,
+        'amount':amount, 
+        'dt':datetime,
+        'price':price, 
+    })
     return txn
 
-def create_transaction_history(sid, priceList, amtList, startTime, interval, trading_calendar):
+def create_txn_history(sid, priceList, amtList, startTime, interval, trading_calendar):
     txns = []
     current = startTime
 
     for price, amount in zip(priceList, amtList):
 
         if trading_calendar.is_trading_day(current):
-            txns.append(createTxn(sid, price, amount, current))
+            txns.append(create_txn(sid, price, amount, current))
             current = current + interval
 
         else:

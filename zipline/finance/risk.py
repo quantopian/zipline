@@ -17,16 +17,18 @@ class daily_return():
         return str(self.date) + " - " + str(self.returns)
         
 class RiskMetrics():
-    def __init__(self, start_date, end_date, returns, benchmark_returns, treasury_curves, trading_calendar):
+    def __init__(self, start_date, end_date, returns, trading_environment):
         """
         :param treasury_curves: {datetime in utc -> {duration label -> interest rate}}
         """
         
-        self.treasury_curves = treasury_curves
+        self.treasury_curves = trading_environment.treasury_curves
         self.start_date = start_date
         self.end_date = end_date
-        self.trading_calendar = trading_calendar
+        self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = self.calculate_period_returns(returns)
+        benchmark_returns = [x for x in self.trading_environment.benchmark_returns if x.date >= returns[0].date and x.date <= returns[-1].date]
+        
         self.benchmark_period_returns, self.benchmark_returns = self.calculate_period_returns(benchmark_returns)
         if(len(self.benchmark_returns) != len(self.algorithm_returns)):
             raise Exception("Mismatch between benchmark_returns ({bm_count}) and algorithm_returns ({algo_count}) in range {start} : {end}".format(
@@ -53,7 +55,7 @@ class RiskMetrics():
         return '\n'.join(statements)
         
     def calculate_period_returns(self, daily_returns):
-        returns = [x.returns for x in daily_returns if x.date >= self.start_date and x.date <= self.end_date and self.trading_calendar.is_trading_day(x.date)]
+        returns = [x.returns for x in daily_returns if x.date >= self.start_date and x.date <= self.end_date and self.trading_environment.is_trading_day(x.date)]
         #qutil.LOGGER.debug("using {count} daily returns out of {total}".format(count=len(returns),total=len(daily_returns)))
         period_returns = 1.0
         for r in returns:
@@ -165,18 +167,13 @@ class RiskMetrics():
         
 class RiskReport():
     
-    def __init__(self, algorithm_returns, benchmark_returns, treasury_curves, trading_calendar):
+    def __init__(self, algorithm_returns, benchmark_returns, treasury_curves, trading_environment):
         """algorithm_returns needs to be a list of daily_return objects sorted in date ascending order"""
         
         self.algorithm_returns = algorithm_returns
-        self.bm_returns = [x for x in benchmark_returns if x.date >= self.algorithm_returns[0].date and x.date <= self.algorithm_returns[-1].date]
         self.treasury_curves = treasury_curves
-        self.trading_calendar = trading_calendar
+        self.trading_environment = trading_environment
         
-        qutil.LOGGER.debug("#### {start} thru {end} with {count} trading_days of {total} possible".format(start=self.algorithm_returns[0].date, 
-                                                                                           end=self.algorithm_returns[-1].date,
-                                                                                           count=len(self.bm_returns),
-                                                                                           total=len(benchmark_returns)))
         
         #calculate month ends
         self.month_periods          = self.periodsInRange(1, self.algorithm_returns[0].date, self.algorithm_returns[-1].date)
@@ -206,9 +203,7 @@ class RiskReport():
                 start_date=cur_start, 
                 end_date=cur_end, 
                 returns=self.algorithm_returns, 
-                benchmark_returns=self.bm_returns, 
-                treasury_curves=self.treasury_curves,
-                trading_calendar=self.trading_calendar
+                trading_environment=self.trading_environment
             )
             
             ends.append(cur_period_metrics)
@@ -244,6 +239,7 @@ class TradingEnvironment(object):
         self.trading_days = []
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
+        self.benchmark_returns = benchmark_returns
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm
