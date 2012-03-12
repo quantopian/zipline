@@ -225,8 +225,6 @@ class FinanceTestCase(TestCase):
         self.assertTrue(sim.ready())
         self.assertFalse(sim.exception)
 
-        import pdb; pdb.set_trace()
-
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
