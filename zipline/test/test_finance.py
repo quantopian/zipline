@@ -1,11 +1,12 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
-import gevent
 
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+from nose.tools import timed
 
 import zipline.test.factory as factory
 import zipline.util as qutil
@@ -19,6 +20,10 @@ from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
+
+DEFAULT_TIMEOUT = 5 # seconds
+
+allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
 
@@ -34,10 +39,7 @@ class FinanceTestCase(TestCase):
             self.treasury_curves
         )
 
-        self.allocator = AddressAllocator(1000)
-
-    def tearDown(self):
-        self.unallocate_sockets()
+        self.allocator = allocator
 
     def allocate_sockets(self, n):
         """
@@ -53,12 +55,7 @@ class FinanceTestCase(TestCase):
         self.leased_sockets[self.id()].extend(leased)
         return leased
 
-    def unallocate_sockets(self):
-        """
-        Unallocate sockets after we are done with them.
-        """
-        self.allocator.reaquire(*self.leased_sockets[self.id()])
-
+    @timed(DEFAULT_TIMEOUT)
     def test_trade_feed_protocol(self):
 
         # TODO: Perhaps something more self-documenting for variables names?
@@ -111,6 +108,7 @@ class FinanceTestCase(TestCase):
 
             self.assertEqual(zp.namedict(trade), event)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_order_protocol(self):
         #client places an order
         order_msg = zp.ORDER_FRAME(133, 100)
@@ -155,13 +153,14 @@ class FinanceTestCase(TestCase):
         self.assertEqual(recovered_tx.sid, 133)
         self.assertEqual(recovered_tx.amount, 100)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
 
         # Just verify sending and receiving orders.
         # --------------
 
         # Allocate sockets for the simulator components
-        sockets = self.allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
@@ -231,12 +230,14 @@ class FinanceTestCase(TestCase):
             .format(n=sim.feed.pending_messages()))
 
 
+    @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
+
         # verify order -> transaction -> portfolio position.
         # --------------
 
         # Allocate sockets for the simulator components
-        sockets = self.allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
