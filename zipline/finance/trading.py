@@ -116,10 +116,12 @@ class OrderDataSource(qmsg.DataSource):
         order_dt = None
         count = 0
         while True:
-            (rlist, wlist, xlist) = select([self.order_socket],
-                                           [],
-                                           [self.order_socket],
-                                           timeout=self.heartbeat_timeout/1000) #select timeout is in sec
+            (rlist, wlist, xlist) = select(
+                [self.order_socket],
+                [],
+                [self.order_socket],
+                timeout=self.heartbeat_timeout/1000
+            ) 
             
             #no more orders, should this be an error condition?
             if len(rlist) == 0 or len(xlist) > 0: 

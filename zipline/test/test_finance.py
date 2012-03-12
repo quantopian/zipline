@@ -30,6 +30,8 @@ class FinanceTestCase(TestCase):
             self.treasury_curves
         )
         
+        self.allocator = AddressAllocator(8)
+        
 
     def test_trade_feed_protocol(self):
 
@@ -133,8 +135,7 @@ class FinanceTestCase(TestCase):
         # --------------
 
         # Allocate sockets for the simulator components
-        allocator = AddressAllocator(8)
-        sockets = allocator.lease(8)
+        sockets = self.allocator.lease(8)
 
         addresses = {
             'sync_address'   : sockets[0],
@@ -207,8 +208,7 @@ class FinanceTestCase(TestCase):
         # --------------
 
         # Allocate sockets for the simulator components
-        allocator = AddressAllocator(8)
-        sockets = allocator.lease(8)
+        sockets = self.allocator.lease(8)
 
         addresses = {
             'sync_address'   : sockets[0],
