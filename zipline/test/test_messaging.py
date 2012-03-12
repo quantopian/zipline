@@ -17,6 +17,15 @@ from nose.tools import timed
 # it up as a test. Its a Mixin of sorts at this point.
 class SimulatorTestCase(object):
 
+    # Leased sockets is a defaultdict keyed by the test case.
+    # This lets you debug the sockets being allocated in the
+    # specific test cases and tear them down appropriately.
+    #
+    # {
+    #    'test_orders'      : ['tcp : //127.0.0.1 : 1000', ... ],
+    #    'test_performance' : ['tcp : //127.0.0.1 : 1025', ... ],
+    # }
+
     leased_sockets = defaultdict(list)
 
     def setUp(self):

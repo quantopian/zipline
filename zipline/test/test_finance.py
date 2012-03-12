@@ -1,8 +1,11 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
+import gevent
+
 from unittest2 import TestCase
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 import zipline.test.factory as factory
 import zipline.util as qutil
@@ -17,21 +20,44 @@ TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 
-
 class FinanceTestCase(TestCase):
+
+    leased_sockets = defaultdict(list)
 
     def setUp(self):
         qutil.configure_logging()
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
-        
+
         self.trading_environment = risk.TradingEnvironment(
-            self.benchmark_returns, 
+            self.benchmark_returns,
             self.treasury_curves
         )
-        
-        self.allocator = AddressAllocator(8)
-        
+
+        self.allocator = AddressAllocator(1000)
+
+    def tearDown(self):
+        self.unallocate_sockets()
+
+    def allocate_sockets(self, n):
+        """
+        Allocate sockets local to this test case, track them so
+        we can gc after test run.
+        """
+
+        assert isinstance(n, int)
+        assert n > 0
+
+        leased = self.allocator.lease(n)
+
+        self.leased_sockets[self.id()].extend(leased)
+        return leased
+
+    def unallocate_sockets(self):
+        """
+        Unallocate sockets after we are done with them.
+        """
+        self.allocator.reaquire(*self.leased_sockets[self.id()])
 
     def test_trade_feed_protocol(self):
 
@@ -196,6 +222,10 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
+        self.assertTrue(sim.ready())
+        self.assertFalse(sim.exception)
+
+        import pdb; pdb.set_trace()
 
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0, \

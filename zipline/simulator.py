@@ -61,10 +61,8 @@ class Simulator(ComponentHost):
         if not self.running:
             return
 
-        try:
-            self.controller.shutdown(context=self.context)
-        except:
-            import pdb; pdb.set_trace()
+        #if self.controller:
+            #self.controller.shutdown()
 
         for component in self.components.itervalues():
             component.shutdown()
