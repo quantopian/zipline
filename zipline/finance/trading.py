@@ -62,10 +62,6 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
-        qutil.LOGGER.debug("ordering {amt} of {sid}".format(
-            amt=amount, 
-            sid=sid
-        ))
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
         
     def signal_order_done(self):
@@ -116,25 +112,31 @@ class OrderDataSource(qmsg.DataSource):
         order_dt = None
         count = 0
         while True:
+            
             (rlist, wlist, xlist) = select(
                 [self.order_socket],
                 [],
                 [self.order_socket],
-                timeout=self.heartbeat_timeout/1000
+                #allow half the time of a heartbeat for the order
+                #timeout, so we have time to signal we are done.
+                timeout=self.heartbeat_timeout/2000
             ) 
+        
             
             #no more orders, should this be an error condition?
             if len(rlist) == 0 or len(xlist) > 0: 
-                continue
+                #no order message means there was a timeout above, 
+                #and the client is done sending orders (but isn't
+                #telling us himself!).
+                self.signal_done()
+                return
                 
             order_msg = rlist[0].recv()
             if order_msg == str(zp.ORDER_PROTOCOL.DONE):
-                qutil.LOGGER.debug("Order source received done message.")
                 self.signal_done()
                 return
                 
             if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
-                qutil.LOGGER.info("order loop finished")
                 break
 
             sid, amount = zp.ORDER_UNFRAME(order_msg)
