@@ -1,8 +1,12 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
+
 from unittest2 import TestCase
 from datetime import datetime, timedelta
+from collections import defaultdict
+
+from nose.tools import timed
 
 import zipline.test.factory as factory
 import zipline.util as qutil
@@ -17,22 +21,41 @@ TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 
+DEFAULT_TIMEOUT = 5 # seconds
+
+allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
+
+    leased_sockets = defaultdict(list)
 
     def setUp(self):
         qutil.configure_logging()
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
-        
+
         self.trading_environment = risk.TradingEnvironment(
-            self.benchmark_returns, 
+            self.benchmark_returns,
             self.treasury_curves
         )
-        
-        self.allocator = AddressAllocator(8)
-        
 
+        self.allocator = allocator
+
+    def allocate_sockets(self, n):
+        """
+        Allocate sockets local to this test case, track them so
+        we can gc after test run.
+        """
+
+        assert isinstance(n, int)
+        assert n > 0
+
+        leased = self.allocator.lease(n)
+
+        self.leased_sockets[self.id()].extend(leased)
+        return leased
+
+    @timed(DEFAULT_TIMEOUT)
     def test_trade_feed_protocol(self):
 
         # TODO: Perhaps something more self-documenting for variables names?
@@ -85,6 +108,7 @@ class FinanceTestCase(TestCase):
 
             self.assertEqual(zp.namedict(trade), event)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_order_protocol(self):
         #client places an order
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -135,13 +159,14 @@ class FinanceTestCase(TestCase):
         self.assertEqual(recovered_tx.sid, 133)
         self.assertEqual(recovered_tx.amount, 100)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
 
         # Just verify sending and receiving orders.
         # --------------
 
         # Allocate sockets for the simulator components
-        sockets = self.allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
@@ -202,6 +227,8 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
+        self.assertTrue(sim.ready())
+        self.assertFalse(sim.exception)
 
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0, \
@@ -209,12 +236,14 @@ class FinanceTestCase(TestCase):
             .format(n=sim.feed.pending_messages()))
 
 
+    @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
+
         # verify order -> transaction -> portfolio position.
         # --------------
 
         # Allocate sockets for the simulator components
-        sockets = self.allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
