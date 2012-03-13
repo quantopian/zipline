@@ -15,10 +15,19 @@ class TradeSimulationClient(qmsg.Component):
         self.received_count     = 0
         self.prev_dt            = None
         self.event_queue        = []
+        self.event_callbacks    = []
+        self.txn_count          = 0
     
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
+    
+    def add_event_callback(self, callback):
+        """
+        :param callable callback: must be a function with the signature
+        f(frame).
+        """
+        self.event_callbacks.append(callback)
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -28,7 +37,9 @@ class TradeSimulationClient(qmsg.Component):
         #next feed event
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
-        if self.result_feed in socks and socks[self.result_feed] == self.zmq.POLLIN:   
+        if self.result_feed in socks and \
+            socks[self.result_feed] == self.zmq.POLLIN:   
+            
             msg = self.result_feed.recv()
 
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
@@ -37,18 +48,18 @@ class TradeSimulationClient(qmsg.Component):
                 return
             
             event = zp.MERGE_UNFRAME(msg)
-            self._handle_event(event)
+            
+            if(event.TRANSACTION != None):
+                self.txn_count += 1
+            
+            for cb in self.event_callbacks:
+                cb(event)
+                
+            #signal done to order source.
+            self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
-    
-    def _handle_event(self, event):
-        self.handle_event(event)
-        #signal done to order source.
-        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
-    
-    def handle_event(self, event):
-        raise NotImplementedError    
     
     def order(self, sid, amount):
         self.order_socket.send(zp.ORDER_FRAME(sid, amount))
@@ -61,7 +72,8 @@ class OrderDataSource(qmsg.DataSource):
 
     def __init__(self, simulation_dt):
         """
-        :param simulation_time: datetime in UTC timezone, sets the start time of simulation. orders
+        :param simulation_time: datetime in UTC timezone, sets the start 
+        time of simulation. orders
             will be timestamped relative to this datetime.
                 event = {
                     'sid'    : an integer for security id,
@@ -93,21 +105,31 @@ class OrderDataSource(qmsg.DataSource):
         
         #TODO: if this is the first iteration, break deadlock by sending a dummy order
         if(self.sent_count == 0):
-            self.send_dummy()
+            self.send(zp.namedict({}))
         
         #pull all orders from client.
         orders = []
         order_dt = None
         count = 0
         while True:
-            (rlist, wlist, xlist) = select([self.order_socket],
-                                           [],
-                                           [self.order_socket],
-                                           timeout=self.heartbeat_timeout/1000) #select timeout is in sec
+            
+            (rlist, wlist, xlist) = select(
+                [self.order_socket],
+                [],
+                [self.order_socket],
+                #allow half the time of a heartbeat for the order
+                #timeout, so we have time to signal we are done.
+                timeout=self.heartbeat_timeout/2000
+            ) 
+        
             
             #no more orders, should this be an error condition?
             if len(rlist) == 0 or len(xlist) > 0: 
-                continue
+                #no order message means there was a timeout above, 
+                #and the client is done sending orders (but isn't
+                #telling us himself!).
+                self.signal_done()
+                return
                 
             order_msg = rlist[0].recv()
             if order_msg == str(zp.ORDER_PROTOCOL.DONE):
@@ -115,29 +137,22 @@ class OrderDataSource(qmsg.DataSource):
                 return
                 
             if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
-                qutil.LOGGER.info("order loop finished")
                 break
 
             sid, amount = zp.ORDER_UNFRAME(order_msg)
             #send the order along
-            
             self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
             dt = self.simulation_dt + self.last_iteration_duration
-            order_event = zp.namedict({"sid":sid, "amount":amount, "dt":dt})
+            order = zp.namedict({"dt":dt, 'sid':sid, 'amount':amount})
             
-            self.send(order_event)
+            self.send(order)
             count += 1
             self.sent_count += 1
     
-        #TODO: we have to send at least one dummy order per do_work iteration or the feed will block waiting for our messages.
+        #TODO: we have to send at least one dummy order per do_work iteration 
+        # or the feed will block waiting for our messages.
         if(count == 0):
-            self.send_dummy()
-            self.sent_count += 1
-        
-    def send_dummy(self):
-        dt = self.simulation_dt + self.last_iteration_duration
-        dummy_order = zp.namedict({"sid":0, "amount":0, "dt":dt})
-        self.send(dummy_order)
+            self.send(zp.namedict({}))
     
     
 
@@ -147,6 +162,7 @@ class TransactionSimulator(qmsg.BaseTransform):
         qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
+        self.txn_count                  = 0
         self.trade_windwo                = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
         self.volume_share               = 0.05
@@ -157,7 +173,6 @@ class TransactionSimulator(qmsg.BaseTransform):
         Pulls one message from the event feed, then
         loops on orders until client sends DONE message.
         """
-        #TODO: need a way to send a placeholder txn, to avoid blocking merge... maybe customize merge to not block on txn?
         if(event.type == zp.DATASOURCE_TYPE.ORDER):
             self.add_open_order(event)
             self.state['value'] = None
@@ -190,7 +205,8 @@ class TransactionSimulator(qmsg.BaseTransform):
     def apply_trade_to_open_orders(self, event):
         
         if(event.volume == 0):
-            #there are zero volume events bc some stocks trade less frequently than once per minute.
+            #there are zero volume events bc some stocks trade 
+            #less frequently than once per minute.
             return self.create_dummy_txn(event.dt)
             
         if self.open_orders.has_key(event.sid):
@@ -203,7 +219,8 @@ class TransactionSimulator(qmsg.BaseTransform):
         dt = event.dt
     
         for order in orders:
-            #we're using minute bars, so allow orders within 30 seconds of the trade
+            #we're using minute bars, so allow orders within 
+            #30 seconds of the trade
             if((order.dt - event.dt) < self.trade_windwo):
                 total_order += order.amount
                 if(order.dt > dt):
@@ -224,10 +241,17 @@ class TransactionSimulator(qmsg.BaseTransform):
             volume_share = .25
         amount = volume_share * event.volume * direction
         impact = (volume_share)**2 * .1 * direction * event.price
-        return self.create_transaction(event.sid, amount, event.price + impact, dt.replace(tzinfo = pytz.utc), direction)
+        return self.create_transaction(
+            event.sid, 
+            amount, 
+            event.price + impact, 
+            dt.replace(tzinfo = pytz.utc), 
+            direction
+        )
     
         
-    def create_transaction(self, sid, amount, price, dt, direction):                
+    def create_transaction(self, sid, amount, price, dt, direction):   
+        self.txn_count += 1             
         txn = {'sid'                : sid, 
                 'amount'             : int(amount), 
                 'dt'                 : dt, 

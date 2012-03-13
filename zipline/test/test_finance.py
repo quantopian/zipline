@@ -1,8 +1,12 @@
 """Tests for the zipline.finance package"""
 import mock
 import pytz
+
 from unittest2 import TestCase
 from datetime import datetime, timedelta
+from collections import defaultdict
+
+from nose.tools import timed
 
 import zipline.test.factory as factory
 import zipline.util as qutil
@@ -10,26 +14,48 @@ import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.test.client import TestTradingClient
+from zipline.test.client import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, OrderDataSource
+from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
+TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 
+DEFAULT_TIMEOUT = 5 # seconds
+
+allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
+
+    leased_sockets = defaultdict(list)
 
     def setUp(self):
         qutil.configure_logging()
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
-        
+
         self.trading_environment = risk.TradingEnvironment(
-            self.benchmark_returns, 
+            self.benchmark_returns,
             self.treasury_curves
         )
-        
 
+        self.allocator = allocator
+
+    def allocate_sockets(self, n):
+        """
+        Allocate sockets local to this test case, track them so
+        we can gc after test run.
+        """
+
+        assert isinstance(n, int)
+        assert n > 0
+
+        leased = self.allocator.lease(n)
+
+        self.leased_sockets[self.id()].extend(leased)
+        return leased
+
+    @timed(DEFAULT_TIMEOUT)
     def test_trade_feed_protocol(self):
 
         # TODO: Perhaps something more self-documenting for variables names?
@@ -82,6 +108,7 @@ class FinanceTestCase(TestCase):
 
             self.assertEqual(zp.namedict(trade), event)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_order_protocol(self):
         #client places an order
         order_msg = zp.ORDER_FRAME(133, 100)
@@ -126,14 +153,14 @@ class FinanceTestCase(TestCase):
         self.assertEqual(recovered_tx.sid, 133)
         self.assertEqual(recovered_tx.amount, 100)
 
+    @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
 
         # Just verify sending and receiving orders.
         # --------------
 
         # Allocate sockets for the simulator components
-        allocator = AddressAllocator(8)
-        sockets = allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
@@ -172,15 +199,21 @@ class FinanceTestCase(TestCase):
         )
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
-
-        #client sill send 10 orders for 100 shares of 133
-        client = TestTradingClient(133, 100, 10)
+        
+        trading_client = TradeSimulationClient()
+        #client will send 10 orders for 100 shares of 133
+        test_algo = TestAlgorithm(133, 100, 10, trading_client)
         ts = datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc)
 
         order_source = OrderDataSource(ts)
         transaction_sim = TransactionSimulator()
 
-        sim.register_components([client, order_source, transaction_sim, set1])
+        sim.register_components([
+            trading_client, 
+            order_source, 
+            transaction_sim, 
+            set1
+        ])
         sim.register_controller( con )
 
         # Simulation
@@ -188,6 +221,8 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
+        self.assertTrue(sim.ready())
+        self.assertFalse(sim.exception)
 
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(sim.feed.pending_messages(), 0, \
@@ -195,14 +230,14 @@ class FinanceTestCase(TestCase):
             .format(n=sim.feed.pending_messages()))
 
 
-    def test_performance(self):
+    @timed(DEFAULT_TIMEOUT)
+    def test_performance(self): 
 
         # verify order -> transaction -> portfolio position.
         # --------------
 
         # Allocate sockets for the simulator components
-        allocator = AddressAllocator(8)
-        sockets = allocator.lease(8)
+        sockets = self.allocate_sockets(8)
 
         addresses = {
             'sync_address'   : sockets[0],
@@ -225,9 +260,10 @@ class FinanceTestCase(TestCase):
         # ---------------------
 
         # TODO: Perhaps something more self-documenting for variables names?
+        trade_count = 100
         sid = 133
-        price = [10.1] * 16
-        volume = [100] * 16
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
         trade_time_increment = timedelta(days=1)
 
@@ -242,24 +278,27 @@ class FinanceTestCase(TestCase):
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
-        client = TestTradingClient(133, 100, 10)
+        trading_client = TradeSimulationClient()
+        test_algo = TestAlgorithm(133, 100, 10, trading_client)
         ts = datetime.strptime("02/1/2012","%m/%d/%Y")
         ts = ts.replace(tzinfo=pytz.utc)
 
         order_source = OrderDataSource(ts)
         transaction_sim = TransactionSimulator()
-        portfolio_client = perf.PortfolioClient(
+        perf_tracker = perf.PerformanceTracker(
             trade_history[0]['dt'], 
             trade_history[-1]['dt'], 
             1000000.0, 
             self.trading_environment)
+        
+        #register perf_tracker to receive callbacks from the client.
+        trading_client.add_event_callback(perf_tracker.update)
     
         sim.register_components([
-            client, 
+            trading_client, 
             order_source, 
             transaction_sim, 
             set1, 
-            portfolio_client,
             ])
         sim.register_controller( con )
 
@@ -268,8 +307,46 @@ class FinanceTestCase(TestCase):
         sim_context = sim.simulate()
         sim_context.join()
 
-
-        # TODO: Make more assertions about the final state of the components.
-        self.assertEqual(sim.feed.pending_messages(), 0, \
+        self.assertEqual(
+            sim.feed.pending_messages(), 
+            0, 
             "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=sim.feed.pending_messages()))
+            .format(n=sim.feed.pending_messages())
+        )
+        
+        self.assertEqual(
+            sim.merge.pending_messages(), 
+            0, 
+            "The merge should be drained of all messages, found {n} remaining." \
+            .format(n=sim.merge.pending_messages())
+        )
+
+        self.assertEqual(
+            test_algo.count,
+            test_algo.incr,
+            "The test algorithm should send as many orders as specified.")
+            
+        self.assertEqual(
+            order_source.sent_count, 
+            test_algo.count, 
+            "The order source should have sent as many orders as the algo."
+        )
+            
+        self.assertEqual(
+            transaction_sim.txn_count,
+            perf_tracker.txn_count,
+            "The perf tracker should handle the same number of transactions as\
+as the simulator emits."
+        ) 
+        
+        self.assertEqual(
+            len(perf_tracker.cumulative_performance.positions), 
+            1, 
+            "Portfolio should have one position."
+        )
+        
+        self.assertEqual(
+            perf_tracker.cumulative_performance.positions[133].sid, 
+            133, 
+            "Portfolio should have one position in 133."
+        )

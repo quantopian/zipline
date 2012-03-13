@@ -41,7 +41,7 @@ class Risk(unittest.TestCase):
         start_date = datetime.datetime(year=2006, month=1, day=1)
         returns = factory.create_returns_from_list([1.0,-0.5,0.8,.17,1.0,-0.1,-0.45], start_date, self.trading_calendar)
         #200, 100, 180, 210.6, 421.2, 379.8, 208.494
-        metrics = risk.RiskMetrics(returns[0].date, returns[-1].date, returns, self.benchmark_returns, self.treasury_curves, self.trading_calendar)
+        metrics = risk.RiskMetrics(returns[0].date, returns[-1].date, returns, self.trading_calendar)
         self.assertEqual(metrics.max_drawdown, 0.505)
     
     def test_benchmark_returns_06(self):

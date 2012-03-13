@@ -287,13 +287,18 @@ class ParallelBuffer(Component):
         cur_source = None
         earliest_source = None
         earliest_event = None
-        #iterate over the queues of events from all sources (1 queue per datasource)
+        #iterate over the queues of events from all sources 
+        #(1 queue per datasource)
         for events in self.data_buffer.values():
             if len(events) == 0:
                 continue
             cur_source = events
             first_in_list = events[0]
-            
+            if first_in_list.dt == None:
+                #this is a filler event, discard
+                events.pop(0)
+                continue
+                
             if (earliest_event == None) or (first_in_list.dt <= earliest_event.dt):
                 earliest_event = first_in_list
                 earliest_source = cur_source
@@ -384,7 +389,8 @@ class MergedParallelBuffer(ParallelBuffer):
 
     def append(self, event):
         """
-        :param event: a namedict with one entry. key is the name of the transform, value is the transformed value.
+        :param event: a namedict with one entry. key is the name of the 
+        transform, value is the transformed value.
         Add an event to the buffer for the source specified by
         source_id.
         """
@@ -398,7 +404,7 @@ class BaseTransform(Component):
     Top level execution entry point for the transform
 
     - connects to the feed socket to subscribe to events
-    - connets to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
+    - connects to the result socket (most oftened bound by a TransformsMerge) to PUSH transforms
     - processes all messages received from feed, until DONE message received
     - pushes all transforms
     - sends DONE to result socket, closes all sockets and context
