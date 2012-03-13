@@ -87,19 +87,25 @@ class FinanceTestCase(TestCase):
 
     def test_order_protocol(self):
         #client places an order
-        order_msg = zp.ORDER_FRAME(133, 100)
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        order = zp.namedict({
+            'dt':now,
+            'sid':133,
+            'amount':100
+        })
+        order_msg = zp.ORDER_FRAME(order)
 
         #order datasource receives
-        sid, amount = zp.ORDER_UNFRAME(order_msg)
-        self.assertEqual(sid, 133)
-        self.assertEqual(amount, 100)
-
+        order = zp.ORDER_UNFRAME(order_msg)
+        self.assertEqual(order.sid, 133)
+        self.assertEqual(order.amount, 100)
+        self.assertEqual(order.dt, now)
+        
         #order datasource datasource frames the order
-        order_dt = datetime.utcnow().replace(tzinfo=pytz.utc)
         order_event = zp.namedict({
-            "sid"        : sid,
-            "amount"     : amount,
-            "dt"         : order_dt,
+            "sid"        : order.sid,
+            "amount"     : order.amount,
+            "dt"         : order.dt,
             "source_id"  : zp.FINANCE_COMPONENT.ORDER_SOURCE,
             "type"       : zp.DATASOURCE_TYPE.ORDER
         })
@@ -110,7 +116,7 @@ class FinanceTestCase(TestCase):
         #transaction transform unframes
         recovered_order = zp.DATASOURCE_UNFRAME(order_ds_msg)
 
-        self.assertEqual(order_dt, recovered_order.dt)
+        self.assertEqual(now, recovered_order.dt)
 
         #create a transaction from the order
         txn = zp.namedict({
@@ -162,6 +168,7 @@ class FinanceTestCase(TestCase):
         price = [10.1] * 16
         volume = [100] * 16
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
+        start_date = start_date.replace(tzinfo=pytz.utc)
         trade_time_increment = timedelta(days=1)
 
         trade_history = factory.create_trade_history( 
@@ -175,12 +182,11 @@ class FinanceTestCase(TestCase):
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
         
-        trading_client = TradeSimulationClient()
+        trading_client = TradeSimulationClient(start_date)
         #client will send 10 orders for 100 shares of 133
         test_algo = TestAlgorithm(133, 100, 10, trading_client)
-        ts = datetime.strptime("02/1/2012","%m/%d/%Y").replace(tzinfo=pytz.utc)
 
-        order_source = OrderDataSource(ts)
+        order_source = OrderDataSource()
         transaction_sim = TransactionSimulator()
 
         sim.register_components([
@@ -236,6 +242,7 @@ class FinanceTestCase(TestCase):
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
+        start_date = start_date.replace(tzinfo=pytz.utc)
         trade_time_increment = timedelta(days=1)
 
         trade_history = factory.create_trade_history( 
@@ -249,12 +256,10 @@ class FinanceTestCase(TestCase):
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
-        trading_client = TradeSimulationClient()
+        trading_client = TradeSimulationClient(start_date)
         test_algo = TestAlgorithm(133, 100, 10, trading_client)
-        ts = datetime.strptime("02/1/2012","%m/%d/%Y")
-        ts = ts.replace(tzinfo=pytz.utc)
 
-        order_source = OrderDataSource(ts)
+        order_source = OrderDataSource()
         transaction_sim = TransactionSimulator()
         perf_tracker = perf.PerformanceTracker(
             trade_history[0]['dt'], 

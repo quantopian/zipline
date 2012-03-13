@@ -119,6 +119,7 @@ import numbers
 import datetime
 import pytz
 import copy
+import pandas
 from collections import namedtuple
 
 import zipline.util as qutil
@@ -205,6 +206,9 @@ class namedict(object):
 
     def has_attr(self, name):
         return self.__dict__.has_key(name)
+        
+    def as_series(self):
+        s = pandas.Series(self.values(), self.keys())
 
 # ================
 # Control Protocol
@@ -522,19 +526,29 @@ def TRADE_UNFRAME(msg):
 # Orders - from client to order source
 # =========
 
-def ORDER_FRAME(sid, amount):
-    assert isinstance(sid, int)
-    assert isinstance(amount, int) #no partial shares...
-    return msgpack.dumps(tuple([sid, amount]))
+def ORDER_FRAME(order):
+    assert isinstance(order.sid, int)
+    assert isinstance(order.amount, int) #no partial shares...
+    PACK_DATE(order)
+    return msgpack.dumps(tuple([
+        order.sid, 
+        order.amount,
+        order.dt
+    ]))
 
 
 def ORDER_UNFRAME(msg):
     try:
-        sid, amount = msgpack.loads(msg)
+        sid, amount, dt = msgpack.loads(msg)
         assert isinstance(sid, int)
         assert isinstance(amount, int)
-
-        return sid, amount
+        rval = namedict({
+            'sid':sid,
+            'amount':amount,
+            'dt':dt
+        })
+        UNPACK_DATE(rval)
+        return rval
     except TypeError:
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
