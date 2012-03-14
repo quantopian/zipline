@@ -208,9 +208,9 @@ class namedict(object):
         return self.__dict__.has_key(name)
         
     def as_series(self):
-        s = pandas.Series(self.__dict__.values(), self.__dict__.keys())
+        s = pandas.Series(self.__dict__, self.__dict__.keys())
         return s
-
+        
 # ================
 # Control Protocol
 # ================
