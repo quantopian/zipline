@@ -119,6 +119,7 @@ import numbers
 import datetime
 import pytz
 import copy
+import pandas
 from collections import namedtuple
 
 import zipline.util as qutil
@@ -165,7 +166,7 @@ class namedict(object):
     """
 
     def __init__(self, dct=None):
-        if(dct):
+        if dct:
             self.__dict__.update(dct)
 
     def __setitem__(self, key, value):
@@ -205,7 +206,11 @@ class namedict(object):
 
     def has_attr(self, name):
         return self.__dict__.has_key(name)
-
+        
+    def as_series(self):
+        s = pandas.Series(self.__dict__, self.__dict__.keys())
+        return s
+        
 # ================
 # Control Protocol
 # ================
@@ -295,11 +300,27 @@ def DATASOURCE_FRAME(event):
 
     assert isinstance(event.source_id, basestring)
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
+    
+    #datasources will send sometimes send empty msgs to feel gaps
+    if len(event.keys()) == 2:
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            DATASOURCE_TYPE.EMPTY
+        ]))
 
     if(event.type == DATASOURCE_TYPE.TRADE):
-        return msgpack.dumps(tuple([event.type, TRADE_FRAME(event)]))
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            TRADE_FRAME(event)
+        ]))
     elif(event.type == DATASOURCE_TYPE.ORDER):
-        return msgpack.dumps(tuple([event.type, ORDER_SOURCE_FRAME(event)]))
+        return msgpack.dumps(tuple([
+            event.type, 
+            event.source_id, 
+            ORDER_SOURCE_FRAME(event)
+        ]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
 
@@ -321,15 +342,21 @@ def DATASOURCE_UNFRAME(msg):
     """
 
     try:
-        ds_type, payload = msgpack.loads(msg)
+        ds_type, source_id, payload = msgpack.loads(msg)
         assert isinstance(ds_type, int)
-        if(ds_type == DATASOURCE_TYPE.TRADE):
-            return TRADE_UNFRAME(payload)
+        rval = namedict({'source_id':source_id})
+        if payload == DATASOURCE_TYPE.EMPTY:
+            child_value = namedict({'dt':None})
+        elif(ds_type == DATASOURCE_TYPE.TRADE):
+            child_value = TRADE_UNFRAME(payload)
         elif(ds_type == DATASOURCE_TYPE.ORDER):
-            return ORDER_SOURCE_UNFRAME(payload)
+            child_value = ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
-
+            
+        rval.merge(child_value)
+        return rval
+        
     except TypeError:
         raise INVALID_DATASOURCE_FRAME(msg)
     except ValueError:
@@ -461,7 +488,6 @@ def TRADE_FRAME(event):
 
     """
     assert isinstance(event, namedict)
-    assert isinstance(event.source_id, basestring)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
@@ -471,16 +497,14 @@ def TRADE_FRAME(event):
         event.sid,
         event.price,
         event.volume,
-        event.epoch,
-        event.micros,
+        event.dt,
         event.type,
-        event.source_id
     ]))
 
 def TRADE_UNFRAME(msg):
     try:
         packed = msgpack.loads(msg)
-        sid, price, volume, epoch, micros, source_type, source_id = packed
+        sid, price, volume, dt, source_type = packed
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -489,10 +513,8 @@ def TRADE_UNFRAME(msg):
             'sid'       : sid,
             'price'     : price,
             'volume'    : volume,
-            'epoch'     : epoch,
-            'micros'    : micros,
-            'type'      : source_type,
-            'source_id' : source_id
+            'dt'        : dt,
+            'type'      : source_type
         })
         UNPACK_DATE(rval)
         return rval
@@ -505,19 +527,29 @@ def TRADE_UNFRAME(msg):
 # Orders - from client to order source
 # =========
 
-def ORDER_FRAME(sid, amount):
-    assert isinstance(sid, int)
-    assert isinstance(amount, int) #no partial shares...
-    return msgpack.dumps(tuple([sid, amount]))
+def ORDER_FRAME(order):
+    assert isinstance(order.sid, int)
+    assert isinstance(order.amount, int) #no partial shares...
+    PACK_DATE(order)
+    return msgpack.dumps(tuple([
+        order.sid, 
+        order.amount,
+        order.dt
+    ]))
 
 
 def ORDER_UNFRAME(msg):
     try:
-        sid, amount = msgpack.loads(msg)
+        sid, amount, dt = msgpack.loads(msg)
         assert isinstance(sid, int)
         assert isinstance(amount, int)
-
-        return sid, amount
+        rval = namedict({
+            'sid':sid,
+            'amount':amount,
+            'dt':dt
+        })
+        UNPACK_DATE(rval)
+        return rval
     except TypeError:
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
@@ -540,13 +572,12 @@ def TRANSACTION_FRAME(event):
         event.price,
         event.amount,
         event.commission,
-        event.epoch,
-        event.micros
+        event.dt
     ]))
 
 def TRANSACTION_UNFRAME(msg):
     try:
-        sid, price, amount, commission, epoch, micros = msgpack.loads(msg)
+        sid, price, amount, commission, dt = msgpack.loads(msg)
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -557,8 +588,7 @@ def TRANSACTION_UNFRAME(msg):
             'price'      : price,
             'amount'     : amount,
             'commission' : commission,
-            'epoch'      : epoch,
-            'micros'     : micros
+            'dt'      : dt
         })
 
         UNPACK_DATE(rval)
@@ -583,8 +613,7 @@ def ORDER_SOURCE_FRAME(event):
     return msgpack.dumps(tuple([
         event.sid,
         event.amount,
-        event.epoch,
-        event.micros,
+        event.dt,
         event.source_id,
         event.type
     ]))
@@ -592,12 +621,11 @@ def ORDER_SOURCE_FRAME(event):
 
 def ORDER_SOURCE_UNFRAME(msg):
     try:
-        sid, amount, epoch, micros, source_id, source_type = msgpack.loads(msg)
+        sid, amount, dt, source_id, source_type = msgpack.loads(msg)
         event = namedict({
             "sid"       : sid,
             "amount"    : amount,
-            "epoch"     : epoch,
-            "micros"    : micros,
+            "dt"        : dt,
             "source_id" : source_id,
             "type"      : source_type
         })
@@ -620,9 +648,8 @@ def PACK_DATE(event):
     """
     Packs the datetime property of event into msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is replaced by two longs: epoch and micros. 
-    Epoch is the unix epoch time in UTC, and micros is the microsecond 
-    property of the original event.dt datetime object.
+    The event's 'dt' property is replaced by a tuple of integers::
+        - year, month, day, hour, minute, second, microsecond
     
     PACK_DATE and UNPACK_DATE are inverse operations. 
     
@@ -631,44 +658,44 @@ def PACK_DATE(event):
     """
     assert isinstance(event.dt, datetime.datetime)
     assert event.dt.tzinfo == pytz.utc #utc only please
-    epoch = long(event.dt.strftime('%s'))
-    event['epoch'] = epoch
-    event['micros'] = event.dt.microsecond
-    event.delete('dt')
+    year, month, day, hour, minute, second =  event.dt.timetuple()[0:6]
+    micros = event.dt.microsecond
+    event['dt'] = tuple([year, month, day, hour, minute, second, micros])
 
 def UNPACK_DATE(event):
     """
     Unpacks the datetime property of event from msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is created by reading and then combining two longs: epoch and micros. 
-    The epoch and micros properties are removed after dt is added.
+    The event's 'dt' property is converted to a datetime by reading and then 
+    combining a tuple of integers.
     
     UNPACK_DATE and PACK_DATE are inverse operations. 
     
-    :param event: event must a namedict with::
-            - a property named 'epoch' that is an integral representing the unix \
-             epoch time in UTC
-            - a property named 'micros' that is an integral the microsecond \
-            property of the original event.dt datetime object
+    :param tuple event: event must a namedict with::
+            - a property named 'dt_tuple' that is a tuple of integers 
+            representing the date and time in UTC. dt_tumple must have year, 
+            month, day, hour, minute, second, and microsecond
     :rtype: None
     """
-    assert isinstance(event.epoch, numbers.Integral)
-    assert isinstance(event.micros, numbers.Integral)
-    dt = datetime.datetime.fromtimestamp(event.epoch)
-    dt = dt.replace(microsecond = event.micros, tzinfo = pytz.utc)
-    event.delete('epoch')
-    event.delete('micros')
+    assert isinstance(event.dt, tuple)
+    assert len(event.dt) == 7
+    for item in event.dt:
+        assert isinstance(item, numbers.Integral)
+    year, month, day, hour, minute, second, micros = event.dt
+    dt = datetime.datetime(year, month, day, hour, minute, second)
+    dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     event.dt = dt
 
 
 DATASOURCE_TYPE = Enum(
     'ORDER',
-    'TRADE'
+    'TRADE',
+    'EMPTY',
 )
 
 ORDER_PROTOCOL = Enum(
     'DONE',
-    'BREAK'
+    'BREAK',
 )
 
 
