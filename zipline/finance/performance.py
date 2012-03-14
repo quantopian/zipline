@@ -1,6 +1,7 @@
 import datetime
 import pytz
 import math
+import pandas
 
 from zmq.core.poll import select
 
@@ -123,7 +124,10 @@ class PerformanceTracker():
     
     def update(self, event_frame):
         for dt, event_series in event_frame.iteritems():
-            self.process_event(event_series)
+            data = {}
+            data.update(event_series)
+            event = zp.namedict(data)
+            self.process_event(event)
         
     def process_event(self, event):
         qutil.LOGGER.debug("series is " + str(event))
@@ -131,7 +135,7 @@ class PerformanceTracker():
         if(event.dt >= self.market_close):
             self.handle_market_close()
         
-        if event.TRANSACTION != None:                
+        if not pandas.isnull(event.TRANSACTION):                
             self.txn_count += 1
             self.cumulative_performance.execute_transaction(event.TRANSACTION)
             self.todays_performance.execute_transaction(event.TRANSACTION)
@@ -238,7 +242,7 @@ class Position():
             self.amount = self.amount + txn.amount
             
     def currentValue(self):
-        return self.amount * self.last_sale
+        return self.amount * self.last_sale_price
         
         
     def __repr__(self):

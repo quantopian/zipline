@@ -48,6 +48,7 @@ class TradeSimulationClient(qmsg.Component):
 
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
+                self.run_callbacks()
                 self.signal_done()
                 return
             
@@ -61,9 +62,9 @@ class TradeSimulationClient(qmsg.Component):
                 #mark the start time for client's processing of this event.
                 event_start = datetime.datetime.utcnow()
                 self.queue_event(event)
-                for cb in self.event_callbacks:
-                    if(event.dt >= self.current_dt):
-                        cb(self.get_frame())
+                
+                if event.dt >= self.current_dt:
+                    self.run_callbacks()
                 
                 #update time based on receipt of the order
                 self.last_iteration_duration = datetime.datetime.utcnow() - event_start
@@ -72,6 +73,11 @@ class TradeSimulationClient(qmsg.Component):
             
             #signal done to order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
+            
+    def run_callbacks(self):
+        frame = self.get_frame()
+        for cb in self.event_callbacks:
+            cb(frame)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
@@ -91,11 +97,11 @@ class TradeSimulationClient(qmsg.Component):
     def queue_event(self, event):
         if self.event_queue == None:
             self.event_queue = {}
-        self.event_queue[event.dt] = event.as_series()
+        series = event.as_series()
+        self.event_queue[event.dt] = series
     
     def get_frame(self):
-        sorted_dates = sorted(self.event_queue.keys())
-        frame = pandas.DataFrame(self.event_queue, index=sorted_dates)
+        frame = pandas.DataFrame(self.event_queue)
         self.event_queue = None
         return frame
         

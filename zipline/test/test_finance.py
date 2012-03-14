@@ -340,8 +340,8 @@ class FinanceTestCase(TestCase):
         self.assertEqual(
             transaction_sim.txn_count,
             perf_tracker.txn_count,
-            "The perf tracker should handle the same number of transactions as\
-as the simulator emits."
+            "The perf tracker should handle the same number of transactions \
+            as the simulator emits."
         ) 
         
         self.assertEqual(
