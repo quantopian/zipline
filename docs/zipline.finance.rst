@@ -1,10 +1,10 @@
 finance Package
 ===============
 
-:mod:`data` Module
-------------------
+:mod:`performance` Module
+-------------------------
 
-.. automodule:: zipline.finance.data
+.. automodule:: zipline.finance.performance
     :members:
     :undoc-members:
     :show-inheritance:

@@ -19,7 +19,7 @@ def load_market_data():
             tzinfo=pytz.utc
         )
         
-        daily_return = risk.daily_return(date=event_dt, returns=returns)
+        daily_return = risk.DailyReturn(date=event_dt, returns=returns)
         bm_returns.append(daily_return)
     bm_returns = sorted(bm_returns, key=lambda(x): x.date) 
     fp_tr = open("./zipline/test/treasury_curves.msgpack", "rb")
@@ -93,7 +93,7 @@ def create_returns(daycount, start, trading_calendar):
     one_day = datetime.timedelta(days = 1)
     while i < daycount: 
         i += 1
-        r = risk.daily_return(current, random.random())
+        r = risk.DailyReturn(current, random.random())
         test_range.append(r)
         current = current + one_day
     return [ x for x in test_range if(trading_calendar.is_trading_day(x.date)) ]
@@ -109,7 +109,7 @@ def create_returns_from_range(start, end, trading_calendar):
         current = current + one_day
         if(not trading_calendar.is_trading_day(current)):
             continue
-        r = risk.daily_return(current, random.random())
+        r = risk.DailyReturn(current, random.random())
         i += 1
         test_range.append(r)
 
@@ -122,7 +122,7 @@ def create_returns_from_list(returns, start, trading_calendar):
     i = 0
     while len(test_range) < len(returns): 
         if(trading_calendar.is_trading_day(current)):
-            r = risk.daily_return(current, returns[i])
+            r = risk.DailyReturn(current, returns[i])
             i += 1
             test_range.append(r)
         current = current + one_day

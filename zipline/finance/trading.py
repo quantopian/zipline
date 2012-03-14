@@ -15,7 +15,7 @@ class TradeSimulationClient(qmsg.Component):
         qmsg.Component.__init__(self)
         self.received_count     = 0
         self.prev_dt            = None
-        self.event_queue        = []
+        self.event_queue        = None
         self.event_callbacks    = []
         self.txn_count          = 0
         self.current_dt         = simulation_dt
@@ -60,12 +60,10 @@ class TradeSimulationClient(qmsg.Component):
             if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
                 #mark the start time for client's processing of this event.
                 event_start = datetime.datetime.utcnow()
-                
+                self.queue_event(event)
                 for cb in self.event_callbacks:
-                    if(event.dt < self.current_dt):
-                        self.queue_event(event)
-                    else:
-                        cb(self.event_frame)
+                    if(event.dt >= self.current_dt):
+                        cb(self.get_frame())
                 
                 #update time based on receipt of the order
                 self.last_iteration_duration = datetime.datetime.utcnow() - event_start
@@ -90,10 +88,16 @@ class TradeSimulationClient(qmsg.Component):
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
-    def frame_event(self, event):
-        if self.event_frame == None:
-            self.event_frame = pandas.DataFrame()
-        self.event_frame.append(event)
+    def queue_event(self, event):
+        if self.event_queue == None:
+            self.event_queue = {}
+        self.event_queue[event.dt] = event.as_series()
+    
+    def get_frame(self):
+        sorted_dates = sorted(self.event_queue.keys())
+        frame = pandas.DataFrame(self.event_queue, index=sorted_dates)
+        self.event_queue = None
+        return frame
         
 class OrderDataSource(qmsg.DataSource):
     """DataSource that relays orders from the client"""
