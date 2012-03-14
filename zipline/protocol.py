@@ -166,7 +166,7 @@ class namedict(object):
     """
 
     def __init__(self, dct=None):
-        if(dct):
+        if dct:
             self.__dict__.update(dct)
 
     def __setitem__(self, key, value):

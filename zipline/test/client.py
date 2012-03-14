@@ -70,19 +70,23 @@ class TestAlgorithm():
     
     def __init__(self, sid, amount, order_count, trading_client):
         self.trading_client = trading_client
-        self.trading_client.add_event_callback(self.handle_event)
+        self.trading_client.add_event_callback(self.handle_frame)
         self.count = order_count
         self.sid = sid
         self.amount = amount
         self.incr = 0
         self.done = False
     
-    def handle_event(self, event):
-        #place an order for 100 shares of sid:133
-        if self.incr < self.count:
-            if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
-                self.trading_client.order(self.sid, self.amount)
-                self.incr += 1
-        elif not self.done:
-            self.trading_client.signal_order_done()
-            self.done = True
+    def handle_frame(self, frame):
+        for dt, s in frame.iteritems():     
+            data = {}
+            data.update(s)
+            event = zp.namedict(data)
+            #place an order for 100 shares of sid:133
+            if self.incr < self.count:
+                if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
+                    self.trading_client.order(self.sid, self.amount)
+                    self.incr += 1
+            elif not self.done:
+                self.trading_client.signal_order_done()
+                self.done = True

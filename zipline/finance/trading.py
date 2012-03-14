@@ -97,7 +97,8 @@ class TradeSimulationClient(qmsg.Component):
     def queue_event(self, event):
         if self.event_queue == None:
             self.event_queue = {}
-        self.event_queue[event.dt] = event.as_series()
+        series = event.as_series()
+        self.event_queue[event.dt] = series
     
     def get_frame(self):
         frame = pandas.DataFrame(self.event_queue)

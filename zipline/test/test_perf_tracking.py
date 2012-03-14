@@ -2,11 +2,14 @@ import unittest
 import copy
 import random
 import datetime
+import pytz
 
 import zipline.test.factory as factory
 import zipline.util as qutil
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
+import zipline.protocol as zp
+from zipline.finance.trading import TradeSimulationClient
 class PerformanceTestCase(unittest.TestCase):
     
     def setUp(self):
@@ -85,12 +88,12 @@ single buy transaction
         )
         
         self.assertEqual(
-            pp.positions[1].last_sale,
+            pp.positions[1].last_sale_price,
             trades[-1]['price'],
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
                 exp=trades[-1]['price'],
-                act=pp.positions[1].last_sale
+                act=pp.positions[1].last_sale_price
             )
         )
         
@@ -155,7 +158,7 @@ single short-sale transaction"""
         )
         
         self.assertEqual(
-            pp.positions[1].last_sale,
+            pp.positions[1].last_sale_price,
             trades_1[-1]['price'],
             "last sale should be price of last trade"
         )
@@ -224,7 +227,7 @@ single short-sale transaction"""
         )
         
         self.assertEqual(
-            pp2.positions[1].last_sale,
+            pp2.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
@@ -285,7 +288,7 @@ cost of sole txn in test"
         )
         
         self.assertEqual(
-            ppTotal.positions[1].last_sale,
+            ppTotal.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
@@ -367,7 +370,7 @@ trade after cover"""
         )
         
         self.assertEqual(
-            pp.positions[1].last_sale,
+            pp.positions[1].last_sale_price,
             trades[-1].price,
             "last sale should be price of last trade"
         )
@@ -415,10 +418,10 @@ shares in position"
         pp.calculate_performance()
         
         self.assertEqual(
-            pp.positions[1].last_sale,
+            pp.positions[1].last_sale_price,
             trades[-1].price,
             "should have a last sale of 12, got {val}".format(
-                val=pp.positions[1].last_sale
+                val=pp.positions[1].last_sale_price
                 )
         )
         
@@ -456,9 +459,9 @@ shares in position"
           
         pp2.calculate_performance()    
         self.assertEqual(
-            pp2.positions[1].last_sale,
+            pp2.positions[1].last_sale_price,
             10,
-            "should have a last sale of 10, was {val}".format(val=pp2.positions[1].last_sale)
+            "should have a last sale of 10, was {val}".format(val=pp2.positions[1].last_sale_price)
         )
                                   
         self.assertEqual(
@@ -482,7 +485,7 @@ shares in position"
             
         pp3.calculate_performance()
         self.assertEqual(
-            pp3.positions[1].last_sale,
+            pp3.positions[1].last_sale_price,
             10,
             "should have a last sale of 10"
         )
@@ -499,27 +502,58 @@ shares in position"
             "should be -400 for all trades and transactions in period"
         )
 
-
-    def dtest_daily_performance_calc(self):
-        hostedAlgo = factories.createAlgo("workingAlgo.py")
-        btRecord = BackTestRun(duration_unit="Days",duration_count=5,capital_base=25000000)
-        bt = BackTest(hostedAlgo,btRecord)
-        start = bt.periodStart
-        end   = bt.periodEnd
-        #print "{start} to {end}".format(start=start, end=end)
+    def test_tracker(self):
         
-        trades = factories.createTradeHistory(1,[10,11,12,11],[100,100,100,100],start, self.oneday)
-        #createTransaction(self, sid, amount, price, dt, order_id)
-        bt.createTransaction(1, 100, 10.0, trades[0].dt + 30*self.onesec, None)
-        curPeriod = start
-        bt.positions = {}
-        dailyPeriods = []
-        bt.initialValue = 0.0
-        while (bt.mktClose) <= bt.periodEnd:
-            bt.updatePerformance()
-            dailyPeriods.append(bt.curPeriod)
-            bt.nextMarketDay()
+        trade_count = 100
+        sid = 133
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
+        start_date = datetime.datetime.strptime("01/01/2011","%m/%d/%Y")
+        start_date = start_date.replace(tzinfo=pytz.utc)
+        trade_time_increment = datetime.timedelta(days=1)
+        trade_history = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment 
+        )
+        
+        trade_client = TradeSimulationClient(start_date)
+        start = trade_history[0].dt
+        end = trade_history[-1].dt
+        tracker = perf.PerformanceTracker(
+            start, 
+            end, 
+            1000.0, 
+            self.trading_environment
+        )
+        
+        for event in trade_history:
+            #create a transaction for all but
+            #one trade, to simulate None transaction
+            if(event.dt != start):
+                txn = zp.namedict({
+                    'sid'        : event.sid,
+                    'amount'     : -25,
+                    'dt'         : event.dt,
+                    'price'      : 10.0,
+                    'commission' : 0.50
+                })
+            else:
+                txn = None
+            event[zp.TRANSFORM_TYPE.TRANSACTION] = txn
+            trade_client.queue_event(event)
             
-        self.assertEqual(dailyPeriods[0].pnl,0,"the first day's performance should be zero")
-        self.assertEqual(dailyPeriods[1].pnl,100,"the second day's pnl should be 100 but was {pnl}".format(pnl=dailyPeriods[1].pnl))     
+        df = trade_client.get_frame()    
+        tracker.update(df)
+        
+        #we skip one trade, to test case of None transaction
+        txn_count = len(trade_history) - 1
+        self.assertEqual(tracker.txn_count, txn_count)
+        
+        cumulative_pos = tracker.cumulative_performance.positions[sid]
+        expected_size = txn_count * -25
+        self.assertEqual(cumulative_pos.amount, expected_size)
     
