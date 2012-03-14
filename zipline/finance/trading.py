@@ -1,6 +1,7 @@
 import datetime
 import pytz
 import math
+import pandas
 
 from zmq.core.poll import select
 
@@ -10,13 +11,16 @@ import zipline.protocol as zp
 
 class TradeSimulationClient(qmsg.Component):
     
-    def __init__(self):
+    def __init__(self, simulation_dt):
         qmsg.Component.__init__(self)
         self.received_count     = 0
         self.prev_dt            = None
-        self.event_queue        = []
+        self.event_queue        = None
         self.event_callbacks    = []
         self.txn_count          = 0
+        self.current_dt         = simulation_dt
+        self.last_iteration_duration = datetime.timedelta(seconds=0)
+        self.event_frame        = None
     
     @property
     def get_id(self):
@@ -52,9 +56,20 @@ class TradeSimulationClient(qmsg.Component):
             if(event.TRANSACTION != None):
                 self.txn_count += 1
             
-            for cb in self.event_callbacks:
-                cb(event)
+            #filter order flow out of the events sent to callbacks
+            if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
+                #mark the start time for client's processing of this event.
+                event_start = datetime.datetime.utcnow()
+                self.queue_event(event)
+                for cb in self.event_callbacks:
+                    if(event.dt >= self.current_dt):
+                        cb(self.get_frame())
                 
+                #update time based on receipt of the order
+                self.last_iteration_duration = datetime.datetime.utcnow() - event_start
+                    
+                self.current_dt = self.current_dt + self.last_iteration_duration
+            
             #signal done to order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
@@ -62,15 +77,32 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
-        self.order_socket.send(zp.ORDER_FRAME(sid, amount))
+        order = zp.namedict({
+            'dt':self.current_dt,
+            'sid':sid,
+            'amount':amount
+        })
+        
+        self.order_socket.send(zp.ORDER_FRAME(order))
         
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
+    def queue_event(self, event):
+        if self.event_queue == None:
+            self.event_queue = {}
+        self.event_queue[event.dt] = event.as_series()
+    
+    def get_frame(self):
+        sorted_dates = sorted(self.event_queue.keys())
+        frame = pandas.DataFrame(self.event_queue, index=sorted_dates)
+        self.event_queue = None
+        return frame
+        
 class OrderDataSource(qmsg.DataSource):
     """DataSource that relays orders from the client"""
 
-    def __init__(self, simulation_dt):
+    def __init__(self):
         """
         :param simulation_time: datetime in UTC timezone, sets the start 
         time of simulation. orders
@@ -83,8 +115,6 @@ class OrderDataSource(qmsg.DataSource):
                 }
         """
         qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
-        self.simulation_dt = simulation_dt
-        self.last_iteration_duration = datetime.timedelta(seconds=0)
         self.sent_count         = 0
 
     @property
@@ -99,9 +129,6 @@ class OrderDataSource(qmsg.DataSource):
         return self.bind_pull_socket(self.addresses['order_address'])
 
     def do_work(self):    
-        #mark the start time for client's processing of this event.
-        self.event_start = datetime.datetime.utcnow()
-        self.simulation_dt = self.simulation_dt + self.last_iteration_duration
         
         #TODO: if this is the first iteration, break deadlock by sending a dummy order
         if(self.sent_count == 0):
@@ -109,7 +136,6 @@ class OrderDataSource(qmsg.DataSource):
         
         #pull all orders from client.
         orders = []
-        order_dt = None
         count = 0
         while True:
             
@@ -132,6 +158,7 @@ class OrderDataSource(qmsg.DataSource):
                 return
                 
             order_msg = rlist[0].recv()
+            
             if order_msg == str(zp.ORDER_PROTOCOL.DONE):
                 self.signal_done()
                 return
@@ -139,12 +166,8 @@ class OrderDataSource(qmsg.DataSource):
             if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
                 break
 
-            sid, amount = zp.ORDER_UNFRAME(order_msg)
+            order = zp.ORDER_UNFRAME(order_msg)
             #send the order along
-            self.last_iteration_duration = datetime.datetime.utcnow() - self.event_start
-            dt = self.simulation_dt + self.last_iteration_duration
-            order = zp.namedict({"dt":dt, 'sid':sid, 'amount':amount})
-            
             self.send(order)
             count += 1
             self.sent_count += 1
@@ -163,7 +186,7 @@ class TransactionSimulator(qmsg.BaseTransform):
         self.open_orders                = {}
         self.order_count                = 0
         self.txn_count                  = 0
-        self.trade_windwo                = datetime.timedelta(seconds=30)
+        self.trade_window                = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
         self.volume_share               = 0.05
         self.commission                 = 0.03
@@ -221,7 +244,7 @@ class TransactionSimulator(qmsg.BaseTransform):
         for order in orders:
             #we're using minute bars, so allow orders within 
             #30 seconds of the trade
-            if((order.dt - event.dt) < self.trade_windwo):
+            if((order.dt - event.dt) < self.trade_window):
                 total_order += order.amount
                 if(order.dt > dt):
                     dt = order.dt
