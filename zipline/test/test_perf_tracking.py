@@ -37,8 +37,8 @@ class PerformanceTestCase(unittest.TestCase):
         
     def test_long_position(self):
         """
-            verify that the performance period calculates properly for a \
-single buy transaction
+            verify that the performance period calculates properly for a 
+            single buy transaction
         """
         #post some trades in the market
         trades = factory.create_trade_history(
