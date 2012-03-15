@@ -207,7 +207,11 @@ class FinanceTestCase(TestCase):
 
         set1 = SpecificEquityTrades("flat-133", trade_history)
         
-        trading_client = TradeSimulationClient(start_date)
+        self.trading_environment.period_start = trade_history[0].dt
+        self.trading_environment.period_end = trade_history[-1].dt
+        self.trading_environment.capital_base = 10000
+        
+        trading_client = TradeSimulationClient(self.trading_environment)
         #client will send 10 orders for 100 shares of 133
         test_algo = TestAlgorithm(133, 100, 10, trading_client)
 
@@ -280,25 +284,23 @@ class FinanceTestCase(TestCase):
             volume, 
             start_date, 
             trade_time_increment, 
-            self.trading_environment )
-
+            self.trading_environment 
+        )
+        
+        
+        self.trading_environment.period_start = trade_history[0].dt
+        self.trading_environment.period_end = trade_history[-1].dt
+        self.trading_environment.capital_base = 10000
+        
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
         #client sill send 10 orders for 100 shares of 133
-        trading_client = TradeSimulationClient(start_date)
+        trading_client = TradeSimulationClient(self.trading_environment)
         test_algo = TestAlgorithm(133, 100, 10, trading_client)
 
         order_source = OrderDataSource()
         transaction_sim = TransactionSimulator()
-        perf_tracker = perf.PerformanceTracker(
-            trade_history[0]['dt'], 
-            trade_history[-1]['dt'], 
-            1000000.0, 
-            self.trading_environment)
         
-        #register perf_tracker to receive callbacks from the client.
-        trading_client.add_event_callback(perf_tracker.update)
-    
         sim.register_components([
             trading_client, 
             order_source, 
@@ -339,19 +341,19 @@ class FinanceTestCase(TestCase):
             
         self.assertEqual(
             transaction_sim.txn_count,
-            perf_tracker.txn_count,
+            trading_client.perf.txn_count,
             "The perf tracker should handle the same number of transactions \
             as the simulator emits."
         ) 
         
         self.assertEqual(
-            len(perf_tracker.cumulative_performance.positions), 
+            len(trading_client.perf.cumulative_performance.positions), 
             1, 
             "Portfolio should have one position."
         )
         
         self.assertEqual(
-            perf_tracker.cumulative_performance.positions[133].sid, 
+            trading_client.perf.cumulative_performance.positions[133].sid, 
             133, 
             "Portfolio should have one position in 133."
         )

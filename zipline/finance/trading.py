@@ -8,19 +8,27 @@ from zmq.core.poll import select
 import zipline.messaging as qmsg
 import zipline.util as qutil
 import zipline.protocol as zp
+import zipline.finance.performance as perf
 
 class TradeSimulationClient(qmsg.Component):
     
-    def __init__(self, simulation_dt):
+    def __init__(self, trading_environment):
         qmsg.Component.__init__(self)
-        self.received_count     = 0
-        self.prev_dt            = None
-        self.event_queue        = None
-        self.event_callbacks    = []
-        self.txn_count          = 0
-        self.current_dt         = simulation_dt
-        self.last_iteration_duration = datetime.timedelta(seconds=0)
-        self.event_frame        = None
+        self.received_count         = 0
+        self.prev_dt                = None
+        self.event_queue            = None
+        self.event_callbacks        = []
+        self.txn_count              = 0
+        self.trading_environment    = trading_environment
+        self.current_dt             = trading_environment.period_start
+        self.last_iteration_dur     = datetime.timedelta(seconds=0)
+        
+        assert self.trading_environment.frame_index != None
+        self.event_frame = pandas.DataFrame(
+            index=self.trading_environment.frame_index
+        )
+        
+        self.perf = perf.PerformanceTracker(self.trading_environment)
     
     @property
     def get_id(self):
@@ -67,9 +75,9 @@ class TradeSimulationClient(qmsg.Component):
                     self.run_callbacks()
                 
                 #update time based on receipt of the order
-                self.last_iteration_duration = datetime.datetime.utcnow() - event_start
+                self.last_iteration_dur = datetime.datetime.utcnow() - event_start
                     
-                self.current_dt = self.current_dt + self.last_iteration_duration
+                self.current_dt = self.current_dt + self.last_iteration_dur
             
             #signal done to order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
@@ -95,15 +103,16 @@ class TradeSimulationClient(qmsg.Component):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
     def queue_event(self, event):
+        self.perf.process_event(event)
         if self.event_queue == None:
-            self.event_queue = {}
+            self.event_queue = []
         series = event.as_series()
-        self.event_queue[event.dt] = series
+        self.event_queue.append(series)
     
     def get_frame(self):
-        frame = pandas.DataFrame(self.event_queue)
-        self.event_queue = None
-        return frame
+        for event in self.event_queue:
+            self.event_frame[event['sid']] = event
+        return self.event_frame
         
 class OrderDataSource(qmsg.DataSource):
     """DataSource that relays orders from the client"""

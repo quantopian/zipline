@@ -12,11 +12,12 @@ import zipline.finance.risk as risk
 
 class PerformanceTracker():
     
-    def __init__(self, period_start, period_end, capital_base, trading_environment):
+    def __init__(self, trading_environment):
+        self.trading_environment    = trading_environment
         self.trading_day            = datetime.timedelta(hours=6, minutes=30)
         self.calendar_day           = datetime.timedelta(hours=24)
-        self.period_start           = period_start
-        self.period_end             = period_end
+        self.period_start           = self.trading_environment.period_start
+        self.period_end             = self.trading_environment.period_end
         self.market_open            = self.period_start 
         self.market_close           = self.market_open + self.trading_day
         self.progress               = 0.0
@@ -24,21 +25,20 @@ class PerformanceTracker():
         self.day_count              = 0
         self.cumulative_capital_used= 0.0
         self.max_capital_used       = 0.0
-        self.capital_base           = capital_base
-        self.trading_environment    = trading_environment
+        self.capital_base           = self.trading_environment.capital_base
         self.returns                = []
         self.txn_count              = 0 
         self.event_count            = 0
         self.cumulative_performance = PerformancePeriod(
             {}, 
-            capital_base, 
-            starting_cash = capital_base
+            self.capital_base, 
+            starting_cash = self.capital_base
         )
             
         self.todays_performance     = PerformancePeriod(
             {}, 
-            capital_base, 
-            starting_cash = capital_base
+            self.capital_base, 
+            starting_cash = self.capital_base
         )
         
     def to_dict(self):
@@ -121,16 +121,8 @@ class PerformanceTracker():
             'todays_perf'               : self.todays_perf.to_dict(),
             'cumulative_risk_metrics'   : self.cumulative_risk_metrics.to_dict()
         }
-    
-    def update(self, event_frame):
-        for dt, event_series in event_frame.iteritems():
-            data = {}
-            data.update(event_series)
-            event = zp.namedict(data)
-            self.process_event(event)
-        
+            
     def process_event(self, event):
-        qutil.LOGGER.debug("series is " + str(event))
         self.event_count += 1
         if(event.dt >= self.market_close):
             self.handle_market_close()
