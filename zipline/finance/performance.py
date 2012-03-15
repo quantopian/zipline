@@ -3,6 +3,7 @@ import pytz
 import math
 import pandas
 
+import zmq
 from zmq.core.poll import select
 
 import zipline.messaging as qmsg
@@ -11,36 +12,48 @@ import zipline.protocol as zp
 import zipline.finance.risk as risk
 
 class PerformanceTracker():
-    
+
     def __init__(self, period_start, period_end, capital_base, trading_environment):
-        self.trading_day            = datetime.timedelta(hours=6, minutes=30)
-        self.calendar_day           = datetime.timedelta(hours=24)
-        self.period_start           = period_start
-        self.period_end             = period_end
-        self.market_open            = self.period_start 
-        self.market_close           = self.market_open + self.trading_day
-        self.progress               = 0.0
-        self.total_days             = (self.period_end - self.period_start).days
-        self.day_count              = 0
-        self.cumulative_capital_used= 0.0
-        self.max_capital_used       = 0.0
-        self.capital_base           = capital_base
-        self.trading_environment    = trading_environment
-        self.returns                = []
-        self.txn_count              = 0 
-        self.event_count            = 0
+
+        self.trading_day  = datetime.timedelta(hours = 6, minutes = 30)
+        self.calendar_day = datetime.timedelta(hours = 24)
+
+        self.period_start            = period_start
+        self.period_end              = period_end
+        self.market_open             = self.period_start
+        self.market_close            = self.market_open + self.trading_day
+        self.progress                = 0.0
+        self.total_days              = (self.period_end - self.period_start).days
+        self.day_count               = 0
+        self.cumulative_capital_used = 0.0
+        self.max_capital_used        = 0.0
+        self.capital_base            = capital_base
+        self.trading_environment     = trading_environment
+        self.returns                 = []
+        self.txn_count               = 0
+        self.event_count             = 0
+        self.result_stream           = None
+
         self.cumulative_performance = PerformancePeriod(
-            {}, 
-            capital_base, 
+            {},
+            capital_base,
             starting_cash = capital_base
         )
-            
-        self.todays_performance     = PerformancePeriod(
-            {}, 
-            capital_base, 
+
+        self.todays_performance = PerformancePeriod(
+            {},
+            capital_base,
             starting_cash = capital_base
         )
-        
+
+
+    def publish_to(self, zmq_socket, context=None):
+        ctx = context or zmq.Context.instance()
+        sock = ctx.socket(zmq.PUSH)
+        sock.connect(zmq_socket)
+
+        self.result_stream = sock
+
     def to_dict(self):
         """
     Creates a dictionary representing the state of this tracker.
@@ -97,50 +110,49 @@ class PerformanceTracker():
     |                 | overkill.                                          |
     +-----------------+----------------------------------------------------+
     | cumulative_risk | A dictionary representing the risk metrics         |
-    | _metrics        | calculated based on the positions aggregated       | 
+    | _metrics        | calculated based on the positions aggregated       |
     |                 | through all the events delivered to this tracker.  |
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
     +-----------------+----------------------------------------------------+
-    
-    
-    
+
         """
         returns_list = [x.to_dict() for x in self.returns]
         d = {
             'period_start'              : self.period_start,
             'period_end'                : self.period_end,
             'progress'                  : self.progress,
-            'cumulative_captial_used'   : self.cumulative_captial_used,
+            'cumulative_captial_used'   : self.cumulative_capital_used,
             'max_capital_used'          : self.max_capital_used,
             'last_close'                : self.market_close,
             'last_open'                 : self.market_open,
             'capital_base'              : self.capital_base,
             'returns'                   : returns_list,
-            'cumulative_perf'           : self.cumulative_perf.to_dict(),
-            'todays_perf'               : self.todays_perf.to_dict(),
+            'cumulative_perf'           : self.cumulative_performance.to_dict(),
+            'todays_perf'               : self.todays_performance.to_dict(),
             'cumulative_risk_metrics'   : self.cumulative_risk_metrics.to_dict()
         }
-    
+        return d
+
     def update(self, event_frame):
         for dt, event_series in event_frame.iteritems():
             data = {}
             data.update(event_series)
             event = zp.namedict(data)
             self.process_event(event)
-        
+
     def process_event(self, event):
         qutil.LOGGER.debug("series is " + str(event))
         self.event_count += 1
         if(event.dt >= self.market_close):
             self.handle_market_close()
-        
-        if not pandas.isnull(event.TRANSACTION):                
+
+        if not pandas.isnull(event.TRANSACTION):
             self.txn_count += 1
             self.cumulative_performance.execute_transaction(event.TRANSACTION)
             self.todays_performance.execute_transaction(event.TRANSACTION)
-            
-            # we're adding a 10% cushion to the capital used, 
+
+            # we're adding a 10% cushion to the capital used,
             # and then rounding to the nearest 5k
             transaction_cost = event.TRANSACTION.price * event.TRANSACTION.amount
             self.cumulative_capital_used += transaction_cost
@@ -190,28 +202,30 @@ class PerformanceTracker():
         
         #calculate progress of test
         self.progress = self.day_count / self.total_days
-                                
-        ####################################################################
-        #######TODO: relay the results of self.to_dict()         ###########
-        ####################################################################
-        
+
+        # Output Results
+        if self.result_stream:
+            # TODO: proper framing
+            self.result_stream.send(str(self.to_dict()))
+
         #roll over positions to current day.
         self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
-            self.todays_performance.positions, 
-            self.todays_performance.ending_value, 
+            self.todays_performance.positions,
+            self.todays_performance.ending_value,
             self.todays_performance.ending_cash
         )
 
     def handle_simulation_end(self):
         self.risk_report = risk.RiskReport(
-            self.returns, 
+            self.returns,
             self.trading_environment
         )
-        
-        ####################################################################
-        #######TODO: relay the results of self.risk_report.to_dict() #######
-        ####################################################################
+
+        # Output Results
+        if self.result_stream:
+            # TODO: proper framing
+            self.result_stream.send(str(self.risk_report.to_dict()))
     
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -274,11 +288,11 @@ class Position():
     +-----------------+----------------------------------------------------+
         """
         state = {
-            'sid':self.sid,
-            'amount':self.amount,
-            'cost_basis':self.cost_basis,
-            'last_sale_price':self.last_sale_price,
-            'last_sale_date':self.last_sale_date
+            'sid'             : self.sid,
+            'amount'          : self.amount,
+            'cost_basis'      : self.cost_basis,
+            'last_sale_price' : self.last_sale_price,
+            'last_sale_date'  : self.last_sale_date
         }
         return state
         
@@ -353,16 +367,17 @@ class PerformancePeriod():
 +---------------+-----------------------------------------------------------+
         """
         d = {
-            'ending_value':self.ending_value,
-            'capital_used':self.capital_used,
-            'starting_value':self.starting_value,
-            'starting_cash':self.starting_cash,
-            'ending_cash':self.ending_cash
+            'ending_value'   : self.ending_value,
+            'capital_used'   : self.period_capital_used,
+            'starting_value' : self.starting_value,
+            'starting_cash'  : self.starting_cash,
+            'ending_cash'    : self.ending_cash
         }
-        
+
         position_list = []
+
         for pos in self.positions:
-            position_list.append(pos.to_dict())
-            
-        d['positions'] = positions_list
+            position_list.append(pos)
+
+        d['positions'] = position_list
         return d
