@@ -11,6 +11,9 @@ class Risk(unittest.TestCase):
     
     def setUp(self):
         qutil.configure_logging()
+        start_date = datetime.datetime(year=2006, month=1, day=1, tzinfo=pytz.utc)
+        end_date = datetime.datetime(year=2006, month=12, day=31, tzinfo=pytz.utc)
+        
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
         
@@ -23,9 +26,9 @@ class Risk(unittest.TestCase):
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
         self.dt = datetime.datetime.utcnow()
-        start_date = datetime.datetime(year=2006, month=1, day=1, tzinfo=pytz.utc)
+        
         self.algo_returns_06 = factory.create_returns_from_list(RETURNS, start_date, self.trading_calendar)
-        end_date = datetime.datetime(year=2006, month=12, day=31, tzinfo=pytz.utc)
+        
         self.metrics_06 = risk.RiskReport(self.algo_returns_06, self.trading_calendar)
         
     def tearDown(self):

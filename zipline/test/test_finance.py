@@ -210,6 +210,8 @@ class FinanceTestCase(TestCase):
         self.trading_environment.period_start = trade_history[0].dt
         self.trading_environment.period_end = trade_history[-1].dt
         self.trading_environment.capital_base = 10000
+        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
+        'price', 'changed']
         
         trading_client = TradeSimulationClient(self.trading_environment)
         #client will send 10 orders for 100 shares of 133
@@ -291,6 +293,8 @@ class FinanceTestCase(TestCase):
         self.trading_environment.period_start = trade_history[0].dt
         self.trading_environment.period_end = trade_history[-1].dt
         self.trading_environment.capital_base = 10000
+        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
+        'price', 'changed']
         
         set1 = SpecificEquityTrades("flat-133", trade_history)
 
