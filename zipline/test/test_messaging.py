@@ -13,9 +13,7 @@ from zipline.test.transform import DivideByZeroTransform
 
 from nose.tools import timed
 
-# Should not inherit form TestCase since test runners will pick
-# it up as a test. Its a Mixin of sorts at this point.
-class SimulatorTestCase(object):
+class BaseSimulator(object):
 
     # Leased sockets is a defaultdict keyed by the test case.
     # This lets you debug the sockets being allocated in the
@@ -25,7 +23,6 @@ class SimulatorTestCase(object):
     #    'test_orders'      : ['tcp : //127.0.0.1 : 1000', ... ],
     #    'test_performance' : ['tcp : //127.0.0.1 : 1025', ... ],
     # }
-
     leased_sockets = defaultdict(list)
 
     def setUp(self):
@@ -78,6 +75,10 @@ class SimulatorTestCase(object):
 
     def unallocate_sockets(self):
         self.allocator.reaquire(*self.leased_sockets[self.id()])
+
+# Should not inherit form TestCase since test runners will pick
+# it up as a test. Its a Mixin of sorts at this point.
+class SimulatorTestCase(BaseSimulator):
 
     # -------
     #  Cases

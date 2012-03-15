@@ -1,6 +1,8 @@
 import copy
 from ctypes import Structure, c_ubyte
 
+from pandas import Series
+
 def Enum(*options):
     """
     Fast enums are very important when we want really tight zmq
@@ -85,3 +87,6 @@ class namedict(object):
 
     def has_attr(self, name):
         return self.__dict__.has_key(name)
+
+    def as_series(self):
+        return Series(self.__dict__, self.__dict__.keys())

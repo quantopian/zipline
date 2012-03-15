@@ -290,17 +290,16 @@ class PerformanceTracker():
         )
 
     def handle_simulation_end(self):
-        assert False
 
-        self.risk_report = risk.RiskReport(
-            self.returns,
-            self.trading_environment
-        )
+        #self.risk_report = risk.RiskReport(
+            #self.returns,
+            #self.trading_environment
+        #)
 
         # Output Results
-        if self.result_stream:
-            # TODO: proper framing
-            self.result_stream.send_pyobj(self.risk_report.to_dict())
+        #if self.result_stream:
+            ## TODO: proper framing
+            #self.result_stream.send_pyobj(self.risk_report.to_dict())
 
         self.result_stream.send_pyobj(None)
 
