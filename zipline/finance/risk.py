@@ -5,7 +5,6 @@ import numpy as np
 import numpy.linalg as la
 import zipline.util as qutil
 import zipline.protocol as zp
-from pymongo import ASCENDING, DESCENDING
 
 class DailyReturn():
     
@@ -46,6 +45,7 @@ class RiskMetrics():
             )
             
             raise Exception(messge)
+
         self.trading_days = len(self.benchmark_returns)
         self.benchmark_volatility = self.calculate_volatility(self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(self.algorithm_returns)
@@ -90,10 +90,10 @@ class RiskMetrics():
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
         """
-        d = {
+        return {
             'trading_days'          : self.trading_days,
             'benchmark_volatility'  : self.benchmark_volatility,
-            'algo_volatility'       : self.algo_volatility,
+            'algo_volatility'       : self.algorithm_volatility,
             'treasury_period_return': self.treasury_period_return,
             'sharpe'                : self.sharpe,
             'beta'                  : self.beta,
@@ -101,7 +101,7 @@ class RiskMetrics():
             'excess_return'         : self.excess_return,
             'max_drawdown'          : self.max_drawdown
         }
-        
+
     def __repr__(self):
         statements = []
         for metric in [
@@ -137,7 +137,6 @@ class RiskMetrics():
         return period_returns, returns
         
     def calculate_volatility(self, daily_returns):
-        #qutil.LOGGER.debug("trading days {td}".format(td=self.trading_days))
         return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
         
     def calculate_sharpe(self):
@@ -326,11 +325,24 @@ def advance_by_months(dt, jump_in_months):
 
 class TradingEnvironment(object):
 
-    def __init__(self, benchmark_returns, treasury_curves):
+    def __init__(
+        self, 
+        benchmark_returns, 
+        treasury_curves, 
+        period_start=None, 
+        period_end=None, 
+        capital_base=None,
+        frame_index=None
+    ):
+    
         self.trading_days = []
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
+        self.frame_index = frame_index
+        self.period_start = period_start
+        self.period_end = period_end
+        self.capital_base = capital_base
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm

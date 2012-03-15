@@ -506,34 +506,46 @@ shares in position"
         
         trade_count = 100
         sid = 133
-        price = [10.1] * trade_count
+        price = 10.1 
+        price_list = [price] * trade_count
         volume = [100] * trade_count
         start_date = datetime.datetime.strptime("01/01/2011","%m/%d/%Y")
         start_date = start_date.replace(tzinfo=pytz.utc)
         trade_time_increment = datetime.timedelta(days=1)
         trade_history = factory.create_trade_history( 
             sid, 
-            price, 
+            price_list, 
             volume, 
             start_date, 
             trade_time_increment, 
             self.trading_environment 
         )
         
-        trade_client = TradeSimulationClient(start_date)
-        start = trade_history[0].dt
-        end = trade_history[-1].dt
-        tracker = perf.PerformanceTracker(
-            start, 
-            end, 
-            1000.0, 
-            self.trading_environment
+        sid2 = 134
+        price2 = 12.12
+        price2_list = [price2] * trade_count 
+        trade_history2 = factory.create_trade_history( 
+            sid2, 
+            price2_list, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            self.trading_environment 
         )
+        
+        trade_history.extend(trade_history2)
+        
+        self.trading_environment.period_start = trade_history[0].dt
+        self.trading_environment.period_end = trade_history[-1].dt
+        self.trading_environment.capital_base = 1000.0
+        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
+        'price', 'changed']
+        client = TradeSimulationClient(self.trading_environment)
         
         for event in trade_history:
             #create a transaction for all but
-            #one trade, to simulate None transaction
-            if(event.dt != start):
+            #first trade in each sid, to simulate None transaction
+            if(event.dt != self.trading_environment.period_start):
                 txn = zp.namedict({
                     'sid'        : event.sid,
                     'amount'     : -25,
@@ -543,17 +555,19 @@ shares in position"
                 })
             else:
                 txn = None
-            event[zp.TRANSFORM_TYPE.TRANSACTION] = txn
-            trade_client.queue_event(event)
+            event[zp.TRANSFORM_TYPE.TRANSACTION] = txn  
+            client.queue_event(event)
             
-        df = trade_client.get_frame()    
-        tracker.update(df)
+        df = client.get_frame()
         
-        #we skip one trade, to test case of None transaction
-        txn_count = len(trade_history) - 1
-        self.assertEqual(tracker.txn_count, txn_count)
+        self.assertEqual(df[133]['price'], price)
+        self.assertEqual(df[134]['price'], price2)
         
-        cumulative_pos = tracker.cumulative_performance.positions[sid]
-        expected_size = txn_count * -25
+        #we skip two trades, to test case of None transaction
+        txn_count = len(trade_history) - 2
+        self.assertEqual(client.perf.txn_count, txn_count)
+        
+        cumulative_pos = client.perf.cumulative_performance.positions[sid]
+        expected_size = txn_count / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
     

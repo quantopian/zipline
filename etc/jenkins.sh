@@ -29,7 +29,7 @@ pip freeze
 paver apidocs html
 
 #run all the tests in test. see setup.cfg for flags.
-nosetests 
+nosetests --config=jenkins_setup.cfg 
 
 #run pylint checks
 cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
