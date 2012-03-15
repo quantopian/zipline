@@ -121,6 +121,17 @@ import zipline.protocol as zp
 import zipline.finance.risk as risk
 
 class PerformanceTracker():
+    """
+
+    Tracks the performance of the zipstream as it is running in
+    the simulotr, relays this out to the Deluge broker and then
+    to the client.
+
+    +--------------------+   Result Stream   +--------+
+    | PerformanceTracker | ----------------> | Deluge |
+    +--------------------+                   +--------+
+
+    """
 
     def __init__(self, period_start, period_end, capital_base, trading_environment):
 
@@ -157,6 +168,10 @@ class PerformanceTracker():
 
 
     def publish_to(self, zmq_socket, context=None):
+        """
+        Publish the performance results asynchronously to a
+        socket.
+        """
         ctx = context or zmq.Context.instance()
         sock = ctx.socket(zmq.PUSH)
         sock.connect(zmq_socket)
@@ -167,24 +182,24 @@ class PerformanceTracker():
         """
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form:
-
         """
+
         returns_list = [x.to_dict() for x in self.returns]
 
         return {
-            'period_start'              : self.period_start,
-            'period_end'                : self.period_end,
-            'progress'                  : self.progress,
-            'cumulative_captial_used'   : self.cumulative_capital_used,
-            'max_capital_used'          : self.max_capital_used,
-            'last_close'                : self.market_close,
-            'last_open'                 : self.market_open,
-            'capital_base'              : self.capital_base,
-            'returns'                   : returns_list,
-            'cumulative_perf'           : self.cumulative_performance.to_dict(),
-            'todays_perf'               : self.todays_performance.to_dict(),
-            'cumulative_risk_metrics'   : self.cumulative_risk_metrics.to_dict(),
-            'timestamp'                 : datetime.datetime.now(),
+            'period_start'            : self.period_start,
+            'period_end'              : self.period_end,
+            'progress'                : self.progress,
+            'cumulative_captial_used' : self.cumulative_capital_used,
+            'max_capital_used'        : self.max_capital_used,
+            'last_close'              : self.market_close,
+            'last_open'               : self.market_open,
+            'capital_base'            : self.capital_base,
+            'returns'                 : returns_list,
+            'cumulative_perf'         : self.cumulative_performance.to_dict(),
+            'todays_perf'             : self.todays_performance.to_dict(),
+            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
+            'timestamp'               : datetime.datetime.now(),
         }
 
     def update(self, event_frame):
@@ -196,7 +211,9 @@ class PerformanceTracker():
 
     def process_event(self, event):
         qutil.LOGGER.debug("series is " + str(event))
+
         self.event_count += 1
+
         if(event.dt >= self.market_close):
             self.handle_market_close()
 
@@ -209,7 +226,8 @@ class PerformanceTracker():
             # and then rounding to the nearest 5k
             transaction_cost = event.TRANSACTION.price * event.TRANSACTION.amount
             self.cumulative_capital_used += transaction_cost
-            if(math.fabs(self.cumulative_capital_used) > self.max_capital_used):
+
+            if math.fabs(self.cumulative_capital_used) > self.max_capital_used:
                 self.max_capital_used = math.fabs(self.cumulative_capital_used)
 
             cushioned_capital = 1.1 * self.max_capital_used
@@ -217,7 +235,7 @@ class PerformanceTracker():
                 cushioned_capital,
                 base=5000
             )
-            self.max_leverage = self.max_capital_used/self.capital_base
+            self.max_leverage = self.max_capital_used / self.capital_base
 
         #update last sale
         self.cumulative_performance.update_last_sale(event)
@@ -246,10 +264,12 @@ class PerformanceTracker():
 
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
+
         while not self.trading_environment.is_trading_day(self.market_open):
             if self.market_open > self.trading_environment.trading_days[-1]:
                 raise Exception("Attempt to backtest beyond available history.")
             self.market_open = self.market_open + self.calendar_day
+
         self.market_close = self.market_open + self.trading_day
         self.day_count += 1.0
 
@@ -270,6 +290,8 @@ class PerformanceTracker():
         )
 
     def handle_simulation_end(self):
+        assert False
+
         self.risk_report = risk.RiskReport(
             self.returns,
             self.trading_environment
@@ -280,8 +302,11 @@ class PerformanceTracker():
             # TODO: proper framing
             self.result_stream.send_pyobj(self.risk_report.to_dict())
 
+        self.result_stream.send_pyobj(None)
+
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
+
 
 class Position():
 
@@ -295,7 +320,6 @@ class Position():
     def update(self, txn):
         if(self.sid != txn.sid):
             raise NameError('updating position with txn for a different sid')
-            #throw exception
 
          #we're covering a short or closing a position
         if(self.amount + txn.amount == 0):
@@ -328,7 +352,7 @@ class Position():
         Creates a dictionary representing the state of this position.
         Returns a dict object of the form:
         """
-        state = {
+        return {
             'sid'             : self.sid,
             'amount'          : self.amount,
             'cost_basis'      : self.cost_basis,
@@ -336,7 +360,7 @@ class Position():
             'last_sale_date'  : self.last_sale_date,
             'timestamp'       : datetime.datetime.now(),
         }
-        return state
+
 
 class PerformancePeriod():
 
