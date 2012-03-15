@@ -45,6 +45,7 @@ class RiskMetrics():
             )
             
             raise Exception(messge)
+
         self.trading_days = len(self.benchmark_returns)
         self.benchmark_volatility = self.calculate_volatility(self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(self.algorithm_returns)
@@ -89,10 +90,10 @@ class RiskMetrics():
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
         """
-        d = {
+        return {
             'trading_days'          : self.trading_days,
             'benchmark_volatility'  : self.benchmark_volatility,
-            'algo_volatility'       : self.algo_volatility,
+            'algo_volatility'       : self.algorithm_volatility,
             'treasury_period_return': self.treasury_period_return,
             'sharpe'                : self.sharpe,
             'beta'                  : self.beta,
@@ -100,7 +101,7 @@ class RiskMetrics():
             'excess_return'         : self.excess_return,
             'max_drawdown'          : self.max_drawdown
         }
-        
+
     def __repr__(self):
         statements = []
         for metric in [
