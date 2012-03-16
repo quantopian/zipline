@@ -404,7 +404,7 @@ class PerformancePeriod():
     def to_dict(self):
         """
         Creates a dictionary representing the state of this performance 
-        period.
+        period. See header comments for a detailed description.
         """
         positions = {}
         for sid, pos in self.positions.iteritems():
@@ -422,7 +422,9 @@ class PerformancePeriod():
         
     def to_namedict(self):
         """
-        Creates a namedict representing the state of this perfomance period.    
+        Creates a namedict representing the state of this perfomance period.
+        Properties are the same as the results of to_dict. See header comments
+        for a detailed description.    
         
         """
         positions = {}
