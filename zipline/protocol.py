@@ -119,7 +119,6 @@ import numbers
 import datetime
 import pytz
 import copy
-import pandas
 from collections import namedtuple
 
 from protocol_utils import Enum, FrameExceptionFactory, namedict

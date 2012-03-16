@@ -182,7 +182,6 @@ class RiskMetrics():
         return period_returns, returns
 
     def calculate_volatility(self, daily_returns):
-        #qutil.LOGGER.debug("trading days {td}".format(td=self.trading_days))
         return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
 
     def calculate_sharpe(self):
@@ -379,11 +378,24 @@ class RiskReport():
 
 class TradingEnvironment(object):
 
-    def __init__(self, benchmark_returns, treasury_curves):
+    def __init__(
+        self, 
+        benchmark_returns, 
+        treasury_curves, 
+        period_start=None, 
+        period_end=None, 
+        capital_base=None,
+        frame_index=None
+    ):
+    
         self.trading_days = []
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
+        self.frame_index = frame_index
+        self.period_start = period_start
+        self.period_end = period_end
+        self.capital_base = capital_base
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm

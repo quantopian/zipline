@@ -103,9 +103,8 @@ class TestAlgorithm():
             event = zp.namedict(data)
             #place an order for 100 shares of sid:133
             if self.incr < self.count:
-                if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
-                    self.trading_client.order(self.sid, self.amount)
-                    self.incr += 1
+                self.trading_client.order(self.sid, self.amount)
+                self.incr += 1
             elif not self.done:
                 self.trading_client.signal_order_done()
                 self.done = True

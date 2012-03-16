@@ -1,7 +1,6 @@
 import copy
+import pandas
 from ctypes import Structure, c_ubyte
-
-from pandas import Series
 
 def Enum(*options):
     """
@@ -87,6 +86,8 @@ class namedict(object):
 
     def has_attr(self, name):
         return self.__dict__.has_key(name)
-
+        
     def as_series(self):
-        return Series(self.__dict__, self.__dict__.keys())
+        s = pandas.Series(self.__dict__)
+        s.name = self.sid
+        return s
