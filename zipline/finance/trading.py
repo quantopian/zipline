@@ -29,6 +29,8 @@ class TradeSimulationClient(qmsg.Component):
         )
         
         self.perf = perf.PerformanceTracker(self.trading_environment)
+        self.on_done = self.perf.handle_simulation_end
+        
     
     @property
     def get_id(self):
