@@ -209,15 +209,6 @@ class PerformanceTracker():
     def process_event(self, event):
         self.event_count += 1
 
-        # TODO: This seems to get both dataframes and namedicts?
-        # I can't find a corresponding test for this
-        # function so not sure if this is the desired behavior or
-        # something is going wrong upstream...
-
-        # hack for now
-        if isinstance(event, pandas.DataFrame):
-            return
-
         if(event.dt >= self.market_close):
             self.handle_market_close()
 
