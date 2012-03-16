@@ -79,7 +79,7 @@ Position Tracking
     | last_sale_date  | datetime of the last trade of the position's       |
     |                 | security on the exchange                           |
     +-----------------+----------------------------------------------------+
-    | timestamp       | System time evevent occurs in zipilne              |
+    | timestamp       | System time event occurs in zipilne                |
     +-----------------+----------------------------------------------------+
 
 Performance Period
@@ -154,6 +154,7 @@ class PerformanceTracker():
         self.txn_count               = 0
         self.event_count             = 0
         self.result_stream           = None
+        self.last_dict               = None
 
         self.cumulative_performance = PerformancePeriod(
             {},
@@ -167,6 +168,8 @@ class PerformanceTracker():
             starting_cash = self.capital_base
         )
 
+    def get_portfolio(self):
+        return self.cumulative_performance.to_namedict()
 
     def publish_to(self, zmq_socket, context=None):
         """
@@ -400,10 +403,12 @@ class PerformancePeriod():
 
     def to_dict(self):
         """
-        Creates a dictionary representing the state of this performance period
-        Returns a dict object of the form:
-
+        Creates a dictionary representing the state of this performance 
+        period.
         """
+        positions = {}
+        for sid, pos in self.positions.iteritems():
+            positions[sid] = pos.to_dict()
 
         return {
             'ending_value'   : self.ending_value,
@@ -411,6 +416,29 @@ class PerformancePeriod():
             'starting_value' : self.starting_value,
             'starting_cash'  : self.starting_cash,
             'ending_cash'    : self.ending_cash,
-            'positions'      : self.positions,
+            'positions'      : positions,
             'timestamp'      : datetime.datetime.now(),
         }
+        
+    def to_namedict(self):
+        """
+        Creates a namedict representing the state of this perfomance period.    
+        
+        """
+        positions = {}
+        for sid, pos in self.positions.iteritems():
+            positions[sid] = zp.namedict(pos.to_dict())
+        
+        positions = zp.namedict(positions)
+        
+        return zp.namedict({
+            'ending_value'  : self.ending_value,
+            'capital_used'   : self.period_capital_used,
+            'starting_value' : self.starting_value,
+            'starting_cash'  : self.starting_cash,
+            'ending_cash'   : self.ending_cash,
+            'positions'      : positions
+        })
+        
+            
+
