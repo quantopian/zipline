@@ -29,6 +29,8 @@ class TradeSimulationClient(qmsg.Component):
         )
         
         self.perf = perf.PerformanceTracker(self.trading_environment)
+        self.on_done = self.perf.handle_simulation_end
+        
     
     @property
     def get_id(self):
@@ -37,7 +39,9 @@ class TradeSimulationClient(qmsg.Component):
     def add_event_callback(self, callback):
         """
         :param callable callback: must be a function with the signature
-        f(frame).
+        f(event), where event is a namedict whose properties depend on the
+        upstream configuration of the zipline. It will include datasource and
+        transformations.
         """
         self.event_callbacks.append(callback)
     
