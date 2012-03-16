@@ -86,9 +86,6 @@ class namedict(object):
 
     def has_attr(self, name):
         return self.__dict__.has_key(name)
-    
-    def __getitem__(self, key):
-        return self.__dict__[key]
         
     def as_series(self):
         s = pandas.Series(self.__dict__)

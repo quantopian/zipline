@@ -406,9 +406,7 @@ class PerformancePeriod():
         Creates a dictionary representing the state of this performance 
         period. See header comments for a detailed description.
         """
-        positions = {}
-        for sid, pos in self.positions.iteritems():
-            positions[sid] = pos.to_dict()
+        positions = self.get_positions()
 
         return {
             'ending_value'   : self.ending_value,
@@ -427,9 +425,7 @@ class PerformancePeriod():
         for a detailed description.    
         
         """
-        positions = {}
-        for sid, pos in self.positions.iteritems():
-            positions[sid] = zp.namedict(pos.to_dict())
+        positions = self.get_positions(namedicted=True)
         
         positions = zp.namedict(positions)
         
@@ -441,6 +437,18 @@ class PerformancePeriod():
             'ending_cash'   : self.ending_cash,
             'positions'      : positions
         })
+        
+    def get_positions(self, namedicted=False):
+        positions = {}
+        for sid, pos in self.positions.iteritems():
+            cur = pos.to_dict()
+            if namedicted:
+                positions[sid] = zp.namedict(cur)
+            else:
+                positions[sid] = cur
+        
+        return positions
+        
         
             
 
