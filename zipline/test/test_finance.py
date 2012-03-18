@@ -20,6 +20,7 @@ from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
+from zipline.lines import SimulatedTrading
 
 DEFAULT_TIMEOUT = 5 # seconds
 
@@ -34,31 +35,20 @@ class FinanceTestCase(TestCase):
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
 
+        start = datetime.strptime("01/1/2006","%m/%d/%Y")
+        start = start.replace(tzinfo=pytz.utc)
         self.trading_environment = risk.TradingEnvironment(
             self.benchmark_returns,
-            self.treasury_curves
+            self.treasury_curves,
+            period_start = start,
+            capital_base = 100000.0
         )
 
         self.allocator = allocator
 
-    def allocate_sockets(self, n):
-        """
-        Allocate sockets local to this test case, track them so
-        we can gc after test run.
-        """
-
-        assert isinstance(n, int)
-        assert n > 0
-
-        leased = self.allocator.lease(n)
-
-        self.leased_sockets[self.id()].extend(leased)
-        return leased
-
     @timed(DEFAULT_TIMEOUT)
     def test_trade_feed_protocol(self):
 
-        # TODO: Perhaps something more self-documenting for variables names?
         sid = 133
         price = [10.0] * 4
         volume = [100] * 4
@@ -164,172 +154,89 @@ class FinanceTestCase(TestCase):
 
         # Just verify sending and receiving orders.
         # --------------
-
-        # Allocate sockets for the simulator components
-        sockets = self.allocate_sockets(8)
-
-        addresses = {
-            'sync_address'   : sockets[0],
-            'data_address'   : sockets[1],
-            'feed_address'   : sockets[2],
-            'merge_address'  : sockets[3],
-            'result_address' : sockets[4],
-            'order_address'  : sockets[5]
-        }
-
-        con = Controller(
-            sockets[6],
-            sockets[7],
-            logging = qutil.LOGGER
+        #
+        SID=133
+        sids = [133]
+        trade_count = 100
+        trade_source = factory.create_daily_trade_source(
+            sids,
+            trade_count,
+            self.trading_environment
         )
-
-        sim = Simulator(addresses)
-
-        # Simulation Components
-        # ---------------------
-
-        # TODO: Perhaps something more self-documenting for variables names?
-        sid = 133
-        price = [10.1] * 16
-        volume = [100] * 16
-        start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
-        start_date = start_date.replace(tzinfo=pytz.utc)
-        trade_time_increment = timedelta(days=1)
-
-        trade_history = factory.create_trade_history( 
-            sid, 
-            price, 
-            volume, 
-            start_date, 
-            trade_time_increment, 
-            self.trading_environment 
-        )
-
-        set1 = SpecificEquityTrades("flat-133", trade_history)
-        
-        self.trading_environment.period_start = trade_history[0].dt
-        self.trading_environment.period_end = trade_history[-1].dt
-        self.trading_environment.capital_base = 10000
-        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
-        'price', 'changed']
-        
-        trading_client = TradeSimulationClient(self.trading_environment)
-        #client will send 10 orders for 100 shares of 133
-        test_algo = TestAlgorithm(133, 100, 10, trading_client)
-
-        order_source = OrderDataSource()
-        transaction_sim = TransactionSimulator()
-
-        sim.register_components([
-            trading_client, 
-            order_source, 
-            transaction_sim, 
-            set1
-        ])
-        sim.register_controller( con )
 
         # Simulation
         # ----------
-        sim_context = sim.simulate()
-        sim_context.join()
+        zipline = SimulatedTrading(
+                self.trading_environment,
+                self.allocator
+        )
+        zipline.add_source(trade_source)
+        
+        order_amount = 100
+        order_count = 10
+        test_algo = TestAlgorithm(
+            SID, 
+            order_amount, 
+            order_count, 
+            zipline.trading_client
+        )
+        
+        zipline.simulate(blocking=True)
 
-        self.assertTrue(sim.ready())
-        self.assertFalse(sim.exception)
+        self.assertTrue(zipline.sim.ready())
+        self.assertFalse(zipline.sim.exception)
 
         # TODO: Make more assertions about the final state of the components.
-        self.assertEqual(sim.feed.pending_messages(), 0, \
+        self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=sim.feed.pending_messages()))
+            .format(n=zipline.sim.feed.pending_messages()))
 
 
     @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
 
         # verify order -> transaction -> portfolio position.
-        # --------------
-
-        # Allocate sockets for the simulator components
-        sockets = self.allocate_sockets(8)
-
-        addresses = {
-            'sync_address'   : sockets[0],
-            'data_address'   : sockets[1],
-            'feed_address'   : sockets[2],
-            'merge_address'  : sockets[3],
-            'result_address' : sockets[4],
-            'order_address'  : sockets[5]
-        }
-
-        con = Controller(
-            sockets[6],
-            sockets[7],
-            logging = qutil.LOGGER
-        )
-
-        sim = Simulator(addresses)
-
-        # Simulation Components
-        # ---------------------
-
-        # TODO: Perhaps something more self-documenting for variables names?
+        # -------------- 
+        SID=133
+        sids = [133]
         trade_count = 100
-        sid = 133
-        price = [10.1] * trade_count
-        volume = [100] * trade_count
-        start_date = datetime.strptime("02/1/2012","%m/%d/%Y")
-        start_date = start_date.replace(tzinfo=pytz.utc)
-        trade_time_increment = timedelta(days=1)
-
-        trade_history = factory.create_trade_history( 
-            sid, 
-            price, 
-            volume, 
-            start_date, 
-            trade_time_increment, 
-            self.trading_environment 
+        trade_source = factory.create_daily_trade_source(
+            sids,
+            trade_count,
+            self.trading_environment
         )
-        
-        
-        self.trading_environment.period_start = trade_history[0].dt
-        self.trading_environment.period_end = trade_history[-1].dt
-        self.trading_environment.capital_base = 10000
-        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
-        'price', 'changed']
-        
-        set1 = SpecificEquityTrades("flat-133", trade_history)
-
-        #client sill send 10 orders for 100 shares of 133
-        trading_client = TradeSimulationClient(self.trading_environment)
-        test_algo = TestAlgorithm(133, 100, 10, trading_client)
-
-        order_source = OrderDataSource()
-        transaction_sim = TransactionSimulator()
-        
-        sim.register_components([
-            trading_client, 
-            order_source, 
-            transaction_sim, 
-            set1, 
-            ])
-        sim.register_controller( con )
-
+       
         # Simulation
         # ----------
-        sim_context = sim.simulate()
-        sim_context.join()
+        zipline = SimulatedTrading(
+                self.trading_environment,
+                self.allocator
+        )
+        zipline.add_source(trade_source)
+        
+        order_amount = 100
+        order_count = 25
+        test_algo = TestAlgorithm(
+            SID, 
+            order_amount, 
+            order_count, 
+            zipline.trading_client
+        )
+        
+        zipline.simulate(blocking=True)
 
         self.assertEqual(
-            sim.feed.pending_messages(), 
+            zipline.sim.feed.pending_messages(), 
             0, 
             "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=sim.feed.pending_messages())
+            .format(n=zipline.sim.feed.pending_messages())
         )
         
         self.assertEqual(
-            sim.merge.pending_messages(), 
+            zipline.sim.merge.pending_messages(), 
             0, 
             "The merge should be drained of all messages, found {n} remaining." \
-            .format(n=sim.merge.pending_messages())
+            .format(n=zipline.sim.merge.pending_messages())
         )
 
         self.assertEqual(
@@ -337,27 +244,29 @@ class FinanceTestCase(TestCase):
             test_algo.incr,
             "The test algorithm should send as many orders as specified.")
             
+        order_source = zipline.sources[zp.FINANCE_COMPONENT.ORDER_SOURCE]
         self.assertEqual(
             order_source.sent_count, 
             test_algo.count, 
             "The order source should have sent as many orders as the algo."
         )
             
+        transaction_sim = zipline.transforms[zp.TRANSFORM_TYPE.TRANSACTION]
         self.assertEqual(
             transaction_sim.txn_count,
-            trading_client.perf.txn_count,
+            zipline.trading_client.perf.txn_count,
             "The perf tracker should handle the same number of transactions \
             as the simulator emits."
         ) 
         
         self.assertEqual(
-            len(trading_client.perf.cumulative_performance.positions), 
+            len(zipline.get_positions()), 
             1, 
             "Portfolio should have one position."
         )
         
         self.assertEqual(
-            trading_client.perf.cumulative_performance.positions[133].sid, 
-            133, 
-            "Portfolio should have one position in 133."
+            zipline.get_positions()[SID]['sid'], 
+            SID, 
+            "Portfolio should have one position in " + str(SID)
         )

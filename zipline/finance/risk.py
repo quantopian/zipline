@@ -396,6 +396,7 @@ class TradingEnvironment(object):
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
+            
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm

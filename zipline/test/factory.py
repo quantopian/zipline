@@ -5,6 +5,7 @@ import random
 import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
+from zipline.sources import SpecificEquityTrades
 
 def load_market_data():
     fp_bm = open("./zipline/test/benchmark.msgpack", "rb")
@@ -128,3 +129,40 @@ def create_returns_from_list(returns, start, trading_calendar):
         current = current + one_day
     return sorted(test_range, key=lambda(x):x.date)
 
+def create_daily_trade_source(sids, trade_count, trading_environment):
+    """
+    creates trade_count trades for each sid in sids list. 
+    first trade will be on trading_environment.period_start, and daily 
+    thereafter for each sid. Thus, two sids should result in two trades per 
+    day. 
+    
+    Important side-effect: trading_environment.period_end will be modified
+    to match the day of the final trade. 
+    """
+    trade_history = []
+    for sid in sids:
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
+        start_date = trading_environment.period_start
+        trade_time_increment = datetime.timedelta(days=1)
+
+        generated_trades = create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            start_date, 
+            trade_time_increment, 
+            trading_environment 
+        )
+        
+        trade_history.extend(generated_trades)
+        
+    trade_history = sorted(trade_history, key=lambda(x): x.dt)
+    
+    #set the trading environment's end to same dt as the last trade in the
+    #history.
+    trading_environment.period_end = trade_history[-1].dt
+    
+    source = SpecificEquityTrades("flat", trade_history)
+    return source
+        
