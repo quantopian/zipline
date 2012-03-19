@@ -303,6 +303,57 @@ class TransactionSimulator(qmsg.BaseTransform):
                 }
         return zp.namedict(txn) 
                 
-                
+
+class TradingEnvironment(object):
+
+    def __init__(
+        self, 
+        benchmark_returns, 
+        treasury_curves, 
+        period_start=None, 
+        period_end=None, 
+        capital_base=None
+    ):
+    
+        self.trading_days = []
+        self.trading_day_map = {}
+        self.treasury_curves = treasury_curves
+        self.benchmark_returns = benchmark_returns
+        self.frame_index = ['sid', 'volume', 'dt', 'price', 'changed']
+        self.period_start = period_start
+        self.period_end = period_end
+        self.capital_base = capital_base
+            
+        for bm in benchmark_returns:
+            self.trading_days.append(bm.date)
+            self.trading_day_map[bm.date] = bm
+
+    def normalize_date(self, test_date):
+        return datetime.datetime(
+            year=test_date.year,
+            month=test_date.month,
+            day=test_date.day,
+            tzinfo=pytz.utc
+        )
+
+    def is_trading_day(self, test_date):
+        dt = self.normalize_date(test_date)
+        return self.trading_day_map.has_key(dt)
+
+    def get_benchmark_daily_return(self, test_date):
+        date = self.normalize_date(test_date)
+        if self.trading_day_map.has_key(date):
+            return self.trading_day_map[date].returns
+        else:
+            return 0.0
+            
+    def add_to_frame(self, name):
+        """
+        Add an entry to the frame index. 
+        :param name: new index entry name. Used by TradingSimulationClient
+        to 
+        """
+        self.frame_index.append(name)
+
                 
 

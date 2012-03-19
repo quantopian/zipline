@@ -55,13 +55,74 @@ class SimulatedTrading(object):
         a control monitor, which can kill the entire zipline in the event of
         exceptions in one of the components or an external request to end the
         simulation.
+        
+        Here is a diagram of the SimulatedTrading zipline:
+        
+        
+            +----------------------+  +------------------------+
+        +-->|  Orders DataSource   |  |    (DataSource added   |
+        |   |  Integrates algo     |  |     via add_source)    |
+        |   |  orders into history |  |                        |
+        |   +--------------------+-+  +-+----------------------+
+        |                        |      |
+        |                        |      |
+        |                        v      v
+        |                       +---------+
+        |                       |   Feed  |
+        |                       +-+------++
+        |                         |      |
+        |                         |      |    
+        |                         v      v
+        |    +----------------------+   +----------------------+
+        |    | Transaction          |   |                      |
+        |    | Transform simulates  |   |  (Transforms added   |
+        |    | trades based on      |   |   via add_transform) |
+        |    | orders from algo.    |   |                      |
+        |    +-------------------+--+   +-+--------------------+
+        |                        |        |
+        |                        |        |
+        |                        v        v
+        |                      +------------+
+        |                      |    Merge   |
+        |                      +------+-----+
+        |                             |
+        |                             |
+        |                             V
+        |               +--------------------------------+
+        |               |                                |
+        |               |     TradingSimulationClient    |
+        |  orders       |     tracks performance and     |
+        +---------------+     provides API to algorithm. |
+                        |                                |
+                        +---------------------+----------+
+                                  ^           |
+                                  | orders    |  frames
+                                  |           |
+                                  |           v
+                        +---------+-----------------------+
+                        |                                 |
+                        |  Algorithm added via            |
+                        |  __init__.                      |
+                        |                                 |
+                        |                                 |
+                        |                                 |
+                        +---------------------------------+
     """
     
-    def __init__(self, trading_environment, allocator):
+    def __init__(self, algorithm, trading_environment, allocator):
+        """
+        :param algorithm: a class that follows the algorithm protocol. Must
+        have a handle_frame method that accepts a pandas.Dataframe of the 
+        current state of the simulation universe. Must have an order property
+        which can be set equal to the order method of trading_client.
+        :param trading_environment: TradingEnvironment object. 
+        """
+        self.algorithm = algorithm
         self.allocator = allocator
         self.leased_sockets = []
         self.trading_environment = trading_environment
         self.sim_context = None
+        self.algorithm = algorithm
         
         sockets = self.allocate_sockets(8)
         addresses = {
@@ -81,9 +142,6 @@ class SimulatedTrading(object):
 
         self.sim = Simulator(addresses)
             
-        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
-        'price', 'changed']
-        
         self.clients = {}
         self.trading_client = TradeSimulationClient(self.trading_environment)
         self.clients[self.trading_client.get_id] = self.trading_client
@@ -108,6 +166,9 @@ class SimulatedTrading(object):
         self.sim.register_controller( self.con )
         self.sim.on_done = self.shutdown()
         self.started = False
+        
+        self.trading_client.add_event_callback(self.algorithm.handle_frame)
+        self.algorithm.set_order(self.trading_client.order)
         
     def add_source(self, source):
         assert isinstance(source, zmsg.DataSource)
