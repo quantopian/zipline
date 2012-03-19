@@ -29,6 +29,12 @@ class TradeSimulationClient(qmsg.Component):
         )
         
         self.perf = perf.PerformanceTracker(self.trading_environment)
+        ##################################################################
+        # TODO: the next line of code need refactoring from RealDiehl
+        # The below sets up the performance object to trigger a full risk
+        # report with rolling periods over the entire test duration. We
+        # would prefer something more explicit than a callback.
+        ##################################################################
         self.on_done = self.perf.handle_simulation_end
         
     
@@ -107,6 +113,13 @@ class TradeSimulationClient(qmsg.Component):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
     def queue_event(self, event):
+        ##################################################################
+        # TODO: the next line of code need refactoring from RealDiehl
+        # the performance class needs to process each event, without skipping
+        # and any callbacks should wait until the performance has been 
+        # updated, so that down stream components can safely assume that
+        # performance is up to date.
+        ##################################################################
         self.perf.process_event(event)
         if self.event_queue == None:
             self.event_queue = []
@@ -157,7 +170,7 @@ class OrderDataSource(qmsg.DataSource):
         orders = []
         count = 0
         while True:
-            
+                        
             (rlist, wlist, xlist) = select(
                 [self.order_socket],
                 [],

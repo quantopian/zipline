@@ -13,48 +13,7 @@ provides complete zipline topologies. You can extend any zipline without
 the need to extend the class. Simply instantiate any additional components
 that you would like included in the zipline, and add them to the zipline 
 before invoking simulate. 
-"""
 
-import mock
-import pytz
-
-from datetime import datetime, timedelta
-from collections import defaultdict
-
-from nose.tools import timed
-
-import zipline.test.factory as factory
-import zipline.util as qutil
-import zipline.finance.risk as risk
-import zipline.protocol as zp
-import zipline.finance.performance as perf
-import zipline.messaging as zmsg
-
-from zipline.test.client import TestAlgorithm
-from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
-TradeSimulationClient
-from zipline.simulator import AddressAllocator, Simulator
-from zipline.monitor import Controller
-
-
-
-class SimulatedTrading(object):
-    """
-        Zipline with::
-            - _no_ data sources.
-            - Trade simulation client, which is available to send callbacks on
-            events and also accept orders to be simulated.
-            - An order data source, which will receive orders from the trade
-            simulation client, and feed them into the event stream to be 
-            serialized and order alongside all other data source events.
-            - transaction simulation transformation, which receives the order
-            events and estimates a theoretical execution price and volume.
-            
-        All components in this zipline are subject to heartbeat checks and
-        a control monitor, which can kill the entire zipline in the event of
-        exceptions in one of the components or an external request to end the
-        simulation.
         
         Here is a diagram of the SimulatedTrading zipline:
         
@@ -107,6 +66,49 @@ class SimulatedTrading(object):
                         |                                 |
                         |                                 |
                         +---------------------------------+
+
+"""
+
+import mock
+import pytz
+
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+from nose.tools import timed
+
+import zipline.test.factory as factory
+import zipline.util as qutil
+import zipline.finance.risk as risk
+import zipline.protocol as zp
+import zipline.finance.performance as perf
+import zipline.messaging as zmsg
+
+from zipline.test.client import TestAlgorithm
+from zipline.sources import SpecificEquityTrades
+from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
+TradeSimulationClient
+from zipline.simulator import AddressAllocator, Simulator
+from zipline.monitor import Controller
+
+
+
+class SimulatedTrading(object):
+    """
+        Zipline with::
+            - _no_ data sources.
+            - Trade simulation client, which is available to send callbacks on
+            events and also accept orders to be simulated.
+            - An order data source, which will receive orders from the trade
+            simulation client, and feed them into the event stream to be 
+            serialized and order alongside all other data source events.
+            - transaction simulation transformation, which receives the order
+            events and estimates a theoretical execution price and volume.
+            
+        All components in this zipline are subject to heartbeat checks and
+        a control monitor, which can kill the entire zipline in the event of
+        exceptions in one of the components or an external request to end the
+        simulation.
     """
     
     def __init__(self, algorithm, trading_environment, allocator):
@@ -167,8 +169,16 @@ class SimulatedTrading(object):
         self.sim.on_done = self.shutdown()
         self.started = False
         
+        ##################################################################
+        #TODO: the next three lines of code need refactoring from RealDiehl
+        ##################################################################
+        #wire up a callback inside the algorithm to receive frames from the
+        #trading client
         self.trading_client.add_event_callback(self.algorithm.handle_frame)
+        #register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.trading_client.order)
+        #register the algorithm to signal order's are done
+        self.algorithm.set_done(self.trading_client.signal_order_done)
         
     def add_source(self, source):
         assert isinstance(source, zmsg.DataSource)

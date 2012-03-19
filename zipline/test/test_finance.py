@@ -17,7 +17,7 @@ import zipline.finance.performance as perf
 from zipline.test.client import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
-TradeSimulationClient
+TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.lines import SimulatedTrading
@@ -37,7 +37,7 @@ class FinanceTestCase(TestCase):
 
         start = datetime.strptime("01/1/2006","%m/%d/%Y")
         start = start.replace(tzinfo=pytz.utc)
-        self.trading_environment = risk.TradingEnvironment(
+        self.trading_environment = TradingEnvironment(
             self.benchmark_returns,
             self.treasury_curves,
             period_start = start,
@@ -164,23 +164,25 @@ class FinanceTestCase(TestCase):
             self.trading_environment
         )
 
-        # Simulation
-        # ----------
-        zipline = SimulatedTrading(
-                self.trading_environment,
-                self.allocator
-        )
-        zipline.add_source(trade_source)
-        
+        # Create the Algo
+        #-------------------
         order_amount = 100
         order_count = 10
         test_algo = TestAlgorithm(
             SID, 
             order_amount, 
-            order_count, 
-            zipline.trading_client
+            order_count
+        )
+
+        # Simulation
+        # ----------
+        zipline = SimulatedTrading(
+            test_algo,    
+            self.trading_environment,
+            self.allocator
         )
         
+        zipline.add_source(trade_source)
         zipline.simulate(blocking=True)
 
         self.assertTrue(zipline.sim.ready())
@@ -205,23 +207,26 @@ class FinanceTestCase(TestCase):
             trade_count,
             self.trading_environment
         )
-       
-        # Simulation
-        # ----------
-        zipline = SimulatedTrading(
-                self.trading_environment,
-                self.allocator
-        )
-        zipline.add_source(trade_source)
         
+        # Create the Algo
+        #-------------------
         order_amount = 100
         order_count = 25
         test_algo = TestAlgorithm(
             SID, 
             order_amount, 
-            order_count, 
-            zipline.trading_client
+            order_count
         )
+        
+        # Simulation
+        # ----------
+        zipline = SimulatedTrading(
+            test_algo,
+            self.trading_environment,
+            self.allocator
+        )
+        
+        zipline.add_source(trade_source)
         
         zipline.simulate(blocking=True)
 

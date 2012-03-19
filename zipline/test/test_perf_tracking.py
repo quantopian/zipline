@@ -9,7 +9,7 @@ import zipline.util as qutil
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
 import zipline.protocol as zp
-from zipline.finance.trading import TradeSimulationClient
+from zipline.finance.trading import TradeSimulationClient, TradingEnvironment
 class PerformanceTestCase(unittest.TestCase):
     
     def setUp(self):
@@ -17,7 +17,7 @@ class PerformanceTestCase(unittest.TestCase):
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
         
-        self.trading_environment = risk.TradingEnvironment(
+        self.trading_environment = TradingEnvironment(
             self.benchmark_returns, 
             self.treasury_curves
         )
