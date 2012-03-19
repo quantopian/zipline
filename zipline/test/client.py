@@ -94,13 +94,9 @@ class TestAlgorithm():
         self.incr = 0
         self.done = False
         self.order = None
-        self.on_done = None
         
     def set_order(self, order_callable):
         self.order = order_callable
-    
-    def set_done(self, done_callable):
-        self.on_done = done_callable
         
     def handle_frame(self, frame):
         for dt, s in frame.iteritems():     
@@ -111,7 +107,12 @@ class TestAlgorithm():
             if self.incr < self.count:
                 self.order(self.sid, self.amount)
                 self.incr += 1
-            elif not self.done:
-                if self.on_done:
-                    self.on_done()
-                self.done = True
+                
+class NoopAlgorithm(object):
+        
+    def set_order(self, order_callable):
+        pass
+    
+    def handle_frame(self, frame):
+        pass
+        

@@ -170,15 +170,13 @@ class SimulatedTrading(object):
         self.started = False
         
         ##################################################################
-        #TODO: the next three lines of code need refactoring from RealDiehl
+        #TODO: the next two lines of code need refactoring from RealDiehl
         ##################################################################
         #wire up a callback inside the algorithm to receive frames from the
         #trading client
         self.trading_client.add_event_callback(self.algorithm.handle_frame)
         #register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.trading_client.order)
-        #register the algorithm to signal order's are done
-        self.algorithm.set_done(self.trading_client.signal_order_done)
         
     def add_source(self, source):
         assert isinstance(source, zmsg.DataSource)

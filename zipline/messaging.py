@@ -550,6 +550,10 @@ class DataSource(Component):
     @property
     def get_id(self):
         return self.id
+        
+    @property
+    def is_blocking(self):
+        return True
 
     @property
     def get_type(self):
