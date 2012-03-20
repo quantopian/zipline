@@ -95,7 +95,8 @@ class TradeSimulationClient(qmsg.Component):
             
     def run_algorithm(self):
         frame = self.get_frame()
-        self.algorithm.handle_frame(frame)
+        if len(frame) > 0:
+            self.algorithm.handle_frame(frame)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
@@ -129,6 +130,7 @@ class TradeSimulationClient(qmsg.Component):
     def get_frame(self):
         for event in self.event_queue:
             self.event_frame[event['sid']] = event
+        self.event_queue = []
         return self.event_frame
         
 class OrderDataSource(qmsg.DataSource):

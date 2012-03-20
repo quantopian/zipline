@@ -13,12 +13,19 @@ class TradeDataSource(zm.DataSource):
 
     def send(self, event):
         """
+        Sends the event iff it matches the internal SID filter.
         :param dict event: is a trade event with data as per
                            :py:func: `zipline.protocol.TRADE_FRAME`
         :rtype: None
         """
+        
         event.source_id = self.get_id
-        message = zp.DATASOURCE_FRAME(event)
+        if event.sid in self.filter['SID']:            
+            
+            message = zp.DATASOURCE_FRAME(event)
+        else:
+            message = zp.DATASOURCE_FRAME(None)
+            
         self.data_socket.send(message)
 
 
@@ -56,9 +63,8 @@ class RandomEquityTrades(TradeDataSource):
             "dt"        : self.trade_start + (self.minute * self.incr),
         })
 
-        self.send(event)
-
         self.incr += 1
+        
 
 
 class SpecificEquityTrades(TradeDataSource):

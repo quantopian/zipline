@@ -261,7 +261,7 @@ class SimulatedTrading(object):
         """
         assert isinstance(source, zmsg.DataSource)
         self.check_started()    
-        source.set_filter('SID', self.algorithm.get_sid_filter)
+        source.set_filter('SID', self.algorithm.get_sid_filter())
         self.sim.register_components([source])
         self.sources[source.get_id] = source
     

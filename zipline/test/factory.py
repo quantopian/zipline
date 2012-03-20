@@ -63,20 +63,27 @@ def create_trade(sid, price, amount, datetime):
     })
     return row
 
+def get_next_trading_dt(current, interval, trading_calendar):
+    next = current
+    while True:
+        next = next + interval
+        if trading_calendar.is_trading_day(next):
+            break
+        else:
+            next = next + timedelta(days=1)
+    
+    return next
+
 def create_trade_history(sid, prices, amounts, start_time, interval, trading_calendar):
     i = 0
     trades = []
     current = start_time.replace(tzinfo = pytz.utc)
 
     for price, amount in zip(prices, amounts):
-
-        if(trading_calendar.is_trading_day(current)):
-            trade = create_trade(sid, price, amount, current)
-            trades.append(trade)
-
-            current = current + interval
-        else:
-            current = current + timedelta(days=1)
+        
+        current = get_next_trading_dt(current, interval, trading_calendar)
+        trade = create_trade(sid, price, amount, current)
+        trades.append(trade)
 
     return trades
 
@@ -94,14 +101,10 @@ def create_txn_history(sid, priceList, amtList, startTime, interval, trading_cal
     current = startTime
 
     for price, amount in zip(priceList, amtList):
+        current = get_next_trading_dt(current, interval, trading_calendar)
 
-        if trading_calendar.is_trading_day(current):
-            txns.append(create_txn(sid, price, amount, current))
-            current = current + interval
-
-        else:
-            current = current + timedelta(days=1)
-
+        txns.append(create_txn(sid, price, amount, current))
+        current = current + interval
     return txns
 
 
@@ -111,11 +114,16 @@ def create_returns(daycount, start, trading_calendar):
     current = start.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
     while i < daycount: 
+        current = get_next_trading_dt(
+            current, 
+            one_day, 
+            trading_calendar
+        )
         i += 1
         r = risk.DailyReturn(current, random.random())
         test_range.append(r)
-        current = current + one_day
-    return [ x for x in test_range if(trading_calendar.is_trading_day(x.date)) ]
+        
+    return test_range
     
 
 def create_returns_from_range(start, end, trading_calendar):
@@ -123,14 +131,11 @@ def create_returns_from_range(start, end, trading_calendar):
     end = end.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
     test_range = []
-    i = 0
     while current <= end: 
-        current = current + one_day
-        if(not trading_calendar.is_trading_day(current)):
-            continue
+        current = get_next_trading_dt(current, one_day, trading_calender)
         r = risk.DailyReturn(current, random.random())
-        i += 1
         test_range.append(r)
+        
 
     return test_range
     
@@ -138,13 +143,11 @@ def create_returns_from_list(returns, start, trading_calendar):
     current = start.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
     test_range = []
-    i = 0
     while len(test_range) < len(returns): 
-        if(trading_calendar.is_trading_day(current)):
-            r = risk.DailyReturn(current, returns[i])
-            i += 1
-            test_range.append(r)
-        current = current + one_day
+        current = get_next_trading_dt(current, one_day, trading_calendar)
+        r = risk.DailyReturn(current, returns[i])
+        test_range.append(r)
+        
     return sorted(test_range, key=lambda(x):x.date)
 
 def create_daily_trade_source(sids, trade_count, trading_environment):

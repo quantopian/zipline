@@ -107,3 +107,43 @@ class FinanceTestCase(TestCase):
             SID, 
             "Portfolio should have one position in " + str(SID)
         )
+        
+        self.assertEqual(
+            zipline.algorithm.frame_count,
+            self.zipline_test_config['trade_count'],
+            "The algorithm should receive all trades."
+            )
+    
+    @timed(DEFAULT_TIMEOUT)  
+    def test_sid_filter(self):
+        """Ensure the algorithm's filter prevents events from arriving."""
+        # create a test algorithm whose filter will not match any of the
+        # trade events sourced inside the zipline.
+        order_amount = 100
+        order_count = 100
+        no_match_sid = 222
+        test_algo = TestAlgorithm(
+            no_match_sid,
+            order_amount,
+            order_count
+        )
+        
+        self.zipline_test_config['trade_count'] = 200
+        self.zipline_test_config['algorithm'] = test_algo
+        
+        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+       
+        zipline.simulate(blocking=True)
+        
+        #check that the algorithm received no events
+        self.assertEqual(
+            0,
+            test_algo.frame_count,
+            "The algorithm should not receive any events due to filtering."
+        )
+
+
+
+
+
+

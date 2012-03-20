@@ -50,11 +50,13 @@ class TestAlgorithm():
         self.incr = 0
         self.done = False
         self.order = None
+        self.frame_count = 0
         
     def set_order(self, order_callable):
         self.order = order_callable
         
     def handle_frame(self, frame):
+        self.frame_count += 1
         for dt, s in frame.iteritems():     
             data = {}
             data.update(s)
