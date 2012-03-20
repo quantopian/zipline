@@ -45,6 +45,12 @@ class FinanceTestCase(TestCase):
         )
 
         self.allocator = allocator
+        
+        self.zipline_test_config = {
+            'allocator':self.allocator,
+            'sid':133,
+            'environment':self.trading_environment
+        }
 
     @timed(DEFAULT_TIMEOUT)
     def test_trade_feed_protocol(self):
@@ -151,38 +157,9 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
-
-        # Just verify sending and receiving orders.
-        # --------------
-        #
-        SID=133
-        sids = [133]
-        trade_count = 100
-        trade_source = factory.create_daily_trade_source(
-            sids,
-            trade_count,
-            self.trading_environment
-        )
-
-        # Create the Algo
-        #-------------------
-        order_amount = 100
-        order_count = 10
-        test_algo = TestAlgorithm(
-            SID, 
-            order_amount, 
-            order_count
-        )
-
         # Simulation
         # ----------
-        zipline = SimulatedTrading(
-            test_algo,    
-            self.trading_environment,
-            self.allocator
-        )
-        
-        zipline.add_source(trade_source)
+        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
 
         self.assertTrue(zipline.sim.ready())
@@ -196,38 +173,10 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
-
-        # verify order -> transaction -> portfolio position.
-        # -------------- 
-        SID=133
-        sids = [133]
-        trade_count = 100
-        trade_source = factory.create_daily_trade_source(
-            sids,
-            trade_count,
-            self.trading_environment
-        )
-        
-        # Create the Algo
-        #-------------------
-        order_amount = 100
-        order_count = 25
-        test_algo = TestAlgorithm(
-            SID, 
-            order_amount, 
-            order_count
-        )
-        
-        # Simulation
-        # ----------
-        zipline = SimulatedTrading(
-            test_algo,
-            self.trading_environment,
-            self.allocator
-        )
-        
-        zipline.add_source(trade_source)
-        
+        #provide enough trades to ensure all orders are filled.
+        self.zipline_test_config['order_count'] = 100
+        self.zipline_test_config['trade_count'] = 200
+        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
 
         self.assertEqual(
@@ -245,14 +194,14 @@ class FinanceTestCase(TestCase):
         )
 
         self.assertEqual(
-            test_algo.count,
-            test_algo.incr,
+            zipline.algorithm.count,
+            zipline.algorithm.incr,
             "The test algorithm should send as many orders as specified.")
             
         order_source = zipline.sources[zp.FINANCE_COMPONENT.ORDER_SOURCE]
         self.assertEqual(
             order_source.sent_count, 
-            test_algo.count, 
+            zipline.algorithm.count, 
             "The order source should have sent as many orders as the algo."
         )
             
@@ -270,6 +219,7 @@ class FinanceTestCase(TestCase):
             "Portfolio should have one position."
         )
         
+        SID = self.zipline_test_config['sid']
         self.assertEqual(
             zipline.get_positions()[SID]['sid'], 
             SID, 

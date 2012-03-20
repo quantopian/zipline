@@ -67,6 +67,7 @@ class TradeSimulationClient(qmsg.Component):
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
                 self.run_callbacks()
+                self.signal_order_done()
                 self.signal_done()
                 return
             
@@ -153,6 +154,14 @@ class OrderDataSource(qmsg.DataSource):
     def get_type(self):
         return zp.DATASOURCE_TYPE.ORDER
         
+    #
+    @property
+    def is_blocking(self):
+        """
+        This datasource is in a loop with the TradingSimulationClient
+        """
+        return False
+        
     def open(self):
         qmsg.DataSource.open(self)
         self.order_socket = self.bind_order()
@@ -177,7 +186,7 @@ class OrderDataSource(qmsg.DataSource):
                 [self.order_socket],
                 #allow half the time of a heartbeat for the order
                 #timeout, so we have time to signal we are done.
-                timeout=self.heartbeat_timeout/2000
+                #timeout=self.heartbeat_timeout/2000
             ) 
         
             
@@ -186,6 +195,7 @@ class OrderDataSource(qmsg.DataSource):
                 #no order message means there was a timeout above, 
                 #and the client is done sending orders (but isn't
                 #telling us himself!).
+                qutil.LOGGER.warn("signaling orders done on timeout.")
                 self.signal_done()
                 return
                 
