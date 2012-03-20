@@ -1,18 +1,23 @@
-import datetime
+"""
+Factory functions to prepare useful data for tests.
+"""
 import pytz
 import msgpack
 import random
+
+from datetime import datetime, timedelta
 import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 from zipline.sources import SpecificEquityTrades
+from zipline.finance.trading import TradingEnvironment
 
 def load_market_data():
     fp_bm = open("./zipline/test/benchmark.msgpack", "rb")
     bm_map = msgpack.loads(fp_bm.read())
     bm_returns = []
     for epoch, returns in bm_map.iteritems():
-        event_dt = datetime.datetime.fromtimestamp(epoch)
+        event_dt = datetime.fromtimestamp(epoch)
         event_dt = event_dt.replace(
             hour=0, 
             minute=0, 
@@ -27,13 +32,26 @@ def load_market_data():
     tr_map = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for epoch, curve in tr_map.iteritems():
-        tr_dt = datetime.datetime.fromtimestamp(epoch)
+        tr_dt = datetime.fromtimestamp(epoch)
         tr_dt = tr_dt.replace(hour=0, minute=0, second=0, tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve
         
     return bm_returns, tr_curves
     
+def create_trading_environment():
+    """Construct a complete environment with reasonable defaults"""
+    benchmark_returns, treasury_curves = load_market_data()
 
+    start = datetime.strptime("01/01/2006","%m/%d/%Y")
+    start = start.replace(tzinfo=pytz.utc)
+    trading_environment = TradingEnvironment(
+        benchmark_returns,
+        treasury_curves,
+        period_start = start,
+        capital_base = 100000.0
+    )
+    
+    return trading_environment
 def create_trade(sid, price, amount, datetime):
     row = zp.namedict({
         'source_id' : "test_factory",
@@ -58,7 +76,7 @@ def create_trade_history(sid, prices, amounts, start_time, interval, trading_cal
 
             current = current + interval
         else:
-            current = current + datetime.timedelta(days=1)
+            current = current + timedelta(days=1)
 
     return trades
 
@@ -82,7 +100,7 @@ def create_txn_history(sid, priceList, amtList, startTime, interval, trading_cal
             current = current + interval
 
         else:
-            current = current + datetime.timedelta(days=1)
+            current = current + timedelta(days=1)
 
     return txns
 
@@ -91,7 +109,7 @@ def create_returns(daycount, start, trading_calendar):
     i = 0
     test_range = []
     current = start.replace(tzinfo=pytz.utc)
-    one_day = datetime.timedelta(days = 1)
+    one_day = timedelta(days = 1)
     while i < daycount: 
         i += 1
         r = risk.DailyReturn(current, random.random())
@@ -103,7 +121,7 @@ def create_returns(daycount, start, trading_calendar):
 def create_returns_from_range(start, end, trading_calendar):
     current = start.replace(tzinfo=pytz.utc)
     end = end.replace(tzinfo=pytz.utc)
-    one_day = datetime.timedelta(days = 1)
+    one_day = timedelta(days = 1)
     test_range = []
     i = 0
     while current <= end: 
@@ -118,7 +136,7 @@ def create_returns_from_range(start, end, trading_calendar):
     
 def create_returns_from_list(returns, start, trading_calendar):
     current = start.replace(tzinfo=pytz.utc)
-    one_day = datetime.timedelta(days = 1)
+    one_day = timedelta(days = 1)
     test_range = []
     i = 0
     while len(test_range) < len(returns): 
@@ -144,7 +162,7 @@ def create_daily_trade_source(sids, trade_count, trading_environment):
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.period_start
-        trade_time_increment = datetime.timedelta(days=1)
+        trade_time_increment = timedelta(days=1)
 
         generated_trades = create_trade_history( 
             sid, 

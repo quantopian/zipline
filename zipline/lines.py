@@ -205,9 +205,18 @@ class SimulatedTrading(object):
             to :py:class:`zipline.test.client.TestAlgorithm`
         """
         assert isinstance(config, dict)
-        trading_environment = config['environment']
+        
         allocator = config['allocator']
         sid = config['sid']
+        
+        #--------------------
+        # Trading Environment
+        #--------------------
+        if config.has_key('environment'):
+            trading_environment = config['environment']
+        else:
+            trading_environment = factory.create_trading_environment()
+        
         if config.has_key('order_count'):
             order_count = config['order_count']
         else:
@@ -222,7 +231,7 @@ class SimulatedTrading(object):
             simulator_class = config['simulator_class']
         else:
             simulator_class = Simulator
-            
+              
         #-------------------
         # Trade Source
         #-------------------
@@ -279,7 +288,7 @@ class SimulatedTrading(object):
             after the simulation has begun.")
     
     def get_cumulative_performance(self):
-        self.trading_client.perf.cumulative_performance.to_dict()
+        return self.trading_client.perf.cumulative_performance.to_dict()
     
     def allocate_sockets(self, n):
         """
