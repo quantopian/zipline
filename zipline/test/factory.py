@@ -75,7 +75,6 @@ def get_next_trading_dt(current, interval, trading_calendar):
     return next
 
 def create_trade_history(sid, prices, amounts, start_time, interval, trading_calendar):
-    i = 0
     trades = []
     current = start_time.replace(tzinfo = pytz.utc)
 
@@ -109,7 +108,6 @@ def create_txn_history(sid, priceList, amtList, startTime, interval, trading_cal
 
 
 def create_returns(daycount, start, trading_calendar):
-    i = 0
     test_range = []
     current = start.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
@@ -119,7 +117,6 @@ def create_returns(daycount, start, trading_calendar):
             one_day, 
             trading_calendar
         )
-        i += 1
         r = risk.DailyReturn(current, random.random())
         test_range.append(r)
         
@@ -143,9 +140,10 @@ def create_returns_from_list(returns, start, trading_calendar):
     current = start.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
     test_range = []
-    while len(test_range) < len(returns): 
+    
+    for return_val in returns: 
         current = get_next_trading_dt(current, one_day, trading_calendar)
-        r = risk.DailyReturn(current, returns[i])
+        r = risk.DailyReturn(current, return_val)
         test_range.append(r)
         
     return sorted(test_range, key=lambda(x):x.date)
