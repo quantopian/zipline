@@ -65,7 +65,6 @@ class ComponentHost(Component):
         communication with them.
         """
         assert isinstance(components, list)
-
         for component in components:
 
             component.gevent_needed = self.gevent_needed
@@ -78,9 +77,13 @@ class ComponentHost(Component):
 
             if isinstance(component, DataSource):
                 self.feed.add_source(component.get_id)
+                if not component.is_blocking:
+                    self.feed.ds_finished_counter +=1 
             if isinstance(component, BaseTransform):
                 self.merge.add_source(component.get_id)
-
+                if not component.is_blocking:
+                    self.feed.ds_finished_counter +=1
+                        
     def unregister_component(self, component_id):
         del self.components[component_id]
         del self.sync_register[component_id]
@@ -220,6 +223,7 @@ class ParallelBuffer(Component):
 
                 if len(self.data_buffer) == self.ds_finished_counter:
                     #drain any remaining messages in the buffer
+                    qutil.LOGGER.debug("draining feed")
                     self.drain()
                     self.signal_done()
             else:
@@ -261,7 +265,7 @@ class ParallelBuffer(Component):
         """
         Send the (chronologically) next message in the buffer.
         """
-        if(not(self.is_full() or self.draining)):
+        if not (self.is_full() or self.draining):
             return
 
         event = self.next()
@@ -433,6 +437,10 @@ class BaseTransform(Component):
     def get_type(self):
         return COMPONENT_TYPE.CONDUIT
 
+    @property
+    def is_blocking(self):
+        return True
+
     def open(self):
         """
         Establishes zmq connections.
@@ -550,6 +558,10 @@ class DataSource(Component):
     @property
     def get_id(self):
         return self.id
+        
+    @property
+    def is_blocking(self):
+        return True
 
     @property
     def get_type(self):

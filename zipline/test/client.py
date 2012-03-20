@@ -87,15 +87,17 @@ class TestClient(qmsg.Component):
 
 class TestAlgorithm():
     
-    def __init__(self, sid, amount, order_count, trading_client):
-        self.trading_client = trading_client
-        self.trading_client.add_event_callback(self.handle_frame)
+    def __init__(self, sid, amount, order_count):
         self.count = order_count
         self.sid = sid
         self.amount = amount
         self.incr = 0
         self.done = False
-    
+        self.order = None
+        
+    def set_order(self, order_callable):
+        self.order = order_callable
+        
     def handle_frame(self, frame):
         for dt, s in frame.iteritems():     
             data = {}
@@ -103,8 +105,14 @@ class TestAlgorithm():
             event = zp.namedict(data)
             #place an order for 100 shares of sid:133
             if self.incr < self.count:
-                self.trading_client.order(self.sid, self.amount)
+                self.order(self.sid, self.amount)
                 self.incr += 1
-            elif not self.done:
-                self.trading_client.signal_order_done()
-                self.done = True
+                
+class NoopAlgorithm(object):
+        
+    def set_order(self, order_callable):
+        pass
+    
+    def handle_frame(self, frame):
+        pass
+        

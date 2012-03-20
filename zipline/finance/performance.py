@@ -185,7 +185,7 @@ class PerformanceTracker():
     def to_dict(self):
         """
         Creates a dictionary representing the state of this tracker.
-        Returns a dict object of the form:
+        Returns a dict object of the form described in header comments.
         """
 
         returns_list = [x.to_dict() for x in self.returns]
@@ -295,8 +295,8 @@ class PerformanceTracker():
         #if self.result_stream:
             ## TODO: proper framing
             #self.result_stream.send_pyobj(self.risk_report.to_dict())
-
-        self.result_stream.send_pyobj(None)
+        if self.result_stream:
+            self.result_stream.send_pyobj(None)
 
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -368,6 +368,8 @@ class PerformancePeriod():
         #cash balance at start of period
         self.starting_cash          = starting_cash
         self.ending_cash            = starting_cash
+        
+        self.calculate_performance()
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
