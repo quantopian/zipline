@@ -84,7 +84,7 @@ import zipline.protocol as zp
 import zipline.finance.performance as perf
 import zipline.messaging as zmsg
 
-from zipline.test.client import TestAlgorithm
+from zipline.test.algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient
@@ -114,11 +114,9 @@ class SimulatedTrading(object):
     def __init__(self, **config):
         """
         :param config: a dict with the following required properties::
-            - algorithm: a class that follows the algorithm protocol. Must
-            have a handle_frame method that accepts a pandas.Dataframe of the 
-            current state of the simulation universe. Must have an order 
-            property which can be set equal to the order method of 
-            trading_client. (TODO: where should this protocol be documented?)
+            - algorithm: a class that follows the algorithm protocol. See
+            :py:meth:`zipline.finance.trading.TradingSimulationClient.add_algorithm`
+            for details.
             - trading_environment: an instance of
             :py:class:`zipline.trading.TradingEnvironment`
             - allocator: an instance of 
@@ -149,43 +147,30 @@ class SimulatedTrading(object):
             sockets[7],
             logging = qutil.LOGGER
         )
-
+        
+        self.started = False
         
         self.sim = config['simulator_class'](addresses)
             
         self.clients = {}
         self.trading_client = TradeSimulationClient(self.trading_environment)
-        self.clients[self.trading_client.get_id] = self.trading_client
+        self.add_client(self.trading_client)
         
         # setup all sources
         self.sources = {}
         self.order_source = OrderDataSource()
-        self.sources[self.order_source.get_id] = self.order_source
+        self.add_source(self.order_source)
         
         #setup transforms
         self.transaction_sim = TransactionSimulator()
         self.transforms = {}
-        self.transforms[self.transaction_sim.get_id] = self.transaction_sim
+        self.add_transform(self.transaction_sim)
         
-        #register all components
-        self.sim.register_components([
-            self.trading_client, 
-            self.order_source, 
-            self.transaction_sim 
-            ])
-            
         self.sim.register_controller( self.con )
         self.sim.on_done = self.shutdown()
-        self.started = False
         
-        ##################################################################
-        #TODO: the next two lines of code need refactoring from RealDiehl
-        ##################################################################
-        #wire up a callback inside the algorithm to receive frames from the
-        #trading client
-        self.trading_client.add_event_callback(self.algorithm.handle_frame)
-        #register the trading_client's order method with the algorithm
-        self.algorithm.set_order(self.trading_client.order)
+        
+        self.trading_client.set_algorithm(self.algorithm)
     
     @staticmethod
     def create_test_zipline(**config):
@@ -202,7 +187,7 @@ class SimulatedTrading(object):
             subclass of ComponentHost to hold the whole zipline. Defaults to
             :py:class:`zipline.simulator.Simulator`   
             - algorithm - optional parameter providing an algorithm. defaults
-            to :py:class:`zipline.test.client.TestAlgorithm`
+            to :py:class:`zipline.test.algorithms.TestAlgorithm`
         """
         assert isinstance(config, dict)
         
@@ -270,17 +255,27 @@ class SimulatedTrading(object):
         return zipline
         
     def add_source(self, source):
+        """
+        Adds the source to the zipline, sets the sid filter of the
+        source to the algorithm's sid filter.
+        """
         assert isinstance(source, zmsg.DataSource)
         self.check_started()    
+        source.set_filter('SID', self.algorithm.get_sid_filter)
         self.sim.register_components([source])
         self.sources[source.get_id] = source
-        
     
     def add_transform(self, transform):
         assert isinstance(transform, zmsg.BaseTransform)
         self.check_started()
         self.sim.register_components([transform])
-        self.sources[transform.get_id] = transform
+        self.transforms[transform.get_id] = transform
+        
+    def add_client(self, client):
+        assert isinstance(client, TradeSimulationClient)
+        self.check_started()
+        self.sim.register_components([client])
+        self.clients[client.get_id] = client
     
     def check_started(self):
         if self.started:

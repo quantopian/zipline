@@ -17,11 +17,11 @@ class TradeSimulationClient(qmsg.Component):
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None
-        self.event_callbacks        = []
         self.txn_count              = 0
         self.trading_environment    = trading_environment
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
+        self.algorithm              = None
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -41,15 +41,15 @@ class TradeSimulationClient(qmsg.Component):
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
-    
-    def add_event_callback(self, callback):
+        
+    def set_algorithm(self, algorithm):
         """
-        :param callable callback: must be a function with the signature
-        f(event), where event is a namedict whose properties depend on the
-        upstream configuration of the zipline. It will include datasource and
-        transformations.
+        :param algorithm: must implement the algorithm protocol. See 
+        algorithm_protocol.rst.
         """
-        self.event_callbacks.append(callback)
+        self.algorithm = algorithm 
+        #register the trading_client's order method with the algorithm
+        self.algorithm.set_order(self.order)
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -66,7 +66,7 @@ class TradeSimulationClient(qmsg.Component):
 
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
-                self.run_callbacks()
+                self.run_algorithm()
                 self.signal_order_done()
                 self.signal_done()
                 return
@@ -83,7 +83,7 @@ class TradeSimulationClient(qmsg.Component):
                 self.queue_event(event)
                 
                 if event.dt >= self.current_dt:
-                    self.run_callbacks()
+                    self.run_algorithm()
                 
                 #update time based on receipt of the order
                 self.last_iteration_dur = datetime.datetime.utcnow() - event_start
@@ -93,10 +93,9 @@ class TradeSimulationClient(qmsg.Component):
             #signal done to order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
             
-    def run_callbacks(self):
+    def run_algorithm(self):
         frame = self.get_frame()
-        for cb in self.event_callbacks:
-            cb(frame)
+        self.algorithm.handle_frame(frame)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])

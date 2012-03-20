@@ -83,36 +83,3 @@ class TestClient(qmsg.Component):
             
     def unframe(self, msg):
         return zp.MERGE_UNFRAME(msg)
-
-
-class TestAlgorithm():
-    
-    def __init__(self, sid, amount, order_count):
-        self.count = order_count
-        self.sid = sid
-        self.amount = amount
-        self.incr = 0
-        self.done = False
-        self.order = None
-        
-    def set_order(self, order_callable):
-        self.order = order_callable
-        
-    def handle_frame(self, frame):
-        for dt, s in frame.iteritems():     
-            data = {}
-            data.update(s)
-            event = zp.namedict(data)
-            #place an order for 100 shares of sid:133
-            if self.incr < self.count:
-                self.order(self.sid, self.amount)
-                self.incr += 1
-                
-class NoopAlgorithm(object):
-        
-    def set_order(self, order_callable):
-        pass
-    
-    def handle_frame(self, frame):
-        pass
-        

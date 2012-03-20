@@ -1,0 +1,82 @@
+"""
+Algorithm Protocol
+===================
+
+For a class to be passed as a trading algorithm to the 
+:py:class:`zipline.lines.SimulatedTrading` zipline
+it must follow an implementation protocol. Examples of this algorithm protocol
+are provided below.
+
+The algorithm must expose methods::
+  - get_sid_filter: method that takes no args, and returns a list
+  of valid sids. List must have a length between 1 and 10. If None is returned
+  the filter will block all events.
+  
+  - handle_frame: method that accepts a :py:class:`pandas.Dataframe` of the 
+  current state of the simulation universe. An example frame:
++-----------------+--------------+----------------+--------------------+
+|                 | SID(133)     |  SID(134)      | SID(135)           |
++=================+==============+=====================================+
+| price	          | $10.10       | $22.50         | $13.37             |
++-----------------+--------------+----------------+--------------------+
+| volume          | 10,000       | 5,000          | 50,000             |
++-----------------+--------------+----------------+--------------------+
+| mvg_avg_30      | $9.97        | $22.61         | $13.37             |
++-----------------+--------------+----------------+--------------------+
+| dt              |	6/30/2012    | 6/30/2012      | 6/29/2012          |
++-----------------+--------------+----------------+--------------------+
+            
+The algorithm must also expose settable properties:
+  - order: property which can be set equal to the order method of 
+  trading_client. An algorithm can then place orders with a valid
+  SID and a number of shares::
+      self.order(SID(133), share_count)
+
+"""
+
+import zipline.protocol as zp
+
+class TestAlgorithm():
+    """
+    This algorithm will send a specified number of orders, to allow unit tests
+    to verify the orders sent/received, transactions created, and positions
+    at the close of a simulation.
+    """
+    
+    def __init__(self, sid, amount, order_count):
+        self.count = order_count
+        self.sid = sid
+        self.amount = amount
+        self.incr = 0
+        self.done = False
+        self.order = None
+        
+    def set_order(self, order_callable):
+        self.order = order_callable
+        
+    def handle_frame(self, frame):
+        for dt, s in frame.iteritems():     
+            data = {}
+            data.update(s)
+            event = zp.namedict(data)
+            #place an order for 100 shares of sid:133
+            if self.incr < self.count:
+                self.order(self.sid, self.amount)
+                self.incr += 1
+                
+    def get_sid_filter(self):
+        return [self.sid]
+                
+class NoopAlgorithm(object):
+    """
+    Dolce fa niente.
+    """
+        
+    def set_order(self, order_callable):
+        pass
+    
+    def handle_frame(self, frame):
+        pass
+    
+    def get_sid_filter():
+        return None

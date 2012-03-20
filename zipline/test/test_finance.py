@@ -14,7 +14,7 @@ import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.test.client import TestAlgorithm
+from zipline.test.algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient, TradingEnvironment
@@ -86,7 +86,7 @@ class FinanceTestCase(TestCase):
             zipline.algorithm.count, 
             "The order source should have sent as many orders as the algo."
         )
-            
+        
         transaction_sim = zipline.transforms[zp.TRANSFORM_TYPE.TRANSACTION]
         self.assertEqual(
             transaction_sim.txn_count,

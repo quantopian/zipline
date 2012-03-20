@@ -545,15 +545,25 @@ class DataSource(Component):
     Baseclass for data sources. Subclass and implement send_all - usually this
     means looping through all records in a store, converting to a dict, and
     calling send(map).
+    
+    Every datasource has a dict property to hold filters::
+        - key -- name of the filter, e.g. SID
+        - value -- a primitive representing the filter. e.g. a list of ints.
+        
+    Modify the datasource's filters via the set_filter(name, value)
     """
     def __init__(self, source_id):
         Component.__init__(self)
 
         self.id = source_id
         self.init()
+        self.filter = {}
 
     def init(self):
         self.cur_event = None
+
+    def set_filter(self, name, value):
+        self.filter[name] = value
 
     @property
     def get_id(self):
