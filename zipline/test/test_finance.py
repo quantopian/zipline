@@ -22,7 +22,7 @@ from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.lines import SimulatedTrading
 
-DEFAULT_TIMEOUT = 5 # seconds
+DEFAULT_TIMEOUT = 15 # seconds
 
 allocator = AddressAllocator(1000)
 
