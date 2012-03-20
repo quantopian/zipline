@@ -33,6 +33,10 @@ class Simulator(ComponentHost):
         ComponentHost.__init__(self, addresses)
         self.subthreads = []
         self.running = False
+    
+    @property
+    def get_id(self):
+        return 'Simple Simulator'
 
     def launch_controller(self):
         thread = threading.Thread(target=self.controller.run)
@@ -49,6 +53,7 @@ class Simulator(ComponentHost):
         self.running = True
 
         return thread
+        
 
     def did_clean_shutdown(self):
         return not any([t.isAlive() for t in self.subthreads])
