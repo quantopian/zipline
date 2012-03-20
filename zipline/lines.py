@@ -201,6 +201,8 @@ class SimulatedTrading(object):
             - simulator_class - optional parameter that provides an alternative 
             subclass of ComponentHost to hold the whole zipline. Defaults to
             :py:class:`zipline.simulator.Simulator`   
+            - algorithm - optional parameter providing an algorithm. defaults
+            to :py:class:`zipline.test.client.TestAlgorithm`
         """
         assert isinstance(config, dict)
         trading_environment = config['environment']
@@ -234,13 +236,15 @@ class SimulatedTrading(object):
         #-------------------
         # Create the Algo
         #-------------------
-        order_amount = 100
-        #-------------------
-        test_algo = TestAlgorithm(
-            sid,
-            order_amount,
-            order_count
-        )
+        if config.has_key('algorithm'):
+            test_algo = config['algorithm']
+        else:
+            order_amount = 100
+            test_algo = TestAlgorithm(
+                sid,
+                order_amount,
+                order_count
+            )
         #-------------------
         # Simulation
         #-------------------
@@ -271,8 +275,8 @@ class SimulatedTrading(object):
     
     def check_started(self):
         if self.started:
-            raise ZiplineException("You cannot add sources after the \
-            simulation has begun.")
+            raise ZiplineException("TradeSimulation", "You cannot add sources \
+            after the simulation has begun.")
     
     def get_cumulative_performance(self):
         self.trading_client.perf.cumulative_performance.to_dict()
@@ -314,6 +318,12 @@ class SimulatedTrading(object):
         return positions
         
 class ZiplineException(Exception):
-    def __init__(msg):
-        Exception.__init__(msg)
+    def __init__(self, zipline_name, msg):
+        self.name = zipline_name
+        self.message = msg
         
+    def __str__(self):
+        return "Unexpected exception {line}: {msg}".format(
+            line=self.name, 
+            msg=self.message
+        )
