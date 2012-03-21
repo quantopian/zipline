@@ -122,14 +122,13 @@ import zipline.finance.risk as risk
 
 class PerformanceTracker():
     """
-
-    Tracks the performance of the zipstream as it is running in
-    the simulotr, relays this out to the Deluge broker and then
-    to the client.
-
-    +--------------------+   Result Stream   +--------+
-    | PerformanceTracker | ----------------> | Deluge |
-    +--------------------+                   +--------+
+    Tracks the performance of the zipline as it is running in
+    the simulator, relays this out to the Deluge broker and then
+    to the client. Visually:
+    
+        +--------------------+   Result Stream   +--------+
+        | PerformanceTracker | ----------------> | Deluge |
+        +--------------------+                   +--------+
 
     """
 

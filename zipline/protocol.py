@@ -126,9 +126,9 @@ from protocol_utils import Enum, FrameExceptionFactory, namedict
 #import ujson
 #import ultrajson_numpy
 
-# ================
+# -----------------------
 # Control Protocol
-# ================
+# -----------------------
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
@@ -166,9 +166,9 @@ def CONTORL_UNFRAME(msg):
     #except AssertionError:
         #raise INVALID_CONTROL_FRAME(msg)
 
-# ==================
+# -----------------------
 # Heartbeat Protocol
-# ==================
+# -----------------------
 
 # These encode the msgpack equivelant of 1 and 2. The heartbeat
 # frame should only be 1 byte on the wire.
@@ -178,9 +178,9 @@ HEARTBEAT_PROTOCOL = namedict({
     'REP' : b'\x02',
 })
 
-# ==================
+# -----------------------
 # Component State
-# ==================
+# -----------------------
 
 COMPONENT_TYPE = Enum(
     'SOURCE'  , # 0
@@ -215,9 +215,9 @@ BACKTEST_STATE = Enum(
     'DONE'       , # done ( naturally completed )
 )
 
-# ==================
+# -----------------------
 # Datasource Protocol
-# ==================
+# -----------------------
 
 INVALID_DATASOURCE_FRAME = FrameExceptionFactory('DATASOURCE')
 
@@ -225,13 +225,16 @@ def DATASOURCE_FRAME(event):
     """
     Wraps any datasource payload with id and type, so that unpacking may choose
     the write UNFRAME for the payload.
+    
+    :param event: namedict with following properties
 
-    ::ds_id:: an identifier that is unique to the datasource in the context of
-    a component host (e.g. Simulator
-    ::ds_type:: a string denoting the datasource type. Must be on of::
-        TRADE
-        (others to follow soon)
-    ::payload:: a msgpack string carrying the payload for the frame
+    - *ds_id* an identifier that is unique to the datasource in the context of a component host (e.g. Simulator)
+    - *ds_type* a string denoting the datasource type. Must be on of:
+    
+        - TRADE
+        - (others to follow soon)
+    
+    - *payload* a msgpack string carrying the payload for the frame
     """
 
     assert isinstance(event.source_id, basestring)
@@ -262,19 +265,24 @@ def DATASOURCE_FRAME(event):
 
 def DATASOURCE_UNFRAME(msg):
     """
-    Extracts payload, and calls correct UNFRAME method based on the datasource
-    type passed along.
+    
+    Extracts payload, and calls correct UNFRAME method based on the \
+datasource type passed along. 
+    
+    Returns a dict containing at least:
+    
+    - source_id
+    - type
 
-    returns a dict containing at least::
-        - source_id
-        - type
-
-    other properties are added based on the datasource type::
-        - TRADE::
-            - sid - int security identifier
-            - price - float
-            - volume - int
-            - dt - a datetime object
+    other properties are added based on the datasource type:
+    
+    - TRADE
+    
+        - sid - int security identifier
+        - price - float
+        - volume - int
+        - dt - a datetime object
+    
     """
 
     try:
@@ -298,14 +306,16 @@ def DATASOURCE_UNFRAME(msg):
     except ValueError:
         raise INVALID_DATASOURCE_FRAME(msg)
 
-# ==================
+# -----------------------
 # Feed Protocol
-# ==================
+# -----------------------
+
 INVALID_FEED_FRAME = FrameExceptionFactory('FEED')
 
 def FEED_FRAME(event):
     """
-    :event: a nameddict with at least::
+    :param event: a nameddict with at least
+    
         - source_id
         - type
     """
@@ -329,9 +339,10 @@ def FEED_UNFRAME(msg):
     except ValueError:
         raise INVALID_FEED_FRAME(msg)
 
-# ==================
+# -----------------------
 # Transform Protocol
-# ==================
+# -----------------------
+
 INVALID_TRANSFORM_FRAME = FrameExceptionFactory('TRANSFORM')
 
 def TRANSFORM_FRAME(name, value):
@@ -364,14 +375,15 @@ def TRANSFORM_UNFRAME(msg):
     except ValueError:
         raise INVALID_TRANSFORM_FRAME(msg)
 
-# ==================
+# -----------------------
 # Merge Protocol
-# ==================
+# -----------------------
 INVALID_MERGE_FRAME = FrameExceptionFactory('MERGE')
 
 def MERGE_FRAME(event):
     """
-    :event: a nameddict with at least::
+    :param event: a nameddict with at least:
+    
         - source_id
         - type
     """
@@ -404,23 +416,27 @@ def MERGE_UNFRAME(msg):
         raise INVALID_MERGE_FRAME(msg)
 
 
-# ==================
+# -----------------------
 # Finance Protocol
-# ==================
+# -----------------------
 INVALID_ORDER_FRAME = FrameExceptionFactory('ORDER')
 INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 
-# ==================
-# Trades - Should only be called from inside DATASOURCE_ (UN)FRAME.
-# ==================
+# -----------------------
+# Trades 
+# -----------------------
+#
+# - Should only be called from inside DATASOURCE_ (UN)FRAME.
 
 def TRADE_FRAME(event):
-    """:event: should be a namedict with::
-            - ds_id     -- the datasource id sending this trade out
-            - sid       -- the security id
-            - price     -- float of the price printed for the trade
-            - volume    -- int for shares in the trade
-            - dt        -- datetime for the trade
+    """
+    :param event: should be a namedict with:
+            
+    - ds_id     -- the datasource id sending this trade out
+    - sid       -- the security id
+    - price     -- float of the price printed for the trade
+    - volume    -- int for shares in the trade
+    - dt        -- datetime for the trade
 
     """
     assert isinstance(event, namedict)
@@ -459,9 +475,10 @@ def TRADE_UNFRAME(msg):
     except ValueError:
         raise INVALID_TRADE_FRAME(msg)
 
-# =========
-# Orders - from client to order source
-# =========
+# -----------------------
+# Orders 
+# -----------------------
+# - from client to order source
 
 def ORDER_FRAME(order):
     assert isinstance(order.sid, int)
@@ -491,10 +508,14 @@ def ORDER_UNFRAME(msg):
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
 
-#
-# ==================
-# TRANSACTIONS - Should only be called from inside TRANSFORM_(UN)FRAME.
-# ==================
+
+# -----------------------
+# TRANSACTIONS 
+# -----------------------
+# 
+# - Should only be called from inside TRANSFORM_(UN)FRAME.
+
+
 
 def TRANSACTION_FRAME(event):
     assert isinstance(event, namedict)
@@ -535,10 +556,13 @@ def TRANSACTION_UNFRAME(msg):
         raise INVALID_TRADE_FRAME(msg)
 
 
-# =========
-# Orders - from order source to feed
-#        - should only be called from inside DATASOURCE_(UN)FRAME
-# =========
+# -----------------------
+# ORDERS 
+# -----------------------
+#
+# - from order source to feed
+# - should only be called from inside DATASOURCE_(UN)FRAME
+
 
 def ORDER_SOURCE_FRAME(event):
     assert isinstance(event.sid, int)
@@ -576,15 +600,16 @@ def ORDER_SOURCE_UNFRAME(msg):
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
 
-# =================
+# -----------------------
 # Date Helpers
-# =================
+# -----------------------
 
 def PACK_DATE(event):
     """
     Packs the datetime property of event into msgpack'able longs.
     This function should be called purely for its side effects. 
-    The event's 'dt' property is replaced by a tuple of integers::
+    The event's 'dt' property is replaced by a tuple of integers
+        
         - year, month, day, hour, minute, second, microsecond
     
     PACK_DATE and UNPACK_DATE are inverse operations. 
@@ -607,10 +632,12 @@ def UNPACK_DATE(event):
     
     UNPACK_DATE and PACK_DATE are inverse operations. 
     
-    :param tuple event: event must a namedict with::
-            - a property named 'dt_tuple' that is a tuple of integers 
-            representing the date and time in UTC. dt_tumple must have year, 
-            month, day, hour, minute, second, and microsecond
+    :param tuple event: event must a namedict with:
+            
+    - a property named 'dt_tuple' that is a tuple of integers \
+    representing the date and time in UTC. 
+    - dt_tuple must have year, month, day, hour, minute, second, and microsecond
+    
     :rtype: None
     """
     assert isinstance(event.dt, tuple)
