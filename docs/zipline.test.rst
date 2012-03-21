@@ -1,6 +1,14 @@
 test Package
 ============
 
+:mod:`algorithms` Module
+------------------------
+
+.. automodule:: zipline.test.algorithms
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`client` Module
 --------------------
 
@@ -25,14 +33,6 @@ test Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_messaging` Module
-----------------------------
-
-.. automodule:: zipline.test.test_messaging
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`test_monitor` Module
 --------------------------
 
@@ -45,6 +45,14 @@ test Package
 --------------------------------
 
 .. automodule:: zipline.test.test_perf_tracking
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_protocol` Module
+---------------------------
+
+.. automodule:: zipline.test.test_protocol
     :members:
     :undoc-members:
     :show-inheritance:

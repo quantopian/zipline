@@ -30,7 +30,7 @@ mock==0.7.2
 nosexcover==1.0.7
 pylint==0.25.1
 
-# 
+# pycco deps
 Markdown==2.1.1
 Pycco==0.3.0
 pystache==0.4.0

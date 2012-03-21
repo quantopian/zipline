@@ -17,6 +17,14 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`lines` Module
+-------------------
+
+.. automodule:: zipline.lines
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`messaging` Module
 -----------------------
 
@@ -37,6 +45,14 @@ zipline Package
 ----------------------
 
 .. automodule:: zipline.protocol
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`protocol_utils` Module
+----------------------------
+
+.. automodule:: zipline.protocol_utils
     :members:
     :undoc-members:
     :show-inheritance:
@@ -85,6 +101,14 @@ zipline Package
 ------------------
 
 .. automodule:: zipline.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`zmq_utils` Module
+-----------------------
+
+.. automodule:: zipline.zmq_utils
     :members:
     :undoc-members:
     :show-inheritance:
