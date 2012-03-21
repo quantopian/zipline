@@ -76,5 +76,5 @@ class NoopAlgorithm(object):
     def handle_frame(self, frame):
         pass
     
-    def get_sid_filter():
+    def get_sid_filter(self):
         return None
