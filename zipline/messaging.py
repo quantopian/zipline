@@ -371,7 +371,10 @@ class MergedParallelBuffer(ParallelBuffer):
 
     def next(self):
         """Get the next merged message from the feed buffer."""
-        if(not(self.is_full() or self.draining)):
+        if not (self.is_full() or self.draining):
+            return
+        
+        if self.pending_messages() == 0:
             return
 
         #

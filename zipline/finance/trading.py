@@ -29,14 +29,6 @@ class TradeSimulationClient(qmsg.Component):
         )
         
         self.perf = perf.PerformanceTracker(self.trading_environment)
-        ##################################################################
-        # TODO: the next line of code need refactoring from RealDiehl
-        # The below sets up the performance object to trigger a full risk
-        # report with rolling periods over the entire test duration. We
-        # would prefer something more explicit than a callback.
-        ##################################################################
-        self.on_done = self.perf.handle_simulation_end
-        
     
     @property
     def get_id(self):
@@ -45,7 +37,7 @@ class TradeSimulationClient(qmsg.Component):
     def set_algorithm(self, algorithm):
         """
         :param algorithm: must implement the algorithm protocol. See 
-        algorithm_protocol.rst.
+        :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm 
         #register the trading_client's order method with the algorithm
@@ -56,42 +48,71 @@ class TradeSimulationClient(qmsg.Component):
         self.order_socket = self.connect_order()
     
     def do_work(self):
-        #next feed event
+        # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
+        # see if the poller has results for the result_feed
         if self.result_feed in socks and \
             socks[self.result_feed] == self.zmq.POLLIN:   
             
+            # get the next message from the result feed
             msg = self.result_feed.recv()
-
+            
+            # if the feed is done, shut 'er down
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
                 qutil.LOGGER.info("Client is DONE!")
-                self.run_algorithm()
+                # signal the performance tracker that the simulation has
+                # ended. Perf will internally calculate the full risk report.
+                self.perf.handle_simulation_end()
+                # shutdown the feedback loop to the OrderDataSource
                 self.signal_order_done()
+                # signal Simulator, our ComponentHost, that this component is
+                # done and Simulator needn't block exit on this component.
                 self.signal_done()
                 return
             
+            # result_feed is a merge component, so unframe accordingly
             event = zp.MERGE_UNFRAME(msg)
             
-            if(event.TRANSACTION != None):
-                self.txn_count += 1
+            # update performance and relay the event to the algorithm
+            self.process_event(event)
             
-            #filter order flow out of the events sent to callbacks
-            if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
-                #mark the start time for client's processing of this event.
-                event_start = datetime.datetime.utcnow()
-                self.queue_event(event)
-                
-                if event.dt >= self.current_dt:
-                    self.run_algorithm()
-                
-                #update time based on receipt of the order
-                self.last_iteration_dur = datetime.datetime.utcnow() - event_start
-                    
-                self.current_dt = self.current_dt + self.last_iteration_dur
-            
-            #signal done to order source.
+             # signal done to order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
+
+    def process_event(self, event):
+        # track the number of transactions, for testing purposes.
+        if(event.TRANSACTION != None):
+            self.txn_count += 1
+        
+        #filter order flow out of the events sent to callbacks
+        if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
+            
+            # the performance class needs to process each event, without 
+            # skipping. Algorithm should wait until the performance has been 
+            # updated, so that down stream components can safely assume that
+            # performance is up to date. Note that this is done before we
+            # mark the time for the algorithm's processing, thereby not
+            # running the algo's clock for performance book keeping.
+            self.perf.process_event(event)
+            
+            # mark the start time for client's processing of this event.
+            event_start = datetime.datetime.utcnow()
+            
+            # queue the event.
+            self.queue_event(event)
+            
+            # if the event is later than our current time, run the algo
+            # otherwise, the algorithm has fallen behind the feed 
+            # and processing per event is longer than time between events.
+            if event.dt >= self.current_dt:
+                self.run_algorithm()
+            
+            # tally the time spent on this iteration
+            self.last_iteration_dur = datetime.datetime.utcnow() - event_start
+            # move the algorithm's clock forward to include iteration time
+            self.current_dt = self.current_dt + self.last_iteration_dur
+        
             
     def run_algorithm(self):
         frame = self.get_frame()
@@ -114,14 +135,6 @@ class TradeSimulationClient(qmsg.Component):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
         
     def queue_event(self, event):
-        ##################################################################
-        # TODO: the next line of code need refactoring from RealDiehl
-        # the performance class needs to process each event, without skipping
-        # and any callbacks should wait until the performance has been 
-        # updated, so that down stream components can safely assume that
-        # performance is up to date.
-        ##################################################################
-        self.perf.process_event(event)
         if self.event_queue == None:
             self.event_queue = []
         series = event.as_series()
@@ -187,7 +200,7 @@ class OrderDataSource(qmsg.DataSource):
                 [self.order_socket],
                 #allow half the time of a heartbeat for the order
                 #timeout, so we have time to signal we are done.
-                #timeout=self.heartbeat_timeout/2000
+                timeout=self.heartbeat_timeout/2000
             ) 
         
             

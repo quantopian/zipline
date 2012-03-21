@@ -177,7 +177,7 @@ class SimulatedTrading(object):
         """
         :param config: A configuration object that is a dict with::
             - environment - a \
-            :py:class:`zipline.finance.trading.TradeSimulationClient`
+            :py:class:`zipline.finance.trading.TradingEnvironment`
             - allocator - a :py:class:`zipline.simulator.AddressAllocator`
             - sid - an integer, which will be used as the security ID. 
             - order_count - the number of orders the test algo will place,
@@ -279,8 +279,8 @@ class SimulatedTrading(object):
     
     def check_started(self):
         if self.started:
-            raise ZiplineException("TradeSimulation", "You cannot add sources \
-            after the simulation has begun.")
+            raise ZiplineException("TradeSimulation", "You cannot add \
+            components after the simulation has begun.")
     
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()

@@ -27,13 +27,17 @@ pip freeze
 
 #documentation output
 paver apidocs html
+pycco ./zipline/*.py -d ./docs/_build/html/pycco/
+pycco ./zipline/finance/*.py -d ./docs/_build/html/pycco/finance
+pycco ./zipline/test/*.py -d ./docs/_build/html/pycco/test
+pycco ./zipline/transforms/*.py -d ./docs/_build/html/pycco/transforms
 
 #run all the tests in test. see setup.cfg for flags.
 nosetests --config=jenkins_setup.cfg 
 
 #run pylint checks
 cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
-pylint -f parseable zipline | tee pylint.out
+pylint -f parseable zipline > pylint.out
 
 #run sloccount analysis
 sloccount --wide --details ./  > sloccount.sc

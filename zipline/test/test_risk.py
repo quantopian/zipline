@@ -13,7 +13,13 @@ class Risk(unittest.TestCase):
     
     def setUp(self):
         qutil.configure_logging()
-        start_date = datetime.datetime(year=2006, month=1, day=1, tzinfo=pytz.utc)
+        start_date = datetime.datetime(
+            year=2006, 
+            month=1, 
+            day=1, 
+            hour=0,
+            minute=0,
+            tzinfo=pytz.utc)
         end_date = datetime.datetime(year=2006, month=12, day=31, tzinfo=pytz.utc)
         
         self.benchmark_returns, self.treasury_curves = \
@@ -29,9 +35,16 @@ class Risk(unittest.TestCase):
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
         self.dt = datetime.datetime.utcnow()
         
-        self.algo_returns_06 = factory.create_returns_from_list(RETURNS, start_date, self.trading_env)
+        self.algo_returns_06 = factory.create_returns_from_list(
+            RETURNS, 
+            start_date, 
+            self.trading_env
+        )
         
-        self.metrics_06 = risk.RiskReport(self.algo_returns_06, self.trading_env)
+        self.metrics_06 = risk.RiskReport(
+            self.algo_returns_06, 
+            self.trading_env
+        )
         
     def tearDown(self):
         return
@@ -204,10 +217,38 @@ class Risk(unittest.TestCase):
         self.check_metrics(metrics, total_months, start_date)
         
     def check_metrics(self, metrics, total_months, start_date):
-        self.assert_range_length(metrics.month_periods, total_months, 1, start_date)
-        self.assert_range_length(metrics.three_month_periods, total_months, 3, start_date)
-        self.assert_range_length(metrics.six_month_periods, total_months, 6, start_date)
-        self.assert_range_length(metrics.year_periods, total_months, 12, start_date)        
+        """
+        confirm that the right number of riskmetrics were calculated for each
+        window length.
+        """
+        self.assert_range_length(
+            metrics.month_periods, 
+            total_months, 
+            1, 
+            start_date
+        )
+        
+        self.assert_range_length(
+            metrics.three_month_periods, 
+            total_months, 
+            3, 
+            start_date
+        )
+        
+        self.assert_range_length(
+            metrics.six_month_periods, 
+            total_months, 
+            6, 
+            start_date
+        )
+        
+        self.assert_range_length(
+            metrics.year_periods, 
+            total_months, 
+            12, 
+            start_date
+        )        
+        
     def assert_last_day(self, period_end):
         #30 days has september, april, june and november
         if(period_end.month in [9,4,6,11]):
@@ -233,13 +274,16 @@ class Risk(unittest.TestCase):
         if(period_length > total_months):
             self.assertEqual(len(col), 0)
         else:
-            self.assertEqual(len(col), total_months - (period_length - 1), "mismatch for total months - expected:{total_months}/actual:{actual}, period:{period_length}, start:{start_date}, calculated end:{end}".format(
-                                                                            total_months=total_months,
-                                                                            period_length=period_length,
-                                                                            start_date=start_date,
-                                                                            end=col[-1].end_date,
-                                                                            actual=len(col)
-                                                                            ))
+            self.assertEqual(
+                len(col), 
+                total_months - (period_length - 1), 
+                "mismatch for total months - expected:{total_months}/actual:{actual}, period:{period_length}, start:{start_date}, calculated end:{end}".format(
+                        total_months=total_months,
+                        period_length=period_length,
+                        start_date=start_date,
+                        end=col[-1].end_date,
+                        actual=len(col)
+                    ))
             self.assert_month(start_date.month, col[-1].end_date.month)
             self.assert_last_day(col[-1].end_date)
             

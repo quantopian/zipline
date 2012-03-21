@@ -69,8 +69,6 @@ def get_next_trading_dt(current, interval, trading_calendar):
         next = next + interval
         if trading_calendar.is_trading_day(next):
             break
-        else:
-            next = next + timedelta(days=1)
     
     return next
 
@@ -84,6 +82,7 @@ def create_trade_history(sid, prices, amounts, start_time, interval, trading_cal
         trade = create_trade(sid, price, amount, current)
         trades.append(trade)
 
+    assert len(trades) == len(prices)
     return trades
 
 def create_txn(sid, price, amount, datetime, btrid=None):
@@ -108,17 +107,19 @@ def create_txn_history(sid, priceList, amtList, startTime, interval, trading_cal
 
 
 def create_returns(daycount, start, trading_calendar):
+    """
+    For the given number of calendar (not trading) days return all the trading
+    days between start and start + daycount.
+    """
     test_range = []
     current = start.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
-    while i < daycount: 
-        current = get_next_trading_dt(
-            current, 
-            one_day, 
-            trading_calendar
-        )
-        r = risk.DailyReturn(current, random.random())
-        test_range.append(r)
+    
+    for day in range(daycount): 
+        current = current + one_day
+        if trading_calendar.is_trading_day(current):
+            r = risk.DailyReturn(current, random.random())
+            test_range.append(r)
         
     return test_range
     
@@ -128,12 +129,11 @@ def create_returns_from_range(start, end, trading_calendar):
     end = end.replace(tzinfo=pytz.utc)
     one_day = timedelta(days = 1)
     test_range = []
-    while current <= end: 
-        current = get_next_trading_dt(current, one_day, trading_calender)
+    while current <= end:
         r = risk.DailyReturn(current, random.random())
         test_range.append(r)
+        current = get_next_trading_dt(current, one_day, trading_calendar)
         
-
     return test_range
     
 def create_returns_from_list(returns, start, trading_calendar):
@@ -141,12 +141,16 @@ def create_returns_from_list(returns, start, trading_calendar):
     one_day = timedelta(days = 1)
     test_range = []
     
-    for return_val in returns: 
+    #sometimes the range starts with a non-trading day.
+    if not trading_calendar.is_trading_day(current):
         current = get_next_trading_dt(current, one_day, trading_calendar)
+    
+    for return_val in returns: 
         r = risk.DailyReturn(current, return_val)
         test_range.append(r)
+        current = get_next_trading_dt(current, one_day, trading_calendar)
         
-    return sorted(test_range, key=lambda(x):x.date)
+    return test_range
 
 def create_daily_trade_source(sids, trade_count, trading_environment):
     """

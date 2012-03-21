@@ -80,33 +80,32 @@ class DailyReturn():
 class RiskMetrics():
     def __init__(self, start_date, end_date, returns, trading_environment):
 
-        self.treasury_curves = trading_environment.treasury_curves
+        self.treasury_curves = trading_environment.treasury_curves        
         self.start_date = start_date
         self.end_date = end_date
         self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = \
             self.calculate_period_returns(returns)
-
+            
         benchmark_returns = [
-            x for x in self.trading_environment.benchmark_returns
-            if x.date >= returns[0].date and x.date <= returns[-1].date
+                    x for x in self.trading_environment.benchmark_returns
+                    if x.date >= returns[0].date and x.date <= returns[-1].date
         ]
-
+        
         self.benchmark_period_returns, self.benchmark_returns = \
             self.calculate_period_returns(benchmark_returns)
 
         if(len(self.benchmark_returns) != len(self.algorithm_returns)):
             message = "Mismatch between benchmark_returns ({bm_count}) and \
             algorithm_returns ({algo_count}) in range {start} : {end}"
-            message.format(
+            message = message.format(
                 bm_count=len(self.benchmark_returns),
                 algo_count=len(self.algorithm_returns),
                 start=start_date,
                 end=end_date
             )
+            raise Exception(message)
 
-            # TODO: vestigal?
-            #raise Exception(messge)
 
         self.trading_days = len(self.benchmark_returns)
         self.benchmark_volatility = self.calculate_volatility(self.benchmark_returns)

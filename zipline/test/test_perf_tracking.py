@@ -5,6 +5,7 @@ import datetime
 import pytz
 
 import zipline.test.factory as factory
+import zipline.test.algorithms
 import zipline.util as qutil
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
@@ -541,6 +542,10 @@ shares in position"
         self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
         'price', 'changed']
         client = TradeSimulationClient(self.trading_environment)
+        # the client expects an algorithm that fullfills the algorithm
+        # protocol, so we use the noop algorithm.
+        test_algo = zipline.test.algorithms.NoopAlgorithm()
+        client.set_algorithm(test_algo)
         
         for event in trade_history:
             #create a transaction for all but
@@ -556,7 +561,7 @@ shares in position"
             else:
                 txn = None
             event[zp.TRANSFORM_TYPE.TRANSACTION] = txn  
-            client.queue_event(event)
+            client.process_event(event)
             
         df = client.get_frame()
         

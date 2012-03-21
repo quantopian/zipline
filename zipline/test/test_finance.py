@@ -109,6 +109,12 @@ class FinanceTestCase(TestCase):
         )
         
         self.assertEqual(
+            zipline.sources['flat'].count,
+            self.zipline_test_config['trade_count'],
+            "The simulated trade source should send all trades."
+        )
+        
+        self.assertEqual(
             zipline.algorithm.frame_count,
             self.zipline_test_config['trade_count'],
             "The algorithm should receive all trades."

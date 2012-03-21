@@ -21,7 +21,6 @@ class TradeDataSource(zm.DataSource):
         
         event.source_id = self.get_id
         if event.sid in self.filter['SID']:            
-            
             message = zp.DATASOURCE_FRAME(event)
         else:
             message = zp.DATASOURCE_FRAME(None)
@@ -48,7 +47,7 @@ class RandomEquityTrades(TradeDataSource):
         zp.COMPONENT_TYPE.SOURCE
 
     def do_work(self):
-        if(self.incr == self.count):
+        if not self.incr < self.count:
             self.signal_done()
             return
 
@@ -62,7 +61,7 @@ class RandomEquityTrades(TradeDataSource):
             "volume"    : volume,
             "dt"        : self.trade_start + (self.minute * self.incr),
         })
-
+        self.send(event)
         self.incr += 1
         
 
@@ -74,8 +73,8 @@ class SpecificEquityTrades(TradeDataSource):
 
     def __init__(self, source_id, event_list):
         """
-        :event_list: should be a chronologically ordered list of dictionaries
-                     in the following form:
+        :param event_list: should be a chronologically ordered list of 
+                           dictionaries in the following form:
 
                 event = {
                     'sid'    : an integer for security id,
@@ -86,6 +85,7 @@ class SpecificEquityTrades(TradeDataSource):
         """
         zm.DataSource.__init__(self, source_id)
         self.event_list = event_list
+        self.count = 0
 
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
@@ -97,5 +97,6 @@ class SpecificEquityTrades(TradeDataSource):
 
         event = self.event_list.pop(0)
         self.send(zp.namedict(event))
+        self.count +=1
 
 

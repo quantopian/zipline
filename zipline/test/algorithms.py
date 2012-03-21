@@ -57,14 +57,10 @@ class TestAlgorithm():
         
     def handle_frame(self, frame):
         self.frame_count += 1
-        for dt, s in frame.iteritems():     
-            data = {}
-            data.update(s)
-            event = zp.namedict(data)
-            #place an order for 100 shares of sid:133
-            if self.incr < self.count:
-                self.order(self.sid, self.amount)
-                self.incr += 1
+        #place an order for 100 shares of sid:133
+        if self.incr < self.count:
+            self.order(self.sid, self.amount)
+            self.incr += 1
                 
     def get_sid_filter(self):
         return [self.sid]
