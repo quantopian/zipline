@@ -31,6 +31,11 @@ pycco ./zipline/*.py -d ./docs/_build/html/pycco/
 pycco ./zipline/finance/*.py -d ./docs/_build/html/pycco/finance
 pycco ./zipline/test/*.py -d ./docs/_build/html/pycco/test
 pycco ./zipline/transforms/*.py -d ./docs/_build/html/pycco/transforms
+# use our custom css
+cp ./etc/pycco.css ./docs/_build/html/pycco/
+cp ./etc/pycco.css ./docs/_build/html/pycco/finance
+cp ./etc/pycco.css ./docs/_build/html/pycco/test
+cp ./etc/pycco.css ./docs/_build/html/pycco/transforms
 
 #run all the tests in test. see setup.cfg for flags.
 nosetests --config=jenkins_setup.cfg 
@@ -40,6 +45,6 @@ cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
 pylint -f parseable zipline > pylint.out
 
 #run sloccount analysis
-sloccount --wide --details ./  > sloccount.sc
+sloccount --wide --details ./zipline  > sloccount.sc
 
 deactivate

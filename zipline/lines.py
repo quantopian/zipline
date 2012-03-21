@@ -95,34 +95,36 @@ from zipline.monitor import Controller
 
 class SimulatedTrading(object):
     """
-        Zipline with::
-            - _no_ data sources.
-            - Trade simulation client, which is available to send callbacks on
-            events and also accept orders to be simulated.
-            - An order data source, which will receive orders from the trade
-            simulation client, and feed them into the event stream to be 
-            serialized and order alongside all other data source events.
-            - transaction simulation transformation, which receives the order
-            events and estimates a theoretical execution price and volume.
-            
-        All components in this zipline are subject to heartbeat checks and
-        a control monitor, which can kill the entire zipline in the event of
-        exceptions in one of the components or an external request to end the
-        simulation.
+    Zipline with::
+          
+    - _no_ data sources.
+    - Trade simulation client, which is available to send callbacks on
+    events and also accept orders to be simulated.
+    - An order data source, which will receive orders from the trade
+    simulation client, and feed them into the event stream to be 
+    serialized and order alongside all other data source events.
+    - transaction simulation transformation, which receives the order
+    events and estimates a theoretical execution price and volume.
+        
+    All components in this zipline are subject to heartbeat checks and
+    a control monitor, which can kill the entire zipline in the event of
+    exceptions in one of the components or an external request to end the
+    simulation.
     """
     
     def __init__(self, **config):
         """
         :param config: a dict with the following required properties::
-            - algorithm: a class that follows the algorithm protocol. See
-            :py:meth:`zipline.finance.trading.TradingSimulationClient.add_algorithm`
-            for details.
-            - trading_environment: an instance of
-            :py:class:`zipline.trading.TradingEnvironment`
-            - allocator: an instance of 
-            :py:class:`zipline.simulator.AddressAllocator`
-            - simulator_class: a :py:class:`zipline.messaging.ComponentHost` 
-            subclass (not an instance)
+    
+        - algorithm: a class that follows the algorithm protocol. See
+        :py:meth:`zipline.finance.trading.TradingSimulationClient.add_algorithm`
+        for details.
+        - trading_environment: an instance of
+        :py:class:`zipline.trading.TradingEnvironment`
+        - allocator: an instance of 
+        :py:class:`zipline.simulator.AddressAllocator`
+        - simulator_class: a :py:class:`zipline.messaging.ComponentHost` 
+        subclass (not an instance)
         """
         assert isinstance(config, dict)
         self.algorithm = config['algorithm']
@@ -176,18 +178,19 @@ class SimulatedTrading(object):
     def create_test_zipline(**config):
         """
         :param config: A configuration object that is a dict with::
-            - environment - a \
-            :py:class:`zipline.finance.trading.TradingEnvironment`
-            - allocator - a :py:class:`zipline.simulator.AddressAllocator`
-            - sid - an integer, which will be used as the security ID. 
-            - order_count - the number of orders the test algo will place,
-            defaults to 100
-            - trade_count - the number of trades to simulate, defaults to 100
-            - simulator_class - optional parameter that provides an alternative 
-            subclass of ComponentHost to hold the whole zipline. Defaults to
-            :py:class:`zipline.simulator.Simulator`   
-            - algorithm - optional parameter providing an algorithm. defaults
-            to :py:class:`zipline.test.algorithms.TestAlgorithm`
+    
+        - environment - a \
+        :py:class:`zipline.finance.trading.TradingEnvironment`
+        - allocator - a :py:class:`zipline.simulator.AddressAllocator`
+        - sid - an integer, which will be used as the security ID. 
+        - order_count - the number of orders the test algo will place,
+        defaults to 100
+        - trade_count - the number of trades to simulate, defaults to 100
+        - simulator_class - optional parameter that provides an alternative 
+        subclass of ComponentHost to hold the whole zipline. Defaults to
+        :py:class:`zipline.simulator.Simulator`   
+        - algorithm - optional parameter providing an algorithm. defaults
+        to :py:class:`zipline.test.algorithms.TestAlgorithm`
         """
         assert isinstance(config, dict)
         
@@ -308,9 +311,9 @@ class SimulatedTrading(object):
     def shutdown(self):
         self.allocator.reaquire(*self.leased_sockets)
         
-    #--------------------------------#
-    # Component property accessors   #
-    #--------------------------------#
+    #--------------------------------
+    # Component property accessors   
+    #--------------------------------
     
     def get_positions(self):
         """
