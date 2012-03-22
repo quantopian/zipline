@@ -39,6 +39,7 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
+        
         # Simulation
         # ----------
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
