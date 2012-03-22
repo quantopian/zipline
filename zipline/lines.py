@@ -177,20 +177,20 @@ class SimulatedTrading(object):
     @staticmethod
     def create_test_zipline(**config):
         """
-        :param config: A configuration object that is a dict with::
+        :param config: A configuration object that is a dict with:
     
-        - environment - a \
-        :py:class:`zipline.finance.trading.TradingEnvironment`
-        - allocator - a :py:class:`zipline.simulator.AddressAllocator`
-        - sid - an integer, which will be used as the security ID. 
-        - order_count - the number of orders the test algo will place,
-        defaults to 100
-        - trade_count - the number of trades to simulate, defaults to 100
-        - simulator_class - optional parameter that provides an alternative 
-        subclass of ComponentHost to hold the whole zipline. Defaults to
-        :py:class:`zipline.simulator.Simulator`   
-        - algorithm - optional parameter providing an algorithm. defaults
-        to :py:class:`zipline.test.algorithms.TestAlgorithm`
+            - environment - a \
+              :py:class:`zipline.finance.trading.TradingEnvironment`
+            - allocator - a :py:class:`zipline.simulator.AddressAllocator`
+            - sid - an integer, which will be used as the security ID. 
+            - order_count - the number of orders the test algo will place,
+              defaults to 100
+            - trade_count - the number of trades to simulate, defaults to 100
+            - simulator_class - optional parameter that provides an alternative 
+              subclass of ComponentHost to hold the whole zipline. Defaults to
+              :py:class:`zipline.simulator.Simulator`   
+            - algorithm - optional parameter providing an algorithm. defaults
+              to :py:class:`zipline.test.algorithms.TestAlgorithm`
         """
         assert isinstance(config, dict)
         

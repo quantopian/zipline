@@ -7,30 +7,39 @@ For a class to be passed as a trading algorithm to the
 it must follow an implementation protocol. Examples of this algorithm protocol
 are provided below.
 
-The algorithm must expose methods::
+The algorithm must expose methods:
+
   - get_sid_filter: method that takes no args, and returns a list
   of valid sids. List must have a length between 1 and 10. If None is returned
   the filter will block all events.
   
   - handle_frame: method that accepts a :py:class:`pandas.Dataframe` of the 
-  current state of the simulation universe. An example frame:
-+-----------------+--------------+----------------+--------------------+
-|                 | SID(133)     |  SID(134)      | SID(135)           |
-+=================+==============+=====================================+
-| price	          | $10.10       | $22.50         | $13.37             |
-+-----------------+--------------+----------------+--------------------+
-| volume          | 10,000       | 5,000          | 50,000             |
-+-----------------+--------------+----------------+--------------------+
-| mvg_avg_30      | $9.97        | $22.61         | $13.37             |
-+-----------------+--------------+----------------+--------------------+
-| dt              | 6/30/2012    | 6/30/2011      | 6/29/2012          |
-+-----------------+--------------+----------------+--------------------+
+  current state of the simulation universe. An example frame::
+  
+    +-----------------+--------------+----------------+--------------------+
+    |                 | SID(133)     |  SID(134)      | SID(135)           |
+    +=================+==============+=====================================+
+    | price           | $10.10       | $22.50         | $13.37             |
+    +-----------------+--------------+----------------+--------------------+
+    | volume          | 10,000       | 5,000          | 50,000             |
+    +-----------------+--------------+----------------+--------------------+
+    | mvg_avg_30      | $9.97        | $22.61         | $13.37             |
+    +-----------------+--------------+----------------+--------------------+
+    | dt              | 6/30/2012    | 6/30/2011      | 6/29/2012          |
+    +-----------------+--------------+----------------+--------------------+
             
-The algorithm must also expose settable properties:
-  - order: property which can be set equal to the order method of 
-  trading_client. An algorithm can then place orders with a valid
-  SID and a number of shares::
-      self.order(SID(133), share_count)
+  - set_order: method that accepts a callable. Will be set as the value of the 
+    order method of trading_client. An algorithm can then place orders with a 
+    valid SID and a number of shares::
+    
+        self.order(SID(133), share_count)
+        
+  - set_performance: property which can be set equal to the 
+    cumulative_trading_performance property of the trading_client. An 
+    algorithm can then check position information with the
+    Portfolio object::
+    
+        self.Portfolio[SID(133)]['cost_basis']
 
 """
 
@@ -51,9 +60,13 @@ class TestAlgorithm():
         self.done = False
         self.order = None
         self.frame_count = 0
+        self.portfolio = None
         
     def set_order(self, order_callable):
         self.order = order_callable
+        
+    def set_portfolio(self, portfolio):
+        self.portfolio = portfolio
         
     def handle_frame(self, frame):
         self.frame_count += 1
@@ -73,6 +86,9 @@ class NoopAlgorithm(object):
     def set_order(self, order_callable):
         pass
     
+    def set_portfolio(self, portfolio):
+        pass
+        
     def handle_frame(self, frame):
         pass
     

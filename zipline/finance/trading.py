@@ -115,6 +115,14 @@ class TradeSimulationClient(qmsg.Component):
         
             
     def run_algorithm(self):
+        """
+        As per the algorithm protocol: 
+        
+        - Set the current portfolio for the algorithm as per protocol.
+        - Construct frame based on backlog of events, send to algorithm.
+        """
+        current_portfolio = self.perf.get_portfolio()
+        self.algorithm.set_portfolio(current_portfolio)
         frame = self.get_frame()
         if len(frame) > 0:
             self.algorithm.handle_frame(frame)
