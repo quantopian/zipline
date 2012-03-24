@@ -26,8 +26,10 @@ class AddressAllocator(object):
     def reaquire(self, *conn):
         pass
 
-#
+
 class Simulator(ComponentHost):
+
+    zmq_flavor = 'thread'
 
     def __init__(self, addresses):
         ComponentHost.__init__(self, addresses)

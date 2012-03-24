@@ -309,7 +309,8 @@ class SimulatedTrading(object):
             self.sim_context.join()
 
     def shutdown(self):
-        self.allocator.reaquire(*self.leased_sockets)
+        pass
+        #self.allocator.reaquire(*self.leased_sockets)
         
     #--------------------------------
     # Component property accessors   

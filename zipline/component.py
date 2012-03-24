@@ -9,7 +9,15 @@ import sys
 import uuid
 import time
 import socket
+import gevent
 import humanhash
+
+# pyzmq
+import zmq
+# gevent_zeromq
+import gevent_zeromq
+# zmq_ctypes
+#import zmq_ctypes
 
 from datetime import datetime
 
@@ -61,8 +69,8 @@ class Component(object):
         self.zmq               = None
         self.context           = None
         self.addresses         = None
+
         self.out_socket        = None
-        self.gevent_needed     = False
         self.killed            = False
         self.controller        = None
         self.heartbeat_timeout = 2000
@@ -126,27 +134,51 @@ class Component(object):
     def do_work(self):
         raise NotImplementedError
 
+    def init_zmq(self, flavor):
+        """
+        ZMQ in all flavors. Have it your way.
+
+            mp     - Distinct contexts | pyzmq
+            thread - Same context      | pyzmq
+            green  - Same context      | gevent_zeromq
+            pypy   - Same context      | zmq_ctypes
+
+        """
+
+        if flavor == 'mp':
+            self.zmq = zmq
+            self.context = self.zmq.Context()
+            return
+        if flavor == 'thread':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            return
+        if flavor == 'green':
+            self.zmq = gevent_zeromq.zmq
+            self.context = self.zmq.Context.instance()
+            return
+        if flavor == 'pypy':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            return
+
+        import pdb; pdb.set_trace()
+        raise Exception("Unknown ZeroMQ Flavor")
+
     def _run(self):
         self.start_tic = time.time()
 
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
-        if self.gevent_needed:
-            qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id))
-            import gevent_zeromq
-            self.zmq = gevent_zeromq.zmq
-        else:
-            import zmq
-            self.zmq = zmq
-
-        self.context = self.zmq.Context.instance()
+        self.init_zmq(self.zmq_flavor)
 
         self.setup_poller()
 
         self.open()
         self.setup_sync()
         self.setup_control()
+
         self.loop()
         self.shutdown()
 
