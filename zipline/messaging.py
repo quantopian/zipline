@@ -101,7 +101,7 @@ class ComponentHost(Component):
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
 
-        self.sync_poller = self.zmq.Poller()
+        self.sync_poller = self.zmq_poller()
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
 
         self.sockets.append(self.sync_socket)

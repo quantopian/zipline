@@ -22,8 +22,10 @@ import gevent_zeromq
 from datetime import datetime
 
 import zipline.util as qutil
+from zipline.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, BACKTEST_STATE
+
 
 class Component(object):
     """
@@ -148,21 +150,24 @@ class Component(object):
         if flavor == 'mp':
             self.zmq = zmq
             self.context = self.zmq.Context()
+            self.zmq_poller = self.zmq.Poller
             return
         if flavor == 'thread':
             self.zmq = zmq
             self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
             return
         if flavor == 'green':
             self.zmq = gevent_zeromq.zmq
             self.context = self.zmq.Context.instance()
+            self.zmq_poller = GeventPoller
             return
         if flavor == 'pypy':
             self.zmq = zmq
             self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
             return
 
-        import pdb; pdb.set_trace()
         raise Exception("Unknown ZeroMQ Flavor")
 
     def _run(self):
@@ -335,7 +340,9 @@ class Component(object):
         handling sockets.
         """
 
-        self.poll = self.zmq.Poller()
+        # Initializes the poller class specified by the flavor of
+        # ZeroMQ. Either zmq.Poller or gpoll.Poller .
+        self.poll = self.zmq_poller()
 
     def receive_sync_ack(self):
         """
@@ -437,11 +444,7 @@ class Component(object):
         self.sync_socket.connect(self.addresses['sync_address'])
         #self.sync_socket.setsockopt(self.zmq.LINGER,0)
 
-        # Explictly a different poller for obvious reasons.
-        # I'm not fond of having this poller init'd as a side
-        # effect of a method call. Still thinking about where to
-        # put it at the moment though...
-        self.sync_poller = self.zmq.Poller()
+        self.sync_poller = self.zmq_poller()
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
 
         self.sockets.append(self.sync_socket)
