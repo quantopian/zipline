@@ -2,21 +2,12 @@
 Misc ZeroMQ utilities.
 """
 import gevent
+import msgpack
 from gevent_zeromq import zmq
 
 from contextlib import closing
 
-class ZmqTimeout(object):
-    def __init__(self, socket):
-        self._socket = socket
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self):
-        self._socket.close()
-
-class ZmqDone(object):
+class ZmqDone(Exception):
 
     def __init__(self, socket, frame):
         self.ident = socket.identity
