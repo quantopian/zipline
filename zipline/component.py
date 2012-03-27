@@ -9,13 +9,23 @@ import sys
 import uuid
 import time
 import socket
+import gevent
 import humanhash
+
+# pyzmq
+import zmq
+# gevent_zeromq
+import gevent_zeromq
+# zmq_ctypes
+#import zmq_ctypes
 
 from datetime import datetime
 
 import zipline.util as qutil
+from zipline.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, BACKTEST_STATE
+
 
 class Component(object):
     """
@@ -61,8 +71,8 @@ class Component(object):
         self.zmq               = None
         self.context           = None
         self.addresses         = None
+
         self.out_socket        = None
-        self.gevent_needed     = False
         self.killed            = False
         self.controller        = None
         self.heartbeat_timeout = 2000
@@ -126,27 +136,54 @@ class Component(object):
     def do_work(self):
         raise NotImplementedError
 
+    def init_zmq(self, flavor):
+        """
+        ZMQ in all flavors. Have it your way.
+
+            mp     - Distinct contexts | pyzmq
+            thread - Same context      | pyzmq
+            green  - Same context      | gevent_zeromq
+            pypy   - Same context      | zmq_ctypes
+
+        """
+
+        if flavor == 'mp':
+            self.zmq = zmq
+            self.context = self.zmq.Context()
+            self.zmq_poller = self.zmq.Poller
+            return
+        if flavor == 'thread':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
+            return
+        if flavor == 'green':
+            self.zmq = gevent_zeromq.zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = GeventPoller
+            return
+        if flavor == 'pypy':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
+            return
+
+        raise Exception("Unknown ZeroMQ Flavor")
+
     def _run(self):
         self.start_tic = time.time()
 
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
-        if self.gevent_needed:
-            qutil.LOGGER.info("Loading gevent specific zmq for {id}".format(id=self.get_id))
-            import gevent_zeromq
-            self.zmq = gevent_zeromq.zmq
-        else:
-            import zmq
-            self.zmq = zmq
-
-        self.context = self.zmq.Context.instance()
+        self.init_zmq(self.zmq_flavor)
 
         self.setup_poller()
 
         self.open()
         self.setup_sync()
         self.setup_control()
+
         self.loop()
         self.shutdown()
 
@@ -303,7 +340,9 @@ class Component(object):
         handling sockets.
         """
 
-        self.poll = self.zmq.Poller()
+        # Initializes the poller class specified by the flavor of
+        # ZeroMQ. Either zmq.Poller or gpoll.Poller .
+        self.poll = self.zmq_poller()
 
     def receive_sync_ack(self):
         """
@@ -405,11 +444,7 @@ class Component(object):
         self.sync_socket.connect(self.addresses['sync_address'])
         #self.sync_socket.setsockopt(self.zmq.LINGER,0)
 
-        # Explictly a different poller for obvious reasons.
-        # I'm not fond of having this poller init'd as a side
-        # effect of a method call. Still thinking about where to
-        # put it at the moment though...
-        self.sync_poller = self.zmq.Poller()
+        self.sync_poller = self.zmq_poller()
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
 
         self.sockets.append(self.sync_socket)

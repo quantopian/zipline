@@ -16,15 +16,17 @@ class ComponentHost(Component):
     start, and then wait for all components to be finished.
     """
 
-    def __init__(self, addresses, gevent_needed=False):
+    def __init__(self, addresses):
         Component.__init__(self)
         self.addresses     = addresses
-        self.gevent_needed = gevent_needed
         self.running       = False
 
         self.init()
 
     def init(self):
+        assert hasattr(self, 'zmq_flavor'), \
+        """ You must specify a flavor of ZeroMQ for all
+        ComponentHost subclasses. """
 
         # Component Registry, keyed by get_id
         # ----------------------
@@ -67,9 +69,11 @@ class ComponentHost(Component):
         assert isinstance(components, list)
         for component in components:
 
-            component.gevent_needed = self.gevent_needed
             component.addresses     = self.addresses
             component.controller    = self.controller
+
+            # Hosts share their zmq flavor with hosted components
+            component.zmq_flavor    = self.zmq_flavor
 
             self._components[component.guid] = component
             self.components[component.get_id] = component
@@ -97,13 +101,8 @@ class ComponentHost(Component):
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
 
-        # There is a namespace collision between three classes
-        # which use the self.poller property to mean different
-        # things.
-        # =====================================================
-        self.sync_poller = self.zmq.Poller()
+        self.sync_poller = self.zmq_poller()
         self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
-        # =====================================================
 
         self.sockets.append(self.sync_socket)
 
