@@ -214,12 +214,10 @@ class OrderDataSource(qmsg.DataSource):
             
             #no more orders, should this be an error condition?
             if len(rlist) == 0 or len(xlist) > 0: 
-                #no order message means there was a timeout above, 
-                #and the client is done sending orders (but isn't
-                #telling us himself!).
-                qutil.LOGGER.warn("signaling orders done on timeout.")
-                self.signal_done()
-                return
+                # no order message means there was a timeout above. 
+                # this is an indeterminant case, we don't know the cause.
+                # the safest move is to break out of this loop and try again
+                break
                 
             order_msg = rlist[0].recv()
             
