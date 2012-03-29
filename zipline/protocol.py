@@ -118,6 +118,8 @@ import msgpack
 import numbers
 import datetime
 import pytz
+import numpy
+import time
 import copy
 from collections import namedtuple
 
@@ -599,10 +601,78 @@ def ORDER_SOURCE_UNFRAME(msg):
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
+        
+# -----------------------
+# Performance and Risk
+# -----------------------
+
+def PERF_FRAME(perf):
+    """
+    Frame the performance update created at the end of each simulated trading
+    day. The msgpack is a tuple with the first element statically set to 'PERF'.
+    Frames prepared by this method are sent via the same socket as 
+    Frames prepared by RISK_FRAME. So, both methods prefix the payload with
+    a shorthand for their type. That way, all messages received from the socket
+    can be PERF_UNFRAMED(), whether they are risk or perf.
+
+    :param perf: the dictionary created by zipline.trade_client.perf
+    :rvalue: a msgpack string
+    """
+    #pull some special fields from the perf for easy access
+    date = perf['last_close']
+    tp = perf['todays_perf']
+    risk = perf['cumulative_risk_metrics']
+
+    #create the daily nested message
+    daily_perf = dict(
+        date=EPOCH(date),
+        returns=perf['returns'][-1]['returns'],
+        #TODO: add daily PnL in dollars
+        pnl=0.0,
+        portfolio_value=tp['ending_value']
+    )
+
+    cumulative_perf = dict(
+        alpha=risk['alpha'],
+        beta=risk['beta'],
+        sharpe=risk['sharpe'],
+        #TODO: add total returns to the message from perf
+        total_returns=0.0,
+        volatility=risk['algo_volatility'],
+        benchmark_volatility=risk['benchmark_volatility'],
+        #TODO: add total bm returns to the message from perf
+        benchmark_returns=0,
+        max_drawdown=risk['max_drawdown'],
+        #TODO: add daily PnL in dollars
+        pnl=0.0
+    )
+
+    result = {}
+    #TODO: perf needs to track start time of the bt
+    result['started_at'] = 0 
+    result['daily'] = [daily_perf]
+    result['percent_complete'] = perf['progress']
+    result['cumulative'] = cumulative_perf
+    #TODO: pass the cursor value in.
+    result['cursor'] = 0
+    
+    return msgpack.dumps(tuple(['PERF', result]))
+    
+    
+def RISK_FRAME(risk):
+    return msgpack.dumps(tuple(['RISK', risk]))
+    
+
+def PERF_UNFRAME(msg):
+    prefix, payload = msgpack.loads(msg)
+    return dict(prefix=prefix, payload=payload)
 
 # -----------------------
 # Date Helpers
 # -----------------------
+
+def EPOCH(some_date):
+    return time.mktime(some_date.timetuple())
 
 def PACK_DATE(event):
     """
@@ -676,3 +746,5 @@ FINANCE_COMPONENT = namedict({
     'ORDER_SOURCE'     : 'ORDER_SOURCE',
     'TRANSACTION_SIM'  : 'TRANSACTION_SIM'
 })
+
+

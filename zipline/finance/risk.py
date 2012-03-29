@@ -187,6 +187,9 @@ class RiskMetrics():
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
+        if self.algorithm_volatility == 0:
+            return None
+            
         return ( (self.algorithm_period_returns - self.treasury_period_return) /
             self.algorithm_volatility )
 
@@ -338,7 +341,7 @@ class RiskReport():
         """
         return {
             '1_month'    : [x.to_dict() for x in self.month_periods],
-            '3_month'    : [x.to_dict() for x in self.three_year_periods],
+            '3_month'    : [x.to_dict() for x in self.three_month_periods],
             '6_month'    : [x.to_dict() for x in self.six_month_periods],
             '12_month'   : [x.to_dict() for x in self.month_periods]
         }

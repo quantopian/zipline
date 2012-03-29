@@ -272,10 +272,10 @@ class PerformanceTracker():
 
         # Output Results
         if self.result_stream:
-            # TODO: proper framing
-            self.result_stream.send_pyobj(self.to_dict())
+            msg = zp.PERF_FRAME(self.to_dict())
+            self.result_stream.send(msg)
 
-        #roll over positions to current day.
+        # Roll over positions to current day.
         self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
             self.todays_performance.positions,
@@ -284,18 +284,22 @@ class PerformanceTracker():
         )
 
     def handle_simulation_end(self):
+        """
+        When the simulation is complete, run the full period risk report
+        and send it out on the result_stream.
+        """
+        self.risk_report = risk.RiskReport(
+            self.returns,
+            self.trading_environment
+        )
 
-        #self.risk_report = risk.RiskReport(
-            #self.returns,
-            #self.trading_environment
-        #)
-
-        # Output Results
-        #if self.result_stream:
-            ## TODO: proper framing
-            #self.result_stream.send_pyobj(self.risk_report.to_dict())
         if self.result_stream:
-            self.result_stream.send_pyobj(None)
+            qutil.LOGGER.info("about to stream the risk report...")
+            report = self.risk_report.to_dict()
+            msg = zp.RISK_FRAME(report)
+            self.result_stream.send(msg)
+            # this signals that the simulation is complete.
+            self.result_stream.send("DONE")
 
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
