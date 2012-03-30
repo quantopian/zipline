@@ -618,43 +618,47 @@ def PERF_FRAME(perf):
     :param perf: the dictionary created by zipline.trade_client.perf
     :rvalue: a msgpack string
     """
+    
+    #TODO: add asserts...
+    
     #pull some special fields from the perf for easy access
     date = perf['last_close']
-    tp = perf['todays_perf']
+    tp   = perf['todays_perf']
     risk = perf['cumulative_risk_metrics']
 
     #create the daily nested message
-    daily_perf = dict(
-        date=EPOCH(date),
-        returns=perf['returns'][-1]['returns'],
-        #TODO: add daily PnL in dollars
-        pnl=0.0,
-        portfolio_value=tp['ending_value']
-    )
+    #TODO: add daily PnL in dollars
+    daily_perf = {
+        'date'            : EPOCH(date),
+        'returns'         : perf['returns'][-1]['returns'],
+        'pnl'             : 0.0,
+        'portfolio_value' : tp['ending_value']
+    }
 
-    cumulative_perf = dict(
-        alpha=risk['alpha'],
-        beta=risk['beta'],
-        sharpe=risk['sharpe'],
-        #TODO: add total returns to the message from perf
-        total_returns=0.0,
-        volatility=risk['algo_volatility'],
-        benchmark_volatility=risk['benchmark_volatility'],
-        #TODO: add total bm returns to the message from perf
-        benchmark_returns=0,
-        max_drawdown=risk['max_drawdown'],
-        #TODO: add daily PnL in dollars
-        pnl=0.0
-    )
+    #TODO: add total returns to the message from perf
+    #TODO: add total bm returns to the message from perf
+    #TODO: add daily PnL in dollars
+    cumulative_perf = {
+        'alpha'                : risk['alpha'],
+        'beta'                 : risk['beta'],
+        'sharpe'               : risk['sharpe'],
+        'total_returns'        : 0.0,
+        'volatility'           : risk['algo_volatility'],
+        'benchmark_volatility' : risk['benchmark_volatility'],
+        'benchmark_returns'    : 0,
+        'max_drawdown'         : risk['max_drawdown'],
+        'pnl'                  : 0.0,
+    }
 
-    result = {}
     #TODO: perf needs to track start time of the bt
-    result['started_at'] = 0 
-    result['daily'] = [daily_perf]
-    result['percent_complete'] = perf['progress']
-    result['cumulative'] = cumulative_perf
     #TODO: pass the cursor value in.
-    result['cursor'] = 0
+    result = {
+        'started_at'        : 0,
+        'daily'             : [daily_perf],
+        'percent_complete'  : perf['progress'],
+        'cumulative'        : cumulative_perf,
+        'cursor'            : 0,
+    }
     
     return msgpack.dumps(tuple(['PERF', result]))
     
