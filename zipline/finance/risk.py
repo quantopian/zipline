@@ -128,6 +128,8 @@ class RiskMetrics():
             'benchmark_volatility'  : self.benchmark_volatility,
             'algo_volatility'       : self.algorithm_volatility,
             'treasury_period_return': self.treasury_period_return,
+            'algorithm_period_return' : self.algorithm_period_returns,
+            'benchmark_period_return' : self.benchmark_period_returns,
             'sharpe'                : self.sharpe,
             'beta'                  : self.beta,
             'alpha'                 : self.alpha,

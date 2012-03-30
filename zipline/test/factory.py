@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
-from zipline.sources import SpecificEquityTrades
+from zipline.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
 
 def load_market_data():
@@ -152,6 +152,19 @@ def create_returns_from_list(returns, start, trading_calendar):
         
     return test_range
 
+def create_random_trade_source(sid, trade_count, trading_environment):
+    # create the source
+    source = RandomEquityTrades(sid, "rand-"+str(sid), trade_count)
+    
+    # make the period_end of trading_environment match
+    cur = trading_environment.period_start
+    one_day = timedelta(days = 1)
+    for i in range(trade_count + 2):
+       cur = get_next_trading_dt(cur, one_day, trading_environment)
+    trading_environment.period_end = cur
+    
+    return source
+    
 def create_daily_trade_source(sids, trade_count, trading_environment):
     """
     creates trade_count trades for each sid in sids list. 
