@@ -173,6 +173,72 @@ class SimulatedTrading(object):
         
         
         self.trading_client.set_algorithm(self.algorithm)
+
+    #
+    @staticmethod
+    def create_test_zipline(**config):
+        """
+        :param config: A configuration object that is a dict with:
+    
+            - environment - a \
+              :py:class:`zipline.finance.trading.TradingEnvironment`
+            - allocator - a :py:class:`zipline.simulator.AddressAllocator`
+            - simulator_class - optional parameter that provides an alternative 
+              subclass of ComponentHost to hold the whole zipline. Defaults to
+              :py:class:`zipline.simulator.Simulator`   
+            - algorithm - required parameter providing an algorithm. defaults
+              to :py:class:`zipline.test.algorithms.TestAlgorithm`
+        """
+        assert isinstance(config, dict)
+        
+        allocator = config['allocator']
+        
+        #--------------------
+        # Trading Environment
+        #--------------------
+        if config.has_key('environment'):
+            trading_environment = config['environment']
+        else:
+            trading_environment = factory.create_trading_environment()
+        
+        if config.has_key('order_count'):
+            order_count = config['order_count']
+        else:
+            order_count = 100
+            
+        if config.has_key('trade_count'):
+            trade_count = config['trade_count']
+        else:
+            trade_count = 100
+            
+        if config.has_key('simulator_class'):
+            simulator_class = config['simulator_class']
+        else:
+            simulator_class = Simulator
+              
+        #-------------------
+        # Trade Source
+        #-------------------
+        
+        #-------------------
+        # Create the Algo
+        #-------------------
+        algo = config['algorithm']
+
+        #-------------------
+        # Simulation
+        #-------------------
+        zipline = SimulatedTrading(**{
+            'algorithm':algo,
+            'trading_environment':trading_environment,
+            'allocator':allocator,
+            'simulator_class':simulator_class
+        })
+        #-------------------
+
+        zipline.add_source(trade_source)
+
+        return zipline
     
     @staticmethod
     def create_test_zipline(**config):
@@ -298,6 +364,9 @@ class SimulatedTrading(object):
     
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()
+        
+    def publish_to(self, result_socket):
+        self.trading_client.perf.publish_to(result_socket)
     
     def allocate_sockets(self, n):
         """
