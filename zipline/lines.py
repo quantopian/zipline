@@ -173,6 +173,7 @@ class SimulatedTrading(object):
         
         
         self.trading_client.set_algorithm(self.algorithm)
+
     
     @staticmethod
     def create_test_zipline(**config):
@@ -191,6 +192,10 @@ class SimulatedTrading(object):
               :py:class:`zipline.simulator.Simulator`   
             - algorithm - optional parameter providing an algorithm. defaults
               to :py:class:`zipline.test.algorithms.TestAlgorithm`
+            - random - optional parameter to request random trades. if present
+              :py:class:`zipline.sources.RandomEquityTrades` is the source. If
+              not :py:class:`ziplien.sources.SpecificEquityTrades` is the 
+              source
         """
         assert isinstance(config, dict)
         
@@ -225,11 +230,18 @@ class SimulatedTrading(object):
         #-------------------
         sids = [sid]
         #-------------------
-        trade_source = factory.create_daily_trade_source(
-            sids,
-            trade_count,
-            trading_environment
-        )
+        if config.has_key('random'):
+            trade_source = factory.create_random_trade_source(
+                sids,
+                trade_count,
+                trading_environment
+            )
+        else:
+            trade_source = factory.create_daily_trade_source(
+                sids,
+                trade_count,
+                trading_environment
+            )
         #-------------------
         # Create the Algo
         #-------------------
@@ -287,6 +299,9 @@ class SimulatedTrading(object):
     
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()
+        
+    def publish_to(self, result_socket):
+        self.trading_client.perf.publish_to(result_socket)
     
     def allocate_sockets(self, n):
         """
