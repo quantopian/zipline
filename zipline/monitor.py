@@ -1,11 +1,19 @@
 import time
 import gevent
-
-from gevent_zeromq import zmq
+import itertools
 import util as qutil
 
+# pyzmq
+import zmq
+# gevent_zeromq
+import gevent_zeromq
+# zmq_ctypes
+#import zmq_ctypes
+
 from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
-    CONTROL_UNFRAME, CONTROL_STATES
+    CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME
+
+from gpoll import _Poller as GeventPoller
 
 # TODO: print -> qutil.LOGGER.info
 
@@ -147,7 +155,10 @@ class Controller(object):
 
     def __init__(self, pub_socket, route_socket, logging = None):
 
-        self._ctx = None
+        self.context = None
+        self.zmq = None
+        self.zmq_poller = None
+
         polling = False
 
         self.polling = polling
@@ -170,6 +181,31 @@ class Controller(object):
         else:
             self.logging = False
             self.dologging = False
+
+    def init_zmq(self, flavor):
+
+        assert self.zmq_flavor in ['thread', 'mp', 'green']
+
+        if flavor == 'mp':
+            self.zmq = zmq
+            self.context = self.zmq.Context()
+            self.zmq_poller = self.zmq.Poller
+            return
+        if flavor == 'thread':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
+            return
+        if flavor == 'green':
+            self.zmq = gevent_zeromq.zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = GeventPoller
+            return
+        if flavor == 'pypy':
+            self.zmq = zmq
+            self.context = self.zmq.Context.instance()
+            self.zmq_poller = self.zmq.Poller
+            return
 
     def manage(self, topology, states=None, context=None):
         """
@@ -198,65 +234,75 @@ class Controller(object):
         # Start off in RUNNING, state
         self.state = self.states[0]
 
-        if not context:
-            self._ctx = zmq.Context.instance()
-        else:
-            self._ctx = context
+    def run(self):
+        self.init_zmq(self.zmq_flavor)
 
-    def run(self, flavor):
-        """
-        Abstracts
-        """
-        assert flavor in ['thread', 'mp', 'green']
-        return self._poll() # use a python loop
+        try:
+            return self._poll() # use a python loop
+        except KeyboardInterrupt:
+            print 'Shutdown event loop'
 
     def log_status(self):
         print "[Controller] Tracking : %s" % ([c for c in self.tracked],)
-        gevent.spawn_later(5, self.log_status)
+
+    # -----------
+    # Event Loops
+    # -----------
 
     def _poll(self):
 
-        self.pub = self._ctx.socket(zmq.PUB)
+        self.pub = self.context.socket(self.zmq.PUB)
         self.pub.bind(self.pub_socket)
 
-        self.router = self._ctx.socket(zmq.ROUTER)
+        self.router = self.context.socket(self.zmq.ROUTER)
         self.router.bind(self.route_socket)
 
         self.associated.extend([self.pub, self.router])
 
-        # Spin the coroutines
-        gevent.spawn(self.log_status)
-        gevent.spawn_raw(self.recv_hearts_router)
+        poller = self.zmq.Poller()
+        poller.register(self.router, self.zmq.POLLIN)
 
-        while self.polling:
+        buffer = []
+
+        for i in itertools.count(0):
+            self.log_status()
+            self.responses = set()
+
+            self.ctime = time.time()
+            self.pub.send(str(self.ctime))
+
+            while self.polling:
+                # Reset the responses for this cycle
+
+                socks = dict(poller.poll(5))
+                tic = time.time()
+
+                if tic - self.ctime > 1:
+                    break
+
+                if self.router in socks and socks[self.router] == self.zmq.POLLIN:
+                    rawmessage = self.router.recv()
+
+                    if rawmessage:
+                        buffer.append(rawmessage)
+
+                    try:
+                        if not self.router.getsockopt(self.zmq.RCVMORE):
+                            self.handle_recv(buffer[:])
+                            buffer = []
+                    except INVALID_CONTROL_FRAME:
+                        print 'Invalid frame', rawmessage
+                        pass
+
             self.beat()
-            gevent.sleep(self.period)
 
-            try:
-                msg = self.pull.recv()
-                self.pub.send(msg)
-            except KeyboardInterrupt:
-                self.polling = False
-                break
-            except zmq.ZMQError:
-                self.polling = False
-                break
-            except Exception as e:
-                # Its common to wrap these in wildcard exceptions so
-                # that we don't loose messages, ever
-                if self.logging:
-                    self.logging.error(str(e))
-                continue
+            if self.zmq_flavor == 'green':
+                gevent.sleep(0)
 
         # After loop exits
         self.terminated = True
 
     def beat(self):
-        toc = time.time()
-
-        self.ctime += toc - self.tic
-        self.tic = toc
-        self.message = str(self.ctime)
 
         # These the set overloaded operations
         # A & B ~ set.intersection
@@ -279,11 +325,6 @@ class Controller(object):
         for component in bad:
             self.fail(component)
 
-        # Reset the responses for this cycle
-        self.responses = set()
-
-        gevent.spawn_raw(self.pub.send, str(self.ctime))
-
     # ------------------
     # Component Handlers
     # ------------------
@@ -291,7 +332,7 @@ class Controller(object):
     # The various "states of being that a component can inform us
     # of
     def new(self, component):
-        print '[Controller] Tracking "%s" ' % component
+        print '[Controller] New Tracked "%s" ' % component
 
         if component in self.topology or self.freeform:
             self.tracked.add(component)
@@ -313,36 +354,6 @@ class Controller(object):
     def exception(self, component, failure):
         pass
 
-    # --------
-    # IO Loops
-    # --------
-
-    def recv_hearts(self):
-        buffer = []
-
-        while True:
-            message = self.router.recv(zmq.NOBLOCK, copy=False)
-
-            if message:
-                buffer.append(message)
-            if not self.router.rcvmore():
-                break
-
-        gevent.spawn_later(0.001, self.handle_pong, buffer)
-
-    def recv_hearts_router(self):
-        buffer = []
-
-        while True:
-            message = self.router.recv()
-
-            if message:
-                buffer.append(message)
-
-            if not self.router.getsockopt(zmq.RCVMORE):
-                gevent.spawn_raw(self.handle_recv, buffer[:])
-                buffer = []
-
     # -----------------
     # Protocol Handling
     # -----------------
@@ -354,7 +365,6 @@ class Controller(object):
         be coming over the wire. Which shouldn't happen ...  right?
         """
         identity = msg[0]
-
         id, status = CONTROL_UNFRAME(msg[1])
 
         # A component is telling us its alive:
@@ -365,7 +375,7 @@ class Controller(object):
             else:
                 # Otherwise its something weird and we don't know
                 # what to do so just say so
-                print "Weird stuff happened: %s" % msg[1]
+                print "Weird stuff happened: %s" % status, self.ctime
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
@@ -392,7 +402,7 @@ class Controller(object):
         """
 
         if not context:
-            context = zmq.Context.instance()
+            context = self.zmq.Context.instance()
 
         s = context.socket(zmq.DEALER)
         s.connect(self.route_socket)
@@ -408,7 +418,7 @@ class Controller(object):
         """
 
         if not context:
-            context = zmq.Context.instance()
+            context = self.zmq.Context.instance()
 
         s = context.socket(zmq.SUB)
         s.connect(self.pub_socket)
@@ -423,7 +433,7 @@ class Controller(object):
         assert hard or soft, """ Must specify kill hard or soft """
 
         if not context:
-            context = zmq.Context.instance()
+            context = self.zmq.Context.instance()
 
         if hard:
             self.state = CONTROL_STATES.SHUTDOWN
@@ -440,15 +450,6 @@ class Controller(object):
 
             #for asoc in self.associated:
                 #asoc.close()
-
-    def destroy(self):
-        """
-        Manual cleanup.
-        """
-        self.shutdown()
-
-    #def __del__(self):
-        #self.shutdown()
 
 if __name__ == '__main__':
 

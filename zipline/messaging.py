@@ -56,6 +56,7 @@ class ComponentHost(Component):
             raise Exception("There can be only one!")
 
         self.controller = controller
+        self.controller.zmq_flavor = self.zmq_flavor
 
         # Propogate the controller to all the subcomponents
         for component in self.components.itervalues():

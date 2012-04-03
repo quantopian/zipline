@@ -142,17 +142,17 @@ CONTROL_STATES = Enum(
 
 CONTROL_PROTOCOL = Enum(
     'HEARTBEAT' , # 0 - req
-    'SHUTDOWN'  , # 3 - req
-    'KILL'      , # 4 - req
+    'SHUTDOWN'  , # 1 - req
+    'KILL'      , # 2 - req
 
-    'OK'        , # 5 - rep
-    'DONE'      , # 6 - rep
-    'EXCEPTION' , # 7 - rep
+    'OK'        , # 3 - rep
+    'DONE'      , # 4 - rep
+    'EXCEPTION' , # 5 - rep
 )
 
-def CONTROL_FRAME(id, status):
-    assert isinstance(id, basestring,)
-    assert isinstance(status, int)
+def CONTROL_FRAME(event, payload):
+    assert isinstance(event, int,)
+    assert isinstance(payload, basestring)
 
     return msgpack.dumps(tuple([id, status]))
 
@@ -163,11 +163,11 @@ def CONTROL_UNFRAME(msg):
     assert isinstance(msg, basestring)
 
     try:
-        id, status = msgpack.loads(msg)
-        assert isinstance(id, basestring)
-        assert isinstance(status, int)
+        event, payload = msgpack.loads(msg)
+        assert isinstance(event, int)
+        assert isinstance(payload, basestring)
 
-        return id, status
+        return event, payload
     except TypeError:
         raise INVALID_CONTROL_FRAME(msg)
     except ValueError:
