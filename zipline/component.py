@@ -201,28 +201,25 @@ class Component(object):
         debug since it mucks up your stacktraces.
         """
 
-        fail = None
-
         if catch_exceptions:
             try:
                 self._run()
             except Exception as exc:
-                # TODO, we want to do this grab the stack
-                # frame so we can preserve stacktraces when we
-                # reraise the exception.
+                exc_info = sys.exc_info()
                 self.signal_exception(exc)
-                fail = exc
+
+                # Reraise the exception
+                raise exc_info[0], exc_info[1], exc_info[2]
             finally:
 
                 self.shutdown()
                 self.teardown_sockets()
-        else:
-            try:
-                self._run()
-            finally:
-                self.shutdown()
-                self.teardown_sockets()
-
+        #else:
+            #try:
+                #self._run()
+            #finally:
+                #self.shutdown()
+                #self.teardown_sockets()
 
     def working(self):
         """
@@ -234,7 +231,7 @@ class Component(object):
         """
         return (not self.done)
 
-    def loop(self):
+    def loop(self, lockstep=True):
         """
         Loop to do work while we still have work to do.
         """
@@ -294,6 +291,12 @@ class Component(object):
     # ----------------------
 
     def signal_exception(self, exc=None, scope=None):
+        """
+        This is *very* important error tracking handler.
+
+        Will inform the system that the component has failed and
+        how it has failed.
+        """
 
         if scope == 'algo':
             self.error_state = COMPONENT_FAILURE.ALGOEXCEPT
@@ -427,8 +430,14 @@ class Component(object):
         if not self.controller:
             return
 
-        self.control_out = self.controller.message_sender(context=self.context)
-        self.control_in = self.controller.message_listener(context=self.context)
+        self.control_out = self.controller.message_sender(
+            identity = self.get_id,
+            context  = self.context,
+        )
+
+        self.control_in = self.controller.message_listener(
+            context = self.context
+        )
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])

@@ -128,7 +128,7 @@ class ComponentHost(Component):
 
         return False
 
-    def loop(self):
+    def loop(self, lockstep=True):
 
         while not self.is_timed_out():
             # wait for synchronization request

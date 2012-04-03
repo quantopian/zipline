@@ -134,10 +134,14 @@ from protocol_utils import Enum, FrameExceptionFactory, namedict
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
+CONTROL_STATES = Enum(
+    'RUNNING',
+    'SHUTDOWN',  # a soft kill
+    'TERMINATE', # a hard kill
+)
+
 CONTROL_PROTOCOL = Enum(
-    'INIT'      , # 0 - req
-    'INFO'      , # 1 - req
-    'STATUS'    , # 2 - req
+    'HEARTBEAT' , # 0 - req
     'SHUTDOWN'  , # 3 - req
     'KILL'      , # 4 - req
 
@@ -152,7 +156,10 @@ def CONTROL_FRAME(id, status):
 
     return msgpack.dumps(tuple([id, status]))
 
-def CONTORL_UNFRAME(msg):
+def CONTROL_UNFRAME(msg):
+    """
+    A status code and a message.
+    """
     assert isinstance(msg, basestring)
 
     try:
@@ -165,8 +172,6 @@ def CONTORL_UNFRAME(msg):
         raise INVALID_CONTROL_FRAME(msg)
     except ValueError:
         raise INVALID_CONTROL_FRAME(msg)
-    #except AssertionError:
-        #raise INVALID_CONTROL_FRAME(msg)
 
 # -----------------------
 # Heartbeat Protocol

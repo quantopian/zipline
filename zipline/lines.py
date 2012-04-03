@@ -149,6 +149,11 @@ class SimulatedTrading(object):
             sockets[7],
             logging = qutil.LOGGER
         )
+
+        # TODO: Not freeform
+        self.con.manage(
+            'freeform'
+        )
         
         self.started = False
         

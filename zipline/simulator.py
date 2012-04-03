@@ -41,7 +41,10 @@ class Simulator(ComponentHost):
         return 'Simple Simulator'
 
     def launch_controller(self):
-        thread = threading.Thread(target=self.controller.run)
+        thread = threading.Thread(
+            target=self.controller.run,
+            args=('thread',)
+        )
         thread.start()
 
         self.subthreads.append(thread)
