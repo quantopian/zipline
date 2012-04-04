@@ -144,8 +144,9 @@ class PerformanceTracker():
         self.market_open             = self.period_start
         self.market_close            = self.market_open + self.trading_day
         self.progress                = 0.0
-        self.total_days              = (self.period_end - self.period_start).days
-        self.day_count               = 0
+        self.total_days              = self.trading_environment.days_in_period
+        # one indexed so that we reach 100%
+        self.day_count               = 0.0 
         self.cumulative_capital_used = 0.0
         self.max_capital_used        = 0.0
         self.capital_base            = self.trading_environment.capital_base

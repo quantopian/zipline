@@ -676,8 +676,10 @@ def PERF_UNFRAME(msg):
 # -----------------------
 
 def EPOCH(some_date):
-    return time.mktime(some_date.timetuple())
-
+    seconds = time.mktime(some_date.timetuple())
+    ms = seconds * 1000
+    return ms
+    
 def PACK_DATE(event):
     """
     Packs the datetime property of event into msgpack'able longs.

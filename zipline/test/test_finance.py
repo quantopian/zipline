@@ -38,6 +38,20 @@ class FinanceTestCase(TestCase):
         }
 
     @timed(DEFAULT_TIMEOUT)
+    def test_factory(self):
+        trading_environment = factory.create_trading_environment()
+        trade_source = factory.create_daily_trade_source(
+            [133],
+            200,
+            trading_environment
+        )
+        prev = None
+        for trade in trade_source.event_list:
+            if prev:
+                self.assertTrue(trade.dt > prev.dt)
+            prev = trade
+        
+    @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
         
         # Simulation

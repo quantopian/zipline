@@ -366,6 +366,7 @@ class TradingEnvironment(object):
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
+        self.period_trading_days = None
             
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
@@ -378,6 +379,24 @@ class TradingEnvironment(object):
             day=test_date.day,
             tzinfo=pytz.utc
         )
+        
+    @property
+    def days_in_period(self):
+        """return the number of trading days within the period [start, end)"""
+        assert(self.period_start != None)
+        assert(self.period_end != None)
+                            
+        if self.period_trading_days == None:
+            self.period_trading_days = []
+            for date in self.trading_days:
+                if date > self.period_end:
+                    break
+                if date >= self.period_start:
+                    self.period_trading_days.append(date)
+        
+        return len(self.period_trading_days)
+                
+            
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)

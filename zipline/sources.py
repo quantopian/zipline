@@ -39,7 +39,7 @@ class RandomEquityTrades(TradeDataSource):
         self.incr           = 0
         self.sid            = sid
         self.trade_start    = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        self.minute         = datetime.timedelta(minutes=1)
+        self.day            = datetime.timedelta(days=1)
         self.price          = random.uniform(5.0, 50.0)
 
 
@@ -59,7 +59,7 @@ class RandomEquityTrades(TradeDataSource):
             "sid"       : self.sid,
             "price"     : self.price,
             "volume"    : volume,
-            "dt"        : self.trade_start + (self.minute * self.incr),
+            "dt"        : self.trade_start + (self.day * self.incr),
         })
         self.send(event)
         self.incr += 1
