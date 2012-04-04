@@ -123,7 +123,7 @@ class RiskMetrics():
         Creates a dictionary representing the state of the risk report.
         Returns a dict object of the form:
         """
-        period_label = self.end_date.strftime("%B %Y")
+        period_label = self.end_date.strftime("%Y-%m")
         return {
             'trading_days'          : self.trading_days,
             'benchmark_volatility'  : self.benchmark_volatility,
