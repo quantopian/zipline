@@ -262,7 +262,7 @@ class Controller(object):
 
     def send_softkill(self):
         soft_frame = CONTROL_FRAME(
-            CONTROL_PROTOCOL.KILL,
+            CONTROL_PROTOCOL.SHUTDOWN,
             ''
         )
         self.pub.send(soft_frame)
