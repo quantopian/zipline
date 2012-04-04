@@ -1,8 +1,6 @@
 import time
 import gevent
 import itertools
-import util as qutil
-
 # pyzmq
 import zmq
 # gevent_zeromq
@@ -15,10 +13,6 @@ from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
 
 from gpoll import _Poller as GeventPoller
 
-# TODO: print -> qutil.LOGGER.info
-
-# When you're cold and waiting for the train... draw ascii art!
-#
 # Roll Call ( Discovery )
 # -----------------------
 #
@@ -151,7 +145,7 @@ class Controller(object):
     """
 
     debug = False
-    period = 1
+    period = 5
 
     def __init__(self, pub_socket, route_socket, logging = None):
 
@@ -177,10 +171,9 @@ class Controller(object):
 
         if logging:
             self.logging = logging
-            self.dologging = True
         else:
-            self.logging = False
-            self.dologging = False
+            import util as qutil
+            self.logging = qutil.LOGGER
 
     def init_zmq(self, flavor):
 
@@ -240,10 +233,10 @@ class Controller(object):
         try:
             return self._poll() # use a python loop
         except KeyboardInterrupt:
-            print 'Shutdown event loop'
+            self.logging.info('Shutdown event loop')
 
     def log_status(self):
-        print "[Controller] Tracking : %s" % ([c for c in self.tracked],)
+        self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
 
     # -----------
     # Event Loops
@@ -274,10 +267,10 @@ class Controller(object):
             while self.polling:
                 # Reset the responses for this cycle
 
-                socks = dict(poller.poll(5))
+                socks = dict(poller.poll(self.period))
                 tic = time.time()
 
-                if tic - self.ctime > 1:
+                if tic - self.ctime > self.period:
                     break
 
                 if self.router in socks and socks[self.router] == self.zmq.POLLIN:
@@ -291,13 +284,16 @@ class Controller(object):
                             self.handle_recv(buffer[:])
                             buffer = []
                     except INVALID_CONTROL_FRAME:
-                        print 'Invalid frame', rawmessage
+                        self.logging.error('Invalid frame', rawmessage)
                         pass
 
             self.beat()
 
             if self.zmq_flavor == 'green':
                 gevent.sleep(0)
+
+            if not self.polling:
+                break
 
         # After loop exits
         self.terminated = True
@@ -332,7 +328,7 @@ class Controller(object):
     # The various "states of being that a component can inform us
     # of
     def new(self, component):
-        print '[Controller] New Tracked "%s" ' % component
+        self.logging.info('[Controller] New Tracked "%s" ' % component)
 
         if component in self.topology or self.freeform:
             self.tracked.add(component)
@@ -342,7 +338,7 @@ class Controller(object):
             raise UnknownChatter(component)
 
     def fail(self, component):
-        print '[Controller] Component "%s" timed out' % component
+        self.logging.info('[Controller] Component "%s" timed out' % component)
         self.tracked.remove(component)
 
     def done(self, component):
@@ -375,7 +371,7 @@ class Controller(object):
             else:
                 # Otherwise its something weird and we don't know
                 # what to do so just say so
-                print "Weird stuff happened: %s" % status, self.ctime
+                self.logging.error("Weird stuff happened: %s" % status, self.ctime)
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
@@ -428,17 +424,21 @@ class Controller(object):
         return s
 
     def shutdown(self, hard=False, soft=True, context=None):
+
+        if not self.polling:
+            return
+
         self.polling = False
 
         assert hard or soft, """ Must specify kill hard or soft """
 
         if not context:
-            context = self.zmq.Context.instance()
+            context = zmq.Context.instance()
 
         if hard:
             self.state = CONTROL_STATES.SHUTDOWN
 
-            print '[Controller] Hard Shutdown'
+            self.logging.info('[Controller] Hard Shutdown')
 
             #for asoc in self.associated:
                 #asoc.close()
@@ -446,7 +446,7 @@ class Controller(object):
         if soft:
             self.state = CONTROL_STATES.TERMINATE
 
-            print '[Controller] Soft Shutdown'
+            self.logging.info('[Controller] Soft Shutdown')
 
             #for asoc in self.associated:
                 #asoc.close()
