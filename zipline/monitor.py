@@ -256,14 +256,14 @@ class Controller(object):
     def send_hardkill(self):
         kill_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.KILL,
-            None
+            ''
         )
         self.pub.send(kill_frame)
 
     def send_softkill(self):
         soft_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.KILL,
-            None
+            ''
         )
         self.pub.send(soft_frame)
 
@@ -473,6 +473,7 @@ class Controller(object):
             self.state = CONTROL_STATES.TERMINATE
 
             self.logging.info('[Controller] Soft Shutdown')
+            self.send_softkill()
 
             #for asoc in self.associated:
                 #asoc.close()
