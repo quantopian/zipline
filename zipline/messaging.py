@@ -8,7 +8,7 @@ import zipline.util as qutil
 from zipline.component import Component
 import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
-    COMPONENT_STATE
+    COMPONENT_STATE, CONTROL_FRAME, CONTROL_UNFRAME
 
 class ComponentHost(Component):
     """
@@ -212,8 +212,29 @@ class ParallelBuffer(Component):
         # wait for synchronization reply from the host
         socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
+        # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
             msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # -- Heartbeat --
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                # Heart outgoing
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+                self.control_out.send(heartbeat_frame)
+
+            # -- Soft Kill --
+            elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                self.done()
+                self.shutdown()
+
+            # -- Hard Kill --
+            elif event == CONTROL_PROTOCOL.KILL:
+                self.kill()
+
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
@@ -241,13 +262,11 @@ class ParallelBuffer(Component):
                 except zp.INVALID_DATASOURCE_FRAME as exc:
                     return self.signal_exception(exc)
 
-    #
     def unframe(self, msg):
         return zp.DATASOURCE_UNFRAME(msg)
 
     def frame(self, event):
         return zp.FEED_FRAME(event)
-    
 
     # -------------
     # Flow Control
@@ -464,8 +483,28 @@ class BaseTransform(Component):
         """
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
+        # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
             msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # -- Heartbeat --
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                # Heart outgoing
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+                self.control_out.send(heartbeat_frame)
+
+            # -- Soft Kill --
+            elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                self.done()
+                self.shutdown()
+
+            # -- Hard Kill --
+            elif event == CONTROL_PROTOCOL.KILL:
+                self.kill()
 
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()

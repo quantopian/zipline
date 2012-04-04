@@ -145,7 +145,7 @@ class Controller(object):
     """
 
     debug = False
-    period = 5
+    period = 1
 
     def __init__(self, pub_socket, route_socket, logging = None):
 
@@ -237,6 +237,30 @@ class Controller(object):
 
     def log_status(self):
         self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
+    # -------------
+    # Publications
+    # -------------
+
+    def send_heart(self):
+        heartbeat_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.HEARTBEAT,
+            str(self.ctime)
+        )
+        self.pub.send(heartbeat_frame)
+
+    def send_hardkill(self):
+        kill_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.KILL,
+            None
+        )
+        self.pub.send(kill_frame)
+
+    def send_softkill(self):
+        soft_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.KILL,
+            None
+        )
+        self.pub.send(soft_frame)
 
     # -----------
     # Event Loops
@@ -262,7 +286,7 @@ class Controller(object):
             self.responses = set()
 
             self.ctime = time.time()
-            self.pub.send(str(self.ctime))
+            self.send_heart()
 
             while self.polling:
                 # Reset the responses for this cycle
@@ -345,10 +369,10 @@ class Controller(object):
         # TODO: This will be what we ship off to vbench at some
         # point...
         # print component finished at self.ctime
-        pass
+        self.logging.info('[Controller] Component "%s" done.' % component)
 
     def exception(self, component, failure):
-        pass
+        self.logging.error('Component "%s"in exception state' % component)
 
     # -----------------
     # Protocol Handling
@@ -401,8 +425,8 @@ class Controller(object):
             context = self.zmq.Context.instance()
 
         s = context.socket(zmq.DEALER)
-        s.connect(self.route_socket)
         s.setsockopt(zmq.IDENTITY, identity)
+        s.connect(self.route_socket)
 
         self.associated.append(s)
         return s

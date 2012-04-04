@@ -154,7 +154,7 @@ def CONTROL_FRAME(event, payload):
     assert isinstance(event, int,)
     assert isinstance(payload, basestring)
 
-    return msgpack.dumps(tuple([id, status]))
+    return msgpack.dumps(tuple([event, payload]))
 
 def CONTROL_UNFRAME(msg):
     """
