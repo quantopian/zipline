@@ -42,9 +42,9 @@ class Component(object):
 
     :param data_address: socket address used for data sources to stream
                          their records. Will be used in PUSH/PULL sockets
-                         between data sources and a ParallelBuffer (aka
-                         the Feed). Bind will always be on the PULL side
-                         (we always have N producers and 1 consumer)
+                         between data sources and a Feed. Bind will always
+                         be on the PULL side (we always have N producers and
+                         1 consumer)
 
     :param feed_address: socket address used to publish consolidated feed
                          from serialization of data sources
@@ -53,9 +53,9 @@ class Component(object):
 
     :param merge_address: socket address used to publish transformed
                           values.  will be used in PUSH/PULL from many
-                          transforms to one MergedParallelBuffer (aka the
-                          Merge). Bind will always be on the PULL side (we
-                          always have N producers and 1 consumer)
+                          transforms to one Merge Bind will always be on
+                          the PULL side (we always have N producers and
+                          1 consumer)
 
     :param result_address: socket address used to publish merged data
                            source feed and transforms to clients will be

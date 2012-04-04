@@ -39,8 +39,8 @@ class ComponentHost(Component):
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
 
-        self.feed           = ParallelBuffer()
-        self.merge          = MergedParallelBuffer()
+        self.feed           = Feed()
+        self.merge          = Merge()
         self.passthrough    = PassthroughTransform()
         self.controller     = None
 
@@ -173,7 +173,7 @@ class ComponentHost(Component):
         raise NotImplementedError
 
 
-class ParallelBuffer(Component):
+class Feed(Component):
     """
     Connects to N PULL sockets, publishing all messages received to a PUB
     socket.  Published messages are guaranteed to be in chronological order
@@ -367,13 +367,13 @@ class ParallelBuffer(Component):
         return len(self.data_buffer)
 
 
-class MergedParallelBuffer(ParallelBuffer):
+class Merge(Feed):
     """
     Merges multiple streams of events into single messages.
     """
 
     def __init__(self):
-        ParallelBuffer.__init__(self)
+        Feed.__init__(self)
 
         self.init()
 
