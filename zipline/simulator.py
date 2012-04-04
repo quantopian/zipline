@@ -41,7 +41,9 @@ class Simulator(ComponentHost):
         return 'Simple Simulator'
 
     def launch_controller(self):
-        thread = threading.Thread(target=self.controller.run)
+        thread = threading.Thread(
+            target=self.controller.run,
+        )
         thread.start()
 
         self.subthreads.append(thread)
@@ -68,8 +70,8 @@ class Simulator(ComponentHost):
         if not self.running:
             return
 
-        #if self.controller:
-            #self.controller.shutdown()
+        if self.controller:
+            self.controller.shutdown()
 
         for component in self.components.itervalues():
             component.shutdown()

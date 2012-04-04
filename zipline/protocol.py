@@ -134,39 +134,44 @@ from protocol_utils import Enum, FrameExceptionFactory, namedict
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
-CONTROL_PROTOCOL = Enum(
-    'INIT'      , # 0 - req
-    'INFO'      , # 1 - req
-    'STATUS'    , # 2 - req
-    'SHUTDOWN'  , # 3 - req
-    'KILL'      , # 4 - req
-
-    'OK'        , # 5 - rep
-    'DONE'      , # 6 - rep
-    'EXCEPTION' , # 7 - rep
+CONTROL_STATES = Enum(
+    'RUNNING',
+    'SHUTDOWN',  # a soft kill
+    'TERMINATE', # a hard kill
 )
 
-def CONTROL_FRAME(id, status):
-    assert isinstance(id, basestring,)
-    assert isinstance(status, int)
+CONTROL_PROTOCOL = Enum(
+    'HEARTBEAT' , # 0 - req
+    'SHUTDOWN'  , # 1 - req
+    'KILL'      , # 2 - req
 
-    return msgpack.dumps(tuple([id, status]))
+    'OK'        , # 3 - rep
+    'DONE'      , # 4 - rep
+    'EXCEPTION' , # 5 - rep
+)
 
-def CONTORL_UNFRAME(msg):
+def CONTROL_FRAME(event, payload):
+    assert isinstance(event, int,)
+    assert isinstance(payload, basestring)
+
+    return msgpack.dumps(tuple([event, payload]))
+
+def CONTROL_UNFRAME(msg):
+    """
+    A status code and a message.
+    """
     assert isinstance(msg, basestring)
 
     try:
-        id, status = msgpack.loads(msg)
-        assert isinstance(id, basestring)
-        assert isinstance(status, int)
+        event, payload = msgpack.loads(msg)
+        assert isinstance(event, int)
+        assert isinstance(payload, basestring)
 
-        return id, status
+        return event, payload
     except TypeError:
         raise INVALID_CONTROL_FRAME(msg)
     except ValueError:
         raise INVALID_CONTROL_FRAME(msg)
-    #except AssertionError:
-        #raise INVALID_CONTROL_FRAME(msg)
 
 # -----------------------
 # Heartbeat Protocol

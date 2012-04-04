@@ -8,7 +8,7 @@ import zipline.util as qutil
 from zipline.component import Component
 import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
-    COMPONENT_STATE
+    COMPONENT_STATE, CONTROL_FRAME, CONTROL_UNFRAME
 
 class ComponentHost(Component):
     """
@@ -39,8 +39,8 @@ class ComponentHost(Component):
         self.sync_register  = {}
         self.timeout        = datetime.timedelta(seconds=5)
 
-        self.feed           = ParallelBuffer()
-        self.merge          = MergedParallelBuffer()
+        self.feed           = Feed()
+        self.merge          = Merge()
         self.passthrough    = PassthroughTransform()
         self.controller     = None
 
@@ -56,6 +56,7 @@ class ComponentHost(Component):
             raise Exception("There can be only one!")
 
         self.controller = controller
+        self.controller.zmq_flavor = self.zmq_flavor
 
         # Propogate the controller to all the subcomponents
         for component in self.components.itervalues():
@@ -112,6 +113,10 @@ class ComponentHost(Component):
         self.launch_controller()
 
     def is_timed_out(self):
+        """
+        DEPRECATED, left in for compatability for now.
+        """
+
         cur_time = datetime.datetime.utcnow()
 
         if len(self.components) == 0:
@@ -128,7 +133,7 @@ class ComponentHost(Component):
 
         return False
 
-    def loop(self):
+    def loop(self, lockstep=True):
 
         while not self.is_timed_out():
             # wait for synchronization request
@@ -144,7 +149,7 @@ class ComponentHost(Component):
                     self.signal_exception(exc)
 
                 if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
-                    qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
+                    #qutil.LOGGER.debug("{id} is DONE".format(id=sync_id))
                     self.unregister_component(sync_id)
                     self.state_flag = COMPONENT_STATE.DONE
                 else:
@@ -168,7 +173,7 @@ class ComponentHost(Component):
         raise NotImplementedError
 
 
-class ParallelBuffer(Component):
+class Feed(Component):
     """
     Connects to N PULL sockets, publishing all messages received to a PUB
     socket.  Published messages are guaranteed to be in chronological order
@@ -211,8 +216,29 @@ class ParallelBuffer(Component):
         # wait for synchronization reply from the host
         socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
 
+        # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
             msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # -- Heartbeat --
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                # Heart outgoing
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+                self.control_out.send(heartbeat_frame)
+
+            # -- Soft Kill --
+            elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                self.done()
+                self.shutdown()
+
+            # -- Hard Kill --
+            elif event == CONTROL_PROTOCOL.KILL:
+                self.kill()
+
 
         if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
             message = self.pull_socket.recv()
@@ -240,13 +266,11 @@ class ParallelBuffer(Component):
                 except zp.INVALID_DATASOURCE_FRAME as exc:
                     return self.signal_exception(exc)
 
-    #
     def unframe(self, msg):
         return zp.DATASOURCE_UNFRAME(msg)
 
     def frame(self, event):
         return zp.FEED_FRAME(event)
-    
 
     # -------------
     # Flow Control
@@ -343,13 +367,13 @@ class ParallelBuffer(Component):
         return len(self.data_buffer)
 
 
-class MergedParallelBuffer(ParallelBuffer):
+class Merge(Feed):
     """
     Merges multiple streams of events into single messages.
     """
 
     def __init__(self):
-        ParallelBuffer.__init__(self)
+        Feed.__init__(self)
 
         self.init()
 
@@ -463,11 +487,32 @@ class BaseTransform(Component):
         """
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
+        # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
             msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # -- Heartbeat --
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                # Heart outgoing
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+                self.control_out.send(heartbeat_frame)
+
+            # -- Soft Kill --
+            elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                self.done()
+                self.shutdown()
+
+            # -- Hard Kill --
+            elif event == CONTROL_PROTOCOL.KILL:
+                self.kill()
 
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
+
             if message == str(CONTROL_PROTOCOL.DONE):
                 self.signal_done()
                 return

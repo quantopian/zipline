@@ -3,6 +3,7 @@ import pytz
 import math
 import pandas
 
+# from gevent.select import select
 from zmq.core.poll import select
 
 import zipline.messaging as qmsg
@@ -200,6 +201,9 @@ class OrderDataSource(qmsg.DataSource):
         #pull all orders from client.
         orders = []
         count = 0
+
+        # TODO : this can be written in a concurrency agnostic
+        # way... have a chat with Fawce about this ~Steve
         while True:
                         
             (rlist, wlist, xlist) = select(

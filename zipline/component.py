@@ -24,7 +24,7 @@ from datetime import datetime
 import zipline.util as qutil
 from zipline.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
-    COMPONENT_FAILURE, BACKTEST_STATE
+    COMPONENT_FAILURE, BACKTEST_STATE, CONTROL_FRAME
 
 
 class Component(object):
@@ -42,9 +42,9 @@ class Component(object):
 
     :param data_address: socket address used for data sources to stream
                          their records. Will be used in PUSH/PULL sockets
-                         between data sources and a ParallelBuffer (aka
-                         the Feed). Bind will always be on the PULL side
-                         (we always have N producers and 1 consumer)
+                         between data sources and a Feed. Bind will always
+                         be on the PULL side (we always have N producers and
+                         1 consumer)
 
     :param feed_address: socket address used to publish consolidated feed
                          from serialization of data sources
@@ -53,9 +53,9 @@ class Component(object):
 
     :param merge_address: socket address used to publish transformed
                           values.  will be used in PUSH/PULL from many
-                          transforms to one MergedParallelBuffer (aka the
-                          Merge). Bind will always be on the PULL side (we
-                          always have N producers and 1 consumer)
+                          transforms to one Merge Bind will always be on
+                          the PULL side (we always have N producers and
+                          1 consumer)
 
     :param result_address: socket address used to publish merged data
                            source feed and transforms to clients will be
@@ -201,28 +201,25 @@ class Component(object):
         debug since it mucks up your stacktraces.
         """
 
-        fail = None
-
         if catch_exceptions:
             try:
                 self._run()
             except Exception as exc:
-                # TODO, we want to do this grab the stack
-                # frame so we can preserve stacktraces when we
-                # reraise the exception.
+                exc_info = sys.exc_info()
                 self.signal_exception(exc)
-                fail = exc
+
+                # Reraise the exception
+                raise exc_info[0], exc_info[1], exc_info[2]
             finally:
 
                 self.shutdown()
                 self.teardown_sockets()
-        else:
-            try:
-                self._run()
-            finally:
-                self.shutdown()
-                self.teardown_sockets()
-
+        #else:
+            #try:
+                #self._run()
+            #finally:
+                #self.shutdown()
+                #self.teardown_sockets()
 
     def working(self):
         """
@@ -234,7 +231,7 @@ class Component(object):
         """
         return (not self.done)
 
-    def loop(self):
+    def loop(self, lockstep=True):
         """
         Loop to do work while we still have work to do.
         """
@@ -294,6 +291,12 @@ class Component(object):
     # ----------------------
 
     def signal_exception(self, exc=None, scope=None):
+        """
+        This is *very* important error tracking handler.
+
+        Will inform the system that the component has failed and
+        how it has failed.
+        """
 
         if scope == 'algo':
             self.error_state = COMPONENT_FAILURE.ALGOEXCEPT
@@ -309,6 +312,12 @@ class Component(object):
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
         self.stack_trace = exc_traceback
+
+        exception_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.EXCEPTION,
+            str(exc)
+        )
+        self.control_out.send(exception_frame)
 
         qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
@@ -326,9 +335,18 @@ class Component(object):
         # TODO: proper framing
         self.sync_socket.send(self.get_id + ":" + str(CONTROL_PROTOCOL.DONE))
 
+        #notify controller we're done
+        done_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.DONE,
+            ''
+        )
+        self.control_out.send(done_frame)
+
         self.receive_sync_ack()
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
+
+        qutil.LOGGER.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging
@@ -347,13 +365,15 @@ class Component(object):
     def receive_sync_ack(self):
         """
         Wait for synchronization reply from the host.
+
+        DEPRECATED, left in for compatability for now.
         """
 
         socks = dict(self.sync_poller.poll(self.heartbeat_timeout))
         if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
             message = self.sync_socket.recv()
-        else:
-            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
+        #else:
+            #raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
 
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
@@ -427,8 +447,14 @@ class Component(object):
         if not self.controller:
             return
 
-        self.control_out = self.controller.message_sender(context=self.context)
-        self.control_in = self.controller.message_listener(context=self.context)
+        self.control_out = self.controller.message_sender(
+            identity = self.get_id,
+            context  = self.context,
+        )
+
+        self.control_in = self.controller.message_listener(
+            context = self.context
+        )
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])
@@ -436,6 +462,8 @@ class Component(object):
     def setup_sync(self):
         """
         Setup the sync socket and poller. ( Connect )
+
+        DEPRECATED, left in for compatability for now.
         """
 
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
