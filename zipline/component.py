@@ -24,7 +24,7 @@ from datetime import datetime
 import zipline.util as qutil
 from zipline.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
-    COMPONENT_FAILURE, BACKTEST_STATE
+    COMPONENT_FAILURE, BACKTEST_STATE, CONTROL_FRAME
 
 
 class Component(object):
@@ -313,6 +313,12 @@ class Component(object):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         self.stack_trace = exc_traceback
 
+        exception_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.EXCEPTION,
+            str(exc)
+        )
+        self.control_out.send(exception_frame)
+
         qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
     def signal_done(self):
@@ -329,9 +335,18 @@ class Component(object):
         # TODO: proper framing
         self.sync_socket.send(self.get_id + ":" + str(CONTROL_PROTOCOL.DONE))
 
+        #notify controller we're done
+        done_frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.DONE,
+            ''
+        )
+        self.control_out.send(done_frame)
+
         self.receive_sync_ack()
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
+
+        qutil.LOGGER.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging
@@ -350,13 +365,15 @@ class Component(object):
     def receive_sync_ack(self):
         """
         Wait for synchronization reply from the host.
+
+        DEPRECATED, left in for compatability for now.
         """
 
         socks = dict(self.sync_poller.poll(self.heartbeat_timeout))
         if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
             message = self.sync_socket.recv()
-        else:
-            raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
+        #else:
+            #raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
 
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
@@ -445,6 +462,8 @@ class Component(object):
     def setup_sync(self):
         """
         Setup the sync socket and poller. ( Connect )
+
+        DEPRECATED, left in for compatability for now.
         """
 
         qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))

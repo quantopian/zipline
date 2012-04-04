@@ -113,6 +113,10 @@ class ComponentHost(Component):
         self.launch_controller()
 
     def is_timed_out(self):
+        """
+        DEPRECATED, left in for compatability for now.
+        """
+
         cur_time = datetime.datetime.utcnow()
 
         if len(self.components) == 0:
@@ -145,7 +149,7 @@ class ComponentHost(Component):
                     self.signal_exception(exc)
 
                 if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
-                    qutil.LOGGER.info("{id} is DONE".format(id=sync_id))
+                    #qutil.LOGGER.debug("{id} is DONE".format(id=sync_id))
                     self.unregister_component(sync_id)
                     self.state_flag = COMPONENT_STATE.DONE
                 else:
@@ -508,6 +512,7 @@ class BaseTransform(Component):
 
         if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
+
             if message == str(CONTROL_PROTOCOL.DONE):
                 self.signal_done()
                 return

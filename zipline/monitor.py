@@ -236,7 +236,12 @@ class Controller(object):
             self.logging.info('Shutdown event loop')
 
     def log_status(self):
-        self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
+        """
+        Snapshot of the tracked components at every period.
+        """
+        #self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
+        pass
+
     # -------------
     # Publications
     # -------------
@@ -352,7 +357,7 @@ class Controller(object):
     # The various "states of being that a component can inform us
     # of
     def new(self, component):
-        self.logging.info('[Controller] New Tracked "%s" ' % component)
+        self.logging.info('[Controller] Alive "%s" ' % component)
 
         if component in self.topology or self.freeform:
             self.tracked.add(component)
@@ -372,7 +377,7 @@ class Controller(object):
         self.logging.info('[Controller] Component "%s" done.' % component)
 
     def exception(self, component, failure):
-        self.logging.error('Component "%s"in exception state' % component)
+        self.logging.error('Component "%s" in exception state' % component)
 
     # -----------------
     # Protocol Handling
@@ -395,7 +400,7 @@ class Controller(object):
             else:
                 # Otherwise its something weird and we don't know
                 # what to do so just say so
-                self.logging.error("Weird stuff happened: %s" % status, self.ctime)
+                self.logging.error("Weird stuff happened: %s" % msg)
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
@@ -404,7 +409,7 @@ class Controller(object):
         # A component is telling us its done with work and won't
         # be talking to us anymore
         if id is CONTROL_PROTOCOL.DONE:
-            self.done(identity, status)
+            self.done(identity)
 
     # -------------------
     # Hooks for Endpoints
@@ -455,9 +460,6 @@ class Controller(object):
         self.polling = False
 
         assert hard or soft, """ Must specify kill hard or soft """
-
-        if not context:
-            context = zmq.Context.instance()
 
         if hard:
             self.state = CONTROL_STATES.SHUTDOWN
