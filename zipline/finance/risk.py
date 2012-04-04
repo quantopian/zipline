@@ -320,8 +320,12 @@ class RiskReport():
         self.algorithm_returns = algorithm_returns
         self.trading_environment = trading_environment
 
-        start_date = self.algorithm_returns[0].date
-        end_date = self.algorithm_returns[-1].date
+        if len(self.algorithm_returns) == 0:
+            start_date = self.trading_environment.period_start
+            end_date = self.trading_environment.period_end
+        else:
+            start_date = self.algorithm_returns[0].date
+            end_date = self.algorithm_returns[-1].date
 
         self.month_periods = self.periodsInRange(1, start_date, end_date)
         self.three_month_periods = self.periodsInRange(3, start_date, end_date)
@@ -354,6 +358,11 @@ class RiskReport():
         one_day = datetime.timedelta(days = 1)
         ends = []
         cur_start = start.replace(day=1)
+
+        # in edge cases (all sids filtered out, start/end are adjacent) 
+        # a test will not generate any returns data
+        if len(self.algorithm_returns) == 0:
+            return ends
 
         #ensure that we have an end at the end of a calendar month, in case
         #the return series ends mid-month...

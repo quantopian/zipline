@@ -23,10 +23,14 @@ class TradeDataSource(zm.DataSource):
         if event.sid in self.filter['SID']:            
             message = zp.DATASOURCE_FRAME(event)
         else:
-            message = zp.DATASOURCE_FRAME(None)
+            blank = zp.namedict({
+                "type"      : zp.DATASOURCE_TYPE.TRADE,
+                "source_id" : self.get_id
+            })
+            message = zp.DATASOURCE_FRAME(blank)
             
         self.data_socket.send(message)
-
+        
 
 class RandomEquityTrades(TradeDataSource):
     """

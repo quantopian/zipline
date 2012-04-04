@@ -155,7 +155,6 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
        
         zipline.simulate(blocking=True)
-        
         #check that the algorithm received no events
         self.assertEqual(
             0,

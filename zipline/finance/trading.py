@@ -243,7 +243,6 @@ class OrderDataSource(qmsg.DataSource):
         if(count == 0):
             self.send(zp.namedict({}))
     
-    
 
 class TransactionSimulator(qmsg.BaseTransform):
     
