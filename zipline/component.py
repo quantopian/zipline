@@ -189,9 +189,6 @@ class Component(object):
 
         self.stop_tic = time.time()
 
-        # shouldn't block if we've done our job correctly
-        # self.context.term()
-
     def run(self, catch_exceptions=True):
         """
         Run the component.
@@ -214,12 +211,6 @@ class Component(object):
 
                 self.shutdown()
                 self.teardown_sockets()
-        #else:
-            #try:
-                #self._run()
-            #finally:
-                #self.shutdown()
-                #self.teardown_sockets()
 
     def working(self):
         """

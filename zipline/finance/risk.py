@@ -237,11 +237,11 @@ class RiskMetrics():
         compounded_returns = []
         cur_return = 0.0
         for r in self.algorithm_returns:
-            if(r != -1.0):
+            try:
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
-            else:
-                qutil.LOGGER.warn("negative 100 percent return, zeroing the returns")
+            except ValueError:
+                qutil.LOGGER.warn("{cur} return, zeroing the returns".format(cur=cur_return))
                 cur_return = 0.0
             compounded_returns.append(cur_return)
 
