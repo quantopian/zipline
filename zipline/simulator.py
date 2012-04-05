@@ -57,7 +57,6 @@ class Simulator(ComponentHost):
         self.running = True
 
         return thread
-        
 
     def did_clean_shutdown(self):
         return not any([t.isAlive() for t in self.subthreads])
@@ -70,8 +69,6 @@ class Simulator(ComponentHost):
         if not self.running:
             return
 
-        if self.controller:
-            self.controller.shutdown()
 
         for component in self.components.itervalues():
             component.shutdown()
@@ -79,6 +76,8 @@ class Simulator(ComponentHost):
         for thread in self.subthreads:
             if thread.is_alive():
                 thread._Thread__stop()
+
+        #self.controller.shutdown()
 
         self.running = False
 
