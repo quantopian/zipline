@@ -358,7 +358,8 @@ class TradingEnvironment(object):
         treasury_curves, 
         period_start=None, 
         period_end=None, 
-        capital_base=None
+        capital_base=None,
+        max_drawdown=None
     ):
     
         self.trading_days = []
@@ -370,6 +371,7 @@ class TradingEnvironment(object):
         self.period_end = period_end
         self.capital_base = capital_base
         self.period_trading_days = None
+        self.max_drawdown = max_drawdown
             
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
