@@ -185,11 +185,14 @@ class PerformanceTracker():
         Publish the performance results asynchronously to a
         socket.
         """
-        ctx = context or zmq.Context.instance()
-        sock = ctx.socket(zmq.PUSH)
-        sock.connect(zmq_socket)
+        if isinstance(zmq_socket, zmq.Socket):
+            self.result_stream = zmq_socket
+        else:
+            ctx = context or zmq.Context.instance()
+            sock = ctx.socket(zmq.PUSH)
+            sock.connect(zmq_socket)
 
-        self.result_stream = sock
+            self.result_stream = sock
 
     def to_dict(self):
         """
