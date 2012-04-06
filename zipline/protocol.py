@@ -654,10 +654,8 @@ def PERF_FRAME(perf):
     # nest the cumulative performance data in the daily.
     daily_perf['cumulative'] = cumulative_perf
 
-    #TODO: pass the cursor value in.
     result = {
         'started_at'        : EPOCH(perf['started_at']),
-        'cursor'            : 0,
         'daily'             : [daily_perf],
         'percent_complete'  : perf['progress'],
     }
