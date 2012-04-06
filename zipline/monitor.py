@@ -169,6 +169,8 @@ class Controller(object):
         self.pub_socket = pub_socket
         self.route_socket = route_socket
 
+        self.error_replay = {}
+
         if logging:
             self.logging = logging
         else:
@@ -241,6 +243,13 @@ class Controller(object):
         """
         #self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
         pass
+
+    def replay_errors(self):
+        """
+        Replay the errors in the order they were reported to the
+        controller.
+        """
+        return [ a for a in sorted(self.replay_errors.keys())]
 
     # -------------
     # Publications
@@ -377,6 +386,7 @@ class Controller(object):
         self.logging.info('[Controller] Component "%s" done.' % component)
 
     def exception(self, component, failure):
+        self.error_replay[time.time()] = failure
         self.logging.error('Component "%s" in exception state' % component)
 
     # -----------------
