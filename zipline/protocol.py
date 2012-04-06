@@ -629,40 +629,37 @@ def PERF_FRAME(perf):
     #pull some special fields from the perf for easy access
     date = perf['last_close']
     tp   = perf['todays_perf']
+    cp   = perf['cumulative_perf']
     risk = perf['cumulative_risk_metrics']
 
-    #create the daily nested message
-    #TODO: add daily PnL in dollars
     daily_perf = {
         'date'            : EPOCH(date),
-        'returns'         : perf['returns'][-1]['returns'],
-        'pnl'             : 0.0,
+        'returns'         : tp['returns'],
+        'pnl'             : tp['pnl'],
         'portfolio_value' : tp['ending_value']
     }
 
-    #TODO: add total returns to the message from perf
-    #TODO: add total bm returns to the message from perf
-    #TODO: add daily PnL in dollars
     cumulative_perf = {
         'alpha'                : risk['alpha'],
         'beta'                 : risk['beta'],
         'sharpe'               : risk['sharpe'],
-        'total_returns'        : 0.0,
+        'total_returns'        : cp['returns'],
         'volatility'           : risk['algo_volatility'],
         'benchmark_volatility' : risk['benchmark_volatility'],
-        'benchmark_returns'    : 0,
+        'benchmark_returns'    : risk['benchmark_period_return'],
         'max_drawdown'         : risk['max_drawdown'],
-        'pnl'                  : 0.0,
+        'pnl'                  : cp['pnl']
     }
+    
+    # nest the cumulative performance data in the daily.
+    daily_perf['cumulative'] = cumulative_perf
 
-    #TODO: perf needs to track start time of the bt
     #TODO: pass the cursor value in.
     result = {
-        'started_at'        : 0,
+        'started_at'        : EPOCH(perf['started_at']),
+        'cursor'            : 0,
         'daily'             : [daily_perf],
         'percent_complete'  : perf['progress'],
-        'cumulative'        : cumulative_perf,
-        'cursor'            : 0,
     }
     
     return msgpack.dumps(tuple(['PERF', result]))

@@ -18,6 +18,8 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | progress        | percentage of test completed                       |
     +-----------------+----------------------------------------------------+
+    | started_at      | datetime in utc marking the start of this test     |
+    +-----------------+----------------------------------------------------+
     | cumulative_capti| The net capital used (positive is spent) through   |
     | al_used         | the course of all the events sent to this tracker  |
     +-----------------+----------------------------------------------------+
@@ -105,6 +107,12 @@ Performance Period
     |               | :py:meth:`Position.to_dict()`                        |
     |               | for details on the contents of the dict              |
     +---------------+------------------------------------------------------+
+    | pnl           | Dollar value profit and loss, for both realized and  |
+    |               | unrealized gains.                                    |
+    +---------------+------------------------------------------------------+
+    | returns       | percentage returns for the entire portfolio over the |
+    |               | period                                               |
+    +---------------+------------------------------------------------------+
     | timestamp     | System time evevent occurs in zipilne                |
     +---------------+------------------------------------------------------+
 
@@ -135,9 +143,10 @@ class PerformanceTracker():
     def __init__(self, trading_environment):
         
         
-        self.trading_environment     = trading_environment
-        self.trading_day  = datetime.timedelta(hours = 6, minutes = 30)
-        self.calendar_day = datetime.timedelta(hours = 24)
+        self.trading_environment    = trading_environment
+        self.trading_day            = datetime.timedelta(hours = 6, minutes = 30)
+        self.calendar_day           = datetime.timedelta(hours = 24)
+        self.started_at             = datetime.datetime.utcnow()
 
         self.period_start            = self.trading_environment.period_start
         self.period_end              = self.trading_environment.period_end
@@ -191,6 +200,7 @@ class PerformanceTracker():
         returns_list = [x.to_dict() for x in self.returns]
 
         return {
+            'started_at'              : self.started_at,
             'period_start'            : self.period_start,
             'period_end'              : self.period_end,
             'progress'                : self.progress,
@@ -421,6 +431,8 @@ class PerformancePeriod():
             'ending_cash'    : self.ending_cash,
             'positions'      : positions,
             'timestamp'      : datetime.datetime.now(),
+            'pnl'            : self.pnl,
+            'returns'        : self.returns
         }
         
     def to_namedict(self):
