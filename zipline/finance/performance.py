@@ -118,6 +118,7 @@ Performance Period
 
 """
 import datetime
+import pytz
 import msgpack
 import pandas
 import math
@@ -146,11 +147,11 @@ class PerformanceTracker():
         self.trading_environment    = trading_environment
         self.trading_day            = datetime.timedelta(hours = 6, minutes = 30)
         self.calendar_day           = datetime.timedelta(hours = 24)
-        self.started_at             = datetime.datetime.utcnow()
+        self.started_at             = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
         self.period_start            = self.trading_environment.period_start
         self.period_end              = self.trading_environment.period_end
-        self.market_open             = self.period_start
+        self.market_open             = self.trading_environment.first_open
         self.market_close            = self.market_open + self.trading_day
         self.progress                = 0.0
         self.total_days              = self.trading_environment.days_in_period
@@ -266,6 +267,16 @@ class PerformanceTracker():
             returns=self.returns,
             trading_environment=self.trading_environment
         )
+        
+        # increment the day counter before we move markers forward.
+        self.day_count += 1.0
+        # calculate progress of test
+        self.progress = self.day_count / self.total_days
+
+        # Output results
+        if self.result_stream:
+            msg = zp.PERF_FRAME(self.to_dict())
+            self.result_stream.send(msg)
 
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
@@ -276,16 +287,7 @@ class PerformanceTracker():
             self.market_open = self.market_open + self.calendar_day
 
         self.market_close = self.market_open + self.trading_day
-        self.day_count += 1.0
-
-        #calculate progress of test
-        self.progress = self.day_count / self.total_days
-
-        # Output Results
-        if self.result_stream:
-            msg = zp.PERF_FRAME(self.to_dict())
-            self.result_stream.send(msg)
-
+        
         # Roll over positions to current day.
         self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
@@ -299,6 +301,15 @@ class PerformanceTracker():
         When the simulation is complete, run the full period risk report
         and send it out on the result_stream.
         """
+        
+        # the stream will end on the last trading day, but will not trigger
+        # an end of day, so we trigger the final market close here.
+        self.handle_market_close()
+        
+        log_msg = "Simulated {n} trading days out of {m}."
+        qutil.LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
+        qutil.LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        
         self.risk_report = risk.RiskReport(
             self.returns,
             self.trading_environment

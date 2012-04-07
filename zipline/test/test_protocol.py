@@ -39,7 +39,6 @@ class ProtocolTestCase(TestCase):
             sid, 
             price, 
             volume, 
-            start_date, 
             one_day_td, 
             self.trading_environment
         )

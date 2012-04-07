@@ -50,6 +50,58 @@ class FinanceTestCase(TestCase):
             if prev:
                 self.assertTrue(trade.dt > prev.dt)
             prev = trade
+      
+    @timed(DEFAULT_TIMEOUT)
+    def test_trading_environment(self):
+        benchmark_returns, treasury_curves = \
+        factory.load_market_data()
+        
+        env = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start = datetime(2008, 1, 1, tzinfo = pytz.utc),
+            period_end = datetime(2008, 12, 31, tzinfo = pytz.utc),
+            capital_base = 100000,
+            max_drawdown = 0.50
+        )      
+        #holidays taken from: http://www.nyse.com/press/1191407641943.html
+        new_years   = datetime(2008, 1, 1, tzinfo = pytz.utc)
+        mlk_day     = datetime(2008, 1, 21, tzinfo = pytz.utc)
+        presidents  = datetime(2008, 2, 18, tzinfo = pytz.utc)
+        good_friday = datetime(2008, 3, 21, tzinfo = pytz.utc)
+        memorial_day= datetime(2008, 5, 26, tzinfo = pytz.utc)
+        july_4th    = datetime(2008, 7, 4, tzinfo = pytz.utc)
+        labor_day   = datetime(2008, 9, 1, tzinfo = pytz.utc)
+        tgiving     = datetime(2008, 11, 27, tzinfo = pytz.utc)
+        christmas   = datetime(2008, 5, 25, tzinfo = pytz.utc)
+        a_saturday  = datetime(2008, 8, 2, tzinfo = pytz.utc)
+        a_sunday    = datetime(2008, 10, 12, tzinfo = pytz.utc)
+        holidays = [
+            new_years, 
+            mlk_day, 
+            presidents, 
+            good_friday, 
+            memorial_day, 
+            july_4th, 
+            labor_day, 
+            tgiving, 
+            christmas,
+            a_saturday,
+            a_sunday
+        ]
+        
+        for holiday in holidays:
+            self.assertTrue(not env.is_trading_day(holiday))
+        
+        first_trading_day = datetime(2008, 1, 2, tzinfo = pytz.utc)
+        last_trading_day  = datetime(2008, 12, 31, tzinfo = pytz.utc)
+        workdays = [first_trading_day, last_trading_day]
+        
+        for workday in workdays:
+            self.assertTrue(env.is_trading_day(workday))
+        
+        self.assertTrue(env.last_close.month == 12)
+        self.assertTrue(env.last_close.day == 31)
         
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):

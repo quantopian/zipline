@@ -634,6 +634,7 @@ def PERF_FRAME(perf):
 
     daily_perf = {
         'date'            : EPOCH(date),
+        'date_string'     : str(date),     
         'returns'         : tp['returns'],
         'pnl'             : tp['pnl'],
         'portfolio_value' : tp['ending_value']
@@ -675,8 +676,28 @@ def PERF_UNFRAME(msg):
 # Date Helpers
 # -----------------------
 
-def EPOCH(some_date):
-    seconds = time.mktime(some_date.timetuple())
+UNIX_EPOCH = datetime.datetime(1970, 1, 1, 0, 0, tzinfo = pytz.utc)
+def EPOCH(utc_datetime):
+    """
+    The key is to ensure all the dates you are using are in the utc timezone 
+    before you start converting. See http://pytz.sourceforge.net/ to learn how 
+    to do that properly. By normalizing to utc, you eliminate the ambiguity of 
+    daylight savings transitions. Then you can safely use timedelta to calculate 
+    distance from the unix epoch, and then convert to seconds or milliseconds.
+    
+    Note that the resulting unix timestamp is itself in the UTC timezone. If you 
+    wish to see the timestamp in a localized timezone, you will need to make 
+    another conversion.
+    
+    Also note that this will only work for dates after 1970.
+    """
+    assert isinstance(utc_datetime, datetime.datetime)
+    # utc only please
+    assert utc_datetime.tzinfo == pytz.utc
+    
+    # how long since the epoch?
+    delta = utc_datetime - UNIX_EPOCH
+    seconds = delta.total_seconds()
     ms = seconds * 1000
     return ms
     
@@ -694,10 +715,14 @@ def PACK_DATE(event):
     :rtype: None
     """
     assert isinstance(event.dt, datetime.datetime)
-    assert event.dt.tzinfo == pytz.utc #utc only please
-    year, month, day, hour, minute, second =  event.dt.timetuple()[0:6]
-    micros = event.dt.microsecond
-    event['dt'] = tuple([year, month, day, hour, minute, second, micros])
+    # utc only please
+    assert event.dt.tzinfo == pytz.utc 
+    event['dt'] = date_to_tuple(event['dt'])
+
+def date_to_tuple(dt):
+    year, month, day, hour, minute, second =  dt.timetuple()[0:6]
+    micros = dt.microsecond
+    return tuple([year, month, day, hour, minute, second, micros])
 
 def UNPACK_DATE(event):
     """
@@ -720,12 +745,14 @@ def UNPACK_DATE(event):
     assert len(event.dt) == 7
     for item in event.dt:
         assert isinstance(item, numbers.Integral)
-    year, month, day, hour, minute, second, micros = event.dt
+    event.dt = tuple_to_date(event.dt)
+    
+def tuple_to_date(date_tuple):
+    year, month, day, hour, minute, second, micros = date_tuple
     dt = datetime.datetime(year, month, day, hour, minute, second)
     dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
-    event.dt = dt
-
-
+    return dt
+    
 DATASOURCE_TYPE = Enum(
     'ORDER',
     'TRADE',

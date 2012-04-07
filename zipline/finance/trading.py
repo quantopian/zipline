@@ -356,10 +356,10 @@ class TradingEnvironment(object):
         self, 
         benchmark_returns, 
         treasury_curves, 
-        period_start=None, 
-        period_end=None, 
-        capital_base=None,
-        max_drawdown=None
+        period_start    = None, 
+        period_end      = None, 
+        capital_base    = None,
+        max_drawdown    = None
     ):
     
         self.trading_days = []
@@ -372,10 +372,55 @@ class TradingEnvironment(object):
         self.capital_base = capital_base
         self.period_trading_days = None
         self.max_drawdown = max_drawdown
-            
+        
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm
+        
+        self.first_open = self.calculate_first_open()
+        self.last_close = self.calculate_last_close()
+
+    def calculate_first_open(self):
+        """
+        Finds the first trading day on or after self.period_start.
+        """
+        first_open  = self.period_start
+        one_day      = datetime.timedelta(days=1)
+        
+        while not self.is_trading_day(first_open):
+            first_open = first_open + one_day
+
+        first_open = self.set_NYSE_time(first_open, 9, 30)
+        return first_open
+        
+    def calculate_last_close(self):
+        """
+        Finds the last trading day on or before self.period_end
+        """
+        last_close  = self.period_end
+        one_day     = datetime.timedelta(days=1)
+        
+        while not self.is_trading_day(last_close):
+            last_close = last_close - one_day
+        
+        last_close = self.set_NYSE_time(last_close, 16, 00)
+        
+        return last_close
+
+    #TODO: add other exchanges and timezones...
+    def set_NYSE_time(self, dt, hour, minute):
+        naive = datetime.datetime(
+            year=dt.year,
+            month=dt.month,
+            day=dt.day
+        )
+        local = pytz.timezone ('US/Eastern')
+        local_dt = naive.replace (tzinfo = local)
+        # set the clock to the opening bell in NYC time.
+        local_dt = local_dt.replace(hour=hour, minute=minute)
+        # convert to UTC
+        utc_dt = local_dt.astimezone (pytz.utc)
+        return utc_dt
 
     def normalize_date(self, test_date):
         return datetime.datetime(
@@ -398,6 +443,7 @@ class TradingEnvironment(object):
                     break
                 if date >= self.period_start:
                     self.period_trading_days.append(date)
+        
         
         return len(self.period_trading_days)
                 
