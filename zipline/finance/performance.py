@@ -166,15 +166,23 @@ class PerformanceTracker():
         self.result_stream           = None
         self.last_dict               = None
 
+        # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
+            # initial positions are empty
             {},
-            self.capital_base,
+            # initial portfolio positions have zero value
+            0,
+            # initial cash is your capital base.
             starting_cash = self.capital_base
         )
-
+        
+        # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
+            # initial positions are empty
             {},
-            self.capital_base,
+            # initial portfolio positions have zero value
+            0,
+            # initial cash is your capital base.
             starting_cash = self.capital_base
         )
 
