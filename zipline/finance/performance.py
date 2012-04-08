@@ -448,6 +448,7 @@ class PerformancePeriod():
             'starting_value' : self.starting_value,
             'starting_cash'  : self.starting_cash,
             'ending_cash'    : self.ending_cash,
+            'portfolio_value': self.ending_cash + self.ending_value,
             'positions'      : positions,
             'timestamp'      : datetime.datetime.now(),
             'pnl'            : self.pnl,

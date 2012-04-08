@@ -634,22 +634,31 @@ def PERF_FRAME(perf):
 
     daily_perf = {
         'date'            : EPOCH(date),
-        'date_string'     : str(date),     
         'returns'         : tp['returns'],
         'pnl'             : tp['pnl'],
-        'portfolio_value' : tp['ending_value']
+        'market_value'    : cp['ending_value'],
+        'portfolio_value' : cp['portfolio_value'],
+        'starting_cash'   : tp['starting_cash'],
+        'ending_cash'     : tp['ending_cash'],
+        'capital_used'    : tp['capital_used']           
     }
 
     cumulative_perf = {
-        'alpha'                : risk['alpha'],
-        'beta'                 : risk['beta'],
-        'sharpe'               : risk['sharpe'],
-        'total_returns'        : cp['returns'],
-        'volatility'           : risk['algo_volatility'],
-        'benchmark_volatility' : risk['benchmark_volatility'],
-        'benchmark_returns'    : risk['benchmark_period_return'],
-        'max_drawdown'         : risk['max_drawdown'],
-        'pnl'                  : cp['pnl']
+        'alpha'                 : risk['alpha'],
+        'beta'                  : risk['beta'],
+        'sharpe'                : risk['sharpe'],
+        'volatility'            : risk['algo_volatility'],
+        'benchmark_volatility'  : risk['benchmark_volatility'],
+        'benchmark_returns'     : risk['benchmark_period_return'],
+        'max_drawdown'          : risk['max_drawdown'],
+        'total_returns'         : cp['returns'],
+        'pnl'                   : cp['pnl'],
+        'market_value'          : cp['ending_value'],
+        'portfolio_value'       : cp['portfolio_value'],
+        'starting_cash'         : cp['starting_cash'],
+        'ending_cash'           : cp['ending_cash'],
+        'capital_used'          : cp['capital_used']
+        
     }
     
     # nest the cumulative performance data in the daily.
