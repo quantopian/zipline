@@ -255,12 +255,14 @@ class PerformanceTracker():
         self.cumulative_performance.update_last_sale(event)
         self.todays_performance.update_last_sale(event)
 
+        
+
+    def handle_market_close(self):
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
-
-    def handle_market_close(self):
-        #add the return results from today to the list of DailyReturn objects.
+        
+        # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
             todays_date,
@@ -297,7 +299,6 @@ class PerformanceTracker():
         self.market_close = self.market_open + self.trading_day
         
         # Roll over positions to current day.
-        self.todays_performance.calculate_performance()
         self.todays_performance = PerformancePeriod(
             self.todays_performance.positions,
             self.todays_performance.ending_value,
