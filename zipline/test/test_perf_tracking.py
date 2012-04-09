@@ -23,7 +23,7 @@ class PerformanceTestCase(unittest.TestCase):
             len(self.treasury_curves)
         )
         self.dt = self.treasury_curves.keys()[random_index]
-        self.end_dt = self.dt + datetime.timedelta(days=365+2)
+        self.end_dt = self.dt + datetime.timedelta(days=365)
         self.trading_environment = TradingEnvironment(
             self.benchmark_returns, 
             self.treasury_curves,
