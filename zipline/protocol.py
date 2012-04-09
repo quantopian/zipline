@@ -636,8 +636,8 @@ def PERF_FRAME(perf):
         'date'            : EPOCH(date),
         'returns'         : tp['returns'],
         'pnl'             : tp['pnl'],
-        'market_value'    : cp['ending_value'],
-        'portfolio_value' : cp['portfolio_value'],
+        'market_value'    : tp['ending_value'],
+        'portfolio_value' : tp['portfolio_value'],
         'starting_cash'   : tp['starting_cash'],
         'ending_cash'     : tp['ending_cash'],
         'capital_used'    : tp['capital_used']           
@@ -653,10 +653,6 @@ def PERF_FRAME(perf):
         'max_drawdown'          : risk['max_drawdown'],
         'total_returns'         : cp['returns'],
         'pnl'                   : cp['pnl'],
-        'market_value'          : cp['ending_value'],
-        'portfolio_value'       : cp['portfolio_value'],
-        'starting_cash'         : cp['starting_cash'],
-        'ending_cash'           : cp['ending_cash'],
         'capital_used'          : cp['capital_used']
         
     }
