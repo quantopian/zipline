@@ -64,7 +64,9 @@ def advance_by_months(dt, jump_in_months):
 class DailyReturn():
 
     def __init__(self, date, returns):
-        self.date = date
+        
+        assert isinstance(date, datetime.datetime)
+        self.date = date.replace(hour=0, minute=0, second=0)
         self.returns = returns
 
     def to_dict(self):
@@ -304,9 +306,11 @@ class RiskMetrics():
             if rate != None:
                 return rate * (td.days + 1) / 365
 
-        message = "no rate for end date = {dt} and term = {term}. Using zero."
-        message = message.format(dt=self.end_date,term=self.treasury_duration)
-        raise Exception(message)
+            message = "no rate for end date = {dt} and term = {term}. Check \
+            that date doesn't exceed treasury history range."
+            message = message.format(dt=self.end_date,term=self.treasury_duration)
+            raise Exception(message)
+        
 
 
 class RiskReport():
@@ -326,7 +330,7 @@ class RiskReport():
         else:
             start_date = self.algorithm_returns[0].date
             end_date = self.algorithm_returns[-1].date
-
+            
         self.month_periods = self.periodsInRange(1, start_date, end_date)
         self.three_month_periods = self.periodsInRange(3, start_date, end_date)
         self.six_month_periods = self.periodsInRange(6, start_date, end_date)

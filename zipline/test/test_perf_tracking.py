@@ -18,18 +18,23 @@ class PerformanceTestCase(unittest.TestCase):
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
         
+        random_index = random.randint(
+            0,
+            len(self.treasury_curves)
+        )
+        self.dt = self.treasury_curves.keys()[random_index]
+        self.end_dt = self.dt + datetime.timedelta(days=365)
         self.trading_environment = TradingEnvironment(
             self.benchmark_returns, 
-            self.treasury_curves
+            self.treasury_curves,
+            period_start = self.dt,
+            period_end = self.end_dt
         )
         
         self.onesec = datetime.timedelta(seconds=1)
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
-        random_index = random.randint(
-            0,
-            len(self.trading_environment.trading_days)
-        )
+        
         
         self.dt = self.trading_environment.trading_days[random_index]
         
@@ -46,7 +51,6 @@ class PerformanceTestCase(unittest.TestCase):
             1,
             [10,10,10,11],
             [100,100,100,100],
-            self.dt, 
             self.onesec,
             self.trading_environment
         )
@@ -110,14 +114,15 @@ class PerformanceTestCase(unittest.TestCase):
     def test_short_position(self):
         """verify that the performance period calculates properly for a \
 single short-sale transaction"""
-        trades_1 = factory.create_trade_history(
+        trades = factory.create_trade_history(
             1,
-            [10,10,10,11],
-            [100,100,100,100],
-            self.dt, 
+            [10,10,10,11,10,9],
+            [100,100,100,100,100,100],
             self.onesec,
             self.trading_environment
         )
+        
+        trades_1 = trades[:-2]
         
         txn = factory.create_txn(1, 10.0, -100, self.dt + self.onesec)
         pp = perf.PerformancePeriod({}, 0.0, 1000.0)
@@ -173,16 +178,9 @@ single short-sale transaction"""
         
         self.assertEqual(pp.pnl,-100,"gain of 1 on 100 shares should be 100")
             
-        #simulate additional trades, and ensure that the position value 
-        #reflects the new price
-        trades_2 = factory.create_trade_history(
-            1,
-            [10,9],
-            [100,100],
-            trades_1[-1]['dt'] + self.onesec, 
-            self.onesec,
-            self.trading_environment
-        )
+        # simulate additional trades, and ensure that the position value 
+        # reflects the new price
+        trades_2 = trades[-2:]
         
         #simulate a rollover to a new period
         pp2 = perf.PerformancePeriod(
@@ -314,7 +312,6 @@ trade after cover"""
             1,
             [10,10,10,11,9,8,7,8,9,10],
             [100,100,100,100,100,100,100,100,100,100],
-            self.dt, 
             self.onesec,
             self.trading_environment
         )
@@ -393,8 +390,7 @@ shares in position"
         trades = factory.create_trade_history(
             1, 
             [10,11,11,12], 
-            [100,100,100,100], 
-            self.dt, 
+            [100,100,100,100],  
             self.onesec,
             self.trading_environment
         )
@@ -403,7 +399,6 @@ shares in position"
             1, 
             [10,11,11,12], 
             [100,100,100,100], 
-            self.dt, 
             self.onesec,
             self.trading_environment
         )
@@ -510,14 +505,13 @@ shares in position"
         price = 10.1 
         price_list = [price] * trade_count
         volume = [100] * trade_count
-        start_date = datetime.datetime.strptime("01/01/2011","%m/%d/%Y")
-        start_date = start_date.replace(tzinfo=pytz.utc)
+        #start_date = datetime.datetime.strptime("01/01/2011","%m/%d/%Y")
+        #start_date = start_date.replace(tzinfo=pytz.utc)
         trade_time_increment = datetime.timedelta(days=1)
         trade_history = factory.create_trade_history( 
             sid, 
             price_list, 
             volume, 
-            start_date, 
             trade_time_increment, 
             self.trading_environment 
         )
@@ -529,7 +523,6 @@ shares in position"
             sid2, 
             price2_list, 
             volume, 
-            start_date, 
             trade_time_increment, 
             self.trading_environment 
         )
