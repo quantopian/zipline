@@ -15,11 +15,11 @@ Initial `virtualenv` setup::
 
     $ mkvirtualenv zipline
     $ workon zipline
-	#go get coffee, this will compile a heap of C/C++ code
-    $ ./etc/ordered_pip.sh requirements_sci.txt 
-	$ ./etc/ordered_pip.sh requirements.txt
-	#optionally
-	$ ./etc/ordered_pip.sh requirements_dev.txt
+	# Go get coffee, the following will compile a heap of C/C++ code
+    $ ./etc/ordered_pip.sh etc/requirements_sci.txt 
+	$ ./etc/ordered_pip.sh etc/requirements.txt
+	# And optionally:
+	$ ./etc/ordered_pip.sh etc/requirements_dev.txt
 
 
 Develop
