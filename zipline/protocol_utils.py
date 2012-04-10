@@ -60,7 +60,7 @@ class namedict(object):
 
     def __getitem__(self, key):
         return self.__dict__[key]
-
+        
     def keys(self):
         return self.__dict__.keys()
 
