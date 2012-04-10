@@ -81,6 +81,9 @@ Position Tracking
     | last_sale_date  | datetime of the last trade of the position's       |
     |                 | security on the exchange                           |
     +-----------------+----------------------------------------------------+
+    | transactions    | all the transactions that were acrued into this    |
+    |                 | position.                                          |
+    +-----------------+----------------------------------------------------+
     | timestamp       | System time event occurs in zipilne                |
     +-----------------+----------------------------------------------------+
 
@@ -344,11 +347,13 @@ class Position():
         self.cost_basis = 0.0 ##per share
         self.last_sale_price = None
         self.last_sale_date = None
+        self.transactions = []
 
     def update(self, txn):
         if(self.sid != txn.sid):
             raise NameError('updating position with txn for a different sid')
 
+        self.transactions.append(txn)
          #we're covering a short or closing a position
         if(self.amount + txn.amount == 0):
             self.cost_basis = 0.0
@@ -387,6 +392,7 @@ class Position():
             'last_sale_price' : self.last_sale_price,
             'last_sale_date'  : self.last_sale_date,
             'timestamp'       : datetime.datetime.now(),
+            'transactions'    : self.transactions    
         }
 
 

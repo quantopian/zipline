@@ -631,6 +631,19 @@ def PERF_FRAME(perf):
     tp   = perf['todays_perf']
     cp   = perf['cumulative_perf']
     risk = perf['cumulative_risk_metrics']
+    
+    # aggregate the day's transactions, which are nested in their 
+    # respsective positions. 
+    transactions = []
+    for sid, position in tp['positions'].iteritems():
+        for txn in position['transactions']:
+            cur = {
+                'date':EPOCH(txn.dt),
+                'amount': txn.amount,
+                'price': txn.price,
+                'sid':txn.sid
+            }
+            transactions.append(cur)
 
     daily_perf = {
         'date'            : EPOCH(date),
@@ -640,7 +653,8 @@ def PERF_FRAME(perf):
         'portfolio_value' : tp['portfolio_value'],
         'starting_cash'   : tp['starting_cash'],
         'ending_cash'     : tp['ending_cash'],
-        'capital_used'    : tp['capital_used']           
+        'capital_used'    : tp['capital_used'],
+        'transactions'    : transactions                
     }
 
     cumulative_perf = {
