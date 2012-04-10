@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import time
 import pytz
 import calendar
 from dateutil import rrule
@@ -7,7 +8,22 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import *
 
 # Datetime Tuple
+# --------------
 d_tuple = namedtuple('dt', ['year', 'month', 'day', 'hour', 'minute', 'second', 'micros'])
+
+# UTC Datetime Subclasses
+# -----------------------
+def utcnow():
+    return datetime.now(pytz.utc)
+
+class utcdatetime(datetime):
+    def __new__(cls, *args, **kwargs):
+        kwargs['tzinfo'] = pytz.utc
+        dt = datetime.__new__(cls, *args, **kwargs)
+        return dt
+
+# Datetime Calculations
+# ---------------------
 
 WEEKDAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR]
 
@@ -27,6 +43,7 @@ HOLIDAYS = {
 rule = rrule.rrule(
     rrule.DAILY,
     byweekday=WEEKDAYS,
+    cache=True,
 )
 
 # Precompute the rule, so that dates are cached.
@@ -53,3 +70,10 @@ if __name__ == '__main__':
     # days, excluding the preset holidays.
     for day in trading_days(now, now30):
         print day
+
+    # Its now cached so if we do that traversal again it only
+    # takes like 1e-5 seconds.
+    tic = time.time()
+    for day in trading_days(now, now30):
+        print day
+    print time.time() - tic
