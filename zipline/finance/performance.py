@@ -347,13 +347,11 @@ class Position():
         self.cost_basis = 0.0 ##per share
         self.last_sale_price = None
         self.last_sale_date = None
-        self.transactions = []
 
     def update(self, txn):
         if(self.sid != txn.sid):
             raise NameError('updating position with txn for a different sid')
 
-        self.transactions.append(txn)
          #we're covering a short or closing a position
         if(self.amount + txn.amount == 0):
             self.cost_basis = 0.0
@@ -391,8 +389,7 @@ class Position():
             'cost_basis'      : self.cost_basis,
             'last_sale_price' : self.last_sale_price,
             'last_sale_date'  : self.last_sale_date,
-            'timestamp'       : datetime.datetime.now(),
-            'transactions'    : self.transactions    
+            'timestamp'       : datetime.datetime.now()
         }
 
 
@@ -408,6 +405,7 @@ class PerformancePeriod():
         #cash balance at start of period
         self.starting_cash          = starting_cash
         self.ending_cash            = starting_cash
+        self.processed_transactions = []
         
         self.calculate_performance()
 
@@ -429,6 +427,7 @@ class PerformancePeriod():
             self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
+        self.processed_transactions.append(txn)
 
     def calculate_positions_value(self):
         mktValue = 0.0
@@ -459,7 +458,8 @@ class PerformancePeriod():
             'positions'      : positions,
             'timestamp'      : datetime.datetime.now(),
             'pnl'            : self.pnl,
-            'returns'        : self.returns
+            'returns'        : self.returns,
+            'transactions'   : self.processed_transactions,
         }
         
     def to_namedict(self):

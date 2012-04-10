@@ -635,15 +635,24 @@ def PERF_FRAME(perf):
     # aggregate the day's transactions, which are nested in their 
     # respsective positions. 
     transactions = []
-    for sid, position in tp['positions'].iteritems():
-        for txn in position['transactions']:
-            cur = {
-                'date':EPOCH(txn.dt),
-                'amount': txn.amount,
-                'price': txn.price,
-                'sid':txn.sid
-            }
-            transactions.append(cur)
+    for txn in tp['transactions']:
+        cur = {
+            'date':EPOCH(txn.dt),
+            'amount': txn.amount,
+            'price': txn.price,
+            'sid':txn.sid
+        }
+        transactions.append(cur)
+        
+    positions = []
+    for sid, pos in tp['positions'].iteritems():
+        cur = {
+            'cost_basis':pos['cost_basis'],
+            'sid'       :pos['sid'],
+            'last_sale' :pos['last_sale_price'],
+            'amount'    :pos['amount']
+        }
+        positions.append(cur)
 
     daily_perf = {
         'date'            : EPOCH(date),
@@ -654,7 +663,8 @@ def PERF_FRAME(perf):
         'starting_cash'   : tp['starting_cash'],
         'ending_cash'     : tp['ending_cash'],
         'capital_used'    : tp['capital_used'],
-        'transactions'    : transactions                
+        'transactions'    : transactions,
+        'positions'       : positions                    
     }
 
     cumulative_perf = {
