@@ -3,6 +3,9 @@ Misc ZeroMQ utilities.
 """
 import gevent
 import msgpack
+import numpy
+from numpy import dtype
+from pandas import DataFrame
 from gevent_zeromq import zmq
 
 from contextlib import closing
@@ -92,3 +95,60 @@ def ZmqConsole(sock_typ, socket_addr, sock_conn=None, context=None):
             import pdb; pdb.set_trace()
 
     return gevent.spawn(console)
+
+class NumpyChannel(zmq.Socket):
+
+    def recv_pandas(self, flags=0, copy=True, track=False):
+
+        # Pandas Metadata
+        index, columns, dtype_name, shape = msgpack.loads(self.recv(flags=flags))
+
+        # Pandas ndarray
+        ndbuffer = self.recv(flags=flags, copy=copy, track=track)
+        buf = buffer(ndbuffer)
+
+        ndarray = numpy.frombuffer(buf, dtype=dtype(dtype_name)).reshape(shape)
+        return DataFrame(data=ndarray, index=index,
+                columns=columns, dtype=dtype_name)
+
+    def send_pandas(self, df, flags=0, copy=True, track=False):
+
+        # Pandas Metadata
+        index = df.index.tolist()
+        columns = df.columns.tolist()
+        dtype_name = df.values.dtype.name
+        shape = df.values.shape
+
+        # Pandas ndarray
+        ndarray = df.values
+
+        metadata = msgpack.dumps((index, columns, dtype_name, shape))
+
+        self.send(metadata, flags|zmq.SNDMORE)
+        return self.send(ndarray, flags, copy=copy, track=track)
+
+if __name__ == '__main__':
+
+    from numpy.random import randn
+    df = DataFrame(randn(5,5))
+
+    ctx = zmq.Context.instance()
+
+    def send():
+        pub = NumpyChannel(ctx, zmq.PUSH)
+        pub.bind('inproc://a')
+
+        for i in xrange(100):
+            pub.send_pandas(df, copy=False)
+
+    def recv():
+        sub = NumpyChannel(ctx, zmq.PULL)
+        sub.connect('inproc://a')
+
+        for i in xrange(100):
+            sub.recv_pandas(copy=False)
+
+    gevent.joinall([
+        gevent.spawn(send),
+        gevent.spawn(recv)
+    ])

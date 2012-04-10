@@ -6,11 +6,9 @@ ZeroMQ. :)
 """
 
 import zlib
-#import blosc
 import hmac
 import base64
-import numpy
-import pandas
+#import blosc
 
 import cPickle as pickle
 
@@ -32,39 +30,6 @@ def recv_zipped_pickle(socket, flags=0, protocol=-1):
     z = socket.recv(flags)
     p = zlib.uncompress(z)
     return pickle.loads(p, protocol=protocol)
-
-# HDF5, Numpy Byte Strings, Pandas arrays should use
-# blosc and reconstruct the Python container from the byte string
-# on the other side.
-
-def send_numpy(socket, obj, flags=0):
-    packed = blosc.pack_array(obj)
-    return socket.send(packed, flags=flags)
-
-def recv_numpy(socket, flags=0):
-    packed = blosc.unpack_array(socket.recv(flags))
-    return socket.send(packed, flags=flags)
-
-def send_pandas(socket, obj, flags=0):
-    ndarray = obj._data.blocks[0].values
-    socket.send_multipart(ndarray, flags=flags)
-    spec = (
-        obj._data.index,
-        obj._data.columns,
-        obj._data.blocks[0].dtype
-    )
-    return socket.send_multipart(spec, flags)
-
-def recv_pandas(socket, flags=0):
-    ndarray = socket.recv_multipart(flags)
-    spec = socket.recv_multipart(flags)
-    return pandas.DataFrame._init_ndarray(ndarray, *spec)
-
-def send_hdf5(self):
-    pass
-
-def recv_hdf5(self):
-    pass
 
 # Cryptographically secure wire protocol for ZeroMQ Using HMAC.
 
