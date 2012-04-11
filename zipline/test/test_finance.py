@@ -218,32 +218,86 @@ class FinanceTestCase(TestCase):
         )
 
     
+    # TODO: write a test that proves orders expire without being filled.
     @timed(DEFAULT_TIMEOUT)
     def test_transaction_sim(self):
         
-        trade_count = 40
+        # create a scenario where order size and trade size are equal
+        # so that orders must be spread out over several trades.
+        params ={
+            'trade_count':360,
+            'trade_amount':100,
+            'trade_interval': timedelta(minutes=1),
+            'order_count':2,
+            'order_amount':100,
+            'order_interval': timedelta(minutes=1),
+            # because we placed an order for 100 shares, and the volume
+            # of each trade is 100, the simulator should spread the order
+            # into 4 trades of 25 shares per order.
+            'expected_txn_count':8,
+            'expected_txn_volume':2 * 100
+        }
+        
+        self.transaction_sim(**params)
+        
+        # create a scenario where order.amount <<< trade.volume
+        # to test that several orders can be covered properly by one trade.
+        params2 ={
+            'trade_count':6,
+            'trade_amount':100,
+            'trade_interval': timedelta(hours=1),
+            'order_count':24,
+            'order_amount':1,
+            'order_interval': timedelta(minutes=1),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count':1,
+            'expected_txn_volume':24 * 1
+        }
+        self.transaction_sim(**params2)
+        
+        # create a scenario where orders expire without being filled
+        # entirely
+        params3 = {
+            'trade_count':100,
+            'trade_amount':100,
+            'trade_delay': timedelta(minutes=5),
+            'trade_interval': timedelta(days=1),
+            'order_count':3,
+            'order_amount':1000,
+            'order_interval': timedelta(minutes=30),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count' : 1,
+            'expected_txn_volume' : 25
+        }
+        self.transaction_sim(**params3)
+        
+    def transaction_sim(self, **params):
+        trade_count = params['trade_count']
+        trade_amount = params['trade_amount']
+        trade_interval = params['trade_interval']
+        trade_delay = params.get('trade_delay')
+        order_count = params['order_count']
+        order_amount = params['order_amount']
+        order_interval = params['order_interval']
+        expected_txn_count = params['expected_txn_count']
+        expected_txn_volume = params['expected_txn_volume']
+        
         trading_environment = factory.create_trading_environment()
         trade_sim = TransactionSimulator()
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.first_open
-        one_day = timedelta(days=1)
-        one_hour = timedelta(hours=1)
         sid = 1
 
         generated_trades = factory.create_trade_history( 
             sid, 
             price, 
             volume, 
-            one_hour, 
+            trade_interval, 
             trading_environment 
         )
-        
-        trade_1 = generated_trades.pop()
-        trade_sim.transform(trade_1)
-        
-        order_amount = 100
-        order_count  = 2
         
         for i in range(order_count):
             order = namedict(
@@ -251,18 +305,18 @@ class FinanceTestCase(TestCase):
                 'sid':sid,
                 'amount':order_amount,
                 'type':zp.DATASOURCE_TYPE.ORDER,
-                'dt' : start_date + i * one_day
+                'dt' : start_date + i * order_interval
             })
 
             sim_state = trade_sim.transform(order)
         
-        # there should not be a new transaction from an order.
-        self.assertTrue(sim_state['name'] == trade_sim.get_id)
-        self.assertTrue(sim_state['value'] == None)
+            # there should not be a new transaction from an order.
+            self.assertTrue(sim_state['name'] == trade_sim.get_id)
+            self.assertTrue(sim_state['value'] == None)
         
-        # there should now be one open order in the sid
-       
+        # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
+        self.assertEqual(len(oo), 1)
         self.assertTrue(oo.has_key(sid))
         order_list = oo[sid]
         self.assertEqual(order_count, len(order_list))
@@ -273,31 +327,29 @@ class FinanceTestCase(TestCase):
         
         transactions = []
         for trade in generated_trades:
+            if trade_delay:
+                trade.dt = trade.dt + trade_delay
+                
             sim_state = trade_sim.transform(trade)
             
             self.assertEqual(sim_state['name'], trade_sim.get_id)
-            
+
             if sim_state['value']:
-                transactions.append(sim_state['value'])
+                transactions.append(sim_state['value'])         
             
-            
-            if len(trade_sim.open_orders[sid]) == 0:
-                break
                 
         total_volume = 0
         for txn in transactions:
             total_volume += txn.amount
             
-        self.assertEqual(total_volume, order_count * order_amount)    
-            
-        # because we placed an order for 100 shares, and the volume
-        # of each trade is 100, the simulator should spread the order
-        # into 4 trades of 25 shares per order.
-        self.assertEqual(len(transactions), 4 * order_count)
+        self.assertEqual(total_volume, expected_txn_volume)    
+        self.assertEqual(len(transactions), expected_txn_count)
         
         # the open orders should now be empty
         oo = trade_sim.open_orders
         self.assertTrue(oo.has_key(sid))
         order_list = oo[sid]
         self.assertEqual(0, len(order_list))
+        
+        
         

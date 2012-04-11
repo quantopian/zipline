@@ -308,8 +308,7 @@ class TransactionSimulator(qmsg.BaseTransform):
             orders = sorted(orders, key=lambda o: o.dt)
         else:
             return None
-
-        total_order = 0        
+     
         dt = event.dt
         expired = []
         total_order = 0
@@ -318,7 +317,7 @@ class TransactionSimulator(qmsg.BaseTransform):
         direction = 1.0
         for order in orders:
             
-            if(order.dt <= event.dt):
+            if(order.dt < event.dt):
                 
                 # orders are only good on the day they are issued
                 if order.dt.day < event.dt.day:
@@ -336,7 +335,7 @@ class TransactionSimulator(qmsg.BaseTransform):
                 volume_share = direction * (desired_order) / event.volume
                 if volume_share > .25:
                     volume_share = .25
-                simulated_amount = volume_share * event.volume * direction
+                simulated_amount = int(volume_share * event.volume * direction)
                 simulated_impact = (volume_share)**2 * .1 * direction * event.price
                 
                 order.filled += (simulated_amount - total_order)
@@ -347,12 +346,20 @@ class TransactionSimulator(qmsg.BaseTransform):
                     break
                    
                 if simulated_amount == 0:
-                    warning = "Calculated a zero volume transation on trade: {event}"
-                    warning = warning.format(event=str(event))
+                    warning = """
+Calculated a zero volume transation on trade: 
+{event} 
+for order: 
+{order}
+                    """
+                    warning = warning.format(
+                        event=str(event), 
+                        order=str(order)
+                    )
                     qutil.LOGGER.warn(warning)
-                    
+         
+                
         orders = [ x for x in orders if x.amount - x.filled > 0 and x.dt.day >= event.dt.day]
-        
         self.open_orders[event.sid] = orders
         
         
@@ -477,7 +484,15 @@ class TradingEnvironment(object):
         
         return len(self.period_trading_days)
                 
-            
+    def is_market_hours(self, test_date):
+        if not self.is_trading_day(test_date):
+            return False
+        
+        mkt_open = self.set_NYSE_time(test_date, 9, 30)
+        #TODO: half days?
+        mkt_close = self.set_NYSE_time(test_date, 16, 00)
+        
+        return test_date >= mkt_open and test_date <= mkt_close
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)

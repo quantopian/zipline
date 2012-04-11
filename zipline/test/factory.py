@@ -68,7 +68,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
     next = current
     while True:
         next = next + interval
-        if trading_calendar.is_trading_day(next):
+        if trading_calendar.is_market_hours(next):
             break
     
     return next
@@ -79,9 +79,9 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
 
     for price, amount in zip(prices, amounts):
         
-        current = get_next_trading_dt(current, interval, trading_calendar)
         trade = create_trade(sid, price, amount, current)
         trades.append(trade)
+        current = get_next_trading_dt(current, interval, trading_calendar)
 
     assert len(trades) == len(prices)
     return trades
