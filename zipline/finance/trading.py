@@ -249,9 +249,8 @@ class TransactionSimulator(qmsg.BaseTransform):
         self.open_orders                = {}
         self.order_count                = 0
         self.txn_count                  = 0
-        self.trade_window                = datetime.timedelta(seconds=30)
+        self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
-        self.volume_share               = 0.05
         self.commission                 = 0.03
             
     def transform(self, event):
@@ -267,9 +266,12 @@ class TransactionSimulator(qmsg.BaseTransform):
             self.state['value'] = txn
         else:
             self.state['value'] = None
-            qutil.LOGGER.info("unexpected event type in transform: {etype}".format(etype=event.type))
+            log = "unexpected event type in transform: {etype}".format(
+                etype=event.type
+            )
+            qutil.LOGGER.info(log)
+            
         #TODO: what to do if we get another kind of datasource event.type?
-        
         return self.state
             
     def add_open_order(self, event):
@@ -279,13 +281,19 @@ class TransactionSimulator(qmsg.BaseTransform):
         """
         event.amount = int(event.amount)
         if event.amount == 0:
-            qutil.LOGGER.debug("requested to trade zero shares of {sid}".format(sid=event.sid))
+            log = "requested to trade zero shares of {sid}".format(
+                sid=event.sid
+            )
+            qutil.LOGGER.debug(log)
             return
             
         self.order_count += 1
         
         if(not self.open_orders.has_key(event.sid)):
             self.open_orders[event.sid] = []
+            
+        # set the filled property to zero
+        event.filled = 0
         self.open_orders[event.sid].append(event)
      
     def apply_trade_to_open_orders(self, event):
@@ -293,47 +301,71 @@ class TransactionSimulator(qmsg.BaseTransform):
         if(event.volume == 0):
             #there are zero volume events bc some stocks trade 
             #less frequently than once per minute.
-            return self.create_dummy_txn(event.dt)
+            return None
             
         if self.open_orders.has_key(event.sid):
             orders = self.open_orders[event.sid] 
+            orders = sorted(orders, key=lambda o: o.dt)
         else:
             return None
-            
-        remaining_orders = []
+
         total_order = 0        
         dt = event.dt
-    
+        expired = []
+        total_order = 0
+        simulated_amount = 0
+        simulated_impact = 0.0
+        direction = 1.0
         for order in orders:
-            #we're using minute bars, so allow orders within 
-            #30 seconds of the trade
-            if((order.dt - event.dt) < self.trade_window):
-                total_order += order.amount
-                if(order.dt > dt):
-                    dt = order.dt
-            #if the order still has time to live (TTL) keep track
-            elif((self.algo_time - order.dt) < self.orderTTL):
-                remaining_orders.append(order)
-    
-        self.open_orders[event.sid] = remaining_orders
-    
-        if(total_order != 0):
-            direction = total_order / math.fabs(total_order)
-        else:
-            direction = 1
             
-        volume_share = (direction * total_order) / event.volume
-        if volume_share > .25:
-            volume_share = .25
-        amount = volume_share * event.volume * direction
-        impact = (volume_share)**2 * .1 * direction * event.price
-        return self.create_transaction(
-            event.sid, 
-            amount, 
-            event.price + impact, 
-            dt.replace(tzinfo = pytz.utc), 
-            direction
-        )
+            if(order.dt <= event.dt):
+                
+                # orders are only good on the day they are issued
+                if order.dt.day < event.dt.day:
+                    continue
+    
+                open_amount = order.amount - order.filled
+                
+                if(open_amount != 0):
+                    direction = open_amount / math.fabs(open_amount)
+                else:
+                    direction = 1
+                
+                desired_order = total_order + open_amount
+                
+                volume_share = direction * (desired_order) / event.volume
+                if volume_share > .25:
+                    volume_share = .25
+                simulated_amount = volume_share * event.volume * direction
+                simulated_impact = (volume_share)**2 * .1 * direction * event.price
+                
+                order.filled += (simulated_amount - total_order)
+                total_order = simulated_amount
+                
+                # we cap the volume share at 25% of a trade
+                if volume_share == .25:
+                    break
+                   
+                if simulated_amount == 0:
+                    warning = "Calculated a zero volume transation on trade: {event}"
+                    warning = warning.format(event=str(event))
+                    qutil.LOGGER.warn(warning)
+                    
+        orders = [ x for x in orders if x.amount - x.filled > 0 and x.dt.day >= event.dt.day]
+        
+        self.open_orders[event.sid] = orders
+        
+        
+        if simulated_amount > 0:
+            return self.create_transaction(
+                event.sid, 
+                simulated_amount, 
+                event.price + simulated_impact, 
+                dt.replace(tzinfo = pytz.utc), 
+                direction
+            )
+        else:
+            return None
     
         
     def create_transaction(self, sid, amount, price, dt, direction):   

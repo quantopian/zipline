@@ -21,6 +21,7 @@ TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.lines import SimulatedTrading
+from zipline.protocol_utils import namedict
 
 DEFAULT_TIMEOUT = 15 # seconds
 
@@ -204,7 +205,9 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config['trade_count'] = 200
         self.zipline_test_config['algorithm'] = test_algo
         
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        zipline = SimulatedTrading.create_test_zipline(
+            **self.zipline_test_config
+        )
        
         zipline.simulate(blocking=True)
         #check that the algorithm received no events
@@ -214,8 +217,87 @@ class FinanceTestCase(TestCase):
             "The algorithm should not receive any events due to filtering."
         )
 
+    
+    @timed(DEFAULT_TIMEOUT)
+    def test_transaction_sim(self):
+        
+        trade_count = 40
+        trading_environment = factory.create_trading_environment()
+        trade_sim = TransactionSimulator()
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
+        start_date = trading_environment.first_open
+        one_day = timedelta(days=1)
+        one_hour = timedelta(hours=1)
+        sid = 1
 
+        generated_trades = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            one_hour, 
+            trading_environment 
+        )
+        
+        trade_1 = generated_trades.pop()
+        trade_sim.transform(trade_1)
+        
+        order_amount = 100
+        order_count  = 2
+        
+        for i in range(order_count):
+            order = namedict(
+            {
+                'sid':sid,
+                'amount':order_amount,
+                'type':zp.DATASOURCE_TYPE.ORDER,
+                'dt' : start_date + i * one_day
+            })
 
-
-
-
+            sim_state = trade_sim.transform(order)
+        
+        # there should not be a new transaction from an order.
+        self.assertTrue(sim_state['name'] == trade_sim.get_id)
+        self.assertTrue(sim_state['value'] == None)
+        
+        # there should now be one open order in the sid
+       
+        oo = trade_sim.open_orders
+        self.assertTrue(oo.has_key(sid))
+        order_list = oo[sid]
+        self.assertEqual(order_count, len(order_list))
+        
+        for order in order_list:
+            self.assertEqual(order.sid, sid)
+            self.assertEqual(order.amount, order_amount)
+        
+        transactions = []
+        for trade in generated_trades:
+            sim_state = trade_sim.transform(trade)
+            
+            self.assertEqual(sim_state['name'], trade_sim.get_id)
+            
+            if sim_state['value']:
+                transactions.append(sim_state['value'])
+            
+            
+            if len(trade_sim.open_orders[sid]) == 0:
+                break
+                
+        total_volume = 0
+        for txn in transactions:
+            total_volume += txn.amount
+            
+        self.assertEqual(total_volume, order_count * order_amount)    
+            
+        # because we placed an order for 100 shares, and the volume
+        # of each trade is 100, the simulator should spread the order
+        # into 4 trades of 25 shares per order.
+        self.assertEqual(len(transactions), 4 * order_count)
+        
+        # the open orders should now be empty
+        oo = trade_sim.open_orders
+        self.assertTrue(oo.has_key(sid))
+        order_list = oo[sid]
+        self.assertEqual(0, len(order_list))
+        
