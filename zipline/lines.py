@@ -191,16 +191,16 @@ class SimulatedTrading(object):
             - sid - an integer, which will be used as the security ID. 
             - order_count - the number of orders the test algo will place,
               defaults to 100
+            - order_amount - the number of shares per order, defaults to 100
             - trade_count - the number of trades to simulate, defaults to 100
             - simulator_class - optional parameter that provides an alternative 
               subclass of ComponentHost to hold the whole zipline. Defaults to
               :py:class:`zipline.simulator.Simulator`   
             - algorithm - optional parameter providing an algorithm. defaults
               to :py:class:`zipline.test.algorithms.TestAlgorithm`
-            - random - optional parameter to request random trades. if present
-              :py:class:`zipline.sources.RandomEquityTrades` is the source. If
-              not :py:class:`ziplien.sources.SpecificEquityTrades` is the 
-              source
+            - trade_source - optional parameter to specify trades, if present.
+              If not present :py:class:`ziplien.sources.SpecificEquityTrades` 
+              is the source, with daily frequency in trades.
         """
         assert isinstance(config, dict)
         
@@ -219,6 +219,11 @@ class SimulatedTrading(object):
             order_count = config['order_count']
         else:
             order_count = 100
+    
+        if config.has_key('order_amount'):
+            order_amount = config['order_amount']
+        else:
+            order_amount = 100
             
         if config.has_key('trade_count'):
             trade_count = config['trade_count']
@@ -235,12 +240,8 @@ class SimulatedTrading(object):
         #-------------------
         sids = [sid]
         #-------------------
-        if config.has_key('random'):
-            trade_source = factory.create_random_trade_source(
-                sids,
-                trade_count,
-                trading_environment
-            )
+        if config.has_key('trade_source'):
+            trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
                 sids,
@@ -253,7 +254,6 @@ class SimulatedTrading(object):
         if config.has_key('algorithm'):
             test_algo = config['algorithm']
         else:
-            order_amount = 100
             test_algo = TestAlgorithm(
                 sid,
                 order_amount,

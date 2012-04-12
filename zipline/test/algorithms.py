@@ -76,8 +76,8 @@ class TestAlgorithm():
             self.incr += 1
                 
     def get_sid_filter(self):
-        return [self.sid]
-                
+        return [self.sid]          
+    
 class NoopAlgorithm(object):
     """
     Dolce fa niente.

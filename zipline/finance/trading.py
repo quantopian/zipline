@@ -357,13 +357,13 @@ for order:
                         order=str(order)
                     )
                     qutil.LOGGER.warn(warning)
-         
-                
-        orders = [ x for x in orders if x.amount - x.filled > 0 and x.dt.day >= event.dt.day]
+        
+        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
+       
         self.open_orders[event.sid] = orders
         
         
-        if simulated_amount > 0:
+        if simulated_amount != 0:
             return self.create_transaction(
                 event.sid, 
                 simulated_amount, 

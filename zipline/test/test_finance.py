@@ -24,6 +24,7 @@ from zipline.lines import SimulatedTrading
 from zipline.protocol_utils import namedict
 
 DEFAULT_TIMEOUT = 15 # seconds
+EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
 
@@ -109,6 +110,38 @@ class FinanceTestCase(TestCase):
         
         # Simulation
         # ----------
+        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        zipline.simulate(blocking=True)
+
+        self.assertTrue(zipline.sim.ready())
+        self.assertFalse(zipline.sim.exception)
+
+        # TODO: Make more assertions about the final state of the components.
+        self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
+            "The feed should be drained of all messages, found {n} remaining." \
+            .format(n=zipline.sim.feed.pending_messages()))
+
+
+    
+    @timed(EXTENDED_TIMEOUT)
+    def test_aggressive_buying(self):
+
+        # Simulation
+        # ----------       
+        trade_count = 10 * 1000 
+        self.zipline_test_config['order_count'] = 5 * 1000
+        self.zipline_test_config['trade_count'] = trade_count
+        self.zipline_test_config['order_amount'] = 100
+        self.zipline_test_config['environment'] = factory.create_trading_environment()
+        
+        sid_list = [self.zipline_test_config['sid']]
+        
+        self.zipline_test_config['trade_source'] = factory.create_minutely_trade_source(
+            sid_list,
+            trade_count,
+            self.zipline_test_config['environment']
+        )
+        
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
 
@@ -218,9 +251,11 @@ class FinanceTestCase(TestCase):
         )
 
     
-    # TODO: write a test that proves orders expire without being filled.
+    # TODO: write tests for short sales
+    # TODO: write a test to do massive buying or shorting.
+    
     @timed(DEFAULT_TIMEOUT)
-    def test_transaction_sim(self):
+    def test_partially_filled_orders(self):
         
         # create a scenario where order size and trade size are equal
         # so that orders must be spread out over several trades.
@@ -240,9 +275,25 @@ class FinanceTestCase(TestCase):
         
         self.transaction_sim(**params)
         
+        # same scenario, but with short sales
+        params2 ={
+            'trade_count':360,
+            'trade_amount':100,
+            'trade_interval': timedelta(minutes=1),
+            'order_count':2,
+            'order_amount':-100,
+            'order_interval': timedelta(minutes=1),
+            'expected_txn_count':8,
+            'expected_txn_volume':2 * -100
+        }
+        
+        self.transaction_sim(**params2)
+        
+    @timed(DEFAULT_TIMEOUT)
+    def test_collapsing_orders(self):
         # create a scenario where order.amount <<< trade.volume
         # to test that several orders can be covered properly by one trade.
-        params2 ={
+        params1 ={
             'trade_count':6,
             'trade_amount':100,
             'trade_interval': timedelta(hours=1),
@@ -254,11 +305,26 @@ class FinanceTestCase(TestCase):
             'expected_txn_count':1,
             'expected_txn_volume':24 * 1
         }
-        self.transaction_sim(**params2)
+        self.transaction_sim(**params1)
         
+        # second verse, same as the first. except short!
+        params2 ={
+            'trade_count':6,
+            'trade_amount':100,
+            'trade_interval': timedelta(hours=1),
+            'order_count':24,
+            'order_amount':-1,
+            'order_interval': timedelta(minutes=1),
+            'expected_txn_count':1,
+            'expected_txn_volume':24 * -1
+        }
+        self.transaction_sim(**params2)
+      
+    @timed(DEFAULT_TIMEOUT)
+    def test_partial_expiration_orders(self):  
         # create a scenario where orders expire without being filled
         # entirely
-        params3 = {
+        params1 = {
             'trade_count':100,
             'trade_amount':100,
             'trade_delay': timedelta(minutes=5),
@@ -271,7 +337,25 @@ class FinanceTestCase(TestCase):
             'expected_txn_count' : 1,
             'expected_txn_volume' : 25
         }
-        self.transaction_sim(**params3)
+        self.transaction_sim(**params1)
+        
+        # same scenario, but short sales.
+        params2 = {
+            'trade_count':100,
+            'trade_amount':100,
+            'trade_delay': timedelta(minutes=5),
+            'trade_interval': timedelta(days=1),
+            'order_count':3,
+            'order_amount':1000,
+            'order_interval': timedelta(minutes=30),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count' : 1,
+            'expected_txn_volume' : 25
+        }
+        self.transaction_sim(**params2)
+        
+        
         
     def transaction_sim(self, **params):
         trade_count = params['trade_count']
