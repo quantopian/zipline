@@ -11,6 +11,17 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
+from zipline.protocol_utils import Enum
+
+# the simulation style enumerates the available transaction simulation
+# strategies. 
+SIMULATION_STYLE  = Enum(
+    'PARTIAL_VOLUME',
+    'BUY_ALL',
+    'FIXED_SLIPPAGE',
+    'NOOP'
+)
+
 class TradeSimulationClient(qmsg.Component):
     
     def __init__(self, trading_environment):
@@ -19,6 +30,7 @@ class TradeSimulationClient(qmsg.Component):
         self.prev_dt                = None
         self.event_queue            = None
         self.txn_count              = 0
+        self.order_count            = 0
         self.trading_environment    = trading_environment
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
@@ -132,13 +144,14 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
+        
         order = zp.namedict({
             'dt':self.current_dt,
             'sid':sid,
             'amount':amount
         })
-        
         self.order_socket.send(zp.ORDER_FRAME(order))
+        self.order_count += 1
         
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
@@ -211,6 +224,8 @@ class OrderDataSource(qmsg.DataSource):
             # we reduce the timeout here by a factor of 2, because we need
             # to potentially receive the client's done message before the 
             # controller or heartbeat times out.
+            
+            # TODO: shouldn't this block until we receive a message?
             socks = dict(self.poll.poll(self.heartbeat_timeout/2))
 
             # see if the poller has results for the result_feed
@@ -232,19 +247,20 @@ class OrderDataSource(qmsg.DataSource):
                 count += 1
                 self.sent_count += 1
             
-            else:
-                # no orders, break out
-                break
+            # TODO: why didn't any unit tests catch this bug????
+            
+            #else:
+            #    # no orders, break out
+            #    break
     
         #TODO: we have to send at least one dummy order per do_work iteration 
         # or the feed will block waiting for our messages.
         if(count == 0):
             self.send(zp.namedict({}))
-    
 
 class TransactionSimulator(qmsg.BaseTransform):
     
-    def __init__(self): 
+    def __init__(self, style): 
         qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
@@ -252,6 +268,15 @@ class TransactionSimulator(qmsg.BaseTransform):
         self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
         self.commission                 = 0.03
+        
+        if not style or style == SIMULATION_STYLE.PARTIAL_VOLUME:
+            self.apply_trade_to_open_orders = self.simulate_with_partial_volume
+        elif style == SIMULATION_STYLE.BUY_ALL:
+            self.apply_trade_to_open_orders =  self.simulate_buy_all
+        elif style == SIMULATION_STYLE.FIXED_SLIPPAGE:
+            self.apply_trade_to_open_orders = self.simulate_with_fixed_cost
+        elif style == SIMULATION_STYLE.NOOP:
+            self.apply_trade_to_open_orders = self.simulate_noop
             
     def transform(self, event):
         """
@@ -296,8 +321,51 @@ class TransactionSimulator(qmsg.BaseTransform):
         event.filled = 0
         self.open_orders[event.sid].append(event)
      
-    def apply_trade_to_open_orders(self, event):
+    #def apply_trade_to_open_orders(self, event):
+    #    return self.simulate_with_fixed_cost(event)
+    
+    def simulate_buy_all(self, event):
+        txn = self.create_transaction(
+                event.sid, 
+                event.volume, 
+                event.price, 
+                event.dt, 
+                1
+            )
+        return txn
         
+    def simulate_noop(self, event):
+        return None    
+    
+    def simulate_with_fixed_cost(self, event):
+        if self.open_orders.has_key(event.sid):
+            orders = self.open_orders[event.sid] 
+            orders = sorted(orders, key=lambda o: o.dt)
+        else:
+            return None
+            
+        amount = 0
+        for order in orders:
+            amount += order.amount
+        
+        if(amount != 0):
+            direction = amount / math.fabs(amount)
+        else:
+            direction = 1
+        
+        txn = self.create_transaction(
+                event.sid, 
+                amount, 
+                event.price + 0.10, 
+                event.dt, 
+                direction
+            )
+        
+        self.open_orders[event.sid] = []
+        
+        return txn
+        
+    def simulate_with_partial_volume(self, event):
         if(event.volume == 0):
             #there are zero volume events bc some stocks trade 
             #less frequently than once per minute.

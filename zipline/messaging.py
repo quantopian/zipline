@@ -37,7 +37,7 @@ class ComponentHost(Component):
         # ----------------------
 
         self.sync_register  = {}
-        self.timeout        = datetime.timedelta(seconds=5)
+        self.timeout        = datetime.timedelta(seconds=60)
 
         self.feed           = Feed()
         self.merge          = Merge()
@@ -214,7 +214,7 @@ class Feed(Component):
 
     def do_work(self):
         # wait for synchronization reply from the host
-        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) 
 
         # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:

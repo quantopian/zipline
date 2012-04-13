@@ -21,6 +21,7 @@ TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.lines import SimulatedTrading
+from zipline.finance.performance import PerformanceTracker
 from zipline.protocol_utils import namedict
 
 DEFAULT_TIMEOUT = 15 # seconds
@@ -120,7 +121,22 @@ class FinanceTestCase(TestCase):
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
-
+            
+        
+        # the trading client should receive one transaction for every
+        # order placed.
+        self.assertEqual(
+            zipline.trading_client.txn_count, 
+            zipline.trading_client.order_count
+        )
+        
+        # the number of transactions in the performance tracker's cumulative
+        # period should be the same as the number of orders place by the 
+        # algorithm.
+        self.assertEqual(
+            zipline.trading_client.order_count, 
+            len(zipline.trading_client.perf.cumulative_performance.processed_transactions)
+        )
 
     
     @timed(EXTENDED_TIMEOUT)
@@ -152,8 +168,8 @@ class FinanceTestCase(TestCase):
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
-
-
+            
+        
     @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
         #provide enough trades to ensure all orders are filled.
@@ -358,6 +374,7 @@ class FinanceTestCase(TestCase):
         
         
     def transaction_sim(self, **params):
+        
         trade_count = params['trade_count']
         trade_amount = params['trade_amount']
         trade_interval = params['trade_interval']
@@ -409,6 +426,9 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount)
         
+        
+        tracker = PerformanceTracker(trading_environment)
+        
         transactions = []
         for trade in generated_trades:
             if trade_delay:
@@ -418,16 +438,23 @@ class FinanceTestCase(TestCase):
             
             self.assertEqual(sim_state['name'], trade_sim.get_id)
 
+            txn = None
             if sim_state['value']:
-                transactions.append(sim_state['value'])         
+                txn = sim_state['value']
+                transactions.append(txn)         
+            trade[sim_state['name']] = txn    
             
-                
+            tracker.process_event(trade) 
+               
         total_volume = 0
         for txn in transactions:
             total_volume += txn.amount
             
         self.assertEqual(total_volume, expected_txn_volume)    
         self.assertEqual(len(transactions), expected_txn_count)
+        
+        cumulative_pos = tracker.cumulative_performance.positions[sid]
+        self.assertEqual(total_volume, cumulative_pos.amount)
         
         # the open orders should now be empty
         oo = trade_sim.open_orders

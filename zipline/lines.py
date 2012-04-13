@@ -90,7 +90,7 @@ from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
-
+from zipline.finance.trading import SIMULATION_STYLE
 
 
 class SimulatedTrading(object):
@@ -130,6 +130,7 @@ class SimulatedTrading(object):
         self.algorithm = config['algorithm']
         self.allocator = config['allocator']
         self.trading_environment = config['trading_environment']
+        self.sim_style = config.get('simulation_style')
         
         self.leased_sockets = []
         self.sim_context = None
@@ -169,7 +170,7 @@ class SimulatedTrading(object):
         self.add_source(self.order_source)
         
         #setup transforms
-        self.transaction_sim = TransactionSimulator()
+        self.transaction_sim = TransactionSimulator(self.sim_style)
         self.transforms = {}
         self.add_transform(self.transaction_sim)
         
@@ -192,7 +193,8 @@ class SimulatedTrading(object):
             - order_count - the number of orders the test algo will place,
               defaults to 100
             - order_amount - the number of shares per order, defaults to 100
-            - trade_count - the number of trades to simulate, defaults to 100
+            - trade_count - the number of trades to simulate, defaults to 101
+              to ensure all orders are processed.
             - simulator_class - optional parameter that provides an alternative 
               subclass of ComponentHost to hold the whole zipline. Defaults to
               :py:class:`zipline.simulator.Simulator`   
@@ -228,7 +230,7 @@ class SimulatedTrading(object):
         if config.has_key('trade_count'):
             trade_count = config['trade_count']
         else:
-            trade_count = 100
+            trade_count = 101
             
         if config.has_key('simulator_class'):
             simulator_class = config['simulator_class']
@@ -266,7 +268,8 @@ class SimulatedTrading(object):
             'algorithm':test_algo,
             'trading_environment':trading_environment,
             'allocator':allocator,
-            'simulator_class':simulator_class
+            'simulator_class':simulator_class,
+            'simulation_style':SIMULATION_STYLE.FIXED_SLIPPAGE
         })
         #-------------------
 

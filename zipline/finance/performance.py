@@ -160,8 +160,6 @@ class PerformanceTracker():
         self.total_days              = self.trading_environment.days_in_period
         # one indexed so that we reach 100%
         self.day_count               = 0.0 
-        self.cumulative_capital_used = 0.0
-        self.max_capital_used        = 0.0
         self.capital_base            = self.trading_environment.capital_base
         self.returns                 = []
         self.txn_count               = 0
@@ -219,8 +217,8 @@ class PerformanceTracker():
             'period_start'            : self.period_start,
             'period_end'              : self.period_end,
             'progress'                : self.progress,
-            'cumulative_captial_used' : self.cumulative_capital_used,
-            'max_capital_used'        : self.max_capital_used,
+            'cumulative_captial_used' : self.cumulative_perf.cumulative_capital_used,
+            'max_capital_used'        : self.cumulative_perf.max_capital_used,
             'last_close'              : self.market_close,
             'last_open'               : self.market_open,
             'capital_base'            : self.capital_base,
@@ -232,36 +230,21 @@ class PerformanceTracker():
         }
             
     def process_event(self, event):
+        assert isinstance(event, zp.namedict)
         self.event_count += 1
 
         if(event.dt >= self.market_close):
             self.handle_market_close()
 
-        if not pandas.isnull(event.TRANSACTION):
+        if event.TRANSACTION:
             self.txn_count += 1
             self.cumulative_performance.execute_transaction(event.TRANSACTION)
             self.todays_performance.execute_transaction(event.TRANSACTION)
-
-            # we're adding a 10% cushion to the capital used,
-            # and then rounding to the nearest 5k
-            transaction_cost = event.TRANSACTION.price * event.TRANSACTION.amount
-            self.cumulative_capital_used += transaction_cost
-
-            if math.fabs(self.cumulative_capital_used) > self.max_capital_used:
-                self.max_capital_used = math.fabs(self.cumulative_capital_used)
-
-            cushioned_capital = 1.1 * self.max_capital_used
-            self.max_capital_used = self.round_to_nearest(
-                cushioned_capital,
-                base=5000
-            )
-            self.max_leverage = self.max_capital_used / self.capital_base
-
+            
         #update last sale
         self.cumulative_performance.update_last_sale(event)
         self.todays_performance.update_last_sale(event)
 
-        
 
     def handle_market_close(self):
         #calculate performance as of last trade
@@ -338,9 +321,6 @@ class PerformanceTracker():
             # this signals that the simulation is complete.
             self.result_stream.send("DONE")
 
-    def round_to_nearest(self, x, base=5):
-        return int(base * round(float(x)/base))
-
 
 class Position():
 
@@ -409,6 +389,8 @@ class PerformancePeriod():
         self.starting_cash          = starting_cash
         self.ending_cash            = starting_cash
         self.processed_transactions = []
+        self.cumulative_capital_used = 0.0
+        self.max_capital_used        = 0.0
         
         self.calculate_performance()
 
@@ -426,11 +408,40 @@ class PerformancePeriod():
             self.returns = 0.0
 
     def execute_transaction(self, txn):
+        
+        # Update Position
+        # ----------------
         if(not self.positions.has_key(txn.sid)):
             self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
+        
+
+        # Max Leverage
+        # ---------------
+        # Calculate the maximum capital used and maximum leverage
+        
+        transaction_cost = txn.price * txn.amount
+        self.cumulative_capital_used += transaction_cost
+
+        if math.fabs(self.cumulative_capital_used) > self.max_capital_used:
+            self.max_capital_used = math.fabs(self.cumulative_capital_used)
+            
+            # We want to conveye a level, rather than a precise figure.
+            # round to the nearest 5,000 to keep the number easy on the eyes
+            self.max_capital_used = self.round_to_nearest(
+                self.max_capital_used,
+                base=5000
+            )
+            
+            # we're adding a 10% cushion to the capital used.
+            self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
+            
+        # add transaction to the list of processed transactions 
         self.processed_transactions.append(txn)
+        
+    def round_to_nearest(self, x, base=5):
+        return int(base * round(float(x)/base))
 
     def calculate_positions_value(self):
         mktValue = 0.0
