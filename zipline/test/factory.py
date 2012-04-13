@@ -38,12 +38,12 @@ def load_market_data():
     
     return bm_returns, tr_curves
     
-def create_trading_environment():
+def create_trading_environment(year=2006):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
 
-    start = datetime(2006, 1, 1, tzinfo=pytz.utc)
-    end   = datetime(2006, 12, 31, tzinfo=pytz.utc)
+    start = datetime(year, 1, 1, tzinfo=pytz.utc)
+    end   = datetime(year, 12, 31, tzinfo=pytz.utc)
     trading_environment = TradingEnvironment(
         benchmark_returns,
         treasury_curves,

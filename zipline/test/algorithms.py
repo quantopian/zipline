@@ -70,7 +70,7 @@ class TestAlgorithm():
         
     def handle_frame(self, frame):
         self.frame_count += 1
-        #place an order for 100 shares of sid:133
+        #place an order for 100 shares of sid
         if self.incr < self.count:
             self.order(self.sid, self.amount)
             self.incr += 1

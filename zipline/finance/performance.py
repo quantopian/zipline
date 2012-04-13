@@ -166,6 +166,7 @@ class PerformanceTracker():
         self.event_count             = 0
         self.result_stream           = None
         self.last_dict               = None
+        self.order_log               = []
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -228,6 +229,9 @@ class PerformanceTracker():
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
             'timestamp'               : datetime.datetime.now(),
         }
+    
+    def log_order(self, order):
+        self.order_log.append(order)
             
     def process_event(self, event):
         assert isinstance(event, zp.namedict)
@@ -300,13 +304,14 @@ class PerformanceTracker():
         and send it out on the result_stream.
         """
         
+        log_msg = "Simulated {n} trading days out of {m}."
+        qutil.LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
+        qutil.LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
         self.handle_market_close()
         
-        log_msg = "Simulated {n} trading days out of {m}."
-        qutil.LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
-        qutil.LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
         
         self.risk_report = risk.RiskReport(
             self.returns,

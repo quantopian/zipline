@@ -119,12 +119,15 @@ class TradeSimulationClient(qmsg.Component):
             # otherwise, the algorithm has fallen behind the feed 
             # and processing per event is longer than time between events.
             if event.dt >= self.current_dt:
+                # compress time by moving the current_time up to the event
+                # time.
+                self.current_dt = event.dt
                 self.run_algorithm()
             
             # tally the time spent on this iteration
             self.last_iteration_dur = datetime.datetime.utcnow() - event_start
             # move the algorithm's clock forward to include iteration time
-            self.current_dt = self.current_dt + self.last_iteration_dur
+            # self.current_dt = self.current_dt  + self.last_iteration_dur
         
             
     def run_algorithm(self):
@@ -152,6 +155,7 @@ class TradeSimulationClient(qmsg.Component):
         })
         self.order_socket.send(zp.ORDER_FRAME(order))
         self.order_count += 1
+        self.perf.log_order(order)
         
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
@@ -185,6 +189,7 @@ class OrderDataSource(qmsg.DataSource):
         """
         qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
         self.sent_count         = 0
+        self.works              = 0
 
     @property
     def get_type(self):
@@ -194,7 +199,8 @@ class OrderDataSource(qmsg.DataSource):
     @property
     def is_blocking(self):
         """
-        This datasource is in a loop with the TradingSimulationClient
+        This datasource is in a loop with the TradingSimulationClient,
+        so we don't want it to block processing.
         """
         return False
         
@@ -207,17 +213,12 @@ class OrderDataSource(qmsg.DataSource):
 
     def do_work(self):    
         
-        
-        #TODO: if this is the first iteration, break deadlock by sending a dummy order
-        if(self.sent_count == 0):
-            self.send(zp.namedict({}))
+        self.works += 1
+
         
         #pull all orders from client.
         orders = []
         count = 0
-
-        # TODO : this can be written in a concurrency agnostic
-        # way... have a chat with Fawce about this ~Steve
         
         while True:
             # poll all the sockets
@@ -246,17 +247,6 @@ class OrderDataSource(qmsg.DataSource):
                 self.send(order)
                 count += 1
                 self.sent_count += 1
-            
-            # TODO: why didn't any unit tests catch this bug????
-            
-            #else:
-            #    # no orders, break out
-            #    break
-    
-        #TODO: we have to send at least one dummy order per do_work iteration 
-        # or the feed will block waiting for our messages.
-        if(count == 0):
-            self.send(zp.namedict({}))
 
 class TransactionSimulator(qmsg.BaseTransform):
     
@@ -277,6 +267,19 @@ class TransactionSimulator(qmsg.BaseTransform):
             self.apply_trade_to_open_orders = self.simulate_with_fixed_cost
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
+            
+    #
+    @property
+    def is_blocking(self):
+        """
+        Including this explicitly for clarity, even though we are using the 
+        default value. TransactionSimulator has a defined action for every
+        event type. Downstream components depend on the presence of the 
+        TRANSACTION transform in all cases. When no transaction happens,
+        None is the value. Thus, we do want merging to block on the 
+        availability of transaction messages.
+        """
+        return True
             
     def transform(self, event):
         """
@@ -304,6 +307,8 @@ class TransactionSimulator(qmsg.BaseTransform):
             Amount is explicitly converted to an int.
             Orders of amount zero are ignored.
         """
+        self.order_count += 1
+        
         event.amount = int(event.amount)
         if event.amount == 0:
             log = "requested to trade zero shares of {sid}".format(
@@ -312,7 +317,7 @@ class TransactionSimulator(qmsg.BaseTransform):
             qutil.LOGGER.debug(log)
             return
             
-        self.order_count += 1
+        
         
         if(not self.open_orders.has_key(event.sid)):
             self.open_orders[event.sid] = []
@@ -321,9 +326,6 @@ class TransactionSimulator(qmsg.BaseTransform):
         event.filled = 0
         self.open_orders[event.sid].append(event)
      
-    #def apply_trade_to_open_orders(self, event):
-    #    return self.simulate_with_fixed_cost(event)
-    
     def simulate_buy_all(self, event):
         txn = self.create_transaction(
                 event.sid, 
@@ -348,10 +350,11 @@ class TransactionSimulator(qmsg.BaseTransform):
         for order in orders:
             amount += order.amount
         
-        if(amount != 0):
-            direction = amount / math.fabs(amount)
-        else:
-            direction = 1
+        if(amount == 0):
+            return
+            
+        direction = amount / math.fabs(amount)
+        
         
         txn = self.create_transaction(
                 event.sid, 
@@ -426,9 +429,9 @@ for order:
                     )
                     qutil.LOGGER.warn(warning)
         
-        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
+        #orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
        
-        self.open_orders[event.sid] = orders
+        #self.open_orders[event.sid] = orders
         
         
         if simulated_amount != 0:
