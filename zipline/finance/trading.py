@@ -260,7 +260,7 @@ class OrderDataSource(qmsg.DataSource):
 
 class TransactionSimulator(qmsg.BaseTransform):
     
-    def __init__(self, style): 
+    def __init__(self, style=SIMULATION_STYLE.PARTIAL_VOLUME): 
         qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
