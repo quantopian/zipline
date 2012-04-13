@@ -127,7 +127,7 @@ class TradeSimulationClient(qmsg.Component):
             # tally the time spent on this iteration
             self.last_iteration_dur = datetime.datetime.utcnow() - event_start
             # move the algorithm's clock forward to include iteration time
-            # self.current_dt = self.current_dt  + self.last_iteration_dur
+            self.current_dt = self.current_dt  + self.last_iteration_dur
         
             
     def run_algorithm(self):
@@ -429,9 +429,9 @@ for order:
                     )
                     qutil.LOGGER.warn(warning)
         
-        #orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
+        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
        
-        #self.open_orders[event.sid] = orders
+        self.open_orders[event.sid] = orders
         
         
         if simulated_amount != 0:
