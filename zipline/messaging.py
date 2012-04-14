@@ -347,7 +347,7 @@ class Feed(Component):
     def is_full(self):
         """
         Indicates whether the buffer has messages in buffer for
-        all un-DONE sources.
+        all un-DONE, blocking sources.
         """
         for source_id, events in self.data_buffer.iteritems():
             if not self.is_blocking_map[source_id]:

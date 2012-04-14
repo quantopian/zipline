@@ -3,6 +3,8 @@ import pytz
 import math
 import pandas
 
+from collections import Counter
+
 # from gevent.select import select
 from zmq.core.poll import select
 
@@ -11,7 +13,7 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.protocol_utils import Enum
+from zipline.protocol_utils import Enum, namedict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -35,6 +37,8 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
+        self.attempts               = 0
+        self.max_attempts           = 1000
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -59,14 +63,19 @@ class TradeSimulationClient(qmsg.Component):
     def open(self):
         self.result_feed = self.connect_result()
         self.order_socket = self.connect_order()
+        # send a wake up call to the order data source.
+        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
     def do_work(self):
+         
         # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
         # see if the poller has results for the result_feed
         if self.result_feed in socks and \
             socks[self.result_feed] == self.zmq.POLLIN:   
+            
+            self.attempts = 0
             
             # get the next message from the result feed
             msg = self.result_feed.recv()
@@ -77,8 +86,7 @@ class TradeSimulationClient(qmsg.Component):
                 # signal the performance tracker that the simulation has
                 # ended. Perf will internally calculate the full risk report.
                 self.perf.handle_simulation_end()
-                # shutdown the feedback loop to the OrderDataSource
-                self.signal_order_done()
+
                 # signal Simulator, our ComponentHost, that this component is
                 # done and Simulator needn't block exit on this component.
                 self.signal_done()
@@ -86,13 +94,21 @@ class TradeSimulationClient(qmsg.Component):
             
             # result_feed is a merge component, so unframe accordingly
             event = zp.MERGE_UNFRAME(msg)
-            
+            self.received_count += 1
             # update performance and relay the event to the algorithm
             self.process_event(event)
             
-             # signal done to order source.
+            # signal loop is done for order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
-
+        else:
+            # no events in the sock means the non-order sources are
+            # drained. Signal the order_source that we're done, and
+            # the done will cascade through the whole zipline.
+            # shutdown the feedback loop to the OrderDataSource
+            if self.attempts > self.max_attempts:
+                self.signal_order_done()
+            else:
+                self.attempts += 1
     def process_event(self, event):
         # track the number of transactions, for testing purposes.
         if(event.TRANSACTION != None):
@@ -189,6 +205,7 @@ class OrderDataSource(qmsg.DataSource):
         """
         qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
         self.sent_count         = 0
+        self.recv_count         = Counter()
         self.works              = 0
 
     @property
@@ -202,7 +219,7 @@ class OrderDataSource(qmsg.DataSource):
         This datasource is in a loop with the TradingSimulationClient,
         so we don't want it to block processing.
         """
-        return False
+        return True
         
     def open(self):
         qmsg.DataSource.open(self)
@@ -215,11 +232,11 @@ class OrderDataSource(qmsg.DataSource):
         
         self.works += 1
 
-        
         #pull all orders from client.
-        orders = []
         count = 0
         
+        # one iteration of the client could include several orders
+        # so iterate until the client signals a break or a close.
         while True:
             # poll all the sockets
             # we reduce the timeout here by a factor of 2, because we need
@@ -236,17 +253,26 @@ class OrderDataSource(qmsg.DataSource):
                 order_msg = self.order_socket.recv()
             
                 if order_msg == str(zp.ORDER_PROTOCOL.DONE):
+                    qutil.LOGGER.info("order source is done")
                     self.signal_done()
+                    self.recv_count['done'] += 1
                     return
                 
                 if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
+                    # send a blank message to avoid an empty buffer
+                    # in the feed
+                    self.recv_count['break'] += 1
+                    if count == 0:
+                        self.send(namedict({}))
                     break
 
                 order = zp.ORDER_UNFRAME(order_msg)
+                self.recv_count['order'] += 1
                 #send the order along
                 self.send(order)
                 count += 1
                 self.sent_count += 1
+                
 
 class TransactionSimulator(qmsg.BaseTransform):
     

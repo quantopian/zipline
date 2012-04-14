@@ -107,6 +107,10 @@ class FinanceTestCase(TestCase):
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
         
+    # The following two tests appear broken no that the order source is
+    # non blocking. HUNCH: The trades are streaming through before the orders
+    # are placed.
+        
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
         
@@ -128,13 +132,12 @@ class FinanceTestCase(TestCase):
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
             
-        
         # the trading client should receive one transaction for every
         # order placed.
-        #self.assertEqual(
-        #    zipline.trading_client.txn_count, 
-        #    zipline.trading_client.order_count
-        #)
+        self.assertEqual(
+            zipline.trading_client.txn_count, 
+            zipline.trading_client.order_count
+        )
         
         # the number of transactions in the performance tracker's cumulative
         # period should be the same as the number of orders place by the 
@@ -150,10 +153,18 @@ class FinanceTestCase(TestCase):
 
         # Simulation
         # ----------       
-        trade_count = 10 * 1000 
-        self.zipline_test_config['order_count'] = 5 * 1000
-        self.zipline_test_config['trade_count'] = trade_count
-        self.zipline_test_config['order_amount'] = 100
+        
+        # TODO: for some reason the orders aren't filled without an extra
+        # trade.
+        trade_count = 5001
+        self.zipline_test_config['order_count'] = trade_count - 1
+        self.zipline_test_config['trade_count'] = trade_count 
+        self.zipline_test_config['order_amount'] = 1
+        
+        # tell the simulator to fill the orders in individual transactions
+        # matching the order volume exactly.
+        self.zipline_test_config['simulation_style'] = \
+        SIMULATION_STYLE.FIXED_SLIPPAGE
         self.zipline_test_config['environment'] = factory.create_trading_environment()
         
         sid_list = [self.zipline_test_config['sid']]
@@ -169,11 +180,19 @@ class FinanceTestCase(TestCase):
 
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
-
-        # TODO: Make more assertions about the final state of the components.
+        
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
+            
+        #
+        # the trading client should receive one transaction for every
+        # order placed.
+        self.assertEqual(
+            zipline.trading_client.txn_count, 
+            zipline.trading_client.order_count
+        )
+        
             
         
     @timed(DEFAULT_TIMEOUT)
