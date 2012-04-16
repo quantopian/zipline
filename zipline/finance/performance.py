@@ -61,8 +61,6 @@ Performance Tracking
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
     +-----------------+----------------------------------------------------+
-    | timestamp       | System time evevent occurs in zipilne              |
-    +-----------------+----------------------------------------------------+
 
 
 Position Tracking
@@ -78,14 +76,10 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | last_sale_price | price at last sale of the security on the exchange |
     +-----------------+----------------------------------------------------+
-    | last_sale_date  | datetime of the last trade of the position's       |
-    |                 | security on the exchange                           |
-    +-----------------+----------------------------------------------------+
     | transactions    | all the transactions that were acrued into this    |
     |                 | position.                                          |
     +-----------------+----------------------------------------------------+
-    | timestamp       | System time event occurs in zipilne                |
-    +-----------------+----------------------------------------------------+
+
 
 Performance Period
 ==================
@@ -116,8 +110,7 @@ Performance Period
     | returns       | percentage returns for the entire portfolio over the |
     |               | period                                               |
     +---------------+------------------------------------------------------+
-    | timestamp     | System time evevent occurs in zipilne                |
-    +---------------+------------------------------------------------------+
+
 
 """
 import datetime
@@ -227,7 +220,6 @@ class PerformanceTracker():
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
             'todays_perf'             : self.todays_performance.to_dict(),
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
-            'timestamp'               : datetime.datetime.now(),
         }
     
     def log_order(self, order):
@@ -376,9 +368,7 @@ class Position():
             'sid'             : self.sid,
             'amount'          : self.amount,
             'cost_basis'      : self.cost_basis,
-            'last_sale_price' : self.last_sale_price,
-            'last_sale_date'  : self.last_sale_date,
-            'timestamp'       : datetime.datetime.now()
+            'last_sale_price' : self.last_sale_price
         }
 
 
@@ -444,7 +434,7 @@ class PerformancePeriod():
             self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
             
         # add transaction to the list of processed transactions 
-        self.processed_transactions.append(txn)
+        self.processed_transactions.append(txn.as_dict())
         
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -476,7 +466,6 @@ class PerformancePeriod():
             'ending_cash'    : self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
             'positions'      : positions,
-            'timestamp'      : datetime.datetime.now(),
             'pnl'            : self.pnl,
             'returns'        : self.returns,
             'transactions'   : self.processed_transactions,

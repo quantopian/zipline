@@ -626,71 +626,43 @@ def PERF_FRAME(perf):
     
     #TODO: add asserts...
     
-    #pull some special fields from the perf for easy access
-    date = perf['last_close']
+    # DATE fields: 
+    #    started_at, period_start, period_end, last_close, last_open
+    #   pos.last_sale_date
+    #   txn.dt
+   
+    assert isinstance(perf['started_at'], datetime.datetime)
+    assert isinstance(perf['period_start'], datetime.datetime)
+    assert isinstance(perf['period_end'], datetime.datetime)
+    assert isinstance(perf['last_close'], datetime.datetime)
+    assert isinstance(perf['last_open'], datetime.datetime)
+    
+    assert isinstance(perf['todays_perf'], dict)
+    assert isinstance(perf['cumulative_perf'], dict)
+    
     tp   = perf['todays_perf']
     cp   = perf['cumulative_perf']
-    risk = perf['cumulative_risk_metrics']
     
-    # aggregate the day's transactions, which are nested in their 
-    # respsective positions. 
-    transactions = []
+    assert isinstance(tp['transactions'], list)
+    assert isinstance(cp['transactions'], list)
+   
+    perf['started_at']   = EPOCH(perf['started_at'])
+    perf['period_start'] = EPOCH(perf['period_start'])
+    perf['period_end']   = EPOCH(perf['period_end'])
+    perf['last_close']   = EPOCH(perf['last_close'])
+    perf['last_open']    = EPOCH(perf['last_open'])
+    
     for txn in tp['transactions']:
-        cur = {
-            'date':EPOCH(txn.dt),
-            'amount': txn.amount,
-            'price': txn.price,
-            'sid':txn.sid
-        }
-        transactions.append(cur)
-        
-    positions = []
-    for sid, pos in tp['positions'].iteritems():
-        cur = {
-            'cost_basis':pos['cost_basis'],
-            'sid'       :pos['sid'],
-            'last_sale' :pos['last_sale_price'],
-            'amount'    :pos['amount']
-        }
-        positions.append(cur)
-
-    daily_perf = {
-        'date'            : EPOCH(date),
-        'returns'         : tp['returns'],
-        'pnl'             : tp['pnl'],
-        'market_value'    : tp['ending_value'],
-        'portfolio_value' : tp['portfolio_value'],
-        'starting_cash'   : tp['starting_cash'],
-        'ending_cash'     : tp['ending_cash'],
-        'capital_used'    : tp['capital_used'],
-        'transactions'    : transactions,
-        'positions'       : positions                    
-    }
-
-    cumulative_perf = {
-        'alpha'                 : risk['alpha'],
-        'beta'                  : risk['beta'],
-        'sharpe'                : risk['sharpe'],
-        'volatility'            : risk['algo_volatility'],
-        'benchmark_volatility'  : risk['benchmark_volatility'],
-        'benchmark_returns'     : risk['benchmark_period_return'],
-        'max_drawdown'          : risk['max_drawdown'],
-        'total_returns'         : cp['returns'],
-        'pnl'                   : cp['pnl'],
-        'capital_used'          : cp['capital_used']
-        
-    }
+        txn['dt'] = EPOCH(txn['dt'])
     
-    # nest the cumulative performance data in the daily.
-    daily_perf['cumulative'] = cumulative_perf
-
-    result = {
-        'started_at'        : EPOCH(perf['started_at']),
-        'daily'             : [daily_perf],
-        'percent_complete'  : perf['progress'],
-    }
+    for txn in cp['transactions']:
+        txn['dt'] = EPOCH(txn['dt'])
+        
     
-    return msgpack.dumps(tuple(['PERF', result]))
+    for dr in perf['returns']:
+        dr['dt'] = EPOCH(dr['dt'])
+    
+    return msgpack.dumps(tuple(['PERF', perf]))
     
     
 def RISK_FRAME(risk):
@@ -698,7 +670,7 @@ def RISK_FRAME(risk):
     
 
 def PERF_UNFRAME(msg):
-    prefix, payload = msgpack.loads(msg)
+    prefix, payload = msgpack.loads(msg, use_list=True)
     return dict(prefix=prefix, payload=payload)
 
 # -----------------------
@@ -729,6 +701,12 @@ def EPOCH(utc_datetime):
     seconds = delta.total_seconds()
     ms = seconds * 1000
     return ms
+    
+def UN_EPOCH(ms_since_epoch):
+    seconds_since_epoch = ms_since_epoch / 1000
+    delta = datetime.timedelta(seconds = seconds_since_epoch)
+    dt = UNIX_EPOCH + delta
+    return dt
     
 def PACK_DATE(event):
     """
