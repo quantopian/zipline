@@ -503,13 +503,6 @@ class Component(object):
 
         """
         raise NotImplementedError
-        
-    @property
-    def is_blocking(self):
-        """
-        True if a zipline be held open for this component.
-        """
-        return False
 
     @property
     def get_pure(self):
