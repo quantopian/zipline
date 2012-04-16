@@ -4,6 +4,8 @@ Commonly used messaging components.
 
 import datetime
 
+from collections import Counter
+
 import zipline.util as qutil
 from zipline.component import Component
 import zipline.protocol as zp
@@ -37,7 +39,7 @@ class ComponentHost(Component):
         # ----------------------
 
         self.sync_register  = {}
-        self.timeout        = datetime.timedelta(seconds=5)
+        self.timeout        = datetime.timedelta(seconds=60)
 
         self.feed           = Feed()
         self.merge          = Merge()
@@ -81,11 +83,11 @@ class ComponentHost(Component):
             self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
             if isinstance(component, DataSource):
-                self.feed.add_source(component.get_id)
+                self.feed.add_source(component.get_id, component.is_blocking)
                 if not component.is_blocking:
                     self.feed.ds_finished_counter +=1 
             if isinstance(component, BaseTransform):
-                self.merge.add_source(component.get_id)
+                self.merge.add_source(component.get_id, component.is_blocking)
                 if not component.is_blocking:
                     self.feed.ds_finished_counter +=1
                         
@@ -192,6 +194,13 @@ class Feed(Component):
         # Depending on the size of this, might want to use a data
         # structure with better asymptotics.
         self.data_buffer            = {}
+        
+        # source_id -> integer count
+        self.sent_counters          = Counter()
+        self.recv_counters          = Counter()
+        
+        # source_id -> boolean. True is for blocking
+        self.is_blocking_map = {}
 
     def init(self):
         pass
@@ -214,7 +223,7 @@ class Feed(Component):
 
     def do_work(self):
         # wait for synchronization reply from the host
-        socks = dict(self.poll.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        socks = dict(self.poll.poll(self.heartbeat_timeout)) 
 
         # TODO: Abstract this out, maybe on base component
         if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
@@ -294,6 +303,7 @@ class Feed(Component):
         event = self.next()
         if(event != None):
             self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
+            self.sent_counters[event.source_id] += 1
             self.sent_count += 1
 
     def append(self, event):
@@ -302,6 +312,7 @@ class Feed(Component):
         source_id.
         """
         self.data_buffer[event.source_id].append(event)
+        self.recv_counters[event.source_id] += 1
         self.received_count += 1
 
     def next(self):
@@ -336,9 +347,12 @@ class Feed(Component):
     def is_full(self):
         """
         Indicates whether the buffer has messages in buffer for
-        all un-DONE sources.
+        all un-DONE, blocking sources.
         """
-        for events in self.data_buffer.values():
+        for source_id, events in self.data_buffer.iteritems():
+            if not self.is_blocking_map[source_id]:
+                continue
+                
             if len(events) == 0:
                 return False
         return True
@@ -353,11 +367,12 @@ class Feed(Component):
             total += len(events)
         return total
 
-    def add_source(self, source_id):
+    def add_source(self, source_id, is_blocking=True):
         """
         Add a data source to the buffer.
         """
         self.data_buffer[source_id] = []
+        self.is_blocking_map[source_id] = is_blocking
 
     def __len__(self):
         """

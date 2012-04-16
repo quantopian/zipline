@@ -21,8 +21,12 @@ TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.lines import SimulatedTrading
+from zipline.finance.performance import PerformanceTracker
+from zipline.protocol_utils import namedict
+from zipline.finance.trading import SIMULATION_STYLE
 
 DEFAULT_TIMEOUT = 15 # seconds
+EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
 
@@ -103,12 +107,21 @@ class FinanceTestCase(TestCase):
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
         
+    # The following two tests appear broken no that the order source is
+    # non blocking. HUNCH: The trades are streaming through before the orders
+    # are placed.
+        
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
         
         # Simulation
         # ----------
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        
+        self.zipline_test_config['simulation_style'] = \
+        SIMULATION_STYLE.FIXED_SLIPPAGE
+        zipline = SimulatedTrading.create_test_zipline(
+            **self.zipline_test_config
+        )
         zipline.simulate(blocking=True)
 
         self.assertTrue(zipline.sim.ready())
@@ -118,8 +131,70 @@ class FinanceTestCase(TestCase):
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
+            
+        # the trading client should receive one transaction for every
+        # order placed.
+        self.assertEqual(
+            zipline.trading_client.txn_count, 
+            zipline.trading_client.order_count
+        )
+        
+        # the number of transactions in the performance tracker's cumulative
+        # period should be the same as the number of orders place by the 
+        # algorithm.
+        self.assertEqual(
+            zipline.trading_client.order_count, 
+            len(zipline.trading_client.perf.cumulative_performance.processed_transactions)
+        )
 
+    
+    @timed(EXTENDED_TIMEOUT)
+    def test_aggressive_buying(self):
 
+        # Simulation
+        # ----------       
+        
+        # TODO: for some reason the orders aren't filled without an extra
+        # trade.
+        trade_count = 5001
+        self.zipline_test_config['order_count'] = trade_count - 1
+        self.zipline_test_config['trade_count'] = trade_count 
+        self.zipline_test_config['order_amount'] = 1
+        
+        # tell the simulator to fill the orders in individual transactions
+        # matching the order volume exactly.
+        self.zipline_test_config['simulation_style'] = \
+        SIMULATION_STYLE.FIXED_SLIPPAGE
+        self.zipline_test_config['environment'] = factory.create_trading_environment()
+        
+        sid_list = [self.zipline_test_config['sid']]
+        
+        self.zipline_test_config['trade_source'] = factory.create_minutely_trade_source(
+            sid_list,
+            trade_count,
+            self.zipline_test_config['environment']
+        )
+        
+        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        zipline.simulate(blocking=True)
+
+        self.assertTrue(zipline.sim.ready())
+        self.assertFalse(zipline.sim.exception)
+        
+        self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
+            "The feed should be drained of all messages, found {n} remaining." \
+            .format(n=zipline.sim.feed.pending_messages()))
+            
+        #
+        # the trading client should receive one transaction for every
+        # order placed.
+        self.assertEqual(
+            zipline.trading_client.txn_count, 
+            zipline.trading_client.order_count
+        )
+        
+            
+        
     @timed(DEFAULT_TIMEOUT)
     def test_performance(self): 
         #provide enough trades to ensure all orders are filled.
@@ -204,7 +279,9 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config['trade_count'] = 200
         self.zipline_test_config['algorithm'] = test_algo
         
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        zipline = SimulatedTrading.create_test_zipline(
+            **self.zipline_test_config
+        )
        
         zipline.simulate(blocking=True)
         #check that the algorithm received no events
@@ -214,8 +291,201 @@ class FinanceTestCase(TestCase):
             "The algorithm should not receive any events due to filtering."
         )
 
+    
+    # TODO: write tests for short sales
+    # TODO: write a test to do massive buying or shorting.
+    
+    @timed(DEFAULT_TIMEOUT)
+    def test_partially_filled_orders(self):
+        
+        # create a scenario where order size and trade size are equal
+        # so that orders must be spread out over several trades.
+        params ={
+            'trade_count':360,
+            'trade_amount':100,
+            'trade_interval': timedelta(minutes=1),
+            'order_count':2,
+            'order_amount':100,
+            'order_interval': timedelta(minutes=1),
+            # because we placed an order for 100 shares, and the volume
+            # of each trade is 100, the simulator should spread the order
+            # into 4 trades of 25 shares per order.
+            'expected_txn_count':8,
+            'expected_txn_volume':2 * 100
+        }
+        
+        self.transaction_sim(**params)
+        
+        # same scenario, but with short sales
+        params2 ={
+            'trade_count':360,
+            'trade_amount':100,
+            'trade_interval': timedelta(minutes=1),
+            'order_count':2,
+            'order_amount':-100,
+            'order_interval': timedelta(minutes=1),
+            'expected_txn_count':8,
+            'expected_txn_volume':2 * -100
+        }
+        
+        self.transaction_sim(**params2)
+        
+    @timed(DEFAULT_TIMEOUT)
+    def test_collapsing_orders(self):
+        # create a scenario where order.amount <<< trade.volume
+        # to test that several orders can be covered properly by one trade.
+        params1 ={
+            'trade_count':6,
+            'trade_amount':100,
+            'trade_interval': timedelta(hours=1),
+            'order_count':24,
+            'order_amount':1,
+            'order_interval': timedelta(minutes=1),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count':1,
+            'expected_txn_volume':24 * 1
+        }
+        self.transaction_sim(**params1)
+        
+        # second verse, same as the first. except short!
+        params2 ={
+            'trade_count':6,
+            'trade_amount':100,
+            'trade_interval': timedelta(hours=1),
+            'order_count':24,
+            'order_amount':-1,
+            'order_interval': timedelta(minutes=1),
+            'expected_txn_count':1,
+            'expected_txn_volume':24 * -1
+        }
+        self.transaction_sim(**params2)
+      
+    @timed(DEFAULT_TIMEOUT)
+    def test_partial_expiration_orders(self):  
+        # create a scenario where orders expire without being filled
+        # entirely
+        params1 = {
+            'trade_count':100,
+            'trade_amount':100,
+            'trade_delay': timedelta(minutes=5),
+            'trade_interval': timedelta(days=1),
+            'order_count':3,
+            'order_amount':1000,
+            'order_interval': timedelta(minutes=30),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count' : 1,
+            'expected_txn_volume' : 25
+        }
+        self.transaction_sim(**params1)
+        
+        # same scenario, but short sales.
+        params2 = {
+            'trade_count':100,
+            'trade_amount':100,
+            'trade_delay': timedelta(minutes=5),
+            'trade_interval': timedelta(days=1),
+            'order_count':3,
+            'order_amount':1000,
+            'order_interval': timedelta(minutes=30),
+            # because we placed an orders totaling less than 25% of one trade
+            # the simulator should produce just one transaction.
+            'expected_txn_count' : 1,
+            'expected_txn_volume' : 25
+        }
+        self.transaction_sim(**params2)
+        
+        
+        
+    def transaction_sim(self, **params):
+        
+        trade_count = params['trade_count']
+        trade_amount = params['trade_amount']
+        trade_interval = params['trade_interval']
+        trade_delay = params.get('trade_delay')
+        order_count = params['order_count']
+        order_amount = params['order_amount']
+        order_interval = params['order_interval']
+        expected_txn_count = params['expected_txn_count']
+        expected_txn_volume = params['expected_txn_volume']
+        
+        trading_environment = factory.create_trading_environment()
+        trade_sim = TransactionSimulator()
+        price = [10.1] * trade_count
+        volume = [100] * trade_count
+        start_date = trading_environment.first_open
+        sid = 1
 
+        generated_trades = factory.create_trade_history( 
+            sid, 
+            price, 
+            volume, 
+            trade_interval, 
+            trading_environment 
+        )
+        
+        for i in range(order_count):
+            order = namedict(
+            {
+                'sid':sid,
+                'amount':order_amount,
+                'type':zp.DATASOURCE_TYPE.ORDER,
+                'dt' : start_date + i * order_interval
+            })
 
+            sim_state = trade_sim.transform(order)
+        
+            # there should not be a new transaction from an order.
+            self.assertTrue(sim_state['name'] == trade_sim.get_id)
+            self.assertTrue(sim_state['value'] == None)
+        
+        # there should now be one open order list stored under the sid
+        oo = trade_sim.open_orders
+        self.assertEqual(len(oo), 1)
+        self.assertTrue(oo.has_key(sid))
+        order_list = oo[sid]
+        self.assertEqual(order_count, len(order_list))
+        
+        for order in order_list:
+            self.assertEqual(order.sid, sid)
+            self.assertEqual(order.amount, order_amount)
+        
+        
+        tracker = PerformanceTracker(trading_environment)
+        
+        transactions = []
+        for trade in generated_trades:
+            if trade_delay:
+                trade.dt = trade.dt + trade_delay
+                
+            sim_state = trade_sim.transform(trade)
+            
+            self.assertEqual(sim_state['name'], trade_sim.get_id)
 
-
-
+            txn = None
+            if sim_state['value']:
+                txn = sim_state['value']
+                transactions.append(txn)         
+            trade[sim_state['name']] = txn    
+            
+            tracker.process_event(trade) 
+               
+        total_volume = 0
+        for txn in transactions:
+            total_volume += txn.amount
+            
+        self.assertEqual(total_volume, expected_txn_volume)    
+        self.assertEqual(len(transactions), expected_txn_count)
+        
+        cumulative_pos = tracker.cumulative_performance.positions[sid]
+        self.assertEqual(total_volume, cumulative_pos.amount)
+        
+        # the open orders should now be empty
+        oo = trade_sim.open_orders
+        self.assertTrue(oo.has_key(sid))
+        order_list = oo[sid]
+        self.assertEqual(0, len(order_list))
+        
+        
+        

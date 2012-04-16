@@ -94,6 +94,7 @@ class SpecificEquityTrades(TradeDataSource):
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
 
+  
     def do_work(self):
         if(len(self.event_list) == 0):
             self.signal_done()

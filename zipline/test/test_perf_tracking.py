@@ -22,8 +22,15 @@ class PerformanceTestCase(unittest.TestCase):
             0,
             len(self.treasury_curves)
         )
-        self.dt = self.treasury_curves.keys()[random_index]
-        self.end_dt = self.dt + datetime.timedelta(days=365)
+        for n in range(100):
+            self.dt = self.treasury_curves.keys()[random_index]
+            self.end_dt = self.dt + datetime.timedelta(days=365)
+            
+            now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+            
+            if self.end_dt <= now:
+                break
+            
         self.trading_environment = TradingEnvironment(
             self.benchmark_returns, 
             self.treasury_curves,
@@ -505,8 +512,6 @@ shares in position"
         price = 10.1 
         price_list = [price] * trade_count
         volume = [100] * trade_count
-        #start_date = datetime.datetime.strptime("01/01/2011","%m/%d/%Y")
-        #start_date = start_date.replace(tzinfo=pytz.utc)
         trade_time_increment = datetime.timedelta(days=1)
         trade_history = factory.create_trade_history( 
             sid, 

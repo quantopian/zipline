@@ -90,7 +90,7 @@ from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
 TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
-
+from zipline.finance.trading import SIMULATION_STYLE
 
 
 class SimulatedTrading(object):
@@ -125,11 +125,15 @@ class SimulatedTrading(object):
         :py:class:`zipline.simulator.AddressAllocator`
         - simulator_class: a :py:class:`zipline.messaging.ComponentHost` 
         subclass (not an instance)
+        - simulation_style: optional parameter that configures the 
+        :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
+        a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
         """
         assert isinstance(config, dict)
         self.algorithm = config['algorithm']
         self.allocator = config['allocator']
         self.trading_environment = config['trading_environment']
+        self.sim_style = config.get('simulation_style')
         
         self.leased_sockets = []
         self.sim_context = None
@@ -169,7 +173,7 @@ class SimulatedTrading(object):
         self.add_source(self.order_source)
         
         #setup transforms
-        self.transaction_sim = TransactionSimulator()
+        self.transaction_sim = TransactionSimulator(self.sim_style)
         self.transforms = {}
         self.add_transform(self.transaction_sim)
         
@@ -191,16 +195,20 @@ class SimulatedTrading(object):
             - sid - an integer, which will be used as the security ID. 
             - order_count - the number of orders the test algo will place,
               defaults to 100
-            - trade_count - the number of trades to simulate, defaults to 100
+            - order_amount - the number of shares per order, defaults to 100
+            - trade_count - the number of trades to simulate, defaults to 101
+              to ensure all orders are processed.
             - simulator_class - optional parameter that provides an alternative 
               subclass of ComponentHost to hold the whole zipline. Defaults to
               :py:class:`zipline.simulator.Simulator`   
             - algorithm - optional parameter providing an algorithm. defaults
               to :py:class:`zipline.test.algorithms.TestAlgorithm`
-            - random - optional parameter to request random trades. if present
-              :py:class:`zipline.sources.RandomEquityTrades` is the source. If
-              not :py:class:`ziplien.sources.SpecificEquityTrades` is the 
-              source
+            - trade_source - optional parameter to specify trades, if present.
+              If not present :py:class:`ziplien.sources.SpecificEquityTrades` 
+              is the source, with daily frequency in trades.
+            - simulation_style: optional parameter that configures the 
+              :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
+              a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
         """
         assert isinstance(config, dict)
         
@@ -219,28 +227,35 @@ class SimulatedTrading(object):
             order_count = config['order_count']
         else:
             order_count = 100
+    
+        if config.has_key('order_amount'):
+            order_amount = config['order_amount']
+        else:
+            order_amount = 100
             
         if config.has_key('trade_count'):
             trade_count = config['trade_count']
         else:
-            trade_count = 100
+            # to ensure all orders are filled, we provide one more
+            # trade than order
+            trade_count = 101
             
         if config.has_key('simulator_class'):
             simulator_class = config['simulator_class']
         else:
             simulator_class = Simulator
+            
+        simulation_style = config.get('simulation_style')
+        if not simulation_style:
+            simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
               
         #-------------------
         # Trade Source
         #-------------------
         sids = [sid]
         #-------------------
-        if config.has_key('random'):
-            trade_source = factory.create_random_trade_source(
-                sids,
-                trade_count,
-                trading_environment
-            )
+        if config.has_key('trade_source'):
+            trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
                 sids,
@@ -253,7 +268,6 @@ class SimulatedTrading(object):
         if config.has_key('algorithm'):
             test_algo = config['algorithm']
         else:
-            order_amount = 100
             test_algo = TestAlgorithm(
                 sid,
                 order_amount,
@@ -266,7 +280,8 @@ class SimulatedTrading(object):
             'algorithm':test_algo,
             'trading_environment':trading_environment,
             'allocator':allocator,
-            'simulator_class':simulator_class
+            'simulator_class':simulator_class,
+            'simulation_style':simulation_style
         })
         #-------------------
 

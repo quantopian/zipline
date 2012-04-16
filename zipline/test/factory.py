@@ -38,12 +38,12 @@ def load_market_data():
     
     return bm_returns, tr_curves
     
-def create_trading_environment():
+def create_trading_environment(year=2006):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
 
-    start = datetime(2006, 1, 1, tzinfo=pytz.utc)
-    end   = datetime(2006, 12, 31, tzinfo=pytz.utc)
+    start = datetime(year, 1, 1, tzinfo=pytz.utc)
+    end   = datetime(year, 12, 31, tzinfo=pytz.utc)
     trading_environment = TradingEnvironment(
         benchmark_returns,
         treasury_curves,
@@ -68,7 +68,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
     next = current
     while True:
         next = next + interval
-        if trading_calendar.is_trading_day(next):
+        if trading_calendar.is_market_hours(next):
             break
     
     return next
@@ -79,9 +79,9 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
 
     for price, amount in zip(prices, amounts):
         
-        current = get_next_trading_dt(current, interval, trading_calendar)
         trade = create_trade(sid, price, amount, current)
         trades.append(trade)
+        current = get_next_trading_dt(current, interval, trading_calendar)
 
     assert len(trades) == len(prices)
     return trades
@@ -167,6 +167,7 @@ def create_random_trade_source(sid, trade_count, trading_environment):
     return source
     
 def create_daily_trade_source(sids, trade_count, trading_environment):
+    
     """
     creates trade_count trades for each sid in sids list. 
     first trade will be on trading_environment.period_start, and daily 
@@ -176,12 +177,38 @@ def create_daily_trade_source(sids, trade_count, trading_environment):
     Important side-effect: trading_environment.period_end will be modified
     to match the day of the final trade. 
     """
+    return create_trade_source(
+        sids, 
+        trade_count, 
+        timedelta(days=1), 
+        trading_environment
+    )
+
+
+def create_minutely_trade_source(sids, trade_count, trading_environment):
+
+    """
+    creates trade_count trades for each sid in sids list. 
+    first trade will be on trading_environment.period_start, and every minute 
+    thereafter for each sid. Thus, two sids should result in two trades per 
+    minute. 
+
+    Important side-effect: trading_environment.period_end will be modified
+    to match the day of the final trade. 
+    """
+    return create_trade_source(
+        sids, 
+        trade_count, 
+        timedelta(minutes=1), 
+        trading_environment
+    )
+
+def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
     trade_history = []
     for sid in sids:
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.first_open
-        trade_time_increment = timedelta(days=1)
 
         generated_trades = create_trade_history( 
             sid, 
