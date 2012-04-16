@@ -218,8 +218,8 @@ class PerformanceTracker():
             'period_start'            : self.period_start,
             'period_end'              : self.period_end,
             'progress'                : self.progress,
-            'cumulative_captial_used' : self.cumulative_perf.cumulative_capital_used,
-            'max_capital_used'        : self.cumulative_perf.max_capital_used,
+            'cumulative_capital_used' : self.cumulative_performance.cumulative_capital_used,
+            'max_capital_used'        : self.cumulative_performance.max_capital_used,
             'last_close'              : self.market_close,
             'last_open'               : self.market_open,
             'capital_base'            : self.capital_base,
@@ -270,6 +270,7 @@ class PerformanceTracker():
             returns=self.returns,
             trading_environment=self.trading_environment
         )
+        
         
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

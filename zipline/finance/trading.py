@@ -2,6 +2,7 @@ import datetime
 import pytz
 import math
 import pandas
+import time
 
 from collections import Counter
 
@@ -37,8 +38,8 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
-        self.attempts               = 0
-        self.max_attempts           = 1000
+        self.max_wait               = datetime.timedelta(seconds=10)
+        self.last_msg_dt            = datetime.datetime.utcnow()
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -75,7 +76,7 @@ class TradeSimulationClient(qmsg.Component):
         if self.result_feed in socks and \
             socks[self.result_feed] == self.zmq.POLLIN:   
             
-            self.attempts = 0
+            self.last_msg_dt = datetime.datetime.utcnow()
             
             # get the next message from the result feed
             msg = self.result_feed.recv()
@@ -105,10 +106,10 @@ class TradeSimulationClient(qmsg.Component):
             # drained. Signal the order_source that we're done, and
             # the done will cascade through the whole zipline.
             # shutdown the feedback loop to the OrderDataSource
-            if self.attempts > self.max_attempts:
-                self.signal_order_done()
-            else:
-                self.attempts += 1
+            wait_time = self.last_msg_dt - datetime.datetime.utcnow()
+            if wait_time > self.max_wait:
+                self.signal_order_done()    
+                
     def process_event(self, event):
         # track the number of transactions, for testing purposes.
         if(event.TRANSACTION != None):
