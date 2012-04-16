@@ -83,13 +83,9 @@ class ComponentHost(Component):
             self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
             if isinstance(component, DataSource):
-                self.feed.add_source(component.get_id, component.is_blocking)
-                if not component.is_blocking:
-                    self.feed.ds_finished_counter +=1 
+                self.feed.add_source(component.get_id)
             if isinstance(component, BaseTransform):
-                self.merge.add_source(component.get_id, component.is_blocking)
-                if not component.is_blocking:
-                    self.feed.ds_finished_counter +=1
+                self.merge.add_source(component.get_id)
                         
     def unregister_component(self, component_id):
         del self.components[component_id]
@@ -199,9 +195,6 @@ class Feed(Component):
         self.sent_counters          = Counter()
         self.recv_counters          = Counter()
         
-        # source_id -> boolean. True is for blocking
-        self.is_blocking_map = {}
-
     def init(self):
         pass
 
@@ -350,9 +343,6 @@ class Feed(Component):
         all un-DONE, blocking sources.
         """
         for source_id, events in self.data_buffer.iteritems():
-            if not self.is_blocking_map[source_id]:
-                continue
-                
             if len(events) == 0:
                 return False
         return True
@@ -367,12 +357,11 @@ class Feed(Component):
             total += len(events)
         return total
 
-    def add_source(self, source_id, is_blocking=True):
+    def add_source(self, source_id):
         """
         Add a data source to the buffer.
         """
         self.data_buffer[source_id] = []
-        self.is_blocking_map[source_id] = is_blocking
 
     def __len__(self):
         """
@@ -477,10 +466,6 @@ class BaseTransform(Component):
     @property
     def get_type(self):
         return COMPONENT_TYPE.CONDUIT
-
-    @property
-    def is_blocking(self):
-        return True
 
     def open(self):
         """
@@ -630,10 +615,6 @@ class DataSource(Component):
     @property
     def get_id(self):
         return self.id
-        
-    @property
-    def is_blocking(self):
-        return True
 
     @property
     def get_type(self):

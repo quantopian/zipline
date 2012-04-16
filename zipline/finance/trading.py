@@ -212,15 +212,6 @@ class OrderDataSource(qmsg.DataSource):
     def get_type(self):
         return zp.DATASOURCE_TYPE.ORDER
         
-    #
-    @property
-    def is_blocking(self):
-        """
-        This datasource is in a loop with the TradingSimulationClient,
-        so we don't want it to block processing.
-        """
-        return True
-        
     def open(self):
         qmsg.DataSource.open(self)
         self.order_socket = self.bind_order()
@@ -243,7 +234,8 @@ class OrderDataSource(qmsg.DataSource):
             # to potentially receive the client's done message before the 
             # controller or heartbeat times out.
             
-            # TODO: shouldn't this block until we receive a message?
+            # this will block for timeout/2, and return an empty dict if there
+            # are no messages.
             socks = dict(self.poll.poll(self.heartbeat_timeout/2))
 
             # see if the poller has results for the result_feed
@@ -293,19 +285,6 @@ class TransactionSimulator(qmsg.BaseTransform):
             self.apply_trade_to_open_orders = self.simulate_with_fixed_cost
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
-            
-    #
-    @property
-    def is_blocking(self):
-        """
-        Including this explicitly for clarity, even though we are using the 
-        default value. TransactionSimulator has a defined action for every
-        event type. Downstream components depend on the presence of the 
-        TRANSACTION transform in all cases. When no transaction happens,
-        None is the value. Thus, we do want merging to block on the 
-        availability of transaction messages.
-        """
-        return True
             
     def transform(self, event):
         """
