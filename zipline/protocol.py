@@ -615,10 +615,8 @@ def PERF_FRAME(perf):
     """
     Frame the performance update created at the end of each simulated trading
     day. The msgpack is a tuple with the first element statically set to 'PERF'.
-    Frames prepared by this method are sent via the same socket as 
-    Frames prepared by RISK_FRAME. So, both methods prefix the payload with
-    a shorthand for their type. That way, all messages received from the socket
-    can be PERF_UNFRAMED(), whether they are risk or perf.
+    Like RISK_FRAME, this method calls BT_UPDATE_FRAME internally, so that
+    clients can call BT_UPDATE_UNFRAME for all messages from the backtest.
 
     :param perf: the dictionary created by zipline.trade_client.perf
     :rvalue: a msgpack string
@@ -666,7 +664,7 @@ def PERF_FRAME(perf):
     
     perf['returns'] = returns
     
-    return msgpack.dumps(tuple(['PERF', perf]))
+    return BT_UPDATE_FRAME('PERF', perf)
     
 def convert_transactions(transactions):
     results = []
@@ -677,10 +675,22 @@ def convert_transactions(transactions):
     return results
     
 def RISK_FRAME(risk):
-    return msgpack.dumps(tuple(['RISK', risk]))
+    return BT_UPDATE_FRAME('RISK', risk)
     
-
-def PERF_UNFRAME(msg):
+def BT_UPDATE_FRAME(prefix, payload):
+    """
+    Frames prepared by RISK_FRAME and PERF_FRAME methods are sent via the same 
+    socket. This method provides a prefix to allow for muxing the messages
+    onto a single socket.
+    """
+    return msgpack.dumps(tuple([prefix, payload]))
+    
+def BT_UPDATE_UNFRAME(msg):
+    """
+    Risk and Perf framing methods prefix the payload with
+    a shorthand for their type. That way, all messages received from the socket
+    can be PERF_FRAMED(), whether they are risk or perf.
+    """
     prefix, payload = msgpack.loads(msg, use_list=True)
     return dict(prefix=prefix, payload=payload)
 

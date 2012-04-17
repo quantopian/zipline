@@ -421,20 +421,7 @@ class TransactionSimulator(qmsg.BaseTransform):
                 # we cap the volume share at 25% of a trade
                 if volume_share == .25:
                     break
-                   
-                if simulated_amount == 0:
-                    warning = """
-Calculated a zero volume transation on trade: 
-{event} 
-for order: 
-{order}
-                    """
-                    warning = warning.format(
-                        event=str(event), 
-                        order=str(order)
-                    )
-                    qutil.LOGGER.warn(warning)
-        
+                  
         orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
        
         self.open_orders[event.sid] = orders
@@ -449,6 +436,17 @@ for order:
                 direction
             )
         else:
+            warning = """
+Calculated a zero volume transaction on trade: 
+{event} 
+for order: 
+{order}
+            """
+            warning = warning.format(
+                event=str(event), 
+                order=str(order)
+            )
+            qutil.LOGGER.warn(warning)
             return None
     
         
