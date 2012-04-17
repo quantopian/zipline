@@ -218,7 +218,7 @@ class PerformanceTracker():
             'capital_base'            : self.capital_base,
             'returns'                 : returns_list,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
-            'todays_perf'             : self.todays_performance.to_dict(),
+            'daily_perf'              : self.todays_performance.to_dict(),
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
         }
     
@@ -434,7 +434,7 @@ class PerformancePeriod():
             self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
             
         # add transaction to the list of processed transactions 
-        self.processed_transactions.append(txn.as_dict())
+        self.processed_transactions.append(txn)
         
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -456,7 +456,8 @@ class PerformancePeriod():
         Creates a dictionary representing the state of this performance 
         period. See header comments for a detailed description.
         """
-        positions = self.get_positions()
+        positions = self.get_positions_list()
+        transactions = [x.as_dict() for x in self.processed_transactions]
 
         return {
             'ending_value'   : self.ending_value,
@@ -468,7 +469,7 @@ class PerformancePeriod():
             'positions'      : positions,
             'pnl'            : self.pnl,
             'returns'        : self.returns,
-            'transactions'   : self.processed_transactions,
+            'transactions'   : transactions,
         }
         
     def to_namedict(self):
@@ -500,6 +501,14 @@ class PerformancePeriod():
             else:
                 positions[sid] = cur
         
+        return positions
+        
+    #
+    def get_positions_list(self):
+        positions = []
+        for sid, pos in self.positions.iteritems():
+            cur = pos.to_dict()
+            positions.append(cur)
         return positions
         
         

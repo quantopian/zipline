@@ -637,14 +637,16 @@ def PERF_FRAME(perf):
     assert isinstance(perf['last_close'], datetime.datetime)
     assert isinstance(perf['last_open'], datetime.datetime)
     
-    assert isinstance(perf['todays_perf'], dict)
+    assert isinstance(perf['daily_perf'], dict)
     assert isinstance(perf['cumulative_perf'], dict)
     
-    tp   = perf['todays_perf']
+    tp   = perf['daily_perf']
     cp   = perf['cumulative_perf']
     
     assert isinstance(tp['transactions'], list)
     assert isinstance(cp['transactions'], list)
+    assert isinstance(tp['positions'], list)
+    assert isinstance(cp['positions'], list)
    
     perf['started_at']   = EPOCH(perf['started_at'])
     perf['period_start'] = EPOCH(perf['period_start'])
@@ -652,18 +654,27 @@ def PERF_FRAME(perf):
     perf['last_close']   = EPOCH(perf['last_close'])
     perf['last_open']    = EPOCH(perf['last_open'])
     
-    for txn in tp['transactions']:
-        txn['dt'] = EPOCH(txn['dt'])
-    
-    for txn in cp['transactions']:
-        txn['dt'] = EPOCH(txn['dt'])
-        
-    
+    tp['transactions']  = convert_transactions(tp['transactions'])
+    cp['transactions']  = convert_transactions(cp['transactions']) 
+   
+    returns = []
     for dr in perf['returns']:
-        dr['dt'] = EPOCH(dr['dt'])
+        updated = {}
+        updated['returns'] = dr['returns']
+        updated['date'] = EPOCH(dr['dt'])
+        returns.append(updated)
+    
+    perf['returns'] = returns
     
     return msgpack.dumps(tuple(['PERF', perf]))
     
+def convert_transactions(transactions):
+    results = []
+    for txn in transactions:
+        txn['date'] = EPOCH(txn['dt'])
+        del(txn['dt'])
+        results.append(txn)
+    return results
     
 def RISK_FRAME(risk):
     return msgpack.dumps(tuple(['RISK', risk]))

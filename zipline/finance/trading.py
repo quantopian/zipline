@@ -38,7 +38,7 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
-        self.max_wait               = datetime.timedelta(seconds=3)
+        self.max_wait               = datetime.timedelta(seconds=7)
         self.last_msg_dt            = datetime.datetime.utcnow()
         
         assert self.trading_environment.frame_index != None
