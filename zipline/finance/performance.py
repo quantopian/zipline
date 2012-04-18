@@ -38,10 +38,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | capital_base    | The initial capital assumed for this tracker.      |
     +-----------------+----------------------------------------------------+
-    | returns         | List of dicts representing daily returns. See the  |
-    |                 | comments for                                       |
-    |                 | :py:meth:`zipline.finance.risk.DailyReturn.to_dict`|
-    +-----------------+----------------------------------------------------+
     | cumulative_perf | A dictionary representing the cumulative           |
     |                 | performance through all the events delivered to    |
     |                 | this tracker. For details see the comments on      |
@@ -61,8 +57,6 @@ Performance Tracking
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
     +-----------------+----------------------------------------------------+
-    | timestamp       | System time evevent occurs in zipilne              |
-    +-----------------+----------------------------------------------------+
 
 
 Position Tracking
@@ -78,14 +72,10 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | last_sale_price | price at last sale of the security on the exchange |
     +-----------------+----------------------------------------------------+
-    | last_sale_date  | datetime of the last trade of the position's       |
-    |                 | security on the exchange                           |
-    +-----------------+----------------------------------------------------+
     | transactions    | all the transactions that were acrued into this    |
     |                 | position.                                          |
     +-----------------+----------------------------------------------------+
-    | timestamp       | System time event occurs in zipilne                |
-    +-----------------+----------------------------------------------------+
+
 
 Performance Period
 ==================
@@ -116,8 +106,7 @@ Performance Period
     | returns       | percentage returns for the entire portfolio over the |
     |               | period                                               |
     +---------------+------------------------------------------------------+
-    | timestamp     | System time evevent occurs in zipilne                |
-    +---------------+------------------------------------------------------+
+
 
 """
 import datetime
@@ -185,7 +174,9 @@ class PerformanceTracker():
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
-            starting_cash = self.capital_base
+            starting_cash = self.capital_base,
+            # save the transactions for the daily periods
+            keep_transactions = True
         )
 
     def get_portfolio(self):
@@ -210,24 +201,19 @@ class PerformanceTracker():
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form described in header comments.
         """
-
-        returns_list = [x.to_dict() for x in self.returns]
-
         return {
             'started_at'              : self.started_at,
             'period_start'            : self.period_start,
             'period_end'              : self.period_end,
             'progress'                : self.progress,
-            'cumulative_captial_used' : self.cumulative_perf.cumulative_capital_used,
-            'max_capital_used'        : self.cumulative_perf.max_capital_used,
+            'cumulative_capital_used' : self.cumulative_performance.cumulative_capital_used,
+            'max_capital_used'        : self.cumulative_performance.max_capital_used,
             'last_close'              : self.market_close,
             'last_open'               : self.market_open,
             'capital_base'            : self.capital_base,
-            'returns'                 : returns_list,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
-            'todays_perf'             : self.todays_performance.to_dict(),
+            'daily_perf'              : self.todays_performance.to_dict(),
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
-            'timestamp'               : datetime.datetime.now(),
         }
     
     def log_order(self, order):
@@ -271,6 +257,7 @@ class PerformanceTracker():
             trading_environment=self.trading_environment
         )
         
+        
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         # calculate progress of test
@@ -295,7 +282,8 @@ class PerformanceTracker():
         self.todays_performance = PerformancePeriod(
             self.todays_performance.positions,
             self.todays_performance.ending_value,
-            self.todays_performance.ending_cash
+            self.todays_performance.ending_cash,
+            keep_transactions = True
         )
 
     def handle_simulation_end(self):
@@ -375,15 +363,13 @@ class Position():
             'sid'             : self.sid,
             'amount'          : self.amount,
             'cost_basis'      : self.cost_basis,
-            'last_sale_price' : self.last_sale_price,
-            'last_sale_date'  : self.last_sale_date,
-            'timestamp'       : datetime.datetime.now()
+            'last_sale_price' : self.last_sale_price
         }
 
 
 class PerformancePeriod():
 
-    def __init__(self, initial_positions, starting_value, starting_cash):
+    def __init__(self, initial_positions, starting_value, starting_cash, keep_transactions=False):
         self.ending_value           = 0.0
         self.period_capital_used    = 0.0
         self.pnl                    = 0.0
@@ -393,6 +379,7 @@ class PerformancePeriod():
         #cash balance at start of period
         self.starting_cash          = starting_cash
         self.ending_cash            = starting_cash
+        self.keep_transactions      = keep_transactions
         self.processed_transactions = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used        = 0.0
@@ -443,7 +430,8 @@ class PerformancePeriod():
             self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
             
         # add transaction to the list of processed transactions 
-        self.processed_transactions.append(txn)
+        if self.keep_transactions:
+            self.processed_transactions.append(txn)
         
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
@@ -465,7 +453,8 @@ class PerformancePeriod():
         Creates a dictionary representing the state of this performance 
         period. See header comments for a detailed description.
         """
-        positions = self.get_positions()
+        positions = self.get_positions_list()
+        transactions = [x.as_dict() for x in self.processed_transactions]
 
         return {
             'ending_value'   : self.ending_value,
@@ -475,10 +464,9 @@ class PerformancePeriod():
             'ending_cash'    : self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
             'positions'      : positions,
-            'timestamp'      : datetime.datetime.now(),
             'pnl'            : self.pnl,
             'returns'        : self.returns,
-            'transactions'   : self.processed_transactions,
+            'transactions'   : transactions,
         }
         
     def to_namedict(self):
@@ -510,6 +498,14 @@ class PerformancePeriod():
             else:
                 positions[sid] = cur
         
+        return positions
+        
+    #
+    def get_positions_list(self):
+        positions = []
+        for sid, pos in self.positions.iteritems():
+            cur = pos.to_dict()
+            positions.append(cur)
         return positions
         
         

@@ -352,10 +352,10 @@ class RiskReport():
         provided for each period.
         """
         return {
-            '1_month'    : [x.to_dict() for x in self.month_periods],
-            '3_month'    : [x.to_dict() for x in self.three_month_periods],
-            '6_month'    : [x.to_dict() for x in self.six_month_periods],
-            '12_month'   : [x.to_dict() for x in self.year_periods]
+            'one_month'     : [x.to_dict() for x in self.month_periods],
+            'three_month'   : [x.to_dict() for x in self.three_month_periods],
+            'six_month'     : [x.to_dict() for x in self.six_month_periods],
+            'twelve_month'  : [x.to_dict() for x in self.year_periods]
         }
 
     def periodsInRange(self, months_per, start, end):

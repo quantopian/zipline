@@ -139,14 +139,6 @@ class FinanceTestCase(TestCase):
             zipline.trading_client.order_count
         )
         
-        # the number of transactions in the performance tracker's cumulative
-        # period should be the same as the number of orders place by the 
-        # algorithm.
-        self.assertEqual(
-            zipline.trading_client.order_count, 
-            len(zipline.trading_client.perf.cumulative_performance.processed_transactions)
-        )
-
     
     @timed(EXTENDED_TIMEOUT)
     def test_aggressive_buying(self):

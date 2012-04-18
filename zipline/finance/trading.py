@@ -2,6 +2,7 @@ import datetime
 import pytz
 import math
 import pandas
+import time
 
 from collections import Counter
 
@@ -37,8 +38,8 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
-        self.attempts               = 0
-        self.max_attempts           = 1000
+        self.max_wait               = datetime.timedelta(seconds=7)
+        self.last_msg_dt            = datetime.datetime.utcnow()
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -75,7 +76,7 @@ class TradeSimulationClient(qmsg.Component):
         if self.result_feed in socks and \
             socks[self.result_feed] == self.zmq.POLLIN:   
             
-            self.attempts = 0
+            self.last_msg_dt = datetime.datetime.utcnow()
             
             # get the next message from the result feed
             msg = self.result_feed.recv()
@@ -105,10 +106,10 @@ class TradeSimulationClient(qmsg.Component):
             # drained. Signal the order_source that we're done, and
             # the done will cascade through the whole zipline.
             # shutdown the feedback loop to the OrderDataSource
-            if self.attempts > self.max_attempts:
-                self.signal_order_done()
-            else:
-                self.attempts += 1
+            wait_time = datetime.datetime.utcnow() - self.last_msg_dt
+            if wait_time > self.max_wait:
+                self.signal_order_done()    
+                
     def process_event(self, event):
         # track the number of transactions, for testing purposes.
         if(event.TRANSACTION != None):
@@ -420,20 +421,7 @@ class TransactionSimulator(qmsg.BaseTransform):
                 # we cap the volume share at 25% of a trade
                 if volume_share == .25:
                     break
-                   
-                if simulated_amount == 0:
-                    warning = """
-Calculated a zero volume transation on trade: 
-{event} 
-for order: 
-{order}
-                    """
-                    warning = warning.format(
-                        event=str(event), 
-                        order=str(order)
-                    )
-                    qutil.LOGGER.warn(warning)
-        
+                  
         orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
        
         self.open_orders[event.sid] = orders
@@ -448,6 +436,17 @@ for order:
                 direction
             )
         else:
+            warning = """
+Calculated a zero volume transaction on trade: 
+{event} 
+for orders: 
+{orders}
+            """
+            warning = warning.format(
+                event=str(event), 
+                orders=str(orders)
+            )
+            qutil.LOGGER.warn(warning)
             return None
     
         

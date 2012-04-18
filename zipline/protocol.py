@@ -615,90 +615,69 @@ def PERF_FRAME(perf):
     """
     Frame the performance update created at the end of each simulated trading
     day. The msgpack is a tuple with the first element statically set to 'PERF'.
-    Frames prepared by this method are sent via the same socket as 
-    Frames prepared by RISK_FRAME. So, both methods prefix the payload with
-    a shorthand for their type. That way, all messages received from the socket
-    can be PERF_UNFRAMED(), whether they are risk or perf.
+    Like RISK_FRAME, this method calls BT_UPDATE_FRAME internally, so that
+    clients can call BT_UPDATE_UNFRAME for all messages from the backtest.
 
     :param perf: the dictionary created by zipline.trade_client.perf
     :rvalue: a msgpack string
     """
     
     #TODO: add asserts...
+   
+    assert isinstance(perf['started_at'], datetime.datetime)
+    assert isinstance(perf['period_start'], datetime.datetime)
+    assert isinstance(perf['period_end'], datetime.datetime)
+    assert isinstance(perf['last_close'], datetime.datetime)
+    assert isinstance(perf['last_open'], datetime.datetime)
     
-    #pull some special fields from the perf for easy access
-    date = perf['last_close']
-    tp   = perf['todays_perf']
+    assert isinstance(perf['daily_perf'], dict)
+    assert isinstance(perf['cumulative_perf'], dict)
+    
+    tp   = perf['daily_perf']
     cp   = perf['cumulative_perf']
-    risk = perf['cumulative_risk_metrics']
     
-    # aggregate the day's transactions, which are nested in their 
-    # respsective positions. 
-    transactions = []
-    for txn in tp['transactions']:
-        cur = {
-            'date':EPOCH(txn.dt),
-            'amount': txn.amount,
-            'price': txn.price,
-            'sid':txn.sid
-        }
-        transactions.append(cur)
-        
-    positions = []
-    for sid, pos in tp['positions'].iteritems():
-        cur = {
-            'cost_basis':pos['cost_basis'],
-            'sid'       :pos['sid'],
-            'last_sale' :pos['last_sale_price'],
-            'amount'    :pos['amount']
-        }
-        positions.append(cur)
-
-    daily_perf = {
-        'date'            : EPOCH(date),
-        'returns'         : tp['returns'],
-        'pnl'             : tp['pnl'],
-        'market_value'    : tp['ending_value'],
-        'portfolio_value' : tp['portfolio_value'],
-        'starting_cash'   : tp['starting_cash'],
-        'ending_cash'     : tp['ending_cash'],
-        'capital_used'    : tp['capital_used'],
-        'transactions'    : transactions,
-        'positions'       : positions                    
-    }
-
-    cumulative_perf = {
-        'alpha'                 : risk['alpha'],
-        'beta'                  : risk['beta'],
-        'sharpe'                : risk['sharpe'],
-        'volatility'            : risk['algo_volatility'],
-        'benchmark_volatility'  : risk['benchmark_volatility'],
-        'benchmark_returns'     : risk['benchmark_period_return'],
-        'max_drawdown'          : risk['max_drawdown'],
-        'total_returns'         : cp['returns'],
-        'pnl'                   : cp['pnl'],
-        'capital_used'          : cp['capital_used']
-        
-    }
+    assert isinstance(tp['transactions'], list)
+    assert isinstance(cp['transactions'], list)
+    assert isinstance(tp['positions'], list)
+    assert isinstance(cp['positions'], list)
+   
+    perf['started_at']   = EPOCH(perf['started_at'])
+    perf['period_start'] = EPOCH(perf['period_start'])
+    perf['period_end']   = EPOCH(perf['period_end'])
+    perf['last_close']   = EPOCH(perf['last_close'])
+    perf['last_open']    = EPOCH(perf['last_open'])
     
-    # nest the cumulative performance data in the daily.
-    daily_perf['cumulative'] = cumulative_perf
-
-    result = {
-        'started_at'        : EPOCH(perf['started_at']),
-        'daily'             : [daily_perf],
-        'percent_complete'  : perf['progress'],
-    }
+    tp['transactions']  = convert_transactions(tp['transactions'])
+    cp['transactions']  = convert_transactions(cp['transactions']) 
+   
+    return BT_UPDATE_FRAME('PERF', perf)
     
-    return msgpack.dumps(tuple(['PERF', result]))
-    
+def convert_transactions(transactions):
+    results = []
+    for txn in transactions:
+        txn['date'] = EPOCH(txn['dt'])
+        del(txn['dt'])
+        results.append(txn)
+    return results
     
 def RISK_FRAME(risk):
-    return msgpack.dumps(tuple(['RISK', risk]))
+    return BT_UPDATE_FRAME('RISK', risk)
     
-
-def PERF_UNFRAME(msg):
-    prefix, payload = msgpack.loads(msg)
+def BT_UPDATE_FRAME(prefix, payload):
+    """
+    Frames prepared by RISK_FRAME and PERF_FRAME methods are sent via the same 
+    socket. This method provides a prefix to allow for muxing the messages
+    onto a single socket.
+    """
+    return msgpack.dumps(tuple([prefix, payload]))
+    
+def BT_UPDATE_UNFRAME(msg):
+    """
+    Risk and Perf framing methods prefix the payload with
+    a shorthand for their type. That way, all messages received from the socket
+    can be PERF_FRAMED(), whether they are risk or perf.
+    """
+    prefix, payload = msgpack.loads(msg, use_list=True)
     return dict(prefix=prefix, payload=payload)
 
 # -----------------------
@@ -729,6 +708,12 @@ def EPOCH(utc_datetime):
     seconds = delta.total_seconds()
     ms = seconds * 1000
     return ms
+    
+def UN_EPOCH(ms_since_epoch):
+    seconds_since_epoch = ms_since_epoch / 1000
+    delta = datetime.timedelta(seconds = seconds_since_epoch)
+    dt = UNIX_EPOCH + delta
+    return dt
     
 def PACK_DATE(event):
     """

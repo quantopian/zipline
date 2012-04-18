@@ -76,7 +76,39 @@ class TestAlgorithm():
             self.incr += 1
                 
     def get_sid_filter(self):
-        return [self.sid]          
+        return [self.sid] 
+        
+#
+class HeavyBuyAlgorithm():
+    """
+    This algorithm will send a specified number of orders, to allow unit tests
+    to verify the orders sent/received, transactions created, and positions
+    at the close of a simulation.
+    """
+    
+    def __init__(self, sid, amount):
+        self.sid = sid
+        self.amount = amount
+        self.incr = 0
+        self.done = False
+        self.order = None
+        self.frame_count = 0
+        self.portfolio = None
+        
+    def set_order(self, order_callable):
+        self.order = order_callable
+        
+    def set_portfolio(self, portfolio):
+        self.portfolio = portfolio
+        
+    def handle_frame(self, frame):
+        self.frame_count += 1
+        #place an order for 100 shares of sid
+        self.order(self.sid, self.amount)
+        self.incr += 1
+                
+    def get_sid_filter(self):
+        return [self.sid]         
     
 class NoopAlgorithm(object):
     """
