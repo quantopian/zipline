@@ -439,12 +439,12 @@ class TransactionSimulator(qmsg.BaseTransform):
             warning = """
 Calculated a zero volume transaction on trade: 
 {event} 
-for order: 
-{order}
+for orders: 
+{orders}
             """
             warning = warning.format(
                 event=str(event), 
-                order=str(order)
+                orders=str(orders)
             )
             qutil.LOGGER.warn(warning)
             return None

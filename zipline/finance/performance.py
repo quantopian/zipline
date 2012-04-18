@@ -178,7 +178,9 @@ class PerformanceTracker():
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
-            starting_cash = self.capital_base
+            starting_cash = self.capital_base,
+            # save the transactions for the daily periods
+            keep_transactions = True
         )
 
     def get_portfolio(self):
@@ -288,7 +290,8 @@ class PerformanceTracker():
         self.todays_performance = PerformancePeriod(
             self.todays_performance.positions,
             self.todays_performance.ending_value,
-            self.todays_performance.ending_cash
+            self.todays_performance.ending_cash,
+            keep_transactions = True
         )
 
     def handle_simulation_end(self):
@@ -374,7 +377,7 @@ class Position():
 
 class PerformancePeriod():
 
-    def __init__(self, initial_positions, starting_value, starting_cash):
+    def __init__(self, initial_positions, starting_value, starting_cash, keep_transactions=False):
         self.ending_value           = 0.0
         self.period_capital_used    = 0.0
         self.pnl                    = 0.0
@@ -384,6 +387,7 @@ class PerformancePeriod():
         #cash balance at start of period
         self.starting_cash          = starting_cash
         self.ending_cash            = starting_cash
+        self.keep_transactions      = keep_transactions
         self.processed_transactions = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used        = 0.0
@@ -434,7 +438,8 @@ class PerformancePeriod():
             self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
             
         # add transaction to the list of processed transactions 
-        self.processed_transactions.append(txn)
+        if self.keep_transactions:
+            self.processed_transactions.append(txn)
         
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))

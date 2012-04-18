@@ -623,11 +623,6 @@ def PERF_FRAME(perf):
     """
     
     #TODO: add asserts...
-    
-    # DATE fields: 
-    #    started_at, period_start, period_end, last_close, last_open
-    #   pos.last_sale_date
-    #   txn.dt
    
     assert isinstance(perf['started_at'], datetime.datetime)
     assert isinstance(perf['period_start'], datetime.datetime)
@@ -654,16 +649,7 @@ def PERF_FRAME(perf):
     
     tp['transactions']  = convert_transactions(tp['transactions'])
     cp['transactions']  = convert_transactions(cp['transactions']) 
-   
-    returns = []
-    for dr in perf['returns']:
-        updated = {}
-        updated['returns'] = dr['returns']
-        updated['date'] = EPOCH(dr['dt'])
-        returns.append(updated)
-    
-    perf['returns'] = returns
-    
+       
     return BT_UPDATE_FRAME('PERF', perf)
     
 def convert_transactions(transactions):
