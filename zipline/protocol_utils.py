@@ -66,10 +66,10 @@ class namedict(MutableMapping):
     def __delitem__(self, key):
         del self.__dict__[key]
 
-    def __iter__(self, key):
+    def __iter__(self):
         return self.__dict__.iterkeys()
 
-    def __len__(self, key):
+    def __len__(self):
         return len(self.__dict__)
 
     def keys(self):
