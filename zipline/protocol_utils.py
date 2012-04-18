@@ -218,5 +218,3 @@ class ndict(MutableMapping):
                 #return False
 
         #return True
-
-namedict = ndict
