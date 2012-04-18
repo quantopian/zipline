@@ -147,7 +147,7 @@ class ndict(MutableMapping):
     def __iter__(self):
         return self.__internal.iterkeys()
 
-    def __len__(self, key):
+    def __len__(self):
         return len(self.__internal)
 
     # Compatability with namedicts
@@ -163,8 +163,14 @@ class ndict(MutableMapping):
         """
         return self.__contains__(key)
 
+    def has_key(self, key):
+        return self.__contains__(key)
+
     # Custom Methods
     # --------------
+
+    def copy(self):
+        return ndict(copy.copy(self.__internal))
 
     def as_dataframe(self):
         """
@@ -212,3 +218,5 @@ class ndict(MutableMapping):
                 #return False
 
         #return True
+
+namedict = ndict
