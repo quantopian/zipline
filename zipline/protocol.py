@@ -649,7 +649,7 @@ def PERF_FRAME(perf):
     
     tp['transactions']  = convert_transactions(tp['transactions'])
     cp['transactions']  = convert_transactions(cp['transactions']) 
-       
+   
     return BT_UPDATE_FRAME('PERF', perf)
     
 def convert_transactions(transactions):

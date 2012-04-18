@@ -38,10 +38,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | capital_base    | The initial capital assumed for this tracker.      |
     +-----------------+----------------------------------------------------+
-    | returns         | List of dicts representing daily returns. See the  |
-    |                 | comments for                                       |
-    |                 | :py:meth:`zipline.finance.risk.DailyReturn.to_dict`|
-    +-----------------+----------------------------------------------------+
     | cumulative_perf | A dictionary representing the cumulative           |
     |                 | performance through all the events delivered to    |
     |                 | this tracker. For details see the comments on      |
@@ -205,9 +201,6 @@ class PerformanceTracker():
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form described in header comments.
         """
-
-        returns_list = [x.to_dict() for x in self.returns]
-
         return {
             'started_at'              : self.started_at,
             'period_start'            : self.period_start,
@@ -218,7 +211,6 @@ class PerformanceTracker():
             'last_close'              : self.market_close,
             'last_open'               : self.market_open,
             'capital_base'            : self.capital_base,
-            'returns'                 : returns_list,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
             'daily_perf'              : self.todays_performance.to_dict(),
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
