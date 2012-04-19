@@ -55,6 +55,10 @@ def UN_EPOCH(ms_since_epoch):
 def iso8061_to_epoch(datestring):
     dt = parse_iso8061(datestring)
     return EPOCH(dt)
+    
+def epoch_now():
+    dt = datetime.utcnow().replace(tzinfo=pytz.utc)
+    return EPOCH(dt)
 
 # UTC Datetime Subclasses
 # -----------------------
