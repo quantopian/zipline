@@ -75,7 +75,8 @@ class Component(object):
         self.out_socket        = None
         self.killed            = False
         self.controller        = None
-        self.heartbeat_timeout = 2000
+        # timeout after a full minute
+        self.heartbeat_timeout = 60 *1000
         self.state_flag        = COMPONENT_STATE.OK
         self.error_state       = COMPONENT_FAILURE.NOFAILURE
         self.on_done           = None
@@ -502,13 +503,6 @@ class Component(object):
 
         """
         raise NotImplementedError
-        
-    @property
-    def is_blocking(self):
-        """
-        True if a zipline be held open for this component.
-        """
-        return False
 
     @property
     def get_pure(self):

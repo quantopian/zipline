@@ -2,6 +2,9 @@ import datetime
 import pytz
 import math
 import pandas
+import time
+
+from collections import Counter
 
 # from gevent.select import select
 from zmq.core.poll import select
@@ -11,6 +14,17 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
+from zipline.protocol_utils import Enum, namedict
+
+# the simulation style enumerates the available transaction simulation
+# strategies. 
+SIMULATION_STYLE  = Enum(
+    'PARTIAL_VOLUME',
+    'BUY_ALL',
+    'FIXED_SLIPPAGE',
+    'NOOP'
+)
+
 class TradeSimulationClient(qmsg.Component):
     
     def __init__(self, trading_environment):
@@ -19,10 +33,13 @@ class TradeSimulationClient(qmsg.Component):
         self.prev_dt                = None
         self.event_queue            = None
         self.txn_count              = 0
+        self.order_count            = 0
         self.trading_environment    = trading_environment
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
+        self.max_wait               = datetime.timedelta(seconds=7)
+        self.last_msg_dt            = datetime.datetime.utcnow()
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -47,14 +64,19 @@ class TradeSimulationClient(qmsg.Component):
     def open(self):
         self.result_feed = self.connect_result()
         self.order_socket = self.connect_order()
+        # send a wake up call to the order data source.
+        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
     def do_work(self):
+         
         # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
         # see if the poller has results for the result_feed
         if self.result_feed in socks and \
             socks[self.result_feed] == self.zmq.POLLIN:   
+            
+            self.last_msg_dt = datetime.datetime.utcnow()
             
             # get the next message from the result feed
             msg = self.result_feed.recv()
@@ -65,8 +87,7 @@ class TradeSimulationClient(qmsg.Component):
                 # signal the performance tracker that the simulation has
                 # ended. Perf will internally calculate the full risk report.
                 self.perf.handle_simulation_end()
-                # shutdown the feedback loop to the OrderDataSource
-                self.signal_order_done()
+
                 # signal Simulator, our ComponentHost, that this component is
                 # done and Simulator needn't block exit on this component.
                 self.signal_done()
@@ -74,13 +95,21 @@ class TradeSimulationClient(qmsg.Component):
             
             # result_feed is a merge component, so unframe accordingly
             event = zp.MERGE_UNFRAME(msg)
-            
+            self.received_count += 1
             # update performance and relay the event to the algorithm
             self.process_event(event)
             
-             # signal done to order source.
+            # signal loop is done for order source.
             self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
-
+        else:
+            # no events in the sock means the non-order sources are
+            # drained. Signal the order_source that we're done, and
+            # the done will cascade through the whole zipline.
+            # shutdown the feedback loop to the OrderDataSource
+            wait_time = datetime.datetime.utcnow() - self.last_msg_dt
+            if wait_time > self.max_wait:
+                self.signal_order_done()    
+                
     def process_event(self, event):
         # track the number of transactions, for testing purposes.
         if(event.TRANSACTION != None):
@@ -107,12 +136,15 @@ class TradeSimulationClient(qmsg.Component):
             # otherwise, the algorithm has fallen behind the feed 
             # and processing per event is longer than time between events.
             if event.dt >= self.current_dt:
+                # compress time by moving the current_time up to the event
+                # time.
+                self.current_dt = event.dt
                 self.run_algorithm()
             
             # tally the time spent on this iteration
             self.last_iteration_dur = datetime.datetime.utcnow() - event_start
             # move the algorithm's clock forward to include iteration time
-            self.current_dt = self.current_dt + self.last_iteration_dur
+            self.current_dt = self.current_dt  + self.last_iteration_dur
         
             
     def run_algorithm(self):
@@ -132,13 +164,15 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
+        
         order = zp.namedict({
             'dt':self.current_dt,
             'sid':sid,
             'amount':amount
         })
-        
         self.order_socket.send(zp.ORDER_FRAME(order))
+        self.order_count += 1
+        self.perf.log_order(order)
         
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
@@ -172,18 +206,12 @@ class OrderDataSource(qmsg.DataSource):
         """
         qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
         self.sent_count         = 0
+        self.recv_count         = Counter()
+        self.works              = 0
 
     @property
     def get_type(self):
         return zp.DATASOURCE_TYPE.ORDER
-        
-    #
-    @property
-    def is_blocking(self):
-        """
-        This datasource is in a loop with the TradingSimulationClient
-        """
-        return False
         
     def open(self):
         qmsg.DataSource.open(self)
@@ -194,23 +222,21 @@ class OrderDataSource(qmsg.DataSource):
 
     def do_work(self):    
         
-        
-        #TODO: if this is the first iteration, break deadlock by sending a dummy order
-        if(self.sent_count == 0):
-            self.send(zp.namedict({}))
-        
-        #pull all orders from client.
-        orders = []
-        count = 0
+        self.works += 1
 
-        # TODO : this can be written in a concurrency agnostic
-        # way... have a chat with Fawce about this ~Steve
+        #pull all orders from client.
+        count = 0
         
+        # one iteration of the client could include several orders
+        # so iterate until the client signals a break or a close.
         while True:
             # poll all the sockets
             # we reduce the timeout here by a factor of 2, because we need
             # to potentially receive the client's done message before the 
             # controller or heartbeat times out.
+            
+            # this will block for timeout/2, and return an empty dict if there
+            # are no messages.
             socks = dict(self.poll.poll(self.heartbeat_timeout/2))
 
             # see if the poller has results for the result_feed
@@ -220,39 +246,46 @@ class OrderDataSource(qmsg.DataSource):
                 order_msg = self.order_socket.recv()
             
                 if order_msg == str(zp.ORDER_PROTOCOL.DONE):
+                    qutil.LOGGER.info("order source is done")
                     self.signal_done()
+                    self.recv_count['done'] += 1
                     return
                 
                 if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
+                    # send a blank message to avoid an empty buffer
+                    # in the feed
+                    self.recv_count['break'] += 1
+                    if count == 0:
+                        self.send(namedict({}))
                     break
 
                 order = zp.ORDER_UNFRAME(order_msg)
+                self.recv_count['order'] += 1
                 #send the order along
                 self.send(order)
                 count += 1
                 self.sent_count += 1
-            
-            else:
-                # no orders, break out
-                break
-    
-        #TODO: we have to send at least one dummy order per do_work iteration 
-        # or the feed will block waiting for our messages.
-        if(count == 0):
-            self.send(zp.namedict({}))
-    
+                
 
 class TransactionSimulator(qmsg.BaseTransform):
     
-    def __init__(self): 
+    def __init__(self, style=SIMULATION_STYLE.PARTIAL_VOLUME): 
         qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
         self.txn_count                  = 0
-        self.trade_window                = datetime.timedelta(seconds=30)
+        self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
-        self.volume_share               = 0.05
         self.commission                 = 0.03
+        
+        if not style or style == SIMULATION_STYLE.PARTIAL_VOLUME:
+            self.apply_trade_to_open_orders = self.simulate_with_partial_volume
+        elif style == SIMULATION_STYLE.BUY_ALL:
+            self.apply_trade_to_open_orders =  self.simulate_buy_all
+        elif style == SIMULATION_STYLE.FIXED_SLIPPAGE:
+            self.apply_trade_to_open_orders = self.simulate_with_fixed_cost
+        elif style == SIMULATION_STYLE.NOOP:
+            self.apply_trade_to_open_orders = self.simulate_noop
             
     def transform(self, event):
         """
@@ -267,9 +300,12 @@ class TransactionSimulator(qmsg.BaseTransform):
             self.state['value'] = txn
         else:
             self.state['value'] = None
-            qutil.LOGGER.info("unexpected event type in transform: {etype}".format(etype=event.type))
+            log = "unexpected event type in transform: {etype}".format(
+                etype=event.type
+            )
+            qutil.LOGGER.info(log)
+            
         #TODO: what to do if we get another kind of datasource event.type?
-        
         return self.state
             
     def add_open_order(self, event):
@@ -277,63 +313,141 @@ class TransactionSimulator(qmsg.BaseTransform):
             Amount is explicitly converted to an int.
             Orders of amount zero are ignored.
         """
+        self.order_count += 1
+        
         event.amount = int(event.amount)
         if event.amount == 0:
-            qutil.LOGGER.debug("requested to trade zero shares of {sid}".format(sid=event.sid))
+            log = "requested to trade zero shares of {sid}".format(
+                sid=event.sid
+            )
+            qutil.LOGGER.debug(log)
             return
             
-        self.order_count += 1
+        
         
         if(not self.open_orders.has_key(event.sid)):
             self.open_orders[event.sid] = []
+            
+        # set the filled property to zero
+        event.filled = 0
         self.open_orders[event.sid].append(event)
      
-    def apply_trade_to_open_orders(self, event):
+    def simulate_buy_all(self, event):
+        txn = self.create_transaction(
+                event.sid, 
+                event.volume, 
+                event.price, 
+                event.dt, 
+                1
+            )
+        return txn
         
-        if(event.volume == 0):
-            #there are zero volume events bc some stocks trade 
-            #less frequently than once per minute.
-            return self.create_dummy_txn(event.dt)
-            
+    def simulate_noop(self, event):
+        return None    
+    
+    def simulate_with_fixed_cost(self, event):
         if self.open_orders.has_key(event.sid):
             orders = self.open_orders[event.sid] 
+            orders = sorted(orders, key=lambda o: o.dt)
         else:
             return None
             
-        remaining_orders = []
-        total_order = 0        
-        dt = event.dt
-    
+        amount = 0
         for order in orders:
-            #we're using minute bars, so allow orders within 
-            #30 seconds of the trade
-            if((order.dt - event.dt) < self.trade_window):
-                total_order += order.amount
-                if(order.dt > dt):
-                    dt = order.dt
-            #if the order still has time to live (TTL) keep track
-            elif((self.algo_time - order.dt) < self.orderTTL):
-                remaining_orders.append(order)
-    
-        self.open_orders[event.sid] = remaining_orders
-    
-        if(total_order != 0):
-            direction = total_order / math.fabs(total_order)
-        else:
-            direction = 1
+            amount += order.amount
+        
+        if(amount == 0):
+            return
             
-        volume_share = (direction * total_order) / event.volume
-        if volume_share > .25:
-            volume_share = .25
-        amount = volume_share * event.volume * direction
-        impact = (volume_share)**2 * .1 * direction * event.price
-        return self.create_transaction(
-            event.sid, 
-            amount, 
-            event.price + impact, 
-            dt.replace(tzinfo = pytz.utc), 
-            direction
-        )
+        direction = amount / math.fabs(amount)
+        
+        
+        txn = self.create_transaction(
+                event.sid, 
+                amount, 
+                event.price + 0.10, 
+                event.dt, 
+                direction
+            )
+        
+        self.open_orders[event.sid] = []
+        
+        return txn
+        
+    def simulate_with_partial_volume(self, event):
+        if(event.volume == 0):
+            #there are zero volume events bc some stocks trade 
+            #less frequently than once per minute.
+            return None
+            
+        if self.open_orders.has_key(event.sid):
+            orders = self.open_orders[event.sid] 
+            orders = sorted(orders, key=lambda o: o.dt)
+        else:
+            return None
+     
+        dt = event.dt
+        expired = []
+        total_order = 0
+        simulated_amount = 0
+        simulated_impact = 0.0
+        direction = 1.0
+        for order in orders:
+            
+            if(order.dt < event.dt):
+                
+                # orders are only good on the day they are issued
+                if order.dt.day < event.dt.day:
+                    continue
+    
+                open_amount = order.amount - order.filled
+                
+                if(open_amount != 0):
+                    direction = open_amount / math.fabs(open_amount)
+                else:
+                    direction = 1
+                
+                desired_order = total_order + open_amount
+                
+                volume_share = direction * (desired_order) / event.volume
+                if volume_share > .25:
+                    volume_share = .25
+                simulated_amount = int(volume_share * event.volume * direction)
+                simulated_impact = (volume_share)**2 * .1 * direction * event.price
+                
+                order.filled += (simulated_amount - total_order)
+                total_order = simulated_amount
+                
+                # we cap the volume share at 25% of a trade
+                if volume_share == .25:
+                    break
+                  
+        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
+       
+        self.open_orders[event.sid] = orders
+        
+        
+        if simulated_amount != 0:
+            return self.create_transaction(
+                event.sid, 
+                simulated_amount, 
+                event.price + simulated_impact, 
+                dt.replace(tzinfo = pytz.utc), 
+                direction
+            )
+        else:
+            warning = """
+Calculated a zero volume transaction on trade: 
+{event} 
+for orders: 
+{orders}
+            """
+            warning = warning.format(
+                event=str(event), 
+                orders=str(orders)
+            )
+            qutil.LOGGER.warn(warning)
+            return None
     
         
     def create_transaction(self, sid, amount, price, dt, direction):   
@@ -445,7 +559,15 @@ class TradingEnvironment(object):
         
         return len(self.period_trading_days)
                 
-            
+    def is_market_hours(self, test_date):
+        if not self.is_trading_day(test_date):
+            return False
+        
+        mkt_open = self.set_NYSE_time(test_date, 9, 30)
+        #TODO: half days?
+        mkt_close = self.set_NYSE_time(test_date, 16, 00)
+        
+        return test_date >= mkt_open and test_date <= mkt_close
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
