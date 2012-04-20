@@ -628,8 +628,6 @@ def PERF_FRAME(perf):
     assert isinstance(perf['started_at'], datetime.datetime)
     assert isinstance(perf['period_start'], datetime.datetime)
     assert isinstance(perf['period_end'], datetime.datetime)
-    assert isinstance(perf['last_close'], datetime.datetime)
-    assert isinstance(perf['last_open'], datetime.datetime)
     
     assert isinstance(perf['daily_perf'], dict)
     assert isinstance(perf['cumulative_perf'], dict)
@@ -641,16 +639,22 @@ def PERF_FRAME(perf):
     assert isinstance(cp['transactions'], list)
     assert isinstance(tp['positions'], list)
     assert isinstance(cp['positions'], list)
+    assert isinstance(tp['period_close'], datetime.datetime)
+    assert isinstance(tp['period_open'], datetime.datetime)
+    assert isinstance(cp['period_close'], datetime.datetime)
+    assert isinstance(cp['period_open'], datetime.datetime)
    
     perf['started_at']   = EPOCH(perf['started_at'])
     perf['period_start'] = EPOCH(perf['period_start'])
     perf['period_end']   = EPOCH(perf['period_end'])
-    perf['last_close']   = EPOCH(perf['last_close'])
-    perf['last_open']    = EPOCH(perf['last_open'])
+    tp['period_close']   = EPOCH(tp['period_close'])
+    tp['period_open']    = EPOCH(tp['period_open'])
+    cp['period_close']   = EPOCH(cp['period_close'])
+    cp['period_open']    = EPOCH(cp['period_open'])
     
     tp['transactions']  = convert_transactions(tp['transactions'])
     cp['transactions']  = convert_transactions(cp['transactions']) 
-   
+    
     return BT_UPDATE_FRAME('PERF', perf)
     
 def convert_transactions(transactions):

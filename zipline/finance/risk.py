@@ -194,7 +194,7 @@ class RiskMetrics():
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
         if self.algorithm_volatility == 0:
-            return None
+            return 0.0
             
         return ( (self.algorithm_period_returns - self.treasury_period_return) /
             self.algorithm_volatility )

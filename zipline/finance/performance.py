@@ -20,12 +20,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | started_at      | datetime in utc marking the start of this test     |
     +-----------------+----------------------------------------------------+
-    | cumulative_capti| The net capital used (positive is spent) through   |
-    | al_used         | the course of all the events sent to this tracker  |
-    +-----------------+----------------------------------------------------+
-    | max_capital_used| The maximum amount of capital deployed through the |
-    |                 | course of all the events sent to this tracker      |
-    +-----------------+----------------------------------------------------+
     | last_close      | The most recent close of the market. datetime in   |
     |                 | pytz.utc timezone. Will always be 23:59 on the     |
     |                 | date in UTC. The fact that the time may be on the  |
@@ -106,6 +100,14 @@ Performance Period
     | returns       | percentage returns for the entire portfolio over the |
     |               | period                                               |
     +---------------+------------------------------------------------------+
+    | cumulative_   | The net capital used (positive is spent) during      |
+    | capital_used  | the period                                           |
+    +---------------+------------------------------------------------------+
+    | max_capital_  | The maximum amount of capital deployed during the    |
+    | used          | period.                                              |
+    +---------------+------------------------------------------------------+
+    | max_leverage  | The maximum leverage used during the period.         |
+    +---------------+------------------------------------------------------+
 
 
 """
@@ -136,10 +138,10 @@ class PerformanceTracker():
     def __init__(self, trading_environment):
         
         
-        self.trading_environment    = trading_environment
-        self.trading_day            = datetime.timedelta(hours = 6, minutes = 30)
-        self.calendar_day           = datetime.timedelta(hours = 24)
-        self.started_at             = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.trading_environment     = trading_environment
+        self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
+        self.calendar_day            = datetime.timedelta(hours = 24)
+        self.started_at              = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
         self.period_start            = self.trading_environment.period_start
         self.period_end              = self.trading_environment.period_end
@@ -164,7 +166,10 @@ class PerformanceTracker():
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
-            starting_cash = self.capital_base
+            self.capital_base,
+            # the cumulative period will be calculated over the entire test.
+            self.period_start,
+            self.period_end
         )
         
         # this performance period will span just the current market day
@@ -174,7 +179,10 @@ class PerformanceTracker():
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
-            starting_cash = self.capital_base,
+            self.capital_base,
+            # the daily period will be calculated for the market day
+            self.market_open,
+            self.market_close,
             # save the transactions for the daily periods
             keep_transactions = True
         )
@@ -206,10 +214,6 @@ class PerformanceTracker():
             'period_start'            : self.period_start,
             'period_end'              : self.period_end,
             'progress'                : self.progress,
-            'cumulative_capital_used' : self.cumulative_performance.cumulative_capital_used,
-            'max_capital_used'        : self.cumulative_performance.max_capital_used,
-            'last_close'              : self.market_close,
-            'last_open'               : self.market_open,
             'capital_base'            : self.capital_base,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
             'daily_perf'              : self.todays_performance.to_dict(),
@@ -283,6 +287,8 @@ class PerformanceTracker():
             self.todays_performance.positions,
             self.todays_performance.ending_value,
             self.todays_performance.ending_cash,
+            self.market_open,
+            self.market_close,
             keep_transactions = True
         )
 
@@ -369,20 +375,32 @@ class Position():
 
 class PerformancePeriod():
 
-    def __init__(self, initial_positions, starting_value, starting_cash, keep_transactions=False):
-        self.ending_value           = 0.0
-        self.period_capital_used    = 0.0
-        self.pnl                    = 0.0
+    def __init__(
+        self, 
+        initial_positions, 
+        starting_value, 
+        starting_cash,
+        period_open,
+        period_close, 
+        keep_transactions=False):
+        
+        self.period_open = period_open
+        self.period_close = period_close
+        
+        self.ending_value            = 0.0
+        self.period_capital_used     = 0.0
+        self.pnl                     = 0.0
         #sid => position object
-        self.positions              = initial_positions
-        self.starting_value         = starting_value
+        self.positions               = initial_positions
+        self.starting_value          = starting_value
         #cash balance at start of period
-        self.starting_cash          = starting_cash
-        self.ending_cash            = starting_cash
-        self.keep_transactions      = keep_transactions
-        self.processed_transactions = []
+        self.starting_cash           = starting_cash
+        self.ending_cash             = starting_cash
+        self.keep_transactions       = keep_transactions
+        self.processed_transactions  = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used        = 0.0
+        self.max_leverage            = 0.0
         
         self.calculate_performance()
 
@@ -457,16 +475,21 @@ class PerformancePeriod():
         transactions = [x.as_dict() for x in self.processed_transactions]
 
         return {
-            'ending_value'   : self.ending_value,
-            'capital_used'   : self.period_capital_used,
-            'starting_value' : self.starting_value,
-            'starting_cash'  : self.starting_cash,
-            'ending_cash'    : self.ending_cash,
-            'portfolio_value': self.ending_cash + self.ending_value,
-            'positions'      : positions,
-            'pnl'            : self.pnl,
-            'returns'        : self.returns,
-            'transactions'   : transactions,
+            'ending_value'              : self.ending_value,
+            'capital_used'              : self.period_capital_used,
+            'starting_value'            : self.starting_value,
+            'starting_cash'             : self.starting_cash,
+            'ending_cash'               : self.ending_cash,
+            'portfolio_value'           : self.ending_cash + self.ending_value,
+            'cumulative_capital_used'   : self.cumulative_capital_used,
+            'max_capital_used'          : self.max_capital_used,
+            'max_leverage'              : self.max_leverage,
+            'positions'                 : positions,
+            'pnl'                       : self.pnl,
+            'returns'                   : self.returns,
+            'transactions'              : transactions,
+            'period_open'               : self.period_open,
+            'period_close'              : self.period_close
         }
         
     def to_namedict(self):
@@ -481,12 +504,16 @@ class PerformancePeriod():
         positions = zp.namedict(positions)
         
         return zp.namedict({
-            'ending_value'  : self.ending_value,
-            'capital_used'   : self.period_capital_used,
-            'starting_value' : self.starting_value,
-            'starting_cash'  : self.starting_cash,
-            'ending_cash'   : self.ending_cash,
-            'positions'      : positions
+            'ending_value'              : self.ending_value,
+            'capital_used'              : self.period_capital_used,
+            'starting_value'            : self.starting_value,
+            'starting_cash'             : self.starting_cash,
+            'ending_cash'               : self.ending_cash,
+            'cumulative_capital_used'   : self.cumulative_capital_used,
+            'max_capital_used'          : self.max_capital_used,
+            'max_leverage'              : self.max_leverage,    
+            'positions'                 : positions,
+            'transactions'              : self.processed_transactions
         })
         
     def get_positions(self, namedicted=False):
