@@ -38,7 +38,7 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
-        self.max_wait               = datetime.timedelta(seconds=7)
+        self.max_wait               = datetime.timedelta(seconds=60)
         self.last_msg_dt            = datetime.datetime.utcnow()
         
         assert self.trading_environment.frame_index != None
@@ -207,7 +207,6 @@ class OrderDataSource(qmsg.DataSource):
         qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
         self.sent_count         = 0
         self.recv_count         = Counter()
-        self.works              = 0
 
     @property
     def get_type(self):
@@ -222,14 +221,14 @@ class OrderDataSource(qmsg.DataSource):
 
     def do_work(self):    
         
-        self.works += 1
+        self.recv_count['work_loops'] += 1
 
         #pull all orders from client.
         count = 0
         
         # one iteration of the client could include several orders
         # so iterate until the client signals a break or a close.
-        while True:
+        # while True:
             # poll all the sockets
             # we reduce the timeout here by a factor of 2, because we need
             # to potentially receive the client's done message before the 
@@ -237,34 +236,37 @@ class OrderDataSource(qmsg.DataSource):
             
             # this will block for timeout/2, and return an empty dict if there
             # are no messages.
-            socks = dict(self.poll.poll(self.heartbeat_timeout/2))
-
-            # see if the poller has results for the result_feed
-            if self.order_socket in socks and \
-                socks[self.order_socket] == self.zmq.POLLIN:
-                
-                order_msg = self.order_socket.recv()
             
-                if order_msg == str(zp.ORDER_PROTOCOL.DONE):
-                    qutil.LOGGER.info("order source is done")
-                    self.signal_done()
-                    self.recv_count['done'] += 1
-                    return
-                
-                if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
-                    # send a blank message to avoid an empty buffer
-                    # in the feed
-                    self.recv_count['break'] += 1
-                    if count == 0:
-                        self.send(namedict({}))
-                    break
+        socks = dict(self.poll.poll())
 
-                order = zp.ORDER_UNFRAME(order_msg)
-                self.recv_count['order'] += 1
-                #send the order along
-                self.send(order)
-                count += 1
-                self.sent_count += 1
+        # see if the poller has results for the result_feed
+        if self.order_socket in socks and \
+            socks[self.order_socket] == self.zmq.POLLIN:
+            
+            order_msg = self.order_socket.recv()
+        
+            if order_msg == str(zp.ORDER_PROTOCOL.DONE):
+                qutil.LOGGER.info("order source is done")
+                self.signal_done()
+                self.recv_count['done'] += 1
+                return
+            
+            if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
+                # send a blank message to avoid an empty buffer
+                # in the feed
+                self.recv_count['break'] += 1
+                if self.sent_count == 0:
+                    self.send(namedict({}))
+                self.sent_count = 0
+                return
+
+            order = zp.ORDER_UNFRAME(order_msg)
+            self.recv_count['order'] += 1
+            #send the order along
+            self.send(order)
+            count += 1
+            self.sent_count += 1
+            
                 
 
 class TransactionSimulator(qmsg.BaseTransform):
@@ -435,7 +437,7 @@ class TransactionSimulator(qmsg.BaseTransform):
                 dt.replace(tzinfo = pytz.utc), 
                 direction
             )
-        else:
+        elif len(orders) > 0:
             warning = """
 Calculated a zero volume transaction on trade: 
 {event} 
