@@ -20,16 +20,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | started_at      | datetime in utc marking the start of this test     |
     +-----------------+----------------------------------------------------+
-    | last_close      | The most recent close of the market. datetime in   |
-    |                 | pytz.utc timezone. Will always be 23:59 on the     |
-    |                 | date in UTC. The fact that the time may be on the  |
-    |                 | next day in the exchange's local time is ignored   |
-    +-----------------+----------------------------------------------------+
-    | last_open       | The most recent open of the market. datetime in    |
-    |                 | pytz.utc timezone. Will always be 00:00 on the     |
-    |                 | date in UTC. The fact that the time may be on the  |
-    |                 | next day in the exchange's local time is ignored   |
-    +-----------------+----------------------------------------------------+
     | capital_base    | The initial capital assumed for this tracker.      |
     +-----------------+----------------------------------------------------+
     | cumulative_perf | A dictionary representing the cumulative           |
@@ -108,6 +98,13 @@ Performance Period
     +---------------+------------------------------------------------------+
     | max_leverage  | The maximum leverage used during the period.         |
     +---------------+------------------------------------------------------+
+    | period_close  | The last close of the market in period. datetime in  |
+    |               | pytz.utc timezone.                                   |
+    +---------------+------------------------------------------------------+
+    | period_open   | The first open of the market in period. datetime in  |
+    |               | pytz.utc timezone.                                   |
+    +---------------+------------------------------------------------------+
+    
 
 
 """
