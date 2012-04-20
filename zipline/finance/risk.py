@@ -292,7 +292,7 @@ class RiskMetrics():
         curve = None
         # in case end date is not a trading day, search for the next market
         # day for an interest rate
-        for i in range(7):
+        for i in xrange(7):
             if(self.treasury_curves.has_key(self.end_date + i * one_day)):
                 curve = self.treasury_curves[self.end_date + i * one_day]
                 break

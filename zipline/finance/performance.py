@@ -56,9 +56,6 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | last_sale_price | price at last sale of the security on the exchange |
     +-----------------+----------------------------------------------------+
-    | transactions    | all the transactions that were acrued into this    |
-    |                 | position.                                          |
-    +-----------------+----------------------------------------------------+
 
 
 Performance Period
@@ -104,7 +101,9 @@ Performance Period
     | period_open   | The first open of the market in period. datetime in  |
     |               | pytz.utc timezone.                                   |
     +---------------+------------------------------------------------------+
-    
+    | transactions  | all the transactions that were acrued during this    |
+    |               | period. Unset/missing for cumulative periods.        |
+    +---------------+------------------------------------------------------+
 
 
 """
@@ -471,7 +470,7 @@ class PerformancePeriod():
         positions = self.get_positions_list()
         transactions = [x.as_dict() for x in self.processed_transactions]
 
-        return {
+        rval = {
             'ending_value'              : self.ending_value,
             'capital_used'              : self.period_capital_used,
             'starting_value'            : self.starting_value,
@@ -488,6 +487,12 @@ class PerformancePeriod():
             'period_open'               : self.period_open,
             'period_close'              : self.period_close
         }
+        
+        # we want the key to be absent, not just empty
+        if not self.keep_transactions:
+            del(rval['transactions'])
+        
+        return rval
         
     def to_namedict(self):
         """

@@ -636,7 +636,9 @@ def PERF_FRAME(perf):
     cp   = perf['cumulative_perf']
     
     assert isinstance(tp['transactions'], list)
-    assert isinstance(cp['transactions'], list)
+    # we never want to send transactions for the cumulative period. 
+    # performance.py should never send them, but just to be safe:
+    assert not cp.has_key('transactions')
     assert isinstance(tp['positions'], list)
     assert isinstance(cp['positions'], list)
     assert isinstance(tp['period_close'], datetime.datetime)
@@ -652,9 +654,8 @@ def PERF_FRAME(perf):
     cp['period_close']   = EPOCH(cp['period_close'])
     cp['period_open']    = EPOCH(cp['period_open'])
     
-    tp['transactions']  = convert_transactions(tp['transactions'])
-    cp['transactions']  = convert_transactions(cp['transactions']) 
-    
+    tp['transactions']   = convert_transactions(tp['transactions'])
+
     return BT_UPDATE_FRAME('PERF', perf)
     
 def convert_transactions(transactions):
