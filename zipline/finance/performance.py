@@ -377,8 +377,8 @@ class PerformancePeriod():
         initial_positions, 
         starting_value, 
         starting_cash,
-        period_open,
-        period_close, 
+        period_open=None,
+        period_close=None, 
         keep_transactions=False):
         
         self.period_open = period_open
