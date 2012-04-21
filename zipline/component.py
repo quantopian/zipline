@@ -86,6 +86,7 @@ class Component(object):
         self.start_tic         = None
         self.stop_tic          = None
         self.note              = None
+        self.confirmed         = False
 
         # Humanhashes make this way easier to debug because they
         # stick in your mind unlike a 32 byte string of random hex.
@@ -235,12 +236,13 @@ class Component(object):
         """
         Send a synchronization request to the host.
         """
+        if not self.confirmed:
+            # TODO: proper framing
+            self.sync_socket.send(self.get_id + ":RUN")
 
-        # TODO: proper framing
-        self.sync_socket.send(self.get_id + ":RUN")
-
-        self.receive_sync_ack() # blocking
-
+            self.receive_sync_ack() # blocking
+            self.confirmed = True
+            
     def runtime(self):
         if self.ready() and self.start_tic and self.stop_tic:
             return self.stop_tic - self.start_tic

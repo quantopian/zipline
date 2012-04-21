@@ -10,7 +10,8 @@ import zipline.util as qutil
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
 import zipline.protocol as zp
-from zipline.finance.trading import TradeSimulationClient, TradingEnvironment
+from zipline.finance.trading import TradeSimulationClient, TradingEnvironment, \
+SIMULATION_STYLE
 class PerformanceTestCase(unittest.TestCase):
     
     def setUp(self):
@@ -539,11 +540,7 @@ shares in position"
         self.trading_environment.capital_base = 1000.0
         self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
         'price', 'changed']
-        client = TradeSimulationClient(self.trading_environment)
-        # the client expects an algorithm that fullfills the algorithm
-        # protocol, so we use the noop algorithm.
-        test_algo = zipline.test.algorithms.NoopAlgorithm()
-        client.set_algorithm(test_algo)
+        perf_tracker = perf.PerformanceTracker(self.trading_environment)
         
         for event in trade_history:
             #create a transaction for all but
@@ -559,18 +556,13 @@ shares in position"
             else:
                 txn = None
             event[zp.TRANSFORM_TYPE.TRANSACTION] = txn  
-            client.process_event(event)
-            
-        df = client.get_frame()
-        
-        self.assertEqual(df[133]['price'], price)
-        self.assertEqual(df[134]['price'], price2)
+            perf_tracker.process_event(event)
         
         #we skip two trades, to test case of None transaction
         txn_count = len(trade_history) - 2
-        self.assertEqual(client.perf.txn_count, txn_count)
+        self.assertEqual(perf_tracker.txn_count, txn_count)
         
-        cumulative_pos = client.perf.cumulative_performance.positions[sid]
+        cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
         expected_size = txn_count / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
     

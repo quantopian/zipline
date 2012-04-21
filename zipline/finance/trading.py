@@ -27,7 +27,7 @@ SIMULATION_STYLE  = Enum(
 
 class TradeSimulationClient(qmsg.Component):
     
-    def __init__(self, trading_environment):
+    def __init__(self, trading_environment, sim_style):
         qmsg.Component.__init__(self)
         self.received_count         = 0
         self.prev_dt                = None
@@ -38,8 +38,9 @@ class TradeSimulationClient(qmsg.Component):
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
         self.algorithm              = None
-        self.max_wait               = datetime.timedelta(seconds=7)
+        self.max_wait               = datetime.timedelta(seconds=60)
         self.last_msg_dt            = datetime.datetime.utcnow()
+        self.txn_sim                = TransactionSimulator(sim_style)
         
         assert self.trading_environment.frame_index != None
         self.event_frame = pandas.DataFrame(
@@ -63,12 +64,8 @@ class TradeSimulationClient(qmsg.Component):
     
     def open(self):
         self.result_feed = self.connect_result()
-        self.order_socket = self.connect_order()
-        # send a wake up call to the order data source.
-        self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
     
     def do_work(self):
-         
         # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
@@ -99,54 +96,49 @@ class TradeSimulationClient(qmsg.Component):
             # update performance and relay the event to the algorithm
             self.process_event(event)
             
-            # signal loop is done for order source.
-            self.order_socket.send(str(zp.ORDER_PROTOCOL.BREAK))
-        else:
-            # no events in the sock means the non-order sources are
-            # drained. Signal the order_source that we're done, and
-            # the done will cascade through the whole zipline.
-            # shutdown the feedback loop to the OrderDataSource
-            wait_time = datetime.datetime.utcnow() - self.last_msg_dt
-            if wait_time > self.max_wait:
-                self.signal_order_done()    
-                
+
     def process_event(self, event):
-        # track the number of transactions, for testing purposes.
-        if(event.TRANSACTION != None):
+        
+        # generate transactions, if applicable
+        txn = self.txn_sim.apply_trade_to_open_orders(event)
+        if txn:
+            event.TRANSACTION = txn
+            # track the number of transactions, for testing purposes.
             self.txn_count += 1
+        else:
+            event.TRANSACTION = None
+            
+        # the performance class needs to process each event, without 
+        # skipping. Algorithm should wait until the performance has been 
+        # updated, so that down stream components can safely assume that
+        # performance is up to date. Note that this is done before we
+        # mark the time for the algorithm's processing, thereby not
+        # running the algo's clock for performance book keeping.
+        self.perf.process_event(event)
         
-        #filter order flow out of the events sent to callbacks
-        if event.source_id != zp.FINANCE_COMPONENT.ORDER_SOURCE:
-            
-            # the performance class needs to process each event, without 
-            # skipping. Algorithm should wait until the performance has been 
-            # updated, so that down stream components can safely assume that
-            # performance is up to date. Note that this is done before we
-            # mark the time for the algorithm's processing, thereby not
-            # running the algo's clock for performance book keeping.
-            self.perf.process_event(event)
-            
-            # mark the start time for client's processing of this event.
-            event_start = datetime.datetime.utcnow()
-            
-            # queue the event.
-            self.queue_event(event)
-            
-            # if the event is later than our current time, run the algo
-            # otherwise, the algorithm has fallen behind the feed 
-            # and processing per event is longer than time between events.
-            if event.dt >= self.current_dt:
-                # compress time by moving the current_time up to the event
-                # time.
-                self.current_dt = event.dt
-                self.run_algorithm()
-            
-            # tally the time spent on this iteration
-            self.last_iteration_dur = datetime.datetime.utcnow() - event_start
-            # move the algorithm's clock forward to include iteration time
-            self.current_dt = self.current_dt  + self.last_iteration_dur
+        # mark the start time for client's processing of this event.
+        event_start = datetime.datetime.utcnow()
         
             
+        # queue the event.
+        self.queue_event(event)
+        
+        
+        # if the event is later than our current time, run the algo
+        # otherwise, the algorithm has fallen behind the feed 
+        # and processing per event is longer than time between events.
+        if event.dt >= self.current_dt:
+            # compress time by moving the current_time up to the event
+            # time.
+            self.current_dt = event.dt
+            self.run_algorithm()
+        
+        # tally the time spent on this iteration
+        self.last_iteration_dur = datetime.datetime.utcnow() - event_start
+        # move the algorithm's clock forward to include iteration time
+        self.current_dt = self.current_dt  + self.last_iteration_dur
+    
+        
     def run_algorithm(self):
         """
         As per the algorithm protocol: 
@@ -164,15 +156,14 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
-        
         order = zp.namedict({
             'dt':self.current_dt,
             'sid':sid,
             'amount':amount
         })
-        self.order_socket.send(zp.ORDER_FRAME(order))
         self.order_count += 1
         self.perf.log_order(order)
+        self.txn_sim.add_open_order(order)
         
     def signal_order_done(self):
         self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
@@ -188,89 +179,11 @@ class TradeSimulationClient(qmsg.Component):
             self.event_frame[event['sid']] = event
         self.event_queue = []
         return self.event_frame
-        
-class OrderDataSource(qmsg.DataSource):
-    """DataSource that relays orders from the client"""
+                     
 
-    def __init__(self):
-        """
-        :param simulation_time: datetime in UTC timezone, sets the start 
-        time of simulation. orders
-            will be timestamped relative to this datetime.
-                event = {
-                    'sid'    : an integer for security id,
-                    'dt'     : datetime object,
-                    'price'  : float for price,
-                    'volume' : integer for volume
-                }
-        """
-        qmsg.DataSource.__init__(self, zp.FINANCE_COMPONENT.ORDER_SOURCE)
-        self.sent_count         = 0
-        self.recv_count         = Counter()
-        self.works              = 0
-
-    @property
-    def get_type(self):
-        return zp.DATASOURCE_TYPE.ORDER
-        
-    def open(self):
-        qmsg.DataSource.open(self)
-        self.order_socket = self.bind_order()
-        
-    def bind_order(self):
-        return self.bind_pull_socket(self.addresses['order_address'])
-
-    def do_work(self):    
-        
-        self.works += 1
-
-        #pull all orders from client.
-        count = 0
-        
-        # one iteration of the client could include several orders
-        # so iterate until the client signals a break or a close.
-        while True:
-            # poll all the sockets
-            # we reduce the timeout here by a factor of 2, because we need
-            # to potentially receive the client's done message before the 
-            # controller or heartbeat times out.
-            
-            # this will block for timeout/2, and return an empty dict if there
-            # are no messages.
-            socks = dict(self.poll.poll(self.heartbeat_timeout/2))
-
-            # see if the poller has results for the result_feed
-            if self.order_socket in socks and \
-                socks[self.order_socket] == self.zmq.POLLIN:
-                
-                order_msg = self.order_socket.recv()
-            
-                if order_msg == str(zp.ORDER_PROTOCOL.DONE):
-                    qutil.LOGGER.info("order source is done")
-                    self.signal_done()
-                    self.recv_count['done'] += 1
-                    return
-                
-                if order_msg == str(zp.ORDER_PROTOCOL.BREAK):
-                    # send a blank message to avoid an empty buffer
-                    # in the feed
-                    self.recv_count['break'] += 1
-                    if count == 0:
-                        self.send(namedict({}))
-                    break
-
-                order = zp.ORDER_UNFRAME(order_msg)
-                self.recv_count['order'] += 1
-                #send the order along
-                self.send(order)
-                count += 1
-                self.sent_count += 1
-                
-
-class TransactionSimulator(qmsg.BaseTransform):
+class TransactionSimulator(object):
     
     def __init__(self, style=SIMULATION_STYLE.PARTIAL_VOLUME): 
-        qmsg.BaseTransform.__init__(self, zp.TRANSFORM_TYPE.TRANSACTION)
         self.open_orders                = {}
         self.order_count                = 0
         self.txn_count                  = 0
@@ -287,27 +200,6 @@ class TransactionSimulator(qmsg.BaseTransform):
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
             
-    def transform(self, event):
-        """
-        Pulls one message from the event feed, then
-        loops on orders until client sends DONE message.
-        """
-        if(event.type == zp.DATASOURCE_TYPE.ORDER):
-            self.add_open_order(event)
-            self.state['value'] = None
-        elif(event.type == zp.DATASOURCE_TYPE.TRADE):
-            txn = self.apply_trade_to_open_orders(event)
-            self.state['value'] = txn
-        else:
-            self.state['value'] = None
-            log = "unexpected event type in transform: {etype}".format(
-                etype=event.type
-            )
-            qutil.LOGGER.info(log)
-            
-        #TODO: what to do if we get another kind of datasource event.type?
-        return self.state
-            
     def add_open_order(self, event):
         """Orders are captured in a buffer by sid. No calculations are done here.
             Amount is explicitly converted to an int.
@@ -322,8 +214,6 @@ class TransactionSimulator(qmsg.BaseTransform):
             )
             qutil.LOGGER.debug(log)
             return
-            
-        
         
         if(not self.open_orders.has_key(event.sid)):
             self.open_orders[event.sid] = []
@@ -435,7 +325,7 @@ class TransactionSimulator(qmsg.BaseTransform):
                 dt.replace(tzinfo = pytz.utc), 
                 direction
             )
-        else:
+        elif len(orders) > 0:
             warning = """
 Calculated a zero volume transaction on trade: 
 {event} 

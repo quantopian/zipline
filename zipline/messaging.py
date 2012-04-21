@@ -110,7 +110,7 @@ class ComponentHost(Component):
             self.launch_component(component)
         self.launch_controller()
 
-    def is_timed_out(self):
+    def is_running(self):
         """
         DEPRECATED, left in for compatability for now.
         """
@@ -119,23 +119,16 @@ class ComponentHost(Component):
 
         if len(self.components) == 0:
             qutil.LOGGER.info("Component register is empty.")
-            return True
+            return False
 
-        for source, last_dt in self.sync_register.iteritems():
-            if (cur_time - last_dt) > self.timeout:
-                qutil.LOGGER.info(
-                    "Time out for {source}. Current component registery: {reg}".
-                    format(source=source, reg=self.components)
-                )
-                return True
-
-        return False
+        return True
 
     def loop(self, lockstep=True):
 
-        while not self.is_timed_out():
-            # wait for synchronization request
-            socks = dict(self.sync_poller.poll(self.heartbeat_timeout)) #timeout after 2 seconds.
+        while self.is_running():
+            # wait for synchronization request at start, and DONE at end.
+            # don't timeout.
+            socks = dict(self.sync_poller.poll()) 
 
             if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
