@@ -154,6 +154,7 @@ class PerformanceTracker():
         self.result_stream           = None
         self.last_dict               = None
         self.order_log               = []
+        self.exceeded_max_loss       = False
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -267,7 +268,17 @@ class PerformanceTracker():
         if self.result_stream:
             msg = zp.PERF_FRAME(self.to_dict())
             self.result_stream.send(msg)
-
+            
+        # check the day's returns versus the max drawdown
+        max_dd = -1 * self.trading_environment.max_drawdown
+        if self.todays_performance.returns < max_dd:
+            qutil.LOGGER.info("Exceeded max drawdown.")
+            # TODO: any other information we need to relay on the 
+            # result socket?
+            self.exceeded_max_loss = True
+            self.handle_simulation_end(skip_close=True)
+            return
+            
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
 
@@ -288,7 +299,7 @@ class PerformanceTracker():
             keep_transactions = True
         )
 
-    def handle_simulation_end(self):
+    def handle_simulation_end(self, skip_close=False):
         """
         When the simulation is complete, run the full period risk report
         and send it out on the result_stream.
@@ -300,8 +311,9 @@ class PerformanceTracker():
         
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
-        self.handle_market_close()
-        
+        # In the case of errors, we needn't close again.
+        if not skip_close:
+            self.handle_market_close()
         
         self.risk_report = risk.RiskReport(
             self.returns,
