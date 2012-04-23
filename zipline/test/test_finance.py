@@ -16,7 +16,7 @@ import zipline.finance.performance as perf
 
 from zipline.test.algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
+from zipline.finance.trading import TransactionSimulator, \
 TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
@@ -214,14 +214,8 @@ class FinanceTestCase(TestCase):
             zipline.algorithm.incr,
             "The test algorithm should send as many orders as specified.")
             
-        order_source = zipline.sources[zp.FINANCE_COMPONENT.ORDER_SOURCE]
-        self.assertEqual(
-            order_source.sent_count, 
-            zipline.algorithm.count, 
-            "The order source should have sent as many orders as the algo."
-        )
         
-        transaction_sim = zipline.transforms[zp.TRANSFORM_TYPE.TRANSACTION]
+        transaction_sim = zipline.trading_client.txn_sim
         self.assertEqual(
             transaction_sim.txn_count,
             zipline.trading_client.perf.txn_count,
@@ -426,11 +420,7 @@ class FinanceTestCase(TestCase):
                 'dt' : start_date + i * order_interval
             })
 
-            sim_state = trade_sim.transform(order)
-        
-            # there should not be a new transaction from an order.
-            self.assertTrue(sim_state['name'] == trade_sim.get_id)
-            self.assertTrue(sim_state['value'] == None)
+            trade_sim.add_open_order(order)
         
         # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
@@ -446,21 +436,19 @@ class FinanceTestCase(TestCase):
         
         tracker = PerformanceTracker(trading_environment)
         
+        # this approximates the loop inside TradingSimulationClient
         transactions = []
         for trade in generated_trades:
             if trade_delay:
                 trade.dt = trade.dt + trade_delay
                 
-            sim_state = trade_sim.transform(trade)
-            
-            self.assertEqual(sim_state['name'], trade_sim.get_id)
-
-            txn = None
-            if sim_state['value']:
-                txn = sim_state['value']
+            txn = trade_sim.apply_trade_to_open_orders(trade)
+            if txn:
                 transactions.append(txn)         
-            trade[sim_state['name']] = txn    
-            
+                trade.TRANSACTION = txn    
+            else:
+                trade.TRANSACTION = None
+                
             tracker.process_event(trade) 
                
         total_volume = 0

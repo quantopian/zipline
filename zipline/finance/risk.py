@@ -194,7 +194,7 @@ class RiskMetrics():
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
         if self.algorithm_volatility == 0:
-            return None
+            return 0.0
             
         return ( (self.algorithm_period_returns - self.treasury_period_return) /
             self.algorithm_volatility )
@@ -292,7 +292,7 @@ class RiskMetrics():
         curve = None
         # in case end date is not a trading day, search for the next market
         # day for an interest rate
-        for i in range(7):
+        for i in xrange(7):
             if(self.treasury_curves.has_key(self.end_date + i * one_day)):
                 curve = self.treasury_curves[self.end_date + i * one_day]
                 break

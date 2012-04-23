@@ -86,8 +86,7 @@ import zipline.messaging as zmsg
 
 from zipline.test.algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, OrderDataSource, \
-TradeSimulationClient
+from zipline.finance.trading import TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
@@ -164,18 +163,21 @@ class SimulatedTrading(object):
         self.sim = config['simulator_class'](addresses)
             
         self.clients = {}
-        self.trading_client = TradeSimulationClient(self.trading_environment)
+        self.trading_client = TradeSimulationClient(
+            self.trading_environment,
+            self.sim_style
+        )
         self.add_client(self.trading_client)
         
         # setup all sources
         self.sources = {}
-        self.order_source = OrderDataSource()
-        self.add_source(self.order_source)
+        #self.order_source = OrderDataSource()
+        #self.add_source(self.order_source)
         
         #setup transforms
-        self.transaction_sim = TransactionSimulator(self.sim_style)
+        #self.transaction_sim = TransactionSimulator(self.sim_style)
         self.transforms = {}
-        self.add_transform(self.transaction_sim)
+        #self.add_transform(self.transaction_sim)
         
         self.sim.register_controller( self.con )
         self.sim.on_done = self.shutdown()
