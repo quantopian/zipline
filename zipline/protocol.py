@@ -663,6 +663,7 @@ def convert_transactions(transactions):
     for txn in transactions:
         txn['date'] = EPOCH(txn['dt'])
         del(txn['dt'])
+        del(txn['source_id'])
         results.append(txn)
     return results
     

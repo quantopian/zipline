@@ -40,8 +40,11 @@ Performance Tracking
     |                 | through all the events delivered to this tracker.  |
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
+    +-----------------+----------------------------------------------------+ 
+    | exceeded_max_   | True if the simulation was stopped because single  | 
+    | loss            | day losses exceeded the max_drawdown stipulated in |
+    |                 | trading_environment.                               |
     +-----------------+----------------------------------------------------+
-
 
 Position Tracking
 =================
@@ -214,7 +217,7 @@ class PerformanceTracker():
             'capital_base'            : self.capital_base,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
             'daily_perf'              : self.todays_performance.to_dict(),
-            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict(),
+            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()  
         }
     
     def log_order(self, order):
@@ -264,20 +267,36 @@ class PerformanceTracker():
         # calculate progress of test
         self.progress = self.day_count / self.total_days
 
+        if self.trading_environment.max_drawdown:
+            max_dd = -1 * self.trading_environment.max_drawdown
+            if self.todays_performance.returns < max_dd:
+                qutil.LOGGER.info("Exceeded max drawdown.")
+                # mark the perf period with max loss flag, 
+                # so it shows up in the update, but don't end the test
+                # here. Let the update go out before stopping
+                self.exceeded_max_loss = True
+                
         # Output results
         if self.result_stream:
             msg = zp.PERF_FRAME(self.to_dict())
             self.result_stream.send(msg)
             
-        # check the day's returns versus the max drawdown
-        max_dd = -1 * self.trading_environment.max_drawdown
-        if self.todays_performance.returns < max_dd:
-            qutil.LOGGER.info("Exceeded max drawdown.")
-            # TODO: any other information we need to relay on the 
-            # result socket?
-            self.exceeded_max_loss = True
+        if self.exceeded_max_loss:
+            # now that we've sent the day's update, kill this test
             self.handle_simulation_end(skip_close=True)
             return
+            
+        # check the day's returns versus the max drawdown
+        # max_drawdown is optional:
+        if self.trading_environment.max_drawdown:
+            max_dd = -1 * self.trading_environment.max_drawdown
+            if self.todays_performance.returns < max_dd:
+                qutil.LOGGER.info("Exceeded max drawdown.")
+                # TODO: any other information we need to relay on the 
+                # result socket?
+                self.exceeded_max_loss = True
+                self.handle_simulation_end(skip_close=True)
+                return
             
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
@@ -317,13 +336,15 @@ class PerformanceTracker():
         
         self.risk_report = risk.RiskReport(
             self.returns,
-            self.trading_environment
+            self.trading_environment,
+            exceeded_max_loss = self.exceeded_max_loss
         )
-
+        
         if self.result_stream:
             qutil.LOGGER.info("about to stream the risk report...")
-            report = self.risk_report.to_dict()
-            msg = zp.RISK_FRAME(report)
+            risk_dict = self.risk_report.to_dict()
+            
+            msg = zp.RISK_FRAME(risk_dict)
             self.result_stream.send(msg)
             # this signals that the simulation is complete.
             self.result_stream.send("DONE")
