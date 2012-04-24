@@ -261,15 +261,17 @@ class PerformanceTracker():
             trading_environment=self.trading_environment
         )
         
-        
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         # calculate progress of test
         self.progress = self.day_count / self.total_days
 
         if self.trading_environment.max_drawdown:
+            returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
-            if self.todays_performance.returns < max_dd:
+            if returns < max_dd:
+                qutil.LOGGER.info(str(returns) + " broke through " + str(max_dd))
+                from dev.rdb import set_trace; set_trace()
                 qutil.LOGGER.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag, 
                 # so it shows up in the update, but don't end the test
@@ -285,18 +287,6 @@ class PerformanceTracker():
             # now that we've sent the day's update, kill this test
             self.handle_simulation_end(skip_close=True)
             return
-            
-        # check the day's returns versus the max drawdown
-        # max_drawdown is optional:
-        if self.trading_environment.max_drawdown:
-            max_dd = -1 * self.trading_environment.max_drawdown
-            if self.todays_performance.returns < max_dd:
-                qutil.LOGGER.info("Exceeded max drawdown.")
-                # TODO: any other information we need to relay on the 
-                # result socket?
-                self.exceeded_max_loss = True
-                self.handle_simulation_end(skip_close=True)
-                return
             
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
