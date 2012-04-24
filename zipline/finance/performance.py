@@ -271,7 +271,6 @@ class PerformanceTracker():
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
                 qutil.LOGGER.info(str(returns) + " broke through " + str(max_dd))
-                from dev.rdb import set_trace; set_trace()
                 qutil.LOGGER.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag, 
                 # so it shows up in the update, but don't end the test
