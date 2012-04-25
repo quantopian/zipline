@@ -99,6 +99,10 @@ class TradeSimulationClient(qmsg.Component):
 
     def process_event(self, event):
         
+        if self.perf.exceeded_max_loss:
+            self.control_out.send(str(zp.CONTROL_PROTOCOL.SHUTDOWN))
+            return
+            
         # generate transactions, if applicable
         txn = self.txn_sim.apply_trade_to_open_orders(event)
         if txn:
