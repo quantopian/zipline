@@ -163,6 +163,7 @@ class Controller(object):
         self.ctime = 0
         self.tic = time.time()
         self.freeform = False
+        self._state = -1
 
         self.associated = []
 
@@ -218,16 +219,24 @@ class Controller(object):
             self.topology = frozenset(topology)
 
         default_states = [
+            CONTROL_STATES.INIT,
+            CONTROL_STATES.SOURCES_READY,
             CONTROL_STATES.RUNNING,
-            CONTROL_STATES.SHUTDOWN,
             CONTROL_STATES.TERMINATE,
         ]
 
         self.states = states or default_states
         self.polling = True
-
-        # Start off in RUNNING, state
         self.state = self.states[0]
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, new):
+        old, self._state = self._state, new
+        self.logging.info("[Controller] State Transition : %s -> %s" %(old, new))
 
     def run(self):
         self.init_zmq(self.zmq_flavor)
@@ -472,7 +481,7 @@ class Controller(object):
         assert hard or soft, """ Must specify kill hard or soft """
 
         if hard:
-            self.state = CONTROL_STATES.SHUTDOWN
+            self.state = CONTROL_STATES.TERMINATE
 
             self.logging.info('[Controller] Hard Shutdown')
 
