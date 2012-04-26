@@ -3,10 +3,9 @@ import gevent
 import itertools
 # pyzmq
 import zmq
-# gevent_zeromq
 import gevent_zeromq
-# zmq_ctypes
-#import zmq_ctypes
+
+from collections import OrderedDict
 
 from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
     CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
@@ -162,28 +161,27 @@ class Controller(object):
 
     def __init__(self, pub_socket, route_socket, logging = None):
 
-        self.context = None
-        self.zmq = None
+        self.context    = None
+        self.zmq        = None
         self.zmq_poller = None
 
         polling = False
 
         self.polling = polling
-
         self.tracked = set()
         self.responses = set()
 
-        self.ctime = 0
-        self.tic = time.time()
+        self.ctime    = 0
+        self.tic      = time.time()
         self.freeform = False
-        self._state = -1
+        self._state   = -1
 
         self.associated = []
 
-        self.pub_socket = pub_socket
+        self.pub_socket   = pub_socket
         self.route_socket = route_socket
 
-        self.error_replay = {}
+        self.error_replay = OrderedDict()
 
         if logging:
             self.logging = logging
@@ -196,23 +194,23 @@ class Controller(object):
         assert self.zmq_flavor in ['thread', 'mp', 'green']
 
         if flavor == 'mp':
-            self.zmq = zmq
-            self.context = self.zmq.Context()
+            self.zmq        = zmq
+            self.context    = self.zmq.Context()
             self.zmq_poller = self.zmq.Poller
             return
         if flavor == 'thread':
-            self.zmq = zmq
-            self.context = self.zmq.Context.instance()
+            self.zmq        = zmq
+            self.context    = self.zmq.Context.instance()
             self.zmq_poller = self.zmq.Poller
             return
         if flavor == 'green':
-            self.zmq = gevent_zeromq.zmq
-            self.context = self.zmq.Context.instance()
+            self.zmq        = gevent_zeromq.zmq
+            self.context    = self.zmq.Context.instance()
             self.zmq_poller = GeventPoller
             return
         if flavor == 'pypy':
-            self.zmq = zmq
-            self.context = self.zmq.Context.instance()
+            self.zmq        = zmq
+            self.context    = self.zmq.Context.instance()
             self.zmq_poller = self.zmq.Poller
             return
 
@@ -350,6 +348,9 @@ class Controller(object):
             if self.zmq_flavor == 'green':
                 gevent.sleep(0)
 
+            if self.state is CONTROL_STATES.TERMINATE:
+                break
+
             if not self.polling:
                 break
 
@@ -379,10 +380,9 @@ class Controller(object):
         for component in bad:
             self.fail(component)
 
-    # ------------------
-    # Component Handlers
-    # ------------------
-
+    # --------------
+    # Init Handlers
+    # --------------
 
     def new_source(self):
         if self.state is CONTROL_STATES.RUNNING:
@@ -397,12 +397,12 @@ class Controller(object):
         self.logging.info('[Controller] Now Tracking "%s" ' % component)
 
         universal = self.new_universal
-        component_initializers = {
+        init_handlers = {
             'FEED' : self.new_source,
         }
 
         if component in self.topology or self.freeform:
-            component_initializers.get(component, universal)()
+            init_handlers.get(component, universal)()
             self.tracked.add(component)
         else:
             # Some sort of socket collision has occured, this is
@@ -417,9 +417,29 @@ class Controller(object):
     def done(self, component):
         self.logging.info('[Controller] Component "%s" done.' % component)
 
+    # --------------
+    # Error Handling
+    # --------------
+
+    def exception_universal(self):
+        """
+        Shutdown the system on failure.
+        """
+        self.state = CONTROL_STATES.TERMINATE
+        self.logging.error('[Controller] System in exception state, shutting down')
+
     def exception(self, component, failure):
-        self.error_replay[time.time()] = failure
-        self.logging.error('Component "%s" in exception state' % component)
+        universal = self.exception_universal
+        exception_handlers = {
+        }
+
+        if component in self.topology or self.freeform:
+            self.error_replay[(component, time.time())] = failure
+            self.logging.error('[Controller] Component "%s" in exception state' % component)
+
+            exception_handlers.get(component, universal)()
+        else:
+            raise UnknownChatter(component)
 
     # -----------------
     # Protocol Handling
@@ -494,6 +514,11 @@ class Controller(object):
         self.associated.append(s)
         return s
 
+    def do_error_replay(self):
+        for (component, time), error in self.error_replay:
+            self.logging.info('[Controller] Error Log for -- %s --:\n%s' %
+                (component, error))
+
     def shutdown(self, hard=False, soft=True, context=None):
 
         if not self.polling:
@@ -519,6 +544,8 @@ class Controller(object):
 
             #for asoc in self.associated:
                 #asoc.close()
+
+        self.do_error_replay()
 
 if __name__ == '__main__':
 
