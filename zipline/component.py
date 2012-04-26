@@ -10,6 +10,7 @@ import uuid
 import time
 import socket
 import gevent
+import traceback
 import humanhash
 
 # pyzmq
@@ -305,11 +306,11 @@ class Component(object):
 
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        self.stack_trace = exc_traceback
+        trace = '\n>>>'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
         exception_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.EXCEPTION,
-            str(exc)
+            trace
         )
         self.control_out.send(exception_frame)
 

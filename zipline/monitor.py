@@ -425,8 +425,8 @@ class Controller(object):
         """
         Shutdown the system on failure.
         """
-        self.state = CONTROL_STATES.TERMINATE
         self.logging.error('[Controller] System in exception state, shutting down')
+        self.shutdown(soft=True)
 
     def exception(self, component, failure):
         universal = self.exception_universal
@@ -515,7 +515,7 @@ class Controller(object):
         return s
 
     def do_error_replay(self):
-        for (component, time), error in self.error_replay:
+        for (component, time), error in self.error_replay.iteritems():
             self.logging.info('[Controller] Error Log for -- %s --:\n%s' %
                 (component, error))
 
