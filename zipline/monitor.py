@@ -409,10 +409,27 @@ class Controller(object):
             # a very bad failure mode.
             raise UnknownChatter(component)
 
+    # ------------------
+    # Epic Fail Handling
+    # ------------------
+
+    def universal(self):
+        self.logging.error('[Controller] System in exception state, shutting down')
+        self.terminate(soft=True)
 
     def fail(self, component):
-        self.logging.info('[Controller] Component "%s" timed out' % component)
-        self.tracked.remove(component)
+        universal = self.fail_universal
+        fail_handlers = {
+        }
+
+        if component in self.topology or self.freeform:
+            self.logging.info('[Controller] Component "%s" timed out' % component)
+            self.tracked.remove(component)
+            fail_handlers.get(component, universal)()
+
+    # -------------------
+    # Completion Handling
+    # -------------------
 
     def done(self, component):
         self.logging.info('[Controller] Component "%s" done.' % component)
