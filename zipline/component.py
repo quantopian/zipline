@@ -492,7 +492,8 @@ class Component(object):
         """
         The descriptive name of the component.
         """
-        return 'UNKNOWN COMPONENT'
+        # Prevents the bug that Thomas ran into
+        raise NotImplementedError
 
     @property
     def get_type(self):

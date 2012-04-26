@@ -9,7 +9,9 @@ import gevent_zeromq
 #import zmq_ctypes
 
 from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
-    CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME
+    CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
+
+states = CONTROL_STATES
 
 from gpoll import _Poller as GeventPoller
 
@@ -102,6 +104,17 @@ from gpoll import _Poller as GeventPoller
 #  +---+ +---+ +---+ +---+
 #  | 0 | | 0 | | 0 | | 0 |
 #  +---+ +---+ +---+ +---+
+
+INIT, SOURCES_READY, RUNNING, TERMINATE = CONTROL_STATES
+
+state_transitions = frozenset([
+    (-1            , INIT),
+    (INIT          , SOURCES_READY),
+    (SOURCES_READY , RUNNING),
+    (INIT          , TERMINATE),
+    (SOURCES_READY , TERMINATE),
+    (RUNNING       , TERMINATE),
+])
 
 class UnknownChatter(Exception):
     def __init__(self, name):
@@ -218,16 +231,8 @@ class Controller(object):
             self.freeform = False
             self.topology = frozenset(topology)
 
-        default_states = [
-            CONTROL_STATES.INIT,
-            CONTROL_STATES.SOURCES_READY,
-            CONTROL_STATES.RUNNING,
-            CONTROL_STATES.TERMINATE,
-        ]
-
-        self.states = states or default_states
         self.polling = True
-        self.state = self.states[0]
+        self.state = CONTROL_STATES.INIT
 
     @property
     def state(self):
@@ -236,7 +241,11 @@ class Controller(object):
     @state.setter
     def state(self, new):
         old, self._state = self._state, new
-        self.logging.info("[Controller] State Transition : %s -> %s" %(old, new))
+
+        if (old, new) not in state_transitions:
+            raise RuntimeError("[Controller] Invalid State Transition : %s -> %s" %(old, new))
+        else:
+            self.logging.info("[Controller] State Transition : %s -> %s" %(old, new))
 
     def run(self):
         self.init_zmq(self.zmq_flavor)
@@ -301,6 +310,8 @@ class Controller(object):
 
         poller = self.zmq.Poller()
         poller.register(self.router, self.zmq.POLLIN)
+
+        self.state = CONTROL_STATES.SOURCES_READY
 
         buffer = []
 
@@ -372,26 +383,38 @@ class Controller(object):
     # Component Handlers
     # ------------------
 
+
+    def new_source(self):
+        if self.state is CONTROL_STATES.RUNNING:
+            self.state = SOURCES_READY
+
+    def new_universal(self):
+        pass
+
     # The various "states of being that a component can inform us
     # of
     def new(self, component):
-        self.logging.info('[Controller] Alive "%s" ' % component)
+        self.logging.info('[Controller] Now Tracking "%s" ' % component)
+
+        universal = self.new_universal
+        component_initializers = {
+            'FEED' : self.new_source,
+        }
 
         if component in self.topology or self.freeform:
+            component_initializers.get(component, universal)()
             self.tracked.add(component)
         else:
             # Some sort of socket collision has occured, this is
             # a very bad failure mode.
             raise UnknownChatter(component)
 
+
     def fail(self, component):
         self.logging.info('[Controller] Component "%s" timed out' % component)
         self.tracked.remove(component)
 
     def done(self, component):
-        # TODO: This will be what we ship off to vbench at some
-        # point...
-        # print component finished at self.ctime
         self.logging.info('[Controller] Component "%s" done.' % component)
 
     def exception(self, component, failure):
@@ -499,16 +522,18 @@ class Controller(object):
 
 if __name__ == '__main__':
 
-    print 'Running on ',\
-        'tcp://127.0.0.1:5000', \
-        'tcp://127.0.0.1:5001',
+    print 'Running on '\
+        'tcp://127.0.0.1:5000 '\
+        'tcp://127.0.0.1:5001 '
 
     controller = Controller(
         'tcp://127.0.0.1:5000',
         'tcp://127.0.0.1:5001',
     )
+    controller.zmq_flavor = 'green'
+
     controller.manage(
         'freeform',
         []
     )
-    controller.run('green')
+    controller.run()
