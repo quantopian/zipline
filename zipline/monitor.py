@@ -165,9 +165,8 @@ class Controller(object):
         self.zmq        = None
         self.zmq_poller = None
 
-        polling = False
-
-        self.polling = polling
+        self.running = False
+        self.polling = False
         self.tracked = set()
         self.responses = set()
 
@@ -246,6 +245,7 @@ class Controller(object):
             self.logging.info("[Controller] State Transition : %s -> %s" %(old, new))
 
     def run(self):
+        self.running = True
         self.init_zmq(self.zmq_flavor)
 
         try:
@@ -272,6 +272,9 @@ class Controller(object):
     # -------------
 
     def send_heart(self):
+        if not self.running:
+            return
+
         heartbeat_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.HEARTBEAT,
             str(self.ctime)
@@ -279,6 +282,9 @@ class Controller(object):
         self.pub.send(heartbeat_frame)
 
     def send_hardkill(self):
+        if not self.running:
+            return
+
         kill_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.KILL,
             ''
@@ -286,6 +292,9 @@ class Controller(object):
         self.pub.send(kill_frame)
 
     def send_softkill(self):
+        if not self.running:
+            return
+
         soft_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.SHUTDOWN,
             ''
@@ -298,17 +307,34 @@ class Controller(object):
 
     def _poll(self):
 
+        assert self.route_socket
+        assert self.pub_socket
+        assert self.cancel_socket
+
+        # -- Publish --
+        # =============
         self.pub = self.context.socket(self.zmq.PUB)
         self.pub.bind(self.pub_socket)
 
+        # -- Cancel --
+        # =============
+        assert isinstance(self.cancel_socket,basestring), self.cancel_socket
+        self.cancel = self.context.socket(self.zmq.REP)
+        self.cancel.connect(self.cancel_socket)
+
+        # -- Router --
+        # =============
         self.router = self.context.socket(self.zmq.ROUTER)
         self.router.bind(self.route_socket)
 
-        self.associated.extend([self.pub, self.router])
 
         poller = self.zmq.Poller()
         poller.register(self.router, self.zmq.POLLIN)
+        poller.register(self.cancel, self.zmq.POLLIN)
 
+        self.associated += [self.pub, self.router, self.cancel]
+
+        # TODO: actually do this
         self.state = CONTROL_STATES.SOURCES_READY
 
         buffer = []
@@ -342,6 +368,12 @@ class Controller(object):
                     except INVALID_CONTROL_FRAME:
                         self.logging.error('Invalid frame', rawmessage)
                         pass
+
+                if self.cancel in socks and socks[self.cancel] == self.zmq.POLLIN:
+                    self.logging.info('[Controller] Received Cancellation')
+                    rawmessage = self.cancel.recv()
+                    self.shutdown(soft=True)
+                    break
 
             self.beat()
 
@@ -394,6 +426,9 @@ class Controller(object):
     # The various "states of being that a component can inform us
     # of
     def new(self, component):
+        if self.state is CONTROL_STATES.TERMINATE:
+            return
+
         self.logging.info('[Controller] Now Tracking "%s" ' % component)
 
         universal = self.new_universal
@@ -413,14 +448,18 @@ class Controller(object):
     # Epic Fail Handling
     # ------------------
 
-    def universal(self):
-        self.logging.error('[Controller] System in exception state, shutting down')
-        self.terminate(soft=True)
+    def fail_universal(self):
+        pass
+        # TODO: this requires higher order functionality
+        #self.logging.error('[Controller] System in exception state, shutting down')
+        #self.shutdown(soft=True)
 
     def fail(self, component):
+        if self.state is CONTROL_STATES.TERMINATE:
+            return
+
         universal = self.fail_universal
-        fail_handlers = {
-        }
+        fail_handlers = { }
 
         if component in self.topology or self.freeform:
             self.logging.info('[Controller] Component "%s" timed out' % component)
@@ -447,8 +486,7 @@ class Controller(object):
 
     def exception(self, component, failure):
         universal = self.exception_universal
-        exception_handlers = {
-        }
+        exception_handlers = { }
 
         if component in self.topology or self.freeform:
             self.error_replay[(component, time.time())] = failure
