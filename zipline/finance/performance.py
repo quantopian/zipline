@@ -224,6 +224,10 @@ class PerformanceTracker():
         self.order_log.append(order)
             
     def process_event(self, event):
+        
+        if self.exceeded_max_loss:
+            return
+            
         assert isinstance(event, zp.namedict)
         self.event_count += 1
 
@@ -265,7 +269,13 @@ class PerformanceTracker():
         self.day_count += 1.0
         # calculate progress of test
         self.progress = self.day_count / self.total_days
-
+                
+        # Output results
+        if self.result_stream:
+            msg = zp.PERF_FRAME(self.to_dict())
+            self.result_stream.send(msg)
+        
+        #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
@@ -276,16 +286,8 @@ class PerformanceTracker():
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
                 self.exceeded_max_loss = True
-                
-        # Output results
-        if self.result_stream:
-            msg = zp.PERF_FRAME(self.to_dict())
-            self.result_stream.send(msg)
+                return
             
-        if self.exceeded_max_loss:
-            # now that we've sent the day's update, kill this test
-            self.handle_simulation_end(skip_close=True)
-            return
             
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
@@ -307,7 +309,7 @@ class PerformanceTracker():
             keep_transactions = True
         )
 
-    def handle_simulation_end(self, skip_close=False):
+    def handle_simulation_end(self):
         """
         When the simulation is complete, run the full period risk report
         and send it out on the result_stream.
@@ -319,8 +321,8 @@ class PerformanceTracker():
         
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
-        # In the case of errors, we needn't close again.
-        if not skip_close:
+        # In the case of max drawdown, we needn't close again.
+        if not self.exceeded_max_loss:
             self.handle_market_close()
         
         self.risk_report = risk.RiskReport(
