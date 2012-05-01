@@ -227,7 +227,7 @@ class Feed(Component):
 
             # -- Soft Kill --
             elif event == CONTROL_PROTOCOL.SHUTDOWN:
-                self.done()
+                self.signal_done()
                 self.shutdown()
 
             # -- Hard Kill --
@@ -496,7 +496,7 @@ class BaseTransform(Component):
 
             # -- Soft Kill --
             elif event == CONTROL_PROTOCOL.SHUTDOWN:
-                self.done()
+                self.signal_done()
                 self.shutdown()
 
             # -- Hard Kill --
