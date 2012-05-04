@@ -8,7 +8,13 @@ class VWAPTransform(BaseTransform):
     
     def init(self, daycount=3):
         self.daycount = daycount
+        self.by_sid = defaultdict(DailyVWAP)
         
+    def transform(self, event):
+        cur = self.by_sid(event.sid)
+        cur.update(event)
+        self.state['value'] = cur.vwap
+        return self.state
         
 class DailyVWAP:
     """A class that tracks the volume weighted average price
