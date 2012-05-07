@@ -59,8 +59,10 @@ class TradeSimulationClient(qmsg.Component):
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm 
-        #register the trading_client's order method with the algorithm
+        # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
+        # ask the algorithm to initialize
+        self.algorithm.initialize()
     
     def open(self):
         self.result_feed = self.connect_result()
