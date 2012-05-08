@@ -13,7 +13,7 @@ class MovingAverageTransform(BaseTransform):
     def transform(self, event):
         cur = self.by_sid(event.sid)
         cur.update(event)
-        self.state['value'] = cur.vwap
+        self.state['value'] = cur.average
         return self.state
 
 class MovingAverage(object):
@@ -37,6 +37,10 @@ class MovingAverage(object):
             self.average = 0.0
 
 class EventWindow(object):
+    """
+    Tracks a window of the event history. Use an instance to track the events
+    inside your window to efficiently calculate rolling statistics.
+    """
     def __init__(self, daycount):
         self.ticks = []
         self.dropped_ticks = []

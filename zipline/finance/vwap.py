@@ -3,7 +3,7 @@ from datetime import timedelta
 from collections import defaultdict
 
 from zipline.messaging import BaseTransform
-from zipline.finance.transforms.moving_average import EventWindow, EventHistory
+from zipline.finance.movingaverage import EventWindow, EventHistory
 
 class VWAPTransform(BaseTransform):
     
