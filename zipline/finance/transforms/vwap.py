@@ -1,8 +1,9 @@
+import pandas
 from datetime import timedelta
-from itertools import ifilter
 from collections import defaultdict
 
 from zipline.messaging import BaseTransform
+from zipline.finance.transforms.moving_average import EventWindow, EventHistory
 
 class VWAPTransform(BaseTransform):
     
@@ -15,49 +16,39 @@ class VWAPTransform(BaseTransform):
         cur.update(event)
         self.state['value'] = cur.vwap
         return self.state
-        
+
 class DailyVWAP:
     """A class that tracks the volume weighted average price
        based on tick updates."""
     def __init__(self, daycount=3):
-        self.ticks = []
-        self.dropped_ticks = []
+        self.window = EventWindow(daycount)
         self.flux = 0.0
         self.volume = 0
-        self.lastTick = None
         self.vwap = 0.0
         self.delta = timedelta(days=daycount)
-    
+
     def update(self, event):
-        
-        self.ticks.append(event)
+
+        # update the event window
+        self.window.update(event)
+
+        # add the current event's flux and volume to the tracker
         flux, volume = self.calculate_flux([event])
         self.flux += flux
         self.volume += volume
-        
-        self.last_date = event['dt']
-        self.first_date = self.last_date - self.delta
-        #use a list comprehension to filter the ticks to those within 
-        #desired day range. The dt properties are full datetime objects
-        #and provide overloads for arithmetic operations. 
-        self.dropped_ticks = []
-        for tick in self.ticks:
-            if tick['dt'] < self.first_date:
-                self.dropped_ticks.append(tick)
-              
-        slice_index = len(self.dropped_ticks)      
-        self.ticks = self.ticks[slice_index:]
 
-        dropped_flux, dropped_volume = self.calculate_flux(self.dropped_ticks)
-        
+        # subract the expired events flux and volume from the tracker
+        dropped = self.window.dropped_ticks
+        dropped_flux, dropped_volume = self.calculate_flux(dropped)
+
         self.flux -= dropped_flux
         self.volume -= dropped_volume
-                                      
+
         if(self.volume != 0):
             self.vwap = self.flux / self.volume
         else:
             self.vwap = None
-            
+
     def calculate_flux(self, ticks):
         flux = 0.0
         volume = 0
@@ -65,3 +56,32 @@ class DailyVWAP:
             flux += tick['volume'] * tick['price']
             volume += tick['volume']
         return flux, volume
+
+
+# ------------------------------
+# Experimental
+# ------------------------------
+        
+class DailyVWAP_df(object):
+    
+    def __init__(self, daycount=3):
+        self.history = EventHistory(daycount)
+        self.vwap = None
+        
+    def update(self, event):
+        self.history.update(event)
+        frame = self.history.frame
+        
+        window = len(frame)
+        value = pandas.rolling_sum(
+            frame['price'] * frame['volume'],
+            window
+        )
+        volume = pandas.rolling_sum(
+            frame['volume'],
+            window
+        )
+        
+        vwap = value / volume
+        self.vwap = vwap[-1]
+        
