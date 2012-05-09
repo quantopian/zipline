@@ -9,6 +9,9 @@ are provided below.
 
 The algorithm must expose methods:
 
+  - initialize: method that takes no args, no returns. Simply called to 
+  enable the algorithm to set any internal state needed.
+
   - get_sid_filter: method that takes no args, and returns a list
   of valid sids. List must have a length between 1 and 10. If None is returned
   the filter will block all events.
@@ -18,7 +21,7 @@ The algorithm must expose methods:
   
     +-----------------+--------------+----------------+--------------------+
     |                 | SID(133)     |  SID(134)      | SID(135)           |
-    +=================+==============+=====================================+
+    +=================+==============+================+====================+
     | price           | $10.10       | $22.50         | $13.37             |
     +-----------------+--------------+----------------+--------------------+
     | volume          | 10,000       | 5,000          | 50,000             |
@@ -61,6 +64,9 @@ class TestAlgorithm():
         self.order = None
         self.frame_count = 0
         self.portfolio = None
+    
+    def initialize(self):
+        pass
         
     def set_order(self, order_callable):
         self.order = order_callable
@@ -94,7 +100,10 @@ class HeavyBuyAlgorithm():
         self.order = None
         self.frame_count = 0
         self.portfolio = None
-        
+    
+    def initialize(self):
+        pass    
+    
     def set_order(self, order_callable):
         self.order = order_callable
         
@@ -114,6 +123,9 @@ class NoopAlgorithm(object):
     """
     Dolce fa niente.
     """
+    
+    def initialize(self):
+        pass
         
     def set_order(self, order_callable):
         pass

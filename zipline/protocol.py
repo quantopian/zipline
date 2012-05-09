@@ -126,9 +126,6 @@ from collections import namedtuple
 from protocol_utils import Enum, FrameExceptionFactory, namedict
 from date_utils import EPOCH, UN_EPOCH
 
-#import ujson
-#import ultrajson_numpy
-
 # -----------------------
 # Control Protocol
 # -----------------------
@@ -136,9 +133,10 @@ from date_utils import EPOCH, UN_EPOCH
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
 CONTROL_STATES = Enum(
+    'INIT',
+    'SOURCES_READY',
     'RUNNING',
-    'SHUTDOWN',  # a soft kill
-    'TERMINATE', # a hard kill
+    'TERMINATE',
 )
 
 CONTROL_PROTOCOL = Enum(
@@ -149,6 +147,7 @@ CONTROL_PROTOCOL = Enum(
     'OK'        , # 3 - rep
     'DONE'      , # 4 - rep
     'EXCEPTION' , # 5 - rep
+    'SIGNAL'    , # 6 - rep
 )
 
 def CONTROL_FRAME(event, payload):
@@ -173,18 +172,6 @@ def CONTROL_UNFRAME(msg):
         raise INVALID_CONTROL_FRAME(msg)
     except ValueError:
         raise INVALID_CONTROL_FRAME(msg)
-
-# -----------------------
-# Heartbeat Protocol
-# -----------------------
-
-# These encode the msgpack equivelant of 1 and 2. The heartbeat
-# frame should only be 1 byte on the wire.
-
-HEARTBEAT_PROTOCOL = namedict({
-    'REQ' : b'\x01',
-    'REP' : b'\x02',
-})
 
 # -----------------------
 # Component State

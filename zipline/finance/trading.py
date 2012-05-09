@@ -59,8 +59,10 @@ class TradeSimulationClient(qmsg.Component):
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm 
-        #register the trading_client's order method with the algorithm
+        # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
+        # ask the algorithm to initialize
+        self.algorithm.initialize()
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -80,14 +82,7 @@ class TradeSimulationClient(qmsg.Component):
             
             # if the feed is done, shut 'er down
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
-                qutil.LOGGER.info("Client is DONE!")
-                # signal the performance tracker that the simulation has
-                # ended. Perf will internally calculate the full risk report.
-                self.perf.handle_simulation_end()
-
-                # signal Simulator, our ComponentHost, that this component is
-                # done and Simulator needn't block exit on this component.
-                self.signal_done()
+                self.finish_simulation()
                 return
             
             # result_feed is a merge component, so unframe accordingly
@@ -95,14 +90,22 @@ class TradeSimulationClient(qmsg.Component):
             self.received_count += 1
             # update performance and relay the event to the algorithm
             self.process_event(event)
+            if self.perf.exceeded_max_loss:
+                self.finish_simulation()
             
+    def finish_simulation(self):
+        qutil.LOGGER.info("Client is DONE!")
+        # signal the performance tracker that the simulation has
+        # ended. Perf will internally calculate the full risk report.
+        self.perf.handle_simulation_end()
+
+        # signal Simulator, our ComponentHost, that this component is
+        # done and Simulator needn't block exit on this component.
+        self.signal_done()
 
     def process_event(self, event):
         
-        if self.perf.exceeded_max_loss:
-            self.control_out.send(str(zp.CONTROL_PROTOCOL.SHUTDOWN))
-            return
-            
+        
         # generate transactions, if applicable
         txn = self.txn_sim.apply_trade_to_open_orders(event)
         if txn:
