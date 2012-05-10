@@ -3,7 +3,7 @@ from datetime import timedelta
 from collections import defaultdict
 
 from zipline.messaging import BaseTransform
-from zipline.finance.movingaverage import EventWindow, EventHistory
+from zipline.finance.movingaverage import EventWindow
 
 class VWAPTransform(BaseTransform):
     
@@ -59,32 +59,3 @@ class DailyVWAP:
             flux += tick['volume'] * tick['price']
             volume += tick['volume']
         return flux, volume
-
-
-# ------------------------------
-# Experimental
-# ------------------------------
-        
-class DailyVWAP_df(object):
-    
-    def __init__(self, daycount=3):
-        self.history = EventHistory(daycount)
-        self.vwap = None
-        
-    def update(self, event):
-        self.history.update(event)
-        frame = self.history.frame
-        
-        window = len(frame)
-        value = pandas.rolling_sum(
-            frame['price'] * frame['volume'],
-            window
-        )
-        volume = pandas.rolling_sum(
-            frame['volume'],
-            window
-        )
-        
-        vwap = value / volume
-        self.vwap = vwap[-1]
-        

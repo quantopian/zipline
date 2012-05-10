@@ -4,7 +4,7 @@ from unittest2 import TestCase
 
 import zipline.test.factory as factory
 import zipline.util as qutil
-from zipline.finance.vwap import DailyVWAP, VWAPTransform, DailyVWAP_df
+from zipline.finance.vwap import DailyVWAP, VWAPTransform
 from zipline.finance.returns import ReturnsFromPriorClose
 from zipline.finance.movingaverage import MovingAverage
 from zipline.lines import SimulatedTrading

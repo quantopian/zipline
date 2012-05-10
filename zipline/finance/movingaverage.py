@@ -1,4 +1,3 @@
-import pandas
 from datetime import timedelta
 from collections import defaultdict
 
@@ -64,36 +63,5 @@ class EventWindow(object):
         # remove the expired events
         slice_index = len(self.dropped_ticks)      
         self.ticks = self.ticks[slice_index:]
-        
-# ------------------------------
-# Experimental
-# ------------------------------
-      
-class EventHistory(object):
-    
-    def __init__(self, daycount):
-        self.ticks = []
-        self.dropped_ticks = []
-        self.frame = pandas.DataFrame()
-        self.delta = timedelta(days=daycount)
-        
-    def update(self, event):
-        self.ticks.append(event.__dict__)
-        self.last_date = event['dt']
-        self.first_date = self.last_date - self.delta
-        
-        # determine which events are expired
-        self.dropped_ticks = []
-        for tick in self.ticks:
-            if tick['dt'] < self.first_date:
-                self.dropped_ticks.append(tick)
-              
-        # remove the expired events
-        slice_index = len(self.dropped_ticks)      
-        self.ticks = self.ticks[slice_index:]
-        self.frame = pandas.DataFrame(
-            self.ticks
-        )
-        self.frame.index = self.frame['dt']
 
         
