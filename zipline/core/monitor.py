@@ -1,8 +1,8 @@
+import zmq
 import time
 import gevent
 import itertools
-# pyzmq
-import zmq
+import logging
 import gevent_zeromq
 
 from collections import OrderedDict
@@ -159,7 +159,7 @@ class Controller(object):
     debug = False
     period = 1
 
-    def __init__(self, pub_socket, route_socket, logging = None):
+    def __init__(self, pub_socket, route_socket, logger = None):
 
         self.context    = None
         self.zmq        = None
@@ -182,11 +182,11 @@ class Controller(object):
 
         self.error_replay = OrderedDict()
 
-        if logging:
-            self.logging = logging
+        if logger:
+            self.logging = logger
         else:
-            import util as qutil
-            self.logging = qutil.LOGGER
+            default_logger = logging.getLogger('ZiplineLogger')
+            self.logging = default_logger
 
     def init_zmq(self, flavor):
 
