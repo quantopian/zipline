@@ -110,6 +110,8 @@ Performance Period
 
 
 """
+
+import logging
 import datetime
 import pytz
 import msgpack
@@ -118,9 +120,10 @@ import math
 
 import zmq
 
-import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.risk as risk
+
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class PerformanceTracker():
     """
@@ -280,8 +283,8 @@ class PerformanceTracker():
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
-                qutil.LOGGER.info(str(returns) + " broke through " + str(max_dd))
-                qutil.LOGGER.info("Exceeded max drawdown.")
+                LOGGER.info(str(returns) + " broke through " + str(max_dd))
+                LOGGER.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag, 
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
@@ -316,8 +319,8 @@ class PerformanceTracker():
         """
         
         log_msg = "Simulated {n} trading days out of {m}."
-        qutil.LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
-        qutil.LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
+        LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
         
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
@@ -332,7 +335,7 @@ class PerformanceTracker():
         )
         
         if self.result_stream:
-            qutil.LOGGER.info("about to stream the risk report...")
+            LOGGER.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
             
             msg = zp.RISK_FRAME(risk_dict)

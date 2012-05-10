@@ -12,7 +12,7 @@ from zipline.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
 
 def load_market_data():
-    fp_bm = open("./zipline/test/benchmark.msgpack", "rb")
+    fp_bm = open("./tests/benchmark.msgpack", "rb")
     bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
     for packed_date, returns in bm_list:
@@ -27,7 +27,7 @@ def load_market_data():
         daily_return = risk.DailyReturn(date=event_dt, returns=returns)
         bm_returns.append(daily_return)
     bm_returns = sorted(bm_returns, key=lambda(x): x.date) 
-    fp_tr = open("./zipline/test/treasury_curves.msgpack", "rb")
+    fp_tr = open(".//tests/treasury_curves.msgpack", "rb")
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for packed_date, curve in tr_list:

@@ -62,6 +62,7 @@ before invoking simulate.
 
 import mock
 import pytz
+import logging
 
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -69,19 +70,19 @@ from collections import defaultdict
 from nose.tools import timed
 
 import zipline.utils.factory as factory
-import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 import zipline.messaging as zmsg
 
-from zipline.test.algorithms import TestAlgorithm
+from zipline.test_algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
-from zipline.monitor import Controller
+from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
 
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class SimulatedTrading(object):
     """
@@ -141,8 +142,9 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[6],
             sockets[7],
-            logging = qutil.LOGGER
+            logging = LOGGER
         )
+        self.con.cancel_socket = self.allocator.lease(1)[0]
 
         # TODO: Not freeform
         self.con.manage(

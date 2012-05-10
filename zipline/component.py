@@ -10,6 +10,7 @@ import uuid
 import time
 import socket
 import gevent
+import logging
 import traceback
 import humanhash
 
@@ -22,11 +23,11 @@ import gevent_zeromq
 
 from datetime import datetime
 
-import zipline.util as qutil
-from zipline.gpoll import _Poller as GeventPoller
+from utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, BACKTEST_STATE, CONTROL_FRAME
 
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class Component(object):
     """
@@ -314,7 +315,7 @@ class Component(object):
         )
         self.control_out.send(exception_frame)
 
-        qutil.LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
+        LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
     def signal_done(self):
         """
@@ -341,7 +342,7 @@ class Component(object):
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
 
-        qutil.LOGGER.info("[%s] DONE" % self.get_id)
+        LOGGER.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging
@@ -461,7 +462,7 @@ class Component(object):
         DEPRECATED, left in for compatability for now.
         """
 
-        qutil.LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
+        LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
 
         self.sync_socket = self.context.socket(self.zmq.REQ)
         self.sync_socket.connect(self.addresses['sync_address'])

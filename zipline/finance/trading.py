@@ -1,3 +1,4 @@
+import logging
 import datetime
 import pytz
 import math
@@ -7,14 +8,12 @@ import time
 from collections import Counter
 
 # from gevent.select import select
-from zmq.core.poll import select
 
 import zipline.messaging as qmsg
-import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.protocol_utils import Enum, namedict
+from zipline.utils.protocol_utils import Enum, namedict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -24,6 +23,8 @@ SIMULATION_STYLE  = Enum(
     'FIXED_SLIPPAGE',
     'NOOP'
 )
+
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class TradeSimulationClient(qmsg.Component):
     
@@ -94,7 +95,7 @@ class TradeSimulationClient(qmsg.Component):
                 self.finish_simulation()
             
     def finish_simulation(self):
-        qutil.LOGGER.info("Client is DONE!")
+        LOGGER.info("Client is DONE!")
         # signal the performance tracker that the simulation has
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()
@@ -219,7 +220,7 @@ class TransactionSimulator(object):
             log = "requested to trade zero shares of {sid}".format(
                 sid=event.sid
             )
-            qutil.LOGGER.debug(log)
+            LOGGER.debug(log)
             return
         
         if(not self.open_orders.has_key(event.sid)):
@@ -343,7 +344,7 @@ for orders:
                 event=str(event), 
                 orders=str(orders)
             )
-            qutil.LOGGER.warn(warning)
+            LOGGER.warn(warning)
             return None
     
         

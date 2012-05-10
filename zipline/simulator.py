@@ -5,9 +5,8 @@ Simulator hosts all the components necessary to execute a simluation. See :py:me
 import threading
 import mock
 from collections import defaultdict
-from zipline.monitor import Controller
+from zipline.core.monitor import Controller
 from zipline.messaging import ComponentHost
-import zipline.util as qutil
 
 class AddressAllocator(object):
 

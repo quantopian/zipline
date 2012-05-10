@@ -8,21 +8,21 @@ from collections import defaultdict
 
 from nose.tools import timed
 
-import zipline.test.factory as factory
-import zipline.util as qutil
+import zipline.utils.factory as factory
+from zipline.utils import logger
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.test.algorithms import TestAlgorithm
+from zipline.test_algorithms import TestAlgorithm
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TransactionSimulator, \
 TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator
-from zipline.monitor import Controller
+from zipline.core.monitor import Controller
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
-from zipline.protocol_utils import namedict
+from zipline.utils.protocol_utils import namedict
 from zipline.finance.trading import SIMULATION_STYLE
 
 DEFAULT_TIMEOUT = 15 # seconds
@@ -35,7 +35,7 @@ class FinanceTestCase(TestCase):
     leased_sockets = defaultdict(list)
 
     def setUp(self):
-        qutil.configure_logging()
+        #qutil.configure_logging()
         self.zipline_test_config = {
             'allocator':allocator,
             'sid':133

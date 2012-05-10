@@ -4,13 +4,15 @@ Commonly used messaging components.
 
 import datetime
 
+import logging
 from collections import Counter
 
-import zipline.util as qutil
 from zipline.component import Component
 import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     COMPONENT_STATE, CONTROL_FRAME, CONTROL_UNFRAME
+
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class ComponentHost(Component):
     """
@@ -95,7 +97,7 @@ class ComponentHost(Component):
         """
         Setup the sync socket and poller. ( Bind )
         """
-        qutil.LOGGER.debug("Connecting sync server.")
+        LOGGER.debug("Connecting sync server.")
 
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
@@ -118,7 +120,7 @@ class ComponentHost(Component):
         cur_time = datetime.datetime.utcnow()
 
         if len(self.components) == 0:
-            qutil.LOGGER.info("Component register is empty.")
+            LOGGER.info("Component register is empty.")
             return False
 
         return True
@@ -140,7 +142,7 @@ class ComponentHost(Component):
                     self.signal_exception(exc)
 
                 if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
-                    #qutil.LOGGER.debug("{id} is DONE".format(id=sync_id))
+                    LOGGER.debug("{id} is DONE".format(id=sync_id))
                     self.unregister_component(sync_id)
                     self.state_flag = COMPONENT_STATE.DONE
                 else:
@@ -243,7 +245,7 @@ class Feed(Component):
 
                 if len(self.data_buffer) == self.ds_finished_counter:
                     #drain any remaining messages in the buffer
-                    qutil.LOGGER.debug("draining feed")
+                    LOGGER.debug("draining feed")
                     self.drain()
                     self.signal_done()
             else:

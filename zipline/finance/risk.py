@@ -42,7 +42,6 @@ import math
 import pytz
 import numpy as np
 import numpy.linalg as la
-import zipline.util as qutil
 import zipline.protocol as zp
 
 LOGGER = logging.getLogger('ZiplineLogger')
@@ -245,7 +244,7 @@ class RiskMetrics():
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
             except ValueError:
-                qutil.LOGGER.warn("{cur} return, zeroing the returns".format(cur=cur_return))
+                LOGGER.warn("{cur} return, zeroing the returns".format(cur=cur_return))
                 cur_return = 0.0
             compounded_returns.append(cur_return)
 
