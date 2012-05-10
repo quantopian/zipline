@@ -8,6 +8,7 @@ Zipline
 import protocol
 from core.monitor import Controller
 from lines import SimulatedTrading
+from utils.protocol_utils import namedict, ndict
 
 __all__ = [
     SimulatedTrading,

@@ -6,4 +6,7 @@ and other common operations.
 import logging
 import logging.config
 
-logging.config.fileConfig('logging.cfg')
+#logging.config.fileConfig('logging.cfg')
+
+def configure_logginer():
+    logging.config.fileConfig('logging.cfg')
