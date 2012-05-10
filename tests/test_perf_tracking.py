@@ -4,18 +4,19 @@ import random
 import datetime
 import pytz
 
-import zipline.test.factory as factory
-import zipline.test.algorithms
-import zipline.util as qutil
+import zipline.utils.factory as factory
+import zipline.test_algorithms
+#import zipline.util as qutil
 import zipline.finance.performance as perf
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 from zipline.finance.trading import TradeSimulationClient, TradingEnvironment, \
-SIMULATION_STYLE
+    SIMULATION_STYLE
+
 class PerformanceTestCase(unittest.TestCase):
     
     def setUp(self):
-        qutil.configure_logging()
+        #qutil.configure_logging()
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
         

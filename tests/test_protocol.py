@@ -9,8 +9,8 @@ from collections import defaultdict
 
 from nose.tools import timed
 
-import zipline.test.factory as factory
-import zipline.util as qutil
+import zipline.utils.factory as factory
+from zipline.utils import logger
 import zipline.protocol as zp
 
 from zipline.sources import SpecificEquityTrades
@@ -22,7 +22,7 @@ class ProtocolTestCase(TestCase):
     leased_sockets = defaultdict(list)
 
     def setUp(self):
-        qutil.configure_logging()
+        #qutil.configure_logging()
         self.trading_environment = factory.create_trading_environment()
 
     @timed(DEFAULT_TIMEOUT)
