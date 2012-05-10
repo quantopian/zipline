@@ -7,12 +7,12 @@ import gevent_zeromq
 
 from collections import OrderedDict
 
-from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
+from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
     CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
 
 states = CONTROL_STATES
 
-from gpoll import _Poller as GeventPoller
+from zipline.utils.gpoll import _Poller as GeventPoller
 
 # Roll Call ( Discovery )
 # -----------------------

@@ -123,8 +123,8 @@ import time
 import copy
 from collections import namedtuple
 
-from protocol_utils import Enum, FrameExceptionFactory, namedict
-from date_utils import EPOCH, UN_EPOCH
+from utils.protocol_utils import Enum, FrameExceptionFactory, namedict
+from utils.date_utils import EPOCH, UN_EPOCH
 
 # -----------------------
 # Control Protocol

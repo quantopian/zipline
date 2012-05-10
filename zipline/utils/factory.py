@@ -6,7 +6,6 @@ import msgpack
 import random
 
 from datetime import datetime, timedelta
-import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 from zipline.sources import SpecificEquityTrades, RandomEquityTrades

@@ -36,6 +36,7 @@ Risk Report
 
 """
 
+import logging
 import datetime
 import math
 import pytz
@@ -44,6 +45,7 @@ import numpy.linalg as la
 import zipline.util as qutil
 import zipline.protocol as zp
 
+LOGGER = logging.getLogger('ZiplineLogger')
 
 def advance_by_months(dt, jump_in_months):
     month = dt.month + jump_in_months

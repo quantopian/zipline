@@ -68,7 +68,7 @@ from collections import defaultdict
 
 from nose.tools import timed
 
-import zipline.test.factory as factory
+import zipline.utils.factory as factory
 import zipline.util as qutil
 import zipline.finance.risk as risk
 import zipline.protocol as zp
