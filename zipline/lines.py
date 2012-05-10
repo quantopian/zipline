@@ -143,6 +143,8 @@ class SimulatedTrading(object):
             sockets[7],
             logging = qutil.LOGGER
         )
+        
+        self.con.cancel_socket = self.allocator.lease(1)[0]
 
         # TODO: Not freeform
         self.con.manage(

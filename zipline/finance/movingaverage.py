@@ -15,6 +15,9 @@ class MovingAverageTransform(BaseTransform):
         cur.update(event)
         self.state['value'] = cur.average
         return self.state
+    
+    def create_vwap(self):
+        return DailyVWAP(self.daycount)
 
 class MovingAverage(object):
     

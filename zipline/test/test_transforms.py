@@ -17,6 +17,8 @@ class ZiplineWithTransformsTestCase(TestCase):
     leased_sockets = defaultdict(list)
     
     def setUp(self):
+        # skip ahead 100 spots
+        allocator.lease(100)
         qutil.configure_logging()
         self.trading_environment = factory.create_trading_environment()
         self.zipline_test_config = {
