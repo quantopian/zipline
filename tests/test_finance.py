@@ -17,7 +17,7 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.simulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
-from zipline.utils.protocol_utils import namedict
+from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
 
 DEFAULT_TIMEOUT = 15 # seconds
@@ -434,7 +434,7 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            order = namedict(
+            order = ndict(
             {
                 'sid'       : sid,
                 'amount'    : order_amount * alternator**i,

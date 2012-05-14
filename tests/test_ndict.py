@@ -1,4 +1,4 @@
-from zipline.utils.protocol_utils import ndict, namedict
+from zipline.utils.protocol_utils import ndict
 
 def test_ndict():
     nd = ndict({})

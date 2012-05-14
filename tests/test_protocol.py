@@ -45,7 +45,7 @@ class ProtocolTestCase(TestCase):
 
         for trade in trades:
             #simulate data source sending frame
-            msg = zp.DATASOURCE_FRAME(zp.namedict(trade))
+            msg = zp.DATASOURCE_FRAME(zp.ndict(trade))
             #feed unpacking frame
             recovered_trade = zp.DATASOURCE_UNFRAME(msg)
             #feed sending frame
@@ -74,13 +74,13 @@ class ProtocolTestCase(TestCase):
             self.assertTrue(event.helloworld == 2345.6)
             event.delete('helloworld')
 
-            self.assertEqual(zp.namedict(trade), event)
+            self.assertEqual(zp.ndict(trade), event)
 
     @timed(DEFAULT_TIMEOUT)
     def test_order_protocol(self):
         #client places an order
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
-        order = zp.namedict({
+        order = zp.ndict({
             'dt':now,
             'sid':133,
             'amount':100
@@ -94,7 +94,7 @@ class ProtocolTestCase(TestCase):
         self.assertEqual(order.dt, now)
         
         #order datasource datasource frames the order
-        order_event = zp.namedict({
+        order_event = zp.ndict({
             "sid"        : order.sid,
             "amount"     : order.amount,
             "dt"         : order.dt,
@@ -111,7 +111,7 @@ class ProtocolTestCase(TestCase):
         self.assertEqual(now, recovered_order.dt)
 
         #create a transaction from the order
-        txn = zp.namedict({
+        txn = zp.ndict({
             'sid'        : recovered_order.sid,
             'amount'     : recovered_order.amount,
             'dt'         : recovered_order.dt,

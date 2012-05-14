@@ -13,7 +13,7 @@ from zipline.core import Component
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.utils.protocol_utils import Enum, namedict
+from zipline.utils.protocol_utils import Enum, ndict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -164,7 +164,7 @@ class TradeSimulationClient(Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
-        order = zp.namedict({
+        order = zp.ndict({
             'dt':self.current_dt,
             'sid':sid,
             'amount':amount
@@ -357,7 +357,7 @@ for orders:
                 'commission'          : self.commission * amount * direction,
                 'source_id'          : zp.FINANCE_COMPONENT.TRANSACTION_SIM
                 }
-        return zp.namedict(txn) 
+        return zp.ndict(txn) 
                 
 
 class TradingEnvironment(object):

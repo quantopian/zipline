@@ -40,8 +40,8 @@ Performance Tracking
     |                 | through all the events delivered to this tracker.  |
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
-    +-----------------+----------------------------------------------------+ 
-    | exceeded_max_   | True if the simulation was stopped because single  | 
+    +-----------------+----------------------------------------------------+
+    | exceeded_max_   | True if the simulation was stopped because single  |
     | loss            | day losses exceeded the max_drawdown stipulated in |
     |                 | trading_environment.                               |
     +-----------------+----------------------------------------------------+
@@ -191,7 +191,7 @@ class PerformanceTracker():
         )
 
     def get_portfolio(self):
-        return self.cumulative_performance.to_namedict()
+        return self.cumulative_performance.to_ndict()
 
     def publish_to(self, zmq_socket, context=None):
         """
@@ -231,7 +231,7 @@ class PerformanceTracker():
         if self.exceeded_max_loss:
             return
             
-        assert isinstance(event, zp.namedict)
+        assert isinstance(event, zp.ndict)
         self.event_count += 1
 
         if(event.dt >= self.market_close):
@@ -521,18 +521,18 @@ class PerformancePeriod():
         
         return rval
         
-    def to_namedict(self):
+    def to_ndict(self):
         """
-        Creates a namedict representing the state of this perfomance period.
+        Creates a ndict representing the state of this perfomance period.
         Properties are the same as the results of to_dict. See header comments
         for a detailed description.    
         
         """
-        positions = self.get_positions(namedicted=True)
+        positions = self.get_positions(ndicted=True)
         
-        positions = zp.namedict(positions)
+        positions = zp.ndict(positions)
         
-        return zp.namedict({
+        return zp.ndict({
             'ending_value'              : self.ending_value,
             'capital_used'              : self.period_capital_used,
             'starting_value'            : self.starting_value,
@@ -545,12 +545,12 @@ class PerformancePeriod():
             'transactions'              : self.processed_transactions
         })
         
-    def get_positions(self, namedicted=False):
+    def get_positions(self, ndicted=False):
         positions = {}
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
-            if namedicted:
-                positions[sid] = zp.namedict(cur)
+            if ndicted:
+                positions[sid] = zp.ndicted(cur)
             else:
                 positions[sid] = cur
         

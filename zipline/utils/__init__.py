@@ -1,6 +1,5 @@
-from protocol_utils import namedict, ndict
+from protocol_utils import ndict
 
 __all__ = [
-    namedict,
     ndict,
 ]

@@ -6,7 +6,7 @@ import random
 import pytz
 
 from zipline.components import DataSource
-from zipline.utils import ndict, namedict
+from zipline.utils import ndict
 
 import zipline.protocol as zp
 
@@ -24,7 +24,7 @@ class TradeDataSource(DataSource):
         if event.sid in self.filter['SID']:
             message = zp.DATASOURCE_FRAME(event)
         else:
-            blank = namedict({
+            blank = ndict({
                 "type"      : zp.DATASOURCE_TYPE.TRADE,
                 "source_id" : self.get_id
             })
@@ -59,7 +59,7 @@ class RandomEquityTrades(TradeDataSource):
         self.price = self.price + random.uniform(-0.05, 0.05)
         volume = random.randrange(100,10000,100)
 
-        event = zp.namedict({
+        event = zp.ndict({
             "type"      : zp.DATASOURCE_TYPE.TRADE,
             "sid"       : self.sid,
             "price"     : self.price,
@@ -100,5 +100,5 @@ class SpecificEquityTrades(TradeDataSource):
             return
 
         event = self.event_list.pop(0)
-        self.send(zp.namedict(event))
+        self.send(zp.ndict(event))
         self.count +=1

@@ -547,7 +547,7 @@ shares in position"
             #create a transaction for all but
             #first trade in each sid, to simulate None transaction
             if(event.dt != self.trading_environment.period_start):
-                txn = zp.namedict({
+                txn = zp.ndict({
                     'sid'        : event.sid,
                     'amount'     : -25,
                     'dt'         : event.dt,

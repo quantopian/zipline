@@ -57,7 +57,7 @@ class Merge(Feed):
 
     def append(self, event):
         """
-        :param event: a namedict with one entry. key is the name of the 
+        :param event: a ndict with one entry. key is the name of the 
         transform, value is the transformed value.
         Add an event to the buffer for the source specified by
         source_id.

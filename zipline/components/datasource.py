@@ -50,7 +50,7 @@ class DataSource(Component):
         """
         Emit data.
         """
-        assert isinstance(event, zp.namedict)
+        assert isinstance(event, zp.ndict)
 
         event['source_id'] = self.get_id
         event['type'] = self.get_type
