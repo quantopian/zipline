@@ -258,8 +258,8 @@ def DATASOURCE_FRAME(event):
 def DATASOURCE_UNFRAME(msg):
     """
 
-    Extracts payload, and calls correct UNFRAME method based on the \
-datasource type passed along.
+    Extracts payload, and calls correct UNFRAME method based on the
+    datasource type passed along.
 
     Returns a dict containing at least:
 
@@ -276,11 +276,12 @@ datasource type passed along.
         - dt - a datetime object
 
     """
-
     try:
         ds_type, source_id, payload = msgpack.loads(msg)
         assert isinstance(ds_type, int)
+
         rval = ndict({'source_id':source_id})
+
         if payload == DATASOURCE_TYPE.EMPTY:
             child_value = ndict({'dt':None})
         elif(ds_type == DATASOURCE_TYPE.TRADE):
@@ -291,6 +292,7 @@ datasource type passed along.
             raise INVALID_DATASOURCE_FRAME(msg)
 
         rval.merge(child_value)
+        import pdb; pdb.set_trace()
         return rval
 
     except TypeError:
@@ -306,7 +308,7 @@ INVALID_FEED_FRAME = FrameExceptionFactory('FEED')
 
 def FEED_FRAME(event):
     """
-    :param event: a nameddict with at least
+    :param event: a ndict with at least
 
         - source_id
         - type
