@@ -7,16 +7,16 @@ class MovingAverageTransform(BaseTransform):
     
     def init(self, daycount=3):
         self.daycount = daycount
-        self.by_sid = defaultdict(MovingAverage)
+        self.by_sid = defaultdict(self._create)
         
     def transform(self, event):
-        cur = self.by_sid(event.sid)
+        cur = self.by_sid[event.sid]
         cur.update(event)
         self.state['value'] = cur.average
         return self.state
     
-    def create_vwap(self):
-        return DailyVWAP(self.daycount)
+    def _create(self):
+        return MovingAverage(self.daycount)
 
 class MovingAverage(object):
     
