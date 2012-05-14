@@ -16,8 +16,8 @@ The algorithm must expose methods:
   of valid sids. List must have a length between 1 and 10. If None is returned
   the filter will block all events.
   
-  - handle_frame: method that accepts a :py:class:`pandas.Dataframe` of the 
-  current state of the simulation universe. An example frame::
+  - handle_data: method that accepts a :py:class:`zipline.protocol_utils.ndict` 
+  of the current state of the simulation universe. An example data ndict::
   
     +-----------------+--------------+----------------+--------------------+
     |                 | SID(133)     |  SID(134)      | SID(135)           |
@@ -74,7 +74,7 @@ class TestAlgorithm():
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
         
-    def handle_frame(self, frame):
+    def handle_data(self, data):
         self.frame_count += 1
         #place an order for 100 shares of sid
         if self.incr < self.count:
@@ -110,7 +110,7 @@ class HeavyBuyAlgorithm():
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
         
-    def handle_frame(self, frame):
+    def handle_data(self, data):
         self.frame_count += 1
         #place an order for 100 shares of sid
         self.order(self.sid, self.amount)
@@ -133,7 +133,7 @@ class NoopAlgorithm(object):
     def set_portfolio(self, portfolio):
         pass
         
-    def handle_frame(self, frame):
+    def handle_data(self, data):
         pass
     
     def get_sid_filter(self):
