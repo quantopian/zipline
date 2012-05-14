@@ -292,7 +292,6 @@ def DATASOURCE_UNFRAME(msg):
             raise INVALID_DATASOURCE_FRAME(msg)
 
         rval.merge(child_value)
-        import pdb; pdb.set_trace()
         return rval
 
     except TypeError:
