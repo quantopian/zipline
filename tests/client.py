@@ -1,15 +1,16 @@
+import logging
 from gevent_zeromq import zmq
 
-import zipline.util as qutil
-import zipline.messaging as qmsg
 import zipline.protocol as zp
+from zipline.core.component import Component
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
-from zipline.finance.trading import TradeSimulationClient
 
-class TestClient(qmsg.Component):
+LOGGER = logging.getLogger('ZiplineLogger')
+
+class TestClient(Component):
 
     def __init__(self):
-        qmsg.Component.__init__(self)
+        Component.__init__(self)
         self.init()
 
     def init(self):
@@ -55,7 +56,7 @@ class TestClient(qmsg.Component):
             #logger.info('msg:' + str(msg))
 
             if msg == str(CONTROL_PROTOCOL.DONE):
-                qutil.LOGGER.info("Client is DONE!")
+                LOGGER.info("Client is DONE!")
                 self.signal_done()
                 return
 
@@ -79,7 +80,7 @@ class TestClient(qmsg.Component):
                 self.prev_dt = event.dt
 
             if self.received_count % 100 == 0:
-                qutil.LOGGER.info("received {n} messages".format(n=self.received_count))
-            
+                LOGGER.info("received {n} messages".format(n=self.received_count))
+
     def unframe(self, msg):
         return zp.MERGE_UNFRAME(msg)

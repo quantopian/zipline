@@ -1,5 +1,6 @@
-"""Tests for the zipline.finance package"""
-import mock
+"""
+Tests for the zipline.finance package
+"""
 import pytz
 
 from unittest2 import TestCase
@@ -9,17 +10,11 @@ from collections import defaultdict
 from nose.tools import timed
 
 import zipline.utils.factory as factory
-from zipline.utils import logger
-import zipline.finance.risk as risk
 import zipline.protocol as zp
-import zipline.finance.performance as perf
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.finance.sources import SpecificEquityTrades
-from zipline.finance.trading import TransactionSimulator, \
-TradeSimulationClient, TradingEnvironment
-from zipline.simulator import AddressAllocator, Simulator
-from zipline.core.monitor import Controller
+from zipline.finance.trading import TradingEnvironment
+from zipline.simulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import namedict

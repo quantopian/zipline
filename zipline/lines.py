@@ -116,7 +116,7 @@ class SimulatedTrading(object):
         :py:class:`zipline.trading.TradingEnvironment`
         - allocator: an instance of 
         :py:class:`zipline.simulator.AddressAllocator`
-        - simulator_class: a :py:class:`zipline.messaging.ComponentHost` 
+        - simulator_class: a :py:class:`zipline.core.host.ComponentHost` 
         subclass (not an instance)
         - simulation_style: optional parameter that configures the 
         :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
