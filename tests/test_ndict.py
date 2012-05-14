@@ -21,6 +21,12 @@ def test_ndict():
     assert 'x' in nd
     assert 'y' not in nd
 
+    # Mutability
+    nd2 = ndict({'x': 1})
+    assert nd2.x == 1
+    nd2.x = 2
+    assert nd2.x == 2
+
     # Class isolation
     assert '__init__' not in nd
     assert '__iter__' not in nd
