@@ -227,7 +227,7 @@ class Feed(Component):
 
             # -- Soft Kill --
             elif event == CONTROL_PROTOCOL.SHUTDOWN:
-                self.done()
+                self.signal_done()
                 self.shutdown()
 
             # -- Hard Kill --
@@ -440,14 +440,14 @@ class BaseTransform(Component):
     method to create a new derived value from the combined feed.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
         Component.__init__(self)
 
         self.state = {
             'name': name
         }
 
-        self.init()
+        self.init(**kwargs)
 
     def init(self):
         pass
@@ -496,7 +496,7 @@ class BaseTransform(Component):
 
             # -- Soft Kill --
             elif event == CONTROL_PROTOCOL.SHUTDOWN:
-                self.done()
+                self.signal_done()
                 self.shutdown()
 
             # -- Hard Kill --
@@ -564,11 +564,11 @@ class PassthroughTransform(BaseTransform):
 
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         BaseTransform.__init__(self, "PASSTHROUGH")
-        self.init()
+        self.init(**kwargs)
 
-    def init(self):
+    def init(self, **kwargs):
         pass
 
     @property

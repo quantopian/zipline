@@ -12,6 +12,7 @@ def Enum(*options):
     """
     class cstruct(Structure):
         _fields_ = [(o, c_ubyte) for o in options]
+        __iter__ = lambda s: iter(range(len(options)))
     return cstruct(*range(len(options)))
 
 def FrameExceptionFactory(name):

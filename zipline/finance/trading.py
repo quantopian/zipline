@@ -1,7 +1,6 @@
 import datetime
 import pytz
 import math
-import pandas
 import time
 
 from collections import Counter
@@ -14,7 +13,7 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.protocol_utils import Enum, namedict
+from zipline.protocol_utils import Enum, ndict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -43,10 +42,7 @@ class TradeSimulationClient(qmsg.Component):
         self.txn_sim                = TransactionSimulator(sim_style)
         
         assert self.trading_environment.frame_index != None
-        self.event_frame = pandas.DataFrame(
-            index=self.trading_environment.frame_index
-        )
-        
+        self.event_frame = ndict()
         self.perf = perf.PerformanceTracker(self.trading_environment)
     
     @property
@@ -59,8 +55,10 @@ class TradeSimulationClient(qmsg.Component):
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm 
-        #register the trading_client's order method with the algorithm
+        # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
+        # ask the algorithm to initialize
+        self.algorithm.initialize()
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -176,8 +174,7 @@ class TradeSimulationClient(qmsg.Component):
     def queue_event(self, event):
         if self.event_queue == None:
             self.event_queue = []
-        series = event.as_series()
-        self.event_queue.append(series)
+        self.event_queue.append(event)
     
     def get_frame(self):
         for event in self.event_queue:
