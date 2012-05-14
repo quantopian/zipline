@@ -151,7 +151,7 @@ class FinanceTestCase(TestCase):
         # tell the simulator to fill the orders in individual transactions
         # matching the order volume exactly.
         self.zipline_test_config['simulation_style'] = \
-        SIMULATION_STYLE.FIXED_SLIPPAGE
+            SIMULATION_STYLE.FIXED_SLIPPAGE
         self.zipline_test_config['environment'] = factory.create_trading_environment()
         
         sid_list = [self.zipline_test_config['sid']]

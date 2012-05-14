@@ -206,9 +206,11 @@ def create_minutely_trade_source(sids, trade_count, trading_environment):
 
 def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
     trade_history = []
+
+    price = [10.1] * trade_count
+    volume = [100] * trade_count
+
     for sid in sids:
-        price = [10.1] * trade_count
-        volume = [100] * trade_count
         start_date = trading_environment.first_open
 
         generated_trades = create_trade_history(

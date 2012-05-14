@@ -550,7 +550,7 @@ class PerformancePeriod():
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
             if ndicted:
-                positions[sid] = zp.ndicted(cur)
+                positions[sid] = zp.ndict(cur)
             else:
                 positions[sid] = cur
         

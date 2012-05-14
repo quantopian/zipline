@@ -32,6 +32,7 @@ def test_ndict():
     assert '__iter__' not in nd
     assert not nd.__dict__.has_key('x')
     assert nd.get('__init__') is None
+    assert 'x' not in set(dir(nd))
 
     # Comparison
     nd2 = nd.copy()

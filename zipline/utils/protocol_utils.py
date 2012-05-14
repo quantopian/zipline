@@ -50,6 +50,13 @@ class ndict(MutableMapping):
     # Abstact Overloads
     # -----------------
 
+    def __setattr__(self, key, value):
+        if 'ndict' in key or key == 'cls':
+            MutableMapping.__setattr__(self, key, value)
+        else:
+            self.__internal[key] = value
+        return value
+
     def __setitem__(self, key, value):
         """
         Required for use by pymongo as_class parameter to find.
@@ -58,7 +65,6 @@ class ndict(MutableMapping):
             self.__internal['id'] = value
         else:
             self.__internal[key] = value
-
 
     def __getattr__(self, key):
         if key in self.cls:
