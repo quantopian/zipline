@@ -1,6 +1,4 @@
 """
-Commonly used messaging components.
-
 Contains the base class for all components.
 """
 
@@ -9,7 +7,6 @@ import sys
 import uuid
 import time
 import socket
-import gevent
 import traceback
 import humanhash
 
@@ -20,12 +17,10 @@ import gevent_zeromq
 # zmq_ctypes
 #import zmq_ctypes
 
-from datetime import datetime
-
 import zipline.util as qutil
 from zipline.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
-    COMPONENT_FAILURE, BACKTEST_STATE, CONTROL_FRAME
+    COMPONENT_FAILURE, CONTROL_FRAME
 
 
 class Component(object):
@@ -243,7 +238,7 @@ class Component(object):
 
             self.receive_sync_ack() # blocking
             self.confirmed = True
-            
+
     def runtime(self):
         if self.ready() and self.start_tic and self.stop_tic:
             return self.stop_tic - self.start_tic
