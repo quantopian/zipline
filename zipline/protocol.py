@@ -118,9 +118,6 @@ import msgpack
 import numbers
 import datetime
 import pytz
-import numpy
-import time
-import copy
 from collections import namedtuple
 
 from utils.protocol_utils import Enum, FrameExceptionFactory, ndict
@@ -260,24 +257,24 @@ def DATASOURCE_FRAME(event):
 
 def DATASOURCE_UNFRAME(msg):
     """
-    
+
     Extracts payload, and calls correct UNFRAME method based on the \
-datasource type passed along. 
-    
+datasource type passed along.
+
     Returns a dict containing at least:
-    
+
     - source_id
     - type
 
     other properties are added based on the datasource type:
-    
+
     - TRADE
-    
+
         - sid - int security identifier
         - price - float
         - volume - int
         - dt - a datetime object
-    
+
     """
 
     try:
@@ -292,10 +289,10 @@ datasource type passed along.
             child_value = ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
-            
+
         rval.merge(child_value)
         return rval
-        
+
     except TypeError:
         raise INVALID_DATASOURCE_FRAME(msg)
     except ValueError:
@@ -310,7 +307,7 @@ INVALID_FEED_FRAME = FrameExceptionFactory('FEED')
 def FEED_FRAME(event):
     """
     :param event: a nameddict with at least
-    
+
         - source_id
         - type
     """
