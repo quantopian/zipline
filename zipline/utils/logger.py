@@ -7,4 +7,7 @@ import logging
 import logging.config
 
 def configure_logging():
-    logging.config.fileConfig('logging.cfg')
+    logging.config.fileConfig(
+        'logging.cfg',
+        disable_existing_loggers = False
+    )
