@@ -1,6 +1,7 @@
 """
 Factory functions to prepare useful data for tests.
 """
+
 import pytz
 import msgpack
 import random
@@ -8,7 +9,7 @@ import random
 from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 import zipline.protocol as zp
-from zipline.sources import SpecificEquityTrades, RandomEquityTrades
+from zipline.finance.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
 
 def load_market_data():

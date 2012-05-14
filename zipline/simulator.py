@@ -3,10 +3,7 @@ Simulator hosts all the components necessary to execute a simluation. See :py:me
 """
 
 import threading
-import mock
-from collections import defaultdict
-from zipline.core.monitor import Controller
-from zipline.messaging import ComponentHost
+from zipline.core import ComponentHost
 
 class AddressAllocator(object):
 
@@ -34,7 +31,7 @@ class Simulator(ComponentHost):
         ComponentHost.__init__(self, addresses)
         self.subthreads = []
         self.running = False
-    
+
     @property
     def get_id(self):
         return 'Simple Simulator'

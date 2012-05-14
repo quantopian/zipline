@@ -5,7 +5,7 @@ Commonly used messaging components.
 import logging
 
 import zipline.protocol as zp
-from zipline.component import Component
+from zipline.core.component import Component
 from zipline.protocol import COMPONENT_TYPE
 
 LOGGER = logging.getLogger('ZiplineLogger')

@@ -1,10 +1,11 @@
 import logging
 import datetime
 
-from core.component import Component
-from components import Feed, Merge, PassthroughTransform, \
-    DataSource, BaseTransform
+from component import Component
 
+from zipline.transforms import BaseTransform
+from zipline.components import Feed, Merge, PassthroughTransform, \
+    DataSource
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 
 LOGGER = logging.getLogger('ZiplineLogger')

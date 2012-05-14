@@ -9,7 +9,7 @@ from collections import Counter
 
 # from gevent.select import select
 
-import zipline.messaging as qmsg
+from zipline.core import Component
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
@@ -26,10 +26,10 @@ SIMULATION_STYLE  = Enum(
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
-class TradeSimulationClient(qmsg.Component):
+class TradeSimulationClient(Component):
     
     def __init__(self, trading_environment, sim_style):
-        qmsg.Component.__init__(self)
+        Component.__init__(self)
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None

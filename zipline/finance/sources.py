@@ -5,11 +5,12 @@ import datetime
 import random
 import pytz
 
-import zipline.messaging as zm
+from zipline.components import DataSource
+from zipline.utils import ndict, namedict
+
 import zipline.protocol as zp
 
-
-class TradeDataSource(zm.DataSource):
+class TradeDataSource(DataSource):
 
     def send(self, event):
         """
@@ -18,19 +19,19 @@ class TradeDataSource(zm.DataSource):
                            :py:func: `zipline.protocol.TRADE_FRAME`
         :rtype: None
         """
-        
+
         event.source_id = self.get_id
-        if event.sid in self.filter['SID']:            
+        if event.sid in self.filter['SID']:
             message = zp.DATASOURCE_FRAME(event)
         else:
-            blank = zp.namedict({
+            blank = namedict({
                 "type"      : zp.DATASOURCE_TYPE.TRADE,
                 "source_id" : self.get_id
             })
             message = zp.DATASOURCE_FRAME(blank)
-            
+
         self.data_socket.send(message)
-        
+
 
 class RandomEquityTrades(TradeDataSource):
     """
@@ -38,7 +39,7 @@ class RandomEquityTrades(TradeDataSource):
     """
 
     def __init__(self, sid, source_id, count):
-        zm.DataSource.__init__(self, source_id)
+        DataSource.__init__(self, source_id)
         self.count          = count
         self.incr           = 0
         self.sid            = sid
@@ -67,7 +68,6 @@ class RandomEquityTrades(TradeDataSource):
         })
         self.send(event)
         self.incr += 1
-        
 
 
 class SpecificEquityTrades(TradeDataSource):
@@ -77,7 +77,7 @@ class SpecificEquityTrades(TradeDataSource):
 
     def __init__(self, source_id, event_list):
         """
-        :param event_list: should be a chronologically ordered list of 
+        :param event_list: should be a chronologically ordered list of
                            dictionaries in the following form:
 
                 event = {
@@ -87,14 +87,13 @@ class SpecificEquityTrades(TradeDataSource):
                     'volume' : integer for volume
                 }
         """
-        zm.DataSource.__init__(self, source_id)
+        DataSource.__init__(self, source_id)
         self.event_list = event_list
         self.count = 0
 
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
 
-  
     def do_work(self):
         if(len(self.event_list) == 0):
             self.signal_done()
@@ -103,5 +102,3 @@ class SpecificEquityTrades(TradeDataSource):
         event = self.event_list.pop(0)
         self.send(zp.namedict(event))
         self.count +=1
-
-

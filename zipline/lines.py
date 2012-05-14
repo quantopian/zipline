@@ -73,10 +73,12 @@ import zipline.utils.factory as factory
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 import zipline.finance.performance as perf
-import zipline.messaging as zmsg
+
+from zipline.components import DataSource
+from zipline.transforms import BaseTransform
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.sources import SpecificEquityTrades
+from zipline.finance.sources import SpecificEquityTrades
 from zipline.finance.trading import TradeSimulationClient
 from zipline.simulator import AddressAllocator, Simulator
 from zipline.core.monitor import Controller
@@ -289,14 +291,14 @@ class SimulatedTrading(object):
         Adds the source to the zipline, sets the sid filter of the
         source to the algorithm's sid filter.
         """
-        assert isinstance(source, zmsg.DataSource)
+        assert isinstance(source, DataSource)
         self.check_started()    
         source.set_filter('SID', self.algorithm.get_sid_filter())
         self.sim.register_components([source])
         self.sources[source.get_id] = source
     
     def add_transform(self, transform):
-        assert isinstance(transform, zmsg.BaseTransform)
+        assert isinstance(transform, BaseTransform)
         self.check_started()
         self.sim.register_components([transform])
         self.transforms[transform.get_id] = transform

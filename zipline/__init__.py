@@ -5,7 +5,7 @@ Zipline
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
 
-import protocol
+import protocol # namespace
 from core.monitor import Controller
 from lines import SimulatedTrading
 from core.host import ComponentHost
@@ -16,5 +16,6 @@ __all__ = [
     Controller,
     ComponentHost,
     protocol,
+    namedict,
     ndict
 ]

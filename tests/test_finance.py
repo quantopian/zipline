@@ -15,7 +15,7 @@ import zipline.protocol as zp
 import zipline.finance.performance as perf
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.sources import SpecificEquityTrades
+from zipline.finance.sources import SpecificEquityTrades
 from zipline.finance.trading import TransactionSimulator, \
 TradeSimulationClient, TradingEnvironment
 from zipline.simulator import AddressAllocator, Simulator

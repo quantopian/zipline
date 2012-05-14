@@ -1,5 +1,5 @@
 import logging
-from zipline.core import Component
+from zipline.core.component import Component
 
 import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
