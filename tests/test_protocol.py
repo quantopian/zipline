@@ -13,7 +13,7 @@ import zipline.utils.factory as factory
 from zipline.utils import logger
 import zipline.protocol as zp
 
-from zipline.sources import SpecificEquityTrades
+from zipline.finance.sources import SpecificEquityTrades
 
 DEFAULT_TIMEOUT = 5 # seconds
 

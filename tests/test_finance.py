@@ -18,7 +18,7 @@ from zipline.simulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import namedict
-from zipline.finance.trading import SIMULATION_STYLE
+from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
@@ -411,7 +411,7 @@ class FinanceTestCase(TestCase):
         alternate = params.get('alternate')
         # if present, expect transaction amounts to match orders exactly. 
         complete_fill = params.get('complete_fill')
-        
+
         trading_environment = factory.create_trading_environment()
         trade_sim = TransactionSimulator()
         price = [10.1] * trade_count
@@ -419,19 +419,19 @@ class FinanceTestCase(TestCase):
         start_date = trading_environment.first_open
         sid = 1
 
-        generated_trades = factory.create_trade_history( 
-            sid, 
-            price, 
-            volume, 
-            trade_interval, 
-            trading_environment 
+        generated_trades = factory.create_trade_history(
+            sid,
+            price,
+            volume,
+            trade_interval,
+            trading_environment
         )
-        
+
         if alternate:
             alternator = -1
         else:
             alternator = 1
-        
+
         order_date = start_date
         for i in xrange(order_count):
             order = namedict(
@@ -443,7 +443,7 @@ class FinanceTestCase(TestCase):
             })
 
             trade_sim.add_open_order(order)
-            
+
             order_date = order_date + order_interval
             # move after market orders to just after market next
             # market open.
@@ -451,40 +451,40 @@ class FinanceTestCase(TestCase):
                     if order_date.minute >= 00:
                         order_date = order_date + timedelta(days=1)
                         order_date = order_date.replace(hour=14, minute=30)
-                        
+
         # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
         self.assertEqual(len(oo), 1)
         self.assertTrue(oo.has_key(sid))
         order_list = oo[sid]
         self.assertEqual(order_count, len(order_list))
-        
+
         for i in xrange(order_count):
             order = order_list[i]
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator**i)
-        
-        
+
+
         tracker = PerformanceTracker(trading_environment)
-        
+
         # this approximates the loop inside TradingSimulationClient
         transactions = []
         for trade in generated_trades:
             if trade_delay:
                 trade.dt = trade.dt + trade_delay
-                
+
             txn = trade_sim.apply_trade_to_open_orders(trade)
             if txn:
-                transactions.append(txn)         
-                trade.TRANSACTION = txn    
+                transactions.append(txn)
+                trade.TRANSACTION = txn
             else:
                 trade.TRANSACTION = None
-                
-            tracker.process_event(trade) 
-            
+
+            tracker.process_event(trade)
+
         if complete_fill:
-            self.assertEqual(len(transactions), len(order_list))  
-             
+            self.assertEqual(len(transactions), len(order_list))
+
         total_volume = 0
         for i in xrange(len(transactions)):
             txn = transactions[i]
@@ -492,18 +492,18 @@ class FinanceTestCase(TestCase):
             if complete_fill:
                 order = order_list[i]
                 self.assertEqual(order.amount, txn.amount)
-            
-        self.assertEqual(total_volume, expected_txn_volume)    
+
+        self.assertEqual(total_volume, expected_txn_volume)
         self.assertEqual(len(transactions), expected_txn_count)
-        
+
         cumulative_pos = tracker.cumulative_performance.positions[sid]
         self.assertEqual(total_volume, cumulative_pos.amount)
-        
+
         # the open orders should now be empty
         oo = trade_sim.open_orders
         self.assertTrue(oo.has_key(sid))
         order_list = oo[sid]
         self.assertEqual(0, len(order_list))
-        
-        
-        
+
+
+
