@@ -12,7 +12,7 @@ class VWAPTransform(BaseTransform):
         self.by_sid = defaultdict(self.create_vwap)
         
     def transform(self, event):
-        cur = self.by_sid(event.sid)
+        cur = self.by_sid[event.sid]
         cur.update(event)
         self.state['value'] = cur.vwap
         return self.state

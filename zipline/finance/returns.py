@@ -4,17 +4,19 @@ from collections import defaultdict
 
 from zipline.messaging import BaseTransform
 
-class WindowTransform(BaseTransform):
+class ReturnsTransform(BaseTransform):
     
-    def init(self, daycount=3):
-        self.daycount = daycount
-        self.by_sid = defaultdict(DailyReturns)
+    def init(self):
+        self.by_sid = defaultdict(self._create)
         
     def transform(self, event):
-        cur = self.by_sid(event.sid)
+        cur = self.by_sid[event.sid]
         cur.update(event)
-        self.state['value'] = cur.vwap
+        self.state['value'] = cur.returns
         return self.state
+        
+    def _create(self):
+        return ReturnsFromPriorClose()
 
 class ReturnsFromPriorClose(object):
     """
