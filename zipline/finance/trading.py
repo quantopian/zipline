@@ -41,8 +41,7 @@ class TradeSimulationClient(qmsg.Component):
         self.last_msg_dt            = datetime.datetime.utcnow()
         self.txn_sim                = TransactionSimulator(sim_style)
         
-        assert self.trading_environment.frame_index != None
-        self.event_frame = ndict()
+        self.event_data = ndict()
         self.perf = perf.PerformanceTracker(self.trading_environment)
     
     @property
@@ -147,13 +146,13 @@ class TradeSimulationClient(qmsg.Component):
         As per the algorithm protocol: 
         
         - Set the current portfolio for the algorithm as per protocol.
-        - Construct frame based on backlog of events, send to algorithm.
+        - Construct data based on backlog of events, send to algorithm.
         """
         current_portfolio = self.perf.get_portfolio()
         self.algorithm.set_portfolio(current_portfolio)
-        frame = self.get_frame()
-        if len(frame) > 0:
-            self.algorithm.handle_frame(frame)
+        data = self.get_data()
+        if len(data) > 0:
+            self.algorithm.handle_data(data)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
@@ -176,11 +175,11 @@ class TradeSimulationClient(qmsg.Component):
             self.event_queue = []
         self.event_queue.append(event)
     
-    def get_frame(self):
+    def get_data(self):
         for event in self.event_queue:
-            self.event_frame[event['sid']] = event
+            self.event_data[event['sid']] = event
         self.event_queue = []
-        return self.event_frame
+        return self.event_data
                      
 
 class TransactionSimulator(object):
@@ -370,7 +369,6 @@ class TradingEnvironment(object):
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
-        self.frame_index = ['sid', 'volume', 'dt', 'price', 'changed']
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
@@ -471,14 +469,6 @@ class TradingEnvironment(object):
             return self.trading_day_map[date].returns
         else:
             return 0.0
-            
-    def add_to_frame(self, name):
-        """
-        Add an entry to the frame index. 
-        :param name: new index entry name. Used by TradingSimulationClient
-        to 
-        """
-        self.frame_index.append(name)
 
                 
 
