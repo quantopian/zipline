@@ -60,27 +60,16 @@ before invoking simulate.
                           +---------------------------------+
 """
 
-import mock
-import pytz
 import logging
 
-from datetime import datetime, timedelta
-from collections import defaultdict
-
-from nose.tools import timed
-
 import zipline.utils.factory as factory
-import zipline.finance.risk as risk
-import zipline.protocol as zp
-import zipline.finance.performance as perf
 
 from zipline.components import DataSource
 from zipline.transforms import BaseTransform
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.finance.sources import SpecificEquityTrades
 from zipline.finance.trading import TradeSimulationClient
-from zipline.simulator import AddressAllocator, Simulator
+from zipline.simulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
 
