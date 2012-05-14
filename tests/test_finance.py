@@ -14,7 +14,7 @@ import zipline.protocol as zp
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import TradingEnvironment
-from zipline.simulator import AddressAllocator
+from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
@@ -143,7 +143,7 @@ class FinanceTestCase(TestCase):
         
         # TODO: for some reason the orders aren't filled without an extra
         # trade.
-        trade_count = 5001
+        trade_count = 5
         self.zipline_test_config['order_count'] = trade_count - 1
         self.zipline_test_config['trade_count'] = trade_count 
         self.zipline_test_config['order_amount'] = 1

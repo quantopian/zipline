@@ -69,7 +69,7 @@ from zipline.transforms import BaseTransform
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import TradeSimulationClient
-from zipline.simulator import Simulator
+from zipline.core.devsimulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
 
