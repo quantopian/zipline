@@ -1,4 +1,6 @@
 import zipline.protocol as zp
+from zipline.transforms import BaseTransform 
+
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     COMPONENT_STATE, CONTROL_FRAME, CONTROL_UNFRAME
 
@@ -24,6 +26,10 @@ class PassthroughTransform(BaseTransform):
     def get_type(self):
         return COMPONENT_TYPE.CONDUIT
 
-    #TODO, could save some cycles by skipping the _UNFRAME call and just setting value to original msg string.
+    #TODO, could save some cycles by skipping the _UNFRAME call
+    # and just setting value to original msg string.
     def transform(self, event):
-        return {'name':zp.TRANSFORM_TYPE.PASSTHROUGH, 'value': zp.FEED_FRAME(event) }
+        return {
+            'name'  : zp.TRANSFORM_TYPE.PASSTHROUGH,
+            'value' : zp.FEED_FRAME(event)
+        }

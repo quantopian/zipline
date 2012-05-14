@@ -3,7 +3,7 @@ from zipline.core import Component
 
 import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
-    COMPONENT_STATE, CONTROL_FRAME, CONTROL_UNFRAME
+    CONTROL_FRAME, CONTROL_UNFRAME
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
