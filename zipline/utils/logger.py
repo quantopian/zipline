@@ -7,4 +7,4 @@ import logging
 import logging.config
 
 def configure_logging():
-    logging.config.fileConfig('zipline_repo/logging.cfg')
+    logging.config.fileConfig('logging.cfg')

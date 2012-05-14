@@ -142,7 +142,7 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[6],
             sockets[7],
-            logging = LOGGER
+            logger = LOGGER
         )
         self.con.cancel_socket = self.allocator.lease(1)[0]
 
