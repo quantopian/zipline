@@ -4,6 +4,7 @@ Provides data handlers that can push messages to a zipline.core.DataFeed
 import datetime
 import random
 import pytz
+from mock import Mock
 
 import zipline.messaging as zm
 import zipline.protocol as zp
@@ -18,9 +19,9 @@ class TradeDataSource(zm.DataSource):
                            :py:func: `zipline.protocol.TRADE_FRAME`
         :rtype: None
         """
-        
+
         event.source_id = self.get_id
-        if event.sid in self.filter['SID']:            
+        if event.sid in self.filter['SID']:
             message = zp.DATASOURCE_FRAME(event)
         else:
             blank = zp.namedict({
@@ -28,9 +29,9 @@ class TradeDataSource(zm.DataSource):
                 "source_id" : self.get_id
             })
             message = zp.DATASOURCE_FRAME(blank)
-            
+
         self.data_socket.send(message)
-        
+
 
 class RandomEquityTrades(TradeDataSource):
     """
@@ -67,7 +68,7 @@ class RandomEquityTrades(TradeDataSource):
         })
         self.send(event)
         self.incr += 1
-        
+
 
 
 class SpecificEquityTrades(TradeDataSource):
@@ -77,7 +78,7 @@ class SpecificEquityTrades(TradeDataSource):
 
     def __init__(self, source_id, event_list):
         """
-        :param event_list: should be a chronologically ordered list of 
+        :param event_list: should be a chronologically ordered list of
                            dictionaries in the following form:
 
                 event = {
@@ -91,10 +92,13 @@ class SpecificEquityTrades(TradeDataSource):
         self.event_list = event_list
         self.count = 0
 
+        # TODO temporary hack
+        self.control_out = Mock()
+
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
 
-  
+
     def do_work(self):
         if(len(self.event_list) == 0):
             self.signal_done()

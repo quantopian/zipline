@@ -103,6 +103,7 @@ class Component(object):
         """
         pass
 
+
     # ------------
     # Core Methods
     # ------------
@@ -243,7 +244,7 @@ class Component(object):
 
             self.receive_sync_ack() # blocking
             self.confirmed = True
-            
+
     def runtime(self):
         if self.ready() and self.start_tic and self.stop_tic:
             return self.stop_tic - self.start_tic
