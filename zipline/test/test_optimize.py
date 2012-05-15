@@ -22,8 +22,12 @@ EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
 
-class FinanceTestCase(TestCase):
+class TestUpDown(TestCase):
+    """This unittest establishes that the BuySellAlgorithm in
+    combination with the UpDownSource are suitable for usage in an
+    optimization framework.
 
+    """
     leased_sockets = defaultdict(list)
 
     def setUp(self):
@@ -34,7 +38,13 @@ class FinanceTestCase(TestCase):
         }
 
     @timed(DEFAULT_TIMEOUT)
-    def test_buysell(self):
+    def test_source_and_orders(self):
+        """Establishes that the UpDownSource is having the correct
+        behavior and that the BuySellAlgorithm places the buy/sell
+        orders at the right time. Moreover, establishes that
+        UpDownSource and BuySellAlgorithm interact correctly."
+
+        """
         #generate events
         trade_count = 50
         sid = 133
@@ -47,7 +57,7 @@ class FinanceTestCase(TestCase):
         SIMULATION_STYLE.FIXED_SLIPPAGE
 
         trading_environment = factory.create_trading_environment()
-        source = factory.create_updown_trade_source(sid,
+        source = create_updown_trade_source(sid,
             trade_count,
             trading_environment,
             base_price,
@@ -96,7 +106,13 @@ class FinanceTestCase(TestCase):
             "Algorithm did not sell when price was going to increase."
         )
 
-    def test_buysell_concave(self):
+    def test_concavity_of_returns(self):
+        """Establishes that the free parameter of the BuySellAlgorithm
+        and the returns have a (strictly) concave relationship in a
+        certain region around the max. Moreover, establishes that the
+        max returns is at the correct value (i.e. 0).
+
+        """
         #generate events
         trade_count = 6
         sid = 133
@@ -116,7 +132,7 @@ class FinanceTestCase(TestCase):
         ziplines = []
         for i, test_offset in enumerate(test_offsets):
             trading_environment = factory.create_trading_environment()
-            source = factory.create_updown_trade_source(sid,
+            source = create_updown_trade_source(sid,
                 trade_count,
                 trading_environment,
                 base_price,
@@ -152,6 +168,11 @@ class FinanceTestCase(TestCase):
 
 
     def test_optimize(self):
+        """Establishes that a simple gradient descent algorithm
+        (Powell's method) can find the free parameter of the
+        BuySellAlgorithm producing maximum returns.
+
+        """
         def simulate(offset):
             #generate events
             trade_count = 3
@@ -177,7 +198,7 @@ class FinanceTestCase(TestCase):
             zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
             zipline.simulate(blocking=True)
             zipline.shutdown()
-            #function is getting minimized, so have return negative.
+            #function is getting minimized, so have to return negative cum returns.
             return -zipline.get_cumulative_performance()['returns']
 
         from scipy import optimize
