@@ -98,6 +98,14 @@ class SpecificEquityTrades(TradeDataSource):
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
 
+    @property
+    def get_id(self):
+        """
+        The descriptive name of the component.
+        """
+        # Prevents the bug that Thomas ran into
+        return "Unique ID"
+
 
     def do_work(self):
         if(len(self.event_list) == 0):
