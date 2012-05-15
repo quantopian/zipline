@@ -6,11 +6,12 @@ import random
 import pytz
 from mock import Mock
 
-import zipline.messaging as zm
+from zipline.components import DataSource
+from zipline.utils import ndict
+
 import zipline.protocol as zp
 
-
-class TradeDataSource(zm.DataSource):
+class TradeDataSource(DataSource):
 
     def send(self, event):
         """
@@ -24,7 +25,7 @@ class TradeDataSource(zm.DataSource):
         if event.sid in self.filter['SID']:
             message = zp.DATASOURCE_FRAME(event)
         else:
-            blank = zp.namedict({
+            blank = ndict({
                 "type"      : zp.DATASOURCE_TYPE.TRADE,
                 "source_id" : self.get_id
             })
@@ -39,7 +40,7 @@ class RandomEquityTrades(TradeDataSource):
     """
 
     def __init__(self, sid, source_id, count):
-        zm.DataSource.__init__(self, source_id)
+        DataSource.__init__(self, source_id)
         self.count          = count
         self.incr           = 0
         self.sid            = sid
@@ -59,7 +60,7 @@ class RandomEquityTrades(TradeDataSource):
         self.price = self.price + random.uniform(-0.05, 0.05)
         volume = random.randrange(100,10000,100)
 
-        event = zp.namedict({
+        event = zp.ndict({
             "type"      : zp.DATASOURCE_TYPE.TRADE,
             "sid"       : self.sid,
             "price"     : self.price,
@@ -68,7 +69,6 @@ class RandomEquityTrades(TradeDataSource):
         })
         self.send(event)
         self.incr += 1
-
 
 
 class SpecificEquityTrades(TradeDataSource):
@@ -88,7 +88,7 @@ class SpecificEquityTrades(TradeDataSource):
                     'volume' : integer for volume
                 }
         """
-        zm.DataSource.__init__(self, source_id)
+        DataSource.__init__(self, source_id)
         self.event_list = event_list
         self.count = 0
 
@@ -113,7 +113,5 @@ class SpecificEquityTrades(TradeDataSource):
             return
 
         event = self.event_list.pop(0)
-        self.send(zp.namedict(event))
+        self.send(zp.ndict(event))
         self.count +=1
-
-

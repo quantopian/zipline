@@ -1,6 +1,7 @@
 """
 Factory functions to prepare useful data for tests.
 """
+
 import pytz
 import msgpack
 import random
@@ -8,17 +9,14 @@ from os.path import join
 from operator import attrgetter
 
 from datetime import datetime, timedelta
-import zipline
 import zipline.finance.risk as risk
 import zipline.protocol as zp
-from zipline.sources import SpecificEquityTrades, RandomEquityTrades
+from zipline.finance.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
 
 def load_market_data():
-    data_path = join(zipline.__path__[0], "test")
-    with open(join(data_path, "benchmark.msgpack"), "rb") as fp_bm:
-        bm_list = msgpack.loads(fp_bm.read())
-
+    fp_bm = open("./tests/benchmark.msgpack", "rb")
+    bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
     for packed_date, returns in bm_list:
         event_dt = zp.tuple_to_date(packed_date)
@@ -33,8 +31,8 @@ def load_market_data():
         bm_returns.append(daily_return)
 
     bm_returns = sorted(bm_returns, key=attrgetter('date'))
-    with open(join(data_path, "treasury_curves.msgpack"), "rb") as fp_tr:
-        tr_list = msgpack.loads(fp_tr.read())
+    fp_tr = open(".//tests/treasury_curves.msgpack", "rb")
+    tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for packed_date, curve in tr_list:
         tr_dt = zp.tuple_to_date(packed_date)
@@ -42,7 +40,7 @@ def load_market_data():
         tr_curves[tr_dt] = curve
 
     return bm_returns, tr_curves
-    
+
 def create_trading_environment(year=2006):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
@@ -58,8 +56,9 @@ def create_trading_environment(year=2006):
     )
 
     return trading_environment
+
 def create_trade(sid, price, amount, datetime):
-    row = zp.namedict({
+    row = zp.ndict({
         'source_id' : "test_factory",
         'type'      : zp.DATASOURCE_TYPE.TRADE,
         'sid'       : sid,
@@ -83,7 +82,7 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     current = trading_calendar.first_open
 
     for price, amount in zip(prices, amounts):
-        
+
         trade = create_trade(sid, price, amount, current)
         trades.append(trade)
         current = get_next_trading_dt(current, interval, trading_calendar)
@@ -92,11 +91,11 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     return trades
 
 def create_txn(sid, price, amount, datetime, btrid=None):
-    txn = zp.namedict({
-        'sid':sid,
-        'amount':amount,
-        'dt':datetime,
-        'price':price,
+    txn = zp.ndict({
+        'sid'    : sid,
+        'amount' : amount,
+        'dt'     : datetime,
+        'price'  : price,
     })
     return txn
 
@@ -172,7 +171,7 @@ def create_random_trade_source(sid, trade_count, trading_environment):
     return source
 
 def create_daily_trade_source(sids, trade_count, trading_environment):
-    
+
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on trading_environment.period_start, and daily
@@ -183,9 +182,9 @@ def create_daily_trade_source(sids, trade_count, trading_environment):
     to match the day of the final trade.
     """
     return create_trade_source(
-        sids, 
-        trade_count, 
-        timedelta(days=1), 
+        sids,
+        trade_count,
+        timedelta(days=1),
         trading_environment
     )
 
@@ -193,26 +192,28 @@ def create_daily_trade_source(sids, trade_count, trading_environment):
 def create_minutely_trade_source(sids, trade_count, trading_environment):
 
     """
-    creates trade_count trades for each sid in sids list. 
-    first trade will be on trading_environment.period_start, and every minute 
-    thereafter for each sid. Thus, two sids should result in two trades per 
-    minute. 
+    creates trade_count trades for each sid in sids list.
+    first trade will be on trading_environment.period_start, and every minute
+    thereafter for each sid. Thus, two sids should result in two trades per
+    minute.
 
     Important side-effect: trading_environment.period_end will be modified
-    to match the day of the final trade. 
+    to match the day of the final trade.
     """
     return create_trade_source(
-        sids, 
-        trade_count, 
-        timedelta(minutes=1), 
+        sids,
+        trade_count,
+        timedelta(minutes=1),
         trading_environment
     )
 
 def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
     trade_history = []
+
+    price = [10.1] * trade_count
+    volume = [100] * trade_count
+
     for sid in sids:
-        price = [10.1] * trade_count
-        volume = [100] * trade_count
         start_date = trading_environment.first_open
 
         generated_trades = create_trade_history(

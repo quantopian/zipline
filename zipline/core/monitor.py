@@ -1,18 +1,18 @@
+import zmq
 import time
 import gevent
 import itertools
-# pyzmq
-import zmq
+import logging
 import gevent_zeromq
 
 from collections import OrderedDict
 
-from protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
+from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
     CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
 
 states = CONTROL_STATES
 
-from gpoll import _Poller as GeventPoller
+from zipline.utils.gpoll import _Poller as GeventPoller
 
 # Roll Call ( Discovery )
 # -----------------------
@@ -159,7 +159,7 @@ class Controller(object):
     debug = False
     period = 1
 
-    def __init__(self, pub_socket, route_socket, logging = None):
+    def __init__(self, pub_socket, route_socket, logger = None):
 
         self.context    = None
         self.zmq        = None
@@ -182,11 +182,11 @@ class Controller(object):
 
         self.error_replay = OrderedDict()
 
-        if logging:
-            self.logging = logging
+        if logger:
+            self.logging = logger
         else:
-            import util as qutil
-            self.logging = qutil.LOGGER
+            default_logger = logging.getLogger('ZiplineLogger')
+            self.logging = default_logger
 
     def init_zmq(self, flavor):
 
@@ -355,7 +355,7 @@ class Controller(object):
                 if tic - self.ctime > self.period:
                     break
 
-                if self.router in socks and socks[self.router] == self.zmq.POLLIN:
+                if socks.get(self.router) == self.zmq.POLLIN:
                     rawmessage = self.router.recv()
 
                     if rawmessage:
@@ -369,9 +369,10 @@ class Controller(object):
                         self.logging.error('Invalid frame', rawmessage)
                         pass
 
-                if self.cancel in socks and socks[self.cancel] == self.zmq.POLLIN:
+                if socks.get(self.cancel) == self.zmq.POLLIN:
                     self.logging.info('[Controller] Received Cancellation')
                     rawmessage = self.cancel.recv()
+                    self.cancel.send('')
                     self.shutdown(soft=True)
                     break
 

@@ -1,7 +1,7 @@
 from datetime import timedelta
 from collections import defaultdict
 
-from zipline.messaging import BaseTransform
+from zipline.transforms.base import BaseTransform
 
 class MovingAverageTransform(BaseTransform):
     
