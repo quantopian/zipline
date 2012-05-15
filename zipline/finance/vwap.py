@@ -1,8 +1,6 @@
-import pandas
-from datetime import timedelta
 from collections import defaultdict
 
-from zipline.messaging import BaseTransform
+from zipline.transforms.base import BaseTransform
 from zipline.finance.movingaverage import EventWindow
 
 class VWAPTransform(BaseTransform):
