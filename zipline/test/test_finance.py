@@ -368,33 +368,54 @@ class FinanceTestCase(TestCase):
         
         # same scenario, but short sales.
         params2 = {
-            'trade_count':100,
-            'trade_amount':100,
-            'trade_delay': timedelta(minutes=5),
-            'trade_interval': timedelta(days=1),
-            'order_count':3,
-            'order_amount':1000,
-            'order_interval': timedelta(minutes=30),
+            'trade_count'           : 100,
+            'trade_amount'          : 100,
+            'trade_delay'           : timedelta(minutes=5),
+            'trade_interval'        : timedelta(days=1),
+            'order_count'           : 3,
+            'order_amount'          :-1000,
+            'order_interval'        : timedelta(minutes=30),
             # because we placed an orders totaling less than 25% of one trade
             # the simulator should produce just one transaction.
-            'expected_txn_count' : 1,
-            'expected_txn_volume' : 25
+            'expected_txn_count'    : 1,
+            'expected_txn_volume'   : -25
         }
         self.transaction_sim(**params2)
-        
-        
+      
+    @timed(DEFAULT_TIMEOUT)  
+    def test_alternating_long_short(self):
+        # create a scenario where we alternate buys and sells
+        params1 = {
+            'trade_count'           : int(6.5 * 60 * 4),
+            'trade_amount'          : 100,
+            'trade_interval'        : timedelta(minutes=1),
+            'order_count'           : 4,
+            'order_amount'          : 10,
+            'order_interval'        : timedelta(hours=24),
+            'alternate'             : True,
+            'complete_fill'         : True,
+            'expected_txn_count'    : 4,
+            'expected_txn_volume'   : 0 #equal buys and sells
+        }
+        self.transaction_sim(**params1)
         
     def transaction_sim(self, **params):
         
-        trade_count = params['trade_count']
-        trade_amount = params['trade_amount']
-        trade_interval = params['trade_interval']
-        trade_delay = params.get('trade_delay')
-        order_count = params['order_count']
-        order_amount = params['order_amount']
-        order_interval = params['order_interval']
-        expected_txn_count = params['expected_txn_count']
+        trade_count         = params['trade_count']
+        trade_amount        = params['trade_amount']
+        trade_interval      = params['trade_interval']
+        trade_delay         = params.get('trade_delay')
+        order_count         = params['order_count']
+        order_amount        = params['order_amount']
+        order_interval      = params['order_interval']
+        expected_txn_count  = params['expected_txn_count']
         expected_txn_volume = params['expected_txn_volume']
+        # optional parameters
+        # ---------------------
+        # if present, alternate between long and short sales
+        alternate = params.get('alternate')
+        # if present, expect transaction amounts to match orders exactly. 
+        complete_fill = params.get('complete_fill')
         
         trading_environment = factory.create_trading_environment()
         trade_sim = TransactionSimulator()
@@ -411,17 +432,31 @@ class FinanceTestCase(TestCase):
             trading_environment 
         )
         
-        for i in range(order_count):
+        if alternate:
+            alternator = -1
+        else:
+            alternator = 1
+        
+        order_date = start_date
+        for i in xrange(order_count):
             order = namedict(
             {
-                'sid':sid,
-                'amount':order_amount,
-                'type':zp.DATASOURCE_TYPE.ORDER,
-                'dt' : start_date + i * order_interval
+                'sid'       : sid,
+                'amount'    : order_amount * alternator**i,
+                'type'      : zp.DATASOURCE_TYPE.ORDER,
+                'dt'        : order_date
             })
 
             trade_sim.add_open_order(order)
-        
+            
+            order_date = order_date + order_interval
+            # move after market orders to just after market next
+            # market open.
+            if order_date.hour >= 21:
+                    if order_date.minute >= 00:
+                        order_date = order_date + timedelta(days=1)
+                        order_date = order_date.replace(hour=14, minute=30)
+                        
         # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
         self.assertEqual(len(oo), 1)
@@ -429,9 +464,10 @@ class FinanceTestCase(TestCase):
         order_list = oo[sid]
         self.assertEqual(order_count, len(order_list))
         
-        for order in order_list:
+        for i in xrange(order_count):
+            order = order_list[i]
             self.assertEqual(order.sid, sid)
-            self.assertEqual(order.amount, order_amount)
+            self.assertEqual(order.amount, order_amount * alternator**i)
         
         
         tracker = PerformanceTracker(trading_environment)
@@ -450,10 +486,17 @@ class FinanceTestCase(TestCase):
                 trade.TRANSACTION = None
                 
             tracker.process_event(trade) 
-               
+            
+        if complete_fill:
+            self.assertEqual(len(transactions), len(order_list))  
+             
         total_volume = 0
-        for txn in transactions:
+        for i in xrange(len(transactions)):
+            txn = transactions[i]
             total_volume += txn.amount
+            if complete_fill:
+                order = order_list[i]
+                self.assertEqual(order.amount, txn.amount)
             
         self.assertEqual(total_volume, expected_txn_volume)    
         self.assertEqual(len(transactions), expected_txn_count)

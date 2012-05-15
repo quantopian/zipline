@@ -4,9 +4,7 @@ messaging. All ziplines follow a general topology of parallel sources,
 datetimestamp serialization, parallel transformations, and finally sinks. 
 Furthermore, many ziplines have common needs. For example, all trade 
 simulations require a 
-:py:class:`~zipline.finance.trading.TradeSimulationClient`, an
-:py:class:`~zipline.finance.trading.OrderSource`, and a 
-:py:class:`~zipline.finance.trading.TransactionSimulator` (a transform).
+:py:class:`~zipline.finance.trading.TradeSimulationClient`.
 
 To establish best practices and minimize code replication, the lines module 
 provides complete zipline topologies. You can extend any zipline without
@@ -17,56 +15,49 @@ before invoking simulate.
         
         Here is a diagram of the SimulatedTrading zipline:
         
-        
-            +----------------------+  +------------------------+
-        +-->|  Orders DataSource   |  |    (DataSource added   |
-        |   |  Integrates algo     |  |     via add_source)    |
-        |   |  orders into history |  |                        |
-        |   +--------------------+-+  +-+----------------------+
-        |                        |      |
-        |                        |      |
-        |                        v      v
-        |                       +---------+
-        |                       |   Feed  |
-        |                       +-+------++
-        |                         |      |
-        |                         |      |    
-        |                         v      v
-        |    +----------------------+   +----------------------+
-        |    | Transaction          |   |                      |
-        |    | Transform simulates  |   |  (Transforms added   |
-        |    | trades based on      |   |   via add_transform) |
-        |    | orders from algo.    |   |                      |
-        |    +-------------------+--+   +-+--------------------+
-        |                        |        |
-        |                        |        |
-        |                        v        v
-        |                      +------------+
-        |                      |    Merge   |
-        |                      +------+-----+
-        |                             |
-        |                             |
-        |                             V
-        |               +--------------------------------+
-        |               |                                |
-        |               |     TradingSimulationClient    |
-        |  orders       |     tracks performance and     |
-        +---------------+     provides API to algorithm. |
-                        |                                |
-                        +---------------------+----------+
-                                  ^           |
-                                  | orders    |  frames
-                                  |           |
-                                  |           v
-                        +---------+-----------------------+
-                        |                                 |
-                        |  Algorithm added via            |
-                        |  __init__.                      |
-                        |                                 |
-                        |                                 |
-                        |                                 |
-                        +---------------------------------+
 
+              +----------------------+  +------------------------+
+              |    Trade History     |  |    (DataSource added   |
+              |                      |  |     via add_source)    |
+              |                      |  |                        |
+              +--------------------+-+  +-+----------------------+
+                                   |      |
+                                   |      |
+                                   v      v
+                                  +---------+
+                                  |   Feed  |  (ensures events are serialized
+                                  +-+------++   in chronological order)
+                                    |      |
+                                    |      |
+                                    v      v
+               +----------------------+   +----------------------+
+               | (Transforms added    |   |  (Transforms added   |
+               |  via add_transform)  |   |   via add_transform) |
+               +-------------------+--+   +-+--------------------+
+                                   |        |
+                                   |        |
+                                   v        v
+                                 +------------+
+                                 |    Merge   | (combines original event and
+                                 +------+-----+  transforms into one vector)
+                                        |
+                                        |
+                                        V
+    +---------------+     +--------------------------------+
+    | Risk and Perf |     |                                |
+    | Tracker       |     |     TradingSimulationClient    |
+    +---------------+     |     tracks performance and     |
+       ^  Trades and      |     provides API to algorithm. |
+       |  simulated       |                                |
+       |  transactions    +--+------------------+----------+
+       |                     |      ^           |
+       +---------------------+      | orders    |  frames
+                                    |           |
+                                    |           v
+                          +---------------------------------+
+                          |      Algorithm added via        |
+                          |      __init__.                  |
+                          +---------------------------------+
 """
 
 import mock
@@ -152,6 +143,8 @@ class SimulatedTrading(object):
             sockets[7],
             logging = qutil.LOGGER
         )
+        
+        self.con.cancel_socket = self.allocator.lease(1)[0]
 
         # TODO: Not freeform
         self.con.manage(

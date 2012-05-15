@@ -1,7 +1,6 @@
 import datetime
 import pytz
 import math
-import pandas
 import time
 
 from collections import Counter
@@ -14,7 +13,7 @@ import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.protocol_utils import Enum, namedict
+from zipline.protocol_utils import Enum, ndict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -42,11 +41,7 @@ class TradeSimulationClient(qmsg.Component):
         self.last_msg_dt            = datetime.datetime.utcnow()
         self.txn_sim                = TransactionSimulator(sim_style)
         
-        assert self.trading_environment.frame_index != None
-        self.event_frame = pandas.DataFrame(
-            index=self.trading_environment.frame_index
-        )
-        
+        self.event_data = ndict()
         self.perf = perf.PerformanceTracker(self.trading_environment)
     
     @property
@@ -59,8 +54,10 @@ class TradeSimulationClient(qmsg.Component):
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm 
-        #register the trading_client's order method with the algorithm
+        # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
+        # ask the algorithm to initialize
+        self.algorithm.initialize()
     
     def open(self):
         self.result_feed = self.connect_result()
@@ -80,14 +77,7 @@ class TradeSimulationClient(qmsg.Component):
             
             # if the feed is done, shut 'er down
             if msg == str(zp.CONTROL_PROTOCOL.DONE):
-                qutil.LOGGER.info("Client is DONE!")
-                # signal the performance tracker that the simulation has
-                # ended. Perf will internally calculate the full risk report.
-                self.perf.handle_simulation_end()
-
-                # signal Simulator, our ComponentHost, that this component is
-                # done and Simulator needn't block exit on this component.
-                self.signal_done()
+                self.finish_simulation()
                 return
             
             # result_feed is a merge component, so unframe accordingly
@@ -95,14 +85,22 @@ class TradeSimulationClient(qmsg.Component):
             self.received_count += 1
             # update performance and relay the event to the algorithm
             self.process_event(event)
+            if self.perf.exceeded_max_loss:
+                self.finish_simulation()
             
+    def finish_simulation(self):
+        qutil.LOGGER.info("Client is DONE!")
+        # signal the performance tracker that the simulation has
+        # ended. Perf will internally calculate the full risk report.
+        self.perf.handle_simulation_end()
+
+        # signal Simulator, our ComponentHost, that this component is
+        # done and Simulator needn't block exit on this component.
+        self.signal_done()
 
     def process_event(self, event):
         
-        if self.perf.exceeded_max_loss:
-            self.control_out.send(str(zp.CONTROL_PROTOCOL.SHUTDOWN))
-            return
-            
+        
         # generate transactions, if applicable
         txn = self.txn_sim.apply_trade_to_open_orders(event)
         if txn:
@@ -148,13 +146,13 @@ class TradeSimulationClient(qmsg.Component):
         As per the algorithm protocol: 
         
         - Set the current portfolio for the algorithm as per protocol.
-        - Construct frame based on backlog of events, send to algorithm.
+        - Construct data based on backlog of events, send to algorithm.
         """
         current_portfolio = self.perf.get_portfolio()
         self.algorithm.set_portfolio(current_portfolio)
-        frame = self.get_frame()
-        if len(frame) > 0:
-            self.algorithm.handle_frame(frame)
+        data = self.get_data()
+        if len(data) > 0:
+            self.algorithm.handle_data(data)
     
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
@@ -175,14 +173,13 @@ class TradeSimulationClient(qmsg.Component):
     def queue_event(self, event):
         if self.event_queue == None:
             self.event_queue = []
-        series = event.as_series()
-        self.event_queue.append(series)
+        self.event_queue.append(event)
     
-    def get_frame(self):
+    def get_data(self):
         for event in self.event_queue:
-            self.event_frame[event['sid']] = event
+            self.event_data[event['sid']] = event
         self.event_queue = []
-        return self.event_frame
+        return self.event_data
                      
 
 class TransactionSimulator(object):
@@ -372,7 +369,6 @@ class TradingEnvironment(object):
         self.trading_day_map = {}
         self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
-        self.frame_index = ['sid', 'volume', 'dt', 'price', 'changed']
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
@@ -473,14 +469,6 @@ class TradingEnvironment(object):
             return self.trading_day_map[date].returns
         else:
             return 0.0
-            
-    def add_to_frame(self, name):
-        """
-        Add an entry to the frame index. 
-        :param name: new index entry name. Used by TradingSimulationClient
-        to 
-        """
-        self.frame_index.append(name)
 
                 
 
