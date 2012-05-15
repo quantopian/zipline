@@ -51,8 +51,8 @@ class ndict(MutableMapping):
     # -----------------
 
     def __setattr__(self, key, value):
-        if 'ndict' in key or key == 'cls':
-            MutableMapping.__setattr__(self, key, value)
+        if '_ndict' in key or key == 'cls':
+            self.__dict__[key] = value
         else:
             self.__internal[key] = value
         return value
