@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import zipline.protocol as zp
 
 from zipline.test.factory import get_next_trading_dt
-from zipline.sources import SpecificEquityTrades
+from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
 
@@ -27,7 +27,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, start_pric
     for i in xrange(trade_count + 2):
         cur = get_next_trading_dt(cur, one_day, trading_environment)
 
-        event = zp.namedict({
+        event = zp.ndict({
             "type"      : zp.DATASOURCE_TYPE.TRADE,
             "sid"       : sid,
             "price"     : price,

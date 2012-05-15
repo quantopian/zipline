@@ -1,6 +1,6 @@
 """Tests for the zipline.finance package"""
 import unittest
-from unittest2 import TestCase
+from unittest2 import TestCase, skip
 from nose.tools import timed
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from zipline.optimize.factory import create_updown_trade_source
-import zipline.test.factory as factory
+import zipline.utils.factory as factory
 import zipline.util as qutil
 
 from zipline.simulator import AddressAllocator, Simulator
@@ -23,7 +23,7 @@ EXTENDED_TIMEOUT = 90
 allocator = AddressAllocator(1000)
 
 class TestUpDown(TestCase):
-    """This unittest establishes that the BuySellAlgorithm in
+    """This unittest verifies that the BuySellAlgorithm in
     combination with the UpDownSource are suitable for usage in an
     optimization framework.
 
@@ -39,14 +39,14 @@ class TestUpDown(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
-        """Establishes that the UpDownSource is having the correct
-        behavior and that the BuySellAlgorithm places the buy/sell
+        """verify that UpDownSource is having the correct
+        behavior and that BuySellAlgorithm places the buy/sell
         orders at the right time. Moreover, establishes that
         UpDownSource and BuySellAlgorithm interact correctly."
 
         """
         #generate events
-        trade_count = 50
+        trade_count = 5
         sid = 133
         base_price = 50
         amplitude = 6
@@ -107,10 +107,10 @@ class TestUpDown(TestCase):
         )
 
     def test_concavity_of_returns(self):
-        """Establishes that the free parameter of the BuySellAlgorithm
-        and the returns have a (strictly) concave relationship in a
-        certain region around the max. Moreover, establishes that the
-        max returns is at the correct value (i.e. 0).
+        """verify concave relationship between of free parameter and
+        returns in certain region around the max. Moreover,
+        establishes that the max returns is at the correct value
+        (i.e. 0).
 
         """
         #generate events
@@ -166,11 +166,11 @@ class TestUpDown(TestCase):
             idx[0] -= 1
             idx[1] += 1
 
-
+    @skip
     def test_optimize(self):
-        """Establishes that a simple gradient descent algorithm
-        (Powell's method) can find the free parameter of the
-        BuySellAlgorithm producing maximum returns.
+        """verify that gradient descent (Powell's method) can find
+        the optimal free parameter under which the BuySellAlgorithm produces
+        maximum returns.
 
         """
         def simulate(offset):

@@ -32,7 +32,7 @@ class BuySellAlgorithm():
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
-    def handle_frame(self, frame):
+    def handle_data(self, frame):
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
         self.order(self.sid, order_size)
 
