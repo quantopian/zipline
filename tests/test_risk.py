@@ -4,15 +4,14 @@ import datetime
 import calendar
 import pytz
 import zipline.finance.risk as risk
-import zipline.test.factory as factory
-import zipline.util as qutil
+from zipline.utils import factory
 
 from zipline.finance.trading import TradingEnvironment
 
 class Risk(unittest.TestCase):
     
     def setUp(self):
-        qutil.configure_logging()
+        #qutil.configure_logging()
         start_date = datetime.datetime(
             year=2006, 
             month=1, 

@@ -65,7 +65,7 @@ Namedict
 Namedicts are dict like objects that have fields accessible by attribute lookup
 as well as being indexable and iterable::
 
-    HEARTBEAT_PROTOCOL = namedict({
+    HEARTBEAT_PROTOCOL = ndict({
         'REQ' : b'\x01',
         'REP' : b'\x02',
     })
@@ -118,13 +118,10 @@ import msgpack
 import numbers
 import datetime
 import pytz
-import numpy
-import time
-import copy
 from collections import namedtuple
 
-from protocol_utils import Enum, FrameExceptionFactory, namedict
-from date_utils import EPOCH, UN_EPOCH
+from utils.protocol_utils import Enum, FrameExceptionFactory, ndict
+from utils.date_utils import EPOCH, UN_EPOCH
 
 # -----------------------
 # Control Protocol
@@ -221,7 +218,7 @@ def DATASOURCE_FRAME(event):
     Wraps any datasource payload with id and type, so that unpacking may choose
     the write UNFRAME for the payload.
     
-    :param event: namedict with following properties
+    :param event: ndict with following properties
 
     - *ds_id* an identifier that is unique to the datasource in the context of a component host (e.g. Simulator)
     - *ds_type* a string denoting the datasource type. Must be on of:
@@ -260,42 +257,43 @@ def DATASOURCE_FRAME(event):
 
 def DATASOURCE_UNFRAME(msg):
     """
-    
-    Extracts payload, and calls correct UNFRAME method based on the \
-datasource type passed along. 
-    
+
+    Extracts payload, and calls correct UNFRAME method based on the
+    datasource type passed along.
+
     Returns a dict containing at least:
-    
+
     - source_id
     - type
 
     other properties are added based on the datasource type:
-    
+
     - TRADE
-    
+
         - sid - int security identifier
         - price - float
         - volume - int
         - dt - a datetime object
-    
-    """
 
+    """
     try:
         ds_type, source_id, payload = msgpack.loads(msg)
         assert isinstance(ds_type, int)
-        rval = namedict({'source_id':source_id})
+
+        rval = ndict({'source_id':source_id})
+
         if payload == DATASOURCE_TYPE.EMPTY:
-            child_value = namedict({'dt':None})
+            child_value = ndict({'dt':None})
         elif(ds_type == DATASOURCE_TYPE.TRADE):
             child_value = TRADE_UNFRAME(payload)
         elif(ds_type == DATASOURCE_TYPE.ORDER):
             child_value = ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
-            
+
         rval.merge(child_value)
         return rval
-        
+
     except TypeError:
         raise INVALID_DATASOURCE_FRAME(msg)
     except ValueError:
@@ -309,12 +307,12 @@ INVALID_FEED_FRAME = FrameExceptionFactory('FEED')
 
 def FEED_FRAME(event):
     """
-    :param event: a nameddict with at least
-    
+    :param event: a ndict with at least
+
         - source_id
         - type
     """
-    assert isinstance(event, namedict)
+    assert isinstance(event, ndict)
     source_id = event.source_id
     ds_type = event.type
     PACK_DATE(event)
@@ -326,7 +324,7 @@ def FEED_UNFRAME(msg):
         payload = msgpack.loads(msg)
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
-        rval = namedict(payload)
+        rval = ndict(payload)
         UNPACK_DATE(rval)
         return rval
     except TypeError:
@@ -350,13 +348,13 @@ def TRANSFORM_FRAME(name, value):
 
 def TRANSFORM_UNFRAME(msg):
     """
-    :rtype: namedict with <transform_name>:<transform_value>
+    :rtype: ndict with <transform_name>:<transform_value>
     """
     try:
 
         name, value = msgpack.loads(msg)
         if(value == TRANSFORM_TYPE.EMPTY):
-            return namedict({name : None})
+            return ndict({name : None})
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(name, basestring)
         if(name == TRANSFORM_TYPE.PASSTHROUGH):
@@ -364,7 +362,7 @@ def TRANSFORM_UNFRAME(msg):
         elif(name == TRANSFORM_TYPE.TRANSACTION):
             value = TRANSACTION_UNFRAME(value)
 
-        return namedict({name : value})
+        return ndict({name : value})
     except TypeError:
         raise INVALID_TRANSFORM_FRAME(msg)
     except ValueError:
@@ -382,7 +380,7 @@ def MERGE_FRAME(event):
         - source_id
         - type
     """
-    assert isinstance(event, namedict)
+    assert isinstance(event, ndict)
     PACK_DATE(event)
     if(event.has_attr(TRANSFORM_TYPE.TRANSACTION)):
         if(event.TRANSACTION == None):
@@ -397,7 +395,7 @@ def MERGE_UNFRAME(msg):
         payload = msgpack.loads(msg)
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
-        payload = namedict(payload)
+        payload = ndict(payload)
         if(payload.has_attr(TRANSFORM_TYPE.TRANSACTION)):
             if(payload.TRANSACTION == TRANSFORM_TYPE.EMPTY):
                 payload.TRANSACTION = None
@@ -425,7 +423,7 @@ INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 
 def TRADE_FRAME(event):
     """
-    :param event: should be a namedict with:
+    :param event: should be a ndict with:
             
     - ds_id     -- the datasource id sending this trade out
     - sid       -- the security id
@@ -434,7 +432,7 @@ def TRADE_FRAME(event):
     - dt        -- datetime for the trade
 
     """
-    assert isinstance(event, namedict)
+    assert isinstance(event, ndict)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
@@ -456,7 +454,7 @@ def TRADE_UNFRAME(msg):
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
         assert isinstance(volume, numbers.Integral)
-        rval = namedict({
+        rval = ndict({
             'sid'       : sid,
             'price'     : price,
             'volume'    : volume,
@@ -491,7 +489,7 @@ def ORDER_UNFRAME(msg):
         sid, amount, dt = msgpack.loads(msg)
         assert isinstance(sid, int)
         assert isinstance(amount, int)
-        rval = namedict({
+        rval = ndict({
             'sid':sid,
             'amount':amount,
             'dt':dt
@@ -513,7 +511,7 @@ def ORDER_UNFRAME(msg):
 
 
 def TRANSACTION_FRAME(event):
-    assert isinstance(event, namedict)
+    assert isinstance(event, ndict)
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
     assert isinstance(event.commission, numbers.Real)
@@ -535,7 +533,7 @@ def TRANSACTION_UNFRAME(msg):
         assert isinstance(price, numbers.Real)
         assert isinstance(commission, numbers.Real)
         assert isinstance(amount, int)
-        rval = namedict({
+        rval = ndict({
             'sid'        : sid,
             'price'      : price,
             'amount'     : amount,
@@ -577,7 +575,7 @@ def ORDER_SOURCE_FRAME(event):
 def ORDER_SOURCE_UNFRAME(msg):
     try:
         sid, amount, dt, source_id, source_type = msgpack.loads(msg)
-        event = namedict({
+        event = ndict({
             "sid"       : sid,
             "amount"    : amount,
             "dt"        : dt,
@@ -688,7 +686,7 @@ def PACK_DATE(event):
     
     PACK_DATE and UNPACK_DATE are inverse operations. 
     
-    :param event: event must a namedict with a property named 'dt' that is a datetime.
+    :param event: event must a ndict with a property named 'dt' that is a datetime.
     :rtype: None
     """
     assert isinstance(event.dt, datetime.datetime)
@@ -710,7 +708,7 @@ def UNPACK_DATE(event):
     
     UNPACK_DATE and PACK_DATE are inverse operations. 
     
-    :param tuple event: event must a namedict with:
+    :param tuple event: event must a ndict with:
             
     - a property named 'dt_tuple' that is a tuple of integers \
     representing the date and time in UTC. 
@@ -742,15 +740,15 @@ ORDER_PROTOCOL = Enum(
 )
 
 
-#Transform type needs to be a namedict to facilitate merging.
-TRANSFORM_TYPE = namedict({
+#Transform type needs to be a ndict to facilitate merging.
+TRANSFORM_TYPE = ndict({
     'TRANSACTION' : 'TRANSACTION', #needed?
     'PASSTHROUGH' : 'PASSTHROUGH',
     'EMPTY'       : ''
 })
 
 
-FINANCE_COMPONENT = namedict({
+FINANCE_COMPONENT = ndict({
     'TRADING_CLIENT'   : 'TRADING_CLIENT',
     'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
     'ORDER_SOURCE'     : 'ORDER_SOURCE',

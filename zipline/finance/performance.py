@@ -40,8 +40,8 @@ Performance Tracking
     |                 | through all the events delivered to this tracker.  |
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
-    +-----------------+----------------------------------------------------+ 
-    | exceeded_max_   | True if the simulation was stopped because single  | 
+    +-----------------+----------------------------------------------------+
+    | exceeded_max_   | True if the simulation was stopped because single  |
     | loss            | day losses exceeded the max_drawdown stipulated in |
     |                 | trading_environment.                               |
     +-----------------+----------------------------------------------------+
@@ -110,6 +110,8 @@ Performance Period
 
 
 """
+
+import logging
 import datetime
 import pytz
 import msgpack
@@ -118,9 +120,10 @@ import math
 
 import zmq
 
-import zipline.util as qutil
 import zipline.protocol as zp
 import zipline.finance.risk as risk
+
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class PerformanceTracker():
     """
@@ -188,7 +191,7 @@ class PerformanceTracker():
         )
 
     def get_portfolio(self):
-        return self.cumulative_performance.to_namedict()
+        return self.cumulative_performance.to_ndict()
 
     def publish_to(self, zmq_socket, context=None):
         """
@@ -228,7 +231,7 @@ class PerformanceTracker():
         if self.exceeded_max_loss:
             return
             
-        assert isinstance(event, zp.namedict)
+        assert isinstance(event, zp.ndict)
         self.event_count += 1
 
         if(event.dt >= self.market_close):
@@ -280,8 +283,8 @@ class PerformanceTracker():
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
-                qutil.LOGGER.info(str(returns) + " broke through " + str(max_dd))
-                qutil.LOGGER.info("Exceeded max drawdown.")
+                LOGGER.info(str(returns) + " broke through " + str(max_dd))
+                LOGGER.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag, 
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
@@ -316,8 +319,8 @@ class PerformanceTracker():
         """
         
         log_msg = "Simulated {n} trading days out of {m}."
-        qutil.LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
-        qutil.LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
+        LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
         
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
@@ -332,7 +335,7 @@ class PerformanceTracker():
         )
         
         if self.result_stream:
-            qutil.LOGGER.info("about to stream the risk report...")
+            LOGGER.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
             
             msg = zp.RISK_FRAME(risk_dict)
@@ -518,18 +521,18 @@ class PerformancePeriod():
         
         return rval
         
-    def to_namedict(self):
+    def to_ndict(self):
         """
-        Creates a namedict representing the state of this perfomance period.
+        Creates a ndict representing the state of this perfomance period.
         Properties are the same as the results of to_dict. See header comments
         for a detailed description.    
         
         """
-        positions = self.get_positions(namedicted=True)
+        positions = self.get_positions(ndicted=True)
         
-        positions = zp.namedict(positions)
+        positions = zp.ndict(positions)
         
-        return zp.namedict({
+        return zp.ndict({
             'ending_value'              : self.ending_value,
             'capital_used'              : self.period_capital_used,
             'starting_value'            : self.starting_value,
@@ -542,12 +545,12 @@ class PerformancePeriod():
             'transactions'              : self.processed_transactions
         })
         
-    def get_positions(self, namedicted=False):
+    def get_positions(self, ndicted=False):
         positions = {}
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
-            if namedicted:
-                positions[sid] = zp.namedict(cur)
+            if ndicted:
+                positions[sid] = zp.ndict(cur)
             else:
                 positions[sid] = cur
         

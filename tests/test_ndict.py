@@ -1,4 +1,4 @@
-from zipline.protocol_utils import ndict, namedict
+from zipline.utils.protocol_utils import ndict
 
 def test_ndict():
     nd = ndict({})
@@ -21,11 +21,18 @@ def test_ndict():
     assert 'x' in nd
     assert 'y' not in nd
 
+    # Mutability
+    nd2 = ndict({'x': 1})
+    assert nd2.x == 1
+    nd2.x = 2
+    assert nd2.x == 2
+
     # Class isolation
     assert '__init__' not in nd
     assert '__iter__' not in nd
     assert not nd.__dict__.has_key('x')
     assert nd.get('__init__') is None
+    assert 'x' not in set(dir(nd))
 
     # Comparison
     nd2 = nd.copy()

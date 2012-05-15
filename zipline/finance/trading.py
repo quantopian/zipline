@@ -1,3 +1,4 @@
+import logging
 import datetime
 import pytz
 import math
@@ -6,14 +7,12 @@ import time
 from collections import Counter
 
 # from gevent.select import select
-from zmq.core.poll import select
 
-import zipline.messaging as qmsg
-import zipline.util as qutil
+from zipline.core import Component
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
-from zipline.protocol_utils import Enum, ndict
+from zipline.utils.protocol_utils import Enum, ndict
 
 # the simulation style enumerates the available transaction simulation
 # strategies. 
@@ -24,10 +23,12 @@ SIMULATION_STYLE  = Enum(
     'NOOP'
 )
 
-class TradeSimulationClient(qmsg.Component):
+LOGGER = logging.getLogger('ZiplineLogger')
+
+class TradeSimulationClient(Component):
     
     def __init__(self, trading_environment, sim_style):
-        qmsg.Component.__init__(self)
+        Component.__init__(self)
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None
@@ -89,7 +90,7 @@ class TradeSimulationClient(qmsg.Component):
                 self.finish_simulation()
             
     def finish_simulation(self):
-        qutil.LOGGER.info("Client is DONE!")
+        LOGGER.info("Client is DONE!")
         # signal the performance tracker that the simulation has
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()
@@ -158,7 +159,7 @@ class TradeSimulationClient(qmsg.Component):
         return self.connect_push_socket(self.addresses['order_address'])
     
     def order(self, sid, amount):
-        order = zp.namedict({
+        order = zp.ndict({
             'dt':self.current_dt,
             'sid':sid,
             'amount':amount
@@ -213,7 +214,7 @@ class TransactionSimulator(object):
             log = "requested to trade zero shares of {sid}".format(
                 sid=event.sid
             )
-            qutil.LOGGER.debug(log)
+            LOGGER.debug(log)
             return
         
         if(not self.open_orders.has_key(event.sid)):
@@ -337,7 +338,7 @@ for orders:
                 event=str(event), 
                 orders=str(orders)
             )
-            qutil.LOGGER.warn(warning)
+            LOGGER.warn(warning)
             return None
     
         
@@ -350,7 +351,7 @@ for orders:
                 'commission'          : self.commission * amount * direction,
                 'source_id'          : zp.FINANCE_COMPONENT.TRANSACTION_SIM
                 }
-        return zp.namedict(txn) 
+        return zp.ndict(txn) 
                 
 
 class TradingEnvironment(object):

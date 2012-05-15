@@ -31,79 +31,6 @@ def FrameExceptionFactory(name):
 
     return InvalidFrame
 
-class namedict(MutableMapping):
-    """
-
-    Namedicts are dict like objects that have fields accessible by attribute lookup
-    as well as being indexable and iterable::
-
-        HEARTBEAT_PROTOCOL = namedict({
-            'REQ' : b'\x01',
-            'REP' : b'\x02',
-        })
-
-        HEARTBEAT_PROTOCOL.REQ # syntactic sugar
-        HEARTBEAT_PROTOCOL.REP # oh suga suga
-
-    For more complex structs use collections.namedtuple:
-    """
-
-    def __init__(self, dct=None):
-        if(dct):
-            self.__dict__.update(dct)
-
-    def __setitem__(self, key, value):
-        """
-        Required for use by pymongo as_class parameter to find.
-        """
-        if(key == '_id'):
-            self.__dict__['id'] = value
-        else:
-            self.__dict__[key] = value
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
-    def __delitem__(self, key):
-        del self.__dict__[key]
-
-    def __iter__(self):
-        return self.__dict__.iterkeys()
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def keys(self):
-        return self.__dict__.keys()
-
-    def as_dict(self):
-        # shallow copy is O(n)
-        return copy.copy(self.__dict__)
-
-    def delete(self, key):
-        del(self.__dict__[key])
-
-    def merge(self, other_nd):
-        assert isinstance(other_nd, namedict)
-        self.__dict__.update(other_nd.__dict__)
-
-    def __repr__(self):
-        return "namedict: " + str(self.__dict__)
-
-    def __eq__(self, other):
-        # !!!!!!!!!!!!!!!!!!!!
-        # !!!! DANGEROUS !!!!!
-        # !!!!!!!!!!!!!!!!!!!!
-        return other != None and self.__dict__ == other.__dict__
-
-    def has_attr(self, name):
-        return self.__dict__.has_key(name)
-
-    def as_series(self):
-        s = pandas.Series(self.__dict__)
-        s.name = self.sid
-        return s
-
 class ndict(MutableMapping):
     """
     Xtreme Namedicts 2.0
@@ -123,6 +50,13 @@ class ndict(MutableMapping):
     # Abstact Overloads
     # -----------------
 
+    def __setattr__(self, key, value):
+        if 'ndict' in key or key == 'cls':
+            MutableMapping.__setattr__(self, key, value)
+        else:
+            self.__internal[key] = value
+        return value
+
     def __setitem__(self, key, value):
         """
         Required for use by pymongo as_class parameter to find.
@@ -131,7 +65,6 @@ class ndict(MutableMapping):
             self.__internal['id'] = value
         else:
             self.__internal[key] = value
-
 
     def __getattr__(self, key):
         if key in self.cls:
@@ -219,3 +152,23 @@ class ndict(MutableMapping):
                 #return False
 
         #return True
+
+# This is not neccesarily the most intuitive construction, but
+# we're aiming for raw performance rather than readability. So
+# we do things that we would not normally do in business logic.
+def namelookup(dct):
+    ks = dct.keys()
+    vs = dct.values()
+    dct = {}
+    class _lookup:
+        __slots__ = ks
+        def __init__(self):
+            for k, v in zip(ks, vs):
+                setattr(self,k,v)
+            self.__setattr__ = self.locked
+        def locked(self,k,v):
+            raise Exception('Name lookups are fixed at init.')
+        def __repr__(self):
+            return '<namelookup %s>' % self.__slots__
+    del dct
+    return _lookup()
