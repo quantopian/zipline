@@ -1,7 +1,9 @@
 """
-    Component
+Abstract base class for Feed and Merge.
+
+   Component
        |
-    Aggregate
+   Aggregate
        |
       / \
   Feed   Merge
@@ -25,26 +27,10 @@ class Aggregate(Component):
         - pull_socket
         - feed_socket
 
+    Both use ``data_buffer`` for buffering.
+
     Feed and Merge define these differently.
     """
-
-    def init(self):
-        self.sent_count             = 0
-        self.received_count         = 0
-        self.draining               = False
-        self.ds_finished_counter    = 0
-
-        # Depending on the size of this, might want to use a data
-        # structure with better asymptotics.
-        self.data_buffer            = {}
-
-        # source_id -> integer count
-        self.sent_counters          = Counter()
-        self.recv_counters          = Counter()
-
-    @property
-    def get_id(self):
-        raise NotImplementedError
 
     @property
     def get_type(self):
@@ -53,10 +39,6 @@ class Aggregate(Component):
     # -------------
     # Core Methods
     # -------------
-
-    def open(self):
-        self.pull_socket = self.bind_data()
-        self.feed_socket = self.bind_feed()
 
     def do_work(self):
         # wait for synchronization reply from the host
@@ -131,55 +113,16 @@ class Aggregate(Component):
         if not (self.is_full() or self.draining):
             return
 
-        # TODO: implement this in __iter__
         event = self.next()
-        if event is not None:
+        if(event != None):
             self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
             self.sent_counters[event.source_id] += 1
             self.sent_count += 1
 
-    def append(self, event):
-        """
-        Add an event to the buffer for the source specified by
-        source_id.
-        """
-        self.data_buffer[event.source_id].append(event)
-        self.recv_counters[event.source_id] += 1
-        self.received_count += 1
-
-    def next(self):
-        """
-        Get the next message in chronological order.
-        """
-        if not(self.is_full() or self.draining):
-            return
-
-        cur_source = None
-        earliest_source = None
-        earliest_event = None
-        #iterate over the queues of events from all sources
-        #(1 queue per datasource)
-        for events in self.data_buffer.itervalues():
-            if len(events) == 0:
-                continue
-            cur_source = events
-            first_in_list = events[0]
-            if first_in_list.dt == None:
-                #this is a filler event, discard
-                events.pop(0)
-                continue
-
-            if (earliest_event == None) or (first_in_list.dt <= earliest_event.dt):
-                earliest_event = first_in_list
-                earliest_source = cur_source
-
-        if earliest_event != None:
-            return earliest_source.pop(0)
-
     def is_full(self):
         """
-        Indicates whether the buffer has messages in buffer for
-        all un-DONE, blocking sources.
+        Indicates whether the buffer has messages in buffer for all
+        un-DONE, blocking sources.
         """
         for source_id, events in self.data_buffer.iteritems():
             if len(events) == 0:

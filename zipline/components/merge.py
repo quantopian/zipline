@@ -2,10 +2,11 @@ from feed import Feed
 
 import zipline.protocol as zp
 from zipline.protocol import COMPONENT_TYPE
+from zipline.components.aggregator import Aggregate
 
 from collections import Counter
 
-class Merge(Feed):
+class Merge(Aggregate):
     """
     Merges multiple streams of events into single messages.
     """
@@ -27,13 +28,27 @@ class Merge(Feed):
     def get_id(self):
         return "MERGE"
 
-    @property
-    def get_type(self):
-        return COMPONENT_TYPE.CONDUIT
+    # -------
+    # Sockets
+    # -------
 
     def open(self):
         self.pull_socket = self.bind_merge()
         self.feed_socket = self.bind_result()
+
+    # -------
+    # Framing
+    # -------
+
+    def unframe(self, msg):
+        return zp.TRANSFORM_UNFRAME(msg)
+
+    def frame(self, event):
+        return zp.MERGE_FRAME(event)
+
+    # ---------
+    # Data Flow
+    # ---------
 
     def next(self):
         """Get the next merged message from the feed buffer."""
@@ -52,12 +67,6 @@ class Merge(Feed):
                 cur = events.pop(0)
                 result.merge(cur)
         return result
-
-    def unframe(self, msg):
-        return zp.TRANSFORM_UNFRAME(msg)
-
-    def frame(self, event):
-        return zp.MERGE_FRAME(event)
 
     def append(self, event):
         """
