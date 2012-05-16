@@ -11,10 +11,10 @@ LOGGER = logging.getLogger('ZiplineLogger')
 
 class Feed(Component):
     """
-    Connects to N PULL sockets, publishing all messages received to a PUB
-    socket.  Published messages are guaranteed to be in chronological order
-    based on message property dt.  Expects to be instantiated in one execution
-    context (thread, process, etc) and run in another.
+    Connects to N PULL sockets, publishing all messages received to a
+    PUB socket. Published messages are guaranteed to be in chronological
+    order based on message property dt. Expects to be instantiated in
+    one execution context (thread, process, etc) and run in another.
     """
 
     def init(self):
@@ -198,7 +198,7 @@ class Feed(Component):
 
     def __len__(self):
         """
-        Buffer's length is same as internal map holding separate
-        sorted arrays of events keyed by source id.
+        Buffer's length is same as internal map holding separate sorted
+        arrays of events keyed by source id.
         """
         return len(self.data_buffer)

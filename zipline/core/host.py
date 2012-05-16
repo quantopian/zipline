@@ -24,7 +24,7 @@ class ComponentHost(Component):
         self.addresses     = addresses
         self.running       = False
 
-        # Component Registry, keyed by get_id
+        # Component Registry, keyed by unique string
         # ----------------------
         self.components     = {}
         # ----------------------
@@ -108,8 +108,6 @@ class ComponentHost(Component):
         """
         DEPRECATED, left in for compatability for now.
         """
-
-        cur_time = datetime.datetime.utcnow()
 
         if len(self.components) == 0:
             LOGGER.info("Component register is empty.")

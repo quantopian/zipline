@@ -1,9 +1,17 @@
 """
 Provides data handlers that can push messages to a zipline.core.DataFeed
+
+::
+                   DataSource
+                       |
+                TradeDataSource
+                  /          \
+    RandomEquityTrades     SpecificEquityTrades
+
 """
-import datetime
-import random
 import pytz
+import random
+import datetime
 from mock import Mock
 
 from zipline.components import DataSource
