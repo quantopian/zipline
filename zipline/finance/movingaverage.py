@@ -20,7 +20,7 @@ class MovingAverageTransform(BaseTransform):
 
 class MovingAverage(object):
 
-    def __init__(self, daycount):
+    def init(self, daycount):
         self.window = EventWindow(daycount)
         self.total = 0.0
         self.average = 0.0
@@ -43,7 +43,7 @@ class EventWindow(object):
     Tracks a window of the event history. Use an instance to track the events
     inside your window to efficiently calculate rolling statistics.
     """
-    def __init__(self, daycount):
+    def init(self, daycount):
         self.ticks = []
         self.dropped_ticks = []
         self.delta = timedelta(days=daycount)

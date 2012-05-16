@@ -1,11 +1,16 @@
 """
-Simulator hosts all the components necessary to execute a simluation. See :py:method""
+Simulator hosts all the components necessary to execute a simluation.
+See :py:method""
 """
 
 import threading
 from zipline.core import ComponentHost
 
 class AddressAllocator(object):
+    """
+    Produces a iterator of 10000 sockets to allocate as needed.
+    Emulates the API of Qexec's socket allocator.
+    """
 
     def __init__(self, ns):
         self.idx = 0
@@ -28,6 +33,7 @@ class Simulator(ComponentHost):
     zmq_flavor = 'thread'
 
     def __init__(self, addresses):
+        # TODO: rethink this
         ComponentHost.__init__(self, addresses)
         self.subthreads = []
         self.running = False

@@ -35,27 +35,6 @@ class Workflow(Container, Callable):
         else:
             return False
 
-class Flowable:
-
-    @property
-    def state(self):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-        else:
-            return self._state
-
-    @state.setter
-    def state(self, new):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-
-        old = self._state
-
-        if (old, new) in self.workflow:
-            self._state = new
-        else:
-            raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
-
 class WorkflowMeta(type):
     """
     Base metaclass component workflows.
@@ -79,9 +58,30 @@ class WorkflowMeta(type):
         if not transitions:
             raise RuntimeError('Must specify initial_state')
 
-        new_class = super(WorkflowMeta, cls).__new__(
-            cls, name, mro+(Flowable,), attrs
-        )
+        new_class = super(WorkflowMeta, cls).__new__(cls, name, mro, attrs)
         new_class.workflow = Workflow(state, transitions, initial_state)
 
         return new_class
+
+class Flowable(object):
+
+    __metaclass__ = WorkflowMeta
+
+    @property
+    def state(self):
+        if not hasattr(self, '_state'):
+            self._state = self.initial_state
+        else:
+            return self._state
+
+    @state.setter
+    def state(self, new):
+        if not hasattr(self, '_state'):
+            self._state = self.initial_state
+
+        old = self._state
+
+        if (old, new) in self.workflow:
+            self._state = new
+        else:
+            raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
