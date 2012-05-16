@@ -39,34 +39,6 @@ class WorkflowMeta(type):
     """
     Base metaclass component workflows.
     """
-
-    def __new__(cls, name, mro, attrs):
-
-        state         = attrs.get('states', None)
-        transitions   = attrs.get('transitions', None)
-        initial_state = attrs.get('initial_state', None)
-
-        if attrs.get('workflow'):
-            raise RuntimeError('`workflow` is a reserved attribute.')
-
-        if not state:
-            raise RuntimeError('Must specify states')
-
-        if not transitions:
-            raise RuntimeError('Must specify transitions')
-
-        if not transitions:
-            raise RuntimeError('Must specify initial_state')
-
-        new_class = super(WorkflowMeta, cls).__new__(cls, name, mro, attrs)
-        new_class.workflow = Workflow(state, transitions, initial_state)
-
-        return new_class
-
-class Flowable(object):
-
-    __metaclass__ = WorkflowMeta
-
     @property
     def state(self):
         if not hasattr(self, '_state'):
@@ -85,3 +57,32 @@ class Flowable(object):
             self._state = new
         else:
             raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
+
+    def __new__(cls, name, mro, attrs):
+        base          = 'Component'
+
+        state         = attrs.get('states', None)
+        transitions   = attrs.get('transitions', None)
+        initial_state = attrs.get('initial_state', None)
+
+        if not 'abstract' in attrs:
+
+            if attrs.get('workflow'):
+                raise RuntimeError('`workflow` is a reserved attribute.')
+
+            if not state:
+                import pdb; pdb.set_trace()
+                raise RuntimeError('Must specify states')
+
+            if not transitions:
+                raise RuntimeError('Must specify transitions')
+
+            if not transitions:
+                raise RuntimeError('Must specify initial_state')
+
+        new_class = super(WorkflowMeta, cls).__new__(cls, name, mro, attrs)
+
+        if not 'abstract' in attrs:
+            new_class.workflow = Workflow(state, transitions, initial_state)
+
+        return new_class
