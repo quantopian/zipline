@@ -287,7 +287,7 @@ class SimulatedTrading(object):
         self.sim.register_components([source])
 
         # ``id`` is name of source_id, ``get_id`` is the class name
-        self.sources[source.id] = source
+        self.sources[source.source_id] = source
 
     def add_transform(self, transform):
         assert isinstance(transform, BaseTransform)

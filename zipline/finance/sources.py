@@ -13,6 +13,10 @@ import zipline.protocol as zp
 
 class TradeDataSource(DataSource):
 
+    def init(self, source_id):
+        self.source_id = source_id
+        self.setup_source()
+
     @property
     def get_id(self):
         return 'TradeDataSource'
@@ -25,13 +29,14 @@ class TradeDataSource(DataSource):
         :rtype: None
         """
 
-        event.source_id = self.get_id
+        event.source_id = self.source_id
+
         if event.sid in self.filter['SID']:
             message = zp.DATASOURCE_FRAME(event)
         else:
             blank = ndict({
                 "type"      : zp.DATASOURCE_TYPE.TRADE,
-                "source_id" : self.get_id
+                "source_id" : self.source_id
             })
             message = zp.DATASOURCE_FRAME(blank)
 
@@ -43,8 +48,8 @@ class RandomEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def __init__(self, sid, source_id, count):
-        DataSource.__init__(self, source_id)
+    def init(self, sid, source_id, count):
+        self.source_id      = source_id
         self.count          = count
         self.incr           = 0
         self.sid            = sid
@@ -52,13 +57,11 @@ class RandomEquityTrades(TradeDataSource):
         self.day            = datetime.timedelta(days=1)
         self.price          = random.uniform(5.0, 50.0)
 
+        self.setup_source()
+
     @property
     def get_id(self):
         return 'RandomEquityTrades'
-
-    @property
-    def get_type(self):
-        zp.COMPONENT_TYPE.SOURCE
 
     def do_work(self):
         if not self.incr < self.count:
@@ -84,27 +87,25 @@ class SpecificEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def __init__(self, source_id, event_list):
+    def init(self, source_id, event_list):
         """
         :param event_list: should be a chronologically ordered list of
-                           dictionaries in the following form:
+        dictionaries in the following form::
 
-                event = {
-                    'sid'    : an integer for security id,
-                    'dt'     : datetime object,
-                    'price'  : float for price,
-                    'volume' : integer for volume
-                }
+            event = {
+                'sid'    : an integer for security id,
+                'dt'     : datetime object,
+                'price'  : float for price,
+                'volume' : integer for volume
+            }
         """
-        DataSource.__init__(self, source_id)
+        self.source_id = source_id
         self.event_list = event_list
         self.count = 0
 
         # TODO temporary hack
         self.control_out = Mock()
-
-    def get_type(self):
-        zp.COMPONENT_TYPE.SOURCE
+        self.setup_source()
 
     @property
     def get_id(self):
