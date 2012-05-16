@@ -1,20 +1,31 @@
+"""
+    Component
+       |
+    Aggregate
+       |
+      / \
+  Feed   Merge
+
+"""
 import logging
 from collections import Counter
 
-from zipline.core.component import Component
 import zipline.protocol as zp
 
+from zipline.core.component import Component
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     CONTROL_FRAME, CONTROL_UNFRAME
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
-class Feed(Component):
+class Aggregate(Component):
     """
-    Connects to N PULL sockets, publishing all messages received to a PUB
-    socket.  Published messages are guaranteed to be in chronological order
-    based on message property dt.  Expects to be instantiated in one execution
-    context (thread, process, etc) and run in another.
+    Abstract superclass to Merge & Feed. Acts on two sockets
+
+        - pull_socket
+        - feed_socket
+
+    Feed and Merge define these differently.
     """
 
     def init(self):
@@ -33,7 +44,7 @@ class Feed(Component):
 
     @property
     def get_id(self):
-        return "FEED"
+        raise NotImplementedError
 
     @property
     def get_type(self):
@@ -52,7 +63,7 @@ class Feed(Component):
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
         # TODO: Abstract this out, maybe on base component
-        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
+        if socks.get(self.control_in) == self.zmq.POLLIN:
             msg = self.control_in.recv()
             event, payload = CONTROL_UNFRAME(msg)
 
@@ -75,7 +86,7 @@ class Feed(Component):
                 self.kill()
 
 
-        if self.pull_socket in socks and socks[self.pull_socket] == self.zmq.POLLIN:
+        if socks.get(self.pull_socket) == self.zmq.POLLIN:
             message = self.pull_socket.recv()
 
             if message == str(CONTROL_PROTOCOL.DONE):
@@ -101,12 +112,6 @@ class Feed(Component):
                 except zp.INVALID_DATASOURCE_FRAME as exc:
                     return self.signal_exception(exc)
 
-    def unframe(self, msg):
-        return zp.DATASOURCE_UNFRAME(msg)
-
-    def frame(self, event):
-        return zp.FEED_FRAME(event)
-
     # -------------
     # Flow Control
     # -------------
@@ -126,8 +131,9 @@ class Feed(Component):
         if not (self.is_full() or self.draining):
             return
 
+        # TODO: implement this in __iter__
         event = self.next()
-        if(event != None):
+        if event is not None:
             self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
             self.sent_counters[event.source_id] += 1
             self.sent_count += 1
@@ -153,7 +159,7 @@ class Feed(Component):
         earliest_event = None
         #iterate over the queues of events from all sources
         #(1 queue per datasource)
-        for events in self.data_buffer.values():
+        for events in self.data_buffer.itervalues():
             if len(events) == 0:
                 continue
             cur_source = events
@@ -186,7 +192,7 @@ class Feed(Component):
         buffer.
         """
         total = 0
-        for events in self.data_buffer.values():
+        for events in self.data_buffer.itervalues():
             total += len(events)
         return total
 

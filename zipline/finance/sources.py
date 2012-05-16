@@ -13,6 +13,10 @@ import zipline.protocol as zp
 
 class TradeDataSource(DataSource):
 
+    @property
+    def get_id(self):
+        return 'TradeDataSource'
+
     def send(self, event):
         """
         Sends the event iff it matches the internal SID filter.
@@ -48,7 +52,11 @@ class RandomEquityTrades(TradeDataSource):
         self.day            = datetime.timedelta(days=1)
         self.price          = random.uniform(5.0, 50.0)
 
+    @property
+    def get_id(self):
+        return 'RandomEquityTrades'
 
+    @property
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
 
@@ -100,12 +108,7 @@ class SpecificEquityTrades(TradeDataSource):
 
     @property
     def get_id(self):
-        """
-        The descriptive name of the component.
-        """
-        # Prevents the bug that Thomas ran into
-        return "Unique ID"
-
+        return "SpecificEquityTrades"
 
     def do_work(self):
         if(len(self.event_list) == 0):

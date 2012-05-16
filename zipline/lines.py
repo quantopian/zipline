@@ -191,7 +191,7 @@ class SimulatedTrading(object):
             - algorithm - optional parameter providing an algorithm. defaults
               to :py:class:`zipline.test.algorithms.TestAlgorithm`
             - trade_source - optional parameter to specify trades, if present.
-              If not present :py:class:`ziplien.sources.SpecificEquityTrades`
+              If not present :py:class:`zipline.sources.SpecificEquityTrades`
               is the source, with daily frequency in trades.
             - simulation_style: optional parameter that configures the
               :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
@@ -264,11 +264,11 @@ class SimulatedTrading(object):
         # Simulation
         #-------------------
         zipline = SimulatedTrading(**{
-            'algorithm':test_algo,
-            'trading_environment':trading_environment,
-            'allocator':allocator,
-            'simulator_class':simulator_class,
-            'simulation_style':simulation_style
+            'algorithm'           : test_algo,
+            'trading_environment' : trading_environment,
+            'allocator'           : allocator,
+            'simulator_class'     : simulator_class,
+            'simulation_style'    : simulation_style
         })
         #-------------------
 
@@ -285,7 +285,9 @@ class SimulatedTrading(object):
         self.check_started()
         source.set_filter('SID', self.algorithm.get_sid_filter())
         self.sim.register_components([source])
-        self.sources[source.get_id] = source
+
+        # ``id`` is name of source_id, ``get_id`` is the class name
+        self.sources[source.id] = source
 
     def add_transform(self, transform):
         assert isinstance(transform, BaseTransform)
