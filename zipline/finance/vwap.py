@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import timedelta
 
 from zipline.transforms.base import BaseTransform
 from zipline.finance.movingaverage import EventWindow
