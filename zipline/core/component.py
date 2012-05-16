@@ -24,6 +24,8 @@ from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
+from zipline.exceptions import ComponentNoInit
+
 class Component(object):
     """
     Base class for components. Defines the the base messaging
@@ -64,7 +66,11 @@ class Component(object):
 
     """
 
-    def __init__(self):
+    # ------------
+    # Construction
+    # ------------
+
+    def __init__(self, *args, **kwargs):
         self.zmq               = None
         self.context           = None
         self.addresses         = None
@@ -90,14 +96,16 @@ class Component(object):
         self.guid = uuid.uuid4()
         self.huid = humanhash.humanize(self.guid.hex)
 
-        self.init()
+        # This is where component specific constructors should be
+        # defined. Arguments passed to init are threaded through.
+        self.init(*args, **kwargs)
 
     def init(self):
         """
         Subclasses should override this to extend the setup for
         the class. Shouldn't have side effects.
         """
-        pass
+        raise ComponentNoInit(self.__class__)
 
 
     # ------------
@@ -515,14 +523,6 @@ class Component(object):
         """
         return False
 
-    def note(self):
-        """
-        Information about the component. Mostly used for testing.
-        """
-
-    def get_note(self):
-        return self.note or ''
-
     def debug(self):
         """
         Debug information about the component.
@@ -552,7 +552,7 @@ class Component(object):
 
         return "<{name} {uuid} at {host} {pid} {pointer}>".format(
             name    = self.get_id          ,
-            uuid    = self.huid            ,
+            uuid    = self.guid            ,
             host    = socket.gethostname() ,
             pid     = os.getpid()          ,
             pointer = hex(id(self))        ,

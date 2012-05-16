@@ -39,7 +39,6 @@ Risk Report
 import logging
 import datetime
 import math
-import pytz
 import numpy as np
 import numpy.linalg as la
 import zipline.protocol as zp
@@ -65,7 +64,7 @@ def advance_by_months(dt, jump_in_months):
 class DailyReturn():
 
     def __init__(self, date, returns):
-        
+
         assert isinstance(date, datetime.datetime)
         self.date = date.replace(hour=0, minute=0, second=0)
         self.returns = returns
@@ -83,18 +82,18 @@ class DailyReturn():
 class RiskMetrics():
     def __init__(self, start_date, end_date, returns, trading_environment):
 
-        self.treasury_curves = trading_environment.treasury_curves        
+        self.treasury_curves = trading_environment.treasury_curves
         self.start_date = start_date
         self.end_date = end_date
         self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = \
             self.calculate_period_returns(returns)
-            
+
         benchmark_returns = [
                     x for x in self.trading_environment.benchmark_returns
                     if x.date >= returns[0].date and x.date <= returns[-1].date
         ]
-        
+
         self.benchmark_period_returns, self.benchmark_returns = \
             self.calculate_period_returns(benchmark_returns)
 
@@ -196,7 +195,7 @@ class RiskMetrics():
         """
         if self.algorithm_volatility == 0:
             return 0.0
-            
+
         return ( (self.algorithm_period_returns - self.treasury_period_return) /
             self.algorithm_volatility )
 
@@ -311,15 +310,15 @@ class RiskMetrics():
             that date doesn't exceed treasury history range."
             message = message.format(dt=self.end_date,term=self.treasury_duration)
             raise Exception(message)
-        
+
 
 
 class RiskReport():
 
     def __init__(
-        self, 
-        algorithm_returns, 
-        trading_environment, 
+        self,
+        algorithm_returns,
+        trading_environment,
         exceeded_max_loss=False):
         """
         algorithm_returns needs to be a list of daily_return objects
@@ -336,7 +335,7 @@ class RiskReport():
         else:
             start_date = self.algorithm_returns[0].date
             end_date = self.algorithm_returns[-1].date
-            
+
         self.month_periods = self.periodsInRange(1, start_date, end_date)
         self.three_month_periods = self.periodsInRange(3, start_date, end_date)
         self.six_month_periods = self.periodsInRange(6, start_date, end_date)
@@ -370,7 +369,7 @@ class RiskReport():
         ends = []
         cur_start = start.replace(day=1)
 
-        # in edge cases (all sids filtered out, start/end are adjacent) 
+        # in edge cases (all sids filtered out, start/end are adjacent)
         # a test will not generate any returns data
         if len(self.algorithm_returns) == 0:
             return ends

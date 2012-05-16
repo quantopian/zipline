@@ -17,9 +17,7 @@ class Feed(Component):
     context (thread, process, etc) and run in another.
     """
 
-    def __init__(self):
-        Component.__init__(self)
-
+    def init(self):
         self.sent_count             = 0
         self.received_count         = 0
         self.draining               = False
@@ -32,9 +30,6 @@ class Feed(Component):
         # source_id -> integer count
         self.sent_counters          = Counter()
         self.recv_counters          = Counter()
-
-    def init(self):
-        pass
 
     @property
     def get_id(self):

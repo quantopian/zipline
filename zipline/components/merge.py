@@ -3,21 +3,25 @@ from feed import Feed
 import zipline.protocol as zp
 from zipline.protocol import COMPONENT_TYPE
 
-# TODO: By Liskov merge must *be* a feed, don't believe this is
-# the case.
+from collections import Counter
 
 class Merge(Feed):
     """
     Merges multiple streams of events into single messages.
     """
-
-    def __init__(self):
-        Feed.__init__(self)
-
-        self.init()
-
     def init(self):
-        pass
+        self.sent_count             = 0
+        self.received_count         = 0
+        self.draining               = False
+        self.ds_finished_counter    = 0
+
+        # Depending on the size of this, might want to use a data
+        # structure with better asymptotics.
+        self.data_buffer            = {}
+
+        # source_id -> integer count
+        self.sent_counters          = Counter()
+        self.recv_counters          = Counter()
 
     @property
     def get_id(self):

@@ -68,7 +68,7 @@ from zipline.components import DataSource
 from zipline.transforms import BaseTransform
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.finance.trading import TradeSimulationClient
+from zipline.components import TradeSimulationClient
 from zipline.core.devsimulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
@@ -335,7 +335,7 @@ class SimulatedTrading(object):
         #self.allocator.reaquire(*self.leased_sockets)
 
     #--------------------------------
-    # Component property accessors   
+    # Component property accessors
     #--------------------------------
 
     def get_positions(self):
