@@ -39,6 +39,7 @@ version='dev'
 install_requires = parse_requirements('./etc/requirements.txt') + parse_requirements('./etc/requirements_sci.txt')
 tests_require = install_requires + parse_requirements('./etc/requirements_dev.txt')
 
+
 options(
     sphinx=Bunch(
         builddir="_build",
@@ -48,6 +49,8 @@ options(
           version              = version,
           classifiers          = [],
           packages             = find_packages(),
+          package_data         = find_package_data("zipline", package="zipline",
+                                                   only_in_packages=False),
           install_requires     = install_requires,
           tests_require        = tests_require,
           test_suite           = 'nose.collector',

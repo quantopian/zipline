@@ -5,6 +5,8 @@ Factory functions to prepare useful data for tests.
 import pytz
 import msgpack
 import random
+from os.path import join
+from operator import attrgetter
 
 from datetime import datetime, timedelta
 import zipline.finance.risk as risk
@@ -19,15 +21,16 @@ def load_market_data():
     for packed_date, returns in bm_list:
         event_dt = zp.tuple_to_date(packed_date)
         #event_dt = event_dt.replace(
-        #    hour=0, 
-        #    minute=0, 
-        #    second=0, 
+        #    hour=0,
+        #    minute=0,
+        #    second=0,
         #    tzinfo=pytz.utc
         #)
 
         daily_return = risk.DailyReturn(date=event_dt, returns=returns)
         bm_returns.append(daily_return)
-    bm_returns = sorted(bm_returns, key=lambda(x): x.date)
+
+    bm_returns = sorted(bm_returns, key=attrgetter('date'))
     fp_tr = open(".//tests/treasury_curves.msgpack", "rb")
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
@@ -223,7 +226,7 @@ def create_trade_source(sids, trade_count, trade_time_increment, trading_environ
 
         trade_history.extend(generated_trades)
 
-    trade_history = sorted(trade_history, key=lambda(x): x.dt)
+    trade_history = sorted(trade_history, key=attrgetter('dt'))
 
     #set the trading environment's end to same dt as the last trade in the
     #history.
