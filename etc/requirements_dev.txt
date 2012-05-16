@@ -36,3 +36,6 @@ Pycco==0.3.0
 pystache==0.4.0
 smartypants==1.6.0.3
 wsgiref==0.1.2
+
+# misc
+pycleaner==1.1.1

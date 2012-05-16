@@ -26,18 +26,18 @@ EXTENDED_TIMEOUT = 90
 allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
-
+    
     leased_sockets = defaultdict(list)
-
+    
     def setUp(self):
         #qutil.configure_logging()
         self.zipline_test_config = {
             'allocator':allocator,
             'sid':133
         }
-
+    
     @timed(DEFAULT_TIMEOUT)
-    def test_factory(self):
+    def test_factory_daily(self):
         trading_environment = factory.create_trading_environment()
         trade_source = factory.create_daily_trade_source(
             [133],
@@ -49,7 +49,7 @@ class FinanceTestCase(TestCase):
             if prev:
                 self.assertTrue(trade.dt > prev.dt)
             prev = trade
-      
+    
     @timed(DEFAULT_TIMEOUT)
     def test_trading_environment(self):
         benchmark_returns, treasury_curves = \
@@ -62,7 +62,7 @@ class FinanceTestCase(TestCase):
             period_end = datetime(2008, 12, 31, tzinfo = pytz.utc),
             capital_base = 100000,
             max_drawdown = 0.50
-        )      
+        )
         #holidays taken from: http://www.nyse.com/press/1191407641943.html
         new_years   = datetime(2008, 1, 1, tzinfo = pytz.utc)
         mlk_day     = datetime(2008, 1, 21, tzinfo = pytz.utc)
@@ -76,14 +76,14 @@ class FinanceTestCase(TestCase):
         a_saturday  = datetime(2008, 8, 2, tzinfo = pytz.utc)
         a_sunday    = datetime(2008, 10, 12, tzinfo = pytz.utc)
         holidays = [
-            new_years, 
-            mlk_day, 
-            presidents, 
-            good_friday, 
-            memorial_day, 
-            july_4th, 
-            labor_day, 
-            tgiving, 
+            new_years,
+            mlk_day,
+            presidents,
+            good_friday,
+            memorial_day,
+            july_4th,
+            labor_day,
+            tgiving,
             christmas,
             a_saturday,
             a_sunday
@@ -101,11 +101,11 @@ class FinanceTestCase(TestCase):
         
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
-        
+    
     # The following two tests appear broken no that the order source is
     # non blocking. HUNCH: The trades are streaming through before the orders
     # are placed.
-        
+    
     @timed(DEFAULT_TIMEOUT)
     def test_orders(self):
         
@@ -118,34 +118,34 @@ class FinanceTestCase(TestCase):
             **self.zipline_test_config
         )
         zipline.simulate(blocking=True)
-
+        
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
-
+        
         # TODO: Make more assertions about the final state of the components.
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
-            
+        
         # the trading client should receive one transaction for every
         # order placed.
         self.assertEqual(
-            zipline.trading_client.txn_count, 
+            zipline.trading_client.txn_count,
             zipline.trading_client.order_count
         )
-        
     
-    @timed(EXTENDED_TIMEOUT)
+    
+    @timed(DEFAULT_TIMEOUT)
     def test_aggressive_buying(self):
-
+        
         # Simulation
-        # ----------       
+        # ----------
         
         # TODO: for some reason the orders aren't filled without an extra
         # trade.
         trade_count = 5
         self.zipline_test_config['order_count'] = trade_count - 1
-        self.zipline_test_config['trade_count'] = trade_count 
+        self.zipline_test_config['trade_count'] = trade_count
         self.zipline_test_config['order_amount'] = 1
         
         # tell the simulator to fill the orders in individual transactions
@@ -164,51 +164,51 @@ class FinanceTestCase(TestCase):
         
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
-
+        
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
         
         self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages()))
-            
+        
         #
         # the trading client should receive one transaction for every
         # order placed.
         self.assertEqual(
-            zipline.trading_client.txn_count, 
+            zipline.trading_client.txn_count,
             zipline.trading_client.order_count
         )
-        
             
         
+    
     @timed(DEFAULT_TIMEOUT)
-    def test_performance(self): 
+    def test_performance(self):
         #provide enough trades to ensure all orders are filled.
         self.zipline_test_config['order_count'] = 100
         self.zipline_test_config['trade_count'] = 200
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
-
+        
         self.assertEqual(
-            zipline.sim.feed.pending_messages(), 
-            0, 
+            zipline.sim.feed.pending_messages(),
+            0,
             "The feed should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.feed.pending_messages())
         )
         
         self.assertEqual(
-            zipline.sim.merge.pending_messages(), 
-            0, 
+            zipline.sim.merge.pending_messages(),
+            0,
             "The merge should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.merge.pending_messages())
         )
-
+        
         self.assertEqual(
             zipline.algorithm.count,
             zipline.algorithm.incr,
             "The test algorithm should send as many orders as specified.")
-            
+        
         
         transaction_sim = zipline.trading_client.txn_sim
         self.assertEqual(
@@ -216,18 +216,18 @@ class FinanceTestCase(TestCase):
             zipline.trading_client.perf.txn_count,
             "The perf tracker should handle the same number of transactions \
             as the simulator emits."
-        ) 
+        )
         
         self.assertEqual(
-            len(zipline.get_positions()), 
-            1, 
+            len(zipline.get_positions()),
+            1,
             "Portfolio should have one position."
         )
         
         SID = self.zipline_test_config['sid']
         self.assertEqual(
-            zipline.get_positions()[SID]['sid'], 
-            SID, 
+            zipline.get_positions()[SID]['sid'],
+            SID,
             "Portfolio should have one position in " + str(SID)
         )
         
@@ -243,7 +243,7 @@ class FinanceTestCase(TestCase):
             "The algorithm should receive all trades."
             )
     
-    @timed(DEFAULT_TIMEOUT)  
+    @timed(DEFAULT_TIMEOUT)
     def test_sid_filter(self):
         """Ensure the algorithm's filter prevents events from arriving."""
         # create a test algorithm whose filter will not match any of the
@@ -263,7 +263,7 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
-       
+        
         zipline.simulate(blocking=True)
         #check that the algorithm received no events
         self.assertEqual(
@@ -271,7 +271,7 @@ class FinanceTestCase(TestCase):
             test_algo.frame_count,
             "The algorithm should not receive any events due to filtering."
         )
-
+    
     
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
@@ -310,7 +310,7 @@ class FinanceTestCase(TestCase):
         }
         
         self.transaction_sim(**params2)
-        
+    
     @timed(DEFAULT_TIMEOUT)
     def test_collapsing_orders(self):
         # create a scenario where order.amount <<< trade.volume
@@ -341,9 +341,9 @@ class FinanceTestCase(TestCase):
             'expected_txn_volume':24 * -1
         }
         self.transaction_sim(**params2)
-      
+    
     @timed(DEFAULT_TIMEOUT)
-    def test_partial_expiration_orders(self):  
+    def test_partial_expiration_orders(self):
         # create a scenario where orders expire without being filled
         # entirely
         params1 = {
@@ -376,8 +376,8 @@ class FinanceTestCase(TestCase):
             'expected_txn_volume'   : -25
         }
         self.transaction_sim(**params2)
-      
-    @timed(DEFAULT_TIMEOUT)  
+    
+    @timed(DEFAULT_TIMEOUT)
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells
         params1 = {
@@ -393,7 +393,7 @@ class FinanceTestCase(TestCase):
             'expected_txn_volume'   : 0 #equal buys and sells
         }
         self.transaction_sim(**params1)
-        
+    
     def transaction_sim(self, **params):
         
         trade_count         = params['trade_count']
@@ -409,16 +409,16 @@ class FinanceTestCase(TestCase):
         # ---------------------
         # if present, alternate between long and short sales
         alternate = params.get('alternate')
-        # if present, expect transaction amounts to match orders exactly. 
+        # if present, expect transaction amounts to match orders exactly.
         complete_fill = params.get('complete_fill')
-
+        
         trading_environment = factory.create_trading_environment()
         trade_sim = TransactionSimulator()
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.first_open
         sid = 1
-
+        
         generated_trades = factory.create_trade_history(
             sid,
             price,
@@ -426,12 +426,12 @@ class FinanceTestCase(TestCase):
             trade_interval,
             trading_environment
         )
-
+        
         if alternate:
             alternator = -1
         else:
             alternator = 1
-
+        
         order_date = start_date
         for i in xrange(order_count):
             order = ndict(
@@ -441,9 +441,9 @@ class FinanceTestCase(TestCase):
                 'type'      : zp.DATASOURCE_TYPE.ORDER,
                 'dt'        : order_date
             })
-
+            
             trade_sim.add_open_order(order)
-
+            
             order_date = order_date + order_interval
             # move after market orders to just after market next
             # market open.
@@ -451,40 +451,40 @@ class FinanceTestCase(TestCase):
                     if order_date.minute >= 00:
                         order_date = order_date + timedelta(days=1)
                         order_date = order_date.replace(hour=14, minute=30)
-
+        
         # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
         self.assertEqual(len(oo), 1)
         self.assertTrue(oo.has_key(sid))
         order_list = oo[sid]
         self.assertEqual(order_count, len(order_list))
-
+        
         for i in xrange(order_count):
             order = order_list[i]
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator**i)
 
-
+        
         tracker = PerformanceTracker(trading_environment)
-
+        
         # this approximates the loop inside TradingSimulationClient
         transactions = []
         for trade in generated_trades:
             if trade_delay:
                 trade.dt = trade.dt + trade_delay
-
+            
             txn = trade_sim.apply_trade_to_open_orders(trade)
             if txn:
                 transactions.append(txn)
                 trade.TRANSACTION = txn
             else:
                 trade.TRANSACTION = None
-
+            
             tracker.process_event(trade)
-
+        
         if complete_fill:
             self.assertEqual(len(transactions), len(order_list))
-
+        
         total_volume = 0
         for i in xrange(len(transactions)):
             txn = transactions[i]
@@ -492,13 +492,13 @@ class FinanceTestCase(TestCase):
             if complete_fill:
                 order = order_list[i]
                 self.assertEqual(order.amount, txn.amount)
-
+        
         self.assertEqual(total_volume, expected_txn_volume)
         self.assertEqual(len(transactions), expected_txn_count)
-
+        
         cumulative_pos = tracker.cumulative_performance.positions[sid]
         self.assertEqual(total_volume, cumulative_pos.amount)
-
+        
         # the open orders should now be empty
         oo = trade_sim.open_orders
         self.assertTrue(oo.has_key(sid))

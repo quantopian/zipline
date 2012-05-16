@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import zipline.protocol as zp
 
-from zipline.test.factory import get_next_trading_dt
+from zipline.utils.factory import get_next_trading_dt
 from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading

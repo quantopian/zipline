@@ -1,3 +1,6 @@
+from datetime import datetime
+import pytz
+
 from zipline.utils.protocol_utils import ndict
 
 def test_ndict():
@@ -51,3 +54,10 @@ def test_ndict():
     del nd['x']
     assert not nd.has_key('x')
     assert nd.get('x') is None
+    
+    
+    for n in xrange(1000):
+        dt = datetime.utcnow().replace(tzinfo=pytz.utc)
+        nd2 = ndict({"dt":dt, "otherdata":"ishere"*1000, "maybeanint":3})
+    
+    nd2.dt2 = dt

@@ -4,14 +4,15 @@ from unittest2 import TestCase, skip
 from nose.tools import timed
 from collections import defaultdict
 from datetime import datetime, timedelta
+import logging
 
 import numpy as np
 
 from zipline.optimize.factory import create_updown_trade_source
 import zipline.utils.factory as factory
-import zipline.util as qutil
+from zipline.utils.logger import configure_logging
 
-from zipline.simulator import AddressAllocator, Simulator
+from zipline.core.devsimulator import AddressAllocator, Simulator
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.lines import SimulatedTrading
@@ -21,6 +22,7 @@ DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
+LOGGER = logging.getLogger('ZiplineLogger')
 
 class TestUpDown(TestCase):
     """This unittest verifies that the BuySellAlgorithm in
@@ -31,12 +33,13 @@ class TestUpDown(TestCase):
     leased_sockets = defaultdict(list)
 
     def setUp(self):
-        qutil.configure_logging()
+        configure_logging()
         self.zipline_test_config = {
             'allocator':allocator,
             'sid':133
         }
 
+    @skip
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
@@ -105,7 +108,8 @@ class TestUpDown(TestCase):
         self.assertTrue(np.all(min_order_idx == min_price_idx),
             "Algorithm did not sell when price was going to increase."
         )
-
+    
+    @skip
     def test_concavity_of_returns(self):
         """verify concave relationship between of free parameter and
         returns in certain region around the max. Moreover,
