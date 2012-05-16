@@ -4,6 +4,7 @@ Provides data handlers that can push messages to a zipline.core.DataFeed
 import datetime
 import random
 import pytz
+from mock import Mock
 
 from zipline.components import DataSource
 from zipline.utils import ndict
@@ -91,8 +92,20 @@ class SpecificEquityTrades(TradeDataSource):
         self.event_list = event_list
         self.count = 0
 
+        # TODO temporary hack
+        self.control_out = Mock()
+
     def get_type(self):
         zp.COMPONENT_TYPE.SOURCE
+
+    @property
+    def get_id(self):
+        """
+        The descriptive name of the component.
+        """
+        # Prevents the bug that Thomas ran into
+        return "Unique ID"
+
 
     def do_work(self):
         if(len(self.event_list) == 0):
