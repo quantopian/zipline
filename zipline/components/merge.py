@@ -50,6 +50,17 @@ class Merge(Aggregate):
     # Data Flow
     # ---------
 
+    def append(self, event):
+        """
+        :param event: a ndict with one entry. key is the name of the
+        transform, value is the transformed value.
+        Add an event to the buffer for the source specified by
+        source_id.
+        """
+
+        self.data_buffer[event.keys()[0]].append(event)
+        self.received_count += 1
+
     def next(self):
         """Get the next merged message from the feed buffer."""
         if not (self.is_full() or self.draining):
@@ -67,14 +78,3 @@ class Merge(Aggregate):
                 cur = events.pop(0)
                 result.merge(cur)
         return result
-
-    def append(self, event):
-        """
-        :param event: a ndict with one entry. key is the name of the
-        transform, value is the transformed value.
-        Add an event to the buffer for the source specified by
-        source_id.
-        """
-
-        self.data_buffer[event.keys()[0]].append(event)
-        self.received_count += 1

@@ -3,7 +3,7 @@ from zipline.transforms.base import BaseTransform
 
 class ReturnsTransform(BaseTransform):
 
-    def init(self):
+    def init(self, name):
         self.by_sid = defaultdict(self._create)
 
     def transform(self, event):

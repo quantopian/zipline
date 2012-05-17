@@ -5,7 +5,7 @@ from zipline.transforms.base import BaseTransform
 
 class MovingAverageTransform(BaseTransform):
 
-    def init(self, daycount=3):
+    def init(self, name, daycount=3):
         self.daycount = daycount
         self.by_sid = defaultdict(self._create)
 

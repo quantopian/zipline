@@ -6,7 +6,7 @@ from zipline.finance.movingaverage import EventWindow
 
 class VWAPTransform(BaseTransform):
 
-    def init(self, daycount=3):
+    def init(self, name, daycount=3):
         self.daycount = daycount
         self.by_sid = defaultdict(self.create_vwap)
 
@@ -19,12 +19,12 @@ class VWAPTransform(BaseTransform):
     def create_vwap(self):
         return DailyVWAP(self.daycount)
 
-class DailyVWAP:
+class DailyVWAP(object):
     """
     A class that tracks the volume weighted average price based on tick
     updates.
     """
-    def __init__(self, daycount):
+    def init(self, name, daycount=3):
         self.window = EventWindow(daycount)
         self.flux = 0.0
         self.volume = 0
