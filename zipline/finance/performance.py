@@ -130,7 +130,7 @@ class PerformanceTracker():
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
     to the client. Visually:
-    
+
         +--------------------+   Result Stream   +--------+
         | PerformanceTracker | ----------------> | Deluge |
         +--------------------+                   +--------+
@@ -138,8 +138,8 @@ class PerformanceTracker():
     """
 
     def __init__(self, trading_environment):
-        
-        
+
+
         self.trading_environment     = trading_environment
         self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
         self.calendar_day            = datetime.timedelta(hours = 24)
@@ -152,7 +152,7 @@ class PerformanceTracker():
         self.progress                = 0.0
         self.total_days              = self.trading_environment.days_in_period
         # one indexed so that we reach 100%
-        self.day_count               = 0.0 
+        self.day_count               = 0.0
         self.capital_base            = self.trading_environment.capital_base
         self.returns                 = []
         self.txn_count               = 0
@@ -174,7 +174,7 @@ class PerformanceTracker():
             self.period_start,
             self.period_end
         )
-        
+
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
             # initial positions are empty
@@ -220,17 +220,17 @@ class PerformanceTracker():
             'capital_base'            : self.capital_base,
             'cumulative_perf'         : self.cumulative_performance.to_dict(),
             'daily_perf'              : self.todays_performance.to_dict(),
-            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()  
+            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()
         }
-    
+
     def log_order(self, order):
         self.order_log.append(order)
-            
+
     def process_event(self, event):
-        
+
         if self.exceeded_max_loss:
             return
-            
+
         assert isinstance(event, zp.ndict)
         self.event_count += 1
 
@@ -241,7 +241,7 @@ class PerformanceTracker():
             self.txn_count += 1
             self.cumulative_performance.execute_transaction(event.TRANSACTION)
             self.todays_performance.execute_transaction(event.TRANSACTION)
-            
+
         #update last sale
         self.cumulative_performance.update_last_sale(event)
         self.todays_performance.update_last_sale(event)
@@ -251,7 +251,7 @@ class PerformanceTracker():
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
-        
+
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -267,17 +267,17 @@ class PerformanceTracker():
             returns=self.returns,
             trading_environment=self.trading_environment
         )
-        
+
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         # calculate progress of test
         self.progress = self.day_count / self.total_days
-                
+
         # Output results
         if self.result_stream:
             msg = zp.PERF_FRAME(self.to_dict())
             self.result_stream.send(msg)
-        
+
         #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
@@ -285,13 +285,13 @@ class PerformanceTracker():
             if returns < max_dd:
                 LOGGER.info(str(returns) + " broke through " + str(max_dd))
                 LOGGER.info("Exceeded max drawdown.")
-                # mark the perf period with max loss flag, 
+                # mark the perf period with max loss flag,
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
                 self.exceeded_max_loss = True
                 return
-            
-            
+
+
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
 
@@ -301,7 +301,7 @@ class PerformanceTracker():
             self.market_open = self.market_open + self.calendar_day
 
         self.market_close = self.market_open + self.trading_day
-        
+
         # Roll over positions to current day.
         self.todays_performance = PerformancePeriod(
             self.todays_performance.positions,
@@ -317,27 +317,27 @@ class PerformanceTracker():
         When the simulation is complete, run the full period risk report
         and send it out on the result_stream.
         """
-        
+
         log_msg = "Simulated {n} trading days out of {m}."
         LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
         LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
-        
+
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
         # In the case of max drawdown, we needn't close again.
         if not self.exceeded_max_loss:
             self.handle_market_close()
-        
+
         self.risk_report = risk.RiskReport(
             self.returns,
             self.trading_environment,
             exceeded_max_loss = self.exceeded_max_loss
         )
-        
+
         if self.result_stream:
             LOGGER.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
-            
+
             msg = zp.RISK_FRAME(risk_dict)
             self.result_stream.send(msg)
             # this signals that the simulation is complete.
@@ -399,17 +399,17 @@ class Position():
 class PerformancePeriod():
 
     def __init__(
-        self, 
-        initial_positions, 
-        starting_value, 
+        self,
+        initial_positions,
+        starting_value,
         starting_cash,
         period_open=None,
-        period_close=None, 
+        period_close=None,
         keep_transactions=False):
-        
+
         self.period_open = period_open
         self.period_close = period_close
-        
+
         self.ending_value            = 0.0
         self.period_capital_used     = 0.0
         self.pnl                     = 0.0
@@ -424,7 +424,7 @@ class PerformancePeriod():
         self.cumulative_capital_used = 0.0
         self.max_capital_used        = 0.0
         self.max_leverage            = 0.0
-        
+
         self.calculate_performance()
 
     def calculate_performance(self):
@@ -441,39 +441,39 @@ class PerformancePeriod():
             self.returns = 0.0
 
     def execute_transaction(self, txn):
-        
+
         # Update Position
         # ----------------
         if(not self.positions.has_key(txn.sid)):
             self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
-        
+
 
         # Max Leverage
         # ---------------
         # Calculate the maximum capital used and maximum leverage
-        
+
         transaction_cost = txn.price * txn.amount
         self.cumulative_capital_used += transaction_cost
 
         if math.fabs(self.cumulative_capital_used) > self.max_capital_used:
             self.max_capital_used = math.fabs(self.cumulative_capital_used)
-            
+
             # We want to conveye a level, rather than a precise figure.
             # round to the nearest 5,000 to keep the number easy on the eyes
             self.max_capital_used = self.round_to_nearest(
                 self.max_capital_used,
                 base=5000
             )
-            
+
             # we're adding a 10% cushion to the capital used.
             self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
-            
-        # add transaction to the list of processed transactions 
+
+        # add transaction to the list of processed transactions
         if self.keep_transactions:
             self.processed_transactions.append(txn)
-        
+
     def round_to_nearest(self, x, base=5):
         return int(base * round(float(x)/base))
 
@@ -491,7 +491,7 @@ class PerformancePeriod():
 
     def to_dict(self):
         """
-        Creates a dictionary representing the state of this performance 
+        Creates a dictionary representing the state of this performance
         period. See header comments for a detailed description.
         """
         positions = self.get_positions_list()
@@ -514,24 +514,24 @@ class PerformancePeriod():
             'period_open'               : self.period_open,
             'period_close'              : self.period_close
         }
-        
+
         # we want the key to be absent, not just empty
         if not self.keep_transactions:
-            del(rval['transactions'])
-        
+            del rval['transactions']
+
         return rval
-        
+
     def to_ndict(self):
         """
         Creates a ndict representing the state of this perfomance period.
         Properties are the same as the results of to_dict. See header comments
-        for a detailed description.    
-        
+        for a detailed description.
+
         """
         positions = self.get_positions(ndicted=True)
-        
+
         positions = zp.ndict(positions)
-        
+
         return zp.ndict({
             'ending_value'              : self.ending_value,
             'capital_used'              : self.period_capital_used,
@@ -540,11 +540,11 @@ class PerformancePeriod():
             'ending_cash'               : self.ending_cash,
             'cumulative_capital_used'   : self.cumulative_capital_used,
             'max_capital_used'          : self.max_capital_used,
-            'max_leverage'              : self.max_leverage,    
+            'max_leverage'              : self.max_leverage,
             'positions'                 : positions,
             'transactions'              : self.processed_transactions
         })
-        
+
     def get_positions(self, ndicted=False):
         positions = {}
         for sid, pos in self.positions.iteritems():
@@ -553,9 +553,9 @@ class PerformancePeriod():
                 positions[sid] = zp.ndict(cur)
             else:
                 positions[sid] = cur
-        
+
         return positions
-        
+
     #
     def get_positions_list(self):
         positions = []
@@ -563,7 +563,3 @@ class PerformancePeriod():
             cur = pos.to_dict()
             positions.append(cur)
         return positions
-        
-        
-            
-

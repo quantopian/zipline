@@ -5,17 +5,24 @@ Factory functions to prepare useful data for tests.
 import pytz
 import msgpack
 import random
-from os.path import join
+from os.path import join, abspath, dirname
 from operator import attrgetter
 
 from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 import zipline.protocol as zp
+
 from zipline.finance.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
 
+# TODO
+def data_path():
+    from zipline import data
+    data_path = dirname(abspath(data.__file__))
+    return data_path
+
 def load_market_data():
-    fp_bm = open("./tests/benchmark.msgpack", "rb")
+    fp_bm = open(join(data_path(), "benchmark.msgpack"), "rb")
     bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
     for packed_date, returns in bm_list:
@@ -31,7 +38,7 @@ def load_market_data():
         bm_returns.append(daily_return)
 
     bm_returns = sorted(bm_returns, key=attrgetter('date'))
-    fp_tr = open(".//tests/treasury_curves.msgpack", "rb")
+    fp_tr = open(join(data_path(), "treasury_curves.msgpack"), "rb")
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for packed_date, curve in tr_list:

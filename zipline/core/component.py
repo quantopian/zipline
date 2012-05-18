@@ -24,7 +24,11 @@ from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
+from zipline.exceptions import ComponentNoInit
+from zipline.transitions import WorkflowMeta
+
 class Component(object):
+
     """
     Base class for components. Defines the the base messaging
     interface for components.
@@ -64,7 +68,14 @@ class Component(object):
 
     """
 
-    def __init__(self):
+    # ------------
+    # Construction
+    # ------------
+
+    abstract = True
+    #__metaclass__ = WorkflowMeta
+
+    def __init__(self, *args, **kwargs):
         self.zmq               = None
         self.context           = None
         self.addresses         = None
@@ -85,19 +96,21 @@ class Component(object):
         self.note              = None
         self.confirmed         = False
 
-        # Humanhashes make this way easier to debug because they
-        # stick in your mind unlike a 32 byte string of random hex.
+        # Humanhashes make this way easier to debug because they stick
+        # in your mind unlike a 32 byte string of random hex.
         self.guid = uuid.uuid4()
         self.huid = humanhash.humanize(self.guid.hex)
 
-        self.init()
+        # This is where component specific constructors should be
+        # defined. Arguments passed to init are threaded through.
+        self.init(*args, **kwargs)
 
     def init(self):
         """
-        Subclasses should override this to extend the setup for
-        the class. Shouldn't have side effects.
+        Subclasses should override this to extend the setup for the
+        class. Shouldn't have side effects.
         """
-        pass
+        raise ComponentNoInit(self.__class__)
 
 
     # ------------
@@ -112,15 +125,16 @@ class Component(object):
 
     def ready(self):
         """
-        Return ``True`` if and only if the component has finished execution.
+        Return ``True`` if and only if the component has finished
+        execution.
         """
         return self.state_flag in [COMPONENT_STATE.DONE, \
             COMPONENT_STATE.EXCEPTION]
 
     def successful(self):
         """
-        Return ``True`` if and only if the component has finished execution
-        successfully, that is, without raising an error.
+        Return ``True`` if and only if the component has finished
+        execution successfully, that is, without raising an error.
         """
         return self.state_flag == COMPONENT_STATE.DONE and not \
             self.exception
@@ -128,8 +142,8 @@ class Component(object):
     @property
     def exception(self):
         """
-        Holds the exception that the component failed on, or
-        ``None`` if the component has not failed.
+        Holds the exception that the component failed on, or ``None`` if
+        the component has not failed.
         """
         return self._exception
 
@@ -193,9 +207,9 @@ class Component(object):
         """
         Run the component.
 
-        Optionally takes an argument to catch and log all exceptions raised
-        during execution ues this with care since it makes it very hard to
-        debug since it mucks up your stacktraces.
+        Optionally takes an argument to catch and log all exceptions
+        raised during execution ues this with care since it makes it
+        very hard to debug since it mucks up your stacktraces.
         """
 
         if catch_exceptions:
@@ -251,8 +265,8 @@ class Component(object):
 
     def teardown_sockets(self):
         """
-        Close all zmq sockets safely. This is universal, no matter
-        where this is running it will need the sockets closed.
+        Close all zmq sockets safely. This is universal, no matter where
+        this is running it will need the sockets closed.
         """
         #close all the sockets
         for sock in self.sockets:
@@ -271,8 +285,8 @@ class Component(object):
         """
         Unclean shutdown.
 
-        Tear down ( fast ) as a mode of failure in the
-        simulation or on service halt.
+        Tear down ( fast ) as a mode of failure in the simulation or on
+        service halt.
 
         Context specific.
         """
@@ -286,8 +300,8 @@ class Component(object):
         """
         This is *very* important error tracking handler.
 
-        Will inform the system that the component has failed and
-        how it has failed.
+        Will inform the system that the component has failed and how it
+        has failed.
         """
 
         if scope == 'algo':
@@ -429,9 +443,9 @@ class Component(object):
 
     def setup_control(self):
         """
-        Set up the control socket. Used to monitor the
-        overall status of the simulation and to forcefully tear
-        down the simulation in case of a failure.
+        Set up the control socket. Used to monitor the overall status
+        of the simulation and to forcefully tear down the simulation in
+        case of a failure.
         """
 
         # Allow for the possibility of not having a controller,
@@ -508,20 +522,12 @@ class Component(object):
     @property
     def get_pure(self):
         """
-        Describes whehter this component purely functional,
-        i.e.  for a given set of inputs is it guaranteed to
-        always give the same output . Components that are
-        side-effectful are, generally, not pure.
+        Describes whehter this component purely functional, i.e. for a
+        given set of inputs is it guaranteed to always give the same
+        output . Components that are side-effectful are, generally, not
+        pure.
         """
         return False
-
-    def note(self):
-        """
-        Information about the component. Mostly used for testing.
-        """
-
-    def get_note(self):
-        return self.note or ''
 
     def debug(self):
         """
@@ -545,14 +551,14 @@ class Component(object):
 
     def __repr__(self):
         """
-        Return a usefull string representation of the component
-        to indicate its type, unique identifier, and computational
-        context identifier name.
+        Return a usefull string representation of the component to
+        indicate its type, unique identifier, and computational context
+        identifier name.
         """
 
         return "<{name} {uuid} at {host} {pid} {pointer}>".format(
             name    = self.get_id          ,
-            uuid    = self.huid            ,
+            uuid    = self.guid            ,
             host    = socket.gethostname() ,
             pid     = os.getpid()          ,
             pointer = hex(id(self))        ,

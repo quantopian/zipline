@@ -120,7 +120,7 @@ import datetime
 import pytz
 from collections import namedtuple
 
-from utils.protocol_utils import Enum, FrameExceptionFactory, ndict
+from utils.protocol_utils import Enum, FrameExceptionFactory, ndict, namelookup
 from utils.date_utils import EPOCH, UN_EPOCH
 
 # -----------------------
@@ -217,39 +217,39 @@ def DATASOURCE_FRAME(event):
     """
     Wraps any datasource payload with id and type, so that unpacking may choose
     the write UNFRAME for the payload.
-    
+
     :param event: ndict with following properties
 
     - *ds_id* an identifier that is unique to the datasource in the context of a component host (e.g. Simulator)
     - *ds_type* a string denoting the datasource type. Must be on of:
-    
+
         - TRADE
         - (others to follow soon)
-    
+
     - *payload* a msgpack string carrying the payload for the frame
     """
 
     assert isinstance(event.source_id, basestring)
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
-    
+
     #datasources will send sometimes send empty msgs to feel gaps
     if len(event.keys()) == 2:
         return msgpack.dumps(tuple([
-            event.type, 
-            event.source_id, 
+            event.type,
+            event.source_id,
             DATASOURCE_TYPE.EMPTY
         ]))
 
     if(event.type == DATASOURCE_TYPE.TRADE):
         return msgpack.dumps(tuple([
-            event.type, 
-            event.source_id, 
+            event.type,
+            event.source_id,
             TRADE_FRAME(event)
         ]))
     elif(event.type == DATASOURCE_TYPE.ORDER):
         return msgpack.dumps(tuple([
-            event.type, 
-            event.source_id, 
+            event.type,
+            event.source_id,
             ORDER_SOURCE_FRAME(event)
         ]))
     else:
@@ -376,7 +376,7 @@ INVALID_MERGE_FRAME = FrameExceptionFactory('MERGE')
 def MERGE_FRAME(event):
     """
     :param event: a nameddict with at least:
-    
+
         - source_id
         - type
     """
@@ -416,7 +416,7 @@ INVALID_ORDER_FRAME = FrameExceptionFactory('ORDER')
 INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 
 # -----------------------
-# Trades 
+# Trades
 # -----------------------
 #
 # - Should only be called from inside DATASOURCE_ (UN)FRAME.
@@ -424,7 +424,7 @@ INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 def TRADE_FRAME(event):
     """
     :param event: should be a ndict with:
-            
+
     - ds_id     -- the datasource id sending this trade out
     - sid       -- the security id
     - price     -- float of the price printed for the trade
@@ -469,7 +469,7 @@ def TRADE_UNFRAME(msg):
         raise INVALID_TRADE_FRAME(msg)
 
 # -----------------------
-# Orders 
+# Orders
 # -----------------------
 # - from client to order source
 
@@ -478,7 +478,7 @@ def ORDER_FRAME(order):
     assert isinstance(order.amount, int) #no partial shares...
     PACK_DATE(order)
     return msgpack.dumps(tuple([
-        order.sid, 
+        order.sid,
         order.amount,
         order.dt
     ]))
@@ -503,9 +503,9 @@ def ORDER_UNFRAME(msg):
 
 
 # -----------------------
-# TRANSACTIONS 
+# TRANSACTIONS
 # -----------------------
-# 
+#
 # - Should only be called from inside TRANSFORM_(UN)FRAME.
 
 
@@ -550,7 +550,7 @@ def TRANSACTION_UNFRAME(msg):
 
 
 # -----------------------
-# ORDERS 
+# ORDERS
 # -----------------------
 #
 # - from order source to feed
@@ -592,7 +592,7 @@ def ORDER_SOURCE_UNFRAME(msg):
         raise INVALID_ORDER_FRAME(msg)
     except ValueError:
         raise INVALID_ORDER_FRAME(msg)
-        
+
 # -----------------------
 # Performance and Risk
 # -----------------------
@@ -607,21 +607,21 @@ def PERF_FRAME(perf):
     :param perf: the dictionary created by zipline.trade_client.perf
     :rvalue: a msgpack string
     """
-    
+
     #TODO: add asserts...
-   
+
     assert isinstance(perf['started_at'], datetime.datetime)
     assert isinstance(perf['period_start'], datetime.datetime)
     assert isinstance(perf['period_end'], datetime.datetime)
-    
+
     assert isinstance(perf['daily_perf'], dict)
     assert isinstance(perf['cumulative_perf'], dict)
-    
+
     tp   = perf['daily_perf']
     cp   = perf['cumulative_perf']
-    
+
     assert isinstance(tp['transactions'], list)
-    # we never want to send transactions for the cumulative period. 
+    # we never want to send transactions for the cumulative period.
     # performance.py should never send them, but just to be safe:
     assert not cp.has_key('transactions')
     assert isinstance(tp['positions'], list)
@@ -630,7 +630,7 @@ def PERF_FRAME(perf):
     assert isinstance(tp['period_open'], datetime.datetime)
     assert isinstance(cp['period_close'], datetime.datetime)
     assert isinstance(cp['period_open'], datetime.datetime)
-   
+
     perf['started_at']   = EPOCH(perf['started_at'])
     perf['period_start'] = EPOCH(perf['period_start'])
     perf['period_end']   = EPOCH(perf['period_end'])
@@ -638,11 +638,11 @@ def PERF_FRAME(perf):
     tp['period_open']    = EPOCH(tp['period_open'])
     cp['period_close']   = EPOCH(cp['period_close'])
     cp['period_open']    = EPOCH(cp['period_open'])
-    
+
     tp['transactions']   = convert_transactions(tp['transactions'])
 
     return BT_UPDATE_FRAME('PERF', perf)
-    
+
 def convert_transactions(transactions):
     results = []
     for txn in transactions:
@@ -651,18 +651,18 @@ def convert_transactions(transactions):
         del(txn['source_id'])
         results.append(txn)
     return results
-    
+
 def RISK_FRAME(risk):
     return BT_UPDATE_FRAME('RISK', risk)
-    
+
 def BT_UPDATE_FRAME(prefix, payload):
     """
-    Frames prepared by RISK_FRAME and PERF_FRAME methods are sent via the same 
+    Frames prepared by RISK_FRAME and PERF_FRAME methods are sent via the same
     socket. This method provides a prefix to allow for muxing the messages
     onto a single socket.
     """
     return msgpack.dumps(tuple([prefix, payload]))
-    
+
 def BT_UPDATE_UNFRAME(msg):
     """
     Risk and Perf framing methods prefix the payload with
@@ -675,23 +675,23 @@ def BT_UPDATE_UNFRAME(msg):
 # -----------------------
 # Date Helpers
 # -----------------------
-    
+
 def PACK_DATE(event):
     """
     Packs the datetime property of event into msgpack'able longs.
-    This function should be called purely for its side effects. 
+    This function should be called purely for its side effects.
     The event's 'dt' property is replaced by a tuple of integers
-        
+
         - year, month, day, hour, minute, second, microsecond
-    
-    PACK_DATE and UNPACK_DATE are inverse operations. 
-    
+
+    PACK_DATE and UNPACK_DATE are inverse operations.
+
     :param event: event must a ndict with a property named 'dt' that is a datetime.
     :rtype: None
     """
     assert isinstance(event.dt, datetime.datetime)
     # utc only please
-    assert event.dt.tzinfo == pytz.utc 
+    assert event.dt.tzinfo == pytz.utc
     event['dt'] = date_to_tuple(event['dt'])
 
 def date_to_tuple(dt):
@@ -702,18 +702,18 @@ def date_to_tuple(dt):
 def UNPACK_DATE(event):
     """
     Unpacks the datetime property of event from msgpack'able longs.
-    This function should be called purely for its side effects. 
-    The event's 'dt' property is converted to a datetime by reading and then 
+    This function should be called purely for its side effects.
+    The event's 'dt' property is converted to a datetime by reading and then
     combining a tuple of integers.
-    
-    UNPACK_DATE and PACK_DATE are inverse operations. 
-    
+
+    UNPACK_DATE and PACK_DATE are inverse operations.
+
     :param tuple event: event must a ndict with:
-            
+
     - a property named 'dt_tuple' that is a tuple of integers \
-    representing the date and time in UTC. 
+    representing the date and time in UTC.
     - dt_tuple must have year, month, day, hour, minute, second, and microsecond
-    
+
     :rtype: None
     """
     assert isinstance(event.dt, tuple)
@@ -721,13 +721,13 @@ def UNPACK_DATE(event):
     for item in event.dt:
         assert isinstance(item, numbers.Integral)
     event.dt = tuple_to_date(event.dt)
-    
+
 def tuple_to_date(date_tuple):
     year, month, day, hour, minute, second, micros = date_tuple
     dt = datetime.datetime(year, month, day, hour, minute, second)
     dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     return dt
-    
+
 DATASOURCE_TYPE = Enum(
     'ORDER',
     'TRADE',
@@ -748,7 +748,7 @@ TRANSFORM_TYPE = ndict({
 })
 
 
-FINANCE_COMPONENT = ndict({
+FINANCE_COMPONENT = namelookup({
     'TRADING_CLIENT'   : 'TRADING_CLIENT',
     'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
     'ORDER_SOURCE'     : 'ORDER_SOURCE',
@@ -756,3 +756,11 @@ FINANCE_COMPONENT = ndict({
 })
 
 
+# the simulation style enumerates the available transaction simulation
+# strategies.
+SIMULATION_STYLE  = Enum(
+    'PARTIAL_VOLUME',
+    'BUY_ALL',
+    'FIXED_SLIPPAGE',
+    'NOOP'
+)
