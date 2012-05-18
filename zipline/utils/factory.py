@@ -11,8 +11,13 @@ from operator import attrgetter
 from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 import zipline.protocol as zp
+
 from zipline.finance.sources import SpecificEquityTrades, RandomEquityTrades
 from zipline.finance.trading import TradingEnvironment
+
+# TODO
+def data_locator():
+    pass
 
 def load_market_data():
     fp_bm = open("./tests/benchmark.msgpack", "rb")

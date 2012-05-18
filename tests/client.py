@@ -9,10 +9,6 @@ LOGGER = logging.getLogger('ZiplineLogger')
 
 class TestClient(Component):
 
-    def __init__(self):
-        Component.__init__(self)
-        self.init()
-
     def init(self):
         self.received_count     = 0
         self.prev_dt            = None
@@ -48,10 +44,10 @@ class TestClient(Component):
     def do_work(self):
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
-        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
+        if socks.get(self.control_in) == self.zmq.POLLIN:
             msg = self.control_in.recv()
 
-        if self.data_feed in socks and socks[self.data_feed] == self.zmq.POLLIN:
+        if socks.get(self.data_feed) == self.zmq.POLLIN:
             msg = self.data_feed.recv()
             #logger.info('msg:' + str(msg))
 

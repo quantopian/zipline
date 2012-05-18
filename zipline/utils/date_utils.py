@@ -24,38 +24,38 @@ def parse_iso8061(date_string):
 UNIX_EPOCH = datetime(1970, 1, 1, 0, 0, tzinfo = pytz.utc)
 def EPOCH(utc_datetime):
     """
-    The key is to ensure all the dates you are using are in the utc timezone 
-    before you start converting. See http://pytz.sourceforge.net/ to learn how 
-    to do that properly. By normalizing to utc, you eliminate the ambiguity of 
-    daylight savings transitions. Then you can safely use timedelta to calculate 
+    The key is to ensure all the dates you are using are in the utc timezone
+    before you start converting. See http://pytz.sourceforge.net/ to learn how
+    to do that properly. By normalizing to utc, you eliminate the ambiguity of
+    daylight savings transitions. Then you can safely use timedelta to calculate
     distance from the unix epoch, and then convert to seconds or milliseconds.
-    
-    Note that the resulting unix timestamp is itself in the UTC timezone. If you 
-    wish to see the timestamp in a localized timezone, you will need to make 
+
+    Note that the resulting unix timestamp is itself in the UTC timezone. If you
+    wish to see the timestamp in a localized timezone, you will need to make
     another conversion.
-    
+
     Also note that this will only work for dates after 1970.
     """
     assert isinstance(utc_datetime, datetime)
     # utc only please
     assert utc_datetime.tzinfo == pytz.utc
-    
+
     # how long since the epoch?
     delta = utc_datetime - UNIX_EPOCH
     seconds = delta.total_seconds()
     ms = seconds * 1000
     return ms
-    
+
 def UN_EPOCH(ms_since_epoch):
     seconds_since_epoch = ms_since_epoch / 1000
     delta = timedelta(seconds = seconds_since_epoch)
     dt = UNIX_EPOCH + delta
     return dt
-    
+
 def iso8061_to_epoch(datestring):
     dt = parse_iso8061(datestring)
     return EPOCH(dt)
-    
+
 def epoch_now():
     dt = datetime.utcnow().replace(tzinfo=pytz.utc)
     return EPOCH(dt)
@@ -72,7 +72,7 @@ class utcdatetime(datetime):
         return dt
 
 
-    
+
 # Datetime Calculations
 # ---------------------
 

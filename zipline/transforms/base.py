@@ -21,15 +21,6 @@ class BaseTransform(Component):
     method to create a new derived value from the combined feed.
     """
 
-    def __init__(self, name, **kwargs):
-        Component.__init__(self)
-
-        self.state = {
-            'name': name
-        }
-
-        self.init(**kwargs)
-
     def init(self):
         pass
 
@@ -124,10 +115,10 @@ class BaseTransform(Component):
 
             {name:"name of new transform", value: "value of new field"}
 
-        Transforms run in parallel and results are merged into a single map, so
-        transform names must be unique.  Best practice is to use the self.state
-        object initialized from the transform configuration, and only set the
-        transformed value::
+        Transforms run in parallel and results are merged into a
+        single map, so transform names must be unique. Best practice
+        is to use the self.state object initialized from the transform
+        configuration, and only set the transformed value::
 
             self.state['value'] = transformed_value
         """

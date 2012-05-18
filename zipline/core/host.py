@@ -12,23 +12,19 @@ LOGGER = logging.getLogger('ZiplineLogger')
 
 class ComponentHost(Component):
     """
-    Components that can launch multiple sub-components, synchronize their
-    start, and then wait for all components to be finished.
+    Components that can launch multiple sub-components, synchronize
+    their start, and then wait for all components to be finished.
     """
 
-    def __init__(self, addresses):
-        Component.__init__(self)
+    def init(self, addresses):
+        assert hasattr(self, 'zmq_flavor'), \
+        """ You must specify a flavor of ZeroMQ for all ComponentHost
+        subclasses. """
+
         self.addresses     = addresses
         self.running       = False
 
-        self.init()
-
-    def init(self):
-        assert hasattr(self, 'zmq_flavor'), """
-        You must specify a flavor of ZeroMQ for all
-        ComponentHost subclasses. """
-
-        # Component Registry, keyed by get_id
+        # Component Registry, keyed by unique string
         # ----------------------
         self.components     = {}
         # ----------------------
@@ -81,7 +77,7 @@ class ComponentHost(Component):
             self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
             if isinstance(component, DataSource):
-                self.feed.add_source(component.get_id)
+                self.feed.add_source(component.source_id)
             if isinstance(component, BaseTransform):
                 self.merge.add_source(component.get_id)
 
@@ -104,7 +100,7 @@ class ComponentHost(Component):
         self.sockets.append(self.sync_socket)
 
     def open(self):
-        for component in self.components.values():
+        for component in self.components.itervalues():
             self.launch_component(component)
         self.launch_controller()
 
@@ -112,8 +108,6 @@ class ComponentHost(Component):
         """
         DEPRECATED, left in for compatability for now.
         """
-
-        cur_time = datetime.datetime.utcnow()
 
         if len(self.components) == 0:
             LOGGER.info("Component register is empty.")
@@ -126,9 +120,9 @@ class ComponentHost(Component):
         while self.is_running():
             # wait for synchronization request at start, and DONE at end.
             # don't timeout.
-            socks = dict(self.sync_poller.poll()) 
+            socks = dict(self.sync_poller.poll())
 
-            if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
+            if socks.get(self.sync_socket) == self.zmq.POLLIN:
                 msg = self.sync_socket.recv()
 
                 try:
@@ -160,5 +154,3 @@ class ComponentHost(Component):
 
     def teardown_component(self, component):
         raise NotImplementedError
-
-
