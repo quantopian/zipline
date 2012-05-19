@@ -17,7 +17,7 @@ class DataSource(Component):
     converting to a dict, and calling send(map).
 
     Every datasource has a dict property to hold filters::
-        - key -- name of the filter, e.g. SID
+        - key -- name of the filter, e.g. sid
         - value -- a primitive representing the filter. e.g. a list of ints.
 
     Modify the datasource's filters via the set_filter(name, value)

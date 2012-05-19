@@ -20,7 +20,7 @@ The algorithm must expose methods:
   of the current state of the simulation universe. An example data ndict::
   
     +-----------------+--------------+----------------+--------------------+
-    |                 | SID(133)     |  SID(134)      | SID(135)           |
+    |                 | sid(133)     |  sid(134)      | sid(135)           |
     +=================+==============+================+====================+
     | price           | $10.10       | $22.50         | $13.37             |
     +-----------------+--------------+----------------+--------------------+
@@ -33,16 +33,16 @@ The algorithm must expose methods:
             
   - set_order: method that accepts a callable. Will be set as the value of the 
     order method of trading_client. An algorithm can then place orders with a 
-    valid SID and a number of shares::
+    valid sid and a number of shares::
     
-        self.order(SID(133), share_count)
+        self.order(sid(133), share_count)
         
   - set_performance: property which can be set equal to the 
     cumulative_trading_performance property of the trading_client. An 
     algorithm can then check position information with the
     Portfolio object::
     
-        self.Portfolio[SID(133)]['cost_basis']
+        self.Portfolio[sid(133)]['cost_basis']
 
 """
 
