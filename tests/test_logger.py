@@ -16,9 +16,10 @@ class LoggerTestCase(TestCase):
         test_msg = uuid.uuid1().hex
         self.LOG.info(test_msg)
         logfile = open('/var/log/zipline/zipline.log','r')
-        last_line = tail(logfile)
-        logged_msg = last_line.split(" - ")[1]
-        self.assertEqual(test_msg, logged_msg)
+        with logfile:
+            last_line = tail(logfile)
+            logged_msg = last_line.split(" - ")[1]
+            self.assertEqual(test_msg, logged_msg)
 
 def tail( f, window=20 ):
     """
