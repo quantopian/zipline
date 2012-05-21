@@ -106,7 +106,7 @@ class FinanceTestCase(TestCase):
     # non blocking. HUNCH: The trades are streaming through before the orders
     # are placed.
 
-    @timed(DEFAULT_TIMEOUT)
+    @timed(EXTENDED_TIMEOUT)
     def test_orders(self):
 
         # Simulation
@@ -182,7 +182,7 @@ class FinanceTestCase(TestCase):
 
 
 
-    @timed(DEFAULT_TIMEOUT)
+    @timed(EXTENDED_TIMEOUT)
     def test_performance(self):
         #provide enough trades to ensure all orders are filled.
         self.zipline_test_config['order_count'] = 100

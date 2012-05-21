@@ -13,7 +13,6 @@ class LoggerTestCase(TestCase):
        self.LOG = logging.getLogger("ZiplineLogger")
 
     def test_log(self):
-        import nose.tools; nose.tools.set_trace()
         test_msg = uuid.uuid1().hex
         self.LOG.info(test_msg)
         logfile = open('/var/log/zipline/zipline.log','r')
