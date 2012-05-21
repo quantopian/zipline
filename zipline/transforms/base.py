@@ -20,7 +20,6 @@ class BaseTransform(Component):
     Parent class for feed transforms. Subclass and override transform
     method to create a new derived value from the combined feed.
     """
-
     def init(self):
         pass
 

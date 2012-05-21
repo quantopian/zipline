@@ -1,7 +1,5 @@
-from feed import Feed
 
 import zipline.protocol as zp
-from zipline.protocol import COMPONENT_TYPE
 from zipline.components.aggregator import Aggregate
 
 from collections import Counter

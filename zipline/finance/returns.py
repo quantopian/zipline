@@ -4,7 +4,14 @@ from zipline.transforms.base import BaseTransform
 class ReturnsTransform(BaseTransform):
 
     def init(self, name):
+        self.state = {}
+        self.state['name'] = name
         self.by_sid = defaultdict(self._create)
+
+    @property
+    def get_id(self):
+        return self.state['name']
+
 
     def transform(self, event):
         cur = self.by_sid[event.sid]
@@ -27,7 +34,6 @@ class ReturnsFromPriorClose(object):
         self.returns = 0.0
 
     def update(self, event):
-        next_close = None
         if self.last_close:
             change = event.price - self.last_close.price
             self.returns = change / self.last_close.price

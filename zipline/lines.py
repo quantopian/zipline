@@ -283,7 +283,7 @@ class SimulatedTrading(object):
         """
         assert isinstance(source, DataSource)
         self.check_started()
-        source.set_filter('SID', self.algorithm.get_sid_filter())
+        source.set_filter('sid', self.algorithm.get_sid_filter())
         self.sim.register_components([source])
 
         # ``id`` is name of source_id, ``get_id`` is the class name

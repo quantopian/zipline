@@ -224,11 +224,11 @@ class FinanceTestCase(TestCase):
             "Portfolio should have one position."
         )
 
-        SID = self.zipline_test_config['sid']
+        sid = self.zipline_test_config['sid']
         self.assertEqual(
-            zipline.get_positions()[SID]['sid'],
-            SID,
-            "Portfolio should have one position in " + str(SID)
+            zipline.get_positions()[sid]['sid'],
+            sid,
+            "Portfolio should have one position in " + str(sid)
         )
 
         self.assertEqual(

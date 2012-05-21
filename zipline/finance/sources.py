@@ -31,7 +31,7 @@ class TradeDataSource(DataSource):
 
     def send(self, event):
         """
-        Sends the event iff it matches the internal SID filter.
+        Sends the event iff it matches the internal sid filter.
         :param dict event: is a trade event with data as per
                            :py:func: `zipline.protocol.TRADE_FRAME`
         :rtype: None
@@ -39,7 +39,7 @@ class TradeDataSource(DataSource):
 
         event.source_id = self.source_id
 
-        if event.sid in self.filter['SID']:
+        if event.sid in self.filter['sid']:
             message = zp.DATASOURCE_FRAME(event)
         else:
             blank = ndict({

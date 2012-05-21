@@ -57,13 +57,13 @@ def iso8061_to_epoch(datestring):
     return EPOCH(dt)
 
 def epoch_now():
-    dt = datetime.utcnow().replace(tzinfo=pytz.utc)
+    dt = utcnow()
     return EPOCH(dt)
 
 # UTC Datetime Subclasses
 # -----------------------
 def utcnow():
-    return datetime.now(pytz.utc)
+    return datetime.utcnow().replace(tzinfo=pytz.utc)
 
 class utcdatetime(datetime):
     def __new__(cls, *args, **kwargs):

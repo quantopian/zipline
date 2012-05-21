@@ -5,9 +5,16 @@ from zipline.transforms.base import BaseTransform
 
 class MovingAverageTransform(BaseTransform):
 
-    def init(self, name, daycount=3):
-        self.daycount = daycount
+
+    def init(self, name, days=3):
+        self.state = {}
+        self.state['name'] = name
+        self.days = days
         self.by_sid = defaultdict(self._create)
+
+    @property
+    def get_id(self):
+        return self.state['name']
 
     def transform(self, event):
         cur = self.by_sid[event.sid]
@@ -16,12 +23,12 @@ class MovingAverageTransform(BaseTransform):
         return self.state
 
     def _create(self):
-        return MovingAverage(self.daycount)
+        return MovingAverage(self.days)
 
 class MovingAverage(object):
 
-    def init(self, daycount):
-        self.window = EventWindow(daycount)
+    def __init__(self, days):
+        self.window = EventWindow(days)
         self.total = 0.0
         self.average = 0.0
 
@@ -43,10 +50,10 @@ class EventWindow(object):
     Tracks a window of the event history. Use an instance to track the events
     inside your window to efficiently calculate rolling statistics.
     """
-    def init(self, daycount):
+    def __init__(self, days):
         self.ticks = []
         self.dropped_ticks = []
-        self.delta = timedelta(days=daycount)
+        self.delta = timedelta(days=days)
 
     def update(self, event):
         # add new event

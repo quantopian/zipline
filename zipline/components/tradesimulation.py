@@ -160,6 +160,9 @@ class TradeSimulationClient(Component):
 
     def get_data(self):
         for event in self.event_queue:
+            #alias the dt as datetime
+            event.datetime = event.dt
             self.event_data[event['sid']] = event
+
         self.event_queue = []
         return self.event_data
