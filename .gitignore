@@ -43,3 +43,6 @@ docs/_build/*
 
 # credentials and other uncheckinables
 host_settings.py
+
+# database of vbench
+benchmarks.db
