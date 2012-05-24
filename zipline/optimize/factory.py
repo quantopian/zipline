@@ -41,7 +41,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, start_pric
 
     trading_environment.period_end = cur
 
-    source = SpecificEquityTrades(sid, events)
+    source = SpecificEquityTrades("updown_" + str(sid), events)
 
     return source
 
