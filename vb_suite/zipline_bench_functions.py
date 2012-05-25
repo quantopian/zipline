@@ -34,3 +34,10 @@ def load_ndict():
 
     for i in xrange(1000000):
         nd[keyname % i]
+
+def mass_create_ndict():
+    from zipline import ndict
+    data = dict(('a %d' % a,a) for a in xrange(1000))
+
+    for i in xrange(10000):
+        ndict(data)
