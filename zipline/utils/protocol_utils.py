@@ -40,9 +40,11 @@ class ndict(MutableMapping):
     this time.
     """
 
+    cls = None
+
     def __init__(self, dct=None):
         self.__internal = dict()
-        self.cls = frozenset(dir(self))
+        self.cls = self.cls or frozenset(dir(self))
 
         if dct:
             self.__internal.update(dct)
@@ -51,7 +53,7 @@ class ndict(MutableMapping):
     # -----------------
 
     def __setattr__(self, key, value):
-        if '_ndict' in key or key == 'cls':
+        if '_ndict' in key or key == 'cls' or key == '__internal':
             self.__dict__[key] = value
         else:
             self.__internal[key] = value
@@ -84,7 +86,7 @@ class ndict(MutableMapping):
     def __len__(self):
         return len(self.__internal)
 
-    # Compatability with namedicts
+    # Compatability with ndicts
     # ----------------------------
 
     # for compat, not the Python way to do things though...
@@ -136,7 +138,7 @@ class ndict(MutableMapping):
         self.__internal.update(other_nd.__internal)
 
     def __repr__(self):
-        return "namedict: " + str(self.__internal)
+        return "ndict: " + str(self.__internal)
 
     # Faster dictionary comparison?
     #def __eq__(self, other):
