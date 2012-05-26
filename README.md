@@ -30,7 +30,7 @@ To run tests::
     $ nosetests
 
 To build documentation::
-    
+
     $ paver apidocs html
     # outputs to docs/_build/html
 

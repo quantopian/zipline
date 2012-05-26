@@ -193,9 +193,12 @@ class PerformanceTracker(object):
         return self.cumulative_performance.to_ndict()
 
     def open(self, context):
-        sock = context.socket(zmq.PUSH)
-        sock.connect(self.results_addr)
-        self.results_socket = sock
+        if self.results_addr:
+            sock = context.socket(zmq.PUSH)
+            sock.connect(self.results_addr)
+            self.results_socket = sock
+        else:
+            LOGGER.warn("Not streaming results because no results socket given")
 
     def publish_to(self, results_addr):
         """

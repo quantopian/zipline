@@ -1,22 +1,56 @@
-import os, sys
-import time
+import os
 import re
-import platform
+import sys
+import glob
+import time
+from distutils.dep_util import newer
 
+#from distutils.extension import Extension
+from setuptools.extension import Extension
+
+from paver.easy import options, Bunch, task, needs, path, info
+from paver.setuputils import install_distutils_tasks, \
+    find_packages, find_package_data
 from subprocess import call
+install_distutils_tasks()
 
-from paver.easy import *
-from paver.doctools import *
-from paver.setuputils import *
+# =========
+# Compilers
+# =========
 
-from paved import *
-from paved.util import *
-from paved.pycheck import *
+try:
+    from Cython.Compiler.Main import compile
+    from Cython.Distutils import build_ext
+    have_cython = True
+except ImportError:
+    have_cython = False
 
-#add setuputils tasks
-paver.setuputils.install_distutils_tasks()
+try:
+    import numpy as np
+    have_numpy = True
+except:
+    have_numpy = False
 
-operating_system = platform.system()
+# ===================
+# Release Information
+# ===================
+
+PACKAGE  = 'zipline'
+SRC_PATH = 'zipline'
+
+MAJOR = 0
+MINOR = 1
+MICRO = 0
+DEVELOPMENT = True
+
+if DEVELOPMENT:
+    VERSION = '%d.%d.%d dev' % (MAJOR, MINOR, MICRO)
+else:
+    VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+
+# The PyPi page
+DESCRIPTION = open('README.md').read()
+EMAIL='dev@quantopian.com'
 
 # ===========
 # Setuputils
@@ -35,49 +69,98 @@ def parse_requirements(file_name):
             requirements.append(line)
     return requirements
 
-version='dev'
-install_requires = parse_requirements('./etc/requirements.txt') + parse_requirements('./etc/requirements_sci.txt')
+example = Extension(
+    "zipline/example", ["zipline/example.pyx"],
+     include_dirs=[np.get_include()],
+)
+
+# ============
+# Dependencies
+# ============
+
+install_requires =  (
+    parse_requirements('./etc/requirements.txt') +
+    parse_requirements('./etc/requirements_sci.txt')
+)
 tests_require = install_requires + parse_requirements('./etc/requirements_dev.txt')
 
+# ========
+# seutp.py
+# ========
+
+if have_numpy and have_cython:
+    cext = [example]
+else:
+    cext = []
 
 options(
-    sphinx=Bunch(
+    sphinx = Bunch(
         builddir="_build",
         sourcedir=""
     ),
-    setup = Bunch(name='zipline',
-          version              = version,
-          classifiers          = [],
-          packages             = find_packages(),
-          package_data         = find_package_data("zipline", package="zipline",
-                                                   only_in_packages=False),
-          install_requires     = install_requires,
-          tests_require        = tests_require,
-          test_suite           = 'nose.collector',
-          include_package_data = True,
-          zip_safe             = False,
-    ),
+    setup = Bunch(
+          name                   = PACKAGE,
+          version                = VERSION,
+          packages               = find_packages(),
+          package_data           = find_package_data(
+              SRC_PATH,
+              package = PACKAGE,
+              only_in_packages = False
+          ),
+          install_requires       = install_requires,
+          tests_require          = tests_require,
+          test_suite             = 'nose.collector',
+          include_package_data   = True,
+          zip_safe               = False,
+          classifiers            = [
+             'Development Status :: 2 - Pre-Alpha',
+             'License :: OSI Approved :: BSD License',
+             'Natural Language :: English',
+             'Programming Language :: Python',
+             'Programming Language :: Python :: 2.7',
+             'Programming Language :: C',
+             'Programming Language :: Cython',
+             'Operating System :: OS Independent',
+             'Intended Audience :: Science/Research',
+             'Topic :: Office/Business :: Financial',
+             'Topic :: Scientific/Engineering :: Information Analysis',
+             'Topic :: System :: Distributed Computing',
+          ],
+          ext_modules            = cext,
+          cmdclass = {'build_ext': build_ext},
+      ),
 )
 
-options.paved.clean.patterns.extend([
-    #'*.swp', # vim related
-    #'*.swo', # vim related
-    'nosetests.xml',
-    '.coverage',
-    ',coverage',
-    '*.lprof',
-    '*.prof',
-])
+# ============
+# C Extensions
+# ============
+
+@task
+def build_cython():
+    for fn in glob.glob(os.path.join(SRC_PATH, '*.pyx')):
+        p = path(fn)
+
+        modname = p.splitext()[0].basename()
+        dest = p.splitext()[0] + '.c'
+
+        if newer(p.abspath(), dest.abspath()):
+            info('cythoning %s to %s'%(p, dest.basename()))
+            compile(p.abspath(), full_module_name=modname)
+
+@task
+@needs(['build_cython', 'setuptools.command.build_ext'])
+def build_ext():
+     pass
+
+# ======
+# Tasks
+# ======
 
 # Because I'm lazy
 stuff_i_want_in_my_debug_shell = [
     ('qutil', 'zipline.util', []),
     ('zmq', 'zmq', []),
 ]
-
-# ======
-# Tasks
-# ======
 
 @task
 def coverage():

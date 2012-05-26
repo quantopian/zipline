@@ -35,6 +35,14 @@ develop-eggs
 coverage.xml
 nosetests.xml
 
+# C Extensions
+*.o
+*.so
+*.out
+# git add -f if needed
+*.c
+
+# Vim
 *.swp
 *.swo
 
