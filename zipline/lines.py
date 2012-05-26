@@ -165,11 +165,8 @@ class SimulatedTrading(object):
         #self.add_transform(self.transaction_sim)
 
         self.sim.register_controller( self.con )
-        self.sim.on_done = self.shutdown()
-
 
         self.trading_client.set_algorithm(self.algorithm)
-
 
     @staticmethod
     def create_test_zipline(**config):
@@ -322,19 +319,16 @@ class SimulatedTrading(object):
         assert n > 0
 
         leased = self.allocator.lease(n)
-
         self.leased_sockets.extend(leased)
+
         return leased
 
     def simulate(self, blocking=False):
         self.started = True
         self.sim_context = self.sim.simulate()
+
         if blocking:
             self.sim_context.join()
-
-    def shutdown(self):
-        pass
-        #self.allocator.reaquire(*self.leased_sockets)
 
     #--------------------------------
     # Component property accessors

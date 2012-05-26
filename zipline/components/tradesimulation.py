@@ -46,6 +46,7 @@ class TradeSimulationClient(Component):
 
     def open(self):
         self.result_feed = self.connect_result()
+        self.perf.open(self.context)
 
     def do_work(self):
         # poll all the sockets
