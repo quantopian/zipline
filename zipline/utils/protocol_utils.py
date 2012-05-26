@@ -40,9 +40,14 @@ class ndict(MutableMapping):
     this time.
     """
 
+    cls = None
+    __slots__ = ['cls', '__internal']
+
     def __init__(self, dct=None):
         self.__internal = dict()
-        self.cls = frozenset(dir(self))
+
+        if not ndict.cls:
+            ndict.cls = frozenset(dir(self))
 
         if dct:
             self.__internal.update(dct)
@@ -51,8 +56,8 @@ class ndict(MutableMapping):
     # -----------------
 
     def __setattr__(self, key, value):
-        if '_ndict' in key or key == 'cls':
-            self.__dict__[key] = value
+        if key == 'cls' or key == '__internal' or '_ndict' in key:
+            super(ndict, self).__setattr__(key, value)
         else:
             self.__internal[key] = value
         return value
@@ -68,7 +73,7 @@ class ndict(MutableMapping):
 
     def __getattr__(self, key):
         if key in self.cls:
-            return self.__dict__[key]
+            super(ndict, self).__getattr__(key)
         else:
             return self.__internal[key]
 

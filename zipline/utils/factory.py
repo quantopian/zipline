@@ -1,7 +1,7 @@
 """
 Factory functions to prepare useful data for tests.
 """
-
+import os
 import pytz
 import msgpack
 import random
@@ -20,6 +20,11 @@ def data_path():
     from zipline import data
     data_path = dirname(abspath(data.__file__))
     return data_path
+
+def logger_path():
+    import zipline
+    log_path = dirname(abspath(zipline.__file__))
+    return os.join(log_path, 'logging.cfg')
 
 def load_market_data():
     fp_bm = open(join(data_path(), "benchmark.msgpack"), "rb")
