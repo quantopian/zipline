@@ -70,8 +70,8 @@ def parse_requirements(file_name):
     return requirements
 
 example = Extension(
-    "zipline/example", ["zipline/example.pyx"],
-     include_dirs=[np.get_include()],
+    "zipline/speedups/example", ["zipline/speedups/example.pyx"],
+     #include_dirs=[np.get_include()],
 )
 
 # ============
@@ -107,6 +107,7 @@ options(
               package = PACKAGE,
               only_in_packages = False
           ),
+          long_description       = DESCRIPTION,
           install_requires       = install_requires,
           tests_require          = tests_require,
           test_suite             = 'nose.collector',
@@ -136,15 +137,29 @@ options(
 # ============
 
 @task
+def clean_inplace():
+    """
+    Remove shared objects and C files from the extension
+    directory.
+    """
+    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.c')):
+        p = path(fn)
+        p.remove()
+
+    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.so')):
+        p = path(fn)
+        p.remove()
+
+@task
 def build_cython():
-    for fn in glob.glob(os.path.join(SRC_PATH, '*.pyx')):
+    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.pyx')):
         p = path(fn)
 
         modname = p.splitext()[0].basename()
         dest = p.splitext()[0] + '.c'
 
         if newer(p.abspath(), dest.abspath()):
-            info('cythoning %s to %s'%(p, dest.basename()))
+            info('cython %s -o %s'%(p, dest.basename()))
             compile(p.abspath(), full_module_name=modname)
 
 @task
