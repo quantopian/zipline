@@ -39,7 +39,6 @@ class TestUpDown(TestCase):
             'sid':133
         }
 
-    @skip
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
@@ -108,10 +107,10 @@ class TestUpDown(TestCase):
         self.assertTrue(np.all(min_order_idx == min_price_idx),
             "Algorithm did not sell when price was going to increase."
         )
-    
-    @skip
+
+
     def test_concavity_of_returns(self):
-        """verify concave relationship between of free parameter and
+        """verify concave relationship between free parameter and
         returns in certain region around the max. Moreover,
         establishes that the max returns is at the correct value
         (i.e. 0).
@@ -170,7 +169,7 @@ class TestUpDown(TestCase):
             idx[0] -= 1
             idx[1] += 1
 
-    @skip
+    #@skip
     def test_optimize(self):
         """verify that gradient descent (Powell's method) can find
         the optimal free parameter under which the BuySellAlgorithm produces
@@ -201,7 +200,6 @@ class TestUpDown(TestCase):
             self.zipline_test_config['environment'] = trading_environment
             zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
             zipline.simulate(blocking=True)
-            zipline.shutdown()
             #function is getting minimized, so have to return negative cum returns.
             return -zipline.get_cumulative_performance()['returns']
 
