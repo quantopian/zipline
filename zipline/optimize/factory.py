@@ -12,9 +12,9 @@ from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
 from copy import deepcopy
+from itertools import cycle
 
 def create_updown_trade_source(sid, trade_count, trading_environment, start_price, amplitude):
-    from itertools import cycle
     volume = 1000
     events = []
     price = start_price-amplitude/2.
