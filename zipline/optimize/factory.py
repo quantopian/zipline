@@ -7,10 +7,11 @@ from datetime import datetime, timedelta
 
 import zipline.protocol as zp
 
-from zipline.utils.factory import get_next_trading_dt
+from zipline.utils.factory import get_next_trading_dt, create_trading_environment
 from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
+from copy import deepcopy
 
 def create_updown_trade_source(sid, trade_count, trading_environment, start_price, amplitude):
     from itertools import cycle
@@ -41,7 +42,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, start_pric
 
     trading_environment.period_end = cur
 
-    source = SpecificEquityTrades(sid, events)
+    source = SpecificEquityTrades("updown_" + str(sid), events)
 
     return source
 
@@ -55,7 +56,7 @@ def create_predictable_zipline(config, sid=133, amplitude=10, base_price=50, off
                                         base_price,
                                         amplitude)
 
-    algo = RegularIntervalBuySellAlgorithm(sid, 100, offset)
+    algo = BuySellAlgorithm(sid, 100, offset)
     config['algorithm'] = algo
     config['trade_source'] = source
     config['environment'] = trading_environment

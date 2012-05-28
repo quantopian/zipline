@@ -39,7 +39,6 @@ class TestUpDown(TestCase):
             'sid':133
         }
 
-    @skip
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
@@ -108,8 +107,8 @@ class TestUpDown(TestCase):
         self.assertTrue(np.all(min_order_idx == min_price_idx),
             "Algorithm did not sell when price was going to increase."
         )
-    
-    @skip
+
+
     def test_concavity_of_returns(self):
         """verify concave relationship between of free parameter and
         returns in certain region around the max. Moreover,
