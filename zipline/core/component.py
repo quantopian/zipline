@@ -10,6 +10,7 @@ import socket
 import logging
 import traceback
 import humanhash
+from setproctitle import setproctitle
 
 # pyzmq
 import zmq
@@ -167,6 +168,8 @@ class Component(object):
             self.zmq = zmq
             self.context = self.zmq.Context()
             self.zmq_poller = self.zmq.Poller
+            # The the process title so you can watch it in top
+            setproctitle(self.__class__.__name__)
             return
         if flavor == 'thread':
             self.zmq = zmq

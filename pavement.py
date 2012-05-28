@@ -128,7 +128,14 @@ options(
              'Topic :: System :: Distributed Computing',
           ],
           ext_modules            = cext,
-          cmdclass = {'build_ext': build_ext},
+          cmdclass               = {
+              'build_ext': build_ext
+          },
+          entry_points           = {
+              'console_scripts': [
+                  'zipline = zipline.core.interpreter:main',
+              ]
+          },
       ),
 )
 
