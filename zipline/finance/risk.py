@@ -308,7 +308,10 @@ class RiskMetrics():
 
             message = "no rate for end date = {dt} and term = {term}. Check \
             that date doesn't exceed treasury history range."
-            message = message.format(dt=self.end_date,term=self.treasury_duration)
+            message = message.format(
+                    dt=self.end_date,
+                    term=self.treasury_duration
+            )
             raise Exception(message)
 
 
