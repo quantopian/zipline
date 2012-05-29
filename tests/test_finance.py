@@ -438,7 +438,6 @@ class FinanceTestCase(TestCase):
             {
                 'sid'       : sid,
                 'amount'    : order_amount * alternator**i,
-                'type'      : zp.DATASOURCE_TYPE.ORDER,
                 'dt'        : order_date
             })
 

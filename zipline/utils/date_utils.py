@@ -47,8 +47,7 @@ def EPOCH(utc_datetime):
     return int(ms)
 
 def UN_EPOCH(ms_since_epoch):
-    seconds_since_epoch = float(ms_since_epoch) / 1000.0
-    delta = timedelta(seconds = seconds_since_epoch)
+    delta = timedelta(milliseconds = ms_since_epoch)
     dt = UNIX_EPOCH + delta
     return dt
 

@@ -246,12 +246,6 @@ def DATASOURCE_FRAME(event):
             event.source_id,
             TRADE_FRAME(event)
         ]))
-    elif(event.type == DATASOURCE_TYPE.ORDER):
-        return msgpack.dumps(tuple([
-            event.type,
-            event.source_id,
-            ORDER_SOURCE_FRAME(event)
-        ]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
 
@@ -286,8 +280,6 @@ def DATASOURCE_UNFRAME(msg):
             child_value = ndict({'dt':None})
         elif(ds_type == DATASOURCE_TYPE.TRADE):
             child_value = TRADE_UNFRAME(payload)
-        elif(ds_type == DATASOURCE_TYPE.ORDER):
-            child_value = ORDER_SOURCE_UNFRAME(payload)
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
 
@@ -342,8 +334,6 @@ def TRANSFORM_FRAME(name, value):
     assert isinstance(name, basestring)
     if value == None:
         return msgpack.dumps(tuple([name, TRANSFORM_TYPE.EMPTY]))
-    if(name == TRANSFORM_TYPE.TRANSACTION):
-        value = TRANSACTION_FRAME(value)
     return msgpack.dumps(tuple([name, value]))
 
 def TRANSFORM_UNFRAME(msg):
@@ -359,8 +349,6 @@ def TRANSFORM_UNFRAME(msg):
         assert isinstance(name, basestring)
         if(name == TRANSFORM_TYPE.PASSTHROUGH):
             value = FEED_UNFRAME(value)
-        elif(name == TRANSFORM_TYPE.TRANSACTION):
-            value = TRANSACTION_UNFRAME(value)
 
         return ndict({name : value})
     except TypeError:
@@ -382,11 +370,6 @@ def MERGE_FRAME(event):
     """
     assert isinstance(event, ndict)
     PACK_DATE(event)
-    if(event.has_attr(TRANSFORM_TYPE.TRANSACTION)):
-        if(event.TRANSACTION == None):
-            event.TRANSACTION = TRANSFORM_TYPE.EMPTY
-        else:
-            event.TRANSACTION = TRANSACTION_FRAME(event.TRANSACTION)
     payload = event.as_dict()
     return msgpack.dumps(payload)
 
@@ -396,11 +379,6 @@ def MERGE_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         payload = ndict(payload)
-        if(payload.has_attr(TRANSFORM_TYPE.TRANSACTION)):
-            if(payload.TRANSACTION == TRANSFORM_TYPE.EMPTY):
-                payload.TRANSACTION = None
-            else:
-                payload.TRANSACTION = TRANSACTION_UNFRAME(payload.TRANSACTION)
         UNPACK_DATE(payload)
         return payload
     except TypeError:
@@ -408,12 +386,6 @@ def MERGE_UNFRAME(msg):
     except ValueError:
         raise INVALID_MERGE_FRAME(msg)
 
-
-# -----------------------
-# Finance Protocol
-# -----------------------
-INVALID_ORDER_FRAME = FrameExceptionFactory('ORDER')
-INVALID_TRADE_FRAME = FrameExceptionFactory('TRADE')
 
 # -----------------------
 # Trades
@@ -467,131 +439,6 @@ def TRADE_UNFRAME(msg):
         raise INVALID_TRADE_FRAME(msg)
     except ValueError:
         raise INVALID_TRADE_FRAME(msg)
-
-# -----------------------
-# Orders
-# -----------------------
-# - from client to order source
-
-def ORDER_FRAME(order):
-    assert isinstance(order.sid, int)
-    assert isinstance(order.amount, int) #no partial shares...
-    PACK_DATE(order)
-    return msgpack.dumps(tuple([
-        order.sid,
-        order.amount,
-        order.dt
-    ]))
-
-
-def ORDER_UNFRAME(msg):
-    try:
-        sid, amount, dt = msgpack.loads(msg)
-        assert isinstance(sid, int)
-        assert isinstance(amount, int)
-        rval = ndict({
-            'sid':sid,
-            'amount':amount,
-            'dt':dt
-        })
-        UNPACK_DATE(rval)
-        return rval
-    except TypeError:
-        raise INVALID_ORDER_FRAME(msg)
-    except ValueError:
-        raise INVALID_ORDER_FRAME(msg)
-
-
-# -----------------------
-# TRANSACTIONS
-# -----------------------
-#
-# - Should only be called from inside TRANSFORM_(UN)FRAME.
-
-
-
-def TRANSACTION_FRAME(event):
-    assert isinstance(event, ndict)
-    assert isinstance(event.sid, int)
-    assert isinstance(event.price, numbers.Real)
-    assert isinstance(event.commission, numbers.Real)
-    assert isinstance(event.amount, int)
-    PACK_DATE(event)
-    return msgpack.dumps(tuple([
-        event.sid,
-        event.price,
-        event.amount,
-        event.commission,
-        event.dt
-    ]))
-
-def TRANSACTION_UNFRAME(msg):
-    try:
-        sid, price, amount, commission, dt = msgpack.loads(msg)
-
-        assert isinstance(sid, int)
-        assert isinstance(price, numbers.Real)
-        assert isinstance(commission, numbers.Real)
-        assert isinstance(amount, int)
-        rval = ndict({
-            'sid'        : sid,
-            'price'      : price,
-            'amount'     : amount,
-            'commission' : commission,
-            'dt'      : dt
-        })
-
-        UNPACK_DATE(rval)
-        return rval
-    except TypeError:
-        raise INVALID_TRADE_FRAME(msg)
-    except ValueError:
-        raise INVALID_TRADE_FRAME(msg)
-
-
-# -----------------------
-# ORDERS
-# -----------------------
-#
-# - from order source to feed
-# - should only be called from inside DATASOURCE_(UN)FRAME
-
-
-def ORDER_SOURCE_FRAME(event):
-    assert isinstance(event.sid, int)
-    assert isinstance(event.amount, int) #no partial shares...
-    assert isinstance(event.source_id, basestring)
-    assert event.type == DATASOURCE_TYPE.ORDER
-    PACK_DATE(event)
-    return msgpack.dumps(tuple([
-        event.sid,
-        event.amount,
-        event.dt,
-        event.source_id,
-        event.type
-    ]))
-
-
-def ORDER_SOURCE_UNFRAME(msg):
-    try:
-        sid, amount, dt, source_id, source_type = msgpack.loads(msg)
-        event = ndict({
-            "sid"       : sid,
-            "amount"    : amount,
-            "dt"        : dt,
-            "source_id" : source_id,
-            "type"      : source_type
-        })
-        assert isinstance(sid, int)
-        assert isinstance(amount, int)
-        assert isinstance(source_id, basestring)
-        assert isinstance(source_type, int)
-        UNPACK_DATE(event)
-        return event
-    except TypeError:
-        raise INVALID_ORDER_FRAME(msg)
-    except ValueError:
-        raise INVALID_ORDER_FRAME(msg)
 
 # -----------------------
 # Performance and Risk
@@ -648,7 +495,6 @@ def convert_transactions(transactions):
     for txn in transactions:
         txn['date'] = EPOCH(txn['dt'])
         del(txn['dt'])
-        del(txn['source_id'])
         results.append(txn)
     return results
 
@@ -729,20 +575,13 @@ def tuple_to_date(date_tuple):
     return dt
 
 DATASOURCE_TYPE = Enum(
-    'ORDER',
     'TRADE',
     'EMPTY',
-)
-
-ORDER_PROTOCOL = Enum(
-    'DONE',
-    'BREAK',
 )
 
 
 #Transform type needs to be a ndict to facilitate merging.
 TRANSFORM_TYPE = ndict({
-    'TRANSACTION' : 'TRANSACTION', #needed?
     'PASSTHROUGH' : 'PASSTHROUGH',
     'EMPTY'       : ''
 })
@@ -751,8 +590,6 @@ TRANSFORM_TYPE = ndict({
 FINANCE_COMPONENT = namelookup({
     'TRADING_CLIENT'   : 'TRADING_CLIENT',
     'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
-    'ORDER_SOURCE'     : 'ORDER_SOURCE',
-    'TRANSACTION_SIM'  : 'TRANSACTION_SIM'
 })
 
 
