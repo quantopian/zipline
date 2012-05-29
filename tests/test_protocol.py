@@ -1,5 +1,5 @@
 """
-Test the FRAME/UNFRAME functions in the sequence expected from ziplines.    
+Test the FRAME/UNFRAME functions in the sequence expected from ziplines.
 """
 import pytz
 
@@ -36,10 +36,10 @@ class ProtocolTestCase(TestCase):
         one_day_td = timedelta(days=1)
 
         trades = factory.create_trade_history(
-            sid, 
-            price, 
-            volume, 
-            one_day_td, 
+            sid,
+            price,
+            volume,
+            one_day_td,
             self.trading_environment
         )
 
@@ -92,7 +92,7 @@ class ProtocolTestCase(TestCase):
         self.assertEqual(order.sid, 133)
         self.assertEqual(order.amount, 100)
         self.assertEqual(order.dt, now)
-        
+
         #order datasource datasource frames the order
         order_event = zp.ndict({
             "sid"        : order.sid,
@@ -118,12 +118,3 @@ class ProtocolTestCase(TestCase):
             'price'      : 10.0,
             'commission' : 0.50
         })
-
-        #frame that transaction
-        txn_msg = zp.TRANSFORM_FRAME(zp.TRANSFORM_TYPE.TRANSACTION, txn)
-
-        #unframe
-        recovered_tx = zp.TRANSFORM_UNFRAME(txn_msg).TRANSACTION
-        self.assertEqual(recovered_tx.sid, 133)
-        self.assertEqual(recovered_tx.amount, 100)
-
