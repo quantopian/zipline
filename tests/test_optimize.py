@@ -14,6 +14,7 @@ from zipline.utils.logger import configure_logging
 
 from zipline.core.devsimulator import AddressAllocator, Simulator
 from zipline.optimize.algorithms import BuySellAlgorithm
+from zipline.optimize.factory import create_predictable_zipline
 from zipline.finance.trading import TradingEnvironment
 from zipline.lines import SimulatedTrading
 from zipline.finance.trading import SIMULATION_STYLE
@@ -53,20 +54,18 @@ class TestUpDown(TestCase):
         base_price = 50
         amplitude = 6
         offset = 0
-        self.zipline_test_config['order_count'] = trade_count - 1
-        self.zipline_test_config['trade_count'] = trade_count
-        self.zipline_test_config['simulation_style'] = \
-        SIMULATION_STYLE.FIXED_SLIPPAGE
 
-        trading_environment = factory.create_trading_environment()
-        source = create_updown_trade_source(sid,
-            trade_count,
-            trading_environment,
-            base_price,
-            amplitude
+        zipline, config = create_predictable_zipline(
+            self.zipline_test_config,
+            sid=sid,
+            amplitude=amplitude,
+            base_price=base_price,
+            offset=offset,
+            trade_count=5,
+            simulate=False
         )
 
-        prices = np.array([event.price for event in source.event_list])
+        prices = np.array([event.price for event in config['trade_source'].event_list])
         max_price_idx = np.where(prices==prices.max())[0]
         min_price_idx = np.where(prices==prices.min())[0]
         self.assertTrue(np.all(max_price_idx % 2 == 1),
@@ -82,14 +81,9 @@ class TestUpDown(TestCase):
             "Minimum price does not equal expected maximum price."
         )
 
-        algo = BuySellAlgorithm(sid, 100, 0)
-
-        self.zipline_test_config['trade_source'] = source
-        self.zipline_test_config['algorithm'] = algo
-        self.zipline_test_config['environment'] = trading_environment
-
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=True)
+
+        algo = config['algorithm']
 
         orders = np.asarray(algo.orders)
         max_order_idx = np.where(orders==orders.max())[0]
@@ -108,7 +102,6 @@ class TestUpDown(TestCase):
             "Algorithm did not sell when price was going to increase."
         )
 
-
     def test_concavity_of_returns(self):
         """verify concave relationship between free parameter and
         returns in certain region around the max. Moreover,
@@ -121,10 +114,6 @@ class TestUpDown(TestCase):
         sid = 133
         amplitude = 30
         base_price = 50
-        self.zipline_test_config['order_count'] = trade_count - 1
-        self.zipline_test_config['trade_count'] = trade_count
-        self.zipline_test_config['simulation_style'] = \
-        SIMULATION_STYLE.FIXED_SLIPPAGE
 
         #test whether return-function is concave wrt repeats.
         test_offsets = np.arange(-9, 9, 1.)
@@ -133,21 +122,16 @@ class TestUpDown(TestCase):
 
         compound_returns = np.empty(len(test_offsets))
         ziplines = []
-        for i, test_offset in enumerate(test_offsets):
-            trading_environment = factory.create_trading_environment()
-            source = create_updown_trade_source(sid,
-                trade_count,
-                trading_environment,
-                base_price,
-                amplitude
+        for i, offset in enumerate(test_offsets):
+            zipline, config = create_predictable_zipline(
+                self.zipline_test_config,
+                sid=sid,
+                amplitude=amplitude,
+                base_price=base_price,
+                offset=offset,
+                trade_count=trade_count,
+                simulate=True
             )
-
-            algo = BuySellAlgorithm(sid, 100, test_offset)
-            self.zipline_test_config['algorithm'] = algo
-            self.zipline_test_config['trade_source'] = source
-            self.zipline_test_config['environment'] = trading_environment
-            zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-            zipline.simulate(blocking=True)
             ziplines.append(zipline)
             compound_returns[i] = zipline.get_cumulative_performance()['returns']
 
@@ -177,29 +161,15 @@ class TestUpDown(TestCase):
 
         """
         def simulate(offset):
-            #generate events
-            trade_count = 3
-            sid = 133
-            amplitude = 10
-            base_price = 50
-            self.zipline_test_config['order_count'] = trade_count - 1
-            self.zipline_test_config['trade_count'] = trade_count
-            self.zipline_test_config['simulation_style'] = \
-            SIMULATION_STYLE.FIXED_SLIPPAGE
-            trading_environment = factory.create_trading_environment()
-            source = create_updown_trade_source(sid,
-                trade_count,
-                trading_environment,
-                base_price,
-                amplitude
+            zipline, config = create_predictable_zipline(
+                self.zipline_test_config,
+                sid=133,
+                amplitude=10,
+                base_price=50,
+                offset=offset,
+                trade_count=5,
+                simulate=True
             )
-
-            algo = BuySellAlgorithm(sid, 100, offset)
-            self.zipline_test_config['algorithm'] = algo
-            self.zipline_test_config['trade_source'] = source
-            self.zipline_test_config['environment'] = trading_environment
-            zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-            zipline.simulate(blocking=True)
             #function is getting minimized, so have to return negative cum returns.
             return -zipline.get_cumulative_performance()['returns']
 
