@@ -128,3 +128,8 @@ if __name__ == '__main__':
     for day in trading_days(now, now30):
         print day
     print time.time() - tic
+
+def date_to_datetime(t):
+    dt = datetime.fromordinal(t.toordinal())
+    dt = dt.replace(tzinfo = pytz.utc)
+    return dt
