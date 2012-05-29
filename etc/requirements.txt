@@ -10,3 +10,6 @@ gevent-zeromq==0.2.2
 # Packaging
 distribute==0.6.27
 setuptools==0.6c11
+
+# Unix
+setproctitle==1.1.6
