@@ -11,6 +11,8 @@ from zipline.utils.factory import get_next_trading_dt, create_trading_environmen
 from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
+from zipline.finance.trading import SIMULATION_STYLE
+
 from copy import deepcopy
 from itertools import cycle
 
@@ -47,20 +49,27 @@ def create_updown_trade_source(sid, trade_count, trading_environment, start_pric
     return source
 
 
-def create_predictable_zipline(config, sid=133, amplitude=10, base_price=50, offset=0):
-    config = deepcopy(config)
+def create_predictable_zipline(config, sid=133, amplitude=10, base_price=50, offset=0, trade_count=3, simulate=True):
+    #config = deepcopy(config)
     trading_environment = create_trading_environment()
     source = create_updown_trade_source(sid,
-                                        config['trade_count'],
+                                        trade_count,
                                         trading_environment,
                                         base_price,
                                         amplitude)
 
-    algo = BuySellAlgorithm(sid, 100, offset)
-    config['algorithm'] = algo
+    if 'algorithm' not in config:
+        config['algorithm'] = BuySellAlgorithm(sid, 100, offset)
+
+    config['order_count'] = trade_count - 1
+    config['trade_count'] = trade_count
     config['trade_source'] = source
     config['environment'] = trading_environment
-    zipline = SimulatedTrading.create_test_zipline(**config)
-    zipline.simulate(blocking=True)
+    config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
 
-    return zipline
+    zipline = SimulatedTrading.create_test_zipline(**config)
+
+    if simulate:
+        zipline.simulate(blocking=True)
+
+    return zipline, config
