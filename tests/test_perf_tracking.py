@@ -552,7 +552,7 @@ shares in position"
                 })
             else:
                 txn = None
-            event[zp.TRANSFORM_TYPE.TRANSACTION] = txn
+            event['TRANSACTION'] = txn
             perf_tracker.process_event(event)
 
         #we skip two trades, to test case of None transaction

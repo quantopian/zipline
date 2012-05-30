@@ -41,7 +41,7 @@ import datetime
 import math
 import numpy as np
 import numpy.linalg as la
-import zipline.protocol as zp
+from zipline.utils.date_utils import epoch_now
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
@@ -308,7 +308,10 @@ class RiskMetrics():
 
             message = "no rate for end date = {dt} and term = {term}. Check \
             that date doesn't exceed treasury history range."
-            message = message.format(dt=self.end_date,term=self.treasury_duration)
+            message = message.format(
+                    dt=self.end_date,
+                    term=self.treasury_duration
+            )
             raise Exception(message)
 
 
@@ -328,6 +331,7 @@ class RiskReport():
         self.algorithm_returns = algorithm_returns
         self.trading_environment = trading_environment
         self.exceeded_max_loss = exceeded_max_loss
+        self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
             start_date = self.trading_environment.period_start
@@ -361,7 +365,8 @@ class RiskReport():
             'three_month'       : [x.to_dict() for x in self.three_month_periods],
             'six_month'         : [x.to_dict() for x in self.six_month_periods],
             'twelve_month'      : [x.to_dict() for x in self.year_periods],
-            'exceeded_max_loss' : self.exceeded_max_loss
+            'exceeded_max_loss' : self.exceeded_max_loss,
+            'created'           : self.created
         }
 
     def periodsInRange(self, months_per, start, end):

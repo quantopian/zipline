@@ -1,5 +1,5 @@
 """
-Test the FRAME/UNFRAME functions in the sequence expected from ziplines.    
+Test the FRAME/UNFRAME functions in the sequence expected from ziplines.
 """
 import pytz
 
@@ -36,10 +36,10 @@ class ProtocolTestCase(TestCase):
         one_day_td = timedelta(days=1)
 
         trades = factory.create_trade_history(
-            sid, 
-            price, 
-            volume, 
-            one_day_td, 
+            sid,
+            price,
+            volume,
+            one_day_td,
             self.trading_environment
         )
 
@@ -75,55 +75,3 @@ class ProtocolTestCase(TestCase):
             event.delete('helloworld')
 
             self.assertEqual(zp.ndict(trade), event)
-
-    @timed(DEFAULT_TIMEOUT)
-    def test_order_protocol(self):
-        #client places an order
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
-        order = zp.ndict({
-            'dt':now,
-            'sid':133,
-            'amount':100
-        })
-        order_msg = zp.ORDER_FRAME(order)
-
-        #order datasource receives
-        order = zp.ORDER_UNFRAME(order_msg)
-        self.assertEqual(order.sid, 133)
-        self.assertEqual(order.amount, 100)
-        self.assertEqual(order.dt, now)
-        
-        #order datasource datasource frames the order
-        order_event = zp.ndict({
-            "sid"        : order.sid,
-            "amount"     : order.amount,
-            "dt"         : order.dt,
-            "source_id"  : zp.FINANCE_COMPONENT.ORDER_SOURCE,
-            "type"       : zp.DATASOURCE_TYPE.ORDER
-        })
-
-
-        order_ds_msg = zp.DATASOURCE_FRAME(order_event)
-
-        #transaction transform unframes
-        recovered_order = zp.DATASOURCE_UNFRAME(order_ds_msg)
-
-        self.assertEqual(now, recovered_order.dt)
-
-        #create a transaction from the order
-        txn = zp.ndict({
-            'sid'        : recovered_order.sid,
-            'amount'     : recovered_order.amount,
-            'dt'         : recovered_order.dt,
-            'price'      : 10.0,
-            'commission' : 0.50
-        })
-
-        #frame that transaction
-        txn_msg = zp.TRANSFORM_FRAME(zp.TRANSFORM_TYPE.TRANSACTION, txn)
-
-        #unframe
-        recovered_tx = zp.TRANSFORM_UNFRAME(txn_msg).TRANSACTION
-        self.assertEqual(recovered_tx.sid, 133)
-        self.assertEqual(recovered_tx.amount, 100)
-

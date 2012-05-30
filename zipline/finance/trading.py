@@ -168,12 +168,11 @@ for orders:
 
     def create_transaction(self, sid, amount, price, dt, direction):
         self.txn_count += 1
-        txn = {'sid'                : sid,
-                'amount'             : int(amount),
-                'dt'                 : dt,
-                'price'              : price,
-                'commission'          : self.commission * amount * direction,
-                'source_id'          : zp.FINANCE_COMPONENT.TRANSACTION_SIM
+        txn = {'sid'            : sid,
+                'amount'        : int(amount),
+                'dt'            : dt,
+                'price'         : price,
+                'commission'    : self.commission * amount * direction
                 }
         return zp.ndict(txn)
 

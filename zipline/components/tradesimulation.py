@@ -151,9 +151,6 @@ class TradeSimulationClient(Component):
         self.perf.log_order(order)
         self.txn_sim.add_open_order(order)
 
-    def signal_order_done(self):
-        self.order_socket.send(str(zp.ORDER_PROTOCOL.DONE))
-
     def queue_event(self, event):
         if self.event_queue == None:
             self.event_queue = []

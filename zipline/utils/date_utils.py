@@ -44,11 +44,10 @@ def EPOCH(utc_datetime):
     delta = utc_datetime - UNIX_EPOCH
     seconds = delta.total_seconds()
     ms = seconds * 1000
-    return ms
+    return int(ms)
 
 def UN_EPOCH(ms_since_epoch):
-    seconds_since_epoch = ms_since_epoch / 1000
-    delta = timedelta(seconds = seconds_since_epoch)
+    delta = timedelta(milliseconds = ms_since_epoch)
     dt = UNIX_EPOCH + delta
     return dt
 
@@ -128,3 +127,8 @@ if __name__ == '__main__':
     for day in trading_days(now, now30):
         print day
     print time.time() - tic
+
+def date_to_datetime(t):
+    dt = datetime.fromordinal(t.toordinal())
+    dt = dt.replace(tzinfo = pytz.utc)
+    return dt
