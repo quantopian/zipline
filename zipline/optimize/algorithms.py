@@ -1,4 +1,4 @@
-class BuySellAlgorithm():
+class BuySellAlgorithm(object):
     """Algorithm that buys and sells alternatingly. The amount for
     each order can be specified. In addition, an offset that will
     quadratically reduce the amount that will be bought can be
@@ -40,7 +40,6 @@ class BuySellAlgorithm():
         self.buy_or_sell *= -1
 
         self.orders.append(order_size)
-        #self.prices.append(frame['price'])
 
         self.frame_count += 1
         self.incr += 1
