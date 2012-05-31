@@ -187,6 +187,8 @@ class RiskMetrics():
         return period_returns, returns
 
     def calculate_volatility(self, daily_returns):
+        # TODO: we should be using an annualized number for the
+        # square root, not the days in the period.
         return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
 
     def calculate_sharpe(self):
