@@ -27,7 +27,7 @@ Risk Report
     | alpha           | The _algorithm_ alpha to the benchmark.            |
     +-----------------+----------------------------------------------------+
     | excess_return   | The excess return of the algorithm over the        |
-    |                 | benchmark.                                         |
+    |                 | treasuries.                                        |
     +-----------------+----------------------------------------------------+
     | max_drawdown    | The largest relative peak to relative trough move  |
     |                 | for the portfolio returns between self.start_date  |
