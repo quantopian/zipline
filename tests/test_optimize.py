@@ -1,23 +1,15 @@
 """Tests for the zipline.finance package"""
-import unittest
 from unittest2 import TestCase, skip
 from nose.tools import timed
 from collections import defaultdict
-from datetime import datetime, timedelta
 import logging
 
 import numpy as np
 
-from zipline.optimize.factory import create_updown_trade_source
-import zipline.utils.factory as factory
 from zipline.utils.logger import configure_logging
 
-from zipline.core.devsimulator import AddressAllocator, Simulator
-from zipline.optimize.algorithms import BuySellAlgorithm
+from zipline.core.devsimulator import AddressAllocator
 from zipline.optimize.factory import create_predictable_zipline
-from zipline.finance.trading import TradingEnvironment
-from zipline.lines import SimulatedTrading
-from zipline.finance.trading import SIMULATION_STYLE
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
@@ -37,7 +29,10 @@ class TestUpDown(TestCase):
         configure_logging()
         self.zipline_test_config = {
             'allocator':allocator,
-            'sid':133
+            'sid':133,
+            'trade_count':5,
+            'amplitude':30,
+            'base_price':50
         }
 
     @timed(DEFAULT_TIMEOUT)
@@ -48,22 +43,15 @@ class TestUpDown(TestCase):
         UpDownSource and BuySellAlgorithm interact correctly."
 
         """
-        #generate events
-        trade_count = 5
-        sid = 133
-        base_price = 50
-        amplitude = 6
-        offset = 0
-
         zipline, config = create_predictable_zipline(
             self.zipline_test_config,
-            sid=sid,
-            amplitude=amplitude,
-            base_price=base_price,
-            offset=offset,
-            trade_count=5,
+            offset=0,
             simulate=False
         )
+
+        #extract arguments
+        base_price = self.zipline_test_config['base_price']
+        amplitude = self.zipline_test_config['amplitude']
 
         prices = np.array([event.price for event in config['trade_source'].event_list])
         max_price_idx = np.where(prices==prices.max())[0]
@@ -109,14 +97,9 @@ class TestUpDown(TestCase):
         (i.e. 0).
 
         """
-        #generate events
-        trade_count = 6
-        sid = 133
-        amplitude = 30
-        base_price = 50
-
-        #test whether return-function is concave wrt repeats.
         test_offsets = np.arange(-9, 9, 1.)
+        #maximum value is expect to be at center, create boolean mask
+        #for later extraction
         supposed_max = np.zeros(len(test_offsets), dtype=bool)
         supposed_max[len(test_offsets) // 2] = True
 
@@ -125,12 +108,7 @@ class TestUpDown(TestCase):
         for i, offset in enumerate(test_offsets):
             zipline, config = create_predictable_zipline(
                 self.zipline_test_config,
-                sid=sid,
-                amplitude=amplitude,
-                base_price=base_price,
                 offset=offset,
-                trade_count=trade_count,
-                simulate=True
             )
             ziplines.append(zipline)
             compound_returns[i] = zipline.get_cumulative_performance()['returns']
@@ -153,7 +131,7 @@ class TestUpDown(TestCase):
             idx[0] -= 1
             idx[1] += 1
 
-    #@skip
+    @skip
     def test_optimize(self):
         """verify that gradient descent (Powell's method) can find
         the optimal free parameter under which the BuySellAlgorithm produces
@@ -163,12 +141,7 @@ class TestUpDown(TestCase):
         def simulate(offset):
             zipline, config = create_predictable_zipline(
                 self.zipline_test_config,
-                sid=133,
-                amplitude=10,
-                base_price=50,
                 offset=offset,
-                trade_count=5,
-                simulate=True
             )
             #function is getting minimized, so have to return negative cum returns.
             return -zipline.get_cumulative_performance()['returns']
