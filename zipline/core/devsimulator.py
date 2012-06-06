@@ -4,7 +4,7 @@ See :py:method""
 """
 
 import threading
-from zipline.core import ComponentHost
+from zipline.core.simulatorref import SimulatorBase
 
 class AddressAllocator(object):
     """
@@ -28,13 +28,13 @@ class AddressAllocator(object):
         pass
 
 
-class Simulator(ComponentHost):
+class Simulator(SimulatorBase):
 
     zmq_flavor = 'thread'
 
     def __init__(self, addresses):
         # TODO: rethink this
-        ComponentHost.__init__(self, addresses)
+        SimulatorBase.__init__(self, addresses)
         self.subthreads = []
         self.running = False
 

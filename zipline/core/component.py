@@ -10,6 +10,7 @@ import socket
 import logging
 import traceback
 import humanhash
+from setproctitle import setproctitle
 
 # pyzmq
 import zmq
@@ -26,6 +27,8 @@ LOGGER = logging.getLogger('ZiplineLogger')
 
 from zipline.exceptions import ComponentNoInit
 from zipline.transitions import WorkflowMeta
+
+# LOGBOOK - embed PID in log output
 
 class Component(object):
 
@@ -165,6 +168,8 @@ class Component(object):
             self.zmq = zmq
             self.context = self.zmq.Context()
             self.zmq_poller = self.zmq.Poller
+            # The the process title so you can watch it in top
+            setproctitle(self.__class__.__name__)
             return
         if flavor == 'thread':
             self.zmq = zmq
@@ -287,8 +292,6 @@ class Component(object):
 
         Tear down ( fast ) as a mode of failure in the simulation or on
         service halt.
-
-        Context specific.
         """
         raise NotImplementedError
 
@@ -318,14 +321,16 @@ class Component(object):
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
         trace = '\n>>>'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        sys.stdout.write(trace)
 
-        exception_frame = CONTROL_FRAME(
-            CONTROL_PROTOCOL.EXCEPTION,
-            trace
-        )
-        self.control_out.send(exception_frame)
+        if hasattr(self, 'control_out'):
+            exception_frame = CONTROL_FRAME(
+                CONTROL_PROTOCOL.EXCEPTION,
+                trace
+            )
+            self.control_out.send(exception_frame)
 
-        LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
+        #LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
     def signal_done(self):
         """
@@ -472,7 +477,7 @@ class Component(object):
         DEPRECATED, left in for compatability for now.
         """
 
-        LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
+        #LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
 
         self.sync_socket = self.context.socket(self.zmq.REQ)
         self.sync_socket.connect(self.addresses['sync_address'])

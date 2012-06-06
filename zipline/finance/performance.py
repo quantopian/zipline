@@ -123,7 +123,7 @@ import zipline.finance.risk as risk
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
-class PerformanceTracker():
+class PerformanceTracker(object):
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -136,7 +136,6 @@ class PerformanceTracker():
     """
 
     def __init__(self, trading_environment):
-
 
         self.trading_environment     = trading_environment
         self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
@@ -155,10 +154,12 @@ class PerformanceTracker():
         self.returns                 = []
         self.txn_count               = 0
         self.event_count             = 0
-        self.result_stream           = None
         self.last_dict               = None
         self.order_log               = []
         self.exceeded_max_loss       = False
+
+        self.results_socket = None
+        self.results_addr   = None
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -191,19 +192,21 @@ class PerformanceTracker():
     def get_portfolio(self):
         return self.cumulative_performance.to_ndict()
 
-    def publish_to(self, zmq_socket, context=None):
+    def open(self, context):
+        if self.results_addr:
+            sock = context.socket(zmq.PUSH)
+            sock.connect(self.results_addr)
+            self.results_socket = sock
+        else:
+            LOGGER.warn("Not streaming results because no results socket given")
+
+    def publish_to(self, results_addr):
         """
         Publish the performance results asynchronously to a
         socket.
         """
-        if isinstance(zmq_socket, zmq.Socket):
-            self.result_stream = zmq_socket
-        else:
-            ctx = context or zmq.Context.instance()
-            sock = ctx.socket(zmq.PUSH)
-            sock.connect(zmq_socket)
-
-            self.result_stream = sock
+        assert isinstance(results_addr, basestring), type(results_addr)
+        self.results_addr = results_addr
 
     def to_dict(self):
         """
@@ -272,9 +275,9 @@ class PerformanceTracker():
         self.progress = self.day_count / self.total_days
 
         # Output results
-        if self.result_stream:
+        if self.results_socket:
             msg = zp.PERF_FRAME(self.to_dict())
-            self.result_stream.send(msg)
+            self.results_socket.send(msg)
 
         #
         if self.trading_environment.max_drawdown:
@@ -313,7 +316,7 @@ class PerformanceTracker():
     def handle_simulation_end(self):
         """
         When the simulation is complete, run the full period risk report
-        and send it out on the result_stream.
+        and send it out on the results socket.
         """
 
         log_msg = "Simulated {n} trading days out of {m}."
@@ -332,24 +335,24 @@ class PerformanceTracker():
             exceeded_max_loss = self.exceeded_max_loss
         )
 
-        if self.result_stream:
+        if self.results_socket:
             LOGGER.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
 
             msg = zp.RISK_FRAME(risk_dict)
-            self.result_stream.send(msg)
+            self.results_socket.send(msg)
             # this signals that the simulation is complete.
-            self.result_stream.send("DONE")
+            self.results_socket.send("DONE")
 
 
-class Position():
+class Position(object):
 
     def __init__(self, sid):
-        self.sid = sid
-        self.amount = 0
-        self.cost_basis = 0.0 ##per share
+        self.sid             = sid
+        self.amount          = 0
+        self.cost_basis      = 0.0 ##per share
         self.last_sale_price = None
-        self.last_sale_date = None
+        self.last_sale_date  = None
 
     def update(self, txn):
         if(self.sid != txn.sid):
@@ -360,12 +363,12 @@ class Position():
             self.cost_basis = 0.0
             self.amount = 0
         else:
-            prev_cost = self.cost_basis*self.amount
-            txn_cost = txn.amount*txn.price
-            total_cost = prev_cost + txn_cost
-            total_shares = self.amount + txn.amount
+            prev_cost       = self.cost_basis*self.amount
+            txn_cost        = txn.amount*txn.price
+            total_cost      = prev_cost + txn_cost
+            total_shares    = self.amount + txn.amount
             self.cost_basis = total_cost/total_shares
-            self.amount = self.amount + txn.amount
+            self.amount     = self.amount + txn.amount
 
     def currentValue(self):
         return self.amount * self.last_sale_price
@@ -375,10 +378,10 @@ class Position():
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
         last_sale_price: {last_sale_price}"
         return template.format(
-            sid=self.sid,
-            amount=self.amount,
-            cost_basis=self.cost_basis,
-            last_sale_price=self.last_sale_price
+            sid             = self.sid,
+            amount          = self.amount,
+            cost_basis      = self.cost_basis,
+            last_sale_price = self.last_sale_price
         )
 
     def to_dict(self):
@@ -394,7 +397,7 @@ class Position():
         }
 
 
-class PerformancePeriod():
+class PerformancePeriod(object):
 
     def __init__(
         self,

@@ -89,7 +89,7 @@ class ComponentHost(Component):
         """
         Setup the sync socket and poller. ( Bind )
         """
-        LOGGER.debug("Connecting sync server.")
+        #LOGGER.debug("Connecting sync server.")
 
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
@@ -100,8 +100,15 @@ class ComponentHost(Component):
         self.sockets.append(self.sync_socket)
 
     def open(self):
+        LOGGER.info('== Roll Call ==\n')
+        for component in self.components.itervalues():
+            LOGGER.info(component)
+
+        LOGGER.info('== End Roll Call ==\n')
+
         for component in self.components.itervalues():
             self.launch_component(component)
+
         self.launch_controller()
 
     def is_running(self):
@@ -150,7 +157,4 @@ class ComponentHost(Component):
         raise NotImplementedError
 
     def launch_component(self, component):
-        raise NotImplementedError
-
-    def teardown_component(self, component):
         raise NotImplementedError

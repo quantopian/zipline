@@ -141,7 +141,7 @@ class ndict(MutableMapping):
         self.__internal.update(other_nd.__internal)
 
     def __repr__(self):
-        return "namedict: " + str(self.__internal)
+        return "ndict(%s)" % str(self.__internal)
 
     # Faster dictionary comparison?
     #def __eq__(self, other):

@@ -15,7 +15,7 @@ basic_zipline = Benchmark(
 load_ndict = Benchmark(
         'load_ndict()',
         setup=setup,
-        start_date=datetime(2012,4,15),
+        start_date=datetime(2012,5,15),
         name='load_ndict'
 )
 
