@@ -68,7 +68,10 @@ Performance Period
 ==================
 
 Performance Periods are updated with every trade. When calling
-code needs
+code needs a portfolio object that fulfills the algorithm
+protocol, use the PerformancePeriod.as_portfolio method. See that
+method for comments on the specific fields provided (and
+omitted).
 
     +---------------+------------------------------------------------------+
     | key           | value                                                |
