@@ -7,7 +7,7 @@ import sys
 import uuid
 import time
 import socket
-import logging
+import logbook
 import traceback
 import humanhash
 from setproctitle import setproctitle
@@ -23,7 +23,7 @@ from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, CONTROL_FRAME
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Component')
 
 from zipline.exceptions import ComponentNoInit
 from zipline.transitions import WorkflowMeta
@@ -357,7 +357,7 @@ class Component(object):
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
 
-        LOGGER.info("[%s] DONE" % self.get_id)
+        log.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging

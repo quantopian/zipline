@@ -42,7 +42,7 @@ class Feed(Aggregate):
 
     @property
     def draining(self):
-        return self.state == DRAINING
+        return self.state == AGGREGATE_STATES.DRAINING
 
     # -------
     # Sockets

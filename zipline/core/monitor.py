@@ -2,7 +2,7 @@ import zmq
 import time
 import gevent
 import itertools
-import logging
+import logbook
 import gevent_zeromq
 
 from collections import OrderedDict
@@ -122,6 +122,9 @@ class UnknownChatter(Exception):
         return """Component calling itself "%s" talking on unexpected channel"""\
             % self.named
 
+
+log = logbook.Logger('Controller')
+
 class Controller(object):
     """
     A N to M messaging system for inter component communication.
@@ -132,9 +135,6 @@ class Controller(object):
     :param route_socket: Socket to listen for status updates for
                          the individual components.
                          :func message_sender: .
-
-    :param logging: Logging interface for tracking broker state
-        Defaults to None
 
     Topology is the set of components we expect to show up.
     States are the transitions the sytems go through. The
@@ -159,7 +159,7 @@ class Controller(object):
     debug = False
     period = 1
 
-    def __init__(self, pub_socket, route_socket, logger = None):
+    def __init__(self, pub_socket, route_socket):
 
         self.context    = None
         self.zmq        = None
@@ -181,12 +181,6 @@ class Controller(object):
         self.route_socket = route_socket
 
         self.error_replay = OrderedDict()
-
-        if logger:
-            self.logging = logger
-        else:
-            default_logger = logging.getLogger('ZiplineLogger')
-            self.logging = default_logger
 
     def init_zmq(self, flavor):
 
@@ -240,9 +234,9 @@ class Controller(object):
         old, self._state = self._state, new
 
         if (old, new) not in state_transitions:
-            raise RuntimeError("[Controller] Invalid State Transition : %s -> %s" %(old, new))
+            raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
         else:
-            self.logging.info("[Controller] State Transition : %s -> %s" %(old, new))
+            log.error("State Transition : %s -> %s" %(old, new))
 
     def run(self):
         self.running = True
@@ -251,13 +245,13 @@ class Controller(object):
         try:
             return self._poll() # use a python loop
         except KeyboardInterrupt:
-            self.logging.info('Shutdown event loop')
+            log.debug('Shutdown event loop')
 
     def log_status(self):
         """
         Snapshot of the tracked components at every period.
         """
-        #self.logging.info("[Controller] Tracking : %s" % ([c for c in self.tracked],))
+        #log.info("Tracking component : %s" % ([c for c in self.tracked],))
         pass
 
     def replay_errors(self):
@@ -366,11 +360,11 @@ class Controller(object):
                             self.handle_recv(buffer[:])
                             buffer = []
                     except INVALID_CONTROL_FRAME:
-                        self.logging.error('Invalid frame', rawmessage)
+                        log.error('Invalid frame', rawmessage)
                         pass
 
                 if socks.get(self.cancel) == self.zmq.POLLIN:
-                    self.logging.info('[Controller] Received Cancellation')
+                    log.info('Received Cancellation')
                     rawmessage = self.cancel.recv()
                     self.cancel.send('')
                     self.shutdown(soft=True)
@@ -430,7 +424,7 @@ class Controller(object):
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
-        self.logging.info('[Controller] Now Tracking "%s" ' % component)
+        log.info(' Now Tracking "%s" ' % component)
 
         universal = self.new_universal
         init_handlers = {
@@ -452,7 +446,7 @@ class Controller(object):
     def fail_universal(self):
         pass
         # TODO: this requires higher order functionality
-        #self.logging.error('[Controller] System in exception state, shutting down')
+        #log.error('System in exception state, shutting down')
         #self.shutdown(soft=True)
 
     def fail(self, component):
@@ -463,7 +457,7 @@ class Controller(object):
         fail_handlers = { }
 
         if component in self.topology or self.freeform:
-            self.logging.info('[Controller] Component "%s" timed out' % component)
+            log.error('Component "%s" timed out' % component)
             self.tracked.remove(component)
             fail_handlers.get(component, universal)()
 
@@ -472,7 +466,7 @@ class Controller(object):
     # -------------------
 
     def done(self, component):
-        self.logging.info('[Controller] Component "%s" done.' % component)
+        log.info('Component "%s" signaled done.' % component)
 
     # --------------
     # Error Handling
@@ -482,7 +476,7 @@ class Controller(object):
         """
         Shutdown the system on failure.
         """
-        self.logging.error('[Controller] System in exception state, shutting down')
+        log.error('System in exception state, shutting down')
         self.shutdown(soft=True)
 
     def exception(self, component, failure):
@@ -491,7 +485,7 @@ class Controller(object):
 
         if component in self.topology or self.freeform:
             self.error_replay[(component, time.time())] = failure
-            self.logging.error('[Controller] Component "%s" in exception state' % component)
+            log.error('Component in exception state: %s' % component)
 
             exception_handlers.get(component, universal)()
         else:
@@ -517,8 +511,9 @@ class Controller(object):
                 self.responses.add(identity)
             else:
                 # Otherwise its something weird and we don't know
-                # what to do so just say so
-                self.logging.error("Weird stuff happened: %s" % msg)
+                # what to do so just say so, probably line noise
+                # from ZeroMQ
+                log.error("Weird stuff happened: %s" % msg)
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
@@ -572,7 +567,7 @@ class Controller(object):
 
     def do_error_replay(self):
         for (component, time), error in self.error_replay.iteritems():
-            self.logging.info('[Controller] Error Log for -- %s --:\n%s' %
+            log.info('Error Log for -- %s --:\n%s' %
                 (component, error))
 
     def shutdown(self, hard=False, soft=True, context=None):
@@ -587,7 +582,7 @@ class Controller(object):
         if hard:
             self.state = CONTROL_STATES.TERMINATE
 
-            self.logging.info('[Controller] Hard Shutdown')
+            log.info('Hard Shutdown')
 
             #for asoc in self.associated:
                 #asoc.close()
@@ -595,7 +590,7 @@ class Controller(object):
         if soft:
             self.state = CONTROL_STATES.TERMINATE
 
-            self.logging.info('[Controller] Soft Shutdown')
+            log.info('Soft Shutdown')
             self.send_softkill()
 
             #for asoc in self.associated:
