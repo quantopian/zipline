@@ -1,28 +1,15 @@
-import logging
+import logbook
 from collections import Counter
 
-from zipline.core.component import Component
-from zipline.components.aggregator import Aggregate
-from zipline.utils.protocol_utils import Enum
+from zipline.components.aggregator import Aggregate, \
+    AGGREGATE_STATES, AGGREGATE_TRANSITIONS
 import zipline.protocol as zp
-from zipline.transitions import WorkflowMeta
 
-from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
-    CONTROL_FRAME, CONTROL_UNFRAME
+log = logbook.Logger('Feed')
 
-LOGGER = logging.getLogger('ZiplineLogger')
-
-# FSM
-# ---
-
-INIT, READY, DRAINING = FEED_STATES = \
-Enum( 'INIT', 'READY', 'DRAINING')
-
-state_transitions = dict(
-    do_start = (-1    , INIT)     ,
-    do_run   = (INIT  , READY)    ,
-    do_drain = (READY , DRAINING) ,
-)
+# =========
+# Component
+# =========
 
 class Feed(Aggregate):
     """
@@ -32,16 +19,13 @@ class Feed(Aggregate):
     one execution context (thread, process, etc) and run in another.
     """
 
-    __metaclass__ = WorkflowMeta
-
-    states = list(FEED_STATES)
-    transitions = state_transitions
+    states = list(AGGREGATE_STATES)
+    transitions = AGGREGATE_TRANSITIONS
     initial_state = -1
 
     def init(self):
         self.sent_count             = 0
         self.received_count         = 0
-        self.draining               = False
         self.ds_finished_counter    = 0
 
         self.data_buffer            = {}
@@ -50,11 +34,15 @@ class Feed(Aggregate):
         self.sent_counters          = Counter()
         self.recv_counters          = Counter()
 
-        self.state = INIT
+        self.state = AGGREGATE_STATES.INIT
 
     @property
     def get_id(self):
         return "FEED"
+
+    @property
+    def draining(self):
+        return self.state == DRAINING
 
     # -------
     # Sockets

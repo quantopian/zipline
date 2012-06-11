@@ -488,6 +488,29 @@ class Component(object):
 
         self.sockets.append(self.sync_socket)
 
+    # -----------
+    # FSM Actions
+    # -----------
+
+    #@property
+    #def state(self):
+        #if not hasattr(self, '_state'):
+            #self._state = self.initial_state
+        #else:
+            #return self._state
+
+    #@state.setter
+    #def state(self, new):
+        #if not hasattr(self, '_state'):
+            #self._state = self.initial_state
+
+        #old = self._state
+
+        #if (old, new) in self.workflow:
+            #self._state = new
+        #else:
+            #raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
+
     # ---------------------
     # Description and Debug
     # ---------------------
@@ -568,23 +591,3 @@ class Component(object):
             pid     = os.getpid()          ,
             pointer = hex(id(self))        ,
         )
-
-
-    @property
-    def state(self):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-        else:
-            return self._state
-
-    @state.setter
-    def state(self, new):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-
-        old = self._state
-
-        if (old, new) in self.workflow:
-            self._state = new
-        else:
-            raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
