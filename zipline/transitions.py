@@ -39,24 +39,6 @@ class WorkflowMeta(type):
     """
     Base metaclass component workflows.
     """
-    @property
-    def state(self):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-        else:
-            return self._state
-
-    @state.setter
-    def state(self, new):
-        if not hasattr(self, '_state'):
-            self._state = self.initial_state
-
-        old = self._state
-
-        if (old, new) in self.workflow:
-            self._state = new
-        else:
-            raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
 
     def __new__(cls, name, mro, attrs):
         base          = 'Component'
@@ -71,7 +53,6 @@ class WorkflowMeta(type):
                 raise RuntimeError('`workflow` is a reserved attribute.')
 
             if not state:
-                import pdb; pdb.set_trace()
                 raise RuntimeError('Must specify states')
 
             if not transitions:
