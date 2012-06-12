@@ -357,7 +357,7 @@ class Component(object):
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
 
-        log.info("[%s] DONE" % self.get_id)
+        #log.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging

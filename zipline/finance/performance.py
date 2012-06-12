@@ -287,12 +287,15 @@ class PerformanceTracker(object):
         if self.results_socket:
             msg = zp.PERF_FRAME(self.to_dict())
             self.results_socket.send(msg)
+        else:
+            log.info(self.to_dict())
 
         #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
+                print 0/0
                 log.info(str(returns) + " broke through " + str(max_dd))
                 log.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag,

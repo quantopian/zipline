@@ -7,106 +7,13 @@ import gevent_zeromq
 
 from collections import OrderedDict
 
+from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
     CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
 
-states = CONTROL_STATES
-
-from zipline.utils.gpoll import _Poller as GeventPoller
-
-# Roll Call ( Discovery )
-# -----------------------
-#
-#       Controller ( 'foo', 'bar', 'fizz', 'pop' )
-#    ------------------
-#    |     |     |     |
-#  +---+
-#  | 0 |   ?     ?     ?
-#  +---+
-#    |
-#   IDENTITY: foo
-#   get message: PROTOCOL.HEARTBEAT
-#   reply with PROTOCOL.OK
-#
-#       Controller topology = ( 'foo', 'bar', 'fizz', 'pop' )
-#       'foo' in topology = YES ->
-#           track 'foo'
-#    ------------------
-#    |     |     |     |
-#  +---+
-#  | 1 |   ?     ?     ?
-#  +---+
-
-# Heartbeating
-# ------------
-#
-#       Controller ( time = 2.717828 )
-#    ------------------
-#    |     |     |     |
-#  +---+ +---+ +---+ +---+
-#  | 0 | | 0 | | 0 | | 0 |
-#  +---+ +---+ +---+ +---+
-#    |
-#   IDENTITY: foo
-#   get message: time = 2.717828
-#   reply with [ foo, 2.71828 ]
-#
-#       Controller ( foo.status = OK )
-#    ------------------
-#    |     |     |     |
-#  +---+ +---+ +---+ +---+
-#  | 1 | | 0 | | 0 | | 0 |
-#  +---+ +---+ +---+ +---+
-#    |
-#  Controller tracks this node as good
-#  for this heartbeat
-
-# Shutdown
-# --------
-#
-#       Controller ( state = RUNNING )
-#    ------------------
-#    |     |     |     |
-#  +---+ +---+ +---+ +---+
-#  | 1 | | 1 | | 1 | | 1 |
-#  +---+ +---+ +---+ +---+
-#    |
-#   IDENTITY: foo
-#   send [ DONE ]
-
-#       Controller ( state = SHUTDOWN )
-#       Controller topology.remove('foo')
-#    ------------------
-#          |     |     |
-#  +---+ +---+ +---+ +---+
-#  |   | | 1 | | 1 | | 1 |
-#  +---+ +---+ +---+ +---+
-#    |
-#   IDENTITY: foo
-#   yield, stop sending messages
-
-# Termination
-# ------------
-#
-#       Controller ( state = TERMINATE )
-#    ------------------
-#    |     |     |     |
-#  +---+ +---+ +---+ +---+
-#  | 1 | | 1 | | 1 | | 1 |
-#  +---+ +---+ +---+ +---+
-#    |
-#   get message PROTOCOL.KILL
-
-#       Controller ( state = TERMINATE )
-#    ------------------
-#    |     |     |     |
-#  +---+ +---+ +---+ +---+
-#  | 0 | | 0 | | 0 | | 0 |
-#  +---+ +---+ +---+ +---+
-
 INIT, SOURCES_READY, RUNNING, TERMINATE = CONTROL_STATES
 
-state_transitions = frozenset([
+CONTROLLER_TRANSITIONS = frozenset([
     (-1            , INIT),
     (INIT          , SOURCES_READY),
     (SOURCES_READY , RUNNING),
@@ -233,7 +140,7 @@ class Controller(object):
     def state(self, new):
         old, self._state = self._state, new
 
-        if (old, new) not in state_transitions:
+        if (old, new) not in CONTROLLER_TRANSITIONS:
             raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
         else:
             log.error("State Transition : %s -> %s" %(old, new))
@@ -571,6 +478,9 @@ class Controller(object):
                 (component, error))
 
     def shutdown(self, hard=False, soft=True, context=None):
+
+        if self.state is CONTROL_STATES.TERMINATE:
+            return
 
         if not self.polling:
             return

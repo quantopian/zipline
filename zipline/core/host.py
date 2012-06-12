@@ -100,11 +100,11 @@ class ComponentHost(Component):
         self.sockets.append(self.sync_socket)
 
     def open(self):
-        log.info('== Roll Call ==\n')
+        log.info('== Roll Call ==')
         for component in self.components.itervalues():
             log.info(component)
 
-        log.info('== End Roll Call ==\n')
+        log.info('== End Roll Call ==')
 
         for component in self.components.itervalues():
             self.launch_component(component)
