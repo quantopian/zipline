@@ -120,7 +120,7 @@ omitted).
 
 """
 
-import logging
+import logbook
 import datetime
 import pytz
 import math
@@ -130,7 +130,7 @@ import zmq
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
     """
@@ -207,7 +207,7 @@ class PerformanceTracker(object):
             sock.connect(self.results_addr)
             self.results_socket = sock
         else:
-            LOGGER.warn("Not streaming results because no results socket given")
+            log.warn("Not streaming results because no results socket given")
 
     def publish_to(self, results_addr):
         """
@@ -287,14 +287,17 @@ class PerformanceTracker(object):
         if self.results_socket:
             msg = zp.PERF_FRAME(self.to_dict())
             self.results_socket.send(msg)
+        else:
+            log.info(self.to_dict())
 
         #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
-                LOGGER.info(str(returns) + " broke through " + str(max_dd))
-                LOGGER.info("Exceeded max drawdown.")
+                print 0/0
+                log.info(str(returns) + " broke through " + str(max_dd))
+                log.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag,
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
@@ -329,8 +332,8 @@ class PerformanceTracker(object):
         """
 
         log_msg = "Simulated {n} trading days out of {m}."
-        LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
-        LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        log.info(log_msg.format(n=self.day_count, m=self.total_days))
+        log.info("first open: {d}".format(d=self.trading_environment.first_open))
 
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
@@ -345,7 +348,7 @@ class PerformanceTracker(object):
         )
 
         if self.results_socket:
-            LOGGER.info("about to stream the risk report...")
+            log.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
 
             msg = zp.RISK_FRAME(risk_dict)

@@ -7,20 +7,20 @@ from zipline.finance.movingaverage import EventWindow
 class VWAPTransform(BaseTransform):
 
     def init(self, name, daycount=3):
-        self.state = {}
-        self.state['name'] = name
+        self.props = {}
+        self.props['name'] = name
         self.daycount = daycount
         self.by_sid = defaultdict(self.create_vwap)
 
     @property
     def get_id(self):
-        return self.state['name']
+        return self.props['name']
 
     def transform(self, event):
         cur = self.by_sid[event.sid]
         cur.update(event)
-        self.state['value'] = cur.vwap
-        return self.state
+        self.props['value'] = cur.vwap
+        return self.props
 
     def create_vwap(self):
         return DailyVWAP(self.daycount)

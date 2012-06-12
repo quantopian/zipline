@@ -9,16 +9,30 @@ Abstract base class for Feed and Merge.
   Feed   Merge
 
 """
-import logging
-from collections import Counter
+import logbook
 
 import zipline.protocol as zp
 
 from zipline.core.component import Component
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     CONTROL_FRAME, CONTROL_UNFRAME
+from zipline.utils.protocol_utils import Enum
+from zipline.transitions import WorkflowMeta
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Aggregate')
+
+# =================
+# State Transitions
+# =================
+
+INIT, READY, DRAINING = AGGREGATE_STATES = \
+Enum( 'INIT', 'READY', 'DRAINING')
+
+AGGREGATE_TRANSITIONS = dict(
+    do_start = (-1    , INIT)     ,
+    do_run   = (INIT  , READY)    ,
+    do_drain = (READY , DRAINING) ,
+)
 
 class Aggregate(Component):
     """
@@ -31,6 +45,9 @@ class Aggregate(Component):
 
     Feed and Merge define these differently.
     """
+
+    abstract = True
+    __metaclass__ = WorkflowMeta
 
     @property
     def get_type(self):
@@ -76,22 +93,21 @@ class Aggregate(Component):
 
                 if len(self.data_buffer) == self.ds_finished_counter:
                     #drain any remaining messages in the buffer
-                    LOGGER.debug("draining feed")
+                    log.debug("Draining Feed")
                     self.drain()
                     self.signal_done()
             else:
                 try:
                     event = self.unframe(message)
-                # deserialization error
                 except zp.INVALID_DATASOURCE_FRAME as exc:
+                    # Error deserializing
                     return self.signal_exception(exc)
 
                 try:
                     self.append(event)
                     self.send_next()
-
-                # Invalid message
                 except zp.INVALID_DATASOURCE_FRAME as exc:
+                    # Invalid message
                     return self.signal_exception(exc)
 
     # -------------
@@ -102,7 +118,7 @@ class Aggregate(Component):
         """
         Send all messages in the buffer.
         """
-        self.draining = True
+        self.state = DRAINING
         while self.pending_messages() > 0:
             self.send_next()
 
@@ -114,7 +130,8 @@ class Aggregate(Component):
             return
 
         event = self.next()
-        if(event != None):
+
+        if event:
             self.feed_socket.send(self.frame(event), self.zmq.NOBLOCK)
             self.sent_counters[event.source_id] += 1
             self.sent_count += 1

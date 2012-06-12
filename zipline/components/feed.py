@@ -1,14 +1,15 @@
-import logging
+import logbook
 from collections import Counter
 
-from zipline.core.component import Component
-from zipline.components.aggregator import Aggregate
+from zipline.components.aggregator import Aggregate, \
+    AGGREGATE_STATES, AGGREGATE_TRANSITIONS
 import zipline.protocol as zp
 
-from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
-    CONTROL_FRAME, CONTROL_UNFRAME
+log = logbook.Logger('Feed')
 
-LOGGER = logging.getLogger('ZiplineLogger')
+# =========
+# Component
+# =========
 
 class Feed(Aggregate):
     """
@@ -18,23 +19,30 @@ class Feed(Aggregate):
     one execution context (thread, process, etc) and run in another.
     """
 
+    states = list(AGGREGATE_STATES)
+    transitions = AGGREGATE_TRANSITIONS
+    initial_state = -1
+
     def init(self):
         self.sent_count             = 0
         self.received_count         = 0
-        self.draining               = False
         self.ds_finished_counter    = 0
 
-        # Depending on the size of this, might want to use a data
-        # structure with better asymptotics.
         self.data_buffer            = {}
 
         # source_id -> integer count
         self.sent_counters          = Counter()
         self.recv_counters          = Counter()
 
+        self.state = AGGREGATE_STATES.INIT
+
     @property
     def get_id(self):
         return "FEED"
+
+    @property
+    def draining(self):
+        return self.state == AGGREGATE_STATES.DRAINING
 
     # -------
     # Sockets
@@ -71,6 +79,8 @@ class Feed(Aggregate):
         """
         Get the next message in chronological order.
         """
+
+        # is_full and draining defined in aggregator
         if not(self.is_full() or self.draining):
             return
 

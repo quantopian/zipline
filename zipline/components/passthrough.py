@@ -7,7 +7,7 @@ class PassthroughTransform(BaseTransform):
     """
 
     def init(self):
-        self.state = { 'name': 'PASSTHROUGH' }
+        self.props = { 'name': 'PASSTHROUGH' }
 
     #TODO, could save some cycles by skipping the _UNFRAME call
     # and just setting value to original msg string.
