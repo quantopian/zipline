@@ -295,7 +295,6 @@ class PerformanceTracker(object):
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
-                print 0/0
                 log.info(str(returns) + " broke through " + str(max_dd))
                 log.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag,
