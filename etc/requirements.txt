@@ -15,4 +15,4 @@ setuptools==0.6c11
 setproctitle==1.1.6
 
 # Logging
-Logbook=0.3
+Logbook==0.3
