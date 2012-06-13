@@ -143,7 +143,7 @@ class Controller(object):
         if (old, new) not in CONTROLLER_TRANSITIONS:
             raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
         else:
-            log.error("State Transition : %s -> %s" %(old, new))
+            log.info("State Transition : %s -> %s" %(old, new))
 
     def run(self):
         self.running = True
@@ -364,7 +364,7 @@ class Controller(object):
         fail_handlers = { }
 
         if component in self.topology or self.freeform:
-            log.error('Component "%s" timed out' % component)
+            log.warning('Component "%s" timed out' % component)
             self.tracked.remove(component)
             fail_handlers.get(component, universal)()
 

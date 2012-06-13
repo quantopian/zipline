@@ -288,7 +288,7 @@ class PerformanceTracker(object):
             msg = zp.PERF_FRAME(self.to_dict())
             self.results_socket.send(msg)
         else:
-            log.info(self.to_dict())
+            log.debug(self.to_dict())
 
         #
         if self.trading_environment.max_drawdown:
