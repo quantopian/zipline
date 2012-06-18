@@ -25,7 +25,7 @@ class BaseTransform(Component):
 
     @property
     def get_id(self):
-        return self.state['name']
+        return self.props['name']
 
     @property
     def get_type(self):
@@ -116,9 +116,9 @@ class BaseTransform(Component):
 
         Transforms run in parallel and results are merged into a
         single map, so transform names must be unique. Best practice
-        is to use the self.state object initialized from the transform
+        is to use the self.props object initialized from the transform
         configuration, and only set the transformed value::
 
-            self.state['value'] = transformed_value
+            self.props['value'] = transformed_value
         """
         raise NotImplementedError

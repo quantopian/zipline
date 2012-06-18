@@ -1,4 +1,4 @@
-import logging
+import logbook
 import datetime
 
 import zipline.protocol as zp
@@ -8,7 +8,7 @@ from zipline.core.component import Component
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.protocol_utils import  ndict
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('TradeSimulation')
 
 class TradeSimulationClient(Component):
 
@@ -74,7 +74,7 @@ class TradeSimulationClient(Component):
                 self.finish_simulation()
 
     def finish_simulation(self):
-        LOGGER.info("Client is DONE!")
+        log.info("TradeSimulation is Done")
         # signal the performance tracker that the simulation has
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()

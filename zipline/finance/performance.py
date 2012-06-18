@@ -59,10 +59,19 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | last_sale_price | price at last sale of the security on the exchange |
     +-----------------+----------------------------------------------------+
+    | cost_basis      | the volume weighted average price paid per share   |
+    +-----------------+----------------------------------------------------+
+
 
 
 Performance Period
 ==================
+
+Performance Periods are updated with every trade. When calling
+code needs a portfolio object that fulfills the algorithm
+protocol, use the PerformancePeriod.as_portfolio method. See that
+method for comments on the specific fields provided (and
+omitted).
 
     +---------------+------------------------------------------------------+
     | key           | value                                                |
@@ -111,7 +120,7 @@ Performance Period
 
 """
 
-import logging
+import logbook
 import datetime
 import pytz
 import math
@@ -121,7 +130,7 @@ import zmq
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
     """
@@ -190,7 +199,7 @@ class PerformanceTracker(object):
         )
 
     def get_portfolio(self):
-        return self.cumulative_performance.to_ndict()
+        return self.cumulative_performance.as_portfolio()
 
     def open(self, context):
         if self.results_addr:
@@ -198,7 +207,7 @@ class PerformanceTracker(object):
             sock.connect(self.results_addr)
             self.results_socket = sock
         else:
-            LOGGER.warn("Not streaming results because no results socket given")
+            log.warn("Not streaming results because no results socket given")
 
     def publish_to(self, results_addr):
         """
@@ -247,11 +256,11 @@ class PerformanceTracker(object):
         self.cumulative_performance.update_last_sale(event)
         self.todays_performance.update_last_sale(event)
 
-
-    def handle_market_close(self):
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
+
+    def handle_market_close(self):
 
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
@@ -278,14 +287,16 @@ class PerformanceTracker(object):
         if self.results_socket:
             msg = zp.PERF_FRAME(self.to_dict())
             self.results_socket.send(msg)
+        else:
+            log.debug(self.to_dict())
 
         #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
             if returns < max_dd:
-                LOGGER.info(str(returns) + " broke through " + str(max_dd))
-                LOGGER.info("Exceeded max drawdown.")
+                log.info(str(returns) + " broke through " + str(max_dd))
+                log.info("Exceeded max drawdown.")
                 # mark the perf period with max loss flag,
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
@@ -320,8 +331,8 @@ class PerformanceTracker(object):
         """
 
         log_msg = "Simulated {n} trading days out of {m}."
-        LOGGER.info(log_msg.format(n=self.day_count, m=self.total_days))
-        LOGGER.info("first open: {d}".format(d=self.trading_environment.first_open))
+        log.info(log_msg.format(n=self.day_count, m=self.total_days))
+        log.info("first open: {d}".format(d=self.trading_environment.first_open))
 
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
@@ -336,7 +347,7 @@ class PerformanceTracker(object):
         )
 
         if self.results_socket:
-            LOGGER.info("about to stream the risk report...")
+            log.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
 
             msg = zp.RISK_FRAME(risk_dict)
@@ -490,14 +501,7 @@ class PerformancePeriod(object):
             self.positions[event.sid].last_sale_price = event.price
             self.positions[event.sid].last_sale_date = event.dt
 
-    def to_dict(self):
-        """
-        Creates a dictionary representing the state of this performance
-        period. See header comments for a detailed description.
-        """
-        positions = self.get_positions_list()
-        transactions = [x.as_dict() for x in self.processed_transactions]
-
+    def __core_dict(self):
         rval = {
             'ending_value'              : self.ending_value,
             'capital_used'              : self.period_capital_used,
@@ -508,46 +512,69 @@ class PerformancePeriod(object):
             'cumulative_capital_used'   : self.cumulative_capital_used,
             'max_capital_used'          : self.max_capital_used,
             'max_leverage'              : self.max_leverage,
-            'positions'                 : positions,
             'pnl'                       : self.pnl,
             'returns'                   : self.returns,
-            'transactions'              : transactions,
             'period_open'               : self.period_open,
             'period_close'              : self.period_close
         }
 
+        return rval
+
+
+    def to_dict(self):
+        """
+        Creates a dictionary representing the state of this performance
+        period. See header comments for a detailed description.
+        """
+        rval = self.__core_dict()
+        positions = self.get_positions_list()
+        rval['positions'] = positions
+
         # we want the key to be absent, not just empty
-        if not self.keep_transactions:
-            del rval['transactions']
+        if self.keep_transactions:
+            transactions = [x.as_dict() for x in self.processed_transactions]
+            rval['transactions'] = transactions
 
         return rval
 
-    def to_ndict(self):
+    def as_portfolio(self):
         """
-        Creates a ndict representing the state of this perfomance period.
-        Properties are the same as the results of to_dict. See header comments
-        for a detailed description.
-
+        The purpose of this method is to provide a portfolio
+        object to algorithms running inside the same trading
+        client. The data needed is captured raw in a
+        PerformancePeriod, and in this method we rename some
+        fields for usability and remove extraneous fields.
         """
-        positions = self.get_positions(ndicted=True)
+        portfolio = self.__core_dict()
+        # rename:
+        # ending_cash -> cash
+        # period_open -> backtest_start
+        #
+        # remove:
+        # period_close, starting_value,
+        # cumulative_capital_used, max_leverage, max_capital_used
+        portfolio['cash'] = portfolio['ending_cash']
+        portfolio['start_date'] = portfolio['period_open']
+        portfolio['position_value'] = portfolio['ending_value']
 
-        positions = zp.ndict(positions)
+        del(portfolio['ending_cash'])
+        del(portfolio['period_open'])
+        del(portfolio['period_close'])
+        del(portfolio['starting_value'])
+        del(portfolio['ending_value'])
+        del(portfolio['cumulative_capital_used'])
+        del(portfolio['max_leverage'])
+        del(portfolio['max_capital_used'])
 
-        return zp.ndict({
-            'ending_value'              : self.ending_value,
-            'capital_used'              : self.period_capital_used,
-            'starting_value'            : self.starting_value,
-            'starting_cash'             : self.starting_cash,
-            'ending_cash'               : self.ending_cash,
-            'cumulative_capital_used'   : self.cumulative_capital_used,
-            'max_capital_used'          : self.max_capital_used,
-            'max_leverage'              : self.max_leverage,
-            'positions'                 : positions,
-            'transactions'              : self.processed_transactions
-        })
+        portfolio['positions'] = self.get_positions(ndicted=True)
+        return zp.ndict(portfolio)
 
     def get_positions(self, ndicted=False):
-        positions = {}
+        if ndicted:
+            positions = zp.ndict({})
+        else:
+            positions = {}
+
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
             if ndicted:

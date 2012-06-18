@@ -60,8 +60,6 @@ before invoking simulate.
                           +---------------------------------+
 """
 
-import logging
-
 import zipline.utils.factory as factory
 
 from zipline.components import DataSource
@@ -72,8 +70,6 @@ from zipline.components import TradeSimulationClient
 from zipline.core.devsimulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
-
-LOGGER = logging.getLogger('ZiplineLogger')
 
 class SimulatedTrading(object):
     """
@@ -133,7 +129,6 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[6],
             sockets[7],
-            logger = LOGGER
         )
 
         self.con.cancel_socket = self.allocator.lease(1)[0]

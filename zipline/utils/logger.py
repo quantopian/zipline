@@ -3,6 +3,7 @@ Small classes to assist with timezone calculations, LOGGER configuration,
 and other common operations.
 """
 
+# DEPRECATED DO NOT USE
 
 import logging
 import logging.config
