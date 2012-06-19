@@ -141,7 +141,13 @@ class RiskMetrics():
             'period_label'          : period_label
         }
 
-        return {k:None if np.isnan(v) else v for k,v in rval.iteritems()}
+        def check_entry(key, value):
+            if key in {'algo_volatility', 'benchmark_volatility', 'beta'}:
+                return np.isnan(value)
+            else:
+                return False
+
+        return {k:None if check_entry(k,v) else v for k,v in rval.iteritems()}
 
     def __repr__(self):
         statements = []
