@@ -126,7 +126,7 @@ class RiskMetrics():
         Returns a dict object of the form:
         """
         period_label = self.end_date.strftime("%Y-%m")
-        return {
+        rval = {
             'trading_days'          : self.trading_days,
             'benchmark_volatility'  : self.benchmark_volatility,
             'algo_volatility'       : self.algorithm_volatility,
@@ -140,6 +140,8 @@ class RiskMetrics():
             'max_drawdown'          : self.max_drawdown,
             'period_label'          : period_label
         }
+
+        return {k:None if np.isnan(v) else v for k,v in rval.iteritems()}
 
     def __repr__(self):
         statements = []
