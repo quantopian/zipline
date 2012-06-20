@@ -325,6 +325,10 @@ class SimulatedTrading(object):
         if blocking:
             self.sim_context.join()
 
+    @property
+    def is_success(self):
+        return self.sim.read() and not self.sim.exception
+
     #--------------------------------
     # Component property accessors
     #--------------------------------
