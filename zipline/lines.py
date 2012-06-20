@@ -99,7 +99,7 @@ class SimulatedTrading(object):
         :param config: a dict with the following required properties::
 
         - algorithm: a class that follows the algorithm protocol. See
-        :py:meth:`zipline.finance.trading.TradingSimulationClient.add_algorithm
+        :py:meth:`zipline.finance.trading.TradeSimulationClient.add_algorithm
         for details.
         - trading_environment: an instance of
         :py:class:`zipline.trading.TradingEnvironment`
@@ -127,7 +127,7 @@ class SimulatedTrading(object):
             'feed_address'   : sockets[2],
             'merge_address'  : sockets[3],
             'result_address' : sockets[4],
-            'order_address'  : sockets[5]
+            'order_address'  : sockets[5] 
         }
 
         self.con = Controller(
@@ -150,7 +150,8 @@ class SimulatedTrading(object):
         self.clients = {}
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
-            self.sim_style
+            self.sim_style,
+            config.log_socket
         )
         self.add_client(self.trading_client)
 
