@@ -327,7 +327,11 @@ class SimulatedTrading(object):
 
     @property
     def is_success(self):
-        return self.sim.read() and not self.sim.exception
+        # TODO: other assertions?
+        if self.sim.did_clean_shutdown():
+            return True
+        else:
+            return False
 
     #--------------------------------
     # Component property accessors
