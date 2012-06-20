@@ -141,8 +141,10 @@ class RiskMetrics():
             'period_label'          : period_label
         }
 
+        # check if a field in rval is nan, and replace it with
+        # None.
         def check_entry(key, value):
-            if key in {'algo_volatility', 'benchmark_volatility', 'beta'}:
+            if key != 'period_label':
                 return np.isnan(value)
             else:
                 return False
