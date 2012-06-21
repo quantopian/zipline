@@ -8,10 +8,11 @@ import zipline.finance.performance as perf
 from zipline.core.component import Component
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.protocol_utils import  ndict
-from zipline.utils.env_utils import stdout_only_pipe
 
-from logbook import Logger
-from logbook import queues
+from qexec.executor.env_utils import stdout_only_pipe
+
+from logbook import Logger, NestedSetup, Processor, queues
+
 
 LOGGER = logging.getLogger('ZiplineLogger')
 
@@ -38,10 +39,10 @@ class TradeSimulationClient(Component):
 
         #If we have a log socket,setup context managers for capturing user logs.
         if log_socket:
-            log = Logger("User logs")
+            log = Logger("User Log")
             self.stdout_capture = stdout_only_pipe(log, 'user algo stdout')
-
-            handler = queues.ZeroMQHandler()
+            
+            handler = queues.ZeroMQLogHandler()
             handler.socket.connect(log_socket)
             self.zmq_out = handler.threadbound()
         
@@ -90,7 +91,7 @@ class TradeSimulationClient(Component):
 
             # result_feed is a merge component, so unframe accordingly
             event = zp.MERGE_UNFRAME(msg)
-             self.received_count += 1
+            self.received_count += 1
             # update performance and relay the event to the algorithm
             self.process_event(event)
             if self.perf.exceeded_max_loss:
@@ -159,14 +160,25 @@ class TradeSimulationClient(Component):
         self.algorithm.set_portfolio(current_portfolio)
         data = self.get_data()
         if len(data) > 0:
+            
+            # data injection pipeline for log rerouting
+            def inject_event_data(record):
+                record.extra['algo_dt'] = event.dt
+                #record.extra['whatever else we want'] = event.whatever
+
+            data_injector = Processor(inject_event_data) 
+            log_pipeline = NestedSetup([self.zmq_out,
+                                        #e.g. FileHandler(...)
+                                        data_injector])
+
             # try to run algo with log rerouting
             if log_socket:
-                with self.zmq_out, self.stdout_capture:
+                with log_pipeline, self.stdout_capture:
                     self.algorithm.handle_data(data)
             # if no log socket, just run the algo normally
             else:
                 self.algorithm.handle_data(data)
-                    
+                
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
 
