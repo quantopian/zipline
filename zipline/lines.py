@@ -327,7 +327,7 @@ class SimulatedTrading(object):
 
     @property
     def is_success(self):
-        return self.sim.read() and not self.sim.exception
+        return self.sim.ready() and not self.sim.exception
 
     #--------------------------------
     # Component property accessors
