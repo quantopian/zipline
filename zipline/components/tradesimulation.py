@@ -9,7 +9,7 @@ from zipline.core.component import Component
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.protocol_utils import  ndict
 
-from qexec.executor.env_utils import stdout_only_pipe
+from qexec.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 
 from logbook import Logger, NestedSetup, Processor, queues
 
@@ -39,11 +39,14 @@ class TradeSimulationClient(Component):
 
         #If we have a log socket,setup context managers for capturing user logs.
         if log_socket:
+            
+            #Temporarily putting this here to fix circular import bug.
+            
+            
             log = Logger("User Log")
             self.stdout_capture = stdout_only_pipe(log, 'user algo stdout')
             
-            handler = queues.ZeroMQLogHandler()
-            handler.socket.connect(log_socket)
+            handler = queues.ZeroMQLogHandler(uri = log_socket)
             self.zmq_out = handler.threadbound()
         
     @property
@@ -162,6 +165,9 @@ class TradeSimulationClient(Component):
         if len(data) > 0:
             
             # data injection pipeline for log rerouting
+            # any fields injected here should be added to
+            # LOG_EXTRA_FIELDS in qexec/web/client_protocol
+
             def inject_event_data(record):
                 record.extra['algo_dt'] = event.dt
                 #record.extra['whatever else we want'] = event.whatever
