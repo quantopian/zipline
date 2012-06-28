@@ -1,4 +1,4 @@
-import logging
+import logbook
 import datetime
 
 from component import Component
@@ -8,7 +8,7 @@ from zipline.components import Feed, Merge, PassthroughTransform, \
     DataSource
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Host')
 
 class ComponentHost(Component):
     """
@@ -89,7 +89,7 @@ class ComponentHost(Component):
         """
         Setup the sync socket and poller. ( Bind )
         """
-        #LOGGER.debug("Connecting sync server.")
+        #log.debug("Connecting sync server.")
 
         self.sync_socket = self.context.socket(self.zmq.REP)
         self.sync_socket.bind(self.addresses['sync_address'])
@@ -100,11 +100,11 @@ class ComponentHost(Component):
         self.sockets.append(self.sync_socket)
 
     def open(self):
-        LOGGER.info('== Roll Call ==\n')
+        log.info('== Roll Call ==')
         for component in self.components.itervalues():
-            LOGGER.info(component)
+            log.info(component)
 
-        LOGGER.info('== End Roll Call ==\n')
+        log.info('== End Roll Call ==')
 
         for component in self.components.itervalues():
             self.launch_component(component)
@@ -117,7 +117,7 @@ class ComponentHost(Component):
         """
 
         if len(self.components) == 0:
-            LOGGER.info("Component register is empty.")
+            log.info("Component register is empty.")
             return False
 
         return True
@@ -138,14 +138,15 @@ class ComponentHost(Component):
                 except ValueError as exc:
                     self.signal_exception(exc)
 
-                if status == str(CONTROL_PROTOCOL.DONE): # TODO: other way around
-                    LOGGER.debug("{id} is DONE".format(id=sync_id))
+                # TODO: other way around
+                if status == str(CONTROL_PROTOCOL.DONE):
+                    #log.debug("Component claims done: {id}".format(id=sync_id))
                     self.unregister_component(sync_id)
                     self.state_flag = COMPONENT_STATE.DONE
                 else:
                     self.sync_register[sync_id] = datetime.datetime.utcnow()
 
-                #qutil.LOGGER.info("confirmed {id}".format(id=msg))
+                #log.info("confirmed {id}".format(id=msg))
                 # send synchronization reply
                 self.sync_socket.send('ack', self.zmq.NOBLOCK)
 

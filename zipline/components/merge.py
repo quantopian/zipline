@@ -1,6 +1,6 @@
-
 import zipline.protocol as zp
-from zipline.components.aggregator import Aggregate
+from zipline.components.aggregator import Aggregate, \
+    AGGREGATE_STATES, AGGREGATE_TRANSITIONS
 
 from collections import Counter
 
@@ -8,6 +8,11 @@ class Merge(Aggregate):
     """
     Merges multiple streams of events into single messages.
     """
+
+    states = list(AGGREGATE_STATES)
+    transitions = AGGREGATE_TRANSITIONS
+    initial_state = -1
+
     def init(self):
         self.sent_count             = 0
         self.received_count         = 0

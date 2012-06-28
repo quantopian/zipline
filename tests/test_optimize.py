@@ -2,11 +2,8 @@
 from unittest2 import TestCase, skip
 from nose.tools import timed
 from collections import defaultdict
-import logging
 
 import numpy as np
-
-from zipline.utils.logger import configure_logging
 
 from zipline.core.devsimulator import AddressAllocator
 from zipline.optimize.factory import create_predictable_zipline
@@ -15,7 +12,8 @@ DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
-LOGGER = logging.getLogger('ZiplineLogger')
+
+from logbook.compat import LoggingHandler
 
 class TestUpDown(TestCase):
     """This unittest verifies that the BuySellAlgorithm in
@@ -26,14 +24,18 @@ class TestUpDown(TestCase):
     leased_sockets = defaultdict(list)
 
     def setUp(self):
-        configure_logging()
         self.zipline_test_config = {
-            'allocator':allocator,
-            'sid':133,
-            'trade_count':5,
-            'amplitude':30,
-            'base_price':50
+            'allocator'   : allocator,
+            'sid'         : 133,
+            'trade_count' : 5,
+            'amplitude'   : 30,
+            'base_price'  : 50
         }
+        self.log_handler = LoggingHandler()
+        self.log_handler.push_application()
+
+    def tearDown(self):
+        self.log_handler.pop_application()
 
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):

@@ -1,4 +1,3 @@
-import logging
 import logbook
 import datetime
 
@@ -13,8 +12,8 @@ from qexec.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 
 from logbook import Logger, NestedSetup, Processor, queues
 
+log = logbook.Logger('TradeSimulation')
 
-LOGGER = logging.getLogger('ZiplineLogger')
 
 class TradeSimulationClient(Component):
 
@@ -98,7 +97,7 @@ class TradeSimulationClient(Component):
                 self.finish_simulation()
 
     def finish_simulation(self):
-        LOGGER.info("Client is DONE!")
+        log.info("TradeSimulation is Done")
         # signal the performance tracker that the simulation has
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()
@@ -147,7 +146,6 @@ class TradeSimulationClient(Component):
         self.last_iteration_dur = datetime.datetime.utcnow() - event_start
         # move the algorithm's clock forward to include iteration time
         self.current_dt = self.current_dt  + self.last_iteration_dur
-
 
     def run_algorithm(self):
         """
