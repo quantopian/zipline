@@ -126,7 +126,7 @@ class RiskMetrics():
         Returns a dict object of the form:
         """
         period_label = self.end_date.strftime("%Y-%m")
-        return {
+        rval = {
             'trading_days'          : self.trading_days,
             'benchmark_volatility'  : self.benchmark_volatility,
             'algo_volatility'       : self.algorithm_volatility,
@@ -140,6 +140,16 @@ class RiskMetrics():
             'max_drawdown'          : self.max_drawdown,
             'period_label'          : period_label
         }
+
+        # check if a field in rval is nan, and replace it with
+        # None.
+        def check_entry(key, value):
+            if key != 'period_label':
+                return np.isnan(value)
+            else:
+                return False
+
+        return {k:None if check_entry(k,v) else v for k,v in rval.iteritems()}
 
     def __repr__(self):
         statements = []

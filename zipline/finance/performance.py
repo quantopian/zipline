@@ -287,8 +287,6 @@ class PerformanceTracker(object):
         if self.results_socket:
             msg = zp.PERF_FRAME(self.to_dict())
             self.results_socket.send(msg)
-        else:
-            log.debug(self.to_dict())
 
         #
         if self.trading_environment.max_drawdown:
@@ -555,7 +553,7 @@ class PerformancePeriod(object):
         # cumulative_capital_used, max_leverage, max_capital_used
         portfolio['cash'] = portfolio['ending_cash']
         portfolio['start_date'] = portfolio['period_open']
-        portfolio['position_value'] = portfolio['ending_value']
+        portfolio['positions_value'] = portfolio['ending_value']
 
         del(portfolio['ending_cash'])
         del(portfolio['period_open'])

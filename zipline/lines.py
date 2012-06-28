@@ -325,6 +325,14 @@ class SimulatedTrading(object):
         if blocking:
             self.sim_context.join()
 
+    @property
+    def is_success(self):
+        # TODO: other assertions?
+        if self.sim.did_clean_shutdown():
+            return True
+        else:
+            return False
+
     #--------------------------------
     # Component property accessors
     #--------------------------------

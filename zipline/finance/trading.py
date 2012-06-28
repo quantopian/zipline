@@ -151,20 +151,6 @@ class TransactionSimulator(object):
                 dt.replace(tzinfo = pytz.utc),
                 direction
             )
-        elif len(orders) > 0:
-            warning = """
-Calculated a zero volume transaction on trade:
-{event}
-for orders:
-{orders}
-            """
-            warning = warning.format(
-                event=str(event),
-                orders=str(orders)
-            )
-            LOGGER.warn(warning)
-            return None
-
 
     def create_transaction(self, sid, amount, price, dt, direction):
         self.txn_count += 1
