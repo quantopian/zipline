@@ -37,13 +37,10 @@ class TradeSimulationClient(Component):
         
         self.log_socket = log_socket
 
-        #If we have a log socket,setup context managers for capturing user logs.
+        #If we have a log socket,setup context managers for capturing user prints.
         if log_socket:
             
-            #Temporarily putting this here to fix circular import bug.
-            
-            
-            log = Logger("User Log")
+            log = Logger("Print")
             self.stdout_capture = stdout_only_pipe(log, 'user algo stdout')
             
             handler = queues.ZeroMQLogHandler(uri = log_socket)
@@ -62,7 +59,7 @@ class TradeSimulationClient(Component):
         # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
 
-        # ask the algorithm to initialize, routing stdout to a zmq PUB socket.
+        # ask the algorithm to initialize, routing stdout to a zmq PUSH socket.
         if self.log_socket:
             with self.zmq_out, self.stdout_capture:
                 self.algorithm.initialize()
@@ -166,19 +163,19 @@ class TradeSimulationClient(Component):
             
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
-            # LOG_EXTRA_FIELDS in qexec/web/client_protocol
+            # LOG_EXTRA_FIELDS in zipline/protocol.py
 
-            def inject_event_data(record):
-                record.extra['algo_dt'] = event.dt
-                #record.extra['whatever else we want'] = event.whatever
-
-            data_injector = Processor(inject_event_data) 
-            log_pipeline = NestedSetup([self.zmq_out,
-                                        #e.g. FileHandler(...)
-                                        data_injector])
 
             # try to run algo with log rerouting
-            if log_socket:
+            if self.log_socket:
+                def inject_event_data(record):
+                    record.extra['algo_dt'] = event.dt
+                    #record.extra['whatever else we want'] = event.whatever
+                    
+                data_injector = Processor(inject_event_data) 
+                log_pipeline = NestedSetup([self.zmq_out,
+                                            #e.g. FileHandler(...)
+                                            data_injector])
                 with log_pipeline, self.stdout_capture:
                     self.algorithm.handle_data(data)
             # if no log socket, just run the algo normally

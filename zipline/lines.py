@@ -135,9 +135,7 @@ class SimulatedTrading(object):
             sockets[7],
             logger = LOGGER
         )
-
-        self.con.cancel_socket = self.allocator.lease(1)[0]
-
+        
         # TODO: Not freeform
         self.con.manage(
             'freeform'
@@ -151,7 +149,7 @@ class SimulatedTrading(object):
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
             self.sim_style,
-            config.log_socket
+            config['log_socket']
         )
         self.add_client(self.trading_client)
 
@@ -258,6 +256,11 @@ class SimulatedTrading(object):
                 order_amount,
                 order_count
             )
+
+        if config.has_key('log_socket'):
+            log_socket = config['log_socket']
+        else:
+            log_socket = None
         #-------------------
         # Simulation
         #-------------------
@@ -266,7 +269,8 @@ class SimulatedTrading(object):
             'trading_environment' : trading_environment,
             'allocator'           : allocator,
             'simulator_class'     : simulator_class,
-            'simulation_style'    : simulation_style
+            'simulation_style'    : simulation_style,
+            'log_socket'          : log_socket
         })
         #-------------------
 

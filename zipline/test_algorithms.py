@@ -137,3 +137,25 @@ class NoopAlgorithm(object):
 
     def get_sid_filter(self):
         return None
+
+class LogTestAlgorithm(object):
+
+    def __init__(self):
+        import logbook
+        self.log = logbook.Logger()
+        
+    def initialize(self):
+        self.log.info("Initialize")
+
+    def set_order(self, order_callable):
+        pass
+    
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        self.log.info("handle_data")
+        pass
+
+    def get_sid_filter(self):
+        return None
