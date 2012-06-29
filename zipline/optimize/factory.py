@@ -4,6 +4,7 @@ Factory functions to prepare useful data for optimize tests.
 Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
+import pandas as pd
 
 import zipline.protocol as zp
 
@@ -43,7 +44,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
     price = base_price-amplitude/2.
 
     cur = trading_environment.first_open
-    one_day = timedelta(days = 1)
+    one_day = timedelta(minutes = 1)#days = 1)
 
     #create iterator to cycle through up and down phases
     change = cycle([1,-1])
