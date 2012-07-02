@@ -616,7 +616,7 @@ def LOG_FRAME(payload):
        'time'      : 1199223001, #Realtime date of log creation.
        'func_name' : 'foo',
        'lineno'    : 46,
-       'message'   : 'Successfully disintegrated llama #3',
+       'msg'   : 'Successfully disintegrated llama #3',
        'level'     :  4, #Logbook enum
        'channel'   : 'MyLogger'
       }
@@ -636,7 +636,7 @@ def LOG_FRAME(payload):
         "LOG_FRAME with no channel"
     assert payload.has_key('level'),\
         "LOG_FRAME with no level"
-    assert payload.has_key('message'),\
+    assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
     
     data = {}

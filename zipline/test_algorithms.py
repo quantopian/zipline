@@ -144,7 +144,7 @@ class TestPrintAlgorithm():
         pass
         
     def initialize(self):
-        print "Initializing"
+        print "Initializing..."
 
     def set_order(self, order_callable):
         pass
@@ -153,7 +153,7 @@ class TestPrintAlgorithm():
         pass
 
     def handle_data(self, data):
-        print "handle_data"
+        print "Handling Data..."
         pass
 
     def get_sid_filter(self):

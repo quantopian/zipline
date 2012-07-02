@@ -8,7 +8,7 @@ from zipline.core.component import Component
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.protocol_utils import  ndict
 
-from qexec.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 
 from logbook import Logger, NestedSetup, Processor, queues
 
@@ -36,15 +36,14 @@ class TradeSimulationClient(Component):
         
         self.log_socket = log_socket
 
-        #If we have a log socket,setup context managers for capturing user prints.
+
+        #If we have a log socket,setup context manager for exporting captured
+        #print statements
         if log_socket:
-            
-            log = Logger("Print")
-            self.stdout_capture = stdout_only_pipe(log, 'user algo stdout')
-            
-            handler = queues.ZeroMQLogHandler(uri = log_socket)
-            self.zmq_out = handler.threadbound()
-        
+            self.zmq_out = ZeroMQLogHandler(uri = log_socket)
+            self.logger = Logger("Print")
+            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
+                    
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
@@ -60,9 +59,10 @@ class TradeSimulationClient(Component):
 
         # ask the algorithm to initialize, routing stdout to a zmq PUSH socket.
         if self.log_socket:
-            with self.zmq_out, self.stdout_capture:
+            with self.zmq_out.threadbound(), \
+                    self.stdout_capture(self.logger, 'Algo print capture'):
                 self.algorithm.initialize()
-        
+                
         # if we don't have a log socket, initialize anyway.
         else:
             self.algorithm.initialize()
@@ -163,7 +163,6 @@ class TradeSimulationClient(Component):
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
 
-
             # try to run algo with log rerouting
             if self.log_socket:
                 def inject_event_data(record):
@@ -174,12 +173,32 @@ class TradeSimulationClient(Component):
                 log_pipeline = NestedSetup([self.zmq_out,
                                             #e.g. FileHandler(...)
                                             data_injector])
-                with log_pipeline, self.stdout_capture:
+                with log_pipeline.threadbound(), self.stdout_capture:
                     self.algorithm.handle_data(data)
             # if no log socket, just run the algo normally
             else:
                 self.algorithm.handle_data(data)
+    
+    #Testing utility for log capture.
+    def test_run_algorithm(self):
+        from zipline.utils.date_utils import epoch_now
+
+        def inject_event_data(record):
+            record.extra['algo_dt'] = epoch_now() #Mock an event.dt
+                                
+        data_injector = Processor(inject_event_data) 
+        log_pipeline = NestedSetup([self.zmq_out,
+                                    #e.g. FileHandler(...)
+                                    data_injector])
+        with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+            self.algorithm.handle_data('data')
+            # if no log socket, just run the algo normally
+
+
+
+        
                 
+
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
 
