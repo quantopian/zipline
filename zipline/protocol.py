@@ -118,6 +118,7 @@ import msgpack
 import numbers
 import datetime
 import pytz
+
 from collections import namedtuple
 
 from utils.protocol_utils import Enum, FrameExceptionFactory, ndict, namelookup
@@ -615,8 +616,8 @@ def LOG_FRAME(payload):
        'time'      : 1199223001, #Realtime date of log creation.
        'func_name' : 'foo',
        'lineno'    : 46,
-       'message'   : 'Successfully disintegrated llama #3'
-       'level'     :  4 #Logbook enum
+       'message'   : 'Successfully disintegrated llama #3',
+       'level'     :  4, #Logbook enum
        'channel'   : 'MyLogger'
       }
             
@@ -625,7 +626,7 @@ def LOG_FRAME(payload):
            """
 
     assert isinstance(payload, dict), \
-        "LOG_FRAME received:"+str(type(log_record))
+        "LOG_FRAME expected a dict"
     
     assert payload.has_key('algo_dt'), \
         "LOG_FRAME with no algo_dt"
@@ -642,17 +643,16 @@ def LOG_FRAME(payload):
     data['e'] = 'LOG'
     data['p']  = payload
     
-    return json.dumps(data)
+    return msgpack.dumps(data)
 
 def LOG_UNFRAME(msg):
     """
     Expects a json serialized dictionary in event/payload format.
     """
-    record = json.loads(data)
+    record = msgpack.loads(msg)
     assert record['e'] == 'LOG'
     assert record.has_key('p')
     
     return record['p']
-
 
 
