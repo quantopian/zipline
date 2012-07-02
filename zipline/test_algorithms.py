@@ -138,14 +138,13 @@ class NoopAlgorithm(object):
     def get_sid_filter(self):
         return None
 
-class LogTestAlgorithm(object):
+class TestPrintAlgorithm():
 
     def __init__(self):
-        import logbook
-        self.log = logbook.Logger()
+        pass
         
     def initialize(self):
-        self.log.info("Initialize")
+        print "Initializing"
 
     def set_order(self, order_callable):
         pass
@@ -154,7 +153,7 @@ class LogTestAlgorithm(object):
         pass
 
     def handle_data(self, data):
-        self.log.info("handle_data")
+        print "handle_data"
         pass
 
     def get_sid_filter(self):
