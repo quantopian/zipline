@@ -42,7 +42,7 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 8,
+    GENERATIONAL_PERIOD        = 1,
     ALLOWED_SKIPPED_HEARTBEATS = 3,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
@@ -354,7 +354,7 @@ class Controller(object):
                 sys.exitfunc = lambda: None
 
                 # Send SIGHUP to buritto
-                self.signal_hangup()
+                #self.signal_hangup()
 
             if not self.alive:
                 break
