@@ -318,7 +318,37 @@ class SimulatedTrading(object):
 
         return leased
 
+    @property
+    def topology(self):
+        """
+        Returns the Component names in the topology of the
+        backtest.
+        """
+
+        # A complete topology is the union of three classes of
+        # components added individually to the simulation client
+        # at various places.
+        #
+        # base       : ['FEED', 'MERGE', 'TRADING_CLIENT', 'PASSTHROUGH']
+        # transforms : ['vwap__01', ... ]
+        # sources    : ['MongoTradeHistory', ... ]
+
+        base       = set(self.sim.components.keys())
+        transforms = set(self.transforms.keys())
+        sources    = set(self.sources.keys())
+
+        return base | transforms | sources
+
+    def setup_controller(self):
+        """
+        Prepare the controller tro manage the topology specified
+        by this line.
+        """
+        self.con.manage(self.topology)
+
     def simulate(self, blocking=False):
+        self.setup_controller()
+
         self.started = True
         self.sim_context = self.sim.simulate()
 
