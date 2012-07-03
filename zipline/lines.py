@@ -60,6 +60,7 @@ before invoking simulate.
                           +---------------------------------+
 """
 
+import inspect
 import zipline.utils.factory as factory
 
 from zipline.components import DataSource
@@ -113,6 +114,8 @@ class SimulatedTrading(object):
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
 
+        self.devel = config['devel']
+
         self.leased_sockets = []
         self.sim_context = None
 
@@ -129,6 +132,7 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[6],
             sockets[7],
+            devel = self.devel
         )
 
         self.con.cancel_socket = self.allocator.lease(1)[0]
@@ -260,11 +264,19 @@ class SimulatedTrading(object):
             'trading_environment' : trading_environment,
             'allocator'           : allocator,
             'simulator_class'     : simulator_class,
-            'simulation_style'    : simulation_style
+            'simulation_style'    : simulation_style,
+            'devel'               : config.get('devel', False)
         })
         #-------------------
 
         zipline.add_source(trade_source)
+
+        # Save us from needless debugging
+        inside_test = 'nose' in inspect.stack()[-1][1]
+        if inside_test and not config.get('devel', False):
+            assert False, """
+            You need to run the SimulatedTrading inside a test with devel=True
+            """
 
         return zipline
 
@@ -319,6 +331,18 @@ class SimulatedTrading(object):
         return leased
 
     @property
+    def components(self):
+        """
+        Return the component instances inside of this topology
+        """
+
+        base       = set(self.sim.components.values())
+        transforms = set(self.transforms.values())
+        sources    = set(self.sources.values())
+
+        return base | transforms | sources
+
+    @property
     def topology(self):
         """
         Returns the Component names in the topology of the
@@ -351,6 +375,10 @@ class SimulatedTrading(object):
 
         self.started = True
         self.sim_context = self.sim.simulate()
+
+        if self.devel:
+            for component in self.components:
+                component.devel = True
 
         # If we're using a threaded simulator block on the pool
         # of thread since we're only ever in a test and we don't

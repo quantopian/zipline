@@ -67,8 +67,9 @@ class Controller(object):
     debug = True
     period = PARAMETERS.GENERATIONAL_PERIOD
 
-    def __init__(self, pub_socket, route_socket, nosignals=False):
+    def __init__(self, pub_socket, route_socket, devel=True):
 
+        self.devel      = devel
         self.nosignals  = False
         self.context    = None
         self.zmq        = None
@@ -93,6 +94,8 @@ class Controller(object):
 
         self.error_replay = OrderedDict()
 
+        log.warn("Running Controller in development mode, will ONLY synchronize start.")
+
     def init_zmq(self, flavor):
 
         assert self.zmq_flavor in ['thread', 'mp', 'green']
@@ -101,6 +104,8 @@ class Controller(object):
             self.zmq        = zmq
             self.context    = self.zmq.Context()
             self.zmq_poller = self.zmq.Poller
+
+            log.warning("USING DEVELOPMENT MODE IN MP CONTEXT NOT RECOMMENDED")
             return
         if flavor == 'thread':
             self.zmq        = zmq
@@ -319,6 +324,17 @@ class Controller(object):
             if complete:
                 self.send_go()
 
+                # If we're running in development stop here
+                # because our responsibilites are over. The
+                # zipline will either run to completion or die,
+                # monitor doesn't care anymore because its all
+                # threads.
+
+                if self.devel:
+                    log.warn("Shutting down Controller because in devel mode")
+                    sys.exitfunc = lambda: None
+                    self.shutdown(soft=True)
+
             log.info('Heartbeat (%s, %s)' % (done, complete))
 
             # ================
@@ -338,7 +354,7 @@ class Controller(object):
                 sys.exitfunc = lambda: None
 
                 # Send SIGHUP to buritto
-                #self.signal_hangup()
+                self.signal_hangup()
 
             if not self.alive:
                 break

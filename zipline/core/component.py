@@ -97,6 +97,7 @@ class Component(object):
         self.stop_tic          = None
         self.note              = None
         self.confirmed         = False
+        self.devel             = False
 
         # Humanhashes make this way easier to debug because they stick
         # in your mind unlike a 32 byte string of random hex.

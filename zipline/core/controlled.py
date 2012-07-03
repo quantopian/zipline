@@ -24,6 +24,13 @@ def do_handle_control_events(cls, poller):
     assert isinstance(cls, Component)
     assert cls.control_in, 'Component does not have a control_in socket'
 
+    # If we're in devel mode drop out because the controller
+    # isn't guaranteed to be around anymore
+    if cls.devel:
+        import logbook
+        logbook.info("Dropping out")
+        return
+
     if poller.get(cls.control_in) == zmq.POLLIN:
         msg = cls.control_in.recv()
         event, payload = CONTROL_UNFRAME(msg)
