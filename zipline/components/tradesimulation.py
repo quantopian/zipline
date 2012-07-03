@@ -35,15 +35,7 @@ class TradeSimulationClient(Component):
         self.perf = perf.PerformanceTracker(self.trading_environment)
         
         self.log_socket = log_socket
-
-
-        #If we have a log socket,setup context manager for exporting captured
-        #print statements
-        if log_socket:
-            self.zmq_out = ZeroMQLogHandler(uri = log_socket)
-            self.logger = Logger("Print")
-            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
-                    
+        
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
@@ -57,19 +49,38 @@ class TradeSimulationClient(Component):
         # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
 
+        #TODO: re-enable initialization logging
+
         # ask the algorithm to initialize, routing stdout to a zmq PUSH socket.
-        if self.log_socket:
-            with self.zmq_out.threadbound(), \
-                    self.stdout_capture(self.logger, 'Algo print capture'):
-                self.algorithm.initialize()
+        #if self.log_socket:
+        #    with self.zmq_out.threadbound(), \
+        #            self.stdout_capture(self.logger, 'Algo print capture'):
+        #        self.algorithm.initialize()
                 
         # if we don't have a log socket, initialize anyway.
-        else:
-            self.algorithm.initialize()
+        #else:
+        #    self.algorithm.initialize()
+        
+        self.algorithm.initialize()
             
     def open(self):
         self.result_feed = self.connect_result()
         self.perf.open(self.context)
+        
+        #If we have a log socket,setup context manager for exporting captured
+        #print statements
+        if self.log_socket:
+            self.zmq_out = ZeroMQLogHandler(uri = self.log_socket, context = self.context)
+            self.logger = Logger("Print")
+            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
+
+    #Initialize log capture for testing purposes.
+    def setup_logging(self, context):
+        if self.log_socket:
+            self.zmq_out = ZeroMQLogHandler(uri = self.log_socket, context = context)
+            self.logger = Logger("Print")
+            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
+        
 
     def do_work(self):
         # poll all the sockets
@@ -157,23 +168,26 @@ class TradeSimulationClient(Component):
         current_portfolio = self.perf.get_portfolio()
         self.algorithm.set_portfolio(current_portfolio)
         data = self.get_data()
+        
         if len(data) > 0:
             
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
 
-            # try to run algo with log rerouting
             if self.log_socket:
+            
                 def inject_event_data(record):
-                    record.extra['algo_dt'] = event.dt
-                    #record.extra['whatever else we want'] = event.whatever
+                    
+                    #Record the simulation time.
+
+                    record.extra['algo_dt'] = self.current_dt
                     
                 data_injector = Processor(inject_event_data) 
                 log_pipeline = NestedSetup([self.zmq_out,
                                             #e.g. FileHandler(...)
                                             data_injector])
-                with log_pipeline.threadbound(), self.stdout_capture:
+                with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
                     self.algorithm.handle_data(data)
             # if no log socket, just run the algo normally
             else:
@@ -181,10 +195,9 @@ class TradeSimulationClient(Component):
     
     #Testing utility for log capture.
     def test_run_algorithm(self):
-        from zipline.utils.date_utils import epoch_now
-
+        
         def inject_event_data(record):
-            record.extra['algo_dt'] = epoch_now() #Mock an event.dt
+            record.extra['algo_dt'] = datetime.datetime.utcnow() #Mock an event.dt
                                 
         data_injector = Processor(inject_event_data) 
         log_pipeline = NestedSetup([self.zmq_out,
@@ -193,11 +206,6 @@ class TradeSimulationClient(Component):
         with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
             self.algorithm.handle_data('data')
             # if no log socket, just run the algo normally
-
-
-
-        
-                
 
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
