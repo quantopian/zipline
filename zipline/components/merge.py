@@ -2,7 +2,7 @@ import zipline.protocol as zp
 from zipline.components.aggregator import Aggregate, \
     AGGREGATE_STATES, AGGREGATE_TRANSITIONS
 
-from collections import Counter
+from collections import defaultdict, Counter
 
 class Merge(Aggregate):
     """
@@ -19,9 +19,7 @@ class Merge(Aggregate):
         self.draining               = False
         self.ds_finished_counter    = 0
 
-        # Depending on the size of this, might want to use a data
-        # structure with better asymptotics.
-        self.data_buffer            = {}
+        self.sources = defaultdict(list)
 
         # source_id -> integer count
         self.sent_counters          = Counter()
@@ -61,7 +59,7 @@ class Merge(Aggregate):
         source_id.
         """
 
-        self.data_buffer[event.keys()[0]].append(event)
+        self.sources[event.keys()[0]].append(event)
         self.received_count += 1
 
     def next(self):
@@ -73,8 +71,10 @@ class Merge(Aggregate):
             return
 
         #get the raw event from the passthrough transform.
-        result = self.data_buffer[zp.TRANSFORM_TYPE.PASSTHROUGH].pop(0).PASSTHROUGH
-        for source, events in self.data_buffer.iteritems():
+        passthrough = self.sources[zp.TRANSFORM_TYPE.PASSTHROUGH]
+        result = passthrough.pop(0).PASSTHROUGH
+
+        for source, events in self.sources.iteritems():
             if source == zp.TRANSFORM_TYPE.PASSTHROUGH:
                 continue
             if len(events) > 0:
