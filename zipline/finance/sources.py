@@ -25,9 +25,9 @@ class TradeDataSource(DataSource):
         self.source_id = source_id
         self.setup_source()
 
-    @property
-    def get_id(self):
-        return 'TradeDataSource'
+    #@property
+    #def get_id(self):
+    #    return 'TradeDataSource'
 
     def send(self, event):
         """
@@ -56,8 +56,7 @@ class RandomEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def init(self, sid, source_id, count):
-        self.source_id      = source_id
+    def init(self, sid, count):
         self.count          = count
         self.incr           = 0
         self.sid            = sid
@@ -95,7 +94,7 @@ class SpecificEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def init(self, source_id, event_list):
+    def init(self, event_list):
         """
         :param event_list: should be a chronologically ordered list of
         dictionaries in the following form::
@@ -107,7 +106,6 @@ class SpecificEquityTrades(TradeDataSource):
                 'volume' : integer for volume
             }
         """
-        self.source_id = source_id
         self.event_list = event_list
         self.count = 0
 

@@ -210,6 +210,7 @@ class FinanceTestCase(TestCase):
             "The merge should be drained of all messages, found {n} remaining." \
             .format(n=zipline.sim.merge.pending_messages())
         )
+
         self.assertEqual(
             zipline.algorithm.count,
             zipline.algorithm.incr,

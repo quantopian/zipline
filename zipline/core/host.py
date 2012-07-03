@@ -93,7 +93,7 @@ class ComponentHost(object):
             self.components[component.get_id] = component
 
             if isinstance(component, DataSource):
-                self.feed.add_source(component.source_id)
+                self.feed.add_source(component.get_id)
             if isinstance(component, BaseTransform):
                 self.merge.add_source(component.get_id)
 

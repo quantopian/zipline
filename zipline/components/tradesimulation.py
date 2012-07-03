@@ -49,7 +49,6 @@ class TradeSimulationClient(Component):
         self.perf.open(self.context)
 
     def do_work(self):
-        from rdb import set_trace; set_trace()
         # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
 
