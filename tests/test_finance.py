@@ -6,6 +6,7 @@ import pytz
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 from collections import defaultdict
+from logbook.compat import LoggingHandler
 
 from nose.tools import timed
 
@@ -25,6 +26,7 @@ EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
 
+
 class FinanceTestCase(TestCase):
 
     leased_sockets = defaultdict(list)
@@ -35,6 +37,11 @@ class FinanceTestCase(TestCase):
             'allocator':allocator,
             'sid':133
         }
+        self.log_handler = LoggingHandler()
+        self.log_handler.push_application()
+
+    def tearDown(self):
+        self.log_handler.pop_application()
 
     @timed(DEFAULT_TIMEOUT)
     def test_factory_daily(self):
