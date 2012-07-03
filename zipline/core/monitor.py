@@ -338,7 +338,7 @@ class Controller(object):
                 sys.exitfunc = lambda: None
 
                 # Send SIGHUP to buritto
-                self.signal_hangup()
+                #self.signal_hangup()
 
             if not self.alive:
                 break

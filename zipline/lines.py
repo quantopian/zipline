@@ -352,8 +352,19 @@ class SimulatedTrading(object):
         self.started = True
         self.sim_context = self.sim.simulate()
 
-        if blocking:
-            self.sim_context.join()
+        # If we're using a threaded simulator block on the pool
+        # of thread since we're only ever in a test and we don't
+        # generally monitor the state of the system as a hold at
+        # the supervisory layer
+
+        # TODO: better way of identifying concurrency substrate
+        if self.sim.zmq_flavor == 'thread':
+            for thread in self.sim.subthreads:
+                #log.debug('Waiting on %r' % thread)
+                #print 'Waiting on %r' % thread
+                thread.join()
+        else:
+            self.controller_process.join()
 
     @property
     def is_success(self):
