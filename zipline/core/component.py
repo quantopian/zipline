@@ -346,7 +346,7 @@ class Component(object):
                     payload
                 )
                 self.control_out.send(heartbeat_frame)
-                log.info('Prestart Heartbeat' + self.get_id)
+                log.info('Prestart Heartbeat ' + self.get_id)
 
             elif event == CONTROL_PROTOCOL.GO:
                 # Side effectful call from the controller to unlock
@@ -401,7 +401,7 @@ class Component(object):
 
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        trace = '\n>>>'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         sys.stdout.write(trace)
 
         if hasattr(self, 'control_out'):
@@ -422,10 +422,6 @@ class Component(object):
 
         if self.out_socket:
             self.out_socket.send(str(CONTROL_PROTOCOL.DONE))
-
-        #notify host we're done
-        # TODO: proper framing
-        self.sync_socket.send(self.get_id + ":" + str(CONTROL_PROTOCOL.DONE))
 
         #notify controller we're done
         done_frame = CONTROL_FRAME(
