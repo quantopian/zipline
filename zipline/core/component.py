@@ -486,10 +486,27 @@ class Component(object):
         return self.connect_push_socket(self.addresses['merge_address'])
 
     def bind_result(self):
-        return self.bind_pub_socket(self.addresses['result_address'])
+        return self.bind_push_socket(self.addresses['result_address'])
 
     def connect_result(self):
-        return self.connect_sub_socket(self.addresses['result_address'])
+        return self.connect_pull_socket(self.addresses['result_address'])
+
+    def bind_push_socket(self, addr):
+        push_socket = self.context.socket(self.zmq.PUSH)
+        push_socket.bind(addr)
+        self.out_socket = push_socket
+        self.sockets.append(push_socket)
+
+        return push_socket
+
+    def connect_pull_socket(self, addr):
+        pull_socket = self.context.socket(self.zmq.PULL)
+        pull_socket.connect(addr)
+        self.sockets.append(pull_socket)
+        self.poll.register(pull_socket, self.zmq.POLLIN)
+
+        return pull_socket
+
 
     def bind_pull_socket(self, addr):
         pull_socket = self.context.socket(self.zmq.PULL)
