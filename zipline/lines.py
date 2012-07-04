@@ -141,6 +141,7 @@ class SimulatedTrading(object):
         self.sim = config['simulator_class'](addresses)
 
         self.clients = {}
+
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
             self.sim_style,
@@ -166,7 +167,7 @@ class SimulatedTrading(object):
     def create_test_zipline(**config):
         """
         :param config: A configuration object that is a dict with:
-
+        
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
             - allocator - a :py:class:`zipline.simulator.AddressAllocator`
@@ -189,7 +190,7 @@ class SimulatedTrading(object):
               a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
         """
         assert isinstance(config, dict)
-
+        
         allocator = config['allocator']
         sid = config['sid']
 
@@ -306,8 +307,8 @@ class SimulatedTrading(object):
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()
 
-    def publish_to(self, result_socket):
-        self.trading_client.perf.publish_to(result_socket)
+    def publish_to(self, results_socket):
+        self.trading_client.perf.publish_to(results_socket)
 
     def allocate_sockets(self, n):
         """
