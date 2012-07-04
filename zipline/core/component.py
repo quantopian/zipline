@@ -213,7 +213,7 @@ class Component(object):
         Run the component.
 
         Optionally takes an argument to catch and log all exceptions
-        raised during execution ues this with care since it makes it
+        raised during execution. Use this with care since it makes it
         very hard to debug since it mucks up your stacktraces.
         """
 
