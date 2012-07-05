@@ -21,8 +21,9 @@ class ZiplineWithTransformsTestCase(TestCase):
         allocator.lease(100)
         self.trading_environment = factory.create_trading_environment()
         self.zipline_test_config = {
-            'allocator':allocator,
-            'sid':133
+            'allocator' : allocator,
+            'sid'       : 133,
+            'devel'     : True
         }
         self.log_handler = LoggingHandler()
         self.log_handler.push_application()

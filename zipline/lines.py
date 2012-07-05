@@ -397,7 +397,7 @@ class SimulatedTrading(object):
             log.debug('Blocking')
             for thread in self.sim.subthreads:
                 log.debug('Waiting on %r' % thread)
-                print 'Waiting on %r' % thread
+                #print 'Waiting on %r' % thread
                 thread.join()
         else:
             for process in self.sim.subprocesses:
