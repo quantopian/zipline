@@ -16,11 +16,13 @@ class PerformanceTestCase(unittest.TestCase):
         self.benchmark_returns, self.treasury_curves = \
         factory.load_market_data()
 
-        random_index = random.randint(
-            0,
-            len(self.treasury_curves)
-        )
         for n in range(100):
+
+            random_index = random.randint(
+                0,
+                len(self.treasury_curves)
+            )
+
             self.dt = self.treasury_curves.keys()[random_index]
             self.end_dt = self.dt + datetime.timedelta(days=365)
 
@@ -28,6 +30,10 @@ class PerformanceTestCase(unittest.TestCase):
 
             if self.end_dt <= now:
                 break
+
+        assert self.end_dt <= now, """
+failed to find a date suitable daterange after 100 attempts. please double
+check treasury and benchmark data in findb, and re-run the test."""
 
         self.trading_environment = TradingEnvironment(
             self.benchmark_returns,
