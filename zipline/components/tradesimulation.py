@@ -115,7 +115,7 @@ class TradeSimulationClient(Component):
         # signal Simulator, our ComponentHost, that this component is
         # done and Simulator needn't block exit on this component.
         self.signal_done()
-
+        
     def process_event(self, event):
         # generate transactions, if applicable
         txn = self.txn_sim.apply_trade_to_open_orders(event)
