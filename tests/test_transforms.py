@@ -44,8 +44,14 @@ class ZiplineWithTransformsTestCase(TestCase):
         self.assertFalse(zipline.sim.exception)
 
 class FinanceTransformsTestCase(TestCase):
+
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
+        self.log_handler = LoggingHandler()
+        self.log_handler.push_application()
+
+    def tearDown(self):
+        self.log_handler.pop_application()
 
     def test_vwap(self):
 

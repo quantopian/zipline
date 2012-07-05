@@ -16,9 +16,6 @@ class ComponentHost(object):
     """
 
     def __init__(self, addresses):
-        self.init(addresses)
-
-    def init(self, addresses):
         self.addresses     = addresses
         self.running       = False
 
@@ -48,14 +45,8 @@ class ComponentHost(object):
         """
         log.info('===== PARENT PID: %s' % os.getppid())
 
-        if catch_exceptions:
-            try:
-                self._run()
-            except Exception as exc:
-                exc_info = sys.exc_info()
-                # Reraise the exception
-                raise exc_info[0], exc_info[1], exc_info[2]
-                #self.shutdown()
+        self.open()
+        #self.shutdown()
 
     def shutdown(self, ensure_clean=True):
         raise NotImplementedError

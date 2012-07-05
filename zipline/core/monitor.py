@@ -164,7 +164,8 @@ class Controller(object):
         # -----------------------
         # The last breathe of the interpreter will assume that we've
         # failed unless we specify otherwise.
-        sys.exitfunc = self.signal_interrupt
+        if not self.devel:
+            sys.exitfunc = self.signal_interrupt
         # We overload this if ( and only if ) the topology exits
         # cleanly. This prevents failure modes where the monitor
         # dies.
@@ -332,7 +333,7 @@ class Controller(object):
 
                 if self.devel:
                     log.warn("Shutting down Controller because in devel mode")
-                    sys.exitfunc = lambda: None
+                    #sys.exitfunc = lambda: None
                     self.shutdown(soft=True)
 
             log.info('Heartbeat (%s, %s)' % (done, complete))
@@ -351,10 +352,10 @@ class Controller(object):
                 self.shutdown(soft=True)
 
                 # Noop exit func
-                sys.exitfunc = lambda: None
+                #sys.exitfunc = lambda: None
 
                 # Send SIGHUP to buritto
-                #self.signal_hangup()
+                self.signal_hangup()
 
             if not self.alive:
                 break
@@ -640,7 +641,7 @@ class Controller(object):
             log.info('Soft Shutdown')
             self.send_softkill()
 
-        self.do_error_replay()
+        #self.do_error_replay()
 
-        self.pub.close()
-        self.router.close()
+        #self.pub.close()
+        #self.router.close()

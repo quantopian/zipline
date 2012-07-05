@@ -396,9 +396,10 @@ class SimulatedTrading(object):
         if self.sim.zmq_flavor == 'thread':
             log.debug('Blocking')
             for thread in self.sim.subthreads:
+                #log.debug('Waiting on %r' % thread)
                 log.debug('Waiting on %r' % thread)
-                #print 'Waiting on %r' % thread
                 thread.join()
+                log.debug('Yielded on %r' % thread)
         else:
             for process in self.sim.subprocesses:
                 process.join()
