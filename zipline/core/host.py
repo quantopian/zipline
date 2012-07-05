@@ -119,10 +119,6 @@ class ComponentHost(object):
         for component in self.components.itervalues():
             self.launch_component(component)
 
-        # TODO: no hacks
-        if hasattr(self, 'con'):
-            self.con.join()
-
     def is_running(self):
         """
         DEPRECATED, left in for compatability for now.

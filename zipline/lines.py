@@ -61,6 +61,7 @@ before invoking simulate.
 """
 
 import inspect
+import logbook
 import zipline.utils.factory as factory
 
 from zipline.components import DataSource
@@ -71,6 +72,8 @@ from zipline.components import TradeSimulationClient
 from zipline.core.devsimulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
+
+log = logbook.Logger('Lines')
 
 class SimulatedTrading(object):
     """
@@ -272,11 +275,11 @@ class SimulatedTrading(object):
         zipline.add_source(trade_source)
 
         # Save us from needless debugging
-        #inside_test = 'nose' in inspect.stack()[-1][1]
-        #if inside_test and not config.get('devel', False):
-            #assert False, """
-            #You need to run the SimulatedTrading inside a test with devel=True
-            #"""
+        inside_test = 'nose' in inspect.stack()[-1][1]
+        if inside_test and not config.get('devel', False):
+            assert False, """
+            You need to run the SimulatedTrading inside a test with devel=True
+            """
 
         return zipline
 
@@ -370,12 +373,16 @@ class SimulatedTrading(object):
         """
         self.con.manage(self.topology)
 
-    def simulate(self, blocking=False):
+    def simulate(self, blocking=True):
         self.setup_controller()
 
         self.started = True
         self.sim_context = self.sim.simulate()
 
+        # If we're in development mode then flag all the
+        # components in the topology as devel so as to indicate
+        # that they won't poll on the control channels for
+        # anything other than the synchronized start.
         if self.devel:
             for component in self.components:
                 component.devel = True
@@ -387,9 +394,10 @@ class SimulatedTrading(object):
 
         # TODO: better way of identifying concurrency substrate
         if self.sim.zmq_flavor == 'thread':
+            log.debug('Blocking')
             for thread in self.sim.subthreads:
-                #log.debug('Waiting on %r' % thread)
-                #print 'Waiting on %r' % thread
+                log.debug('Waiting on %r' % thread)
+                print 'Waiting on %r' % thread
                 thread.join()
         else:
             for process in self.sim.subprocesses:
