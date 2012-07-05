@@ -29,7 +29,7 @@ log = logbook.Logger('Component')
 from zipline.exceptions import ComponentNoInit
 from zipline.transitions import WorkflowMeta
 
-# LOGBOOK - embed PID in log output
+log = logbook.Logger('Base')
 
 class Component(object):
 
@@ -219,6 +219,7 @@ class Component(object):
 
         self.loop()
         self.shutdown()
+        log.info("Shutdown %r" % self)
 
         self.stop_tic = time.time()
 

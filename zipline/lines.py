@@ -392,7 +392,6 @@ class SimulatedTrading(object):
                 #print 'Waiting on %r' % thread
                 thread.join()
         else:
-            self.controller_process.join()
             for process in self.sim.subprocesses:
                 process.join()
 

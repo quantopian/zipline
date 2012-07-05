@@ -631,11 +631,11 @@ class Controller(object):
 
         self.alive = False
 
-        if hard:
+        if hard and not self.devel:
             self.state = CONTROL_STATES.TERMINATE
             log.info('Hard Shutdown')
 
-        if soft:
+        if soft and not self.devel:
             self.state = CONTROL_STATES.TERMINATE
             log.info('Soft Shutdown')
             self.send_softkill()
