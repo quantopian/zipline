@@ -393,7 +393,6 @@ class SimulatedTrading(object):
                 thread.join()
         else:
             self.controller_process.join()
-            import pdb; pdb.set_trace()
             for process in self.sim.subprocesses:
                 process.join()
 
