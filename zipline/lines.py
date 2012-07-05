@@ -114,7 +114,7 @@ class SimulatedTrading(object):
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
 
-        self.devel = config['devel']
+        self.devel = config.get('devel', False)
 
         self.leased_sockets = []
         self.sim_context = None
@@ -272,11 +272,11 @@ class SimulatedTrading(object):
         zipline.add_source(trade_source)
 
         # Save us from needless debugging
-        inside_test = 'nose' in inspect.stack()[-1][1]
-        if inside_test and not config.get('devel', False):
-            assert False, """
-            You need to run the SimulatedTrading inside a test with devel=True
-            """
+        #inside_test = 'nose' in inspect.stack()[-1][1]
+        #if inside_test and not config.get('devel', False):
+            #assert False, """
+            #You need to run the SimulatedTrading inside a test with devel=True
+            #"""
 
         return zipline
 
@@ -393,6 +393,9 @@ class SimulatedTrading(object):
                 thread.join()
         else:
             self.controller_process.join()
+            import pdb; pdb.set_trace()
+            for process in self.sim.subprocesses:
+                process.join()
 
     @property
     def is_success(self):

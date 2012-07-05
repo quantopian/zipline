@@ -27,8 +27,6 @@ def do_handle_control_events(cls, poller):
     # If we're in devel mode drop out because the controller
     # isn't guaranteed to be around anymore
     if cls.devel:
-        import logbook
-        logbook.info("Dropping out")
         return
 
     if poller.get(cls.control_in) == zmq.POLLIN:
