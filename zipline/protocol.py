@@ -118,6 +118,7 @@ import msgpack
 import numbers
 import datetime
 import pytz
+
 from collections import namedtuple
 
 from utils.protocol_utils import Enum, FrameExceptionFactory, ndict, namelookup
@@ -601,3 +602,57 @@ SIMULATION_STYLE  = Enum(
     'FIXED_SLIPPAGE',
     'NOOP'
 )
+
+#Global variables for the fields we extract out of a standard logbook record.
+LOG_FIELDS = set(['func_name', 'lineno', 'time', 'msg',\
+                      'level', 'channel', ])
+LOG_EXTRA_FIELDS = set(['algo_dt',])
+
+def LOG_FRAME(payload):
+    """
+    Expects a dictionary of the form:
+      {
+       'algo_dt'   : 1199223000, #Algo simulation date.
+       'time'      : 1199223001, #Realtime date of log creation.
+       'func_name' : 'foo',
+       'lineno'    : 46,
+       'msg'   : 'Successfully disintegrated llama #3',
+       'level'     :  4, #Logbook enum
+       'channel'   : 'MyLogger'
+      }
+            
+    Frame checks that we have all expected fields and exports an
+    event/payload dict as JSON.
+           """
+
+    assert isinstance(payload, dict), \
+        "LOG_FRAME expected a dict"
+    
+    assert payload.has_key('algo_dt'), \
+        "LOG_FRAME with no algo_dt"
+    assert payload.has_key('time'), \
+        "LOG_FRAME with no time"
+    assert payload.has_key('channel'),\
+        "LOG_FRAME with no channel"
+    assert payload.has_key('level'),\
+        "LOG_FRAME with no level"
+    assert payload.has_key('msg'),\
+        "LOG_FRAME with no message"
+    
+    data = {}
+    data['e'] = 'LOG'
+    data['p']  = payload
+    
+    return msgpack.dumps(data)
+
+def LOG_UNFRAME(msg):
+    """
+    Expects a json serialized dictionary in event/payload format.
+    """
+    record = msgpack.loads(msg)
+    assert record['e'] == 'LOG'
+    assert record.has_key('p')
+    
+    return record['p']
+
+

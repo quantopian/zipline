@@ -210,7 +210,7 @@ class Controller(object):
 
         assert self.route_socket
         assert self.pub_socket
-        assert self.cancel_socket
+        #assert self.cancel_socket
 
         # -- Publish --
         # =============
@@ -219,9 +219,9 @@ class Controller(object):
 
         # -- Cancel --
         # =============
-        assert isinstance(self.cancel_socket,basestring), self.cancel_socket
-        self.cancel = self.context.socket(self.zmq.REP)
-        self.cancel.connect(self.cancel_socket)
+        #assert isinstance(self.cancel_socket,basestring), self.cancel_socket
+        #self.cancel = self.context.socket(self.zmq.REP)
+        #self.cancel.connect(self.cancel_socket)
 
         # -- Router --
         # =============
@@ -231,9 +231,9 @@ class Controller(object):
 
         poller = self.zmq.Poller()
         poller.register(self.router, self.zmq.POLLIN)
-        poller.register(self.cancel, self.zmq.POLLIN)
+        #poller.register(self.cancel, self.zmq.POLLIN)
 
-        self.associated += [self.pub, self.router, self.cancel]
+        self.associated += [self.pub, self.router]# self.cancel]
 
         # TODO: actually do this
         self.state = CONTROL_STATES.SOURCES_READY
@@ -270,12 +270,12 @@ class Controller(object):
                         log.error('Invalid frame', rawmessage)
                         pass
 
-                if socks.get(self.cancel) == self.zmq.POLLIN:
-                    log.info('Received Cancellation')
-                    rawmessage = self.cancel.recv()
-                    self.cancel.send('')
-                    self.shutdown(soft=True)
-                    break
+            #if socks.get(self.cancel) == self.zmq.POLLIN:
+            #        self.logging.info('[Controller] Received Cancellation')
+            #        rawmessage = self.cancel.recv()
+            #        self.cancel.send('')
+            #        self.shutdown(soft=True)
+            #        break
 
             self.beat()
 
