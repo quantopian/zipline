@@ -1,5 +1,5 @@
 """
-Simulator hosts all the components necessary to execute a simluation.
+Simulator hosts all the components necessary to execute a simulation.
 See :py:method""
 """
 

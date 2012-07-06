@@ -137,3 +137,24 @@ class NoopAlgorithm(object):
 
     def get_sid_filter(self):
         return None
+
+class TestPrintAlgorithm():
+
+    def __init__(self):
+        pass
+        
+    def initialize(self):
+        print "Initializing..."
+
+    def set_order(self, order_callable):
+        pass
+    
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        print "Handling Data..."
+        pass
+
+    def get_sid_filter(self):
+        return None

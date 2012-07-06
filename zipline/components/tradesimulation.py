@@ -8,11 +8,16 @@ from zipline.core.component import Component
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.protocol_utils import  ndict
 
+from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+
+from logbook import Logger, NestedSetup, Processor, queues
+
 log = logbook.Logger('TradeSimulation')
+
 
 class TradeSimulationClient(Component):
 
-    def init(self, trading_environment, sim_style):
+    def init(self, trading_environment, sim_style, log_socket):
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None
@@ -28,12 +33,15 @@ class TradeSimulationClient(Component):
 
         self.event_data = ndict()
         self.perf = perf.PerformanceTracker(self.trading_environment)
-
+        
+        self.log_socket = log_socket
+        
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
 
     def set_algorithm(self, algorithm):
+        
         """
         :param algorithm: must implement the algorithm protocol. See
         :py:mod:`zipline.test.algorithm`
@@ -41,17 +49,41 @@ class TradeSimulationClient(Component):
         self.algorithm = algorithm
         # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
-        # ask the algorithm to initialize
-        self.algorithm.initialize()
 
+        #TODO: re-enable initialization logging.  This means we can't call set_algorithm
+        #until we have a context for this component.  Possibly this could happen
+        # ask the algorithm to initialize, routing stdout to a zmq PUSH socket.
+        
+        #with self.zmq_out.threadbound(), self.stdout_capture(self.logger, 'Algo print capture'):
+        #    self.algorithm.initialize()
+        #if we don't have a log socket, initialize anyway.
+        #else:
+        #    self.algorithm.initialize()
+        
+        self.algorithm.initialize()
+            
     def open(self):
+        
         self.result_feed = self.connect_result()
         self.perf.open(self.context)
+        
+        #If we have a log socket,setup context manager for exporting captured
+        #print statements
+        if self.log_socket:
+            self.zmq_out = ZeroMQLogHandler(uri = self.log_socket, context = self.context)
+            self.logger = Logger("Print")
+            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
+
+    #Initialize log capture for testing purposes.
+    def setup_logging(self, context):
+        if self.log_socket:
+            self.zmq_out = ZeroMQLogHandler(uri = self.log_socket, context = context)
+            self.logger = Logger("Print")
+            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
 
     def do_work(self):
         # poll all the sockets
         socks = dict(self.poll.poll(self.heartbeat_timeout))
-
         # see if the poller has results for the result_feed
         if socks.get(self.result_feed) == self.zmq.POLLIN:
 
@@ -69,6 +101,7 @@ class TradeSimulationClient(Component):
             event = zp.MERGE_UNFRAME(msg)
             self.received_count += 1
             # update performance and relay the event to the algorithm
+            
             self.process_event(event)
             if self.perf.exceeded_max_loss:
                 self.finish_simulation()
@@ -82,9 +115,8 @@ class TradeSimulationClient(Component):
         # signal Simulator, our ComponentHost, that this component is
         # done and Simulator needn't block exit on this component.
         self.signal_done()
-
+        
     def process_event(self, event):
-
         # generate transactions, if applicable
         txn = self.txn_sim.apply_trade_to_open_orders(event)
         if txn:
@@ -109,10 +141,10 @@ class TradeSimulationClient(Component):
         # queue the event.
         self.queue_event(event)
 
-
         # if the event is later than our current time, run the algo
         # otherwise, the algorithm has fallen behind the feed
         # and processing per event is longer than time between events.
+        
         if event.dt >= self.current_dt:
             # compress time by moving the current_time up to the event
             # time.
@@ -124,7 +156,6 @@ class TradeSimulationClient(Component):
         # move the algorithm's clock forward to include iteration time
         self.current_dt = self.current_dt  + self.last_iteration_dur
 
-
     def run_algorithm(self):
         """
         As per the algorithm protocol:
@@ -135,8 +166,44 @@ class TradeSimulationClient(Component):
         current_portfolio = self.perf.get_portfolio()
         self.algorithm.set_portfolio(current_portfolio)
         data = self.get_data()
+                
         if len(data) > 0:
-            self.algorithm.handle_data(data)
+            
+            # data injection pipeline for log rerouting
+            # any fields injected here should be added to
+            # LOG_EXTRA_FIELDS in zipline/protocol.py
+            
+            if self.log_socket:
+            
+                def inject_event_data(record):
+                    
+                    #Record the simulation time.
+
+                    record.extra['algo_dt'] = self.current_dt
+                    
+                data_injector = Processor(inject_event_data) 
+                log_pipeline = NestedSetup([self.zmq_out,
+                                            #e.g. FileHandler(...)
+                                            data_injector])
+                with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+                    self.algorithm.handle_data(data)
+            # if no log socket, just run the algo normally
+            else:
+                self.algorithm.handle_data(data)
+    
+    #Testing utility for log capture.
+    def test_run_algorithm(self):
+        
+        def inject_event_data(record):
+            record.extra['algo_dt'] = datetime.datetime.utcnow() #Mock an event.dt
+                                
+        data_injector = Processor(inject_event_data) 
+        log_pipeline = NestedSetup([self.zmq_out,
+                                    #e.g. FileHandler(...)
+                                    data_injector])
+        with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+            self.algorithm.handle_data('data')
+            # if no log socket, just run the algo normally
 
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])

@@ -95,7 +95,7 @@ class SimulatedTrading(object):
         :param config: a dict with the following required properties::
 
         - algorithm: a class that follows the algorithm protocol. See
-        :py:meth:`zipline.finance.trading.TradingSimulationClient.add_algorithm
+        :py:meth:`zipline.finance.trading.TradeSimulationClient.add_algorithm
         for details.
         - trading_environment: an instance of
         :py:class:`zipline.trading.TradingEnvironment`
@@ -123,16 +123,14 @@ class SimulatedTrading(object):
             'feed_address'   : sockets[2],
             'merge_address'  : sockets[3],
             'result_address' : sockets[4],
-            'order_address'  : sockets[5]
+            'order_address'  : sockets[5] 
         }
 
         self.con = Controller(
             sockets[6],
             sockets[7],
         )
-
-        self.con.cancel_socket = self.allocator.lease(1)[0]
-
+        
         # TODO: Not freeform
         self.con.manage(
             'freeform'
@@ -143,9 +141,11 @@ class SimulatedTrading(object):
         self.sim = config['simulator_class'](addresses)
 
         self.clients = {}
+
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
-            self.sim_style
+            self.sim_style,
+            config['log_socket']
         )
         self.add_client(self.trading_client)
 
@@ -167,7 +167,7 @@ class SimulatedTrading(object):
     def create_test_zipline(**config):
         """
         :param config: A configuration object that is a dict with:
-
+        
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
             - allocator - a :py:class:`zipline.simulator.AddressAllocator`
@@ -190,7 +190,7 @@ class SimulatedTrading(object):
               a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
         """
         assert isinstance(config, dict)
-
+        
         allocator = config['allocator']
         sid = config['sid']
 
@@ -252,6 +252,11 @@ class SimulatedTrading(object):
                 order_amount,
                 order_count
             )
+
+        if config.has_key('log_socket'):
+            log_socket = config['log_socket']
+        else:
+            log_socket = None
         #-------------------
         # Simulation
         #-------------------
@@ -260,7 +265,8 @@ class SimulatedTrading(object):
             'trading_environment' : trading_environment,
             'allocator'           : allocator,
             'simulator_class'     : simulator_class,
-            'simulation_style'    : simulation_style
+            'simulation_style'    : simulation_style,
+            'log_socket'          : log_socket
         })
         #-------------------
 
@@ -301,8 +307,8 @@ class SimulatedTrading(object):
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()
 
-    def publish_to(self, result_socket):
-        self.trading_client.perf.publish_to(result_socket)
+    def publish_to(self, results_socket):
+        self.trading_client.perf.publish_to(results_socket)
 
     def allocate_sockets(self, n):
         """
