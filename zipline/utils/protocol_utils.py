@@ -55,6 +55,9 @@ class ndict(MutableMapping):
     # Abstact Overloads
     # -----------------
 
+    def __deepcopy__(self, memo):
+        return ndict(copy.deepcopy(self.__internal))
+
     def __setattr__(self, key, value):
         if key == 'cls' or key == '__internal' or '_ndict' in key:
             super(ndict, self).__setattr__(key, value)
