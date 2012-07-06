@@ -171,7 +171,7 @@ def create_returns_from_list(returns, trading_calendar):
 
 def create_random_trade_source(sid, trade_count, trading_environment):
     # create the source
-    source = RandomEquityTrades(sid, "rand-"+str(sid), trade_count)
+    source = RandomEquityTrades(sid, trade_count)
 
     # make the period_end of trading_environment match
     cur = trading_environment.first_open
@@ -244,5 +244,5 @@ def create_trade_source(sids, trade_count, trade_time_increment, trading_environ
     #history.
     trading_environment.period_end = trade_history[-1].dt
 
-    source = SpecificEquityTrades("flat", trade_history)
+    source = SpecificEquityTrades(trade_history)
     return source

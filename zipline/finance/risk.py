@@ -36,14 +36,14 @@ Risk Report
 
 """
 
-import logging
+import logbook
 import datetime
 import math
 import numpy as np
 import numpy.linalg as la
 from zipline.utils.date_utils import epoch_now
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Risk')
 
 def advance_by_months(dt, jump_in_months):
     month = dt.month + jump_in_months
@@ -255,7 +255,7 @@ class RiskMetrics():
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
             except ValueError:
-                LOGGER.warn("{cur} return, zeroing the returns".format(cur=cur_return))
+                log.warn("{cur} return, zeroing the returns".format(cur=cur_return))
                 cur_return = 0.0
             compounded_returns.append(cur_return)
 

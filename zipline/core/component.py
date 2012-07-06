@@ -19,6 +19,7 @@ import gevent_zeromq
 # zmq_ctypes
 #import zmq_ctypes
 
+from zipline.protocol import CONTROL_UNFRAME
 from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, CONTROL_FRAME
@@ -28,7 +29,7 @@ log = logbook.Logger('Component')
 from zipline.exceptions import ComponentNoInit
 from zipline.transitions import WorkflowMeta
 
-# LOGBOOK - embed PID in log output
+log = logbook.Logger('Base')
 
 class Component(object):
 
@@ -38,11 +39,6 @@ class Component(object):
 
     :param addresses: a dict of name_string -> zmq port address strings.
                       Must have the following entries
-
-    :param sync_address: socket address used for synchronizing the start of
-                         all workers, heartbeating, and exit notification
-                         will be used in REP/REQ sockets. Bind is always on
-                         the REP side.
 
     :param data_address: socket address used for data sources to stream
                          their records. Will be used in PUSH/PULL sockets
@@ -82,12 +78,15 @@ class Component(object):
         self.zmq               = None
         self.context           = None
         self.addresses         = None
+        self.waiting           = None
 
         self.out_socket        = None
         self.killed            = False
         self.controller        = None
         # timeout after a full minute
         self.heartbeat_timeout = 60 *1000
+        # TODO: state_flag is deprecated, remove
+        # TODO: error_state is deprecated, remove
         self.state_flag        = COMPONENT_STATE.OK
         self.error_state       = COMPONENT_FAILURE.NOFAILURE
         self.on_done           = None
@@ -98,6 +97,7 @@ class Component(object):
         self.stop_tic          = None
         self.note              = None
         self.confirmed         = False
+        self.devel             = False
 
         # Humanhashes make this way easier to debug because they stick
         # in your mind unlike a 32 byte string of random hex.
@@ -190,6 +190,12 @@ class Component(object):
         raise Exception("Unknown ZeroMQ Flavor")
 
     def _run(self):
+        """
+        The main component loop. This is wrapped inside a
+        exception reporting context inside of run.
+
+        The core logic of the all components is run here.
+        """
         self.start_tic = time.time()
 
         self.done       = False # TODO: use state flag
@@ -200,11 +206,20 @@ class Component(object):
         self.setup_poller()
 
         self.open()
-        self.setup_sync()
         self.setup_control()
+
+        self.signal_ready()
+        self.lock_ready()
+
+        self.wait_ready()
+        # -----------------------
+        # YOU SHALL NOT PASS!!!!!
+        # -----------------------
+        # ... until the controller signals GO
 
         self.loop()
         self.shutdown()
+        log.info("Shutdown %r" % self)
 
         self.stop_tic = time.time()
 
@@ -246,19 +261,7 @@ class Component(object):
         Loop to do work while we still have work to do.
         """
         while self.working():
-            self.confirm()
             self.do_work()
-
-    def confirm(self):
-        """
-        Send a synchronization request to the host.
-        """
-        if not self.confirmed:
-            # TODO: proper framing
-            self.sync_socket.send(self.get_id + ":RUN")
-
-            self.receive_sync_ack() # blocking
-            self.confirmed = True
 
     def runtime(self):
         if self.ready() and self.start_tic and self.stop_tic:
@@ -299,6 +302,81 @@ class Component(object):
     #  Internal Maintenance
     # ----------------------
 
+    def lock_ready(self):
+        """
+        Unlock the component, topology is now ready to run.
+        """
+        self.waiting = True
+
+    def unlock_ready(self):
+        """
+        Unlock the component, topology is still pending.
+        """
+        self.waiting = False
+
+    def wait_ready(self):
+        # Implicit side-effect of unlocking the component iff
+        # the GO message is received from the monitor level.
+        # This then unlocks the barrier and proceeds to the
+        # do_work state.
+
+        # Poll on a subset of the control protocol while we exist
+        # in the locked quasimode. Respond to HEARTBEAT and GO
+        # messages.
+
+        while self.waiting:
+            socks = dict(self.poll.poll(self.heartbeat_timeout))
+
+            msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # ====
+            #  Go
+            # ====
+
+            # A distributed lock from the controller to ensure
+            # synchronized start.
+
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+                self.control_out.send(heartbeat_frame)
+                log.info('Prestart Heartbeat ' + self.get_id)
+
+            elif event == CONTROL_PROTOCOL.GO:
+                # Side effectful call from the controller to unlock
+                # and begin doing work only when the entire topology
+                # of the system beings to come online
+                log.info('Unlocking ' + self.__class__.__name__)
+                self.unlock_ready()
+
+    def signal_ready(self):
+        log.info(self.__class__.__name__ + ' is ready')
+
+        if hasattr(self, 'control_out'):
+            frame = CONTROL_FRAME(
+                CONTROL_PROTOCOL.READY,
+                ''
+            )
+            self.control_out.send(frame)
+
+    def signal_cancel(self):
+        self.done = True
+
+        # TODO: no hasattr hacks
+        #if not self.controller:
+        if hasattr(self, 'control_out'):
+            frame = CONTROL_FRAME(
+                CONTROL_PROTOCOL.SHUTDOWN,
+                None
+            )
+            self.control_out.send(frame)
+
+        # then proceeds to do shutdown(), and teardown_sockets()
+        # to complete the process
+
     def signal_exception(self, exc=None, scope=None):
         """
         This is *very* important error tracking handler.
@@ -320,7 +398,7 @@ class Component(object):
 
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        trace = '\n>>>'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         sys.stdout.write(trace)
 
         if hasattr(self, 'control_out'):
@@ -342,10 +420,6 @@ class Component(object):
         if self.out_socket:
             self.out_socket.send(str(CONTROL_PROTOCOL.DONE))
 
-        #notify host we're done
-        # TODO: proper framing
-        self.sync_socket.send(self.get_id + ":" + str(CONTROL_PROTOCOL.DONE))
-
         #notify controller we're done
         done_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.DONE,
@@ -353,7 +427,6 @@ class Component(object):
         )
         self.control_out.send(done_frame)
 
-        self.receive_sync_ack()
         #notify internal work look that we're done
         self.done = True # TODO: use state flag
 
@@ -372,19 +445,6 @@ class Component(object):
         # Initializes the poller class specified by the flavor of
         # ZeroMQ. Either zmq.Poller or gpoll.Poller .
         self.poll = self.zmq_poller()
-
-    def receive_sync_ack(self):
-        """
-        Wait for synchronization reply from the host.
-
-        DEPRECATED, left in for compatability for now.
-        """
-
-        socks = dict(self.sync_poller.poll(self.heartbeat_timeout))
-        if self.sync_socket in socks and socks[self.sync_socket] == self.zmq.POLLIN:
-            message = self.sync_socket.recv()
-        #else:
-            #raise Exception("Sync ack timed out on response for {id}".format(id=self.get_id))
 
     def bind_data(self):
         return self.bind_pull_socket(self.addresses['data_address'])
@@ -405,10 +465,27 @@ class Component(object):
         return self.connect_push_socket(self.addresses['merge_address'])
 
     def bind_result(self):
-        return self.bind_pub_socket(self.addresses['result_address'])
+        return self.bind_push_socket(self.addresses['result_address'])
 
     def connect_result(self):
-        return self.connect_sub_socket(self.addresses['result_address'])
+        return self.connect_pull_socket(self.addresses['result_address'])
+
+    def bind_push_socket(self, addr):
+        push_socket = self.context.socket(self.zmq.PUSH)
+        push_socket.bind(addr)
+        self.out_socket = push_socket
+        self.sockets.append(push_socket)
+
+        return push_socket
+
+    def connect_pull_socket(self, addr):
+        pull_socket = self.context.socket(self.zmq.PULL)
+        pull_socket.connect(addr)
+        self.sockets.append(pull_socket)
+        self.poll.register(pull_socket, self.zmq.POLLIN)
+
+        return pull_socket
+
 
     def bind_pull_socket(self, addr):
         pull_socket = self.context.socket(self.zmq.PULL)
@@ -469,24 +546,6 @@ class Component(object):
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])
-
-    def setup_sync(self):
-        """
-        Setup the sync socket and poller. ( Connect )
-
-        DEPRECATED, left in for compatability for now.
-        """
-
-        #LOGGER.debug("Connecting sync client for {id}".format(id=self.get_id))
-
-        self.sync_socket = self.context.socket(self.zmq.REQ)
-        self.sync_socket.connect(self.addresses['sync_address'])
-        #self.sync_socket.setsockopt(self.zmq.LINGER,0)
-
-        self.sync_poller = self.zmq_poller()
-        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
-
-        self.sockets.append(self.sync_socket)
 
     # -----------
     # FSM Actions

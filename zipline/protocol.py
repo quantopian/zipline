@@ -141,11 +141,12 @@ CONTROL_PROTOCOL = Enum(
     'HEARTBEAT' , # 0 - req
     'SHUTDOWN'  , # 1 - req
     'KILL'      , # 2 - req
+    'GO'        , #   - req
 
     'OK'        , # 3 - rep
     'DONE'      , # 4 - rep
     'EXCEPTION' , # 5 - rep
-    'SIGNAL'    , # 6 - rep
+    'READY'     , # 6 - rep
 )
 
 def CONTROL_FRAME(event, payload):
@@ -305,7 +306,7 @@ def FEED_FRAME(event):
         - source_id
         - type
     """
-    assert isinstance(event, ndict)
+    assert isinstance(event, ndict), 'unknown type %s' % str(event)
     source_id = event.source_id
     ds_type = event.type
     PACK_DATE(event)
