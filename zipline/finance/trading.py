@@ -1,12 +1,12 @@
 import pytz
 import math
-import logging
+import logbook
 import datetime
 
 import zipline.protocol as zp
 from zipline.protocol import SIMULATION_STYLE
 
-LOGGER = logging.getLogger('ZiplineLogger')
+log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
 
@@ -39,7 +39,7 @@ class TransactionSimulator(object):
             log = "requested to trade zero shares of {sid}".format(
                 sid=event.sid
             )
-            LOGGER.debug(log)
+            log.debug(log)
             return
 
         if not self.open_orders.has_key(event.sid):

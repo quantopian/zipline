@@ -1,26 +1,21 @@
+import os
+import sys
 import logbook
-import datetime
-
-from component import Component
 
 from zipline.transforms import BaseTransform
 from zipline.components import Feed, Merge, PassthroughTransform, \
     DataSource
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE
 
-log = logbook.Logger('Host')
+log = logbook.Logger('Topology')
 
-class ComponentHost(Component):
+class ComponentHost(object):
     """
     Components that can launch multiple sub-components, synchronize
     their start, and then wait for all components to be finished.
     """
 
-    def init(self, addresses):
-        assert hasattr(self, 'zmq_flavor'), \
-        """ You must specify a flavor of ZeroMQ for all ComponentHost
-        subclasses. """
-
+    def __init__(self, addresses):
         self.addresses     = addresses
         self.running       = False
 
@@ -32,16 +27,29 @@ class ComponentHost(Component):
         self._components     = {}
         # ----------------------
 
-        self.sync_register  = {}
-        self.timeout        = datetime.timedelta(seconds=60)
+        self.exception      = None
 
         self.feed           = Feed()
         self.merge          = Merge()
         self.passthrough    = PassthroughTransform()
         self.controller     = None
 
-        #register the feed and the merge
         self.register_components([self.feed, self.merge, self.passthrough])
+
+    def _run(self):
+        self.open()
+
+    def run(self, catch_exceptions=True):
+        """
+        Run the host.
+        """
+        log.info('===== PARENT PID: %s' % os.getppid())
+
+        self.open()
+        #self.shutdown()
+
+    def shutdown(self, ensure_clean=True):
+        raise NotImplementedError
 
     def register_controller(self, controller):
         """
@@ -74,33 +82,26 @@ class ComponentHost(Component):
 
             self._components[component.guid] = component
             self.components[component.get_id] = component
-            self.sync_register[component.get_id] = datetime.datetime.utcnow()
 
             if isinstance(component, DataSource):
-                self.feed.add_source(component.source_id)
+                self.feed.add_source(component.get_id)
             if isinstance(component, BaseTransform):
                 self.merge.add_source(component.get_id)
 
     def unregister_component(self, component_id):
         del self.components[component_id]
-        del self.sync_register[component_id]
-
-    def setup_sync(self):
-        """
-        Setup the sync socket and poller. ( Bind )
-        """
-        #log.debug("Connecting sync server.")
-
-        self.sync_socket = self.context.socket(self.zmq.REP)
-        self.sync_socket.bind(self.addresses['sync_address'])
-
-        self.sync_poller = self.zmq_poller()
-        self.sync_poller.register(self.sync_socket, self.zmq.POLLIN)
-
-        self.sockets.append(self.sync_socket)
 
     def open(self):
+        assert hasattr(self, 'zmq_flavor'), \
+        """ You must specify a flavor of ZeroMQ for all Topology
+        subclasses. """
+
+
         log.info('== Roll Call ==')
+        log.info('Controller')
+
+        self.launch_controller()
+
         for component in self.components.itervalues():
             log.info(component)
 
@@ -108,8 +109,6 @@ class ComponentHost(Component):
 
         for component in self.components.itervalues():
             self.launch_component(component)
-
-        self.launch_controller()
 
     def is_running(self):
         """
@@ -122,37 +121,14 @@ class ComponentHost(Component):
 
         return True
 
-    def loop(self, lockstep=True):
-
-        while self.is_running():
-            # wait for synchronization request at start, and DONE at end.
-            # don't timeout.
-            socks = dict(self.sync_poller.poll())
-
-            if socks.get(self.sync_socket) == self.zmq.POLLIN:
-                msg = self.sync_socket.recv()
-
-                try:
-                    parts = msg.split(':')
-                    sync_id, status = parts
-                except ValueError as exc:
-                    self.signal_exception(exc)
-
-                # TODO: other way around
-                if status == str(CONTROL_PROTOCOL.DONE):
-                    #log.debug("Component claims done: {id}".format(id=sync_id))
-                    self.unregister_component(sync_id)
-                    self.state_flag = COMPONENT_STATE.DONE
-                else:
-                    self.sync_register[sync_id] = datetime.datetime.utcnow()
-
-                #log.info("confirmed {id}".format(id=msg))
-                # send synchronization reply
-                self.sync_socket.send('ack', self.zmq.NOBLOCK)
+    def ready(self):
+        return True
 
     # ------------------
     # Simulation Control
     # ------------------
+
+    # Overloaded by simulator
 
     def launch_controller(self, controller):
         raise NotImplementedError

@@ -21,13 +21,12 @@ import zipline.protocol as zp
 
 class TradeDataSource(DataSource):
 
-    def init(self, source_id):
-        self.source_id = source_id
+    def init(self):
         self.setup_source()
 
-    @property
-    def get_id(self):
-        return 'TradeDataSource'
+    #@property
+    #def get_id(self):
+    #    return 'TradeDataSource'
 
     def send(self, event):
         """
@@ -37,14 +36,14 @@ class TradeDataSource(DataSource):
         :rtype: None
         """
 
-        event.source_id = self.source_id
+        event.source_id = self.get_id
 
         if event.sid in self.filter['sid']:
             message = zp.DATASOURCE_FRAME(event)
         else:
             blank = ndict({
                 "type"      : zp.DATASOURCE_TYPE.TRADE,
-                "source_id" : self.source_id
+                "source_id" : self.get_id
             })
             message = zp.DATASOURCE_FRAME(blank)
 
@@ -56,8 +55,7 @@ class RandomEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def init(self, sid, source_id, count):
-        self.source_id      = source_id
+    def init(self, sid, count):
         self.count          = count
         self.incr           = 0
         self.sid            = sid
@@ -95,7 +93,7 @@ class SpecificEquityTrades(TradeDataSource):
     Generates a random stream of trades for testing.
     """
 
-    def init(self, source_id, event_list):
+    def init(self, event_list):
         """
         :param event_list: should be a chronologically ordered list of
         dictionaries in the following form::
@@ -107,7 +105,6 @@ class SpecificEquityTrades(TradeDataSource):
                 'volume' : integer for volume
             }
         """
-        self.source_id = source_id
         self.event_list = event_list
         self.count = 0
 

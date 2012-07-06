@@ -3,8 +3,17 @@ Simulator hosts all the components necessary to execute a simulation.
 See :py:method""
 """
 
+import logbook
 import threading
 from zipline.core.simulatorref import SimulatorBase
+
+log = logbook.Logger('Dev Simulator')
+
+DEPRECATION_WARNING = """
+WARNING WARNING WARNING
+THE DEVSIMULATOR IS DEPRECATED, IT WILL NOT BEHAVE LIKE ANY OTHER
+SYSTEM USED IN TESTS OR IN PRODUCTION
+"""
 
 class AddressAllocator(object):
     """
@@ -37,6 +46,8 @@ class Simulator(SimulatorBase):
         SimulatorBase.__init__(self, addresses)
         self.subthreads = []
         self.running = False
+
+        log.warn(DEPRECATION_WARNING)
 
     @property
     def get_id(self):

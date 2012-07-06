@@ -60,6 +60,8 @@ before invoking simulate.
                           +---------------------------------+
 """
 
+import inspect
+import logbook
 import zipline.utils.factory as factory
 
 from zipline.components import DataSource
@@ -70,6 +72,8 @@ from zipline.components import TradeSimulationClient
 from zipline.core.devsimulator import Simulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
+
+log = logbook.Logger('Lines')
 
 class SimulatedTrading(object):
     """
@@ -113,6 +117,8 @@ class SimulatedTrading(object):
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
 
+        self.devel = config.get('devel', False)
+
         self.leased_sockets = []
         self.sim_context = None
 
@@ -123,14 +129,15 @@ class SimulatedTrading(object):
             'feed_address'   : sockets[2],
             'merge_address'  : sockets[3],
             'result_address' : sockets[4],
-            'order_address'  : sockets[5] 
+            'order_address'  : sockets[5]
         }
 
         self.con = Controller(
             sockets[6],
             sockets[7],
+            devel = self.devel
         )
-        
+
         # TODO: Not freeform
         self.con.manage(
             'freeform'
@@ -167,7 +174,7 @@ class SimulatedTrading(object):
     def create_test_zipline(**config):
         """
         :param config: A configuration object that is a dict with:
-        
+
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
             - allocator - a :py:class:`zipline.simulator.AddressAllocator`
@@ -190,7 +197,7 @@ class SimulatedTrading(object):
               a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
         """
         assert isinstance(config, dict)
-        
+
         allocator = config['allocator']
         sid = config['sid']
 
@@ -266,11 +273,19 @@ class SimulatedTrading(object):
             'allocator'           : allocator,
             'simulator_class'     : simulator_class,
             'simulation_style'    : simulation_style,
-            'log_socket'          : log_socket
+            'log_socket'          : log_socket,
+            'devel'               : config.get('devel', False)
         })
         #-------------------
 
         zipline.add_source(trade_source)
+
+        # Save us from needless debugging
+        inside_test = 'nose' in inspect.stack()[-1][1]
+        if inside_test and not config.get('devel', False):
+            assert False, """
+            You need to run the SimulatedTrading inside a test with devel=True
+            """
 
         return zipline
 
@@ -285,7 +300,7 @@ class SimulatedTrading(object):
         self.sim.register_components([source])
 
         # ``id`` is name of source_id, ``get_id`` is the class name
-        self.sources[source.source_id] = source
+        self.sources[source.get_id] = source
 
     def add_transform(self, transform):
         assert isinstance(transform, BaseTransform)
@@ -324,12 +339,76 @@ class SimulatedTrading(object):
 
         return leased
 
-    def simulate(self, blocking=False):
+    @property
+    def components(self):
+        """
+        Return the component instances inside of this topology
+        """
+
+        base       = set(self.sim.components.values())
+        transforms = set(self.transforms.values())
+        sources    = set(self.sources.values())
+
+        return base | transforms | sources
+
+    @property
+    def topology(self):
+        """
+        Returns the Component names in the topology of the
+        backtest.
+        """
+
+        # A complete topology is the union of three classes of
+        # components added individually to the simulation client
+        # at various places.
+        #
+        # base       : ['FEED', 'MERGE', 'TRADING_CLIENT', 'PASSTHROUGH']
+        # transforms : ['vwap__01', ... ]
+        # sources    : ['MongoTradeHistory', ... ]
+
+        base       = set(self.sim.components.keys())
+        transforms = set(self.transforms.keys())
+        sources    = set(self.sources.keys())
+
+        return base | transforms | sources
+
+    def setup_controller(self):
+        """
+        Prepare the controller tro manage the topology specified
+        by this line.
+        """
+        self.con.manage(self.topology)
+
+    def simulate(self, blocking=True):
+        self.setup_controller()
+
         self.started = True
         self.sim_context = self.sim.simulate()
 
-        if blocking:
-            self.sim_context.join()
+        # If we're in development mode then flag all the
+        # components in the topology as devel so as to indicate
+        # that they won't poll on the control channels for
+        # anything other than the synchronized start.
+        if self.devel:
+            for component in self.components:
+                component.devel = True
+
+        # If we're using a threaded simulator block on the pool
+        # of thread since we're only ever in a test and we don't
+        # generally monitor the state of the system as a hold at
+        # the supervisory layer
+
+        # TODO: better way of identifying concurrency substrate
+        if self.sim.zmq_flavor == 'thread':
+            log.debug('Blocking')
+            for thread in self.sim.subthreads:
+                #log.debug('Waiting on %r' % thread)
+                log.debug('Waiting on %r' % thread)
+                thread.join()
+                log.debug('Yielded on %r' % thread)
+        else:
+            for process in self.sim.subprocesses:
+                process.join()
 
     @property
     def is_success(self):

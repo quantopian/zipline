@@ -65,7 +65,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
 
     trading_environment.period_end = cur
 
-    source = SpecificEquityTrades("updown_" + str(sid), events)
+    source = SpecificEquityTrades(events)
 
     return source
 
@@ -128,6 +128,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['trade_source'] = source
     config['environment'] = trading_environment
     config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
+    config['devel'] = True
 
     zipline = SimulatedTrading.create_test_zipline(**config)
 

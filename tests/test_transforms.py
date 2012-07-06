@@ -2,6 +2,8 @@ from datetime import timedelta
 from collections import defaultdict
 from unittest2 import TestCase
 
+from logbook.compat import LoggingHandler
+
 import zipline.utils.factory as factory
 from zipline.finance.vwap import DailyVWAP, VWAPTransform
 from zipline.finance.returns import ReturnsFromPriorClose
@@ -19,9 +21,15 @@ class ZiplineWithTransformsTestCase(TestCase):
         allocator.lease(100)
         self.trading_environment = factory.create_trading_environment()
         self.zipline_test_config = {
-            'allocator':allocator,
-            'sid':133
+            'allocator' : allocator,
+            'sid'       : 133,
+            'devel'     : True
         }
+        self.log_handler = LoggingHandler()
+        self.log_handler.push_application()
+
+    def tearDown(self):
+        self.log_handler.pop_application()
 
     def test_vwap_tnfm(self):
         zipline = SimulatedTrading.create_test_zipline(
@@ -36,8 +44,14 @@ class ZiplineWithTransformsTestCase(TestCase):
         self.assertFalse(zipline.sim.exception)
 
 class FinanceTransformsTestCase(TestCase):
+
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
+        self.log_handler = LoggingHandler()
+        self.log_handler.push_application()
+
+    def tearDown(self):
+        self.log_handler.pop_application()
 
     def test_vwap(self):
 

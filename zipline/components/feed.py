@@ -1,5 +1,5 @@
 import logbook
-from collections import Counter
+from collections import defaultdict, Counter
 
 from zipline.components.aggregator import Aggregate, \
     AGGREGATE_STATES, AGGREGATE_TRANSITIONS
@@ -28,7 +28,7 @@ class Feed(Aggregate):
         self.received_count         = 0
         self.ds_finished_counter    = 0
 
-        self.data_buffer            = {}
+        self.sources = defaultdict(list)
 
         # source_id -> integer count
         self.sent_counters          = Counter()
@@ -71,7 +71,7 @@ class Feed(Aggregate):
         Add an event to the buffer for the source specified by
         source_id.
         """
-        self.data_buffer[event.source_id].append(event)
+        self.sources[event.source_id].append(event)
         self.recv_counters[event.source_id] += 1
         self.received_count += 1
 
@@ -84,24 +84,27 @@ class Feed(Aggregate):
         if not(self.is_full() or self.draining):
             return
 
-        cur_source = None
         earliest_source = None
         earliest_event = None
-        #iterate over the queues of events from all sources
-        #(1 queue per datasource)
-        for events in self.data_buffer.itervalues():
-            if len(events) == 0:
-                continue
-            cur_source = events
-            first_in_list = events[0]
-            if first_in_list.dt == None:
-                #this is a filler event, discard
-                events.pop(0)
+        # iterate over the queues of source from all sources
+        # (1 queue per datasource)
+
+        for source in self.sources.itervalues():
+            if len(source) == 0:
                 continue
 
-            if (earliest_event == None) or (first_in_list.dt <= earliest_event.dt):
-                earliest_event = first_in_list
-                earliest_source = cur_source
+            head = source[0]
+
+            if head.dt == None:
+                #this is a filler event, discard
+                source.pop(0)
+                continue
+
+            if (earliest_event == None) or (head.dt <= earliest_event.dt):
+                earliest_event = head
+                earliest_source = source
 
         if earliest_event != None:
             return earliest_source.pop(0)
+        else:
+            return False
