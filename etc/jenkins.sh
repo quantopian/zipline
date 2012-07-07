@@ -38,7 +38,7 @@ cp ./etc/pycco.css ./docs/_build/html/pycco/test
 cp ./etc/pycco.css ./docs/_build/html/pycco/transforms
 
 #run all the tests in test. see setup.cfg for flags.
-nosetests --config=jenkins_setup.cfg 
+nosetests --config=jenkins_setup.cfg -I test_optimize
 
 #run pylint checks
 cp ./pylint.rcfile /mnt/jenkins/.pylintrc #default location for config file...
