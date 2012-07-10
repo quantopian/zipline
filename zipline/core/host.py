@@ -44,6 +44,7 @@ class ComponentHost(object):
         Run the host.
         """
         log.info('===== PARENT PID: %s' % os.getppid())
+        log.info('===== PID: %s' % os.getpid())
 
         self.open()
         #self.shutdown()
