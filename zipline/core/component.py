@@ -196,6 +196,10 @@ class Component(object):
 
         The core logic of the all components is run here.
         """
+        log.info("Start %r" % self)
+        log.info("Pid %s" % os.getpid())
+        log.info("Group %s" % os.getpgrp())
+
         self.start_tic = time.time()
 
         self.done       = False # TODO: use state flag

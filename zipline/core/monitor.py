@@ -6,6 +6,7 @@ import gevent
 import itertools
 import logbook
 import gevent_zeromq
+from setproctitle import setproctitle
 from signal import SIGHUP, SIGINT
 
 from collections import OrderedDict
@@ -158,6 +159,7 @@ class Controller(object):
     def run(self):
         self.running = True
         self.init_zmq(self.zmq_flavor)
+        setproctitle('Monitor')
 
         self.state = CONTROL_STATES.INIT
 
@@ -370,7 +372,7 @@ class Controller(object):
         it.
         """
         if not self.nosignals:
-            ppid = os.getpid()
+            ppid = os.getppid()
             log.warning("Sending SIGHUP")
             os.kill(ppid, SIGHUP)
         else:
