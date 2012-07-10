@@ -105,7 +105,8 @@ class Controller(object):
             self.context    = self.zmq.Context()
             self.zmq_poller = self.zmq.Poller
 
-            log.warning("USING DEVELOPMENT MODE IN MP CONTEXT NOT RECOMMENDED")
+            if self.devel:
+                log.warning("USING DEVELOPMENT MODE IN MP CONTEXT NOT RECOMMENDED")
             return
         if flavor == 'thread':
             self.zmq        = zmq
@@ -370,6 +371,7 @@ class Controller(object):
         """
         if not self.nosignals:
             ppid = os.getpid()
+            log.warning("Sending SIGHUP")
             os.kill(ppid, SIGHUP)
         else:
             log.warning("Would SIGHUP here, but disabled")
