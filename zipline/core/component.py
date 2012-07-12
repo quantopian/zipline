@@ -516,7 +516,7 @@ class Component(object):
     def bind_pub_socket(self, addr):
         pub_socket = self.context.socket(self.zmq.PUB)
         pub_socket.bind(addr)
-        pub_socket.setsockopt(self.zmq.LINGER, 0)
+        #pub_socket.setsockopt(self.zmq.LINGER, 0)
         self.out_socket = pub_socket
 
         return pub_socket
