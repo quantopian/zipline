@@ -43,7 +43,7 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 1,
+    GENERATIONAL_PERIOD        = 8,
     ALLOWED_SKIPPED_HEARTBEATS = 3,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,

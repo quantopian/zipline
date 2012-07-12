@@ -399,16 +399,17 @@ class SimulatedTrading(object):
         # the supervisory layer
 
         # TODO: better way of identifying concurrency substrate
-        if self.sim.zmq_flavor == 'thread':
-            log.debug('Blocking')
-            for thread in self.sim.subthreads:
-                #log.debug('Waiting on %r' % thread)
-                log.debug('Waiting on %r' % thread)
-                thread.join()
-                log.debug('Yielded on %r' % thread)
-        else:
-            for process in self.sim.subprocesses:
-                process.join()
+        if blocking:
+            if self.sim.zmq_flavor == 'thread':
+                log.debug('Blocking')
+                for thread in self.sim.subthreads:
+                    #log.debug('Waiting on %r' % thread)
+                    log.debug('Waiting on %r' % thread)
+                    thread.join()
+                    log.debug('Yielded on %r' % thread)
+            else:
+                for process in self.sim.subprocesses:
+                    process.join()
 
     @property
     def is_success(self):
