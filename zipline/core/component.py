@@ -83,8 +83,9 @@ class Component(object):
         self.out_socket        = None
         self.killed            = False
         self.controller        = None
-        # timeout after a full minute
-        self.heartbeat_timeout = 60 *1000
+        # timeout on heartbeat is very short to avoid burning
+        # cycles on heartbeating.
+        self.heartbeat_timeout = 60 * 1000
         # TODO: state_flag is deprecated, remove
         # TODO: error_state is deprecated, remove
         self.state_flag        = COMPONENT_STATE.OK

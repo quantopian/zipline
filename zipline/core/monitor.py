@@ -43,8 +43,8 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 8,
-    ALLOWED_SKIPPED_HEARTBEATS = 3,
+    GENERATIONAL_PERIOD        = 1,
+    ALLOWED_SKIPPED_HEARTBEATS = 10,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
     SOURCES_START_HEARTBEATS   = 3,
@@ -414,8 +414,8 @@ class Controller(object):
         #         triggers the end of the topology.
 
         good = self.tracked   & self.responses
-        bad  = self.tracked   - good
-        new  = self.responses - good
+        bad  = self.tracked   - good - self.finished
+        new  = self.responses - good - self.finished
 
         missing = self.topology - self.tracked - self.finished
 
@@ -483,7 +483,7 @@ class Controller(object):
             'FEED' : self.new_source,
         }
 
-        if component in self.topology or self.freeform:
+        if component in (self.topology - self.finished) or self.freeform:
             init_handlers.get(component, universal)()
             self.tracked.add(component)
         else:
@@ -508,7 +508,7 @@ class Controller(object):
         universal = self.fail_universal
         fail_handlers = { }
 
-        if component in self.topology or self.freeform:
+        if component in (self.topology - self.finished) or self.freeform:
             log.warning('Component "%s" missed heartbeat' % component)
             self.tracked.remove(component)
 
