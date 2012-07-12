@@ -37,6 +37,7 @@ class TestUpDown(TestCase):
     def tearDown(self):
         self.log_handler.pop_application()
 
+    @skip
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
@@ -92,6 +93,7 @@ class TestUpDown(TestCase):
             "Algorithm did not sell when price was going to increase."
         )
 
+    @skip
     def test_concavity_of_returns(self):
         """verify concave relationship between free parameter and
         returns in certain region around the max. Moreover,

@@ -71,7 +71,7 @@ class Aggregate(Component):
         # ----------------
         # Control Dispatch
         # ----------------
-        #do_handle_control_events(self, socks)
+        do_handle_control_events(self, socks)
 
         # -------------
         # Work Dispatch

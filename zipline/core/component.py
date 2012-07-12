@@ -422,7 +422,11 @@ class Component(object):
         self.state_flag = COMPONENT_STATE.DONE
 
         if self.out_socket:
-            self.out_socket.send(str(CONTROL_PROTOCOL.DONE))
+            log.info("[%s] sending DONE" % self.get_id)
+            msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
+            self.out_socket.send(msg)
+            log.info("[%s] sent DONE" % self.get_id)
+
 
         #notify controller we're done
         done_frame = CONTROL_FRAME(
@@ -431,10 +435,10 @@ class Component(object):
         )
         self.control_out.send(done_frame)
 
-        #notify internal work look that we're done
+        # notify internal work look that we're done
         self.done = True # TODO: use state flag
 
-        #log.info("[%s] DONE" % self.get_id)
+                #log.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging
@@ -512,7 +516,7 @@ class Component(object):
     def bind_pub_socket(self, addr):
         pub_socket = self.context.socket(self.zmq.PUB)
         pub_socket.bind(addr)
-        #pub_socket.setsockopt(self.zmq.LINGER,0)
+        pub_socket.setsockopt(self.zmq.LINGER, 0)
         self.out_socket = pub_socket
 
         return pub_socket

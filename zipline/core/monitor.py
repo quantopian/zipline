@@ -415,7 +415,7 @@ class Controller(object):
         bad  = self.tracked   - good
         new  = self.responses - good
 
-        missing = self.topology - self.tracked
+        missing = self.topology - self.tracked - self.finished
 
         for component in new:
             self.new(component)
