@@ -334,17 +334,17 @@ class Component(object):
         # Just exit.
         elif self.last_ping and time.time() - self.last_ping > 1:
             # send a ping ahead of schedule
+            pre_pong = time.time()
             heartbeat_frame = CONTROL_FRAME(
                     CONTROL_PROTOCOL.OK,
-                    str(self.last_ping)
+                    str(pre_pong)
                 )
 
             # Echo back the heartbeat identifier to tell the
             # controller that this component is still alive and
             # doing work
             self.control_out.send(heartbeat_frame)
-
-
+            self.last_ping = pre_pong
 
     # ----------------------------
     #  Cleanup & Modes of Failure

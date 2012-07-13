@@ -114,6 +114,7 @@ class Aggregate(Component):
         """
         while self.pending_messages() > 0:
             event = self.next()
+            self.heartbeat()
             if event:
                 self.send(event)
 

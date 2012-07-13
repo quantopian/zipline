@@ -312,7 +312,7 @@ class Controller(object):
                         if not self.router.getsockopt(self.zmq.RCVMORE):
                             self.handle_recv(buffer[:])
                             buffer = []
-                            checktime = time.time()
+                            #checktime = time.time()
 
                     except INVALID_CONTROL_FRAME:
                         log.error('Invalid frame', rawmessage)
@@ -563,9 +563,13 @@ class Controller(object):
                 # Go to your bosom; knock there, and ask your heart what
                 # it doth know...
                 self.responses.add(identity)
-            elif status < self.ctime:
+            elif float(status) < self.ctime:
                 # False face must hide what the false heart doth know.
-                log.warning('Delayed heartbeat received.')
+                log.warning('Delayed heartbeat received: %s' % msg)
+            elif float(status) > self.ctime:
+                # Pre-emptive heartbeat from the component
+                # log.info("pre-emptive pong: %s" % msg)
+                self.responses.add(identity)
             else:
                 # Otherwise its something weird and we don't know
                 # what to do so just say so, probably line noise
