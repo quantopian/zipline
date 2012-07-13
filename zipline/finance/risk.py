@@ -255,7 +255,7 @@ class RiskMetrics():
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
             except ValueError:
-                log.warn("{cur} return, zeroing the returns".format(cur=cur_return))
+                log.debug("{cur} return, zeroing the returns".format(cur=cur_return))
                 cur_return = 0.0
             compounded_returns.append(cur_return)
 

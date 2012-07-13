@@ -43,7 +43,7 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 1,
+    GENERATIONAL_PERIOD        = 10, #seconds
     ALLOWED_SKIPPED_HEARTBEATS = 10,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
@@ -291,27 +291,37 @@ class Controller(object):
             # ==============
 
             # Wait the responses
+            checktime = self.ctime
             while self.alive:
 
-                socks = dict(poller.poll(self.period))
+                socks = dict(poller.poll(0))
                 tic = time.time()
 
-                if tic - self.ctime > self.period:
-                    break
+                # We break out of this loop if the time between
+                # sending and receiving the heartbeat is more
+                # than our poll period.
+                # if tic - self.ctime > self.period:
+                #    break
 
                 if socks.get(self.router) == self.zmq.POLLIN:
                     rawmessage = self.router.recv()
 
                     if rawmessage:
                         buffer.append(rawmessage)
-
                     try:
                         if not self.router.getsockopt(self.zmq.RCVMORE):
                             self.handle_recv(buffer[:])
                             buffer = []
+                            checktime = time.time()
+
                     except INVALID_CONTROL_FRAME:
                         log.error('Invalid frame', rawmessage)
                         pass
+
+                if tic - checktime > self.period:
+                    log.info("heartbeat loop timedout: %s" % (tic - checktime))
+                    log.info(repr(self.responses))
+                    break
 
             # ================
             # Heartbeat Stats
@@ -323,10 +333,10 @@ class Controller(object):
             # Topology Status
             # ================
 
-            # Is the entire topology told us its DONE
+            # Has the entire topology told us its DONE
             done = len(self.finished) == len(self.topology)
 
-            # Is the entire topology shown up to the party
+            # Has the entire topology shown up to the party
             complete = len(self.tracked) == len(self.topology)
 
             if complete:
@@ -365,6 +375,7 @@ class Controller(object):
                 self.signal_hangup()
 
             if not self.alive:
+                log.info('Breaking out of Monitor Loop')
                 break
 
     def signal_hangup(self):
@@ -428,27 +439,13 @@ class Controller(object):
         for component in bad:
             self.fail(component)
 
-            if self.debug:
-                log.info('Bad component %r' % component)
 
-        self.missed_beats.update(missing)
         for component in missing:
-            if self.missed_beats[component] >\
-                PARAMETERS.ALLOWED_SKIPPED_HEARTBEATS:
-                # TODO: determine when this propogates to a true
-                # failure, missing one heartbeat could just mean that
-                # its CPU overloaded
-                log.warning('Component missed max heartbeats, failing %s'\
-                                % component)
-                self.fail_universal()
 
             if self.debug:
                 log.info('Missing component %r' % component)
 
         if self.debug:
-            #for component in good:
-            #    log.info('good component %r' % component)
-
 
             for component in self.tracked:
                 if component not in self.topology:
@@ -457,11 +454,6 @@ class Controller(object):
     # --------------
     # Init Handlers
     # --------------
-
-    def new_source(self):
-        #if self.state is CONTROL_STATES.RUNNING:
-            #self.state = SOURCES_READY
-        pass
 
     def new_universal(self):
         pass
@@ -479,9 +471,7 @@ class Controller(object):
         log.info('Now Tracking "%s" ' % component)
 
         universal = self.new_universal
-        init_handlers = {
-            'FEED' : self.new_source,
-        }
+        init_handlers = {}
 
         if component in (self.topology - self.finished) or self.freeform:
             init_handlers.get(component, universal)()
@@ -496,7 +486,6 @@ class Controller(object):
     # ------------------
 
     def fail_universal(self):
-        pass
         # TODO: this requires higher order functionality
         log.error('System in exception state, shutting down')
         self.shutdown(soft=True)
@@ -511,13 +500,7 @@ class Controller(object):
         if component in (self.topology - self.finished) or self.freeform:
             log.warning('Component "%s" missed heartbeat' % component)
             self.tracked.remove(component)
-
-                # TODO: determine when this propogates to a true
-                # failure, missing one heartbeat could just mean that
-                # its CPU overloaded
-                #log.warning('Component missed max heartbeats, failing %s'\
-                #                % component)
-                #fail_handlers.get(component, universal)()
+            fail_handlers.get(component, universal)()
 
     # -------------------
     # Completion Handling
@@ -646,7 +629,7 @@ class Controller(object):
 
     def do_error_replay(self):
         for (component, time), error in self.error_replay.iteritems():
-            log.debug('Component Log for -- %s --:\n%s' % (component, error))
+            log.info('Component Log for -- %s --:\n%s' % (component, error))
 
     def shutdown(self, hard=False, soft=True):
 
@@ -665,8 +648,3 @@ class Controller(object):
             self.state = CONTROL_STATES.TERMINATE
             log.info('Soft Shutdown')
             self.send_softkill()
-
-        #self.do_error_replay()
-
-        #self.pub.close()
-        #self.router.close()

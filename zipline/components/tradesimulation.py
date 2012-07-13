@@ -11,7 +11,6 @@ from zipline.utils.protocol_utils import  ndict
 from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 
 from logbook import Logger, NestedSetup, Processor, queues
-from zipline.core.controlled import do_handle_control_events
 
 
 log = logbook.Logger('TradeSimulation')
@@ -78,17 +77,9 @@ class TradeSimulationClient(Component):
             self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
 
     def do_work(self):
-        # poll all the sockets
-        socks = dict(self.poll.poll(self.heartbeat_timeout))
-
-        # ----------------
-        # Control Dispatch
-        # ----------------
-        do_handle_control_events(self, socks)
-
 
         # see if the poller has results for the result_feed
-        if socks.get(self.result_feed) == self.zmq.POLLIN:
+        if self.socks.get(self.result_feed) == self.zmq.POLLIN:
 
             self.last_msg_dt = datetime.datetime.utcnow()
 

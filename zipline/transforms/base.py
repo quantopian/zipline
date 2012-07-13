@@ -4,7 +4,6 @@ import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     CONTROL_FRAME, CONTROL_UNFRAME
 
-from zipline.core.controlled import do_handle_control_events
 
 import logbook
 import time
@@ -54,15 +53,7 @@ class BaseTransform(Component):
 
         """
 
-        socks = dict(self.poll.poll(self.heartbeat_timeout))
-
-        # ----------------
-        # Control Dispatch
-        # ----------------
-        do_handle_control_events(self, socks)
-
-
-        if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
+        if self.feed_socket in self.socks and self.socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
             #import msgpack
             #event = msgpack.loads(message)
