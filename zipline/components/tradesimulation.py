@@ -176,9 +176,7 @@ class TradeSimulationClient(Component):
                     record.extra['algo_dt'] = self.current_dt
 
                 data_injector = Processor(inject_event_data)
-                log_pipeline = NestedSetup([self.zmq_out,
-                                            #e.g. FileHandler(...)
-                                            data_injector])
+                log_pipeline = NestedSetup([self.zmq_out,data_injector])
                 with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
                     self.algorithm.handle_data(data)
             # if no log socket, just run the algo normally

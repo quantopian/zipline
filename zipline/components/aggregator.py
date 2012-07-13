@@ -92,7 +92,7 @@ class Aggregate(Component):
                 try:
                     self.append(event)
 
-                    if not (self.is_full() or self.draining):
+                    if self.is_full() or self.draining:
                         event = self.next()
 
                         if event:
