@@ -291,7 +291,6 @@ class Controller(object):
             # ==============
 
             # Wait the responses
-            checktime = self.ctime
             while self.alive:
 
                 socks = dict(poller.poll(0))
@@ -312,14 +311,13 @@ class Controller(object):
                         if not self.router.getsockopt(self.zmq.RCVMORE):
                             self.handle_recv(buffer[:])
                             buffer = []
-                            #checktime = time.time()
 
                     except INVALID_CONTROL_FRAME:
                         log.error('Invalid frame', rawmessage)
                         pass
 
-                if tic - checktime > self.period:
-                    log.info("heartbeat loop timedout: %s" % (tic - checktime))
+                if tic - self.ctime > self.period:
+                    log.info("heartbeat loop timedout: %s" % (tic - self.ctime))
                     log.info(repr(self.responses))
                     break
 

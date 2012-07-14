@@ -608,6 +608,7 @@ SIMULATION_STYLE  = Enum(
 LOG_FIELDS = set(['func_name', 'lineno', 'time', 'msg',\
                       'level', 'channel', ])
 LOG_EXTRA_FIELDS = set(['algo_dt',])
+LOG_DONE = "DONE"
 
 def LOG_FRAME(payload):
     """
@@ -621,14 +622,14 @@ def LOG_FRAME(payload):
        'level'     :  4, #Logbook enum
        'channel'   : 'MyLogger'
       }
-            
+
     Frame checks that we have all expected fields and exports an
     event/payload dict as JSON.
            """
 
     assert isinstance(payload, dict), \
         "LOG_FRAME expected a dict"
-    
+
     assert payload.has_key('algo_dt'), \
         "LOG_FRAME with no algo_dt"
     assert payload.has_key('time'), \
@@ -639,11 +640,11 @@ def LOG_FRAME(payload):
         "LOG_FRAME with no level"
     assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
-    
+
     data = {}
     data['e'] = 'LOG'
     data['p']  = payload
-    
+
     return msgpack.dumps(data)
 
 def LOG_UNFRAME(msg):
@@ -653,7 +654,5 @@ def LOG_UNFRAME(msg):
     record = msgpack.loads(msg)
     assert record['e'] == 'LOG'
     assert record.has_key('p')
-    
+
     return record['p']
-
-

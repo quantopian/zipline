@@ -106,9 +106,17 @@ class TradeSimulationClient(Component):
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()
 
+        # signal that the logging stream is done, close the
+        # logging socket
+        self.logging_done()
+
         # signal Simulator, our ComponentHost, that this component is
         # done and Simulator needn't block exit on this component.
         self.signal_done()
+
+    def logging_done(self):
+        self.zmq_out.socket.send(zp.LOG_DONE)
+        self.zmq_out.close()
 
     def process_event(self, event):
         # generate transactions, if applicable
@@ -184,6 +192,7 @@ class TradeSimulationClient(Component):
                 self.algorithm.handle_data(data)
 
     #Testing utility for log capture.
+    # TODO: remove test code from here.
     def test_run_algorithm(self):
 
         def inject_event_data(record):
