@@ -53,7 +53,7 @@ class Component(object):
                           the PULL side (we always have N producers and
                           1 consumer)
 
-    :param result_address: socket address used to publish merged data
+    :param results_address: socket address used to publish merged data
                            source feed and transforms to clients will be
                            used in PUB/SUB from one Merge to one or many
                            clients. Bind is always on the PUB side.
@@ -554,10 +554,10 @@ class Component(object):
         return self.connect_push_socket(self.addresses['merge_address'])
 
     def bind_result(self):
-        return self.bind_push_socket(self.addresses['result_address'])
+        return self.bind_push_socket(self.addresses['results_address'])
 
     def connect_result(self):
-        return self.connect_pull_socket(self.addresses['result_address'])
+        return self.connect_pull_socket(self.addresses['results_address'])
 
     def bind_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)

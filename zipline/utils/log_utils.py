@@ -86,7 +86,7 @@ class ZeroMQLogHandler(Handler):
     instead of binding and we extract record fields into a dict.
     """
 
-    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False,
+    def __init__(self, socket=None, level=NOTSET, filter=None, bubble=False,
                  context=None, fds = LOG_FIELDS, extra_fds = LOG_EXTRA_FIELDS):
         Handler.__init__(self, level, filter, bubble)
         try:
@@ -97,11 +97,11 @@ class ZeroMQLogHandler(Handler):
         #: the zero mq context
         self.context = context
         #: the zero mq socket.
-        self.socket = self.context.socket(zmq.PUSH)
+        self.socket = socket #self.context.socket(zmq.PUSH)
 
-        self.uri = uri
-        if uri is not None:
-            self.socket.connect(uri)
+        #self.uri = uri
+        #if uri is not None:
+        #    self.socket.connect(uri)
 
         self.fds = fds
         self.extra_fds = extra_fds
@@ -155,10 +155,9 @@ class ZeroMQLogHandler(Handler):
 
     def emit(self, record):
         """Extract relevant fields and send info as JSON over a zmq socket."""
-        logger = FileHandler('/var/log/zipline/zipline.log')
-        with logger.applicationbound():
-            payload = self.export_record(record)
-            self.socket.send(LOG_FRAME(payload))
+        payload = self.export_record(record)
+        self.socket.send(LOG_FRAME(payload))
 
     def close(self):
-        self.socket.close()
+        pass
+        #self.socket.close()

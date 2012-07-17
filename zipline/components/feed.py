@@ -80,6 +80,7 @@ class Feed(Aggregate):
         Get the next message in chronological order.
         """
 
+        # TODO: this is redundant to the guard in aggregator.
         # is_full and draining defined in aggregator
         if not(self.is_full() or self.draining):
             return

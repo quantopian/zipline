@@ -513,9 +513,9 @@ def BT_UPDATE_FRAME(prefix, payload):
 
 def BT_UPDATE_UNFRAME(msg):
     """
-    Risk and Perf framing methods prefix the payload with
+    Risk, Perf, and LOG framing methods prefix the payload with
     a shorthand for their type. That way, all messages received from the socket
-    can be PERF_FRAMED(), whether they are risk or perf.
+    can be PERF_FRAMED(), whether they are risk, perf, or log.
     """
     prefix, payload = msgpack.loads(msg, use_list=True)
     return dict(prefix=prefix, payload=payload)
@@ -642,17 +642,21 @@ def LOG_FRAME(payload):
         "LOG_FRAME with no message"
 
     data = {}
-    data['e'] = 'LOG'
+    data['e'] = 'log'
     data['p']  = payload
 
-    return msgpack.dumps(data)
+    return BT_UPDATE_FRAME('LOG', data)
 
 def LOG_UNFRAME(msg):
     """
     Expects a json serialized dictionary in event/payload format.
     """
     record = msgpack.loads(msg)
-    assert record['e'] == 'LOG'
-    assert record.has_key('p')
+    assert isinstance(record, tuple)
+    assert len(record) == 2
+    assert record[0] == 'LOG'
+    payload = record[1]
+    assert payload['e'] == 'log'
+    assert payload.has_key('p')
 
-    return record['p']
+    return payload['p']

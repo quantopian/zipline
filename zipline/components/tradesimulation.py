@@ -1,6 +1,8 @@
 import logbook
 import datetime
 
+import zmq
+
 import zipline.protocol as zp
 import zipline.finance.performance as perf
 
@@ -18,7 +20,7 @@ log = logbook.Logger('TradeSimulation')
 
 class TradeSimulationClient(Component):
 
-    def init(self, trading_environment, sim_style, log_socket):
+    def init(self, trading_environment, sim_style, results_socket):
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None
@@ -34,8 +36,8 @@ class TradeSimulationClient(Component):
 
         self.event_data = ndict()
         self.perf = perf.PerformanceTracker(self.trading_environment)
-
-        self.log_socket = log_socket
+        self.zmq_out = None
+        self.results_socket = results_socket
 
     @property
     def get_id(self):
@@ -64,20 +66,34 @@ class TradeSimulationClient(Component):
         self.algorithm.initialize()
 
     def open(self):
-
         self.result_feed = self.connect_result()
-        self.perf.open(self.context)
-        self.setup_logging(self.context)
+        if not self.results_socket:
+            log.warn(" No results socket, will not broadcast sim data.")
+        else:
+            sock = self.context.socket(zmq.PUSH)
+            sock.connect(self.results_socket)
+            self.results_socket = sock
+            self.sockets.append(sock)
+            self.out_socket = sock
+
+
+            self.setup_logging(sock)
+            self.perf.publish_to(sock)
+
 
     #Initialize log capture for testing purposes.
-    def setup_logging(self, context):
-        if self.log_socket:
-            self.zmq_out = ZeroMQLogHandler(uri = self.log_socket, context = context)
-            self.logger = Logger("Print")
-            self.stdout_capture = stdout_only_pipe #THIS IS A CLASS!
+    def setup_logging(self, socket = None):
+        sock = socket or self.results_socket
+
+        self.zmq_out = ZeroMQLogHandler(
+            socket = sock,
+        )
+
+        self.logger = Logger("Print")
+        # THIS IS A CLASS!
+        self.stdout_capture = stdout_only_pipe
 
     def do_work(self):
-
         # see if the poller has results for the result_feed
         if self.socks.get(self.result_feed) == self.zmq.POLLIN:
 
@@ -106,17 +122,10 @@ class TradeSimulationClient(Component):
         # ended. Perf will internally calculate the full risk report.
         self.perf.handle_simulation_end()
 
-        # signal that the logging stream is done, close the
-        # logging socket
-        self.logging_done()
-
         # signal Simulator, our ComponentHost, that this component is
         # done and Simulator needn't block exit on this component.
         self.signal_done()
 
-    def logging_done(self):
-        self.zmq_out.socket.send(zp.LOG_DONE)
-        self.zmq_out.close()
 
     def process_event(self, event):
         # generate transactions, if applicable
@@ -174,8 +183,7 @@ class TradeSimulationClient(Component):
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
-
-            if self.log_socket:
+            if self.zmq_out:
 
                 def inject_event_data(record):
 
