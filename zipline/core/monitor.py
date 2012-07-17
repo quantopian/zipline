@@ -33,8 +33,7 @@ class UnknownChatter(Exception):
     def __init__(self, name):
         self.named = name
     def __str__(self):
-        return "Component calling itself '%s' talking on unexpected channel"
-            % self.named
+        return """Component calling itself "%s" talking on unexpected channel""" % self.named
 
 
 log = logbook.Logger('Controller')
