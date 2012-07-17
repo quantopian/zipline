@@ -641,11 +641,8 @@ def LOG_FRAME(payload):
     assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
 
-    data = {}
-    data['e'] = 'log'
-    data['p']  = payload
 
-    return BT_UPDATE_FRAME('LOG', data)
+    return BT_UPDATE_FRAME('LOG', payload)
 
 def LOG_UNFRAME(msg):
     """
