@@ -122,26 +122,25 @@ class SimulatedTrading(object):
         self.leased_sockets = []
         self.sim_context = None
 
-        sockets = self.allocate_sockets(8)
+        sockets = self.allocate_sockets(7)
         addresses = {
             'sync_address'   : sockets[0],
             'data_address'   : sockets[1],
             'feed_address'   : sockets[2],
             'merge_address'  : sockets[3],
-            'result_address' : sockets[4],
-            'order_address'  : sockets[5]
+            # TODO: this refers to the results of the merge, a
+            # horribly confusing name for the socket.
+            'results_address' : sockets[4],
         }
 
         self.con = Controller(
+            sockets[5],
             sockets[6],
-            sockets[7],
             devel = self.devel
         )
 
         # TODO: Not freeform
-        self.con.manage(
-            'freeform'
-        )
+        self.con.manage('freeform')
 
         self.started = False
 
@@ -152,19 +151,15 @@ class SimulatedTrading(object):
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
             self.sim_style,
-            config['log_socket']
+            config['results_socket']
         )
         self.add_client(self.trading_client)
 
         # setup all sources
         self.sources = {}
-        #self.order_source = OrderDataSource()
-        #self.add_source(self.order_source)
 
         #setup transforms
-        #self.transaction_sim = TransactionSimulator(self.sim_style)
         self.transforms = {}
-        #self.add_transform(self.transaction_sim)
 
         self.sim.register_controller( self.con )
 
@@ -260,10 +255,10 @@ class SimulatedTrading(object):
                 order_count
             )
 
-        if config.has_key('log_socket'):
-            log_socket = config['log_socket']
+        if config.has_key('results_socket'):
+            results_socket = config['results_socket']
         else:
-            log_socket = None
+            results_socket = None
         #-------------------
         # Simulation
         #-------------------
@@ -273,7 +268,7 @@ class SimulatedTrading(object):
             'allocator'           : allocator,
             'simulator_class'     : simulator_class,
             'simulation_style'    : simulation_style,
-            'log_socket'          : log_socket,
+            'results_socket'      : results_socket,
             'devel'               : config.get('devel', False)
         })
         #-------------------
@@ -321,9 +316,6 @@ class SimulatedTrading(object):
 
     def get_cumulative_performance(self):
         return self.trading_client.perf.cumulative_performance.to_dict()
-
-    def publish_to(self, results_socket):
-        self.trading_client.perf.publish_to(results_socket)
 
     def allocate_sockets(self, n):
         """
@@ -399,16 +391,17 @@ class SimulatedTrading(object):
         # the supervisory layer
 
         # TODO: better way of identifying concurrency substrate
-        if self.sim.zmq_flavor == 'thread':
-            log.debug('Blocking')
-            for thread in self.sim.subthreads:
-                #log.debug('Waiting on %r' % thread)
-                log.debug('Waiting on %r' % thread)
-                thread.join()
-                log.debug('Yielded on %r' % thread)
-        else:
-            for process in self.sim.subprocesses:
-                process.join()
+        if blocking:
+            if self.sim.zmq_flavor == 'thread':
+                log.debug('Blocking')
+                for thread in self.sim.subthreads:
+                    #log.debug('Waiting on %r' % thread)
+                    log.debug('Waiting on %r' % thread)
+                    thread.join()
+                    log.debug('Yielded on %r' % thread)
+            else:
+                for process in self.sim.subprocesses:
+                    process.join()
 
     @property
     def is_success(self):

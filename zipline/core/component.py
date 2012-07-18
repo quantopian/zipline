@@ -19,17 +19,13 @@ import gevent_zeromq
 # zmq_ctypes
 #import zmq_ctypes
 
-from zipline.protocol import CONTROL_UNFRAME
 from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
-    COMPONENT_FAILURE, CONTROL_FRAME
+    COMPONENT_FAILURE, CONTROL_FRAME, CONTROL_UNFRAME
 
 log = logbook.Logger('Component')
 
 from zipline.exceptions import ComponentNoInit
-from zipline.transitions import WorkflowMeta
-
-log = logbook.Logger('Base')
 
 class Component(object):
 
@@ -57,7 +53,7 @@ class Component(object):
                           the PULL side (we always have N producers and
                           1 consumer)
 
-    :param result_address: socket address used to publish merged data
+    :param results_address: socket address used to publish merged data
                            source feed and transforms to clients will be
                            used in PUB/SUB from one Merge to one or many
                            clients. Bind is always on the PUB side.
@@ -83,8 +79,9 @@ class Component(object):
         self.out_socket        = None
         self.killed            = False
         self.controller        = None
-        # timeout after a full minute
-        self.heartbeat_timeout = 60 *1000
+        # timeout on heartbeat is very short to avoid burning
+        # cycles on heartbeating. unit is milliconds
+        self.heartbeat_timeout = 0
         # TODO: state_flag is deprecated, remove
         # TODO: error_state is deprecated, remove
         self.state_flag        = COMPONENT_STATE.OK
@@ -98,6 +95,8 @@ class Component(object):
         self.note              = None
         self.confirmed         = False
         self.devel             = False
+        self.socks             = None
+        self.last_ping         = None
 
         # Humanhashes make this way easier to debug because they stick
         # in your mind unlike a 32 byte string of random hex.
@@ -196,6 +195,10 @@ class Component(object):
 
         The core logic of the all components is run here.
         """
+        log.info("Start %r" % self)
+        log.info("Pid %s" % os.getpid())
+        log.info("Group %s" % os.getpgrp())
+
         self.start_tic = time.time()
 
         self.done       = False # TODO: use state flag
@@ -218,33 +221,25 @@ class Component(object):
         # ... until the controller signals GO
 
         self.loop()
-        self.shutdown()
-        log.info("Shutdown %r" % self)
 
         self.stop_tic = time.time()
 
     def run(self, catch_exceptions=True):
         """
         Run the component.
-
-        Optionally takes an argument to catch and log all exceptions
-        raised during execution. Use this with care since it makes it
-        very hard to debug since it mucks up your stacktraces.
         """
+        try:
+            self._run()
+        except Exception as exc:
+            exc_info = sys.exc_info()
+            self.signal_exception(exc)
 
-        if catch_exceptions:
-            try:
-                self._run()
-            except Exception as exc:
-                exc_info = sys.exc_info()
-                self.signal_exception(exc)
-
-                # Reraise the exception
-                raise exc_info[0], exc_info[1], exc_info[2]
-            finally:
-
-                self.shutdown()
-                self.teardown_sockets()
+            # Reraise the exception
+            raise exc_info[0], exc_info[1], exc_info[2]
+        finally:
+            self.shutdown()
+            self.teardown_sockets()
+            log.info("Exiting %r" % self)
 
     def working(self):
         """
@@ -261,11 +256,89 @@ class Component(object):
         Loop to do work while we still have work to do.
         """
         while self.working():
+            self.heartbeat()
             self.do_work()
 
     def runtime(self):
         if self.ready() and self.start_tic and self.stop_tic:
             return self.stop_tic - self.start_tic
+
+    def heartbeat(self, timeout=0):
+        # wait for synchronization reply from the host
+        self.socks = dict(self.poll.poll(timeout))
+
+        # ----------------
+        # Control Dispatch
+        # ----------------
+        assert self.control_in, 'Component does not have a control_in socket'
+
+        # If we're in devel mode drop out because the controller
+        # isn't guaranteed to be around anymore
+        if self.devel:
+            return
+
+        if self.socks.get(self.control_in) == zmq.POLLIN:
+            msg = self.control_in.recv()
+            event, payload = CONTROL_UNFRAME(msg)
+
+            # ===========
+            #  Heartbeat
+            # ===========
+
+            # The controller will send out a single number packed in
+            # a CONTROL_FRAME with ``heartbeat`` event every
+            # (n)-seconds. The component then has n seconds to
+            # respond to it. If not then it will be considered as
+            # malfunctioning or maybe CPU bound.
+
+            if event == CONTROL_PROTOCOL.HEARTBEAT:
+                # Heart outgoing
+                heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    payload
+                )
+
+                self.last_ping = float(payload)
+                # Echo back the heartbeat identifier to tell the
+                # controller that this component is still alive and
+                # doing work
+                self.control_out.send(heartbeat_frame)
+
+
+            # =========
+            # Soft Kill
+            # =========
+
+            # Try and clean up properly and send out any reports or
+            # data that are done during a clean shutdown. Inform the
+            # controller that we're done.
+            elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                self.signal_done()
+                self.shutdown()
+
+            # =========
+            # Hard Kill
+            # =========
+
+            # Just exit.
+            elif event == CONTROL_PROTOCOL.KILL:
+                self.kill()
+
+        # In case we didn't receive a ping, send a pre-emptive
+        # pong to the monitor.
+        elif self.last_ping and time.time() - self.last_ping > 1:
+            # send a ping ahead of schedule
+            pre_pong = time.time()
+            heartbeat_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.OK,
+                    str(pre_pong)
+                )
+
+            # Echo back the heartbeat identifier to tell the
+            # controller that this component is still alive and
+            # doing work
+            self.control_out.send(heartbeat_frame)
+            self.last_ping = pre_pong
 
     # ----------------------------
     #  Cleanup & Modes of Failure
@@ -325,7 +398,7 @@ class Component(object):
         # messages.
 
         while self.waiting:
-            socks = dict(self.poll.poll(self.heartbeat_timeout))
+            #socks = dict(self.poll.poll(self.heartbeat_timeout))
 
             msg = self.control_in.recv()
             event, payload = CONTROL_UNFRAME(msg)
@@ -418,19 +491,29 @@ class Component(object):
         self.state_flag = COMPONENT_STATE.DONE
 
         if self.out_socket:
-            self.out_socket.send(str(CONTROL_PROTOCOL.DONE))
+            msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
+            self.out_socket.send(msg)
 
-        #notify controller we're done
+
+
+        # notify controller we're done
         done_frame = CONTROL_FRAME(
             CONTROL_PROTOCOL.DONE,
             ''
         )
-        self.control_out.send(done_frame)
 
-        #notify internal work look that we're done
+        self.control_out.send(done_frame)
+        log.info("[%s] sent control done" % self.get_id)
+
+        # there is a narrow race condition where we finish just
+        # after the Monitor accepts our prior heartbeat, but just
+        # before the next one is sent. So, we hang around for one
+        # last heartbeat, and wait an unusually long time.
+        self.heartbeat(timeout=5000)
+
+        # notify internal work look that we're done
         self.done = True # TODO: use state flag
 
-        #log.info("[%s] DONE" % self.get_id)
 
     # -----------
     #  Messaging
@@ -465,10 +548,10 @@ class Component(object):
         return self.connect_push_socket(self.addresses['merge_address'])
 
     def bind_result(self):
-        return self.bind_push_socket(self.addresses['result_address'])
+        return self.bind_push_socket(self.addresses['results_address'])
 
     def connect_result(self):
-        return self.connect_pull_socket(self.addresses['result_address'])
+        return self.connect_pull_socket(self.addresses['results_address'])
 
     def bind_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)
@@ -508,7 +591,7 @@ class Component(object):
     def bind_pub_socket(self, addr):
         pub_socket = self.context.socket(self.zmq.PUB)
         pub_socket.bind(addr)
-        #pub_socket.setsockopt(self.zmq.LINGER,0)
+        #pub_socket.setsockopt(self.zmq.LINGER, 0)
         self.out_socket = pub_socket
 
         return pub_socket

@@ -513,9 +513,9 @@ def BT_UPDATE_FRAME(prefix, payload):
 
 def BT_UPDATE_UNFRAME(msg):
     """
-    Risk and Perf framing methods prefix the payload with
+    Risk, Perf, and LOG framing methods prefix the payload with
     a shorthand for their type. That way, all messages received from the socket
-    can be PERF_FRAMED(), whether they are risk or perf.
+    can be PERF_FRAMED(), whether they are risk, perf, or log.
     """
     prefix, payload = msgpack.loads(msg, use_list=True)
     return dict(prefix=prefix, payload=payload)
@@ -608,6 +608,7 @@ SIMULATION_STYLE  = Enum(
 LOG_FIELDS = set(['func_name', 'lineno', 'time', 'msg',\
                       'level', 'channel', ])
 LOG_EXTRA_FIELDS = set(['algo_dt',])
+LOG_DONE = "DONE"
 
 def LOG_FRAME(payload):
     """
@@ -621,14 +622,14 @@ def LOG_FRAME(payload):
        'level'     :  4, #Logbook enum
        'channel'   : 'MyLogger'
       }
-            
+
     Frame checks that we have all expected fields and exports an
     event/payload dict as JSON.
            """
 
     assert isinstance(payload, dict), \
         "LOG_FRAME expected a dict"
-    
+
     assert payload.has_key('algo_dt'), \
         "LOG_FRAME with no algo_dt"
     assert payload.has_key('time'), \
@@ -639,21 +640,18 @@ def LOG_FRAME(payload):
         "LOG_FRAME with no level"
     assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
-    
-    data = {}
-    data['e'] = 'LOG'
-    data['p']  = payload
-    
-    return msgpack.dumps(data)
+
+
+    return BT_UPDATE_FRAME('LOG', payload)
 
 def LOG_UNFRAME(msg):
     """
-    Expects a json serialized dictionary in event/payload format.
+    msg should be a tuple of ('LOG',dict)
     """
     record = msgpack.loads(msg)
-    assert record['e'] == 'LOG'
-    assert record.has_key('p')
-    
-    return record['p']
+    assert isinstance(record, tuple)
+    assert len(record) == 2
+    assert record[0] == 'LOG'
+    payload = record[1]
 
-
+    return payload

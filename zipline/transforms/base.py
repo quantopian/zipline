@@ -4,6 +4,12 @@ import zipline.protocol as zp
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE, \
     CONTROL_FRAME, CONTROL_UNFRAME
 
+
+import logbook
+import time
+
+log = logbook.Logger('BaseTransform')
+
 class BaseTransform(Component):
     """
     Top level execution entry point for the transform
@@ -46,35 +52,15 @@ class BaseTransform(Component):
         - send the transformed event
 
         """
-        socks = dict(self.poll.poll(self.heartbeat_timeout))
 
-        # TODO: Abstract this out, maybe on base component
-        if self.control_in in socks and socks[self.control_in] == self.zmq.POLLIN:
-            msg = self.control_in.recv()
-            event, payload = CONTROL_UNFRAME(msg)
-
-            # -- Heartbeat --
-            if event == CONTROL_PROTOCOL.HEARTBEAT:
-                # Heart outgoing
-                heartbeat_frame = CONTROL_FRAME(
-                    CONTROL_PROTOCOL.OK,
-                    payload
-                )
-                self.control_out.send(heartbeat_frame)
-
-            # -- Soft Kill --
-            elif event == CONTROL_PROTOCOL.SHUTDOWN:
-                self.signal_done()
-                self.shutdown()
-
-            # -- Hard Kill --
-            elif event == CONTROL_PROTOCOL.KILL:
-                self.kill()
-
-        if self.feed_socket in socks and socks[self.feed_socket] == self.zmq.POLLIN:
+        if self.feed_socket in self.socks and self.socks[self.feed_socket] == self.zmq.POLLIN:
             message = self.feed_socket.recv()
+            #import msgpack
+            #event = msgpack.loads(message)
+            #log.info(event)
 
             if message == str(CONTROL_PROTOCOL.DONE):
+                log.info("signaling done")
                 self.signal_done()
                 return
 

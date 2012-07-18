@@ -13,7 +13,6 @@ import logbook
 
 import zipline.protocol as zp
 from zipline.core.component import Component
-from zipline.core.controlled import do_handle_control_events
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_TYPE
 from zipline.transitions import WorkflowMeta
 from zipline.utils.protocol_utils import Enum
@@ -65,18 +64,11 @@ class Aggregate(Component):
     # -------------
 
     def do_work(self):
-        # wait for synchronization reply from the host
-        socks = dict(self.poll.poll(self.heartbeat_timeout))
-
-        # ----------------
-        # Control Dispatch
-        # ----------------
-        #do_handle_control_events(self, socks)
 
         # -------------
         # Work Dispatch
         # -------------
-        if socks.get(self.pull_socket) == self.zmq.POLLIN:
+        if self.socks.get(self.pull_socket) == self.zmq.POLLIN:
             message = self.pull_socket.recv()
 
             if message == str(CONTROL_PROTOCOL.DONE):
@@ -100,7 +92,7 @@ class Aggregate(Component):
                 try:
                     self.append(event)
 
-                    if not (self.is_full() or self.draining):
+                    if self.is_full() or self.draining:
                         event = self.next()
 
                         if event:
@@ -122,6 +114,7 @@ class Aggregate(Component):
         """
         while self.pending_messages() > 0:
             event = self.next()
+            self.heartbeat()
             if event:
                 self.send(event)
 

@@ -92,6 +92,10 @@ class ComponentHost(object):
     def unregister_component(self, component_id):
         del self.components[component_id]
 
+    @property
+    def pids(self):
+        return [proc.pid for proc in self.subprocesses]
+
     def open(self):
         assert hasattr(self, 'zmq_flavor'), \
         """ You must specify a flavor of ZeroMQ for all Topology
@@ -110,6 +114,7 @@ class ComponentHost(object):
 
         for component in self.components.itervalues():
             self.launch_component(component)
+
 
     def is_running(self):
         """

@@ -214,8 +214,9 @@ class PerformanceTracker(object):
         Publish the performance results asynchronously to a
         socket.
         """
-        assert isinstance(results_addr, basestring), type(results_addr)
-        self.results_addr = results_addr
+        #assert isinstance(results_addr, basestring), type(results_addr)
+        #self.results_addr = results_addr
+        self.results_socket = results_addr
 
     def to_dict(self):
         """
@@ -261,7 +262,7 @@ class PerformanceTracker(object):
         self.todays_performance.calculate_performance()
 
     def handle_market_close(self):
-        
+
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -347,12 +348,9 @@ class PerformanceTracker(object):
         if self.results_socket:
             log.info("about to stream the risk report...")
             risk_dict = self.risk_report.to_dict()
-            
+
             msg = zp.RISK_FRAME(risk_dict)
             self.results_socket.send(msg)
-            # this signals that the simulation is complete.
-            self.results_socket.send("DONE")
-
 
 class Position(object):
 

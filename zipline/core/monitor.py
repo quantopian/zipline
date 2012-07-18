@@ -6,9 +6,10 @@ import gevent
 import itertools
 import logbook
 import gevent_zeromq
+from setproctitle import setproctitle
 from signal import SIGHUP, SIGINT
 
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
@@ -32,8 +33,7 @@ class UnknownChatter(Exception):
     def __init__(self, name):
         self.named = name
     def __str__(self):
-        return """Component calling itself "%s" talking on unexpected channel"""\
-            % self.named
+        return """Component calling itself "%s" talking on unexpected channel""" % self.named
 
 
 log = logbook.Logger('Controller')
@@ -42,8 +42,8 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 1,
-    ALLOWED_SKIPPED_HEARTBEATS = 3,
+    GENERATIONAL_PERIOD        = 10, #seconds
+    ALLOWED_SKIPPED_HEARTBEATS = 10,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
     SOURCES_START_HEARTBEATS   = 3,
@@ -93,6 +93,8 @@ class Controller(object):
         self.route_socket = route_socket
 
         self.error_replay = OrderedDict()
+
+        self.missed_beats = Counter()
 
         log.warn("Running Controller in development mode, will ONLY synchronize start.")
 
@@ -158,6 +160,7 @@ class Controller(object):
     def run(self):
         self.running = True
         self.init_zmq(self.zmq_flavor)
+        setproctitle('Monitor')
 
         self.state = CONTROL_STATES.INIT
 
@@ -289,25 +292,31 @@ class Controller(object):
             # Wait the responses
             while self.alive:
 
-                socks = dict(poller.poll(self.period))
+                socks = dict(poller.poll(0))
                 tic = time.time()
-
-                if tic - self.ctime > self.period:
-                    break
 
                 if socks.get(self.router) == self.zmq.POLLIN:
                     rawmessage = self.router.recv()
 
                     if rawmessage:
                         buffer.append(rawmessage)
-
                     try:
                         if not self.router.getsockopt(self.zmq.RCVMORE):
                             self.handle_recv(buffer[:])
                             buffer = []
+
                     except INVALID_CONTROL_FRAME:
                         log.error('Invalid frame', rawmessage)
                         pass
+
+                # We break out of this loop if the time between
+                # sending and receiving the heartbeat is more
+                # than our poll period.
+
+                if tic - self.ctime > self.period:
+                    log.info("heartbeat loop timedout: %s" % (tic - self.ctime))
+                    log.info(repr(self.responses))
+                    break
 
             # ================
             # Heartbeat Stats
@@ -319,10 +328,10 @@ class Controller(object):
             # Topology Status
             # ================
 
-            # Is the entire topology told us its DONE
+            # Has the entire topology told us its DONE
             done = len(self.finished) == len(self.topology)
 
-            # Is the entire topology shown up to the party
+            # Has the entire topology shown up to the party
             complete = len(self.tracked) == len(self.topology)
 
             if complete:
@@ -361,6 +370,7 @@ class Controller(object):
                 self.signal_hangup()
 
             if not self.alive:
+                log.info('Breaking out of Monitor Loop')
                 break
 
     def signal_hangup(self):
@@ -370,7 +380,7 @@ class Controller(object):
         it.
         """
         if not self.nosignals:
-            ppid = os.getpid()
+            ppid = os.getppid()
             log.warning("Sending SIGHUP")
             os.kill(ppid, SIGHUP)
         else:
@@ -410,10 +420,10 @@ class Controller(object):
         #         triggers the end of the topology.
 
         good = self.tracked   & self.responses
-        bad  = self.tracked   - good
-        new  = self.responses - good
+        bad  = self.tracked   - good - self.finished
+        new  = self.responses - good - self.finished
 
-        missing = self.topology - self.tracked
+        missing = self.topology - self.tracked - self.finished
 
         for component in new:
             self.new(component)
@@ -424,12 +434,13 @@ class Controller(object):
         for component in bad:
             self.fail(component)
 
+
+        for component in missing:
+
             if self.debug:
-                log.info('Bad component %r' % component)
+                log.info('Missing component %r' % component)
 
         if self.debug:
-            for component in missing:
-                log.info('Missing component %r' % component)
 
             for component in self.tracked:
                 if component not in self.topology:
@@ -438,11 +449,6 @@ class Controller(object):
     # --------------
     # Init Handlers
     # --------------
-
-    def new_source(self):
-        #if self.state is CONTROL_STATES.RUNNING:
-            #self.state = SOURCES_READY
-        pass
 
     def new_universal(self):
         pass
@@ -460,11 +466,9 @@ class Controller(object):
         log.info('Now Tracking "%s" ' % component)
 
         universal = self.new_universal
-        init_handlers = {
-            'FEED' : self.new_source,
-        }
+        init_handlers = {}
 
-        if component in self.topology or self.freeform:
+        if component in (self.topology - self.finished) or self.freeform:
             init_handlers.get(component, universal)()
             self.tracked.add(component)
         else:
@@ -477,7 +481,6 @@ class Controller(object):
     # ------------------
 
     def fail_universal(self):
-        pass
         # TODO: this requires higher order functionality
         log.error('System in exception state, shutting down')
         self.shutdown(soft=True)
@@ -489,14 +492,10 @@ class Controller(object):
         universal = self.fail_universal
         fail_handlers = { }
 
-        if component in self.topology or self.freeform:
+        if component in (self.topology - self.finished) or self.freeform:
             log.warning('Component "%s" missed heartbeat' % component)
             self.tracked.remove(component)
-
-            # TODO: determine when this propogates to a true
-            # failure, missing one heartbeat could just mean that
-            # its CPU overloaded
-            #fail_handlers.get(component, universal)()
+            fail_handlers.get(component, universal)()
 
     # -------------------
     # Completion Handling
@@ -559,9 +558,13 @@ class Controller(object):
                 # Go to your bosom; knock there, and ask your heart what
                 # it doth know...
                 self.responses.add(identity)
-            elif status < self.ctime:
+            elif float(status) < self.ctime:
                 # False face must hide what the false heart doth know.
-                log.warning('Delayed heartbeat received.')
+                log.warning('Delayed heartbeat received: %s' % msg)
+            elif float(status) > self.ctime:
+                # Pre-emptive heartbeat from the component
+                # log.info("pre-emptive pong: %s" % msg)
+                self.responses.add(identity)
             else:
                 # Otherwise its something weird and we don't know
                 # what to do so just say so, probably line noise
@@ -625,7 +628,7 @@ class Controller(object):
 
     def do_error_replay(self):
         for (component, time), error in self.error_replay.iteritems():
-            log.debug('Component Log for -- %s --:\n%s' % (component, error))
+            log.info('Component Log for -- %s --:\n%s' % (component, error))
 
     def shutdown(self, hard=False, soft=True):
 
@@ -644,8 +647,3 @@ class Controller(object):
             self.state = CONTROL_STATES.TERMINATE
             log.info('Soft Shutdown')
             self.send_softkill()
-
-        #self.do_error_replay()
-
-        #self.pub.close()
-        #self.router.close()
