@@ -269,9 +269,6 @@ class Component(object):
 
         # ----------------
         # Control Dispatch
-        # Only run a single iteration here, just before exit.
-        # This helps ensure that the Monitor
-        # Running on every iteration ruins performance.
         # ----------------
         assert self.control_in, 'Component does not have a control_in socket'
 
@@ -327,11 +324,8 @@ class Component(object):
             elif event == CONTROL_PROTOCOL.KILL:
                 self.kill()
 
-        # =========
-        # Hard Kill
-        # =========
-
-        # Just exit.
+        # In case we didn't receive a ping, send a pre-emptive
+        # pong to the monitor.
         elif self.last_ping and time.time() - self.last_ping > 1:
             # send a ping ahead of schedule
             pre_pong = time.time()

@@ -295,12 +295,6 @@ class Controller(object):
                 socks = dict(poller.poll(0))
                 tic = time.time()
 
-                # We break out of this loop if the time between
-                # sending and receiving the heartbeat is more
-                # than our poll period.
-                # if tic - self.ctime > self.period:
-                #    break
-
                 if socks.get(self.router) == self.zmq.POLLIN:
                     rawmessage = self.router.recv()
 
@@ -314,6 +308,10 @@ class Controller(object):
                     except INVALID_CONTROL_FRAME:
                         log.error('Invalid frame', rawmessage)
                         pass
+
+                # We break out of this loop if the time between
+                # sending and receiving the heartbeat is more
+                # than our poll period.
 
                 if tic - self.ctime > self.period:
                     log.info("heartbeat loop timedout: %s" % (tic - self.ctime))

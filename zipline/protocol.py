@@ -646,14 +646,12 @@ def LOG_FRAME(payload):
 
 def LOG_UNFRAME(msg):
     """
-    Expects a json serialized dictionary in event/payload format.
+    msg should be a tuple of ('LOG',dict)
     """
     record = msgpack.loads(msg)
     assert isinstance(record, tuple)
     assert len(record) == 2
     assert record[0] == 'LOG'
     payload = record[1]
-    assert payload['e'] == 'log'
-    assert payload.has_key('p')
 
-    return payload['p']
+    return payload

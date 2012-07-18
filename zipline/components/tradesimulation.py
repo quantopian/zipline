@@ -90,7 +90,8 @@ class TradeSimulationClient(Component):
         )
 
         self.logger = Logger("Print")
-        # THIS IS A CLASS!
+        # N.B. that this is a class, which is instantiated later
+        # in run_algorithm. The class provides a generator.
         self.stdout_capture = stdout_only_pipe
 
     def do_work(self):
