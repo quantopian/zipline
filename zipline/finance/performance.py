@@ -198,6 +198,10 @@ class PerformanceTracker(object):
             keep_transactions = True
         )
 
+    def set_sids(self, sid_list):
+        for sid in sid_list:
+            self.cumulative_performance.positions[sid] = Position(sid)
+
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
 

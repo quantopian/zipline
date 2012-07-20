@@ -64,6 +64,11 @@ class TradeSimulationClient(Component):
         #    self.algorithm.initialize()
 
         self.algorithm.initialize()
+        # we need to provide the performance tracker with the
+        # sids referenced in the algorithm, so portfolio can
+        # initialize with all possible sids.
+
+        self.perf.set_sids(self.algorithm.get_sid_filter())
 
     def open(self):
         self.result_feed = self.connect_result()
@@ -175,11 +180,12 @@ class TradeSimulationClient(Component):
         - Set the current portfolio for the algorithm as per protocol.
         - Construct data based on backlog of events, send to algorithm.
         """
-        current_portfolio = self.perf.get_portfolio()
-        self.algorithm.set_portfolio(current_portfolio)
+        # current_portfolio = self.perf.get_portfolio()
+        # self.algorithm.set_portfolio(current_portfolio)
         data = self.get_data()
 
         if len(data) > 0:
+            data.portfolio = self.perf.get_portfolio()
 
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
