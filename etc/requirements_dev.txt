@@ -33,3 +33,6 @@ wsgiref==0.1.2
 # misc
 pycleaner==1.1.1
 -e git://github.com/pydata/vbench.git#egg=vbench
+
+# profilers
+yappi==0.62
