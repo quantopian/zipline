@@ -289,6 +289,8 @@ class Controller(object):
             # Hearbeat Cycle
             # ==============
 
+            initializing = len(self.tracked) == 0 and len(self.finished) == 0
+
             # Wait the responses
             while self.alive:
 
@@ -316,6 +318,13 @@ class Controller(object):
                 if tic - self.ctime > self.period:
                     log.info("heartbeat loop timedout: %s" % (tic - self.ctime))
                     log.info(repr(self.responses))
+                    break
+
+                # if this is the first time heartbeating, break
+                # out early if we get everything tracked no need
+                # to hold out for the full heartbeat.
+                if initializing and len(self.responses) == len(self.topology):
+                    log.info("breaking out of initial heartbeat")
                     break
 
             # ================
