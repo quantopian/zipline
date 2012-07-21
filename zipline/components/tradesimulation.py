@@ -180,8 +180,6 @@ class TradeSimulationClient(Component):
         - Set the current portfolio for the algorithm as per protocol.
         - Construct data based on backlog of events, send to algorithm.
         """
-        # current_portfolio = self.perf.get_portfolio()
-        # self.algorithm.set_portfolio(current_portfolio)
         data = self.get_data()
 
         if len(data) > 0:

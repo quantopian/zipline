@@ -4,7 +4,6 @@ from unittest2 import TestCase, skip
 
 from zipline.core.monitor import Controller
 
-
 class TestMonitor(TestCase):
     def setUp(self):
         self.log_handler = LoggingHandler()

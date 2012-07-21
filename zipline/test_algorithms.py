@@ -138,17 +138,55 @@ class NoopAlgorithm(object):
     def get_sid_filter(self):
         return None
 
+class ExceptionAlgorithm(object):
+    """
+    Dolce fa niente.
+    """
+
+    def __init__(self, throw_from):
+        self.throw_from == throw_from
+
+    def initialize(self):
+        if self.throw_from == "initialize":
+            raise Exception("Algo exception in initialize")
+        else:
+            pass
+
+    def set_order(self, order_callable):
+        if self.throw_from == "set_order":
+            raise Exception("Algo exception in set_order")
+        else:
+            pass
+
+    def set_portfolio(self, portfolio):
+        if self.throw_from == "set_portfolio":
+            raise Exception("Algo exception in set_portfolio")
+        else:
+            pass
+
+    def handle_data(self, data):
+        if self.throw_from == "handle_data":
+            raise Exception("Algo exception in handle_data")
+        else:
+            pass
+
+    def get_sid_filter(self):
+        if self.throw_from == "get_sid_filter":
+            raise Exception("Algo exception in get_sid_filter")
+        else:
+            return None
+
 class TestPrintAlgorithm():
 
     def __init__(self):
         pass
-        
+
     def initialize(self):
         print "Initializing..."
 
     def set_order(self, order_callable):
         pass
-    
+
     def set_portfolio(self, portfolio):
         pass
 
