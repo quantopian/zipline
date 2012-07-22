@@ -44,36 +44,26 @@ class TradeSimulationClient(Component):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
 
     def set_algorithm(self, algorithm):
-
         """
         :param algorithm: must implement the algorithm protocol. See
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm
-        # register the trading_client's order method with the algorithm
         self.algorithm.set_order(self.order)
-
-        #TODO: re-enable initialization logging.  This means we can't call set_algorithm
-        #until we have a context for this component.  Possibly this could happen
-        # ask the algorithm to initialize, routing stdout to a zmq PUSH socket.
-
-        #with self.zmq_out.threadbound(), self.stdout_capture(self.logger, 'Algo print capture'):
-        #    self.algorithm.initialize()
-        #if we don't have a log socket, initialize anyway.
-        #else:
-        #    self.algorithm.initialize()
-
-        self.algorithm.initialize()
         # we need to provide the performance tracker with the
         # sids referenced in the algorithm, so portfolio can
         # initialize with all possible sids.
-
         self.perf.set_sids(self.algorithm.get_sid_filter())
+
+
+        # self.algorithm.initialize()
+
 
     def open(self):
         self.result_feed = self.connect_result()
         if not self.results_socket:
             log.warn(" No results socket, will not broadcast sim data.")
+            self.algorithm.set_logger(log)
         else:
             sock = self.context.socket(zmq.PUSH)
             sock.connect(self.results_socket)
@@ -81,12 +71,14 @@ class TradeSimulationClient(Component):
             self.sockets.append(sock)
             self.out_socket = sock
 
-
             self.setup_logging(sock)
             self.perf.publish_to(sock)
 
+            # register the trading_client's order method with the algorithm
+            self.algorithm.set_logger(self.algo_log)
 
-    #Initialize log capture for testing purposes.
+        self.run_logged_op(self.algorithm.initialize)
+
     def setup_logging(self, socket = None):
         sock = socket or self.results_socket
 
@@ -95,6 +87,8 @@ class TradeSimulationClient(Component):
         )
 
         self.logger = Logger("Print")
+        self.algo_log = Logger("AlgoLog")
+
         # N.B. that this is a class, which is instantiated later
         # in run_algorithm. The class provides a generator.
         self.stdout_capture = stdout_only_pipe
@@ -188,21 +182,25 @@ class TradeSimulationClient(Component):
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
-            if self.zmq_out:
+            self.run_logged_op(self.algorithm.handle_data, data)
 
-                def inject_event_data(record):
+    def run_logged_op(self, callable_op, *args, **kwargs):
+        """ Wrap a callable operation with the zmq logbook
+        handler if it exits."""
+        if self.zmq_out:
 
-                    #Record the simulation time.
+            def inject_event_data(record):
+                # Record the simulation time.
+                record.extra['algo_dt'] = self.current_dt
 
-                    record.extra['algo_dt'] = self.current_dt
-
-                data_injector = Processor(inject_event_data)
-                log_pipeline = NestedSetup([self.zmq_out,data_injector])
-                with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
-                    self.algorithm.handle_data(data)
+            data_injector = Processor(inject_event_data)
+            log_pipeline = NestedSetup([self.zmq_out,data_injector])
+            with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+                callable_op(*args, **kwargs)
             # if no log socket, just run the algo normally
-            else:
-                self.algorithm.handle_data(data)
+        else:
+            callable_op(*args, **kwargs)
+
 
     #Testing utility for log capture.
     # TODO: remove test code from here.

@@ -70,6 +70,9 @@ class TestAlgorithm():
     def set_order(self, order_callable):
         self.order = order_callable
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
@@ -106,6 +109,9 @@ class HeavyBuyAlgorithm():
     def set_order(self, order_callable):
         self.order = order_callable
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
@@ -129,6 +135,9 @@ class NoopAlgorithm(object):
     def set_order(self, order_callable):
         pass
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         pass
 
@@ -140,7 +149,8 @@ class NoopAlgorithm(object):
 
 class ExceptionAlgorithm(object):
     """
-    Dolce fa niente.
+    Throw an exception from the method name specified in the
+    constructor.
     """
 
     def __init__(self, throw_from):
@@ -158,6 +168,9 @@ class ExceptionAlgorithm(object):
         else:
             pass
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         if self.throw_from == "set_portfolio":
             raise Exception("Algo exception in set_portfolio")
@@ -174,7 +187,7 @@ class ExceptionAlgorithm(object):
         if self.throw_from == "get_sid_filter":
             raise Exception("Algo exception in get_sid_filter")
         else:
-            return None
+            return [1]
 
 class TestPrintAlgorithm():
 
@@ -187,6 +200,9 @@ class TestPrintAlgorithm():
     def set_order(self, order_callable):
         pass
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         pass
 
@@ -195,4 +211,27 @@ class TestPrintAlgorithm():
         pass
 
     def get_sid_filter(self):
-        return None
+        return [1]
+
+class TestLoggingAlgorithm():
+
+    def __init__(self):
+        self.log = None
+
+    def initialize(self):
+        self.log.info("Initializing...")
+
+    def set_order(self, order_callable):
+        pass
+
+    def set_logger(self, logger):
+        self.log = logger
+
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        self.log.info("Handling Data...")
+
+    def get_sid_filter(self):
+        return [1]
