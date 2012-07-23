@@ -70,6 +70,9 @@ class TestAlgorithm():
     def set_order(self, order_callable):
         self.order = order_callable
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
@@ -106,6 +109,9 @@ class HeavyBuyAlgorithm():
     def set_order(self, order_callable):
         self.order = order_callable
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
@@ -129,6 +135,9 @@ class NoopAlgorithm(object):
     def set_order(self, order_callable):
         pass
 
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         pass
 
@@ -138,17 +147,62 @@ class NoopAlgorithm(object):
     def get_sid_filter(self):
         return None
 
+class ExceptionAlgorithm(object):
+    """
+    Throw an exception from the method name specified in the
+    constructor.
+    """
+
+    def __init__(self, throw_from):
+        self.throw_from == throw_from
+
+    def initialize(self):
+        if self.throw_from == "initialize":
+            raise Exception("Algo exception in initialize")
+        else:
+            pass
+
+    def set_order(self, order_callable):
+        if self.throw_from == "set_order":
+            raise Exception("Algo exception in set_order")
+        else:
+            pass
+
+    def set_logger(self, logger):
+        pass
+
+    def set_portfolio(self, portfolio):
+        if self.throw_from == "set_portfolio":
+            raise Exception("Algo exception in set_portfolio")
+        else:
+            pass
+
+    def handle_data(self, data):
+        if self.throw_from == "handle_data":
+            raise Exception("Algo exception in handle_data")
+        else:
+            pass
+
+    def get_sid_filter(self):
+        if self.throw_from == "get_sid_filter":
+            raise Exception("Algo exception in get_sid_filter")
+        else:
+            return [1]
+
 class TestPrintAlgorithm():
 
     def __init__(self):
         pass
-        
+
     def initialize(self):
         print "Initializing..."
 
     def set_order(self, order_callable):
         pass
-    
+
+    def set_logger(self, logger):
+        pass
+
     def set_portfolio(self, portfolio):
         pass
 
@@ -157,4 +211,27 @@ class TestPrintAlgorithm():
         pass
 
     def get_sid_filter(self):
-        return None
+        return [1]
+
+class TestLoggingAlgorithm():
+
+    def __init__(self):
+        self.log = None
+
+    def initialize(self):
+        self.log.info("Initializing...")
+
+    def set_order(self, order_callable):
+        pass
+
+    def set_logger(self, logger):
+        self.log = logger
+
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        self.log.info("Handling Data...")
+
+    def get_sid_filter(self):
+        return [1]

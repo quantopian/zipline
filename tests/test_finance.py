@@ -150,7 +150,7 @@ class FinanceTestCase(TestCase):
 
         # TODO: for some reason the orders aren't filled without an extra
         # trade.
-        trade_count = 5
+        trade_count = 5000
         self.zipline_test_config['order_count'] = trade_count - 1
         self.zipline_test_config['trade_count'] = trade_count
         self.zipline_test_config['order_amount'] = 1

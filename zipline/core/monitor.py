@@ -99,7 +99,6 @@ class Controller(object):
         log.warn("Running Controller in development mode, will ONLY synchronize start.")
 
     def init_zmq(self, flavor):
-
         assert self.zmq_flavor in ['thread', 'mp', 'green']
 
         if flavor == 'mp':
@@ -131,7 +130,6 @@ class Controller(object):
         Give the controller a set set of components to manage and
         a set of state transitions for the entire system.
         """
-
         # A freeform topology is where we heartbeat with anything
         # that shows up.
         if topology == 'freeform':
@@ -289,6 +287,8 @@ class Controller(object):
             # Hearbeat Cycle
             # ==============
 
+            initializing = len(self.tracked) == 0 and len(self.finished) == 0
+
             # Wait the responses
             while self.alive:
 
@@ -317,6 +317,14 @@ class Controller(object):
                     log.info("heartbeat loop timedout: %s" % (tic - self.ctime))
                     log.info(repr(self.responses))
                     break
+
+                # if this is the first time heartbeating, break
+                # out early if we get everything tracked no need
+                # to hold out for the full heartbeat.
+                if initializing and not self.freeform:
+                    if len(self.responses) == len(self.topology):
+                        log.info("breaking out of initial heartbeat")
+                        break
 
             # ================
             # Heartbeat Stats
