@@ -49,22 +49,19 @@ class TradeSimulationClient(Component):
         :py:mod:`zipline.test.algorithm`
         """
         self.algorithm = algorithm
+        # register the client's order method with the algorithm
         self.algorithm.set_order(self.order)
         # we need to provide the performance tracker with the
         # sids referenced in the algorithm, so portfolio can
         # initialize with all possible sids.
         self.perf.set_sids(self.algorithm.get_sid_filter())
 
-
-        # self.algorithm.initialize()
-
+        # N.B. Initialize is now called from open, because we
+        # need to have a socket open for logging.
 
     def open(self):
         self.result_feed = self.connect_result()
-        if not self.results_socket:
-            log.warn(" No results socket, will not broadcast sim data.")
-            self.algorithm.set_logger(log)
-        else:
+        if self.results_socket:
             sock = self.context.socket(zmq.PUSH)
             sock.connect(self.results_socket)
             self.results_socket = sock
@@ -73,9 +70,15 @@ class TradeSimulationClient(Component):
 
             self.setup_logging(sock)
             self.perf.publish_to(sock)
+        self.initialize_algo()
 
-            # register the trading_client's order method with the algorithm
-            self.algorithm.set_logger(self.algo_log)
+    def initialize_algo(self):
+        """ Setup loggers for algorithm and run algorithm's own
+        initialize method.
+        """
+        self.logger = Logger("Print")
+        self.algo_log = Logger("AlgoLog")
+        self.algorithm.set_logger(self.algo_log)
 
         self.run_logged_op(self.algorithm.initialize)
 
@@ -86,10 +89,8 @@ class TradeSimulationClient(Component):
             socket = sock,
         )
 
-        self.logger = Logger("Print")
-        self.algo_log = Logger("AlgoLog")
 
-        # N.B. that this is a class, which is instantiated later
+        # This is a class, which is instantiated later
         # in run_algorithm. The class provides a generator.
         self.stdout_capture = stdout_only_pipe
 
@@ -205,9 +206,13 @@ class TradeSimulationClient(Component):
     #Testing utility for log capture.
     # TODO: remove test code from here.
     def test_run_algorithm(self):
+        # since open is never called from some tests we need to
+        # set the logger explicitly
+        self.algorithm.set_logger(self.algo_log)
 
         def inject_event_data(record):
-            record.extra['algo_dt'] = datetime.datetime.utcnow() #Mock an event.dt
+            # Mock an event.dt
+            record.extra['algo_dt'] = datetime.datetime.utcnow()
 
         data_injector = Processor(inject_event_data)
         log_pipeline = NestedSetup([self.zmq_out,
@@ -215,7 +220,6 @@ class TradeSimulationClient(Component):
                                     data_injector])
         with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
             self.algorithm.handle_data('data')
-            # if no log socket, just run the algo normally
 
     def connect_order(self):
         return self.connect_push_socket(self.addresses['order_address'])
