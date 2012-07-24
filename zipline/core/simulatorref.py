@@ -17,7 +17,7 @@ Subclasses:
 import abc
 from zipline.core.host import ComponentHost
 
-class SimulatorBase(ComponentHost):
+class SimulatorBaseDeprecated(ComponentHost):
 
     __metaclass__ = abc.ABCMeta
 

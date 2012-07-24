@@ -80,7 +80,7 @@ class TradeSimulationClient(Component):
         self.algo_log = Logger("AlgoLog")
         self.algorithm.set_logger(self.algo_log)
 
-        self.run_logged_op(self.algorithm.initialize)
+        self.do_op(self.algorithm.initialize)
 
     def setup_logging(self, socket = None):
         sock = socket or self.results_socket
@@ -183,11 +183,16 @@ class TradeSimulationClient(Component):
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
-            self.run_logged_op(self.algorithm.handle_data, data)
+            self.do_op(self.algorithm.handle_data, data)
 
-    def run_logged_op(self, callable_op, *args, **kwargs):
+    def exception_callback(self, trace):
+        log.info(trace)
+        pass
+
+    def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook
-        handler if it exits."""
+        handler if it exits. Also wrap the invocation of callable
+        op in a try/except, and relay """
         if self.zmq_out:
 
             def inject_event_data(record):

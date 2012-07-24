@@ -208,8 +208,8 @@ class Component(object):
 
         self.setup_poller()
 
-        self.open()
         self.setup_control()
+        self.open()
 
         self.signal_ready()
         self.lock_ready()
@@ -326,7 +326,9 @@ class Component(object):
 
         # In case we didn't receive a ping, send a pre-emptive
         # pong to the monitor.
-        elif self.last_ping and time.time() - self.last_ping > 1:
+        elif hasattr(self, 'control_out') and \
+                self.last_ping and \
+                time.time() - self.last_ping > 1:
             # send a ping ahead of schedule
             pre_pong = time.time()
             heartbeat_frame = CONTROL_FRAME(
@@ -452,7 +454,7 @@ class Component(object):
 
     def signal_exception(self, exc=None, scope=None):
         """
-        This is *very* important error tracking handler.
+        This is a *very* important error tracking handler.
 
         Will inform the system that the component has failed and how it
         has failed.
@@ -474,6 +476,9 @@ class Component(object):
         trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         sys.stdout.write(trace)
 
+        if hasattr(self, 'exception_callback'):
+            self.exception_callback(trace)
+
         if hasattr(self, 'control_out'):
             exception_frame = CONTROL_FRAME(
                 CONTROL_PROTOCOL.EXCEPTION,
@@ -490,20 +495,20 @@ class Component(object):
 
         self.state_flag = COMPONENT_STATE.DONE
 
-        if self.out_socket:
+        if hasattr(self, 'out_socket') and self.out_socket:
             msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
             self.out_socket.send(msg)
 
 
+        if hasattr(self, 'control_out'):
+            # notify controller we're done
+            done_frame = CONTROL_FRAME(
+                CONTROL_PROTOCOL.DONE,
+                ''
+            )
 
-        # notify controller we're done
-        done_frame = CONTROL_FRAME(
-            CONTROL_PROTOCOL.DONE,
-            ''
-        )
-
-        self.control_out.send(done_frame)
-        log.info("[%s] sent control done" % self.get_id)
+            self.control_out.send(done_frame)
+            log.info("[%s] sent control done" % self.get_id)
 
         # there is a narrow race condition where we finish just
         # after the Monitor accepts our prior heartbeat, but just

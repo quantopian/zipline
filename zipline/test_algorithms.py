@@ -154,7 +154,7 @@ class ExceptionAlgorithm(object):
     """
 
     def __init__(self, throw_from):
-        self.throw_from == throw_from
+        self.throw_from = throw_from
 
     def initialize(self):
         if self.throw_from == "initialize":
