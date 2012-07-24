@@ -147,7 +147,7 @@ class FinanceTestCase(TestCase):
 
         zipline.simulate(blocking=False)
 
-        output, transaction_count = drain_zipline(self)
+        output, transaction_count = drain_zipline(self, zipline)
 
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)

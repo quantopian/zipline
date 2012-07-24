@@ -1,7 +1,7 @@
 import zmq
 import zipline.protocol as zp
 
-def drain_zipline(test):
+def drain_zipline(test, zipline):
     assert test.ctx, "method expects a valid zmq context"
     assert test.zipline_test_config, "method expects a valid test config"
     assert isinstance(test.zipline_test_config, dict)
@@ -24,11 +24,18 @@ def drain_zipline(test):
                     len(update['payload']['daily_perf']['transactions'])
 
     del test.receiver
+
+    # some processes will exit after the message stream is
+    # finished. We block here to avoid collisions with subsequent
+    # ziplines.
+    for process in zipline.sim.subprocesses:
+        process.join()
+
     return output, transaction_count
 
 
 def assert_single_position(test, zipline):
-    output, transaction_count = drain_zipline(test)
+    output, transaction_count = drain_zipline(test, zipline)
 
     test.assertTrue(zipline.sim.ready())
     test.assertFalse(zipline.sim.exception)
