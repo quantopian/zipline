@@ -21,12 +21,13 @@ from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
+from zipline.utils.test_utils import assert_single_position,\
+        drain_zipline
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
-
 
 class FinanceTestCase(TestCase):
 
@@ -113,28 +114,6 @@ class FinanceTestCase(TestCase):
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
 
-    def drain_zipline(self):
-        self.receiver = self.ctx.socket(zmq.PULL)
-        self.receiver.bind(self.zipline_test_config['results_socket'])
-
-        output = []
-        transaction_count  = 0
-        while True:
-            msg = self.receiver.recv()
-            if msg == str(zp.CONTROL_PROTOCOL.DONE):
-                break
-            else:
-                update = zp.BT_UPDATE_UNFRAME(msg)
-                output.append(update)
-                if update['prefix'] == 'PERF':
-                    transaction_count += \
-                        len(update['payload']['daily_perf']['transactions'])
-
-        del self.receiver
-        return output, transaction_count
-
-
-
     @timed(EXTENDED_TIMEOUT)
     def test_full_zipline(self):
         #provide enough trades to ensure all orders are filled.
@@ -143,33 +122,7 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         zipline.simulate(blocking=False)
 
-        output, transaction_count = self.drain_zipline()
-
-        self.assertTrue(zipline.sim.ready())
-        self.assertFalse(zipline.sim.exception)
-
-        self.assertEqual(
-            self.zipline_test_config['order_count'],
-            transaction_count
-        )
-
-        # the final message is the risk report, the second to
-        # last is the final day's results. Positions is a list of
-        # dicts.
-        closing_positions = output[-2]['payload']['daily_perf']['positions']
-
-        self.assertEqual(
-            len(closing_positions),
-            1,
-            "Portfolio should have one position."
-        )
-
-        sid = self.zipline_test_config['sid']
-        self.assertEqual(
-            closing_positions[0]['sid'],
-            sid,
-            "Portfolio should have one position in " + str(sid)
-        )
+        assert_single_position(self, zipline)
 
     #@timed(DEFAULT_TIMEOUT)
     def test_sid_filter(self):
@@ -194,7 +147,7 @@ class FinanceTestCase(TestCase):
 
         zipline.simulate(blocking=False)
 
-        output, transaction_count = self.drain_zipline()
+        output, transaction_count = drain_zipline(self)
 
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
