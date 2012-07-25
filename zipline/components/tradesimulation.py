@@ -187,7 +187,8 @@ class TradeSimulationClient(Component):
 
     def exception_callback(self, exc_type, exc_value, exc_traceback):
         if self.results_socket:
-            self.out_socket.send("EXCEPTION")
+            msg = zp.EXCEPTION_FRAME(exc_traceback)
+            self.out_socket.send(msg)
 
     def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook
@@ -225,8 +226,8 @@ class TradeSimulationClient(Component):
         with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
             self.algorithm.handle_data('data')
 
-    def connect_order(self):
-        return self.connect_push_socket(self.addresses['order_address'])
+    #def connect_order(self):
+    #    return self.connect_push_socket(self.addresses['order_address'])
 
     def order(self, sid, amount):
         order = zp.ndict({

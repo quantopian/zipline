@@ -1,5 +1,55 @@
 import zmq
 import zipline.protocol as zp
+from datetime import datetime
+import blist
+from zipline.utils.date_utils import EPOCH
+from itertools import izip
+
+
+def check_list(test, a, b, label):
+    test.assertTrue(isinstance(a, (list, blist.blist)))
+    test.assertTrue(isinstance(b, (list, blist.blist)))
+    i = 0
+    for a_val, b_val in izip(a, b):
+        check(test, a_val, b_val, label + "[" + str(i) + "]")
+
+
+def check_dict(test, a, b, label):
+    test.assertTrue(isinstance(a, dict))
+    test.assertTrue(isinstance(b, dict))
+    for key in a.keys():
+        # ignore the extra fields used by dictshield
+        if key in ['progress']:
+            continue
+        test.assertTrue(a.has_key(key), "missing key at: " + label + "." + key)
+        test.assertTrue(b.has_key(key), "missing key at: " + label + "." + key)
+        a_val = a[key]
+        b_val = b[key]
+        check(test, a_val, b_val, label + "." + key)
+
+
+def check_datetime(test, a, b, label):
+    test.assertTrue(isinstance(a, datetime))
+    test.assertTrue(isinstance(b, datetime))
+    test.assertEqual(EPOCH(a), EPOCH(b), "mismatched dates " + label)
+
+
+def check(test, a, b, label=None):
+    """
+    Check equality for arbitrarily nested dicts and lists that terminate
+    in types that allow direct comparisons (string, ints, floats, datetimes)
+    """
+    if not label:
+        label = '<root>'
+    if isinstance(a, dict):
+        check_dict(test, a, b, label)
+    elif isinstance(a, (list, blist.blist)):
+        check_list(test, a, b, label)
+    elif isinstance(a, datetime):
+        check_datetime(test, a, b, label)
+    else:
+        test.assertEqual(a, b, "mismatch on path: " + label)
+
 
 def drain_zipline(test, zipline):
     assert test.ctx, "method expects a valid zmq context"
@@ -19,15 +69,14 @@ def drain_zipline(test, zipline):
         msg = test.receiver.recv()
         if msg == str(zp.CONTROL_PROTOCOL.DONE):
             break
-        elif msg == "EXCEPTION":
-            output.append(msg)
-            break
         else:
             update = zp.BT_UPDATE_UNFRAME(msg)
             output.append(update)
             if update['prefix'] == 'PERF':
                 transaction_count += \
                     len(update['payload']['daily_perf']['transactions'])
+            elif update['prefix'] == 'EXCEPTION':
+                break
 
     del test.receiver
 

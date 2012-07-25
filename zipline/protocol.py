@@ -118,6 +118,7 @@ import msgpack
 import numbers
 import datetime
 import pytz
+import traceback
 
 from collections import namedtuple
 
@@ -502,6 +503,20 @@ def convert_transactions(transactions):
 
 def RISK_FRAME(risk):
     return BT_UPDATE_FRAME('RISK', risk)
+
+def EXCEPTION_FRAME(exception_tb):
+    stack_list = traceback.extract_tb(exception_tb)
+    rlist = []
+    for stack in stack_list:
+        rstack = {
+            'file'      : stack[0],
+            'lineno'    : stack[1],
+            'method'    : stack[2],
+            'line'      : stack[3]
+        }
+        rlist.append(rstack)
+
+    return BT_UPDATE_FRAME('EXCEPTION', rlist)
 
 def BT_UPDATE_FRAME(prefix, payload):
     """
