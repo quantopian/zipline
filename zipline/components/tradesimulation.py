@@ -186,8 +186,8 @@ class TradeSimulationClient(Component):
             self.do_op(self.algorithm.handle_data, data)
 
     def exception_callback(self, trace):
-        log.info(trace)
-        pass
+        if self.results_socket:
+            self.out_socket.send("EXCEPTION")
 
     def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook

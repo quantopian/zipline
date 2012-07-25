@@ -19,6 +19,8 @@ import gevent_zeromq
 # zmq_ctypes
 #import zmq_ctypes
 
+from zipline.core.monitor import PARAMETERS
+
 from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, CONTROL_FRAME, CONTROL_UNFRAME
@@ -157,7 +159,6 @@ class Component(object):
         ZMQ in all flavors. Have it your way.
 
             mp     - Distinct contexts | pyzmq
-            thread - Same context      | pyzmq
             green  - Same context      | gevent_zeromq
             pypy   - Same context      | zmq_ctypes
 
@@ -169,11 +170,6 @@ class Component(object):
             self.zmq_poller = self.zmq.Poller
             # The the process title so you can watch it in top
             setproctitle(self.__class__.__name__)
-            return
-        if flavor == 'thread':
-            self.zmq = zmq
-            self.context = self.zmq.Context.instance()
-            self.zmq_poller = self.zmq.Poller
             return
         if flavor == 'green':
             self.zmq = gevent_zeromq.zmq
@@ -213,6 +209,7 @@ class Component(object):
 
         self.signal_ready()
         self.lock_ready()
+
 
         self.wait_ready()
         # -----------------------
@@ -341,6 +338,11 @@ class Component(object):
             # doing work
             self.control_out.send(heartbeat_frame)
             self.last_ping = pre_pong
+        elif self.last_ping and \
+                time.time() - self.last_ping > PARAMETERS.MAX_COMPONENT_WAIT:
+            # monitor is gone without sending the shutdown
+            # signal, do a hard exit.
+            self.kill()
 
     # ----------------------------
     #  Cleanup & Modes of Failure
@@ -371,7 +373,7 @@ class Component(object):
         Tear down ( fast ) as a mode of failure in the simulation or on
         service halt.
         """
-        raise NotImplementedError
+        sys.exit(1)
 
     # ----------------------
     #  Internal Maintenance
@@ -399,33 +401,69 @@ class Component(object):
         # in the locked quasimode. Respond to HEARTBEAT and GO
         # messages.
 
+        start_wait = time.time()
+
         while self.waiting:
-            #socks = dict(self.poll.poll(self.heartbeat_timeout))
+            socks = dict(self.poll.poll(100))
 
-            msg = self.control_in.recv()
-            event, payload = CONTROL_UNFRAME(msg)
+            assert self.control_in, \
+                    'Component does not have a control_in socket'
 
-            # ====
-            #  Go
-            # ====
+            if socks.get(self.control_in) == zmq.POLLIN:
 
-            # A distributed lock from the controller to ensure
-            # synchronized start.
+                msg = self.control_in.recv()
+                event, payload = CONTROL_UNFRAME(msg)
 
-            if event == CONTROL_PROTOCOL.HEARTBEAT:
-                heartbeat_frame = CONTROL_FRAME(
-                    CONTROL_PROTOCOL.OK,
-                    payload
-                )
-                self.control_out.send(heartbeat_frame)
-                log.info('Prestart Heartbeat ' + self.get_id)
+                # ====
+                #  Go
+                # ====
 
-            elif event == CONTROL_PROTOCOL.GO:
-                # Side effectful call from the controller to unlock
-                # and begin doing work only when the entire topology
-                # of the system beings to come online
-                log.info('Unlocking ' + self.__class__.__name__)
-                self.unlock_ready()
+                # A distributed lock from the controller to ensure
+                # synchronized start.
+
+                if event == CONTROL_PROTOCOL.HEARTBEAT:
+                    heartbeat_frame = CONTROL_FRAME(
+                        CONTROL_PROTOCOL.OK,
+                        payload
+                    )
+                    self.control_out.send(heartbeat_frame)
+                    log.info('Prestart Heartbeat ' + self.get_id)
+
+                elif event == CONTROL_PROTOCOL.GO:
+                    # Side effectful call from the controller to unlock
+                    # and begin doing work only when the entire topology
+                    # of the system beings to come online
+                    log.info('Unlocking ' + self.__class__.__name__)
+                    self.unlock_ready()
+
+                # =========
+                # Soft Kill
+                # =========
+
+                # Try and clean up properly and send out any reports or
+                # data that are done during a clean shutdown. Inform the
+                # controller that we're done.
+                elif event == CONTROL_PROTOCOL.SHUTDOWN:
+
+                    self.signal_done()
+                    self.shutdown()
+                    break
+
+                # =========
+                # Hard Kill
+                # =========
+
+                # Just exit.
+                elif event == CONTROL_PROTOCOL.KILL:
+                    self.kill()
+                    break
+
+            elif time.time() - start_wait > PARAMETERS.MAX_COMPONENT_WAIT:
+                log.info('No go signal from monitor, %s exiting' \
+                    % self.__class__.__name__)
+                self.kill()
+                break
+
 
     def signal_ready(self):
         log.info(self.__class__.__name__ + ' is ready')
@@ -459,7 +497,6 @@ class Component(object):
         Will inform the system that the component has failed and how it
         has failed.
         """
-
         if scope == 'algo':
             self.error_state = COMPONENT_FAILURE.ALGOEXCEPT
         else:

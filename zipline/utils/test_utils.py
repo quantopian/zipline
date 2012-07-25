@@ -10,11 +10,17 @@ def drain_zipline(test, zipline):
     test.receiver = test.ctx.socket(zmq.PULL)
     test.receiver.bind(test.zipline_test_config['results_socket'])
 
+    # start the simulation
+    zipline.simulate(blocking=False)
+
     output = []
     transaction_count  = 0
     while True:
         msg = test.receiver.recv()
         if msg == str(zp.CONTROL_PROTOCOL.DONE):
+            break
+        elif msg == "EXCEPTION":
+            output.append(msg)
             break
         else:
             update = zp.BT_UPDATE_UNFRAME(msg)

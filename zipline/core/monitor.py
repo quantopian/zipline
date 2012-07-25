@@ -42,7 +42,11 @@ log = logbook.Logger('Controller')
 # the system.
 
 PARAMETERS = ndict(dict(
-    GENERATIONAL_PERIOD        = 30, #seconds
+    # time Monitor will wait for a heartbeat, in seconds
+    GENERATIONAL_PERIOD        = 10,
+    # time Component will wait for GO and for a heartbeat before
+    # timing out.
+    MAX_COMPONENT_WAIT         = 20,
     ALLOWED_SKIPPED_HEARTBEATS = 10,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
@@ -523,7 +527,7 @@ class Controller(object):
         Shutdown the system on failure.
         """
         log.error('System in exception state, shutting down')
-        self.shutdown(soft=True)
+        self.shutdown(hard=True, soft=False)
 
     def exception(self, component, failure):
         universal = self.exception_universal
@@ -650,6 +654,7 @@ class Controller(object):
         if hard and not self.devel:
             self.state = CONTROL_STATES.TERMINATE
             log.info('Hard Shutdown')
+            self.send_hardkill()
 
         if soft and not self.devel:
             self.state = CONTROL_STATES.TERMINATE

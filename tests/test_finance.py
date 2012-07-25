@@ -120,7 +120,6 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config['order_count'] = 100
         self.zipline_test_config['trade_count'] = 200
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-        zipline.simulate(blocking=False)
 
         assert_single_position(self, zipline)
 
@@ -144,8 +143,6 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
-
-        zipline.simulate(blocking=False)
 
         output, transaction_count = drain_zipline(self, zipline)
 
