@@ -511,12 +511,13 @@ class Component(object):
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
         trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
         sys.stdout.write(trace)
 
-        if hasattr(self, 'exception_callback'):
-            self.exception_callback(trace)
+        if hasattr(self, 'exception_callback') and self.exception_callback:
+            self.exception_callback(exc_type, exc_value, exc_traceback)
 
-        if hasattr(self, 'control_out'):
+        if hasattr(self, 'control_out') and self.control_out:
             exception_frame = CONTROL_FRAME(
                 CONTROL_PROTOCOL.EXCEPTION,
                 trace

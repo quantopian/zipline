@@ -185,14 +185,13 @@ class TradeSimulationClient(Component):
             # LOG_EXTRA_FIELDS in zipline/protocol.py
             self.do_op(self.algorithm.handle_data, data)
 
-    def exception_callback(self, trace):
+    def exception_callback(self, exc_type, exc_value, exc_traceback):
         if self.results_socket:
             self.out_socket.send("EXCEPTION")
 
     def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook
-        handler if it exits. Also wrap the invocation of callable
-        op in a try/except, and relay """
+        handler if it exits."""
         if self.zmq_out:
 
             def inject_event_data(record):

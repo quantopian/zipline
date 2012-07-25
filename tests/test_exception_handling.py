@@ -17,7 +17,7 @@ EXTENDED_TIMEOUT = 90
 allocator = AddressAllocator(1000)
 
 
-class FinanceTestCase(TestCase):
+class ExceptionTestCase(TestCase):
 
     leased_sockets = defaultdict(list)
 
@@ -26,7 +26,8 @@ class FinanceTestCase(TestCase):
             'allocator' : allocator,
             'sid'       : 133,
             'devel'     : False,
-            'results_socket'    : allocator.lease(1)[0]
+            'results_socket'    : allocator.lease(1)[0],
+            'simulation_style'  : SIMULATION_STYLE.FIXED_SLIPPAGE
         }
         self.ctx = zmq.Context()
 
@@ -41,9 +42,8 @@ class FinanceTestCase(TestCase):
         # Simulation
         # ----------
 
-        self.zipline_test_config['simulation_style'] = \
-            SIMULATION_STYLE.FIXED_SLIPPAGE
-        self.zipline_test_config['algorithm'] = ExceptionAlgorithm('initialize')
+        self.zipline_test_config['algorithm'] = \
+                ExceptionAlgorithm('initialize')
 
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
@@ -58,3 +58,6 @@ class FinanceTestCase(TestCase):
         #   - exception protocol to use prefix/payload as EXCEPT,
         #   and the stack trace
         #   - test exception in handle_data
+        #   - define more zipline failure modes: exception in other
+        #   components, exception in Monitor, etc. write tests
+        #   for those scenarios.
