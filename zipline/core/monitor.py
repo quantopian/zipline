@@ -141,7 +141,7 @@ class Controller(object):
 
     def run(self):
         self.running = True
-        self.init_zmq(self.zmq_flavor)
+        self.init_zmq()
         setproctitle('Monitor')
 
         self.state = CONTROL_STATES.INIT
