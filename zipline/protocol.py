@@ -231,7 +231,6 @@ def DATASOURCE_FRAME(event):
 
     - *payload* a msgpack string carrying the payload for the frame
     """
-
     assert isinstance(event.source_id, basestring)
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
 
