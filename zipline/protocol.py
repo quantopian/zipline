@@ -123,7 +123,7 @@ import traceback
 from collections import namedtuple
 
 from utils.protocol_utils import Enum, FrameExceptionFactory, ndict, namelookup
-from utils.date_utils import EPOCH, UN_EPOCH
+from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 
 # -----------------------
 # Control Protocol
@@ -514,8 +514,12 @@ def EXCEPTION_FRAME(exception_tb):
             'line'      : stack[3]
         }
         rlist.append(rstack)
+    result = {
+        'dt' : epoch_now(),
+        'stack' : rlist
+    }
 
-    return BT_UPDATE_FRAME('EXCEPTION', rlist)
+    return BT_UPDATE_FRAME('EXCEPTION', result)
 
 def BT_UPDATE_FRAME(prefix, payload):
     """
