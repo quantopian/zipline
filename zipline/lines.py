@@ -115,7 +115,6 @@ class SimulatedTrading(object):
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
 
-        self.devel = config.get('devel', False)
 
         self.leased_sockets = []
         self.sim_context = None
@@ -134,7 +133,6 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[5],
             sockets[6],
-            devel = self.devel
         )
 
         self.started = False
@@ -255,18 +253,10 @@ class SimulatedTrading(object):
             'allocator'           : allocator,
             'simulation_style'    : simulation_style,
             'results_socket'      : results_socket,
-            'devel'               : config.get('devel', False)
         })
         #-------------------
 
         zipline.add_source(trade_source)
-
-        # Save us from needless debugging
-        inside_test = 'nose' in inspect.stack()[-1][1]
-        if False and inside_test and not config.get('devel', False):
-            assert False, """
-            You need to run the SimulatedTrading inside a test with devel=True
-            """
 
         return zipline
 

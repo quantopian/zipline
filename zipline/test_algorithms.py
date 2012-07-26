@@ -145,7 +145,7 @@ class NoopAlgorithm(object):
         pass
 
     def get_sid_filter(self):
-        return None
+        return []
 
 class ExceptionAlgorithm(object):
     """
@@ -153,8 +153,9 @@ class ExceptionAlgorithm(object):
     constructor.
     """
 
-    def __init__(self, throw_from):
+    def __init__(self, throw_from, sid):
         self.throw_from = throw_from
+        self.sid = sid
 
     def initialize(self):
         if self.throw_from == "initialize":
@@ -187,12 +188,12 @@ class ExceptionAlgorithm(object):
         if self.throw_from == "get_sid_filter":
             raise Exception("Algo exception in get_sid_filter")
         else:
-            return [1]
+            return [self.sid]
 
 class TestPrintAlgorithm():
 
-    def __init__(self):
-        pass
+    def __init__(self, sid):
+        self.sid = sid
 
     def initialize(self):
         print "Initializing..."
@@ -211,12 +212,13 @@ class TestPrintAlgorithm():
         pass
 
     def get_sid_filter(self):
-        return [1]
+        return [self.sid]
 
 class TestLoggingAlgorithm():
 
-    def __init__(self):
+    def __init__(self, sid):
         self.log = None
+        self.sid = sid
 
     def initialize(self):
         self.log.info("Initializing...")
@@ -234,4 +236,4 @@ class TestLoggingAlgorithm():
         self.log.info("Handling Data...")
 
     def get_sid_filter(self):
-        return [1]
+        return [self.sid]

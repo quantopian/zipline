@@ -13,7 +13,7 @@ EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
 
-from logbook.compat import LoggingHandler
+from zipline.utils.test_utils import setup_logger, teardown_logger
 
 class TestUpDown(TestCase):
     """This unittest verifies that the BuySellAlgorithm in
@@ -31,11 +31,11 @@ class TestUpDown(TestCase):
             'amplitude'   : 30,
             'base_price'  : 50
         }
-        self.log_handler = LoggingHandler()
-        self.log_handler.push_application()
+        setup_logger(self, '/var/log/qexec/qexec.log')
+
 
     def tearDown(self):
-        self.log_handler.pop_application()
+        teardown_logger(self)
 
     @skip
     @timed(DEFAULT_TIMEOUT)

@@ -38,6 +38,7 @@ class TradeSimulationClient(Component):
         self.perf = perf.PerformanceTracker(self.trading_environment)
         self.zmq_out = None
         self.results_socket = results_socket
+        self.algo_initialized = False
 
     @property
     def get_id(self):
@@ -56,9 +57,6 @@ class TradeSimulationClient(Component):
         # initialize with all possible sids.
         self.perf.set_sids(self.algorithm.get_sid_filter())
 
-        # N.B. Initialize is now called from open, because we
-        # need to have a socket open for logging.
-
     def open(self):
         self.result_feed = self.connect_result()
         if self.results_socket:
@@ -70,7 +68,6 @@ class TradeSimulationClient(Component):
 
             self.setup_logging(sock)
             self.perf.publish_to(sock)
-        self.initialize_algo()
 
     def initialize_algo(self):
         """ Setup loggers for algorithm and run algorithm's own
@@ -81,6 +78,7 @@ class TradeSimulationClient(Component):
         self.algorithm.set_logger(self.algo_log)
 
         self.do_op(self.algorithm.initialize)
+        self.algo_initialized = True
 
     def setup_logging(self, socket = None):
         sock = socket or self.results_socket
@@ -95,6 +93,8 @@ class TradeSimulationClient(Component):
         self.stdout_capture = stdout_only_pipe
 
     def do_work(self):
+        if not self.algo_initialized:
+            self.initialize_algo()
         # see if the poller has results for the result_feed
         if self.socks.get(self.result_feed) == self.zmq.POLLIN:
 
@@ -187,6 +187,7 @@ class TradeSimulationClient(Component):
 
     def exception_callback(self, exc_type, exc_value, exc_traceback):
         if self.results_socket:
+            log.info("Sending exception frame")
             msg = zp.EXCEPTION_FRAME(exc_traceback)
             self.out_socket.send(msg)
 

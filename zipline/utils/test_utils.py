@@ -1,10 +1,18 @@
 import zmq
+import time
 import zipline.protocol as zp
 from datetime import datetime
 import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
+from logbook import FileHandler
 
+def setup_logger(test, path='/var/log/zipline/zipline.log'):
+    test.log_handler = FileHandler(path)
+    test.log_handler.push_application()
+
+def teardown_logger(test):
+    test.log_handler.pop_application()
 
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
@@ -59,7 +67,9 @@ def drain_zipline(test, zipline):
             "need to specify a socket address for logs/perf/risk"
     test.receiver = test.ctx.socket(zmq.PULL)
     test.receiver.bind(test.zipline_test_config['results_socket'])
-
+    # Bind and connect are asynch, so allow time for bind before
+    # starting the zipline (TSC connects internally).
+    time.sleep(1)
     # start the simulation
     zipline.simulate(blocking=False)
 
@@ -78,6 +88,7 @@ def drain_zipline(test, zipline):
             elif update['prefix'] == 'EXCEPTION':
                 break
 
+    test.receiver.close()
     del test.receiver
 
     # some processes will exit after the message stream is
