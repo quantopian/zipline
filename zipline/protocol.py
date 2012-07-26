@@ -249,7 +249,7 @@ def DATASOURCE_FRAME(event):
             event.source_id,
             TRADE_FRAME(event)
         ]))
-    
+
     elif(event.type == DATASOURCE_TYPE.DONE):
         return msgpack.dumps(tuple([
             event.type,
@@ -519,14 +519,14 @@ def EXCEPTION_FRAME(exception_tb):
     rlist = []
     for stack in stack_list:
         rstack = {
-            'file'      : stack[0],
+            'filename'  : stack[0],
             'lineno'    : stack[1],
             'method'    : stack[2],
             'line'      : stack[3]
         }
         rlist.append(rstack)
     result = {
-        'dt' : epoch_now(),
+        'date'  : epoch_now(),
         'stack' : rlist
     }
 
