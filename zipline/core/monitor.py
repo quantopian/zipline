@@ -1,17 +1,15 @@
+import inspect
 import os
 import zmq
 import sys
 import time
-import gevent
 import itertools
 import logbook
-import gevent_zeromq
 from setproctitle import setproctitle
 from signal import SIGHUP, SIGINT
 
 from collections import OrderedDict, Counter
 
-from zipline.utils.gpoll import _Poller as GeventPoller
 from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
     CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
 
@@ -71,9 +69,8 @@ class Controller(object):
     debug = True
     period = PARAMETERS.GENERATIONAL_PERIOD
 
-    def __init__(self, pub_socket, route_socket, devel=True):
+    def __init__(self, pub_socket, route_socket):
 
-        self.devel      = devel
         self.nosignals  = False
         self.context    = None
         self.zmq        = None
@@ -100,34 +97,17 @@ class Controller(object):
 
         self.missed_beats = Counter()
 
-        log.warn("Running Controller in development mode, will ONLY synchronize start.")
+        # if we are inside a test, we want to skip signalling
+        # back to the parent process.
+        self.inside_test = 'nose' in inspect.stack()[-1][1]
 
-    def init_zmq(self, flavor):
-        assert self.zmq_flavor in ['thread', 'mp', 'green']
 
-        if flavor == 'mp':
-            self.zmq        = zmq
-            self.context    = self.zmq.Context()
-            self.zmq_poller = self.zmq.Poller
 
-            if self.devel:
-                log.warning("USING DEVELOPMENT MODE IN MP CONTEXT NOT RECOMMENDED")
-            return
-        if flavor == 'thread':
-            self.zmq        = zmq
-            self.context    = self.zmq.Context.instance()
-            self.zmq_poller = self.zmq.Poller
-            return
-        if flavor == 'green':
-            self.zmq        = gevent_zeromq.zmq
-            self.context    = self.zmq.Context.instance()
-            self.zmq_poller = GeventPoller
-            return
-        if flavor == 'pypy':
-            self.zmq        = zmq
-            self.context    = self.zmq.Context.instance()
-            self.zmq_poller = self.zmq.Poller
-            return
+    def init_zmq(self):
+        self.zmq        = zmq
+        self.context    = self.zmq.Context()
+        self.zmq_poller = self.zmq.Poller
+        return
 
     def manage(self, topology):
         """
@@ -170,8 +150,8 @@ class Controller(object):
         # -----------------------
         # The last breathe of the interpreter will assume that we've
         # failed unless we specify otherwise.
-        if not self.devel:
-            sys.exitfunc = self.signal_interrupt
+        log.info('registering exit function')
+        sys.exitfunc = self.signal_interrupt
         # We overload this if ( and only if ) the topology exits
         # cleanly. This prevents failure modes where the monitor
         # dies.
@@ -349,31 +329,17 @@ class Controller(object):
             if complete:
                 self.send_go()
 
-                # If we're running in development stop here
-                # because our responsibilites are over. The
-                # zipline will either run to completion or die,
-                # monitor doesn't care anymore because its all
-                # threads.
-
-                if self.devel:
-                    log.warn("Shutting down Controller because in devel mode")
-                    #sys.exitfunc = lambda: None
-                    self.shutdown(soft=True)
-
             log.info('Heartbeat (%s, %s)' % (done, complete))
 
             # ================
             # Exit Strategies
             # ================
 
-            if self.zmq_flavor == 'green':
-                gevent.sleep(0)
-
             # Will also fall out of loop when done, if using
             # non-freeform topology
             if done:
                 log.info('Entire topology exited cleanly')
-                self.shutdown(soft=True)
+                self.shutdown()
 
                 # Noop exit func
                 #sys.exitfunc = lambda: None
@@ -391,12 +357,12 @@ class Controller(object):
         we're good. The topology exited cleanly and we can prove
         it.
         """
-        if not self.nosignals:
-            ppid = os.getppid()
-            log.warning("Sending SIGHUP")
-            os.kill(ppid, SIGHUP)
-        else:
-            log.warning("Would SIGHUP here, but disabled")
+        if self.inside_test:
+            log.warning("Skipping SIGHUP because we're in a nosetest")
+            return
+        ppid = os.getppid()
+        log.warning("Sending SIGHUP")
+        os.kill(ppid, SIGHUP)
 
     def signal_interrupt(self):
         """
@@ -404,11 +370,8 @@ class Controller(object):
         interpreter exits.  If the monitor dies the system is
         considered a failure.
         """
-        if not self.nosignals:
-            ppid = os.getpid()
-            os.kill(ppid, SIGINT)
-        else:
-            log.warning("Would SIGINT here, but disabled")
+        ppid = os.getpid()
+        os.kill(ppid, SIGINT)
 
     def beat(self):
         """
@@ -495,7 +458,7 @@ class Controller(object):
     def fail_universal(self):
         # TODO: this requires higher order functionality
         log.error('System in exception state, shutting down')
-        self.shutdown(soft=True)
+        self.shutdown()
 
     def fail(self, component):
         if self.state is CONTROL_STATES.TERMINATE:
@@ -527,7 +490,7 @@ class Controller(object):
         Shutdown the system on failure.
         """
         log.error('System in exception state, shutting down')
-        self.shutdown(hard=True, soft=False)
+        self.kill()
 
     def exception(self, component, failure):
         universal = self.exception_universal
@@ -536,7 +499,6 @@ class Controller(object):
         if component in self.topology or self.freeform:
             self.error_replay[(component, time.time())] = failure
             log.error('Component in exception state: %s' % component)
-            log.error(str(failure))
 
             exception_handlers.get(component, universal)()
         else:
@@ -642,21 +604,22 @@ class Controller(object):
         for (component, time), error in self.error_replay.iteritems():
             log.info('Component Log for -- %s --:\n%s' % (component, error))
 
-    def shutdown(self, hard=False, soft=True):
+    def kill(self):
+        if self.state is CONTROL_STATES.TERMINATE:
+            return
 
-        assert hard or soft, """ Must specify kill hard or soft """
+        log.info('Hard Shutdown')
+        self.send_hardkill()
+        self.state = CONTROL_STATES.TERMINATE
+        self.alive = False
+
+
+    def shutdown(self):
 
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
+        log.info('Soft Shutdown')
+        self.send_softkill()
+        self.state = CONTROL_STATES.TERMINATE
         self.alive = False
-
-        if hard and not self.devel:
-            self.state = CONTROL_STATES.TERMINATE
-            log.info('Hard Shutdown')
-            self.send_hardkill()
-
-        if soft and not self.devel:
-            self.state = CONTROL_STATES.TERMINATE
-            log.info('Soft Shutdown')
-            self.send_softkill()

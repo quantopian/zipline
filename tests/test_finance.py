@@ -21,8 +21,13 @@ from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
-from zipline.utils.test_utils import assert_single_position,\
-        drain_zipline
+from zipline.utils.test_utils import \
+        drain_zipline, \
+        check, \
+        setup_logger, \
+        teardown_logger,\
+        assert_single_position
+
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
@@ -42,11 +47,10 @@ class FinanceTestCase(TestCase):
         }
         self.ctx = zmq.Context()
 
-        self.log_handler = LoggingHandler()
-        self.log_handler.push_application()
+        setup_logger(self)
 
     def tearDown(self):
-        self.log_handler.pop_application()
+        teardown_logger(self)
 
     @timed(DEFAULT_TIMEOUT)
     def test_factory_daily(self):
@@ -143,7 +147,6 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
-
         output, transaction_count = drain_zipline(self, zipline)
 
         self.assertTrue(zipline.sim.ready())

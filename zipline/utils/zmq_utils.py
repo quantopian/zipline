@@ -1,5 +1,5 @@
 """
-Misc ZeroMQ utilities.
+Misc ZeroMQ experimental tools
 """
 import gevent
 import msgpack
