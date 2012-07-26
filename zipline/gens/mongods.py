@@ -10,15 +10,50 @@ from pymongo import ASCENDING
 from datetime import datetime, timedelta
 
 from zipline import ndict
-from zipline.gens.utils import stringify_args, assert_datasource_protocol
+from zipline.gens.utils import stringify_args, assert_datasource_protocol, \
+    assert_trade_protocol
 
 import zipline.protocol as zp
 
+def MongoTradeHistoryGen(collection, filter, start_date, end_date):
+    """A generator that takes a pymongo Collection object, a list of
+    filters, a start date and an end_date and yields ndicts containing
+    the results of a query to its collection with the given filter,
+    start, and end.  The output is also packaged with a unique
+    source_id string for downstream sorting
+    """
+    
+    assert isinstance(collection, pymongo.collection.Collection)
+    assert isinstance(filter, dict)
+    assert isinstance(start_date, (datetime))
+    assert isinstance(end_date, (datetime))
+    
+    # Set up internal iterator.  This outputs raw dictionaries.
+    iterator = create_pymongo_iterator(collection, filter, start_date, end_date)
+
+    # Create unique identifier string that can be used to break
+    # sorting ties deterministically
+    argstring = stringify_args(collection, filter, start_date, end_date)
+    source_id = "MongoTradeHistoryGen" + argstring
+
+    # All datasources
+    for event in iterator:
+        # Construct a new event that fulfills the datasource protocol.
+        event['type'] = zp.DATASOURCE_TYPE.TRADE
+        event['dt'] = event['dt'].replace(tzinfo=pytz.utc)
+        event['source_id'] = source_id
+
+        payload = ndict(event)
+        assert_trade_protocol(payload)
+        yield payload
+        
 def create_pymongo_iterator(collection, filter, start_date, end_date):
     """
-    See the comments on :py:class:`zipline.messaging.DataSource` for
-    expected content of filter. Spec must adhere to that definition.
-    Returns an iterator that spits out raw objects loaded from MongoDB.
+    Returns an iterator that spits out raw objects loaded from a
+    MongoDB collection.  
+
+    See the comments on :py:class:`zipline.messaging.DataSource` 
+    for expected content of filter.
     """
     log = logbook.Logger("MongoDBQuery")
 
@@ -59,40 +94,7 @@ def create_pymongo_iterator(collection, filter, start_date, end_date):
     log.info("MongoDataSource iterator ready")
     
     return iterator
-
-
-def MongoTradeHistoryGen(collection, filter, start_date, end_date):
-    """A generator that takes a pymongo Collection object, a list of
-    filters, a start date and an end_date and yields ndicts containing
-    the results of a query to its collection with the given filter,
-    start, and end.  The output is also packaged with a unique
-    source_id string for downstream sorting
-    """
-    
-    assert isinstance(collection, pymongo.collection.Collection)
-    assert isinstance(filter, dict)
-    assert isinstance(start_date, (datetime))
-    assert isinstance(end_date, (datetime))
-    
-    # Set up internal iterator.  This outputs raw dictionaries.
-    iterator = create_pymongo_iterator(collection, filter, start_date, end_date)
-
-    # Create unique identifier string that can be used to break
-    # sorting ties deterministically
-    argstring = stringify_args(collection, filter, start_date, end_date)
-    source_id = "MongoTradeHistoryGen" + argstring
-
-    # All datasources
-    for event in iterator:
-        # Construct a new event that fulfills the datasource protocol.
-        event['type'] = zp.DATASOURCE_TYPE.TRADE
         
-        event['dt'] = event['dt'].replace(tzinfo=pytz.utc)
-        event['source_id'] = source_id
-        payload = ndict(event)
-        assert_datasource_protocol(payload)
-        yield payload
-
     
         
         

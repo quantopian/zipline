@@ -2,11 +2,22 @@ import pytz
 import numbers
 
 from hashlib import md5
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from zipline import ndict
 from zipline.protocol import DATASOURCE_TYPE
 
+def mock_raw_event(sid, dt):
+    event = {
+        'sid'    : sid,
+        'dt'     : dt,
+        'price'  : 1.0,
+        'volume' : 1
+    }
+    return event
+
+def date_gen(start = datetime(2012, 6, 6, 0), delta = timedelta(minutes = 1), n = 100):
+    return (start + i * delta for i in xrange(n))
 
 def stringify_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
@@ -18,15 +29,18 @@ def stringify_args(*args, **kwargs):
     hasher.update(combined)
     return hasher.hexdigest()
     
-
 def assert_datasource_protocol(event):
     """Assert that an event meets the protocol for datasource outputs."""
 
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
-    assert isinstance(event.dt, datetime)
-    assert event.dt.tzinfo == pytz.utc
     assert event.type in DATASOURCE_TYPE
+
+    # Done packets have no dt.
+    if not event.type == DATASOURCE_TYPE.DONE:
+        assert isinstance(event.dt, datetime)
+        assert event.dt.tzinfo == pytz.utc
+    
 
 def assert_trade_protocol(event):
     """Assert that an event meets the protocol for datasource TRADE outputs."""
@@ -37,4 +51,15 @@ def assert_trade_protocol(event):
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
     assert isinstance(event.volume, numbers.Integral)
+    assert isinstance(event.dt, datetime)
+
+def assert_datasource_unframe_protocol(event):
+    """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
     
+    assert isinstance(event, ndict)
+    assert isinstance(event.source_id, basestring)
+    assert event.type in DATASOURCE_TYPE
+    assert event.has_key('dt')
+    
+def assert_feed_protocol(event):
+    pass

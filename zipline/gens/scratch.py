@@ -1,14 +1,36 @@
 
-class gen_wrapper(object):
+# Inside Client
+def __init__(self, addresses, ...):
+    self.pull_socket = ...
     
-    def __init__(self, val):
-        self.val = val
-        self.iterator = iter(xrange(self.val))
-    def reset_iter(self):
-        self.val
+    self.control_socket ...
 
-    def __iter__(self):
-        return self.iterator
+def run(self):
+    for message in gen_from_pull(self.pull_socket):
+        #Do things with messages.
+        heartbeat()
+    
+    signal_done()
+    sys.exit(0)
 
-    def next():
-        return self.iterator.next()
+# Inside Merge
+def __init__(self, addresses, source_ids ...):
+    self.poller = ... # Poller on multiple xforms, single socket.
+
+    self.processor = ... # Generator that  
+    
+    self.push_socket = ... # Outbound socket
+    
+def run(self):
+    
+    incoming = gen_from_poll(self.poller)# Receives messages from all xforms.
+    
+    processed = self.processor(incoming, source_ids) # Maintains internal queues and merges.
+    
+    for message in self.processed:
+        heartbeat()
+        self.push_socket.send(message)
+
+# Inside 
+    
+    

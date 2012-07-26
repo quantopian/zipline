@@ -227,6 +227,7 @@ def DATASOURCE_FRAME(event):
     - *ds_type* a string denoting the datasource type. Must be on of:
 
         - TRADE
+        - DONE
         - (others to follow soon)
 
     - *payload* a msgpack string carrying the payload for the frame
@@ -235,18 +236,25 @@ def DATASOURCE_FRAME(event):
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
 
     #datasources will send sometimes send empty msgs to feel gaps
-    if len(event.keys()) == 2:
+    if (event.type == DATASOURCE_TYPE.EMPTY):
         return msgpack.dumps(tuple([
             event.type,
             event.source_id,
-            DATASOURCE_TYPE.EMPTY
+            "EMPTY"
         ]))
 
-    if(event.type == DATASOURCE_TYPE.TRADE):
+    elif(event.type == DATASOURCE_TYPE.TRADE):
         return msgpack.dumps(tuple([
             event.type,
             event.source_id,
             TRADE_FRAME(event)
+        ]))
+    
+    elif(event.type == DATASOURCE_TYPE.DONE):
+        return msgpack.dumps(tuple([
+            event.type,
+            event.source_id,
+            "DONE"
         ]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
@@ -259,8 +267,9 @@ def DATASOURCE_UNFRAME(msg):
 
     Returns a dict containing at least:
 
-    - source_id
-    - type
+    - source_id: instance-unique string
+    - type: datasource type
+    - dt: None, 'DONE' or a datetime object
 
     other properties are added based on the datasource type:
 
@@ -282,6 +291,8 @@ def DATASOURCE_UNFRAME(msg):
             child_value = ndict({'dt':None})
         elif(ds_type == DATASOURCE_TYPE.TRADE):
             child_value = TRADE_UNFRAME(payload)
+        elif(ds_type == DATASOURCE_TYPE.DONE):
+            child_value = ndict({'dt' : 'DONE'})
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
 
@@ -593,6 +604,7 @@ def tuple_to_date(date_tuple):
 DATASOURCE_TYPE = Enum(
     'TRADE',
     'EMPTY',
+    'DONE'
 )
 
 
