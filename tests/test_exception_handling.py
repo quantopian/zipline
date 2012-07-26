@@ -54,7 +54,7 @@ class ExceptionTestCase(TestCase):
         output, _ = drain_zipline(self, zipline)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
-        payload = output[-1]['payload']
+        payload = output[-1]['payload']['stack']
         #check(self, payload, INITIALIZE_TB)
 
         self.assertTrue(zipline.sim.ready())
@@ -79,8 +79,8 @@ class ExceptionTestCase(TestCase):
 
         self.assertEqual(len(output), 1)
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
-        payload = output[-1]['payload']
-        #check(self, payload, HANDLE_DATA_TB)
+        payload = output[-1]['payload']['stack']
+        check(self, payload, HANDLE_DATA_TB)
 
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
@@ -124,33 +124,27 @@ INITIALIZE_TB =\
   'method': 'initialize'}]
 
 HANDLE_DATA_TB =\
-[{'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/core/component.py',
-  'line': 'self._run()',
-  'lineno': 229,
-  'method': 'run'},
- {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/core/component.py',
-  'line': 'self.loop()',
-  'lineno': 220,
-  'method': '_run'},
+[{'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/core/component.py', 'line': 'self._run()', 'lineno': 204, 'method': 'run'},
+ {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 195, 'method': '_run'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/core/component.py',
   'line': 'self.do_work()',
-  'lineno': 257,
+  'lineno': 235,
   'method': 'loop'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/components/tradesimulation.py',
   'line': 'self.process_event(event)',
-  'lineno': 119,
+  'lineno': 116,
   'method': 'do_work'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/components/tradesimulation.py',
   'line': 'self.run_algorithm()',
-  'lineno': 167,
+  'lineno': 164,
   'method': 'process_event'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/components/tradesimulation.py',
   'line': 'self.do_op(self.algorithm.handle_data, data)',
-  'lineno': 189,
+  'lineno': 186,
   'method': 'run_algorithm'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/components/tradesimulation.py',
   'line': 'callable_op(*args, **kwargs)',
-  'lineno': 208,
+  'lineno': 206,
   'method': 'do_op'},
  {'file': '/Users/fawce/projects/qexec/zipline_repo/zipline/test_algorithms.py',
   'line': 'raise Exception("Algo exception in handle_data")',

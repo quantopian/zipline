@@ -7,7 +7,6 @@ import zmq
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 from collections import defaultdict
-from logbook.compat import LoggingHandler
 
 from nose.tools import timed
 
@@ -47,7 +46,7 @@ class FinanceTestCase(TestCase):
         }
         self.ctx = zmq.Context()
 
-        setup_logger(self)
+        setup_logger(self, '/var/log/qexec/qexec.log')
 
     def tearDown(self):
         teardown_logger(self)
