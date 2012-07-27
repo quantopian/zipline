@@ -26,7 +26,7 @@ def alternate(g1, g2):
         if e2 != None:
             yield e2
 
-def stringify_args(*args, **kwargs):
+def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
     arg_string = '_'.join([str(arg) for arg in args])
     kwarg_string = '_'.join([str(key) + '=' + str(value) for key, value in kwargs.iteritems()])
@@ -62,11 +62,14 @@ def assert_trade_protocol(event):
 
 def assert_datasource_unframe_protocol(event):
     """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
-    
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
     assert event.has_key('dt')
     
 def assert_feed_protocol(event):
-    pass
+    """Assert that an event is valid input to zp.FEED_FRAME."""
+    assert isinstance(feed, ndict)
+    assert isinstance(event.source_id, basestring)
+    assert event.type in DATASOURCE_TYPE
+    assert event.has_key('dt')

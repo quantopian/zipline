@@ -10,7 +10,7 @@ from pymongo import ASCENDING
 from datetime import datetime, timedelta
 
 from zipline import ndict
-from zipline.gens.utils import stringify_args, assert_datasource_protocol, \
+from zipline.gens.utils import hash_args, assert_datasource_protocol, \
     assert_trade_protocol
 
 import zipline.protocol as zp
@@ -33,7 +33,7 @@ def MongoTradeHistoryGen(collection, filter, start_date, end_date):
 
     # Create unique identifier string that can be used to break
     # sorting ties deterministically
-    argstring = stringify_args(collection, filter, start_date, end_date)
+    argstring = hash_args(collection, filter, start_date, end_date)
     source_id = "MongoTradeHistoryGen" + argstring
 
     # All datasources

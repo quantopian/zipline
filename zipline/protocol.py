@@ -316,6 +316,7 @@ def FEED_FRAME(event):
 
         - source_id
         - type
+        - dt
     """
     assert isinstance(event, ndict), 'unknown type %s' % str(event)
     source_id = event.source_id
