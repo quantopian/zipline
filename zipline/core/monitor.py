@@ -6,7 +6,7 @@ import time
 import itertools
 import logbook
 from setproctitle import setproctitle
-from signal import SIGHUP, SIGINT
+from signal import SIGHUP, SIGINT, SIGKILL, signal
 
 from collections import OrderedDict, Counter
 
