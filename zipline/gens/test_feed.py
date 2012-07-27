@@ -6,7 +6,7 @@ import pytz
 
 from unittest2 import TestCase
 from pymongo import Connection, ASCENDING
-from itertools import izip, izip_longest, permutations, cycle
+from itertools import izip, izip_longest, permutations, cycle, chain
 from datetime import datetime, timedelta
 from collections import deque
 
@@ -14,7 +14,7 @@ from zipline import ndict
 from zipline.gens.feed import FeedGen, full, done, queue_is_full,queue_is_done,\
     pop_oldest
 from zipline.gens.utils import stringify_args, assert_datasource_protocol,\
-    assert_trade_protocol, date_gen
+    assert_trade_protocol, date_gen, alternate
 
 import zipline.protocol as zp
 
@@ -96,7 +96,8 @@ class FeedGenTestCase(TestCase):
         Assert that FeedGen's output agrees with expected.
         """
         feed_gen = FeedGen(events, source_ids)
-        assert list(feed_gen) == expected
+        l = list(feed_gen)
+        assert l == expected
         
 
     def test_single_source(self):
@@ -119,38 +120,41 @@ class FeedGenTestCase(TestCase):
         
         self.run_FeedGen(event_gen, expected, source_ids)
     
-    def test_multi_source_interleaved(self):
+    def test_multi_source(self):
         source_ids = ['a', 'b']
         type = zp.DATASOURCE_TYPE.TRADE
 
-        # Set up source 'a'. Outputs 3 events with 2 minute deltas.
+        # Set up source 'a'. Outputs 20 events with 2 minute deltas.
         delta_a = timedelta(minutes = 2)
-        dates_a = list(date_gen(delta = delta_a, n = 3))
+        dates_a = list(date_gen(delta = delta_a, n = 20))
         dates_a.append("DONE")
 
         events_a_args = zip(cycle(['a']), iter(dates_a), cycle([type]))
         events_a = [mock_data_unframe(*args) for args in events_a_args]        
-        event_gen_a = (e for e in events_a)
-
-        # Set up source 'b'. Outputs 4 events with 1 minute deltas.
+        
+        # Set up source 'b'. Outputs 10 events with 1 minute deltas.
         delta_b = timedelta(minutes = 1)
-        dates_b = list(date_gen(delta = delta_b, n = 4))
+        dates_b = list(date_gen(delta = delta_b, n = 10))
         dates_b.append("DONE")
 
         events_b_args = zip(cycle(['b']), iter(dates_b), cycle([type]))
         events_b = [mock_data_unframe(*args) for args in events_b_args]
-        event_gen_b = (e for e in events_b)
-
         
         # The expected output is all non-DONE events in both a and b,
         # sorted first by dt and then by source_id.
         non_dones = events_a[:-1] + events_b[:-1]
         expected = sorted(non_dones, compare_by_dt_source_id)
-        
-        import nose.tools; nose.tools.set_trace()
-        self.run_FeedGen(event_gen, expected, source_ids)
-        
 
+        # Alternating between a and b.
+        interleaved = alternate(iter(events_a), iter(events_b))
+        self.run_FeedGen(interleaved, expected, source_ids)
+
+        # All of a, then all of b.
+
+        sequential = chain(iter(events_a), iter(events_b))
+        self.run_FeedGen(sequential, expected, source_ids)
+    
+        
 #     def test_FeedGen_consistency(self):
         
 #         source_ids = ['a', 'b']

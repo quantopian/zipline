@@ -3,7 +3,7 @@ import numbers
 
 from hashlib import md5
 from datetime import datetime, timedelta
-
+from itertools import izip_longest
 from zipline import ndict
 from zipline.protocol import DATASOURCE_TYPE
 
@@ -19,7 +19,14 @@ def mock_raw_event(sid, dt):
 def date_gen(start = datetime(2012, 6, 6, 0), delta = timedelta(minutes = 1), n = 100):
     return (start + i * delta for i in xrange(n))
 
-def stringify_args(*args, **kwargs):
+def alternate(g1, g2):
+    for e1, e2 in izip_longest(g1, g2):
+        if e1 != None:
+            yield e1
+        if e2 != None:
+            yield e2
+
+def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
     arg_string = '_'.join([str(arg) for arg in args])
     kwarg_string = '_'.join([str(key) + '=' + str(value) for key, value in kwargs.iteritems()])
@@ -55,11 +62,26 @@ def assert_trade_protocol(event):
 
 def assert_datasource_unframe_protocol(event):
     """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
-    
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
     assert event.has_key('dt')
     
 def assert_feed_protocol(event):
+    """Assert that an event is valid input to zp.FEED_FRAME."""
+    assert isinstance(event, ndict)
+    assert isinstance(event.source_id, basestring)
+    assert event.type in DATASOURCE_TYPE
+    assert event.has_key('dt')
+    
+    
+def assert_feed_unframe_protocol(event):
+    """Same as above."""
+    assert isinstance(event, ndict)
+    assert event.type in DATASOURCE_TYPE
+    assert event.has_key('dt')
+
+
+def assert_transform_protocol(event):
     pass
+

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from collections import deque, defaultdict
 
 from zipline import ndict
-from zipline.gens.utils import stringify_args, assert_datasource_protocol, \
+from zipline.gens.utils import hash_args, assert_datasource_protocol, \
     assert_trade_protocol, assert_datasource_unframe_protocol
 
 import zipline.protocol as zp
@@ -25,7 +25,6 @@ def FeedGen(stream_in, source_ids):
     message and yield it.  
     """
     
-    assert isinstance(stream_in, types.GeneratorType)
     assert isinstance(source_ids, list)
 
     # Set up an internal queue for each expected source.
@@ -34,10 +33,7 @@ def FeedGen(stream_in, source_ids):
         assert isinstance(id, basestring), "Bad source_id %s" % source_id
         sources[id] = deque()
 
-    namestring = "FeedGen" + stringify_args(source_ids)
-
     # Process incoming streams.
-    
     for message in stream_in:
         # Incoming messages should be the output of DATASOURCE_UNFRAME.
         assert_datasource_unframe_protocol(message), \
@@ -53,6 +49,7 @@ def FeedGen(stream_in, source_ids):
 
         while full(sources) and not done(sources):
             message = pop_oldest(sources)
+            assert feed_protocol(message)
             yield message
 
     # We should have only a done message left in each queue.    
@@ -109,7 +106,7 @@ def pop_oldest(sources):
             oldest_event = older(oldest_event, current_event)
             
     # Pop the oldest event we found from its queue and return it.
-    return sources[oldest_event.source_id].pop()
+    return sources[oldest_event.source_id].popleft()
 
 # Return the event with the older timestamp.  Break ties by source_id.
 def older(oldest, current):

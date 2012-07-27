@@ -15,15 +15,6 @@ from zipline.gens.utils import stringify_args, assert_datasource_protocol,\
 
 import zipline.protocol as zp
 
-def mock_raw_event(sid, dt):
-    event = {
-        'sid'    : sid,
-        'dt'     : dt,
-        'price'  : 1.0,
-        'volume' : 1
-    }
-    return event
-
 mongo_conn_args = {
     'mongodb_host':  'localhost',
     'mongodb_port':  27017,
