@@ -69,7 +69,19 @@ def assert_datasource_unframe_protocol(event):
     
 def assert_feed_protocol(event):
     """Assert that an event is valid input to zp.FEED_FRAME."""
-    assert isinstance(feed, ndict)
+    assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
     assert event.has_key('dt')
+    
+    
+def assert_feed_unframe_protocol(event):
+    """Same as above."""
+    assert isinstance(event, ndict)
+    assert event.type in DATASOURCE_TYPE
+    assert event.has_key('dt')
+
+
+def assert_transform_protocol(event):
+    pass
+

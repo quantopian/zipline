@@ -331,6 +331,9 @@ def FEED_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         rval = ndict(payload)
+        assert rval.source_id
+        assert rval.type in DATASOURCE_TYPE
+        assert rval.dt
         UNPACK_DATE(rval)
         return rval
     except TypeError:
