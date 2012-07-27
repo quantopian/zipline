@@ -129,6 +129,8 @@ from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 # Control Protocol
 # -----------------------
 
+PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION', 'CANCEL']
+
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
 CONTROL_STATES = Enum(
@@ -531,6 +533,14 @@ def EXCEPTION_FRAME(exception_tb):
     }
 
     return BT_UPDATE_FRAME('EXCEPTION', result)
+
+def CANCEL_FRAME(date):
+    result = {
+        'date' : EPOCH(date)
+    }
+
+    return BT_UPDATE_FRAME('CANCEL', result)
+
 
 def BT_UPDATE_FRAME(prefix, payload):
     """
