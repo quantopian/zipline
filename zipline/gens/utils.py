@@ -3,7 +3,7 @@ import numbers
 
 from hashlib import md5
 from datetime import datetime, timedelta
-
+from itertools import izip_longest
 from zipline import ndict
 from zipline.protocol import DATASOURCE_TYPE
 
@@ -18,6 +18,13 @@ def mock_raw_event(sid, dt):
 
 def date_gen(start = datetime(2012, 6, 6, 0), delta = timedelta(minutes = 1), n = 100):
     return (start + i * delta for i in xrange(n))
+
+def alternate(g1, g2):
+    for e1, e2 in izip_longest(g1, g2):
+        if e1 != None:
+            yield e1
+        if e2 != None:
+            yield e2
 
 def stringify_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""

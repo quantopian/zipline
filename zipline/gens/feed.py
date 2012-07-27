@@ -25,7 +25,6 @@ def FeedGen(stream_in, source_ids):
     message and yield it.  
     """
     
-    assert isinstance(stream_in, types.GeneratorType)
     assert isinstance(source_ids, list)
 
     # Set up an internal queue for each expected source.
@@ -109,7 +108,7 @@ def pop_oldest(sources):
             oldest_event = older(oldest_event, current_event)
             
     # Pop the oldest event we found from its queue and return it.
-    return sources[oldest_event.source_id].pop()
+    return sources[oldest_event.source_id].popleft()
 
 # Return the event with the older timestamp.  Break ties by source_id.
 def older(oldest, current):
