@@ -48,7 +48,6 @@ def assert_datasource_protocol(event):
         assert isinstance(event.dt, datetime)
         assert event.dt.tzinfo == pytz.utc
     
-
 def assert_trade_protocol(event):
     """Assert that an event meets the protocol for datasource TRADE outputs."""
     assert_datasource_protocol(event)

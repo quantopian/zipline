@@ -47,7 +47,7 @@ class FeedHelperTestCase(TestCase):
         assert queue_is_full(queue)
         assert queue_is_done(queue)
         
-    def test_sources_logic(self):
+    def test_pop_logic(self):
         sources = {}
         ids = ['a', 'b', 'c']
         for id in ids:
@@ -85,7 +85,6 @@ class FeedGenTestCase(TestCase):
     
     def setUp(self):
         pass
-        
     
     def tearDown(self):
         pass
@@ -154,15 +153,10 @@ class FeedGenTestCase(TestCase):
         sequential = chain(iter(events_a), iter(events_b))
         self.run_FeedGen(sequential, expected, source_ids)
     
+        def test_with_specific_equity(self):
+            
+            
         
-#     def test_FeedGen_consistency(self):
-        
-#         source_ids = ['a', 'b']
-#         multiplied = source_ids * 5
-#         perms = itertools.permutations(multiplied, 10)
-#         self.type = zp.DATASOURCE_TYPE.TRADE
-        
-#         self.events = (mock_data_unframe(id, 
         
         
 def mock_data_unframe(source_id, dt, type):
