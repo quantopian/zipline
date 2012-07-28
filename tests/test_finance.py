@@ -41,12 +41,12 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config = {
             'allocator'         : allocator,
             'sid'               : 133,
-            'devel'             : True,
+            #'devel'             : True,
             'results_socket'    : allocator.lease(1)[0]
         }
         self.ctx = zmq.Context()
 
-        setup_logger(self, '/var/log/qexec/qexec.log')
+        setup_logger(self)
 
     def tearDown(self):
         teardown_logger(self)
@@ -128,7 +128,7 @@ class FinanceTestCase(TestCase):
 
     #@timed(DEFAULT_TIMEOUT)
     def test_sid_filter(self):
-        """Ensure the algorithm's filter prevents events from arriving."""
+        # Ensure the algorithm's filter prevents events from arriving.
         # create a test algorithm whose filter will not match any of the
         # trade events sourced inside the zipline.
         order_amount = 100

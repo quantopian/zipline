@@ -54,7 +54,7 @@ class TestAlgorithm():
     at the close of a simulation.
     """
 
-    def __init__(self, sid, amount, order_count):
+    def __init__(self, sid, amount, order_count, sid_filter=None):
         self.count = order_count
         self.sid = sid
         self.amount = amount
@@ -63,6 +63,10 @@ class TestAlgorithm():
         self.order = None
         self.frame_count = 0
         self.portfolio = None
+        if sid_filter:
+            self.sid_filter = sid_filter
+        else:
+            self.sid_filter = [self.sid]
 
     def initialize(self):
         pass
@@ -84,7 +88,7 @@ class TestAlgorithm():
             self.incr += 1
 
     def get_sid_filter(self):
-        return [self.sid]
+        return self.sid_filter
 
 #
 class HeavyBuyAlgorithm():
