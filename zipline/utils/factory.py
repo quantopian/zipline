@@ -89,6 +89,8 @@ def get_next_trading_dt(current, interval, trading_calendar):
 
     return next
 
+
+
 def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     trades = []
     current = trading_calendar.first_open
