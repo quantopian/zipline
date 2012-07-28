@@ -184,10 +184,8 @@ class FeedGenTestCase(TestCase):
         sources = (source_a, source_b, source_c)
         source_ids = [id_a, id_b, id_c]
         
-        import nose.tools; nose.tools.set_trace()
         feed_out = PreTransformLayer(sources, source_ids)
-        for i in feed_out:
-            print i
+        l = list(feed_out)
     
 def mock_data_unframe(source_id, dt, type):
     event = ndict()

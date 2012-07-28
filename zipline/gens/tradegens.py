@@ -3,7 +3,7 @@ from itertools import chain, repeat, cycle, ifilter, izip
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trade
-from zipline.gens.utils import hash_args
+from zipline.gens.utils import hash_args, mock_done
 
 def date_gen(start = datetime(2012, 6, 6, 0),
              delta = timedelta(minutes = 1), 
@@ -77,7 +77,9 @@ def SpecificEquityTrades(count = 500,
     else:
         filtered = unfiltered
 
-    return filtered
+    # Add a done message to the end of the stream.
+    out = chain(filtered, iter([mock_done(namestring)]))
+    return out    
 
 def RandomEquityTrades(count = 500, sids = [1,2], filter = None):
     dates = fuzzy_dates(500)

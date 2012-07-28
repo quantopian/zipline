@@ -16,6 +16,9 @@ def mock_raw_event(sid, dt):
     }
     return event
 
+def mock_done(source_id):
+    return ndict({'dt': "DONE", "source_id" : source_id, 'type' : 0})
+              
 def alternate(g1, g2):
     """Specialized version of roundrobin for just 2 generators."""
     for e1, e2 in izip_longest(g1, g2):
