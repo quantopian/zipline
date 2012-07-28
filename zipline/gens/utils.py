@@ -17,7 +17,7 @@ def mock_raw_event(sid, dt):
     return event
 
 def date_gen(start = datetime(2012, 6, 6, 0), delta = timedelta(minutes = 1), n = 100):
-    return (start + i * delta for i in xrange(n))
+    return (start + (i * delta) for i in xrange(n))
 
 def alternate(g1, g2):
     for e1, e2 in izip_longest(g1, g2):
