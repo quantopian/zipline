@@ -1,5 +1,5 @@
 import random
-from itertools import chain, repeat, cycle
+from itertools import chain, repeat, cycle, ifilter
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trade, create_trade
@@ -20,12 +20,12 @@ def mock_volumes(n, rand = False):
     for readability."""
     return mock_prices(n, rand)
 
-def SpecificEquityTrades(n = 500, sids = [1, 2], event_list = None):
+def SpecificEquityTrades(n = 500, sids = [1, 2], event_list = None, filter = None):
     """Returns the first n events of event_list if specified. 
     Otherwise generates a sensible stream of events."""
     
     if event_list:
-        return (event for event in event_list)
+        unfiltered = (event for event in event_list)
     
     else:
         dates = date_gen(n = n)
@@ -35,6 +35,10 @@ def SpecificEquityTrades(n = 500, sids = [1, 2], event_list = None):
         
         arg_gen = izip(sids, prices, volumes, dates)
         
-        trades = (create_trade(*args) for args in arg_gen)
-        
-        return trades
+        unfiltered = (create_trade(*args) for args in arg_gen)
+    if filter:
+        filtered = ifilter(lambda event: event.sid in filter)
+    else:
+        filtered = unfiltered
+
+    return filtered
