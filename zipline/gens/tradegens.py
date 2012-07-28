@@ -37,7 +37,7 @@ def SpecificEquityTrades(count = 500, sids = [1, 2], event_list = None, filter =
         
         unfiltered = (create_trade(*args) for args in arg_gen)
     if filter:
-        filtered = ifilter(lambda event: event.sid in filter)
+        filtered = ifilter(lambda event: event.sid in filter, unfiltered)
     else:
         filtered = unfiltered
 
@@ -46,4 +46,4 @@ def SpecificEquityTrades(count = 500, sids = [1, 2], event_list = None, filter =
 if __name__ == "__main__":
     
     import nose.tools; nose.tools.set_trace()
-    trades = SpecificEquityTrades()
+    trades = SpecificEquityTrades(filter = [1])
