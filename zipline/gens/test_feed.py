@@ -13,8 +13,10 @@ from collections import deque
 from zipline import ndict
 from zipline.gens.feed import FeedGen, full, done, queue_is_full,queue_is_done,\
     pop_oldest
-from zipline.gens.utils import stringify_args, assert_datasource_protocol,\
-    assert_trade_protocol, date_gen, alternate
+from zipline.gens.utils import hash_args, assert_datasource_protocol,\
+    assert_trade_protocol, alternate
+from zipline.gens.tradegens import date_gen, SpecificEquityTrades
+from zipline.gens.composites import PreTransformLayer
 
 import zipline.protocol as zp
 
@@ -98,12 +100,11 @@ class FeedGenTestCase(TestCase):
         l = list(feed_gen)
         assert l == expected
         
-
     def test_single_source(self):
         source_ids = ['a']
         # 100 events, increasing by a minute at a time.
         type = zp.DATASOURCE_TYPE.TRADE
-        dates = list(date_gen(n = 1))
+        dates = list(date_gen(count = 100))
         dates.append("DONE")
         
         # [('a', date1, type), ('a', date2, type), ... ('a', "DONE", type)]
@@ -125,7 +126,7 @@ class FeedGenTestCase(TestCase):
 
         # Set up source 'a'. Outputs 20 events with 2 minute deltas.
         delta_a = timedelta(minutes = 2)
-        dates_a = list(date_gen(delta = delta_a, n = 20))
+        dates_a = list(date_gen(delta = delta_a, count = 20))
         dates_a.append("DONE")
 
         events_a_args = zip(cycle(['a']), iter(dates_a), cycle([type]))
@@ -133,7 +134,7 @@ class FeedGenTestCase(TestCase):
         
         # Set up source 'b'. Outputs 10 events with 1 minute deltas.
         delta_b = timedelta(minutes = 1)
-        dates_b = list(date_gen(delta = delta_b, n = 10))
+        dates_b = list(date_gen(delta = delta_b, count = 10))
         dates_b.append("DONE")
 
         events_b_args = zip(cycle(['b']), iter(dates_b), cycle([type]))
@@ -153,12 +154,41 @@ class FeedGenTestCase(TestCase):
         sequential = chain(iter(events_a), iter(events_b))
         self.run_FeedGen(sequential, expected, source_ids)
     
-        def test_with_specific_equity(self):
-            
-            
+    def test_full_feed_layer(self):
+        filter = [1,2]
         
+        source_a = SpecificEquityTrades(sids = [1,2,3,4],
+                                        start = datetime(2012,6,6,0),
+                                        delta = timedelta(minutes=1),
+                                        filter = filter
+        )
+        id_a = "SpecificEquityTradesd175237b28d2f52df208c97cf4af896e"
+
+        # Change the internal sid list to give us a different hash.
+        source_b = SpecificEquityTrades(sids = [1,2,3,5],
+                                        start = datetime(2012,6,6,0),
+                                        delta = timedelta(minutes=1),
+                                        filter = filter
+        )
         
+        id_b = 'SpecificEquityTrades2bf2c2d6d01d4dbfc0b2818438ea8151'
+
+        # Change the internal sid list to give us a different hash.
+        source_c = SpecificEquityTrades(sids = [1,2,3,6],
+                                        start = datetime(2012,6,6,0),
+                                        delta = timedelta(minutes=1),
+                                        filter = filter
+        )
+        id_c = 'SpecificEquityTrades16f7437db2d14e5373ef20025f49a3fe'
+
+        sources = (source_a, source_b, source_c)
+        source_ids = [id_a, id_b, id_c]
         
+        import nose.tools; nose.tools.set_trace()
+        feed_out = PreTransformLayer(sources, source_ids)
+        for i in feed_out:
+            print i
+    
 def mock_data_unframe(source_id, dt, type):
     event = ndict()
     event.source_id = source_id

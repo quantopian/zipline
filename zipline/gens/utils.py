@@ -16,15 +16,24 @@ def mock_raw_event(sid, dt):
     }
     return event
 
-def date_gen(start = datetime(2012, 6, 6, 0), delta = timedelta(minutes = 1), n = 100):
-    return (start + (i * delta) for i in xrange(n))
-
 def alternate(g1, g2):
+    """Specialized version of roundrobin for just 2 generators."""
     for e1, e2 in izip_longest(g1, g2):
         if e1 != None:
             yield e1
         if e2 != None:
             yield e2
+
+def roundrobin(*args):
+    """
+    Takes N generators, pulling one element off each until all inputs
+    are empty.  
+    """
+    for elem_tuple in izip_longest(*args):
+        for value in elem_tuple:
+            if value != None:
+                yield value
+
 
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""

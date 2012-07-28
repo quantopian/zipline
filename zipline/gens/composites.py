@@ -1,17 +1,18 @@
-
+from zipline.gens.utils import roundrobin
 from zipline.gens.feed import FeedGen
-from zipline.gens.tradegen import SpecificEquityTrades
-from zipline.gens.transform 
 
 
+def PreTransformLayer(sources, source_ids):
+    """
+    A generator that takes a tuple of sources and a list ids, piping
+    their output into a feed_gen.
+    """
+    stream_in = roundrobin(*sources)
+    return FeedGen(stream_in, source_ids)
 
+def TransformLayer(feed_stream, tnfms):
+    """ """
+    pass
 
-def PreTransformLayer(sources):
-    """A generator that takes a list of sources and runs their output
-    through a FeedGen."""
-    not_finished = len #NOT DONE
-
-    while not_finished:
-        
-        
+    
     

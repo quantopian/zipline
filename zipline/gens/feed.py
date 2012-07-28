@@ -13,7 +13,8 @@ from collections import deque, defaultdict
 
 from zipline import ndict
 from zipline.gens.utils import hash_args, assert_datasource_protocol, \
-    assert_trade_protocol, assert_datasource_unframe_protocol
+    assert_trade_protocol, assert_datasource_unframe_protocol, \
+    assert_feed_protocol
 
 import zipline.protocol as zp
 
@@ -49,7 +50,7 @@ def FeedGen(stream_in, source_ids):
 
         while full(sources) and not done(sources):
             message = pop_oldest(sources)
-            assert feed_protocol(message)
+            assert_feed_protocol(message)
             yield message
 
     # We should have only a done message left in each queue.    
