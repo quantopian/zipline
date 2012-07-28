@@ -1,5 +1,6 @@
 """
-The process simulator. Each component in threading.Thread
+The process simulator. Each component in a separate
+multiprocessing.process.
 """
 
 import logbook
