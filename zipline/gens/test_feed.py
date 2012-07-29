@@ -153,39 +153,41 @@ class FeedGenTestCase(TestCase):
 
         sequential = chain(iter(events_a), iter(events_b))
         self.run_FeedGen(sequential, expected, source_ids)
-    
+
     def test_full_feed_layer(self):
         filter = [1,2]
+        #Set up source a.
+        args_a = tuple()
+        kwargs_a = {'sids'   : [1,2,3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
+        #Set up source b.        
+        args_b = tuple()
+        kwargs_b = {'sids'   : [1,2,3,5],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
+        #Set up source c.
+        args_c = tuple()
+        kwargs_c = {'sids'   : [1,2,3,5],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
         
-        source_a = SpecificEquityTrades(sids = [1,2,3,4],
-                                        start = datetime(2012,6,6,0),
-                                        delta = timedelta(minutes=1),
-                                        filter = filter
-        )
-        id_a = "SpecificEquityTradesd175237b28d2f52df208c97cf4af896e"
-
-        # Change the internal sid list to give us a different hash.
-        source_b = SpecificEquityTrades(sids = [1,2,3,5],
-                                        start = datetime(2012,6,6,0),
-                                        delta = timedelta(minutes=1),
-                                        filter = filter
-        )
+        sources = tuple(SpecificEquityTrades) * 3
+        source_args = (args_a, args_b, args_c)
+        source_kwargs = (kwargs_a, kwargs_b, kwargs_c)
         
-        id_b = 'SpecificEquityTrades2bf2c2d6d01d4dbfc0b2818438ea8151'
-
-        # Change the internal sid list to give us a different hash.
-        source_c = SpecificEquityTrades(sids = [1,2,3,6],
-                                        start = datetime(2012,6,6,0),
-                                        delta = timedelta(minutes=1),
-                                        filter = filter
-        )
-        id_c = 'SpecificEquityTrades16f7437db2d14e5373ef20025f49a3fe'
-
-        sources = (source_a, source_b, source_c)
-        source_ids = [id_a, id_b, id_c]
+        feed_out = PreTransformLayer(sources, source_args, source_kwargs)
+        to_list = list(feed_out)
+        copy = to_list[:]
+        expected = sorted(copy, compare_by_dt_source_id)
         
-        feed_out = PreTransformLayer(sources, source_ids)
-        l = list(feed_out)
+        assert to_list == expected
     
 def mock_data_unframe(source_id, dt, type):
     event = ndict()
@@ -210,7 +212,3 @@ def compare_by_dt_source_id(x,y):
     
     else:
         return 0
-        
-        
-        
-        

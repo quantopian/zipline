@@ -53,7 +53,6 @@ def FeedGen(stream_in, source_ids):
             assert_feed_protocol(message)
             yield message
     
-    import nose.tools; nose.tools.set_trace()
     # We should have only a done message left in each queue.    
     for queue in sources.itervalues():
         assert len(queue) == 1, "Bad queue in FeedGen on exit: %s" % queue

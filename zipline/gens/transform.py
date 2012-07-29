@@ -14,8 +14,9 @@ from numbers import Number
 from itertools import izip
 
 from zipline import ndict
-from zipline.gens.utils import hash_args, date_gen
-from zipline.gens.utils import  assert_feed_unframe_protocol, assert_transform_protocol
+from zipline.gens.tradegens import date_gen
+from zipline.gens.utils import assert_feed_unframe_protocol, \
+    assert_transform_protocol, hash_args
 
 import zipline.protocol as zp
 
@@ -43,6 +44,10 @@ def FunctionalTransformGen(stream_in, fun, *args, **kwargs):
     """
     
     # TODO: Distinguish between functions and classes in hash_args.
+    # As implemented we will get assertion errors if a function and
+    # stateful class have the same name, which may or may not be
+    # what we want.
+
     namestring = fun.__name__ + hash_args(*args, **kwargs)
     
     for message in stream_in:
@@ -75,7 +80,10 @@ def MovingAverageTransformGen(stream_in, days, fields):
     Generator that uses the MovingAverage state class to calculate
     a moving average for all stocks over a specified number of days.
     """
-    return StatefulTransformGen(stream_in, MovingAverage, timedelta(days=days), fields)
+    return StatefulTransformGen(stream_in, 
+                                MovingAverage, 
+                                timedelta(days=days), 
+                                fields)
 
 class MovingAverage(object):
     """
@@ -91,7 +99,7 @@ class MovingAverage(object):
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
-
+        
     def create_window(self):
         """Factory method for self.sid_windows."""
         return EventWindow(self.delta, self.fields)
@@ -105,12 +113,16 @@ class MovingAverage(object):
         assert isinstance(event, ndict),"Bad event in MovingAverage: %s" % event
         assert event.has_key('sid'), "No sid in MovingAverage: %s" % event
         
+        output = ndict({'sid': event.sid})
         # This will create a new EventWindow if this is the first
         # message for this sid.
         window = self.sid_windows[event.sid]
         window.update(event)
+        averages =  window.get_averages()
         
-        return window.get_averages()
+        # Return the calculated averages along with
+        output.merge(averages)
+        return output
     
 class EventWindow(object):
     """
@@ -144,7 +156,7 @@ class EventWindow(object):
         #           newest               oldest
         #             |                    |
         #             V                    V
-        
+                
         while (self.ticks[-1].dt - self.ticks[0].dt) >= self.delta:
             # popleft removes and returns ticks[0]
             popped = self.ticks.popleft()
@@ -168,6 +180,7 @@ class EventWindow(object):
         Return an ndict of all our tracked averages.
         """
         out = ndict()
+        # out.ticks = len(self.ticks)
         for field in self.fields:
             out[field] = self.average(field)
         return out
@@ -186,26 +199,26 @@ class EventWindow(object):
             assert isinstance(event[field], Number), \
                 "Got %s for %s in EventWindow" % (event[field], field)
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    def make_event(**kwargs):
-        e = ndict()
-        for key, value in kwargs.iteritems():
-            e[key] = value
-        return e
+#     def make_event(**kwargs):
+#         e = ndict()
+#         for key, value in kwargs.iteritems():
+#             e[key] = value
+#         return e
     
-    dates = date_gen(delta = timedelta(hours = 12))
-    events = ( 
-        make_event(
-            sid = 'foo', price = random.random(), 
-            dt = date, 
-            type = zp.DATASOURCE_TYPE.TRADE, 
-            source_id = 'ds',
-            vol = i
-        )
-        for date, i in izip(dates, xrange(100))
-    )
+#     dates = date_gen(delta = timedelta(hours = 12))
+#     events = ( 
+#         make_event(
+#             sid = 'foo', price = random.random(), 
+#             dt = date, 
+#             type = zp.DATASOURCE_TYPE.TRADE, 
+#             source_id = 'ds',
+#             vol = i
+#         )
+#         for date, i in izip(dates, xrange(100))
+#     )
 
-    gen = MovingAverageTransformGen(events, 1, ['price', 'vol'])
+#     gen = MovingAverageTransformGen(events, 1, ['price', 'vol'])
     
 

@@ -85,14 +85,14 @@ def assert_feed_protocol(event):
     assert event.type in DATASOURCE_TYPE
     assert event.has_key('dt')
     
-    
 def assert_feed_unframe_protocol(event):
     """Same as above."""
     assert isinstance(event, ndict)
+    assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
     assert event.has_key('dt')
 
-
 def assert_transform_protocol(event):
-    pass
+    """Transforms should return an ndict to be merged by MergeGen."""
+    assert isinstance(event, ndict)
 
