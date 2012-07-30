@@ -15,7 +15,7 @@ def date_sort(stream_in, source_ids):
     message and yield it.
     """
 
-    assert isinstance(source_ids, list)
+    assert isinstance(source_ids, (list, tuple))
 
     # Set up an internal queue for each expected source.
     sources = {}
