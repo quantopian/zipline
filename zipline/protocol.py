@@ -546,13 +546,12 @@ def shorten_filename(filename):
         return None
 
     # check if the path contains zipeline_repo
-    path_re = r'(?<=zipline_repo).*'
+    path_re = r'(?<=zipline/).*'
     match = re.search(path_re, filename)
 
     if match:
-        return match.group(0)
-        parts = filename.split('zipline_repo')
-        return parts[1]
+        filepath = match.group(0)
+        return os.path.join('/zipline',filepath)
     else:
         # return just the filename.
         head, tail = os.path.split(filename)
