@@ -550,11 +550,11 @@ def shorten_filename(filename):
     # this will work on
     # /zipline/workspace/zipline/core/component.py, but fail for
     # /home/fawce/projects/zipline/zipline/core/component.py
-    path_re = r'(?<=./zipline/).*'
+    path_re = r'(.*)(/zipline/.*[.]py)'
     match = re.search(path_re, filename)
 
-    if match:
-        filepath = match.group(0)
+    if match and match.lastindex == 2:
+        filepath = match.group(2)
         return os.path.join('/zipline',filepath)
     else:
         # return just the filename.
