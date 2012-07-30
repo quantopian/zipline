@@ -118,15 +118,20 @@ import msgpack
 import numbers
 import datetime
 import pytz
+import traceback
+import re
+import os
 
 from collections import namedtuple
 
 from utils.protocol_utils import Enum, FrameExceptionFactory, ndict, namelookup
-from utils.date_utils import EPOCH, UN_EPOCH
+from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 
 # -----------------------
 # Control Protocol
 # -----------------------
+
+PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION', 'CANCEL']
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
@@ -226,27 +231,34 @@ def DATASOURCE_FRAME(event):
     - *ds_type* a string denoting the datasource type. Must be on of:
 
         - TRADE
+        - DONE
         - (others to follow soon)
 
     - *payload* a msgpack string carrying the payload for the frame
     """
-
     assert isinstance(event.source_id, basestring)
     assert isinstance(event.type, int), 'Unexpected type %s' % (event.type)
 
     #datasources will send sometimes send empty msgs to feel gaps
-    if len(event.keys()) == 2:
+    if (event.type == DATASOURCE_TYPE.EMPTY):
         return msgpack.dumps(tuple([
             event.type,
             event.source_id,
-            DATASOURCE_TYPE.EMPTY
+            "EMPTY"
         ]))
 
-    if(event.type == DATASOURCE_TYPE.TRADE):
+    elif(event.type == DATASOURCE_TYPE.TRADE):
         return msgpack.dumps(tuple([
             event.type,
             event.source_id,
             TRADE_FRAME(event)
+        ]))
+
+    elif(event.type == DATASOURCE_TYPE.DONE):
+        return msgpack.dumps(tuple([
+            event.type,
+            event.source_id,
+            "DONE"
         ]))
     else:
         raise INVALID_DATASOURCE_FRAME(str(event))
@@ -259,8 +271,9 @@ def DATASOURCE_UNFRAME(msg):
 
     Returns a dict containing at least:
 
-    - source_id
-    - type
+    - source_id: instance-unique string
+    - type: datasource type
+    - dt: None, 'DONE' or a datetime object
 
     other properties are added based on the datasource type:
 
@@ -282,6 +295,8 @@ def DATASOURCE_UNFRAME(msg):
             child_value = ndict({'dt':None})
         elif(ds_type == DATASOURCE_TYPE.TRADE):
             child_value = TRADE_UNFRAME(payload)
+        elif(ds_type == DATASOURCE_TYPE.DONE):
+            child_value = ndict({'dt' : 'DONE'})
         else:
             raise INVALID_DATASOURCE_FRAME(msg)
 
@@ -305,6 +320,7 @@ def FEED_FRAME(event):
 
         - source_id
         - type
+        - dt
     """
     assert isinstance(event, ndict), 'unknown type %s' % str(event)
     source_id = event.source_id
@@ -319,6 +335,9 @@ def FEED_UNFRAME(msg):
         #TODO: anything we can do to assert more about the content of the dict?
         assert isinstance(payload, dict)
         rval = ndict(payload)
+        assert rval.source_id
+        assert rval.type in DATASOURCE_TYPE
+        assert rval.dt
         UNPACK_DATE(rval)
         return rval
     except TypeError:
@@ -503,6 +522,50 @@ def convert_transactions(transactions):
 def RISK_FRAME(risk):
     return BT_UPDATE_FRAME('RISK', risk)
 
+def EXCEPTION_FRAME(exception_tb):
+    stack_list = traceback.extract_tb(exception_tb)
+    rlist = []
+    for stack in stack_list:
+        filename = shorten_filename(stack[0])
+        rstack = {
+            'filename'  : filename,
+            'lineno'    : stack[1],
+            'method'    : stack[2],
+            'line'      : stack[3]
+        }
+        rlist.append(rstack)
+    result = {
+        'date'  : epoch_now(),
+        'stack' : rlist
+    }
+
+    return BT_UPDATE_FRAME('EXCEPTION', result)
+
+def shorten_filename(filename):
+    if filename == None:
+        return None
+
+    # check if the path contains zipeline_repo
+    path_re = r'(?<=zipline_repo).*'
+    match = re.search(path_re, filename)
+
+    if match:
+        return match.group(0)
+        parts = filename.split('zipline_repo')
+        return parts[1]
+    else:
+        # return just the filename.
+        head, tail = os.path.split(filename)
+        return tail
+
+def CANCEL_FRAME(date):
+    result = {
+        'date' : EPOCH(date)
+    }
+
+    return BT_UPDATE_FRAME('CANCEL', result)
+
+
 def BT_UPDATE_FRAME(prefix, payload):
     """
     Frames prepared by RISK_FRAME and PERF_FRAME methods are sent via the same
@@ -579,6 +642,7 @@ def tuple_to_date(date_tuple):
 DATASOURCE_TYPE = Enum(
     'TRADE',
     'EMPTY',
+    'DONE'
 )
 
 

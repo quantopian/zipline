@@ -38,6 +38,7 @@ class TradeSimulationClient(Component):
         self.perf = perf.PerformanceTracker(self.trading_environment)
         self.zmq_out = None
         self.results_socket = results_socket
+        self.algo_initialized = False
 
     @property
     def get_id(self):
@@ -56,9 +57,6 @@ class TradeSimulationClient(Component):
         # initialize with all possible sids.
         self.perf.set_sids(self.algorithm.get_sid_filter())
 
-        # N.B. Initialize is now called from open, because we
-        # need to have a socket open for logging.
-
     def open(self):
         self.result_feed = self.connect_result()
         if self.results_socket:
@@ -70,7 +68,6 @@ class TradeSimulationClient(Component):
 
             self.setup_logging(sock)
             self.perf.publish_to(sock)
-        self.initialize_algo()
 
     def initialize_algo(self):
         """ Setup loggers for algorithm and run algorithm's own
@@ -80,7 +77,8 @@ class TradeSimulationClient(Component):
         self.algo_log = Logger("AlgoLog")
         self.algorithm.set_logger(self.algo_log)
 
-        self.run_logged_op(self.algorithm.initialize)
+        self.do_op(self.algorithm.initialize)
+        self.algo_initialized = True
 
     def setup_logging(self, socket = None):
         sock = socket or self.results_socket
@@ -95,6 +93,8 @@ class TradeSimulationClient(Component):
         self.stdout_capture = stdout_only_pipe
 
     def do_work(self):
+        if not self.algo_initialized:
+            self.initialize_algo()
         # see if the poller has results for the result_feed
         if self.socks.get(self.result_feed) == self.zmq.POLLIN:
 
@@ -183,9 +183,15 @@ class TradeSimulationClient(Component):
             # data injection pipeline for log rerouting
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
-            self.run_logged_op(self.algorithm.handle_data, data)
+            self.do_op(self.algorithm.handle_data, data)
 
-    def run_logged_op(self, callable_op, *args, **kwargs):
+    def exception_callback(self, exc_type, exc_value, exc_traceback):
+        if self.results_socket:
+            log.info("Sending exception frame")
+            msg = zp.EXCEPTION_FRAME(exc_traceback)
+            self.out_socket.send(msg)
+
+    def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook
         handler if it exits."""
         if self.zmq_out:
@@ -221,8 +227,8 @@ class TradeSimulationClient(Component):
         with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
             self.algorithm.handle_data('data')
 
-    def connect_order(self):
-        return self.connect_push_socket(self.addresses['order_address'])
+    #def connect_order(self):
+    #    return self.connect_push_socket(self.addresses['order_address'])
 
     def order(self, sid, amount):
         order = zp.ndict({

@@ -83,26 +83,16 @@ class Aggregate(Component):
                     self.drain()
                     self.signal_done()
             else:
-                try:
-                    event = self.unframe(message)
-                except zp.INVALID_DATASOURCE_FRAME as exc:
-                    # Error deserializing
-                    return self.signal_exception(exc)
+                event = self.unframe(message)
+                self.append(event)
 
-                try:
-                    self.append(event)
+                if self.is_full():
+                    event = self.next()
 
-                    if self.is_full() or self.draining:
-                        event = self.next()
-
-                        if event:
-                            self.send(event)
-                        else:
-                            pass
-
-                except zp.INVALID_DATASOURCE_FRAME as exc:
-                    # Invalid message
-                    return self.signal_exception(exc)
+                    if event:
+                        self.send(event)
+                    else:
+                        pass
 
     # -------------
     # Flow Control

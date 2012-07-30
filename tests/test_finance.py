@@ -2,11 +2,11 @@
 Tests for the zipline.finance package
 """
 import pytz
+import zmq
 
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 from collections import defaultdict
-from logbook.compat import LoggingHandler
 
 from nose.tools import timed
 
@@ -20,12 +20,18 @@ from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
+from zipline.utils.test_utils import \
+        drain_zipline, \
+        check, \
+        setup_logger, \
+        teardown_logger,\
+        assert_single_position
+
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
 allocator = AddressAllocator(1000)
-
 
 class FinanceTestCase(TestCase):
 
@@ -33,15 +39,17 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'allocator' : allocator,
-            'sid'       : 133,
-            'devel'     : True
+            'allocator'         : allocator,
+            'sid'               : 133,
+            #'devel'             : True,
+            'results_socket'    : allocator.lease(1)[0]
         }
-        self.log_handler = LoggingHandler()
-        self.log_handler.push_application()
+        self.ctx = zmq.Context()
+
+        setup_logger(self)
 
     def tearDown(self):
-        self.log_handler.pop_application()
+        teardown_logger(self)
 
     @timed(DEFAULT_TIMEOUT)
     def test_factory_daily(self):
@@ -109,150 +117,18 @@ class FinanceTestCase(TestCase):
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
 
-    # The following two tests appear broken no that the order source is
-    # non blocking. HUNCH: The trades are streaming through before the orders
-    # are placed.
-
-    #@timed(EXTENDED_TIMEOUT)
-    def test_orders(self):
-
-        # Simulation
-        # ----------
-
-        self.zipline_test_config['simulation_style'] = \
-        SIMULATION_STYLE.FIXED_SLIPPAGE
-        zipline = SimulatedTrading.create_test_zipline(
-            **self.zipline_test_config
-        )
-        zipline.simulate(blocking=True)
-
-        self.assertTrue(zipline.sim.ready())
-        self.assertFalse(zipline.sim.exception)
-
-        # TODO: Make more assertions about the final state of the components.
-        self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
-            "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=zipline.sim.feed.pending_messages()))
-
-        # the trading client should receive one transaction for every
-        # order placed.
-        self.assertEqual(
-            zipline.trading_client.txn_count,
-            zipline.trading_client.order_count
-        )
-
-
-    #@timed(DEFAULT_TIMEOUT)
-    def test_aggressive_buying(self):
-
-        # Simulation
-        # ----------
-
-        # TODO: for some reason the orders aren't filled without an extra
-        # trade.
-        trade_count = 5000
-        self.zipline_test_config['order_count'] = trade_count - 1
-        self.zipline_test_config['trade_count'] = trade_count
-        self.zipline_test_config['order_amount'] = 1
-
-        # tell the simulator to fill the orders in individual transactions
-        # matching the order volume exactly.
-        self.zipline_test_config['simulation_style'] = \
-            SIMULATION_STYLE.FIXED_SLIPPAGE
-        self.zipline_test_config['environment'] = factory.create_trading_environment()
-
-        sid_list = [self.zipline_test_config['sid']]
-
-        self.zipline_test_config['trade_source'] = factory.create_minutely_trade_source(
-            sid_list,
-            trade_count,
-            self.zipline_test_config['environment']
-        )
-
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-        zipline.simulate(blocking=True)
-
-        self.assertTrue(zipline.sim.ready())
-        self.assertFalse(zipline.sim.exception)
-
-        self.assertEqual(zipline.sim.feed.pending_messages(), 0, \
-            "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=zipline.sim.feed.pending_messages()))
-
-        #
-        # the trading client should receive one transaction for every
-        # order placed.
-        self.assertEqual(
-            zipline.trading_client.txn_count,
-            zipline.trading_client.order_count
-        )
-
-
-
     @timed(EXTENDED_TIMEOUT)
-    def test_performance(self):
+    def test_full_zipline(self):
         #provide enough trades to ensure all orders are filled.
         self.zipline_test_config['order_count'] = 100
         self.zipline_test_config['trade_count'] = 200
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-        zipline.simulate(blocking=True)
 
-        self.assertEqual(
-            zipline.sim.feed.pending_messages(),
-            0,
-            "The feed should be drained of all messages, found {n} remaining." \
-            .format(n=zipline.sim.feed.pending_messages())
-        )
-
-        self.assertEqual(
-            zipline.sim.merge.pending_messages(),
-            0,
-            "The merge should be drained of all messages, found {n} remaining." \
-            .format(n=zipline.sim.merge.pending_messages())
-        )
-
-        self.assertEqual(
-            zipline.algorithm.count,
-            zipline.algorithm.incr,
-            "The test algorithm should send as many orders as specified.")
-
-
-        transaction_sim = zipline.trading_client.txn_sim
-        self.assertEqual(
-            transaction_sim.txn_count,
-            zipline.trading_client.perf.txn_count,
-            "The perf tracker should handle the same number of transactions \
-            as the simulator emits."
-        )
-
-        self.assertEqual(
-            len(zipline.get_positions()),
-            1,
-            "Portfolio should have one position."
-        )
-
-        sid = self.zipline_test_config['sid']
-        self.assertEqual(
-            zipline.get_positions()[sid]['sid'],
-            sid,
-            "Portfolio should have one position in " + str(sid)
-        )
-
-        self.assertEqual(
-            zipline.sources['SpecificEquityTrades'].count,
-            self.zipline_test_config['trade_count'],
-            "The simulated trade source should send all trades."
-        )
-
-        self.assertEqual(
-            zipline.algorithm.frame_count,
-            self.zipline_test_config['trade_count'],
-            "The algorithm should receive all trades."
-            )
+        assert_single_position(self, zipline)
 
     #@timed(DEFAULT_TIMEOUT)
     def test_sid_filter(self):
-        """Ensure the algorithm's filter prevents events from arriving."""
+        # Ensure the algorithm's filter prevents events from arriving.
         # create a test algorithm whose filter will not match any of the
         # trade events sourced inside the zipline.
         order_amount = 100
@@ -270,12 +146,15 @@ class FinanceTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
+        output, transaction_count = drain_zipline(self, zipline)
 
-        zipline.simulate(blocking=True)
+        self.assertTrue(zipline.sim.ready())
+        self.assertFalse(zipline.sim.exception)
+
         #check that the algorithm received no events
         self.assertEqual(
             0,
-            test_algo.frame_count,
+            transaction_count,
             "The algorithm should not receive any events due to filtering."
         )
 
@@ -402,6 +281,9 @@ class FinanceTestCase(TestCase):
         self.transaction_sim(**params1)
 
     def transaction_sim(self, **params):
+        """ This is a utility method that asserts expected
+        results for conversion of orders to transactions given a
+        trade history"""
 
         trade_count         = params['trade_count']
         trade_amount        = params['trade_amount']

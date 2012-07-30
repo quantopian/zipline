@@ -1,5 +1,4 @@
 import logging
-from gevent_zeromq import zmq
 
 import zipline.protocol as zp
 from zipline.core.component import Component

@@ -69,7 +69,7 @@ from zipline.transforms import BaseTransform
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.components import TradeSimulationClient
-from zipline.core.devsimulator import Simulator
+from zipline.core.process import ProcessSimulator
 from zipline.core.monitor import Controller
 from zipline.finance.trading import SIMULATION_STYLE
 
@@ -105,8 +105,6 @@ class SimulatedTrading(object):
         :py:class:`zipline.trading.TradingEnvironment`
         - allocator: an instance of
         :py:class:`zipline.simulator.AddressAllocator`
-        - simulator_class: a :py:class:`zipline.core.host.ComponentHost`
-        subclass (not an instance)
         - simulation_style: optional parameter that configures the
         :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
         a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
@@ -117,7 +115,6 @@ class SimulatedTrading(object):
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
 
-        self.devel = config.get('devel', False)
 
         self.leased_sockets = []
         self.sim_context = None
@@ -136,15 +133,11 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[5],
             sockets[6],
-            devel = self.devel
         )
-
-        # TODO: Not freeform
-        self.con.manage('freeform')
 
         self.started = False
 
-        self.sim = config['simulator_class'](addresses)
+        self.sim = ProcessSimulator(addresses)
 
         self.clients = {}
 
@@ -179,9 +172,6 @@ class SimulatedTrading(object):
             - order_amount - the number of shares per order, defaults to 100
             - trade_count - the number of trades to simulate, defaults to 101
               to ensure all orders are processed.
-            - simulator_class - optional parameter that provides an alternative
-              subclass of ComponentHost to hold the whole zipline. Defaults to
-              :py:class:`zipline.simulator.Simulator`
             - algorithm - optional parameter providing an algorithm. defaults
               to :py:class:`zipline.test.algorithms.TestAlgorithm`
             - trade_source - optional parameter to specify trades, if present.
@@ -220,11 +210,6 @@ class SimulatedTrading(object):
             # to ensure all orders are filled, we provide one more
             # trade than order
             trade_count = 101
-
-        if config.has_key('simulator_class'):
-            simulator_class = config['simulator_class']
-        else:
-            simulator_class = Simulator
 
         simulation_style = config.get('simulation_style')
         if not simulation_style:
@@ -266,21 +251,12 @@ class SimulatedTrading(object):
             'algorithm'           : test_algo,
             'trading_environment' : trading_environment,
             'allocator'           : allocator,
-            'simulator_class'     : simulator_class,
             'simulation_style'    : simulation_style,
             'results_socket'      : results_socket,
-            'devel'               : config.get('devel', False)
         })
         #-------------------
 
         zipline.add_source(trade_source)
-
-        # Save us from needless debugging
-        inside_test = 'nose' in inspect.stack()[-1][1]
-        if inside_test and not config.get('devel', False):
-            assert False, """
-            You need to run the SimulatedTrading inside a test with devel=True
-            """
 
         return zipline
 
@@ -366,7 +342,7 @@ class SimulatedTrading(object):
 
     def setup_controller(self):
         """
-        Prepare the controller tro manage the topology specified
+        Prepare the controller to manage the topology specified
         by this line.
         """
         self.con.manage(self.topology)
@@ -377,14 +353,6 @@ class SimulatedTrading(object):
         self.started = True
         self.sim_context = self.sim.simulate()
 
-        # If we're in development mode then flag all the
-        # components in the topology as devel so as to indicate
-        # that they won't poll on the control channels for
-        # anything other than the synchronized start.
-        if self.devel:
-            for component in self.components:
-                component.devel = True
-
         # If we're using a threaded simulator block on the pool
         # of thread since we're only ever in a test and we don't
         # generally monitor the state of the system as a hold at
@@ -392,16 +360,8 @@ class SimulatedTrading(object):
 
         # TODO: better way of identifying concurrency substrate
         if blocking:
-            if self.sim.zmq_flavor == 'thread':
-                log.debug('Blocking')
-                for thread in self.sim.subthreads:
-                    #log.debug('Waiting on %r' % thread)
-                    log.debug('Waiting on %r' % thread)
-                    thread.join()
-                    log.debug('Yielded on %r' % thread)
-            else:
-                for process in self.sim.subprocesses:
-                    process.join()
+            for process in self.sim.subprocesses:
+                process.join()
 
     @property
     def is_success(self):

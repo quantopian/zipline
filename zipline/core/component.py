@@ -14,18 +14,19 @@ from setproctitle import setproctitle
 
 # pyzmq
 import zmq
-# gevent_zeromq
-import gevent_zeromq
-# zmq_ctypes
-#import zmq_ctypes
 
-from zipline.utils.gpoll import _Poller as GeventPoller
+from zipline.core.monitor import PARAMETERS
+
 from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
     COMPONENT_FAILURE, CONTROL_FRAME, CONTROL_UNFRAME
 
 log = logbook.Logger('Component')
 
 from zipline.exceptions import ComponentNoInit
+
+class KillSignal(Exception):
+    def __init__(self):
+        pass
 
 class Component(object):
 
@@ -152,41 +153,13 @@ class Component(object):
     def do_work(self):
         raise NotImplementedError
 
-    def init_zmq(self, flavor):
-        """
-        ZMQ in all flavors. Have it your way.
-
-            mp     - Distinct contexts | pyzmq
-            thread - Same context      | pyzmq
-            green  - Same context      | gevent_zeromq
-            pypy   - Same context      | zmq_ctypes
-
-        """
-
-        if flavor == 'mp':
-            self.zmq = zmq
-            self.context = self.zmq.Context()
-            self.zmq_poller = self.zmq.Poller
-            # The the process title so you can watch it in top
-            setproctitle(self.__class__.__name__)
-            return
-        if flavor == 'thread':
-            self.zmq = zmq
-            self.context = self.zmq.Context.instance()
-            self.zmq_poller = self.zmq.Poller
-            return
-        if flavor == 'green':
-            self.zmq = gevent_zeromq.zmq
-            self.context = self.zmq.Context.instance()
-            self.zmq_poller = GeventPoller
-            return
-        if flavor == 'pypy':
-            self.zmq = zmq
-            self.context = self.zmq.Context.instance()
-            self.zmq_poller = self.zmq.Poller
-            return
-
-        raise Exception("Unknown ZeroMQ Flavor")
+    def init_zmq(self):
+        self.zmq = zmq
+        self.context = self.zmq.Context()
+        self.zmq_poller = self.zmq.Poller
+        # The the process title so you can watch it in top
+        setproctitle(self.__class__.__name__)
+        return
 
     def _run(self):
         """
@@ -204,16 +177,15 @@ class Component(object):
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
-        self.init_zmq(self.zmq_flavor)
+        self.init_zmq()
 
         self.setup_poller()
 
-        self.open()
         self.setup_control()
+        self.open()
 
         self.signal_ready()
         self.lock_ready()
-
         self.wait_ready()
         # -----------------------
         # YOU SHALL NOT PASS!!!!!
@@ -231,14 +203,17 @@ class Component(object):
         try:
             self._run()
         except Exception as exc:
-            exc_info = sys.exc_info()
-            self.signal_exception(exc)
+            if not isinstance(exc, KillSignal):
+                self.signal_exception(exc)
+            else:
+                # if we get a kill signal, forcibly close all the
+                # sockets.
+                # exc_info = sys.exc_info()
+                # self.relay_exception(exc_info[0], exc_info[1], exc_info[2])
+                self.teardown_sockets()
 
-            # Reraise the exception
-            raise exc_info[0], exc_info[1], exc_info[2]
         finally:
             self.shutdown()
-            self.teardown_sockets()
             log.info("Exiting %r" % self)
 
     def working(self):
@@ -314,7 +289,6 @@ class Component(object):
             # controller that we're done.
             elif event == CONTROL_PROTOCOL.SHUTDOWN:
                 self.signal_done()
-                self.shutdown()
 
             # =========
             # Hard Kill
@@ -326,7 +300,9 @@ class Component(object):
 
         # In case we didn't receive a ping, send a pre-emptive
         # pong to the monitor.
-        elif self.last_ping and time.time() - self.last_ping > 1:
+        elif hasattr(self, 'control_out') and \
+                self.last_ping and \
+                time.time() - self.last_ping > 1:
             # send a ping ahead of schedule
             pre_pong = time.time()
             heartbeat_frame = CONTROL_FRAME(
@@ -337,8 +313,13 @@ class Component(object):
             # Echo back the heartbeat identifier to tell the
             # controller that this component is still alive and
             # doing work
-            self.control_out.send(heartbeat_frame)
+            self.control_out.send(heartbeat_frame, self.zmq.NOBLOCK)
             self.last_ping = pre_pong
+        elif self.last_ping and \
+                time.time() - self.last_ping > PARAMETERS.MAX_COMPONENT_WAIT:
+            # monitor is gone without sending the shutdown
+            # signal, do a hard exit.
+            self.kill()
 
     # ----------------------------
     #  Cleanup & Modes of Failure
@@ -349,6 +330,7 @@ class Component(object):
         Close all zmq sockets safely. This is universal, no matter where
         this is running it will need the sockets closed.
         """
+        log.warn("{id} closing all sockets".format(id=self.get_id))
         #close all the sockets
         for sock in self.sockets:
             sock.close()
@@ -360,6 +342,7 @@ class Component(object):
         Tear down after normal operation.
         """
         if self.on_done:
+            log.warn("{id} calling done.".format(id=self.get_id))
             self.on_done()
 
     def kill(self):
@@ -369,7 +352,8 @@ class Component(object):
         Tear down ( fast ) as a mode of failure in the simulation or on
         service halt.
         """
-        raise NotImplementedError
+        # sys.exit(1)
+        raise KillSignal()
 
     # ----------------------
     #  Internal Maintenance
@@ -397,33 +381,67 @@ class Component(object):
         # in the locked quasimode. Respond to HEARTBEAT and GO
         # messages.
 
+        start_wait = time.time()
+
         while self.waiting:
-            #socks = dict(self.poll.poll(self.heartbeat_timeout))
+            socks = dict(self.poll.poll(0))
 
-            msg = self.control_in.recv()
-            event, payload = CONTROL_UNFRAME(msg)
+            assert self.control_in, \
+                    'Component does not have a control_in socket'
 
-            # ====
-            #  Go
-            # ====
+            if socks.get(self.control_in) == zmq.POLLIN:
 
-            # A distributed lock from the controller to ensure
-            # synchronized start.
+                msg = self.control_in.recv()
+                event, payload = CONTROL_UNFRAME(msg)
 
-            if event == CONTROL_PROTOCOL.HEARTBEAT:
-                heartbeat_frame = CONTROL_FRAME(
-                    CONTROL_PROTOCOL.OK,
-                    payload
-                )
-                self.control_out.send(heartbeat_frame)
-                log.info('Prestart Heartbeat ' + self.get_id)
+                # ====
+                #  Go
+                # ====
 
-            elif event == CONTROL_PROTOCOL.GO:
-                # Side effectful call from the controller to unlock
-                # and begin doing work only when the entire topology
-                # of the system beings to come online
-                log.info('Unlocking ' + self.__class__.__name__)
-                self.unlock_ready()
+                # A distributed lock from the controller to ensure
+                # synchronized start.
+
+                if event == CONTROL_PROTOCOL.HEARTBEAT:
+                    heartbeat_frame = CONTROL_FRAME(
+                        CONTROL_PROTOCOL.OK,
+                        payload
+                    )
+                    self.control_out.send(heartbeat_frame)
+                    log.info('Prestart Heartbeat ' + self.get_id)
+
+                elif event == CONTROL_PROTOCOL.GO:
+                    # Side effectful call from the controller to unlock
+                    # and begin doing work only when the entire topology
+                    # of the system beings to come online
+                    log.info('Unlocking ' + self.__class__.__name__)
+                    self.unlock_ready()
+
+                # =========
+                # Soft Kill
+                # =========
+
+                # Try and clean up properly and send out any reports or
+                # data that are done during a clean shutdown. Inform the
+                # controller that we're done.
+                elif event == CONTROL_PROTOCOL.SHUTDOWN:
+                    self.signal_done()
+                    break
+
+                # =========
+                # Hard Kill
+                # =========
+
+                # Just exit.
+                elif event == CONTROL_PROTOCOL.KILL:
+                    self.kill()
+                    break
+
+            elif time.time() - start_wait > PARAMETERS.MAX_COMPONENT_WAIT:
+                log.info('No go signal from monitor, %s exiting' \
+                    % self.__class__.__name__)
+                self.kill()
+                break
+
 
     def signal_ready(self):
         log.info(self.__class__.__name__ + ' is ready')
@@ -452,7 +470,8 @@ class Component(object):
 
     def signal_exception(self, exc=None, scope=None):
         """
-        This is *very* important error tracking handler.
+        All exceptions inside any component should boil back to
+        this handler.
 
         Will inform the system that the component has failed and how it
         has failed.
@@ -472,16 +491,48 @@ class Component(object):
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
         trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        sys.stdout.write(trace)
 
-        if hasattr(self, 'control_out'):
-            exception_frame = CONTROL_FRAME(
-                CONTROL_PROTOCOL.EXCEPTION,
-                trace
-            )
-            self.control_out.send(exception_frame)
+        # if a downstream component fails, this component may try
+        # sending when there are zero connections to the socket,
+        # which will raise ZMQError(EAGAIN). So, it doesn't make
+        # sense to relay this exception to Monitor and the rest
+        # of the zipline.
+        if isinstance(exc, zmq.ZMQError) and exc.errno == zmq.EAGAIN:
+            log.warn("{id} raised a ZMQError(EAGAIN) not relaying"\
+                    .format(id=self.get_id))
+            return
 
-        #LOGGER.exception("Unexpected error in run for {id}.".format(id=self.get_id))
+        # sys.stdout.write(trace)
+        log.exception("Unexpected error in run for {id}.".format(id=self.get_id))
+
+        self.relay_exception(exc_type, exc_value, exc_traceback)
+
+        if hasattr(self, 'control_out') and self.control_out:
+            try:
+                log.info('{id} sending exception to controller'.format(id=self.get_id))
+                exception_frame = CONTROL_FRAME(
+                    CONTROL_PROTOCOL.EXCEPTION,
+                    trace
+                )
+                self.control_out.send(exception_frame, self.zmq.NOBLOCK)
+                # The controller should relay the exception back
+                # to all zipline components. Wait here until the
+                # notice arrives, and we can assume other zipline
+                # components have broken out of their message
+                # loops.
+                for i in xrange(PARAMETERS.MAX_COMPONENT_WAIT):
+                    self.heartbeat(timeout=1000)
+                log.warn("{id} never heard back from monitor."\
+                        .format(id=self.get_id))
+            except:
+                log.exception("Exception waiting for controller reply")
+
+    def relay_exception(self, exc_type, exc_value, exc_traceback):
+        if hasattr(self, 'exception_callback') and self.exception_callback:
+            log.info('{id} making exception callback'.format(id=self.get_id))
+            self.exception_callback(exc_type, exc_value, exc_traceback)
+
+
 
     def signal_done(self):
         """
@@ -489,21 +540,23 @@ class Component(object):
         """
 
         self.state_flag = COMPONENT_STATE.DONE
+        # notify internal work loop that we're done
+        self.done = True # TODO: use state flag
 
-        if self.out_socket:
+        if hasattr(self, 'out_socket') and self.out_socket:
             msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
             self.out_socket.send(msg)
 
 
+        if hasattr(self, 'control_out'):
+            # notify controller we're done
+            done_frame = CONTROL_FRAME(
+                CONTROL_PROTOCOL.DONE,
+                ''
+            )
 
-        # notify controller we're done
-        done_frame = CONTROL_FRAME(
-            CONTROL_PROTOCOL.DONE,
-            ''
-        )
-
-        self.control_out.send(done_frame)
-        log.info("[%s] sent control done" % self.get_id)
+            self.control_out.send(done_frame)
+            log.info("[%s] sent control done" % self.get_id)
 
         # there is a narrow race condition where we finish just
         # after the Monitor accepts our prior heartbeat, but just
@@ -511,8 +564,7 @@ class Component(object):
         # last heartbeat, and wait an unusually long time.
         self.heartbeat(timeout=5000)
 
-        # notify internal work look that we're done
-        self.done = True # TODO: use state flag
+
 
 
     # -----------
@@ -524,9 +576,6 @@ class Component(object):
         Setup the poller used for multiplexing the incoming data
         handling sockets.
         """
-
-        # Initializes the poller class specified by the flavor of
-        # ZeroMQ. Either zmq.Poller or gpoll.Poller .
         self.poll = self.zmq_poller()
 
     def bind_data(self):

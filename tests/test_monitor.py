@@ -1,16 +1,15 @@
-import gevent
-from logbook.compat import LoggingHandler
+from zipline.utils.test_utils import setup_logger, teardown_logger
 from unittest2 import TestCase, skip
 
 from zipline.core.monitor import Controller
 
 class TestMonitor(TestCase):
     def setUp(self):
-        self.log_handler = LoggingHandler()
-        self.log_handler.push_application()
+        setup_logger(self, '/var/log/qexec/qexec.log')
+
 
     def tearDown(self):
-        self.log_handler.pop_application()
+        teardown_logger(self)
 
     def test_init(self):
         pub_socket   = 'tcp://127.0.0.1:5000'
@@ -25,18 +24,3 @@ class TestMonitor(TestCase):
 
         con = Controller(pub_socket, route_socket, )
         con.manage([ 'a', 'b', 'c', 'd' ])
-
-    @skip
-    def test_poll(self):
-        from mock_zmq import zmq_synthetic
-        pub_socket   = 'tcp://127.0.0.1:5000'
-        route_socket = 'tcp://127.0.0.1:5001'
-        cancel_socket = 'tcp://127.0.0.1:5002'
-
-        con = Controller(pub_socket, route_socket, cancel_socket)
-        con.manage([ 'a', 'b', 'c', 'd' ])
-        con.zmq = zmq_synthetic
-        con.zmq_flavor = 'green'
-
-        con.period = 0.00001
-        gevent.spawn(con.run).join(timeout=con.period)
