@@ -45,47 +45,71 @@ def fuzzy_dates(count = 500):
     for date in date_gen(count = count):
         yield date + timedelta(seconds = random.randint(-10, 10)) 
 
-def SpecificEquityTrades(count = 500, 
-                         sids = [1, 2],
-                         start = datetime(2012, 6, 6, 0),
-                         delta = timedelta(minutes = 1),
-                         event_list = None, 
-                         filter = None):
+def SpecificEquityTrades(*args, **config):
     """
     Yields all events in event_list that match the given sid_filter.
     If no event_list is specified, generates an internal stream of events
     to filter.  Returns all events if filter is None.
     """
-    arg_string = hash_args(count, sids, start, delta, filter)
-    namestring = "SpecificEquityTrades" + arg_string
+    # We shouldn't get any positional arguments.
+    assert args == ()
 
+    # Unpack config dictionary with default values.
+    count = config.get('count', 500)
+    sids = config.get('sids', [1, 2])
+    start = config.get('start', datetime(2012, 6, 6, 0))
+    delta = config.get('delta', timedelta(minutes = 1))
+
+    # Default to None for event_list and filter.
+    event_list = config.get('event_list') 
+    filter = config.get('filter')
+
+    arg_string = hash_args(*args, **config)
+    namestring = "SpecificEquityTrades" + arg_string
+    # If we have an event_list, ignore the other arguments and use the list.
+    # TODO: still append our namestring?
     if event_list:
         unfiltered = (event for event in event_list)
-    
+
+    # Set up iterators for each expected field.
     else:
         dates = date_gen(count = count, start = start, delta = delta)
         prices = mock_prices(count)
         volumes = mock_volumes(count)
-        sids = cycle(iter(sids))
-        
+        sids = cycle(sids)
+
+        # Combine the iterators into a single iterator of arguments
         arg_gen = izip(sids, prices, volumes, dates)
-        
+
+        # Convert argument packages into events.
         unfiltered = (create_trade(*args, source_id = namestring)
                       for args in arg_gen)
+
+    # If we specified a sid filter, filter out elements that don't match the filter.
     if filter:
         filtered = ifilter(lambda event: event.sid in filter, unfiltered)
+
+    # Otherwise just use all events.
     else:
         filtered = unfiltered
 
-    # Add a done message to the end of the stream.
-    out = chain(filtered, iter([mock_done(namestring)]))
-    return out    
+    # Add a done message to the end of the stream. For a live
+    # datasource this would be handled by the containing Component.
+    out = chain(filtered, [mock_done(namestring)])
+    return out
 
-def RandomEquityTrades(count = 500, sids = [1,2], filter = None):
-    dates = fuzzy_dates(500)
-    prices = mock_prices(500, rand = True)
-    volumes = mock_volumes(500, rand = True)
-    sids = cycle(iter(sids))
+def RandomEquityTrades(*args, **config):
+    # We shouldn't get any positional args.
+    assert args == ()
+    
+    count = config.get('count', 500)
+    sids = config.get('sids', [1,2])
+    filter = config.get('filter')
+
+    dates = fuzzy_dates(count)
+    prices = mock_prices(count, rand = True)
+    volumes = mock_volumes(count, rand = True)
+    sids = cycle(sids)
 
     arg_gen = izip(sids, prices, volumes, dates)
     

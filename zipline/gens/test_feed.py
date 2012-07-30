@@ -155,38 +155,61 @@ class FeedGenTestCase(TestCase):
         self.run_FeedGen(sequential, expected, source_ids)
 
     def test_full_feed_layer(self):
+        
         filter = [1,2]
-        #Set up source a.
+        #Set up source a. One hour between events.
         args_a = tuple()
         kwargs_a = {'sids'   : [1,2,3,4],
                     'start'  : datetime(2012,6,6,0),
-                    'delta'  : timedelta(minutes = 1),
+                    'delta'  : timedelta(hours = 1),
                     'filter' : filter
         }
-        #Set up source b.        
+        #Set up source b. One day between events.       
         args_b = tuple()
-        kwargs_b = {'sids'   : [1,2,3,5],
+        kwargs_b = {'sids'   : [1,2,3,4],
                     'start'  : datetime(2012,6,6,0),
-                    'delta'  : timedelta(minutes = 1),
+                    'delta'  : timedelta(days = 1),
                     'filter' : filter
         }
-        #Set up source c.
+        #Set up source c. One minute between events.
         args_c = tuple()
-        kwargs_c = {'sids'   : [1,2,3,5],
+        kwargs_c = {'sids'   : [1,2,3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
+        # Set up source d. This should produce no events because the
+        # internal sids don't match the filter.
+        args_d = tuple()
+        kwargs_d = {'sids'   : [3,4],
                     'start'  : datetime(2012,6,6,0),
                     'delta'  : timedelta(minutes = 1),
                     'filter' : filter
         }
         
-        sources = tuple(SpecificEquityTrades) * 3
-        source_args = (args_a, args_b, args_c)
-        source_kwargs = (kwargs_a, kwargs_b, kwargs_c)
+        sources = (SpecificEquityTrades,) * 4
+        source_args = (args_a, args_b, args_c, args_d)
+        source_kwargs = (kwargs_a, kwargs_b, kwargs_c, kwargs_d)
         
+        # Generate our expected source_ids.
+        zip_args = zip(source_args, source_kwargs)
+        expected_ids = ["SpecificEquityTrades" + hash_args(*args, **kwargs)
+                        for args, kwargs in zip_args]
+        
+        # Pipe our sources into feed.
         feed_out = PreTransformLayer(sources, source_args, source_kwargs)
+        
+        # Read all the values from feed and assert that they arrive in
+        # the correct sorting with the expected hash values.
         to_list = list(feed_out)
         copy = to_list[:]
+        for e in to_list:
+            # All events should match one of our expected source_ids.
+            assert e.source_id in expected_ids
+            # But none of them should match source_d.
+            assert e.source_id != hash_args(*args_d, **kwargs_d)
+
         expected = sorted(copy, compare_by_dt_source_id)
-        
         assert to_list == expected
     
 def mock_data_unframe(source_id, dt, type):

@@ -96,3 +96,8 @@ def assert_transform_protocol(event):
     """Transforms should return an ndict to be merged by MergeGen."""
     assert isinstance(event, ndict)
 
+def assert_merge_protocol(tnfm_ids, message):
+    """Merge should output an ndict with a field for each id in its transform set."""
+    assert isinstance(message, ndict)
+    assert set(tnfm_ids) == set(message.keys())
+

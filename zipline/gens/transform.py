@@ -20,21 +20,18 @@ from zipline.gens.utils import assert_feed_unframe_protocol, \
 
 import zipline.protocol as zp
 
-def PassthroughTransformGen(stream_in):
-    """Trivial transform for event forwarding."""
+class Passthrough(object):
+    """
+    Trivial function for forwarding events.
+    """
+    def __init__(self):
+        pass
 
-    # hash_args with no arguments is the same as:
-    # hasher = hashlib.md5() 
-    # hasher.update(":"); 
-    # hashlib.md5.digest().
-
-    namestring = "Passthrough" + hash_args()
-
-    for message in stream_in:
-        assert_feed_unframe_protocol(message)
-        out_value = message
-        assert_transform_protocol(out_value)
-        yield (namestring, out_value)
+    def update(self, event):        
+        assert isinstance(event, ndict),"Bad event in Passthrough: %s" % event
+        assert event.has_key('sid'), "No sid in Passthrough: %s" % event
+        assert event.has_key('dt'), "No dt in Passthorughz: %s" % event
+        return event
 
 def FunctionalTransformGen(stream_in, fun, *args, **kwargs):
     """
@@ -75,16 +72,6 @@ def StatefulTransformGen(stream_in, tnfm_class, *args, **kwargs):
         assert_transform_protocol(out_value)
         yield (namestring, out_value)
 
-def MovingAverageTransformGen(stream_in, days, fields):
-    """
-    Generator that uses the MovingAverage state class to calculate
-    a moving average for all stocks over a specified number of days.
-    """
-    return StatefulTransformGen(stream_in, 
-                                MovingAverage, 
-                                timedelta(days=days), 
-                                fields)
-
 class MovingAverage(object):
     """
     Class that maintains a dictionary from sids to EventWindows
@@ -112,8 +99,9 @@ class MovingAverage(object):
         
         assert isinstance(event, ndict),"Bad event in MovingAverage: %s" % event
         assert event.has_key('sid'), "No sid in MovingAverage: %s" % event
+        assert event.has_key('dt'), "No dt in MovingAverage: %s" % event
         
-        output = ndict({'sid': event.sid})
+        output = ndict({'sid': event.sid, 'dt': event.dt})
         # This will create a new EventWindow if this is the first
         # message for this sid.
         window = self.sid_windows[event.sid]
