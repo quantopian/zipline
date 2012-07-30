@@ -520,9 +520,9 @@ class Component(object):
                 # notice arrives, and we can assume other zipline
                 # components have broken out of their message
                 # loops.
-                for i in xrange(100):
+                for i in xrange(PARAMETERS.MAX_COMPONENT_WAIT):
                     self.heartbeat(timeout=1000)
-                log.warn("{id} Never heard back from monitor."\
+                log.warn("{id} never heard back from monitor."\
                         .format(id=self.get_id))
             except:
                 log.exception("Exception waiting for controller reply")

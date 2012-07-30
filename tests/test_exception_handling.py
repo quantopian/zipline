@@ -3,7 +3,7 @@ import zmq
 from unittest2 import TestCase
 from collections import defaultdict
 
-from zipline.test_algorithms import ExceptionAlgorithm, NoopAlgorithm
+from zipline.test_algorithms import ExceptionAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
 from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading

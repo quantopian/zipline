@@ -65,18 +65,36 @@ def drain_zipline(test, zipline):
     assert isinstance(test.zipline_test_config, dict)
     assert test.zipline_test_config['results_socket'], \
             "need to specify a socket address for logs/perf/risk"
-    test.receiver = test.ctx.socket(zmq.PULL)
-    test.receiver.bind(test.zipline_test_config['results_socket'])
+    test.receiver = create_receiver(
+        test.zipline_test_config['results_socket'],
+        test.ctx
+    )
     # Bind and connect are asynch, so allow time for bind before
     # starting the zipline (TSC connects internally).
     time.sleep(1)
+
     # start the simulation
     zipline.simulate(blocking=False)
+    output, transaction_count = drain_receiver(test.receiver)
+    # some processes will exit after the message stream is
+    # finished. We block here to avoid collisions with subsequent
+    # ziplines.
+    for process in zipline.sim.subprocesses:
+        process.join()
 
+    return output, transaction_count
+
+def create_receiver(socket_addr, ctx):
+    receiver = ctx.socket(zmq.PULL)
+    receiver.bind(socket_addr)
+
+    return receiver
+
+def drain_receiver(receiver):
     output = []
     transaction_count  = 0
     while True:
-        msg = test.receiver.recv()
+        msg = receiver.recv()
         if msg == str(zp.CONTROL_PROTOCOL.DONE):
             break
         else:
@@ -88,14 +106,8 @@ def drain_zipline(test, zipline):
             elif update['prefix'] == 'EXCEPTION':
                 break
 
-    test.receiver.close()
-    del test.receiver
-
-    # some processes will exit after the message stream is
-    # finished. We block here to avoid collisions with subsequent
-    # ziplines.
-    for process in zipline.sim.subprocesses:
-        process.join()
+    receiver.close()
+    del receiver
 
     return output, transaction_count
 
