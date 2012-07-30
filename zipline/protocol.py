@@ -119,6 +119,8 @@ import numbers
 import datetime
 import pytz
 import traceback
+import re
+import os
 
 from collections import namedtuple
 
@@ -524,8 +526,9 @@ def EXCEPTION_FRAME(exception_tb):
     stack_list = traceback.extract_tb(exception_tb)
     rlist = []
     for stack in stack_list:
+        filename = shorten_filename(stack[0])
         rstack = {
-            'filename'  : stack[0],
+            'filename'  : filename,
             'lineno'    : stack[1],
             'method'    : stack[2],
             'line'      : stack[3]
@@ -537,6 +540,23 @@ def EXCEPTION_FRAME(exception_tb):
     }
 
     return BT_UPDATE_FRAME('EXCEPTION', result)
+
+def shorten_filename(filename):
+    if filename == None:
+        return None
+
+    # check if the path contains zipeline_repo
+    path_re = r'(?<=zipline_repo).*'
+    match = re.search(path_re, filename)
+
+    if match:
+        return match.group(0)
+        parts = filename.split('zipline_repo')
+        return parts[1]
+    else:
+        # return just the filename.
+        head, tail = os.path.split(filename)
+        return tail
 
 def CANCEL_FRAME(date):
     result = {
