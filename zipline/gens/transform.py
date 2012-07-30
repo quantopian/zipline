@@ -1,64 +1,56 @@
 """
 Generator versions of transforms.
 """
-import random
-import pytz
-import logbook
-import pymongo
 import types
 
-from pymongo import ASCENDING
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import deque, defaultdict
 from numbers import Number
-from itertools import izip
 
 from zipline import ndict
-from zipline.gens.tradegens import date_gen
-from zipline.gens.utils import assert_feed_unframe_protocol, \
+from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
-
-import zipline.protocol as zp
 
 class Passthrough(object):
     """
-    Trivial function for forwarding events.
+    Trivial class for forwarding events.
     """
     def __init__(self):
         pass
 
-    def update(self, event):        
+    def update(self, event):
         assert isinstance(event, ndict),"Bad event in Passthrough: %s" % event
         assert event.has_key('sid'), "No sid in Passthrough: %s" % event
         assert event.has_key('dt'), "No dt in Passthorughz: %s" % event
         return event
 
-def FunctionalTransformGen(stream_in, fun, *args, **kwargs):
+def functional_transform(stream_in, func, *args, **kwargs):
     """
     Generic transform generator that takes each message from an in-stream
     and yields the output of a function on that message. Not sure how
     useful this will be in reality, but good for testing.
     """
-    
-    # TODO: Distinguish between functions and classes in hash_args.
-    # As implemented we will get assertion errors if a function and
-    # stateful class have the same name, which may or may not be
-    # what we want.
+    assert isinstance(func, types.FunctionType), \
+        "Functional"
+    namestring = func.__name__ + hash_args(*args, **kwargs)
 
-    namestring = fun.__name__ + hash_args(*args, **kwargs)
-    
     for message in stream_in:
-        assert_feed_unframe_protocol(message)
-        out_value = fun(message, *args, **kwargs)
+        assert_sort_unframe_protocol(message)
+        out_value = func(message, *args, **kwargs)
         assert_transform_protocol(out_value)
         yield(namestring, out_value)
-    
-def StatefulTransformGen(stream_in, tnfm_class, *args, **kwargs):
+
+def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
     """
     Generic transform generator that takes each message from an in-stream
-    and feeds it to a state class.  For each call to update, the state
+    and sorts it to a state class.  For each call to update, the state
     class must produce a message to be fed downstream.
-    """    
+    """
+    
+    assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
+        "Stateful transform requires a class."
+    assert tnfm_class.__dict__.has_key('update'), \
+        "Stateful transform requires the class to have an update method"
 
     # Create an instance of our transform class.
     state = tnfm_class(*args, **kwargs)
@@ -67,7 +59,7 @@ def StatefulTransformGen(stream_in, tnfm_class, *args, **kwargs):
     namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
 
     for message in stream_in:
-        assert_feed_unframe_protocol(message)
+        assert_sort_unframe_protocol(message)
         out_value = state.update(message)
         assert_transform_protocol(out_value)
         yield (namestring, out_value)
@@ -78,7 +70,7 @@ class MovingAverage(object):
     Upon receipt of each message we update the
     corresponding window and return the calculated average.
     """
-    
+
     def __init__(self, delta, fields):
         self.delta = delta
         self.fields = fields
@@ -86,38 +78,38 @@ class MovingAverage(object):
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
-        
+
     def create_window(self):
         """Factory method for self.sid_windows."""
         return EventWindow(self.delta, self.fields)
-    
+
     def update(self, event):
         """
         Update the event window for this event's sid.  Return an ndict from
         tracked fields to averages.
         """
-        
+
         assert isinstance(event, ndict),"Bad event in MovingAverage: %s" % event
         assert event.has_key('sid'), "No sid in MovingAverage: %s" % event
         assert event.has_key('dt'), "No dt in MovingAverage: %s" % event
-        
+
         output = ndict({'sid': event.sid, 'dt': event.dt})
         # This will create a new EventWindow if this is the first
         # message for this sid.
         window = self.sid_windows[event.sid]
         window.update(event)
         averages =  window.get_averages()
-        
+
         # Return the calculated averages along with
         output.merge(averages)
         return output
-    
+
 class EventWindow(object):
     """
     Maintains a list of events that are within a certain timedelta
     of the most recent tick.  The expected use of this class is to
     track events associated with a single sid. We provide simple
-    functionality for averages, but anything more complicated 
+    functionality for averages, but anything more complicated
     should be handled by a containing class.
     """
 
@@ -126,17 +118,17 @@ class EventWindow(object):
         self.delta  = delta
         self.fields = fields
         self.totals = defaultdict(float)
-        
+
     def __len__(self):
         return len(self.ticks)
-        
+
     def update(self, event):
         self.assert_well_formed(event)
         # Add new event and increment totals.
         self.ticks.append(event)
         for field in self.fields:
             self.totals[field] += event[field]
-        
+
         # We return a list of all out-of-range events we removed.
         out_of_range = []
 
@@ -144,7 +136,7 @@ class EventWindow(object):
         #           newest               oldest
         #             |                    |
         #             V                    V
-                
+
         while (self.ticks[-1].dt - self.ticks[0].dt) >= self.delta:
             # popleft removes and returns ticks[0]
             popped = self.ticks.popleft()
@@ -155,7 +147,7 @@ class EventWindow(object):
             out_of_range.append(popped)
 
         return out_of_range
-            
+
     def average(self, field):
         assert field in self.fields
         if len(self.ticks) == 0:
@@ -183,30 +175,6 @@ class EventWindow(object):
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
         for field in self.fields:
             assert event.has_key(field), \
-                "Event missing [%s] in EventWindow" % field 
+                "Event missing [%s] in EventWindow" % field
             assert isinstance(event[field], Number), \
                 "Got %s for %s in EventWindow" % (event[field], field)
-
-# if __name__ == "__main__":
-
-#     def make_event(**kwargs):
-#         e = ndict()
-#         for key, value in kwargs.iteritems():
-#             e[key] = value
-#         return e
-    
-#     dates = date_gen(delta = timedelta(hours = 12))
-#     events = ( 
-#         make_event(
-#             sid = 'foo', price = random.random(), 
-#             dt = date, 
-#             type = zp.DATASOURCE_TYPE.TRADE, 
-#             source_id = 'ds',
-#             vol = i
-#         )
-#         for date, i in izip(dates, xrange(100))
-#     )
-
-#     gen = MovingAverageTransformGen(events, 1, ['price', 'vol'])
-    
-

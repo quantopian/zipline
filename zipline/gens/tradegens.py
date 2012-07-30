@@ -1,12 +1,16 @@
+"""
+Tools to generate trade events without a backing store. Useful for testing
+and zipline development
+"""
 import random
-from itertools import chain, repeat, cycle, ifilter, izip
+from itertools import chain, cycle, ifilter, izip
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trade
 from zipline.gens.utils import hash_args, mock_done
 
 def date_gen(start = datetime(2012, 6, 6, 0),
-             delta = timedelta(minutes = 1), 
+             delta = timedelta(minutes = 1),
              count = 100):
     """
     Utility to generate a stream of dates.
@@ -29,13 +33,13 @@ def mock_volumes(count, rand = False):
     """
     Utility to generate a set of volumes. By default cycles
     through values from 100 to 1000, incrementing by 50.  Optional
-    flag to give random values between 100 and 1000. 
+    flag to give random values between 100 and 1000.
     """
     if rand:
         return (random.randrange(100, 1000) for i in xrange(count))
     else:
         return ((i * 50)%900 + 100 for i in xrange(count))
-    
+
 def fuzzy_dates(count = 500):
     """
     Add +-10 seconds to each event from a date_gen.  Note that this
@@ -43,7 +47,7 @@ def fuzzy_dates(count = 500):
     separation of events.
     """
     for date in date_gen(count = count):
-        yield date + timedelta(seconds = random.randint(-10, 10)) 
+        yield date + timedelta(seconds = random.randint(-10, 10))
 
 def SpecificEquityTrades(*args, **config):
     """
@@ -61,7 +65,7 @@ def SpecificEquityTrades(*args, **config):
     delta = config.get('delta', timedelta(minutes = 1))
 
     # Default to None for event_list and filter.
-    event_list = config.get('event_list') 
+    event_list = config.get('event_list')
     filter = config.get('filter')
 
     arg_string = hash_args(*args, **config)
@@ -101,7 +105,7 @@ def SpecificEquityTrades(*args, **config):
 def RandomEquityTrades(*args, **config):
     # We shouldn't get any positional args.
     assert args == ()
-    
+
     count = config.get('count', 500)
     sids = config.get('sids', [1,2])
     filter = config.get('filter')
@@ -112,9 +116,9 @@ def RandomEquityTrades(*args, **config):
     sids = cycle(sids)
 
     arg_gen = izip(sids, prices, volumes, dates)
-    
+
     unfiltered = (create_trade(*args) for args in arg_gen)
-    
+
     if filter:
         filtered = ifilter(lambda event: event.sid in filter, unfiltered)
     else:

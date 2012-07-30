@@ -11,16 +11,16 @@ from datetime import datetime, timedelta
 from collections import deque
 
 from zipline import ndict
-from zipline.gens.feed import FeedGen, full, done, queue_is_full,queue_is_done,\
+from zipline.gens.sort import date_sort, ready, done, queue_is_ready,queue_is_done,\
     pop_oldest
 from zipline.gens.utils import hash_args, assert_datasource_protocol,\
     assert_trade_protocol, alternate
 from zipline.gens.tradegens import date_gen, SpecificEquityTrades
-from zipline.gens.composites import PreTransformLayer
+from zipline.gens.composites import date_sorted_sources
 
 import zipline.protocol as zp
 
-class FeedHelperTestCase(TestCase):
+class HelperTestCase(TestCase):
     
     def setUp(self):
         pass
@@ -30,23 +30,23 @@ class FeedHelperTestCase(TestCase):
 
     def test_individual_queue_logic(self):
         queue = deque()
-        # Empty queues are neither done nor full.
-        assert not queue_is_full(queue)
+        # Empty queues are neither done nor ready.
+        assert not queue_is_ready(queue)
         assert not queue_is_done(queue)
         
         queue.append(to_dt('foo'))
-        assert queue_is_full(queue)
+        assert queue_is_ready(queue)
         assert not queue_is_done(queue)
 
         
         queue.appendleft(to_dt('DONE'))
-        assert queue_is_full(queue)
+        assert queue_is_ready(queue)
 
         # Checking done when we have a message after done will trip an assert.
         self.assertRaises(AssertionError, queue_is_done, queue)
 
         queue.pop()
-        assert queue_is_full(queue)
+        assert queue_is_ready(queue)
         assert queue_is_done(queue)
         
     def test_pop_logic(self):
@@ -55,35 +55,35 @@ class FeedHelperTestCase(TestCase):
         for id in ids:
             sources[id] = deque()
         
-        assert not full(sources)
+        assert not ready(sources)
         assert not done(sources)
 
-        # All sources must have a message to be full/done
+        # All sources must have a message to be ready/done
         sources['a'].append(to_dt("datetime"))
-        assert not full(sources)
+        assert not ready(sources)
         assert not done(sources)
         sources['a'].pop()
 
         for id in ids:
             sources[id].append(to_dt("datetime"))
         
-        assert full(sources)
+        assert ready(sources)
         assert not done(sources)
 
         for id in ids:
             sources[id].appendleft(to_dt("DONE"))
             
         # ["DONE", message] will trip an assert in queue_is_done.
-        assert full(sources)
+        assert ready(sources)
         self.assertRaises(AssertionError, done, sources)
 
         for id in ids:
             sources[id].pop()
 
-        assert full(sources)
+        assert ready(sources)
         assert done(sources)
             
-class FeedGenTestCase(TestCase):
+class DateSortTestCase(TestCase):
     
     def setUp(self):
         pass
@@ -91,13 +91,13 @@ class FeedGenTestCase(TestCase):
     def tearDown(self):
         pass
 
-    def run_FeedGen(self, events, expected, source_ids):
+    def run_date_sort(self, events, expected, source_ids):
         """
         Take a list of events, their source_ids, and an expected sorting.
-        Assert that FeedGen's output agrees with expected.
+        Assert that date_sort's output agrees with expected.
         """
-        feed_gen = FeedGen(events, source_ids)
-        l = list(feed_gen)
+        sort_gen = date_sort(events, source_ids)
+        l = list(sort_gen)
         assert l == expected
         
     def test_single_source(self):
@@ -118,7 +118,7 @@ class FeedGenTestCase(TestCase):
 
         event_gen = (e for e in events)
         
-        self.run_FeedGen(event_gen, expected, source_ids)
+        self.run_date_sort(event_gen, expected, source_ids)
     
     def test_multi_source(self):
         source_ids = ['a', 'b']
@@ -147,14 +147,14 @@ class FeedGenTestCase(TestCase):
 
         # Alternating between a and b.
         interleaved = alternate(iter(events_a), iter(events_b))
-        self.run_FeedGen(interleaved, expected, source_ids)
+        self.run_date_sort(interleaved, expected, source_ids)
 
         # All of a, then all of b.
 
         sequential = chain(iter(events_a), iter(events_b))
-        self.run_FeedGen(sequential, expected, source_ids)
+        self.run_date_sort(sequential, expected, source_ids)
 
-    def test_full_feed_layer(self):
+    def test_sorted_sources(self):
         
         filter = [1,2]
         #Set up source a. One hour between events.
@@ -196,12 +196,12 @@ class FeedGenTestCase(TestCase):
         expected_ids = ["SpecificEquityTrades" + hash_args(*args, **kwargs)
                         for args, kwargs in zip_args]
         
-        # Pipe our sources into feed.
-        feed_out = PreTransformLayer(sources, source_args, source_kwargs)
+        # Pipe our sources into sort.
+        sort_out = date_sorted_sources(sources, source_args, source_kwargs)
         
-        # Read all the values from feed and assert that they arrive in
+        # Read all the values from sort and assert that they arrive in
         # the correct sorting with the expected hash values.
-        to_list = list(feed_out)
+        to_list = list(sort_out)
         copy = to_list[:]
         for e in to_list:
             # All events should match one of our expected source_ids.
