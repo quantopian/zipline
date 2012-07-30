@@ -5,6 +5,7 @@ import sys
 import time
 import itertools
 import logbook
+import psutil
 from setproctitle import setproctitle
 from signal import SIGHUP, SIGINT, SIGKILL, signal
 
@@ -69,7 +70,7 @@ class Controller(object):
     debug = True
     period = PARAMETERS.GENERATIONAL_PERIOD
 
-    def __init__(self, pub_socket, route_socket):
+    def __init__(self, pub_socket, route_socket, send_sighup=False):
 
         self.nosignals  = False
         self.context    = None
@@ -97,10 +98,9 @@ class Controller(object):
 
         self.missed_beats = Counter()
 
-        # if we are inside a test, we want to skip signalling
-        # back to the parent process.
-        self.inside_test = 'nose' in inspect.stack()[-1][1]
-
+        self.send_sighup = send_sighup
+        if self.send_sighup:
+            log.info("Request to send sighup")
 
 
     def init_zmq(self):
@@ -357,8 +357,8 @@ class Controller(object):
         we're good. The topology exited cleanly and we can prove
         it.
         """
-        if self.inside_test:
-            log.warning("Skipping SIGHUP because we're in a nosetest")
+        if not self.send_sighup:
+            log.warning("Skipping SIGHUP")
             return
         ppid = os.getppid()
         log.warning("Sending SIGHUP")

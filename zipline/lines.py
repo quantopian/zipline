@@ -114,6 +114,7 @@ class SimulatedTrading(object):
         self.allocator = config['allocator']
         self.trading_environment = config['trading_environment']
         self.sim_style = config.get('simulation_style')
+        self.send_sighup = config.get('send_sighup', False)
 
 
         self.leased_sockets = []
@@ -133,6 +134,7 @@ class SimulatedTrading(object):
         self.con = Controller(
             sockets[5],
             sockets[6],
+            self.send_sighup
         )
 
         self.started = False
