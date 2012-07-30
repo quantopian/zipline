@@ -545,8 +545,12 @@ def shorten_filename(filename):
     if filename == None:
         return None
 
-    # check if the path contains zipeline_repo
-    path_re = r'(?<=zipline/).*'
+    # check if the path contains zipeline
+    # looks for a zipline directory in the middle of the path
+    # this will work on
+    # /zipline/workspace/zipline/core/component.py, but fail for
+    # /home/fawce/projects/zipline/zipline/core/component.py
+    path_re = r'(?<=./zipline/).*'
     match = re.search(path_re, filename)
 
     if match:
