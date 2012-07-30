@@ -16,3 +16,5 @@ setproctitle==1.1.6
 
 # Logging
 Logbook==0.3
+
+blist==1.3.4
