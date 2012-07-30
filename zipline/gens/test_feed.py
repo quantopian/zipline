@@ -13,8 +13,10 @@ from collections import deque
 from zipline import ndict
 from zipline.gens.feed import FeedGen, full, done, queue_is_full,queue_is_done,\
     pop_oldest
-from zipline.gens.utils import stringify_args, assert_datasource_protocol,\
-    assert_trade_protocol, date_gen, alternate
+from zipline.gens.utils import hash_args, assert_datasource_protocol,\
+    assert_trade_protocol, alternate
+from zipline.gens.tradegens import date_gen, SpecificEquityTrades
+from zipline.gens.composites import PreTransformLayer
 
 import zipline.protocol as zp
 
@@ -98,12 +100,11 @@ class FeedGenTestCase(TestCase):
         l = list(feed_gen)
         assert l == expected
         
-
     def test_single_source(self):
         source_ids = ['a']
         # 100 events, increasing by a minute at a time.
         type = zp.DATASOURCE_TYPE.TRADE
-        dates = list(date_gen(n = 1))
+        dates = list(date_gen(count = 100))
         dates.append("DONE")
         
         # [('a', date1, type), ('a', date2, type), ... ('a', "DONE", type)]
@@ -125,7 +126,7 @@ class FeedGenTestCase(TestCase):
 
         # Set up source 'a'. Outputs 20 events with 2 minute deltas.
         delta_a = timedelta(minutes = 2)
-        dates_a = list(date_gen(delta = delta_a, n = 20))
+        dates_a = list(date_gen(delta = delta_a, count = 20))
         dates_a.append("DONE")
 
         events_a_args = zip(cycle(['a']), iter(dates_a), cycle([type]))
@@ -133,7 +134,7 @@ class FeedGenTestCase(TestCase):
         
         # Set up source 'b'. Outputs 10 events with 1 minute deltas.
         delta_b = timedelta(minutes = 1)
-        dates_b = list(date_gen(delta = delta_b, n = 10))
+        dates_b = list(date_gen(delta = delta_b, count = 10))
         dates_b.append("DONE")
 
         events_b_args = zip(cycle(['b']), iter(dates_b), cycle([type]))
@@ -152,13 +153,65 @@ class FeedGenTestCase(TestCase):
 
         sequential = chain(iter(events_a), iter(events_b))
         self.run_FeedGen(sequential, expected, source_ids)
+
+    def test_full_feed_layer(self):
+        
+        filter = [1,2]
+        #Set up source a. One hour between events.
+        args_a = tuple()
+        kwargs_a = {'sids'   : [1,2,3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(hours = 1),
+                    'filter' : filter
+        }
+        #Set up source b. One day between events.       
+        args_b = tuple()
+        kwargs_b = {'sids'   : [1,2,3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(days = 1),
+                    'filter' : filter
+        }
+        #Set up source c. One minute between events.
+        args_c = tuple()
+        kwargs_c = {'sids'   : [1,2,3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
+        # Set up source d. This should produce no events because the
+        # internal sids don't match the filter.
+        args_d = tuple()
+        kwargs_d = {'sids'   : [3,4],
+                    'start'  : datetime(2012,6,6,0),
+                    'delta'  : timedelta(minutes = 1),
+                    'filter' : filter
+        }
+        
+        sources = (SpecificEquityTrades,) * 4
+        source_args = (args_a, args_b, args_c, args_d)
+        source_kwargs = (kwargs_a, kwargs_b, kwargs_c, kwargs_d)
+        
+        # Generate our expected source_ids.
+        zip_args = zip(source_args, source_kwargs)
+        expected_ids = ["SpecificEquityTrades" + hash_args(*args, **kwargs)
+                        for args, kwargs in zip_args]
+        
+        # Pipe our sources into feed.
+        feed_out = PreTransformLayer(sources, source_args, source_kwargs)
+        
+        # Read all the values from feed and assert that they arrive in
+        # the correct sorting with the expected hash values.
+        to_list = list(feed_out)
+        copy = to_list[:]
+        for e in to_list:
+            # All events should match one of our expected source_ids.
+            assert e.source_id in expected_ids
+            # But none of them should match source_d.
+            assert e.source_id != hash_args(*args_d, **kwargs_d)
+
+        expected = sorted(copy, compare_by_dt_source_id)
+        assert to_list == expected
     
-        def test_with_specific_equity(self):
-            
-            
-        
-        
-        
 def mock_data_unframe(source_id, dt, type):
     event = ndict()
     event.source_id = source_id
@@ -182,7 +235,3 @@ def compare_by_dt_source_id(x,y):
     
     else:
         return 0
-        
-        
-        
-        

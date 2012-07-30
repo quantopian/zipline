@@ -10,7 +10,7 @@ from itertools import izip, izip_longest
 from datetime import datetime, timedelta
 
 from zipline.gens.mongods import create_pymongo_iterator, MongoTradeHistoryGen
-from zipline.gens.utils import stringify_args, assert_datasource_protocol,\
+from zipline.gens.utils import hash_args, assert_datasource_protocol,\
     assert_trade_protocol, mock_raw_event
 
 import zipline.protocol as zp
@@ -107,7 +107,7 @@ class TestMongoDataGenerator(TestCase):
                 for field in iter(['sid', 'dt', 'price', 'volume']):
                     assert db[field] == expected[field]
                 
-                # Expected output of stringify_args:
+                # Expected output of hash_args:
                 assert db['source_id'] == \
                     'MongoTradeHistoryGen983a27fd0710414239a5cde71ef5a8fc'
                 

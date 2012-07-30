@@ -69,9 +69,9 @@ def create_trading_environment(year=2006):
 
     return trading_environment
 
-def create_trade(sid, price, amount, datetime):
+def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
     row = zp.ndict({
-        'source_id' : "test_factory",
+        'source_id' : source_id,
         'type'      : zp.DATASOURCE_TYPE.TRADE,
         'sid'       : sid,
         'dt'        : datetime,

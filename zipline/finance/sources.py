@@ -83,7 +83,7 @@ class RandomEquityTrades(TradeDataSource):
 
 class SpecificEquityTrades(TradeDataSource):
     """
-    Generates a random stream of trades for testing.
+    Generates a non-random stream of trades for testing.
     """
 
     def init(self, event_list):

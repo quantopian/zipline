@@ -13,7 +13,8 @@ from collections import deque, defaultdict
 
 from zipline import ndict
 from zipline.gens.utils import hash_args, assert_datasource_protocol, \
-    assert_trade_protocol, assert_datasource_unframe_protocol
+    assert_trade_protocol, assert_datasource_unframe_protocol, \
+    assert_feed_protocol
 
 import zipline.protocol as zp
 
@@ -38,7 +39,7 @@ def FeedGen(stream_in, source_ids):
         # Incoming messages should be the output of DATASOURCE_UNFRAME.
         assert_datasource_unframe_protocol(message), \
             "Bad message in FeedGen: %s" % message
-
+        
         # Only allow messages from sources we expect.
         assert message.source_id in sources, "Unexpected source: %s" % message
 
@@ -49,9 +50,9 @@ def FeedGen(stream_in, source_ids):
 
         while full(sources) and not done(sources):
             message = pop_oldest(sources)
-            assert feed_protocol(message)
+            assert_feed_protocol(message)
             yield message
-
+    
     # We should have only a done message left in each queue.    
     for queue in sources.itervalues():
         assert len(queue) == 1, "Bad queue in FeedGen on exit: %s" % queue
@@ -60,8 +61,9 @@ def FeedGen(stream_in, source_ids):
 
 def full(sources):
     """
-    Feed is full when every internal queue has at least one message. Note that
-    this include DONE messages, so done(sources) is True only if full(sources).
+    Feed is full when every internal queue has at least one
+    message. Note that this include DONE messages, so done(sources) is
+    True only if full(sources).
     """
     assert isinstance(sources, dict)
     return all( (queue_is_full(source) for source in sources.itervalues()) )
