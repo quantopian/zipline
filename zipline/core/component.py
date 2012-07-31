@@ -250,6 +250,7 @@ class Component(object):
         # If we're in devel mode drop out because the controller
         # isn't guaranteed to be around anymore
         if self.devel:
+            log.warn("Skipping heartbeat because of devel flag")
             return
 
         if self.socks.get(self.control_in) == zmq.POLLIN:
