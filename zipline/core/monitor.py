@@ -5,9 +5,8 @@ import sys
 import time
 import itertools
 import logbook
-import psutil
 from setproctitle import setproctitle
-from signal import SIGHUP, SIGINT, SIGKILL, signal
+from signal import SIGHUP, SIGINT
 
 from collections import OrderedDict, Counter
 
@@ -100,7 +99,7 @@ class Controller(object):
 
         self.send_sighup = send_sighup
         if self.send_sighup:
-            log.info("Request to send sighup")
+            log.info("Request to send sighup/sigint")
 
 
     def init_zmq(self):
@@ -370,7 +369,10 @@ class Controller(object):
         interpreter exits.  If the monitor dies the system is
         considered a failure.
         """
+        if not self.send_sighup:
+            log.warning("Skipping SIGINT")
         ppid = os.getpid()
+        log.warning("Sending SIGINT")
         os.kill(ppid, SIGINT)
 
     def beat(self):
@@ -457,8 +459,8 @@ class Controller(object):
 
     def fail_universal(self):
         # TODO: this requires higher order functionality
-        log.error('System in exception state, shutting down')
-        self.shutdown()
+        log.error('Component missed heartbeat, Monitor shutting down system')
+        self.kill()
 
     def fail(self, component):
         if self.state is CONTROL_STATES.TERMINATE:
@@ -612,7 +614,7 @@ class Controller(object):
         self.send_hardkill()
         self.state = CONTROL_STATES.TERMINATE
         self.alive = False
-
+        self.signal_interrupt()
 
     def shutdown(self):
 
