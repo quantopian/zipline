@@ -70,7 +70,16 @@ class utcdatetime(datetime):
         dt = datetime.__new__(cls, *args, **kwargs)
         return dt
 
+def days_since_epoch(ms_since_epoch):
+    dt = UN_EPOCH(ms_since_epoch)
+    delta = dt - UNIX_EPOCH
+    return delta.days
 
+def epoch_from_days(days_since_epoch):
+    delta = timedelta(days=days_since_epoch)
+    dt = UNIX_EPOCH + delta
+    ms = EPOCH(dt)
+    return ms
 
 # Datetime Calculations
 # ---------------------
