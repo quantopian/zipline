@@ -145,6 +145,9 @@ class Controller(object):
 
         self.state = CONTROL_STATES.INIT
 
+        # TODO: keep the exitfunc? the corresponding override on clean
+        # exit is commented out currently.
+        #
         # Interpreter SIDE EFFECT
         # -----------------------
         # The last breathe of the interpreter will assume that we've

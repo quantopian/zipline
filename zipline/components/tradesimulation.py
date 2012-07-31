@@ -188,7 +188,11 @@ class TradeSimulationClient(Component):
     def exception_callback(self, exc_type, exc_value, exc_traceback):
         if self.results_socket:
             log.info("Sending exception frame")
-            msg = zp.EXCEPTION_FRAME(exc_traceback)
+            msg = zp.EXCEPTION_FRAME(
+                exc_traceback,
+                exc_type.__name__,
+                exc_value.message
+            )
             self.out_socket.send(msg)
 
     def do_op(self, callable_op, *args, **kwargs):

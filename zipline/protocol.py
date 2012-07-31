@@ -522,7 +522,7 @@ def convert_transactions(transactions):
 def RISK_FRAME(risk):
     return BT_UPDATE_FRAME('RISK', risk)
 
-def EXCEPTION_FRAME(exception_tb):
+def EXCEPTION_FRAME(exception_tb, name, message):
     stack_list = traceback.extract_tb(exception_tb)
     rlist = []
     for stack in stack_list:
@@ -535,8 +535,10 @@ def EXCEPTION_FRAME(exception_tb):
         }
         rlist.append(rstack)
     result = {
-        'date'  : epoch_now(),
-        'stack' : rlist
+        'date'      : epoch_now(),
+        'stack'     : rlist,
+        'name'      : name,
+        'message'   : message
     }
 
     return BT_UPDATE_FRAME('EXCEPTION', result)
