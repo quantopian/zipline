@@ -18,3 +18,4 @@ setproctitle==1.1.6
 Logbook==0.3
 
 blist==1.3.4
+psutil==0.4.1
