@@ -79,11 +79,21 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
             out_message.tnfm_value = tnfm_value
             yield out_message
         
-        # Special logic for TransactionSimulator.  This is ugly but I
-        # want to get to testing faster.  Should be refactored later
-        # to something that doesn't make Scott cry.
-        elif tnfm_class.__name__ == 'TransactionSimulator'
+        # Special logic for TransactionSimulator and
+        # PerformanceTracker.  This is ugly but I want to get to
+        # testing faster.  Should be refactored later to something
+        # that doesn't make Scott cry.
+        elif tnfm_class.__name__ == 'TransactionSimulator':
+            out_message = message_copy
+            out_message.txn = tnfm_value
+            yield out_message
 
+        elif tnfm_class.__name__ == 'PerformanceTracker':
+            out_message = message_copy
+            del out_message['txn']
+            out_message.portfolio = tnfm_value
+            yield out_message
+            
         # Otherwise send tnfm_id, tnfm_value, and the message date.
         else:
             out_message = ndict()
