@@ -8,8 +8,8 @@ from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
 from zipline.gens.transform import stateful_transform
 
-SortBundle = namedtuple("SortBundle", ['source', 'args', 'kwargs'])
-MergeBundle = namedtuple("MergeBundle", ['stream', 'tnfm', 'args', 'kwargs'])
+SourceBundle = namedtuple("SourceBundle", ['source', 'args', 'kwargs'])
+TransformBundle = namedtuple("TransformBundle", ['tnfm', 'args', 'kwargs'])
 
 def date_sorted_sources(bundles):
     """
@@ -18,19 +18,19 @@ def date_sorted_sources(bundles):
     """
     assert isinstance(bundles, (list, tuple))
     for bundle in bundles:
-        assert isinstance(bundle, SortBundle)
+        assert isinstance(bundle, SourceBundle)
 
     # Calculate namestring hashes to pass to date_sort.
     names = [bundle.source.__name__ + hash_args(*bundle.args, **bundle.kwargs)
              for bundle in bundles]
 
     # Pass each source its arguments.
-    initialized = [bundle.source(*bundle.args, **bundle.kwargs)
+    source_gens = [bundle.source(*bundle.args, **bundle.kwargs)
                    for bundle in bundles]
     
     # Convert the list of generators into a flat stream by pulling
     # one element at a time from each.
-    stream_in = roundrobin(initialized, names)
+    stream_in = roundrobin(source_gens, names)
     
     # Guarantee the flat stream will be sorted by date, using source_id as
     # tie-breaker, which is fully deterministic (given deterministic string 
@@ -38,7 +38,7 @@ def date_sorted_sources(bundles):
     return date_sort(stream_in, names)
 
 
-def merged_transforms(sorted_stream, tnfms, tnfm_args, tnfm_kwargs):
+def merged_transforms(sorted_stream, bundles):
     """
     A generator that takes the expected output of a date_sort, pipes it
     through a given set of transforms, and runs the results throught a
@@ -48,36 +48,30 @@ def merged_transforms(sorted_stream, tnfms, tnfm_args, tnfm_kwargs):
     tnfm_kwargs should be a list of dictionaries representing keyword
     arguments to each transform.
     """
-
-    # We should have as many sets of args as we have transforms.
-    assert len(tnfms) == len(tnfm_args) == len(tnfm_kwargs)
+    # Generate expected hashes for each transform
+    namestrings = [bundle.tnfm.__name__ + hash_args(*bundle.args, **bundle.kwargs)
+                   for bundle in bundles]
 
     # Create a copy of the stream for each transform.
-    split = tee(sorted_stream, len(tnfms))
+    split = tee(sorted_stream, len(bundles))
+    # Package a stream copy with each bundle 
+    tnfms_with_streams = zip(split, bundles)
 
-    # Package each transform with a stream copy and set of args.  Use a list
-    # so that we can re-use this for calculating hashes.
-    bundle_gen = starmap(MergeBundle, zip(split, tnfms, tnfm_args, tnfm_kwargs))
-
-    bundles = tuple(bundle_gen)
-    # list comprehension to create transform generators from
-    # bundles
+    # Convert the copies into transform streams.
     tnfm_gens = [
         stateful_transform(
-            bundle.stream, 
+            stream_copy, 
             bundle.tnfm, 
             *bundle.args, 
             **bundle.kwargs
         )
-        for bundle in bundles]
-
-    # Generate expected hashes for each transform
-    hashes = [bundle.tnfm.__name__ + hash_args(*bundle.args, **bundle.kwargs)
-              for bundle in bundles]
+        for stream_copy, bundle in tnfms_with_streams
+    ]
 
     # Roundrobin the outputs of our transforms to create a single flat stream.
-    to_merge = roundrobin(*tnfm_gens)
+    to_merge = roundrobin(tnfm_gens, namestrings)
 
     # Pipe the stream into merge.
-    merged = merge(to_merge, hashes)
-    return merged_transforms
+    merged = merge(to_merge, namestrings)
+    # Return the merged events.
+    return merged

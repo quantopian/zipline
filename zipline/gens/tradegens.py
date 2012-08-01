@@ -106,10 +106,8 @@ def SpecificEquityTrades(*args, **config):
     else:
         filtered = unfiltered
 
-    # Add a done message to the end of the stream. For a live
-    # datasource this would be handled by the containing Component.
-    out = chain(filtered, [mock_done(namestring)])
-    return out
+    # Return the filtered event stream.
+    return filtered
 
 def RandomEquityTrades(*args, **config):
     # We shouldn't get any positional args.

@@ -3,6 +3,7 @@ Generator versions of transforms.
 """
 import types
 
+from copy import deepcopy
 from datetime import datetime
 from collections import deque, defaultdict
 from numbers import Number
@@ -12,6 +13,7 @@ from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
 
 class Passthrough(object):
+    FORWARDER = True
     """
     Trivial class for forwarding events.
     """
@@ -19,10 +21,7 @@ class Passthrough(object):
         pass
 
     def update(self, event):
-        assert isinstance(event, ndict),"Bad event in Passthrough: %s" % event
-        assert event.has_key('sid'), "No sid in Passthrough: %s" % event
-        assert event.has_key('dt'), "No dt in Passthorughz: %s" % event
-        return event
+        pass
 
 def functional_transform(stream_in, func, *args, **kwargs):
     """
@@ -44,9 +43,13 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
     """
     Generic transform generator that takes each message from an in-stream
     and passes it to a state class.  For each call to update, the state
-    class must produce a message to be fed downstream.
+    class must produce a message to be fed downstream. Any transform class
+    with the FORWARDER class variable set to true will forward all fields
+    in the original message.  Otherwise only dt, tnfm_id, and tnfm_value
+    are forwarded.
     """
-    
+    forward_all_fields = tnfm_class.__dict__.get('FORWARDER', False)
+
     assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
     assert tnfm_class.__dict__.has_key('update'), \
@@ -58,11 +61,31 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
     # Generate the string associated with this generator's output.
     namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
 
+    # IMPORTANT: Messages may contain pointers that are shared with
+    # other streams, so we only manipulate copies.
     for message in stream_in:
+        
         assert_sort_unframe_protocol(message)
-        out_value = state.update(message)
-        assert_transform_protocol(out_value)
-        yield (namestring, out_value)
+        message_copy = deepcopy(message)
+
+        # Same shared pointer issue here as above.
+        tnfm_value = state.update(deepcopy(message_copy))
+
+        # If we want to keep all original values, just append tnfm_id
+        # and tnfm_value.
+        if forward_all_fields:
+            out_message = message_copy
+            out_message.tnfm_id = namestring
+            out_message.tnfm_value = tnfm_value
+            yield out_message
+
+        # Otherwise send tnfm_id, tnfm_value, and the message date.
+        else:
+            out_message = ndict()
+            out_message.tnfm_id = namestring
+            out_message.tnfm_value = tnfm_value
+            out_message.dt = message_copy.dt
+            yield out_message
 
 class MovingAverage(object):
     """
@@ -70,6 +93,7 @@ class MovingAverage(object):
     Upon receipt of each message we update the
     corresponding window and return the calculated average.
     """
+    FORWARDER = False
 
     def __init__(self, delta, fields):
         self.delta = delta
@@ -93,16 +117,11 @@ class MovingAverage(object):
         assert event.has_key('sid'), "No sid in MovingAverage: %s" % event
         assert event.has_key('dt'), "No dt in MovingAverage: %s" % event
 
-        output = ndict({'sid': event.sid, 'dt': event.dt})
         # This will create a new EventWindow if this is the first
         # message for this sid.
         window = self.sid_windows[event.sid]
         window.update(event)
-        averages =  window.get_averages()
-
-        # Return the calculated averages along with
-        output.merge(averages)
-        return output
+        return window.get_averages()
 
 class EventWindow(object):
     """
