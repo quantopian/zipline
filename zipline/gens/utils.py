@@ -27,15 +27,24 @@ def alternate(g1, g2):
         if e2 != None:
             yield e2
 
-def roundrobin(*args):
+def roundrobin(sources, namestrings):
     """
     Takes N generators, pulling one element off each until all inputs
     are empty.
     """
-    for elem_tuple in izip_longest(*args):
-        for value in elem_tuple:
-            if value != None:
-                yield value
+    assert len(sources) == len(namestrings)
+    mapping = OrderedDict(zip(namestrings, sources))
+    
+    # While our generators have not been exhausted, pull elements
+    while mapping != []:
+        for namestring, source in mapping:
+            try:
+                message = source.next()
+                yield message
+            except StopIteration:
+                yield done_message(namestring)
+                del mapping(namestring)
+
 
 
 def hash_args(*args, **kwargs):

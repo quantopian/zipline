@@ -54,6 +54,15 @@ def SpecificEquityTrades(*args, **config):
     Yields all events in event_list that match the given sid_filter.
     If no event_list is specified, generates an internal stream of events
     to filter.  Returns all events if filter is None.
+    
+    Configuration options:
+    
+    count: integer representing number of trades
+    sids : list of values representing simulated internal sids
+    start: start date
+    delta: timedelta between internal events
+
+
     """
     # We shouldn't get any positional arguments.
     assert args == ()
