@@ -221,6 +221,32 @@ class DivByZeroAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+class TimeoutAlgorithm():
+
+    def __init__(self, sid):
+        self.sid = sid
+        self.incr = 0
+
+    def initialize(self):
+        pass
+
+    def set_order(self, order_callable):
+        pass
+
+    def set_logger(self, logger):
+        pass
+
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        if self.incr > 4:
+            import time
+            time.sleep(100)
+        pass
+
+    def get_sid_filter(self):
+        return [self.sid]
 
 class TestPrintAlgorithm():
 

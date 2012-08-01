@@ -298,7 +298,7 @@ class Controller(object):
                 # We break out of this loop if the time between
                 # sending and receiving the heartbeat is more
                 # than our poll period.
-                    
+
                 if tic - self.ctime > self.period:
                     log.info("heartbeat loop timedout: %s" % (tic - self.ctime))
                     log.info(repr(self.responses))
