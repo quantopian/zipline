@@ -1,6 +1,10 @@
+import logbook
+
 from numbers import Integral
 
-from zipline.gens import stateful_transform
+from zipline import ndict
+
+from zipline.gens.transform import stateful_transform
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 
@@ -44,20 +48,22 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
 
     # Initialize txn_sim's dictionary of orders here so that we can
     # reference it from within the user's algorithm.
+    
+    import nose.tools; nose.tools.set_trace()
     sids = algo.get_sid_filter()
     open_orders = {}
 
     for sid in sids:
-        open_orders[sids] = []
+        open_orders[sid] = []
 
     # Closure to pass into the user's algo to allow placing orders
     # into the txn_sim's dict of open orders.
     def order(self, sid, amount):
         assert sid in sids, "Order on invalid sid: %i" % sid
-        order = zp.ndict({
+        order = ndict({
             'dt'     : self.current_dt,
             'sid'    : sid,
-            'amount' : int(amount)
+            'amount' : int(amount),
             'filled' : 0
         })
 
@@ -75,7 +81,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     algo.set_order(order)
 
     # Provide a logbook logging interface to user code.
-    algo.set_logger(Logger("Algolog"))
+    algo.set_logger(logbook.Logger("Algolog"))
 
     # Call user-defined initialize method before we process any
     # events.

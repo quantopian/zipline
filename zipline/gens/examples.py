@@ -3,9 +3,13 @@ from datetime import datetime, timedelta
 from zipline.utils.factory import create_trading_environment
 from zipline.test_algorithms import TestAlgorithm
 
-from zipline.gens.composites import SourceBundle, TransformBundle, date_sorted_sources, merged_transforms
+from zipline.gens.composites import SourceBundle, TransformBundle, \
+    date_sorted_sources, merged_transforms
 from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.transform import MovingAverage, Passthrough
+from zipline.gens.tradesimulation import trade_simulation_client as tsc
+
+import zipline.protocol as zp
 
 if __name__ == "__main__":
     
@@ -45,13 +49,20 @@ if __name__ == "__main__":
     sort_out = date_sorted_sources(source_bundles)     
 
     passthrough = TransformBundle(Passthrough, (), {})
-    mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price', 'volume']), {})
+    mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
     tnfm_bundles = (passthrough, mavg_price)
 
     merge_out = merged_transforms(sort_out, tnfm_bundles)
 
-    for message in merge_out:
-        print "Event: \n", message.event
-        print "Transforms: \n", message.tnfms
-        
+# for message in merge_out:
+#      print "Event: \n", message.event
+#      print "Transforms: \n", message.tnfms
     
+    algo = TestAlgorithm(2, 100, 100)
+    environment = create_trading_environment()
+    style = zp.SIMULATION_STYLE.PARTIAL_VOLUME
+
+    client_out = tsc(merge_out, algo, environment, style)
+    
+    for message in client_out:
+        print message
