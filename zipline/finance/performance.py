@@ -144,7 +144,7 @@ class PerformanceTracker(object):
 
     """
 
-    def __init__(self, trading_environment):
+    def __init__(self, trading_environment, sid_list):
 
         self.trading_environment     = trading_environment
         self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
@@ -164,7 +164,6 @@ class PerformanceTracker(object):
         self.txn_count               = 0
         self.event_count             = 0
         self.last_dict               = None
-        self.order_log               = []
         self.exceeded_max_loss       = False
 
         self.results_socket = None
@@ -198,9 +197,14 @@ class PerformanceTracker(object):
             keep_transactions = True
         )
 
-    def set_sids(self, sid_list):
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
+            self.todays_performance.positions[sid] = Position(sid)
+
+    def update(self, event):
+        event.perf_message = self.process_event()
+        event.portfolio = self.get_portfolio
+        return event
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
@@ -238,8 +242,6 @@ class PerformanceTracker(object):
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()
         }
 
-    def log_order(self, order):
-        self.order_log.append(order)
 
     def process_event(self, event):
 
@@ -287,6 +289,8 @@ class PerformanceTracker(object):
         self.day_count += 1.0
         # calculate progress of test
         self.progress = self.day_count / self.total_days
+
+        # TODO!!!!
 
         # Output results
         if self.results_socket:
@@ -584,7 +588,6 @@ class PerformancePeriod(object):
 
         return positions
 
-    #
     def get_positions_list(self):
         positions = []
         for sid, pos in self.positions.iteritems():

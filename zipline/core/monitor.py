@@ -9,8 +9,13 @@ from signal import SIGHUP, SIGINT
 
 from collections import OrderedDict, Counter
 
-from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
-    CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
+from zipline.protocol import (
+    CONTROL_PROTOCOL,
+    CONTROL_FRAME,
+    CONTROL_UNFRAME,
+    CONTROL_STATES,
+    INVALID_CONTROL_FRAME
+)
 
 from zipline.utils.protocol_utils import ndict
 
@@ -248,6 +253,11 @@ class Controller(object):
         self.router.bind(self.route_socket)
         self.router.setsockopt(zmq.LINGER, 0)
 
+        # -- Exception Out --
+        # ===================
+        self.ex_out = self.context.socket(self.zmq.PUSH)
+        self.ex_out.connect(self.exception_socket)
+
         poller = self.zmq.Poller()
         poller.register(self.router, self.zmq.POLLIN)
         #poller.register(self.cancel, self.zmq.POLLIN)
@@ -379,6 +389,7 @@ class Controller(object):
         """
         if not self.send_sighup:
             log.warning("Skipping SIGINT")
+            return
         ppid = os.getpid()
         log.warning("Sending SIGINT")
         os.kill(ppid, SIGINT)
@@ -417,8 +428,7 @@ class Controller(object):
                 log.info('New component %r' % component)
 
         for component in bad:
-            self.fail(component)
-
+            self.timed_out(component)
 
         for component in missing:
 
@@ -465,22 +475,16 @@ class Controller(object):
     # Epic Fail Handling
     # ------------------
 
-    def fail_universal(self):
-        # TODO: this requires higher order functionality
-        log.error('Component missed heartbeat, Monitor shutting down system')
-        self.kill()
-
-    def fail(self, component):
+    def timed_out(self, component):
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
-        universal = self.fail_universal
-        fail_handlers = { }
-
         if component in (self.topology - self.finished) or self.freeform:
             log.warning('Component "%s" missed heartbeat' % component)
-            self.tracked.remove(component)
-            fail_handlers.get(component, universal)()
+            # we treat a time out as a severe failure, and
+            # conduct a rapid shutdown
+            self.kill()
+
 
     # -------------------
     # Completion Handling
@@ -494,25 +498,15 @@ class Controller(object):
     # --------------
     # Error Handling
     # --------------
-
-    def exception_universal(self):
-        """
-        Shutdown the system on failure.
-        """
-        log.error('System in exception state, shutting down')
+    def exception(self, component, exception_data):
+        self.error_replay[(component, time.time())] = exception_data
+        log.error('Component in exception state: %s. Shutting down system and sending exception data to listeners.'\
+            % component)
+        # Send the exception message out to listeners.
+        self.ex_out.send(exception_data)
+        # An exception in one component is treated as a hard
+        # failure, and we conduct a rapid shutdown.
         self.kill()
-
-    def exception(self, component, failure):
-        universal = self.exception_universal
-        exception_handlers = { }
-
-        if component in self.topology or self.freeform:
-            self.error_replay[(component, time.time())] = failure
-            log.error('Component in exception state: %s' % component)
-
-            exception_handlers.get(component, universal)()
-        else:
-            raise UnknownChatter(component)
 
     # -----------------
     # Protocol Handling
@@ -560,7 +554,19 @@ class Controller(object):
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
-            self.exception(identity, status)
+            # status should be a msgpack emitted from
+            # EXCEPTION_FRAME
+            try:
+                exception_data = status
+                self.exception(identity, exception_data)
+            except:
+                # if an exception occurs when we try to handle
+                # the exception, signal the parent that we need
+                # to go down
+                # TODO: should we attempt to call self.exception?
+                log.exception("Unexpected exception sending exception data")
+                self.kill()
+
             return
 
         # A component is telling us its done with work and won't
@@ -615,6 +621,8 @@ class Controller(object):
             log.info('Component Log for -- %s --:\n%s' % (component, error))
 
     def kill(self):
+        """Aggressively exit the whole zipline.
+        """
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
@@ -622,6 +630,9 @@ class Controller(object):
         self.send_hardkill()
         self.state = CONTROL_STATES.TERMINATE
         self.alive = False
+        # send burrito an interrupt, instructing it to kill all
+        # child processes assocated with this zipline.
+        time.sleep(3)
         self.signal_interrupt()
 
     def shutdown(self):

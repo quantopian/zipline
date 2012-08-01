@@ -132,9 +132,15 @@ class SimulatedTrading(object):
         }
 
         self.con = Controller(
+            # pub socket
             sockets[5],
+            # route socket
             sockets[6],
-            self.send_sighup
+            # exception socket to match tradesimclient's result
+            # socket, because we want to relay exceptions to the
+            # same listener
+            config['results_socket'],
+            send_sighup=self.send_sighup
         )
 
         self.started = False
@@ -146,7 +152,8 @@ class SimulatedTrading(object):
         self.trading_client = TradeSimulationClient(
             self.trading_environment,
             self.sim_style,
-            config['results_socket']
+            config['results_socket'],
+            self.algorithm
         )
         self.add_client(self.trading_client)
 
@@ -158,7 +165,6 @@ class SimulatedTrading(object):
 
         self.sim.register_controller( self.con )
 
-        self.trading_client.set_algorithm(self.algorithm)
 
     @staticmethod
     def create_test_zipline(**config):

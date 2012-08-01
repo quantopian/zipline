@@ -17,8 +17,14 @@ import zmq
 
 from zipline.core.monitor import PARAMETERS
 
-from zipline.protocol import CONTROL_PROTOCOL, COMPONENT_STATE, \
-    COMPONENT_FAILURE, CONTROL_FRAME, CONTROL_UNFRAME
+from zipline.protocol import (
+    CONTROL_PROTOCOL,
+    COMPONENT_STATE,
+    COMPONENT_FAILURE,
+    CONTROL_FRAME,
+    CONTROL_UNFRAME,
+    EXCEPTION_FRAME
+)
 
 log = logbook.Logger('Component')
 
@@ -491,7 +497,6 @@ class Component(object):
 
         self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        trace = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
         # if a downstream component fails, this component may try
         # sending when there are zero connections to the socket,
@@ -506,14 +511,19 @@ class Component(object):
         # sys.stdout.write(trace)
         log.exception("Unexpected error in run for {id}.".format(id=self.get_id))
 
-        self.relay_exception(exc_type, exc_value, exc_traceback)
-
         if hasattr(self, 'control_out') and self.control_out:
             try:
-                log.info('{id} sending exception to controller'.format(id=self.get_id))
+                log.info('{id} sending exception to controller'\
+                        .format(id=self.get_id))
+                msg = EXCEPTION_FRAME(
+                    exc_traceback,
+                    exc_type.__name__,
+                    exc_value.message
+                )
+
                 exception_frame = CONTROL_FRAME(
                     CONTROL_PROTOCOL.EXCEPTION,
-                    trace
+                    msg
                 )
                 self.control_out.send(exception_frame, self.zmq.NOBLOCK)
                 # The controller should relay the exception back
@@ -525,15 +535,11 @@ class Component(object):
                     self.heartbeat(timeout=1000)
                 log.warn("{id} never heard back from monitor."\
                         .format(id=self.get_id))
+            except KillSignal:
+                log.info("{id} received confirmation from controller"\
+                        .format(id=self.get_id))
             except:
                 log.exception("Exception waiting for controller reply")
-
-    def relay_exception(self, exc_type, exc_value, exc_traceback):
-        if hasattr(self, 'exception_callback') and self.exception_callback:
-            log.info('{id} making exception callback'.format(id=self.get_id))
-            self.exception_callback(exc_type, exc_value, exc_traceback)
-
-
 
     def signal_done(self):
         """

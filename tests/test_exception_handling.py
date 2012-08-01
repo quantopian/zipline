@@ -58,7 +58,6 @@ class ExceptionTestCase(TestCase):
         self.assertTrue(payload['date'])
         del payload['date']
         check(self, payload, INITIALIZE_TB)
-
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
 
@@ -85,7 +84,6 @@ class ExceptionTestCase(TestCase):
         self.assertTrue(payload['date'])
         del payload['date']
         check(self, payload, HANDLE_DATA_TB)
-
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
 
@@ -109,7 +107,6 @@ class ExceptionTestCase(TestCase):
         self.assertTrue(payload['date'])
         del payload['date']
         check(self, payload, ZERO_DIV_TB)
-
         self.assertTrue(zipline.sim.ready())
         self.assertFalse(zipline.sim.exception)
 
@@ -123,20 +120,20 @@ class ExceptionTestCase(TestCase):
 INITIALIZE_TB =\
 {'message': 'Algo exception in initialize',
  'name': 'Exception',
- 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 204, 'method': 'run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 195, 'method': '_run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 235, 'method': 'loop'},
+ 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 210, 'method': 'run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 201, 'method': '_run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 241, 'method': 'loop'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.initialize_algo()',
-            'lineno': 97,
+            'lineno': 91,
             'method': 'do_work'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.do_op(self.algorithm.initialize)',
-            'lineno': 80,
+            'lineno': 74,
             'method': 'initialize_algo'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'callable_op(*args, **kwargs)',
-            'lineno': 210,
+            'lineno': 194,
             'method': 'do_op'},
            {'filename': '/zipline/test_algorithms.py',
             'line': 'raise Exception("Algo exception in initialize")',
@@ -144,54 +141,52 @@ INITIALIZE_TB =\
             'method': 'initialize'}]}
 
 HANDLE_DATA_TB =\
-{
- 'message': 'Algo exception in handle_data',
+{'message': 'Algo exception in handle_data',
  'name': 'Exception',
- 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 204, 'method': 'run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 195, 'method': '_run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 235, 'method': 'loop'},
+ 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 210, 'method': 'run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 201, 'method': '_run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 241, 'method': 'loop'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.process_event(event)',
-            'lineno': 116,
+            'lineno': 110,
             'method': 'do_work'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.run_algorithm()',
-            'lineno': 164,
+            'lineno': 158,
             'method': 'process_event'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.do_op(self.algorithm.handle_data, data)',
-            'lineno': 186,
+            'lineno': 180,
             'method': 'run_algorithm'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'callable_op(*args, **kwargs)',
-            'lineno': 210,
+            'lineno': 194,
             'method': 'do_op'},
            {'filename': '/zipline/test_algorithms.py',
             'line': 'raise Exception("Algo exception in handle_data")',
             'lineno': 187,
             'method': 'handle_data'}]}
 
-
 ZERO_DIV_TB= \
 {'message': 'integer division or modulo by zero',
  'name': 'ZeroDivisionError',
- 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 204, 'method': 'run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 195, 'method': '_run'},
-           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 235, 'method': 'loop'},
+ 'stack': [{'filename': '/zipline/core/component.py', 'line': 'self._run()', 'lineno': 210, 'method': 'run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.loop()', 'lineno': 201, 'method': '_run'},
+           {'filename': '/zipline/core/component.py', 'line': 'self.do_work()', 'lineno': 241, 'method': 'loop'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.process_event(event)',
-            'lineno': 116,
+            'lineno': 110,
             'method': 'do_work'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.run_algorithm()',
-            'lineno': 164,
+            'lineno': 158,
             'method': 'process_event'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'self.do_op(self.algorithm.handle_data, data)',
-            'lineno': 186,
+            'lineno': 180,
             'method': 'run_algorithm'},
            {'filename': '/zipline/components/tradesimulation.py',
             'line': 'callable_op(*args, **kwargs)',
-            'lineno': 210,
+            'lineno': 194,
             'method': 'do_op'},
            {'filename': '/zipline/test_algorithms.py', 'line': '5/0', 'lineno': 218, 'method': 'handle_data'}]}

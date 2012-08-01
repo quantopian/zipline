@@ -13,7 +13,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     our algorithm's simulated universe. Results are fed to the user's
     algorithm, which directly inserts transactions into the
     TransactionSimulator's order book.
-    
+
     TransactionSimulator maintains a dictionary from sids to the
     unfulfilled orders placed by the user's algorithm.  As trade
     events arrive, if the algorithm has open orders against the
@@ -37,7 +37,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     overwritten so that only the most recent snapshot of the universe
     is sent to the algo.
     """
-    
+
     #============
     # Algo Setup
     #============
@@ -46,10 +46,10 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # reference it from within the user's algorithm.
     sids = algo.get_sid_filter()
     open_orders = {}
-    
+
     for sid in sids:
         open_orders[sids] = []
-    
+
     # Closure to pass into the user's algo to allow placing orders
     # into the txn_sim's dict of open orders.
     def order(self, sid, amount):
@@ -70,51 +70,48 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
             return
 
         open_orders[sid].append(event)
-                                      
+
     # Set the algo's order method.
     algo.set_order(order)
-    
+
     # Provide a logbook logging interface to user code.
     algo.set_logger(Logger("Algolog"))
 
     # Call user-defined initialize method before we process any
     # events.
     algo.initialize()
-    
+
     # Pipe the in stream into the transaction simulator.
     # Creates a TRANSACTION field on the event containing transaction
     # information if we filled any pending orders on the event's sid.
     # TRANSACTION is None if we didn't fill any orders.
-    with_txns = stateful_transform(stream_in, 
-                                   TransactionSimulator, 
-                                   open_orders,
-                                   style = sim_style)
-    
-    
+    with_txns = stateful_transform(
+        stream_in,
+        TransactionSimulator,
+        open_orders,
+        style = sim_style
+    )
+
+
     # Pipe the events with transactions to perf. This will remove the
     # TRANSACTION field added by TransactionSimulator and replace it with
     # a portfolio object to be passed to the user's algorithm. Also adds
     # a PERF_MESSAGE field which is usually none, but contains an update
     # message once per day.
-    with_portfolio_and_perf_msg = stateful_transform(stream_with_txns,
-                                                     PerformanceTracker, 
-                                                     trading_environment, 
-                                                     sids)
-    
+    with_portfolio_and_perf_msg = stateful_transform(
+        stream_with_txns,
+        PerformanceTracker,
+        trading_environment,
+        sids
+    )
+
     # Batch the event stream by dt to be processed by the user's algo.
     # Will also set the PERF_MESSAGE field if the batch contains a perf
     # message.
-    
+
     batches = batcher(with_portfolio_and_perf_msg)
-    
+
     for batch in batches:
         algo.handle_data(batch.data)
         if batch.perf_message:
             yield perf_message
-        
-
-    
-    
-    
-    
-    
