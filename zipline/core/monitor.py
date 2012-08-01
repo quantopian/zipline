@@ -1,4 +1,3 @@
-import inspect
 import os
 import zmq
 import sys
@@ -69,7 +68,12 @@ class Controller(object):
     debug = True
     period = PARAMETERS.GENERATIONAL_PERIOD
 
-    def __init__(self, pub_socket, route_socket, send_sighup=False):
+    def __init__(
+        self,
+        pub_socket,
+        route_socket,
+        exception_socket,
+        send_sighup=False):
 
         self.nosignals  = False
         self.context    = None
@@ -90,8 +94,9 @@ class Controller(object):
 
         self.associated = []
 
-        self.pub_socket   = pub_socket
-        self.route_socket = route_socket
+        self.pub_socket         = pub_socket
+        self.route_socket       = route_socket
+        self.exception_socket   = exception_socket
 
         self.error_replay = OrderedDict()
 
