@@ -85,10 +85,12 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # Creates a TRANSACTION field on the event containing transaction
     # information if we filled any pending orders on the event's sid.
     # TRANSACTION is None if we didn't fill any orders.
-    with_txns = stateful_transform(stream_in, 
-                                   TransactionSimulator, 
-                                   open_orders,
-                                   style = sim_style)
+    with_txns = stateful_transform(
+        stream_in, 
+        TransactionSimulator, 
+        open_orders,
+        style = sim_style
+    )
     
     
     # Pipe the events with transactions to perf. This will remove the
@@ -96,10 +98,12 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # a portfolio object to be passed to the user's algorithm. Also adds
     # a PERF_MESSAGE field which is usually none, but contains an update
     # message once per day.
-    with_portfolio_and_perf_msg = stateful_transform(stream_with_txns,
-                                                     PerformanceTracker, 
-                                                     trading_environment, 
-                                                     sids)
+    with_portfolio_and_perf_msg = stateful_transform(
+        stream_with_txns,
+        PerformanceTracker, 
+        trading_environment, 
+        sids
+    )
     
     # Batch the event stream by dt to be processed by the user's algo.
     # Will also set the PERF_MESSAGE field if the batch contains a perf

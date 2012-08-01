@@ -10,9 +10,8 @@ log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
 
-    def __init__(self, style=SIMULATION_STYLE.PARTIAL_VOLUME):
-        self.open_orders                = {}
-        self.order_count                = 0
+    def __init__(self, open_orders, style=SIMULATION_STYLE.PARTIAL_VOLUME):
+        self.open_orders                = open_orders
         self.txn_count                  = 0
         self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
@@ -27,28 +26,12 @@ class TransactionSimulator(object):
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
 
-    def add_open_order(self, event):
-        # Orders are captured in a buffer by sid. No calculations are done here.
-        # Amount is explicitly converted to an int.
-        # Orders of amount zero are ignored.
-
-        self.order_count += 1
-        event.amount = int(event.amount)
-
-        if event.amount == 0:
-            log = "requested to trade zero shares of {sid}".format(
-                sid=event.sid
-            )
-            log.debug(log)
-            return
-
-        if not self.open_orders.has_key(event.sid):
-            self.open_orders[event.sid] = []
-
-        # set the filled property to zero
-        event.filled = 0
-        self.open_orders[event.sid].append(event)
-
+    def update(self, event):
+        event.txn = None
+        if event.type == zp.DATASOURCE_TYPE.TRADE:
+            event.txn = self.apply_trade_to_open_orders(event)
+        return event
+        
     def simulate_buy_all(self, event):
         txn = self.create_transaction(
             event.sid,
@@ -81,7 +64,7 @@ class TransactionSimulator(object):
         txn = self.create_transaction(
             event.sid,
             amount,
-            event.price + 0.10,
+            event.price + 0.10, # Magic constant?
             event.dt,
             direction
         )
