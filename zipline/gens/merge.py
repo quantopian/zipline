@@ -54,21 +54,19 @@ def merge(stream_in, tnfm_ids):
 
 def merge_one(sources):
     dict_primer = zip(sources.keys(), repeat(None))
-    transforms = ndict(dict_primer)
     event_fields = ndict()
 
     for key, queue in sources.iteritems():
         
         # Add transform value to the transforms dict.
         message = queue.popleft()
-        transforms[message.tnfm_id] = message.tnfm_value
+        event_fields[message.tnfm_id] = message.tnfm_value
         del message['tnfm_id']
         del message['tnfm_value']
         
         # Merge any remaining fields into the event dict.
         event_fields.merge(message)
-        
-    return ndict({'event' : event_fields, 'tnfms' : transforms})
+    return event_fields
 
 
 #TODO: This is replicated in sort.  Probably should be one source file.

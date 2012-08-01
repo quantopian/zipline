@@ -54,15 +54,13 @@ if __name__ == "__main__":
 
     merge_out = merged_transforms(sort_out, tnfm_bundles)
 
-# for message in merge_out:
-#      print "Event: \n", message.event
-#      print "Transforms: \n", message.tnfms
+    # for message in merge_out:
+#         print message
     
     algo = TestAlgorithm(2, 100, 100)
     environment = create_trading_environment()
     style = zp.SIMULATION_STYLE.PARTIAL_VOLUME
-
+    
     client_out = tsc(merge_out, algo, environment, style)
     
-    for message in client_out:
-        print message
+    

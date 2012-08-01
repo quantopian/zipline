@@ -54,7 +54,7 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
         "Stateful transform requires a class."
     assert tnfm_class.__dict__.has_key('update'), \
         "Stateful transform requires the class to have an update method"
-
+    
     # Create an instance of our transform class.
     state = tnfm_class(*args, **kwargs)
 
@@ -71,13 +71,18 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
         # Same shared pointer issue here as above.
         tnfm_value = state.update(deepcopy(message_copy))
 
-        # If we want to keep all original values, just append tnfm_id
+        # If we want to keep all original values, plus append tnfm_id
         # and tnfm_value.
         if forward_all_fields:
             out_message = message_copy
             out_message.tnfm_id = namestring
             out_message.tnfm_value = tnfm_value
             yield out_message
+        
+        # Special logic for TransactionSimulator.  This is ugly but I
+        # want to get to testing faster.  Should be refactored later
+        # to something that doesn't make Scott cry.
+        elif tnfm_class.__name__ == 'TransactionSimulator'
 
         # Otherwise send tnfm_id, tnfm_value, and the message date.
         else:

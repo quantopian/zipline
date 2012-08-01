@@ -49,7 +49,6 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # Initialize txn_sim's dictionary of orders here so that we can
     # reference it from within the user's algorithm.
     
-    import nose.tools; nose.tools.set_trace()
     sids = algo.get_sid_filter()
     open_orders = {}
 
@@ -88,7 +87,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     algo.initialize()
 
     # Pipe the in stream into the transaction simulator.
-    # Creates a TRANSACTION field on the event containing transaction
+    # Creates a txn field on the event containing transaction
     # information if we filled any pending orders on the event's sid.
     # TRANSACTION is None if we didn't fill any orders.
     with_txns = stateful_transform(
@@ -100,20 +99,24 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
 
 
     # Pipe the events with transactions to perf. This will remove the
-    # TRANSACTION field added by TransactionSimulator and replace it with
+    # txn field added by TransactionSimulator and replace it with
     # a portfolio object to be passed to the user's algorithm. Also adds
     # a PERF_MESSAGE field which is usually none, but contains an update
     # message once per day.
     with_portfolio_and_perf_msg = stateful_transform(
-        stream_with_txns,
+        with_txns,
         PerformanceTracker,
-        trading_environment,
+        environment,
         sids
     )
 
     # Batch the event stream by dt to be processed by the user's algo.
     # Will also set the PERF_MESSAGE field if the batch contains a perf
     # message.
+
+    def batcher(stream):
+        for msg in stream:
+            yield msg
 
     batches = batcher(with_portfolio_and_perf_msg)
 

@@ -9,6 +9,7 @@ from zipline.protocol import SIMULATION_STYLE
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
+    FORWARDER = True
 
     def __init__(self, open_orders, style=SIMULATION_STYLE.PARTIAL_VOLUME):
         self.open_orders                = open_orders
