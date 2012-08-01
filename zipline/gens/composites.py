@@ -11,34 +11,26 @@ from zipline.gens.transform import stateful_transform
 SortBundle = namedtuple("SortBundle", ['source', 'args', 'kwargs'])
 MergeBundle = namedtuple("MergeBundle", ['stream', 'tnfm', 'args', 'kwargs'])
 
-def date_sorted_sources(sources, source_args, source_kwargs):
+def date_sorted_sources(bundles):
     """
-    Takes a list of generator functions, a list of tuples of positional arguments,
-    and a list of dictionaries of keyword arguments.  Packages up all arguments
-    and passes them into a date_sort.
+    Takes an iterable of SortBundles, generating namestrings and initialized datasources
+    for each before piping them into a date_sort.
     """
-    assert len(sources) == len(source_args) == len(source_kwargs)
-    # Package up sources and arguments.
-    
-    # Create a generator of SortBundle objects to be turned into
-    # namestrings and generator objects.
-    bundle_gen = starmap(SortBundle, zip(sources, source_args, source_kwargs))
-
-    # Load the results of the generator into a tuple so that the
-    # results can be used twice (once in namestring comprehension,
-    # once in the generator comprehension for intialized sources.
-    bundles = tuple(bundle_gen)
+    assert isinstance(bundles, (list, tuple))
+    for bundle in bundles:
+        assert isinstance(bundle, SortBundle)
 
     # Calculate namestring hashes to pass to date_sort.
     names = [bundle.source.__name__ + hash_args(*bundle.args, **bundle.kwargs)
              for bundle in bundles]
+
     # Pass each source its arguments.
     initialized = [bundle.source(*bundle.args, **bundle.kwargs)
-                        for bundle in bundles]
-
+                   for bundle in bundles]
+    
     # Convert the list of generators into a flat stream by pulling
     # one element at a time from each.
-    stream_in = roundrobin(*initialized)
+    stream_in = roundrobin(initialized, names)
     
     # Guarantee the flat stream will be sorted by date, using source_id as
     # tie-breaker, which is fully deterministic (given deterministic string 

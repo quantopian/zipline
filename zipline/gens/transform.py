@@ -43,7 +43,7 @@ def functional_transform(stream_in, func, *args, **kwargs):
 def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
     """
     Generic transform generator that takes each message from an in-stream
-    and sorts it to a state class.  For each call to update, the state
+    and passes it to a state class.  For each call to update, the state
     class must produce a message to be fed downstream.
     """
     
