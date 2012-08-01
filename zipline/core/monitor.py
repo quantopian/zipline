@@ -41,10 +41,10 @@ log = logbook.Logger('Controller')
 
 PARAMETERS = ndict(dict(
     # time Monitor will wait for a heartbeat, in seconds
-    GENERATIONAL_PERIOD        = 10,
+    GENERATIONAL_PERIOD        = 20,
     # time Component will wait for GO and for a heartbeat before
     # timing out.
-    MAX_COMPONENT_WAIT         = 20,
+    MAX_COMPONENT_WAIT         = 25,
     ALLOWED_SKIPPED_HEARTBEATS = 10,
     ALLOWED_INVALID_HEARTBEATS = 3,
     PRESTART_HEARBEATS         = 3,
