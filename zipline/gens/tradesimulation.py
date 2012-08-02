@@ -55,37 +55,6 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
 
     for sid in sids:
         open_orders[sid] = []
-
-    # Closure to pass into the user's algo to allow placing orders
-    # into the txn_sim's dict of open orders.
-    def order(self, sid, amount):
-        assert sid in sids, "Order on invalid sid: %i" % sid
-        order = ndict({
-            'dt'     : self.current_dt,
-            'sid'    : sid,
-            'amount' : int(amount),
-            'filled' : 0
-        })
-
-        # Tell the user if they try to buy 0 shares of something.
-        if order.amount == 0:
-            log = "requested to trade zero shares of {sid}".format(
-                sid=event.sid
-            )
-            log.debug(log)
-            return
-
-        open_orders[sid].append(event)
-    
-    # Set the algo's order method.
-    algo.set_order(order)
-
-    # Provide a logbook logging interface to user code.
-    algo.set_logger(logbook.Logger("Algolog"))
-
-    # Call user-defined initialize method before we process any
-    # events.
-    algo.initialize()
     
     # Pipe the in stream into the transaction simulator.
     # Creates a txn field on the event containing transaction
@@ -113,44 +82,115 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
 
     # Batch the event stream by dt to be processed by the user's algo.
     # Yields perf messages whenever it encounters them.
-    perf_messages = algo_simulator(with_portfolio_and_perf_msg, algo)
+    perf_messages = algo_simulator(with_portfolio_and_perf_msg, sids, algo, open_orders)
 
+    for message in perf_messages:        
+        yield message
+
+
+def algo_simulator(stream_in, sids, algo, order_book):
     
+    simulation_dt = None
 
+    # Closure to pass into the user's algo to allow placing orders
+    # into the txn_sim's dict of open orders.
+    def order(sid, amount):
+        assert sid in sids, "Order on invalid sid: %i" % sid
+        order = ndict({
+            'dt'     : simulation_dt,
+            'sid'    : sid,
+            'amount' : int(amount),
+            'filled' : 0
+        })
 
-def algo_simulator(stream_in, sids, algo):
+        # Tell the user if they try to buy 0 shares of something.
+        if order.amount == 0:
+            log = "requested to trade zero shares of {sid}".format(
+                sid=event.sid
+            )
+            log.debug(log)
+            return 
+        
+        order_book[sid].append(order)
     
-    current_dt = None
+    # Set the algo's order method.
+    algo.set_order(order)
+
+    # Provide a logbook logging interface to user code.
+    algo.set_logger(logbook.Logger("Algolog"))
+
+    # Call user-defined initialize method before we process any
+    # events.
+    algo.initialize()
+    
     universe = ndict()
-    
     for sid in sids:
-        universe[sid] = None
+        universe[sid] = ndict()
     universe.portfolio = None
+    this_snapshot_dt = None
 
-    for update in stream_in:
-        #Yield perf messages to be relayed back to the browser.
-        if update.perf_message:
-            yield perf_message
-        
-        if current_dt = None:
-            current_dt = update.dt
-            
-        # If this message is newer than the algorithm's simulated dt,
-        # call handle data on a snapshot of the current algo universe, 
-        # then 
-        if message.dt >= current_dt + last_delta:
-            start_tic = datetime.now()
-            algo.handle_data(universe)
-            stop_tic = datetime.now()
-            last_delta = datetime
-            
-            current_dt = message.dt + last_delta
-        
-        batch.data[message.sid] = message
-        batch.data.portfolio = message.portfolio
-        
+    for event in stream_in:
+        # Yield any perf messages received to be relayed back to the browser.
+        if event.perf_message:
+            yield event.perf_message
+            del event['perf_message']
 
+        # This should only happen for the first event we run.
+        if simulation_dt == None:
+            simulation_dt = event.dt
+            
+        # If we are currently creating a new message and this update
+        # matches the message dt, update the state of the universe.
+
+        if this_snapshot_dt != None:
+
+            if event.dt == this_snapshot_dt:
+                update_universe(event, universe)
+
+            # If we are constructing a snapshot and we hit a new dt, call
+            # handle_data and record how long it takes.
+            else:
+                start_tic = datetime.now()
+                algo.handle_data(universe)
+                stop_tic = datetime.now()
+
+                # How long did you take?
+                delta = stop_tic - start_tic
+
+                # Update the simulation time.
+                simulation_dt = this_snapshot_dt + delta
+                
+                # Update the universe with the new event.
+                update_universe(event, universe)
+
+                # If the current event is later than the simulation
+                # time, update the universe and start constructing
+                # another snapshot.
+                if event.dt >= simulation_dt:
+                    this_snapshot_dt = event.dt
+                else:
+                    this_snapshot_dt = None
+        # We have been fastforwarding.  Update the universe
+        # and check if we can start a new snapshot.
+        else:
+            update_universe(event, universe)
+            if event.dt >= simulation_dt:
+                this_snapshot_dt = event.dt
+
+                
+
+        
+def update_universe(event, universe):
+
+    universe.portfolio = event.portfolio
+    del event['portfolio']
     
+    event_sid = event.sid
+    del event['sid']
+        
+    for field in event.keys():
+        universe[event_sid][field] = event[field]
+            
     
     
     
