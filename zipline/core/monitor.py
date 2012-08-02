@@ -38,7 +38,7 @@ class UnknownChatter(Exception):
         return """Component calling itself "%s" talking on unexpected channel""" % self.named
 
 
-log = logbook.Logger('Controller')
+log = logbook.Logger('Monitor')
 
 # The scalars determining the timing of the monitor behavior for
 # the system.
@@ -56,7 +56,7 @@ PARAMETERS = ndict(dict(
     SYSTEM_TIMEOUT             = 50,
 ))
 
-class Controller(object):
+class Monitor(object):
     """
     A N to M messaging system for inter component communication.
 
@@ -102,8 +102,6 @@ class Controller(object):
         self.pub_socket         = pub_socket
         self.route_socket       = route_socket
         self.exception_socket   = exception_socket
-
-        self.error_replay = OrderedDict()
 
         self.missed_beats = Counter()
 
@@ -499,7 +497,6 @@ class Controller(object):
     # Error Handling
     # --------------
     def exception(self, component, exception_data):
-        self.error_replay[(component, time.time())] = exception_data
         log.error('Component in exception state: %s. Shutting down system and sending exception data to listeners.'\
             % component)
         # Send the exception message out to listeners.
@@ -615,10 +612,6 @@ class Controller(object):
 
         self.associated.append(s)
         return s
-
-    def do_error_replay(self):
-        for (component, time), error in self.error_replay.iteritems():
-            log.info('Component Log for -- %s --:\n%s' % (component, error))
 
     def kill(self):
         """Aggressively exit the whole zipline.

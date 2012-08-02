@@ -103,7 +103,7 @@ class ComponentHost(object):
 
 
         log.info('== Roll Call ==')
-        log.info('Controller')
+        log.info('Monitor')
 
         self.launch_controller()
 
