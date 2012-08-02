@@ -40,13 +40,13 @@ class ProcessSimulator(ComponentHost):
     # invoked by the host's open()
 
     def launch_controller(self):
-        proc = multiprocessing.Process(target=self.controller.run)
+        proc = multiprocessing.Process(target=self.monitor.run)
         proc.start()
         self.con = proc
 
         # Process specific
-        self.controller_process = proc
-        self.mapping[proc.pid] = 'Controller'
+        self.monitor_process = proc
+        self.mapping[proc.pid] = 'Monitor'
 
     def launch_component(self, component):
         proc = multiprocessing.Process(target=component.run)
@@ -81,7 +81,7 @@ class ProcessSimulator(ComponentHost):
             process.join(timeout=1)
             process.terminate()
 
-        self.controller.shutdown(soft=True)
+        self.monitor.shutdown(soft=True)
         self.running = False
 
         self.con.terminate()

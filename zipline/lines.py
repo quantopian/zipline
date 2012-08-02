@@ -70,7 +70,7 @@ from zipline.transforms import BaseTransform
 from zipline.test_algorithms import TestAlgorithm
 from zipline.components import TradeSimulationClient
 from zipline.core.process import ProcessSimulator
-from zipline.core.monitor import Controller
+from zipline.core.monitor import Monitor
 from zipline.finance.trading import SIMULATION_STYLE
 
 log = logbook.Logger('Lines')
@@ -131,7 +131,7 @@ class SimulatedTrading(object):
             'results_address' : sockets[4],
         }
 
-        self.con = Controller(
+        self.monitor = Monitor(
             # pub socket
             sockets[5],
             # route socket
@@ -163,7 +163,7 @@ class SimulatedTrading(object):
         #setup transforms
         self.transforms = {}
 
-        self.sim.register_controller( self.con )
+        self.sim.register_monitor( self.monitor )
 
 
     @staticmethod
@@ -348,15 +348,15 @@ class SimulatedTrading(object):
 
         return base | transforms | sources
 
-    def setup_controller(self):
+    def setup_monitor(self):
         """
-        Prepare the controller to manage the topology specified
+        Prepare the monitor to manage the topology specified
         by this line.
         """
-        self.con.manage(self.topology)
+        self.monitor.manage(self.topology)
 
     def simulate(self, blocking=True):
-        self.setup_controller()
+        self.setup_monitor()
 
         self.started = True
         self.sim_context = self.sim.simulate()

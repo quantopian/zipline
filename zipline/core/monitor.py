@@ -38,7 +38,7 @@ class UnknownChatter(Exception):
         return """Component calling itself "%s" talking on unexpected channel""" % self.named
 
 
-log = logbook.Logger('Controller')
+log = logbook.Logger('Monitor')
 
 # The scalars determining the timing of the monitor behavior for
 # the system.
@@ -56,7 +56,7 @@ PARAMETERS = ndict(dict(
     SYSTEM_TIMEOUT             = 50,
 ))
 
-class Controller(object):
+class Monitor(object):
     """
     A N to M messaging system for inter component communication.
 
