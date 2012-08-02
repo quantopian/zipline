@@ -11,26 +11,22 @@ from zipline.gens.transform import stateful_transform
 SourceBundle = namedtuple("SourceBundle", ['source', 'args', 'kwargs'])
 TransformBundle = namedtuple("TransformBundle", ['tnfm', 'args', 'kwargs'])
 
-def date_sorted_sources(bundles):
+def date_sorted_sources(*sources):
     """
     Takes an iterable of SortBundles, generating namestrings and initialized datasources
     for each before piping them into a date_sort.
     """
-    assert isinstance(bundles, (list, tuple))
-    for bundle in bundles:
-        assert isinstance(bundle, SourceBundle)
 
-    # Calculate namestring hashes to pass to date_sort.
-    names = [bundle.source.__name__ + hash_args(*bundle.args, **bundle.kwargs)
-             for bundle in bundles]
+    for source in sources:
+        assert iter(source), "Source %s not iterable" % source
+        assert source.__class__.__dict__.has_key('get_hash'), "No get_hash"
 
-    # Pass each source its arguments.
-    source_gens = [bundle.source(*bundle.args, **bundle.kwargs)
-                   for bundle in bundles]
-    
+    # Get name hashes to pass to date_sort.
+    names = [source.get_hash() for source in sources]
+
     # Convert the list of generators into a flat stream by pulling
     # one element at a time from each.
-    stream_in = roundrobin(source_gens, names)
+    stream_in = roundrobin(sources, names)
     
     # Guarantee the flat stream will be sorted by date, using source_id as
     # tie-breaker, which is fully deterministic (given deterministic string 
