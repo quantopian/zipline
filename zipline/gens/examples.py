@@ -42,17 +42,16 @@ if __name__ == "__main__":
     passthrough = TransformBundle(Passthrough, (), {})
     mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
     tnfm_bundles = (passthrough, mavg_price)
+    
     merge_out = merged_transforms(sort_out, tnfm_bundles)
-
-# #   for message in merge_out:
-# #       print message
     
-#     algo = TestAlgorithm(2, 100, 100)
-#     environment = create_trading_environment(year = 2012)
-#     style = zp.SIMULATION_STYLE.FIXED_SLIPPAGE
+    import nose.tools; nose.tools.set_trace()
+    algo = TestAlgorithm(2, 100, 100, sid_filter = [2,3])
+    environment = create_trading_environment(year = 2012)
+    style = zp.SIMULATION_STYLE.FIXED_SLIPPAGE
     
-#     client_out = tsc(merge_out, algo, environment, style)
-#     for message in client_out:
-    #    pp(message)
+    client_out = tsc(merge_out, algo, environment, style)
+    for message in client_out:
+       pp(message)
         
     
