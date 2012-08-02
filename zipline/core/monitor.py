@@ -103,8 +103,6 @@ class Controller(object):
         self.route_socket       = route_socket
         self.exception_socket   = exception_socket
 
-        self.error_replay = OrderedDict()
-
         self.missed_beats = Counter()
 
         self.send_sighup = send_sighup
@@ -499,7 +497,6 @@ class Controller(object):
     # Error Handling
     # --------------
     def exception(self, component, exception_data):
-        self.error_replay[(component, time.time())] = exception_data
         log.error('Component in exception state: %s. Shutting down system and sending exception data to listeners.'\
             % component)
         # Send the exception message out to listeners.
@@ -615,10 +612,6 @@ class Controller(object):
 
         self.associated.append(s)
         return s
-
-    def do_error_replay(self):
-        for (component, time), error in self.error_replay.iteritems():
-            log.info('Component Log for -- %s --:\n%s' % (component, error))
 
     def kill(self):
         """Aggressively exit the whole zipline.

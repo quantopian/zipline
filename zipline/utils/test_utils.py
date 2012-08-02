@@ -1,3 +1,4 @@
+import multiprocessing
 import zmq
 import time
 import zipline.protocol as zp
@@ -6,6 +7,7 @@ import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
+
 
 def setup_logger(test, path='/var/log/zipline/zipline.log'):
     test.log_handler = FileHandler(path)
@@ -140,3 +142,33 @@ def assert_single_position(test, zipline):
         sid,
         "Portfolio should have one position in " + str(sid)
     )
+
+
+def launch_component(self, component):
+    proc = multiprocessing.Process(target=component.run)
+    proc.start()
+    self.subprocesses.append(proc)
+
+    self.mapping[proc.pid] = component.get_id
+    return proc
+
+def gen_from_socket(socket_uri, context, unframe):
+    """
+    A generator that takes a socket_uri,  and yields
+    messages from the poller until it gets a zp.CONTROL_PROTOCOL.DONE.
+    """
+    pull_socket = context.socket(zmq.PULL)
+    pull_socket.connect(socket_uri)
+    poller = zmq.Poller()
+    poller.register(pull_socket, zmq.POLLIN)
+
+    while True:
+        socks = dict(poller.poll(1000))
+
+        if socks.get(pull_socket) == zmq.POLLIN:
+            message = pull_socket.recv()
+
+            if message.type == zp.CONTROL_PROTOCOL.DONE:
+                break
+            else:
+                yield unframe(message)

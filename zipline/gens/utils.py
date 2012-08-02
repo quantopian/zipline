@@ -19,8 +19,8 @@ def mock_raw_event(sid, dt):
 
 def mock_done(id):
     return ndict({
-            'dt'        : "DONE", 
-            "source_id" : id, 
+            'dt'        : "DONE",
+            "source_id" : id,
             'tnfm_id'   : id,
             'tnfm_value': None,
             'type'      : 0
@@ -43,7 +43,7 @@ def roundrobin(sources, namestrings):
     """
     assert len(sources) == len(namestrings)
     mapping = OrderedDict(zip(namestrings, sources))
-    
+
     # While our generators have not been exhausted, pull elements
     while mapping.keys() != []:
         for namestring, source in mapping.iteritems():

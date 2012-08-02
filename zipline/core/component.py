@@ -11,6 +11,7 @@ import logbook
 import traceback
 import humanhash
 from setproctitle import setproctitle
+from collections import namedtuple
 
 # pyzmq
 import zmq
@@ -26,13 +27,14 @@ from zipline.protocol import (
     EXCEPTION_FRAME
 )
 
-log = logbook.Logger('Component')
 
-from zipline.exceptions import ComponentNoInit
+log = logbook.Logger('Component')
 
 class KillSignal(Exception):
     def __init__(self):
         pass
+
+ComponentSocketArgs = namedtuple('ComponentSocket',['uri','style','bind'])
 
 class Component(object):
 
@@ -74,52 +76,64 @@ class Component(object):
     # Construction
     # ------------
 
-    abstract = True
-    #__metaclass__ = WorkflowMeta
+    def __init__(self,
+            gen_func,
+            gen_args,
+            gen_kwargs,
+            component_id,
+            out_socket_args,
+            controller=None,
+            in_socket_args=None
+            ):
 
-    def __init__(self, *args, **kwargs):
-        self.zmq               = None
-        self.context           = None
-        self.addresses         = None
-        self.waiting           = None
+        assert component_id, \
+            "Every component needs a unique and invariant identifier"
+        assert isinstance(component_id, basestring), \
+            "Components must have string IDs"
+        assert isinstance(out_socket_args, ComponentSocketArgs), \
+            "out_socket_args args must be ComponentSocketArgs"
 
-        self.out_socket        = None
-        self.killed            = False
-        self.controller        = None
-        # timeout on heartbeat is very short to avoid burning
-        # cycles on heartbeating. unit is milliconds
-        self.heartbeat_timeout = 0
+        if in_socket_args:
+            assert isinstance(in_socket_args, ComponentSocketArgs), \
+                "in_socket_args args must be ComponentSocketArgs"
+
+        if monitor_socket_args:
+            assert isinstance(monitor_socket_args, ComponentSocketArgs), \
+                "monitor_socket_args args must be ComponentSocketArgs"
+
+
+        # -----------------
+        # Generator
+        # -----------------
+        self.component_id           = component_id
+        self.gen_args               = gen_args
+        self.gen_kwargs             = gen_kwargs
+        self.gen_func               = gen_func
+        self.generator              = None
+
+        # lock for waiting on monitor "GO"
+        self.waiting                = None
+
+        # -----------------
+        # ZMQ properties
+        # -----------------
+        self.in_socket_args         = in_socket_args
+        self.out_socket_args        = out_socket_args
+        self.zmq                    = None
+        self.context                = None
+        self.out_socket             = None
+        self.in_socket              = None
+        self.controller             = controller
+
         # TODO: state_flag is deprecated, remove
-        # TODO: error_state is deprecated, remove
-        self.state_flag        = COMPONENT_STATE.OK
-        self.error_state       = COMPONENT_FAILURE.NOFAILURE
-        self.on_done           = None
+        self.state_flag             = COMPONENT_STATE.OK
 
-        self._exception        = None
-        self.fail_time         = None
-        self.start_tic         = None
-        self.stop_tic          = None
-        self.note              = None
-        self.confirmed         = False
-        self.devel             = False
-        self.socks             = None
-        self.last_ping         = None
+        self.last_ping              = None
 
         # Humanhashes make this way easier to debug because they stick
         # in your mind unlike a 32 byte string of random hex.
-        self.guid = uuid.uuid4()
-        self.huid = humanhash.humanize(self.guid.hex)
-
-        # This is where component specific constructors should be
-        # defined. Arguments passed to init are threaded through.
-        self.init(*args, **kwargs)
-
-    def init(self):
-        """
-        Subclasses should override this to extend the setup for the
-        class. Shouldn't have side effects.
-        """
-        raise ComponentNoInit(self.__class__)
+        self.guid                   = uuid.uuid4()
+        self.huid                   = humanhash.humanize(self.guid.hex)
 
 
     # ------------
@@ -129,8 +143,45 @@ class Component(object):
     def open(self):
         """
         Open the connections needed to start doing work.
+        Perform any setup that must be done within process.
         """
-        raise NotImplementedError
+        # The process title so you can watch it in top, ps.
+        setproctitle(self.generator.__name__)
+
+        if self.in_socket_args:
+            self.in_socket = self.open_socket(self.in_socket_args)
+            poller_gen = self.gen_from_zmq(self.in_socket)
+            self.gen_func(poller_gen, *self.gen_args, **self.gen_kwargs)
+        else:
+            self.generator = self.gen_func(*self.gen_args, **self.gen_kwargs)
+
+        self.out_socket = self.open_socket(self.out_socket_args)
+
+    def open_socket(self, sock_args):
+        if sock_args.bind:
+            return self.bind_socket(sock_args)
+        else:
+            return self.connect_socket(sock_args)
+
+    def bind_socket(self, sock_args):
+        if sock_args.style == zmq.PULL:
+            return self.bind_pull_socket(sock_args.uri)
+        if sock_args.style == zmq.PUSH:
+            return self.bind_push_socket(sock_args.uri)
+        if sock_args.style == zmq.PUB:
+            return self.bind_pub_socket(sock_args.uri)
+
+        raise Exception("Invalid socket arguments")
+
+    def connect_socket(self, sock_args):
+        if sock_args.style == zmq.PULL:
+            return self.connect_pull_socket(sock_args.uri)
+        if sock_args.style == zmq.PUSH:
+            return self.connect_push_socket(sock_args.uri)
+        if sock_args.style == zmq.SUB:
+            return self.connect_sub_socket(sock_args.uri)
+
+        raise Exception("Invalid socket arguments")
 
     def ready(self):
         """
@@ -148,23 +199,10 @@ class Component(object):
         return self.state_flag == COMPONENT_STATE.DONE and not \
             self.exception
 
-    @property
-    def exception(self):
-        """
-        Holds the exception that the component failed on, or ``None`` if
-        the component has not failed.
-        """
-        return self._exception
-
-    def do_work(self):
-        raise NotImplementedError
-
     def init_zmq(self):
         self.zmq = zmq
         self.context = self.zmq.Context()
         self.zmq_poller = self.zmq.Poller
-        # The the process title so you can watch it in top
-        setproctitle(self.__class__.__name__)
         return
 
     def _run(self):
@@ -178,13 +216,10 @@ class Component(object):
         log.info("Pid %s" % os.getpid())
         log.info("Group %s" % os.getpgrp())
 
-        self.start_tic = time.time()
-
         self.done       = False # TODO: use state flag
         self.sockets    = []
 
         self.init_zmq()
-
         self.setup_poller()
 
         self.setup_control()
@@ -193,6 +228,7 @@ class Component(object):
         self.signal_ready()
         self.lock_ready()
         self.wait_ready()
+
         # -----------------------
         # YOU SHALL NOT PASS!!!!!
         # -----------------------
@@ -200,7 +236,6 @@ class Component(object):
 
         self.loop()
 
-        self.stop_tic = time.time()
 
     def run(self, catch_exceptions=True):
         """
@@ -219,7 +254,6 @@ class Component(object):
                 self.teardown_sockets()
 
         finally:
-            self.shutdown()
             log.info("Exiting %r" % self)
 
     def working(self):
@@ -236,30 +270,22 @@ class Component(object):
         """
         Loop to do work while we still have work to do.
         """
-        while self.working():
-            self.heartbeat()
-            self.do_work()
 
-    def runtime(self):
-        if self.ready() and self.start_tic and self.stop_tic:
-            return self.stop_tic - self.start_tic
+        for event in self.generator:
+            self.heartbeat()
+            msg = self.frame(event)
+            self.out_socket.send(msg)
 
     def heartbeat(self, timeout=0):
         # wait for synchronization reply from the host
-        self.socks = dict(self.poll.poll(timeout))
+        socks = dict(self.poll.poll(timeout))
 
         # ----------------
         # Control Dispatch
         # ----------------
         assert self.control_in, 'Component does not have a control_in socket'
 
-        # If we're in devel mode drop out because the controller
-        # isn't guaranteed to be around anymore
-        if self.devel:
-            log.warn("Skipping heartbeat because of devel flag")
-            return
-
-        if self.socks.get(self.control_in) == zmq.POLLIN:
+        if socks.get(self.control_in) == zmq.POLLIN:
             msg = self.control_in.recv()
             event, payload = CONTROL_UNFRAME(msg)
 
@@ -307,9 +333,7 @@ class Component(object):
 
         # In case we didn't receive a ping, send a pre-emptive
         # pong to the monitor.
-        elif hasattr(self, 'control_out') and \
-                self.last_ping and \
-                time.time() - self.last_ping > 1:
+        elif self.last_ping and time.time() - self.last_ping > 1:
             # send a ping ahead of schedule
             pre_pong = time.time()
             heartbeat_frame = CONTROL_FRAME(
@@ -342,16 +366,6 @@ class Component(object):
         for sock in self.sockets:
             sock.close()
 
-    def shutdown(self):
-        """
-        Clean shutdown.
-
-        Tear down after normal operation.
-        """
-        if self.on_done:
-            log.warn("{id} calling done.".format(id=self.get_id))
-            self.on_done()
-
     def kill(self):
         """
         Unclean shutdown.
@@ -359,7 +373,6 @@ class Component(object):
         Tear down ( fast ) as a mode of failure in the simulation or on
         service halt.
         """
-        # sys.exit(1)
         raise KillSignal()
 
     # ----------------------
@@ -452,28 +465,11 @@ class Component(object):
 
     def signal_ready(self):
         log.info(self.__class__.__name__ + ' is ready')
-
-        if hasattr(self, 'control_out'):
-            frame = CONTROL_FRAME(
-                CONTROL_PROTOCOL.READY,
-                ''
-            )
-            self.control_out.send(frame)
-
-    def signal_cancel(self):
-        self.done = True
-
-        # TODO: no hasattr hacks
-        #if not self.controller:
-        if hasattr(self, 'control_out'):
-            frame = CONTROL_FRAME(
-                CONTROL_PROTOCOL.SHUTDOWN,
-                None
-            )
-            self.control_out.send(frame)
-
-        # then proceeds to do shutdown(), and teardown_sockets()
-        # to complete the process
+        frame = CONTROL_FRAME(
+            CONTROL_PROTOCOL.READY,
+            ''
+        )
+        self.control_out.send(frame)
 
     def signal_exception(self, exc=None, scope=None):
         """
@@ -483,19 +479,7 @@ class Component(object):
         Will inform the system that the component has failed and how it
         has failed.
         """
-
-        if scope == 'algo':
-            self.error_state = COMPONENT_FAILURE.ALGOEXCEPT
-        else:
-            self.error_state = COMPONENT_FAILURE.HOSTEXCEPT
-
         self.state_flag = COMPONENT_STATE.EXCEPTION
-        # mark the time of failure so we can track the failure
-        # progogation through the system.
-
-        self.stop_tic = time.time()
-
-        self._exception = exc
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
         # if a downstream component fails, this component may try
@@ -571,9 +555,6 @@ class Component(object):
         # last heartbeat, and wait an unusually long time.
         self.heartbeat(timeout=5000)
 
-
-
-
     # -----------
     #  Messaging
     # -----------
@@ -584,30 +565,6 @@ class Component(object):
         handling sockets.
         """
         self.poll = self.zmq_poller()
-
-    def bind_data(self):
-        return self.bind_pull_socket(self.addresses['data_address'])
-
-    def connect_data(self):
-        return self.connect_push_socket(self.addresses['data_address'])
-
-    def bind_feed(self):
-        return self.bind_pub_socket(self.addresses['feed_address'])
-
-    def connect_feed(self):
-        return self.connect_sub_socket(self.addresses['feed_address'])
-
-    def bind_merge(self):
-        return self.bind_pull_socket(self.addresses['merge_address'])
-
-    def connect_merge(self):
-        return self.connect_push_socket(self.addresses['merge_address'])
-
-    def bind_result(self):
-        return self.bind_push_socket(self.addresses['results_address'])
-
-    def connect_result(self):
-        return self.connect_pull_socket(self.addresses['results_address'])
 
     def bind_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)
@@ -638,7 +595,6 @@ class Component(object):
     def connect_push_socket(self, addr):
         push_socket = self.context.socket(self.zmq.PUSH)
         push_socket.connect(addr)
-        #push_socket.setsockopt(self.zmq.LINGER,0)
         self.sockets.append(push_socket)
         self.out_socket = push_socket
 
@@ -647,7 +603,6 @@ class Component(object):
     def bind_pub_socket(self, addr):
         pub_socket = self.context.socket(self.zmq.PUB)
         pub_socket.bind(addr)
-        #pub_socket.setsockopt(self.zmq.LINGER, 0)
         self.out_socket = pub_socket
 
         return pub_socket
@@ -668,12 +623,6 @@ class Component(object):
         of the simulation and to forcefully tear down the simulation in
         case of a failure.
         """
-
-        # Allow for the possibility of not having a controller,
-        # possibly the zipline devsimulator may not want this.
-        if not self.controller:
-            return
-
         self.control_out = self.controller.message_sender(
             identity = self.get_id,
             context  = self.context,
@@ -685,29 +634,6 @@ class Component(object):
 
         self.poll.register(self.control_in, self.zmq.POLLIN)
         self.sockets.extend([self.control_in, self.control_out])
-
-    # -----------
-    # FSM Actions
-    # -----------
-
-    #@property
-    #def state(self):
-        #if not hasattr(self, '_state'):
-            #self._state = self.initial_state
-        #else:
-            #return self._state
-
-    #@state.setter
-    #def state(self, new):
-        #if not hasattr(self, '_state'):
-            #self._state = self.initial_state
-
-        #old = self._state
-
-        #if (old, new) in self.workflow:
-            #self._state = new
-        #else:
-            #raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
 
     # ---------------------
     # Description and Debug
@@ -728,32 +654,10 @@ class Component(object):
     @property
     def get_id(self):
         """
-        The descriptive name of the component.
+        The time invariant name for this component.
+        Must be unique within this zipline.
         """
-        # Prevents the bug that Thomas ran into
-        raise NotImplementedError
-
-    @property
-    def get_type(self):
-        """
-        The data flow type of the component.
-
-        - ``SOURCE``
-        - ``CONDUIT``
-        - ``SINK``
-
-        """
-        raise NotImplementedError
-
-    @property
-    def get_pure(self):
-        """
-        Describes whehter this component purely functional, i.e. for a
-        given set of inputs is it guaranteed to always give the same
-        output . Components that are side-effectful are, generally, not
-        pure.
-        """
-        return False
+        return self.component_id
 
     def debug(self):
         """
@@ -766,18 +670,12 @@ class Component(object):
             'pid'        : os.getpid()          ,
             'memaddress' : hex(id(self))        ,
             'ready'      : self.successful()    ,
-            'succesfull' : self.ready()         ,
+            'successful' : self.ready()         ,
         }
-
-    def __len__(self):
-        """
-        Some components overload this for debug purposes
-        """
-        raise NotImplementedError
 
     def __repr__(self):
         """
-        Return a usefull string representation of the component to
+        Return a useful string representation of the component to
         indicate its type, unique identifier, and computational context
         identifier name.
         """
