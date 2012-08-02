@@ -17,11 +17,11 @@ import zipline.protocol as zp
 
 if __name__ == "__main__":
     
-    filter = [2]
+    filter = [2,3]
     #Set up source a. One minute between events.
     args_a = tuple()
     kwargs_a = {
-        'sids'   : [2],
+        'sids'   : [1,2,3],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     #Set up source b. Two minutes between events.
     args_b = tuple()
     kwargs_b = {
-        'sids'   : [2],
+        'sids'   : [2,3,4],
         'start'  : datetime(2012,1,3,14, tzinfo = pytz.utc),
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
@@ -39,8 +39,7 @@ if __name__ == "__main__":
     source_b = SpecificEquityTrades(*args_a, **kwargs_a)
     
     #Set up source c. Three minutes between events.
-
-    # sort_out = date_sorted_sources(source_a, source_b)     
+    sort_out = date_sorted_sources(source_a, source_b)     
 
 #     passthrough = TransformBundle(Passthrough, (), {})
 #     mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
@@ -60,4 +59,5 @@ if __name__ == "__main__":
     #    pp(message)
         
         
-    
+
+
