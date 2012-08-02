@@ -80,14 +80,25 @@ class SpecificEquityTrades(object):
         
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
+        
+        self.generator = self.create_fresh_generator()
+        
+    def __iter__(self):
+        return self.generator
+
+    def next(self):
+        return self.generator.next()
+
+    def rewind(self):
+        self.generator = self.create_fresh_generator()
 
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.arg_string
         
-    def __iter__(self):
+    def create_fresh_generator(self):
         
         if self.event_list:
-            unfiltered = (event for event in event_list)
+            unfiltered = (event for event in self.event_list)
 
         # Set up iterators for each expected field.
         else:
