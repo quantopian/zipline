@@ -197,13 +197,12 @@ class PerformanceTracker(object):
             # save the transactions for the daily periods
             keep_transactions = True
         )
-
+        
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
             self.todays_performance.positions[sid] = Position(sid)
 
     def update(self, event):
-        import nose.tools; nose.tools.set_trace()
         event.perf_message = self.process_event(event)
         event.portfolio = self.get_portfolio()
         del event['TRANSACTION']
@@ -247,6 +246,8 @@ class PerformanceTracker(object):
 
 
     def process_event(self, event):
+        
+        message = None
 
         if self.exceeded_max_loss:
             return
@@ -255,7 +256,7 @@ class PerformanceTracker(object):
         self.event_count += 1
 
         if(event.dt >= self.market_close):
-            self.handle_market_close()
+            message = self.handle_market_close()
 
         if event.TRANSACTION:
             self.txn_count += 1
@@ -270,8 +271,10 @@ class PerformanceTracker(object):
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
 
-    def handle_market_close(self):
+        return message
 
+    def handle_market_close(self):
+        
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -293,14 +296,9 @@ class PerformanceTracker(object):
         # calculate progress of test
         self.progress = self.day_count / self.total_days
 
-        # TODO!!!!
+        #TODO TODO TODO!!
+        daily_update = self.to_dict()
 
-        # Output results
-        if self.results_socket:
-            msg = zp.PERF_FRAME(self.to_dict())
-            self.results_socket.send(msg)
-
-        #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
@@ -311,7 +309,7 @@ class PerformanceTracker(object):
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
                 self.exceeded_max_loss = True
-                return
+                return daily_update
 
 
         #move the market day markers forward
@@ -333,6 +331,8 @@ class PerformanceTracker(object):
             self.market_close,
             keep_transactions = True
         )
+        
+        return daily_update
 
     def handle_simulation_end(self):
         """
@@ -369,8 +369,8 @@ class Position(object):
         self.sid             = sid
         self.amount          = 0
         self.cost_basis      = 0.0 ##per share
-        self.last_sale_price = None
-        self.last_sale_date  = None
+        self.last_sale_price = 0.0
+        self.last_sale_date  = 0.0
 
     def update(self, txn):
         if(self.sid != txn.sid):

@@ -14,13 +14,13 @@ import zipline.protocol as zp
 
 if __name__ == "__main__":
     
-    filter = [1,2,3,4]
+    filter = [2]
     #Set up source a. One minute between events.
     args_a = tuple()
     kwargs_a = {
-        'sids'   : [1],
+        'sids'   : [1,2,3,4],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-        'delta'  : timedelta(minutes = 1),
+        'delta'  : timedelta(hours = 1),
         'filter' : filter
     }
     bundle_a = SourceBundle(SpecificEquityTrades, args_a, kwargs_a)
@@ -28,9 +28,9 @@ if __name__ == "__main__":
     #Set up source b. Two minutes between events.
     args_b = tuple()
     kwargs_b = {
-        'sids'   : [2],
+        'sids'   : [1,2,3,4],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-        'delta'  : timedelta(minutes = 1),
+        'delta'  : timedelta(hours = 1),
         'filter' : filter
     }
     bundle_b = SourceBundle(SpecificEquityTrades, args_b, kwargs_b)
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     #Set up source c. Three minutes between events.
     args_c = tuple()
     kwargs_c = {
-        'sids'   : [3],
+        'sids'   : [1,2,3,4],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-        'delta'  : timedelta(minutes = 1),
+        'delta'  : timedelta(hours = 1),
         'filter' : filter
     }
     bundle_c = SourceBundle(SpecificEquityTrades, args_c, kwargs_c)
@@ -63,5 +63,8 @@ if __name__ == "__main__":
     style = zp.SIMULATION_STYLE.PARTIAL_VOLUME
     
     client_out = tsc(merge_out, algo, environment, style)
-    client_out.next()
+    import nose.tools; nose.tools.set_trace()
+    for message in client_out:
+        pass
+        
     
