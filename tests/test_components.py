@@ -46,7 +46,6 @@ class ComponentTestCase(TestCase):
         setup_logger(self)
 
     def tearDown(self):
-        #self.ctx.term()
         teardown_logger(self)
 
     def test_source(self):
@@ -74,6 +73,9 @@ class ComponentTestCase(TestCase):
         )
 
         launch_monitor(monitor)
+        iter_a = iter(comp_a)
+        ev = iter_a.next()
+        return
 
         for event in comp_a:
             log.info(event)
@@ -142,16 +144,8 @@ class ComponentTestCase(TestCase):
             DATASOURCE_UNFRAME
         )
 
-        names = [
-                    comp_a.get_id,
-                    comp_b.get_id,
-                    comp_c.get_id
-                ]
-
-        monitor.manage(set(names))
         launch_monitor(monitor)
-
-        sorted_out = date_sorted_sources([comp_a, comp_b, comp_c])
+        sorted_out = date_sorted_sources(comp_a, comp_b, comp_c)
 
         prev = None
         sort_count = 0

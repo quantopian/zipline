@@ -98,6 +98,11 @@ class Component(object):
         self.guid                   = uuid.uuid4()
         self.huid                   = humanhash.humanize(self.guid.hex)
 
+        # ------------
+        # Generator
+        # ------------
+        self.gen                    = None
+
 
     # ------------
     # Core Methods
@@ -188,7 +193,10 @@ class Component(object):
         return self.run_safe(self._run_in)
 
     def __iter__(self):
-        return self._launch()
+        if not self.gen:
+            self.gen = self._launch()
+
+        return self.gen
 
     # ----------------------------
     #  Cleanup & Modes of Failure
@@ -600,6 +608,9 @@ class Component(object):
         Must be unique within this zipline.
         """
         return self.prefix + self.component_id
+
+    def get_hash(self):
+        return self.component_id
 
     def debug(self):
         """
