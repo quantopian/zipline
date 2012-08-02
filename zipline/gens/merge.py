@@ -19,7 +19,7 @@ def merge(stream_in, tnfm_ids):
     """
     
     assert isinstance(tnfm_ids, list)
-
+    
     # Set up an internal queue for each expected source.
     tnfms = {}
     for id in tnfm_ids:

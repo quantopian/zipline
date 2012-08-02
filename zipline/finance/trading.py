@@ -9,7 +9,7 @@ from zipline.protocol import SIMULATION_STYLE
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
-    FORWARDER = True
+    UPDATER = True
 
     def __init__(self, open_orders, style=SIMULATION_STYLE.PARTIAL_VOLUME):
         self.open_orders                = open_orders
@@ -28,9 +28,9 @@ class TransactionSimulator(object):
             self.apply_trade_to_open_orders = self.simulate_noop
 
     def update(self, event):
-        event.txn = None
+        event.TRANSACTION = None
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            event.txn = self.apply_trade_to_open_orders(event)
+            event.TRANSACTION = self.apply_trade_to_open_orders(event)
         return event
         
     def simulate_buy_all(self, event):

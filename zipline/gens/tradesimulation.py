@@ -1,5 +1,6 @@
 import logbook
 
+from datetime import datetime, timedelta
 from numbers import Integral
 
 from zipline import ndict
@@ -75,7 +76,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
             return
 
         open_orders[sid].append(event)
-
+    
     # Set the algo's order method.
     algo.set_order(order)
 
@@ -85,7 +86,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # Call user-defined initialize method before we process any
     # events.
     algo.initialize()
-
+    
     # Pipe the in stream into the transaction simulator.
     # Creates a txn field on the event containing transaction
     # information if we filled any pending orders on the event's sid.
@@ -111,16 +112,45 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     )
 
     # Batch the event stream by dt to be processed by the user's algo.
-    # Will also set the PERF_MESSAGE field if the batch contains a perf
-    # message.
+    # Yields perf messages whenever it encounters them.
+    perf_messages = algo_simulator(with_portfolio_and_perf_msg, algo)
 
-    def batcher(stream):
-        for msg in stream:
-            yield msg
+    
 
-    batches = batcher(with_portfolio_and_perf_msg)
 
-    for batch in batches:
-        algo.handle_data(batch.data)
-        if batch.perf_message:
+def algo_simulator(stream_in, sids, algo):
+    
+    current_dt = None
+    universe = ndict()
+    
+    for sid in sids:
+        universe[sid] = None
+    universe.portfolio = None
+
+    for update in stream_in:
+        #Yield perf messages to be relayed back to the browser.
+        if update.perf_message:
             yield perf_message
+        
+        if current_dt = None:
+            current_dt = update.dt
+            
+        # If this message is newer than the algorithm's simulated dt,
+        # call handle data on a snapshot of the current algo universe, 
+        # then 
+        if message.dt >= current_dt + last_delta:
+            start_tic = datetime.now()
+            algo.handle_data(universe)
+            stop_tic = datetime.now()
+            last_delta = datetime
+            
+            current_dt = message.dt + last_delta
+        
+        batch.data[message.sid] = message
+        batch.data.portfolio = message.portfolio
+        
+
+    
+    
+    
+    

@@ -133,6 +133,7 @@ import zipline.finance.risk as risk
 log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
+    UPDATER = True
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -202,8 +203,10 @@ class PerformanceTracker(object):
             self.todays_performance.positions[sid] = Position(sid)
 
     def update(self, event):
-        event.perf_message = self.process_event()
-        event.portfolio = self.get_portfolio
+        import nose.tools; nose.tools.set_trace()
+        event.perf_message = self.process_event(event)
+        event.portfolio = self.get_portfolio()
+        del event['TRANSACTION']
         return event
 
     def get_portfolio(self):

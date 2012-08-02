@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from zipline.utils.factory import create_trade
 from zipline.gens.utils import hash_args, mock_done
 
-def date_gen(start = datetime(2012, 6, 6, 0),
+def date_gen(start = datetime(2006, 6, 6, 12),
              delta = timedelta(minutes = 1),
              count = 100):
     """
