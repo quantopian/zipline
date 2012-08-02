@@ -84,7 +84,7 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     # Yields perf messages whenever it encounters them.
     perf_messages = algo_simulator(with_portfolio_and_perf_msg, sids, algo, open_orders)
 
-    for message in perf_messages:
+    for message in perf_messages:        
         yield message
 
 
@@ -109,7 +109,7 @@ def algo_simulator(stream_in, sids, algo, order_book):
                 sid=event.sid
             )
             log.debug(log)
-            return
+            return 
         
         order_book[sid].append(order)
     
@@ -123,18 +123,17 @@ def algo_simulator(stream_in, sids, algo, order_book):
     # events.
     algo.initialize()
     
-    this_snapshot_dt = None
-    
     universe = ndict()
-    
     for sid in sids:
         universe[sid] = ndict()
     universe.portfolio = None
+    this_snapshot_dt = None
 
     for event in stream_in:
         # Yield any perf messages received to be relayed back to the browser.
         if event.perf_message:
             yield event.perf_message
+            del event['perf_message']
 
         # This should only happen for the first event we run.
         if simulation_dt == None:
@@ -151,7 +150,6 @@ def algo_simulator(stream_in, sids, algo, order_book):
             # If we are constructing a snapshot and we hit a new dt, call
             # handle_data and record how long it takes.
             else:
-                
                 start_tic = datetime.now()
                 algo.handle_data(universe)
                 stop_tic = datetime.now()
