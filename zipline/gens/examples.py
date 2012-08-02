@@ -13,7 +13,7 @@ from zipline.gens.tradesimulation import trade_simulation_client as tsc
 import zipline.protocol as zp
 
 if __name__ == "__main__":
-    
+
     filter = [1,2,3,4]
     #Set up source a. One minute between events.
     args_a = tuple()
@@ -44,10 +44,10 @@ if __name__ == "__main__":
         'filter' : filter
     }
     bundle_c = SourceBundle(SpecificEquityTrades, args_c, kwargs_c)
-        
+
     source_bundles = (bundle_a, bundle_b, bundle_c)
     # Pipe our sources into sort.
-    sort_out = date_sorted_sources(source_bundles)     
+    sort_out = date_sorted_sources(source_bundles)
 
     passthrough = TransformBundle(Passthrough, (), {})
     mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
@@ -57,11 +57,10 @@ if __name__ == "__main__":
 
     # for message in merge_out:
 #         print message
-    
+
     algo = TestAlgorithm(2, 100, 100)
     environment = create_trading_environment(year = 2012)
     style = zp.SIMULATION_STYLE.PARTIAL_VOLUME
-    
+
     client_out = tsc(merge_out, algo, environment, style)
     client_out.next()
-    

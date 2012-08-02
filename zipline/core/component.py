@@ -10,8 +10,11 @@ import socket
 import logbook
 import traceback
 import humanhash
+import multiprocessing
 from setproctitle import setproctitle
 from collections import namedtuple
+from zipline.gens.utils import hash_args
+
 
 # pyzmq
 import zmq
@@ -36,7 +39,7 @@ class KillSignal(Exception):
     def __init__(self):
         pass
 
-ComponentSocketArgs = namedtuple('ComponentSocket',['uri','style','bind'])
+ComponentSocketArgs = namedtuple('ComponentSocketArgs',['uri','style','bind'])
 
 class Component(object):
 
@@ -49,33 +52,27 @@ class Component(object):
             gen_args,
             gen_kwargs,
             component_id,
-            out_socket_args,
-            frame,
             monitor,
-            in_socket_args=None,
-            unframe=None
+            socket_uri,
+            frame,
+            unframe
             ):
 
         assert component_id, \
             "Every component needs a unique and invariant identifier"
         assert isinstance(component_id, basestring), \
             "Components must have string IDs"
-        assert isinstance(out_socket_args, ComponentSocketArgs), \
-            "out_socket_args args must be ComponentSocketArgs"
-
-        if in_socket_args:
-            assert isinstance(in_socket_args, ComponentSocketArgs), \
-                "in_socket_args args must be ComponentSocketArgs"
 
         # -----------------
         # Generator
         # -----------------
-        self.component_id           = component_id
         self.gen_args               = gen_args
         self.gen_kwargs             = gen_kwargs
         self.gen_func               = gen_func
         self.generator              = None
         self.frame                  = frame
+        self.component_id           = self.gen_func.__name__ \
+                                        + hash_args(gen_args, gen_kwargs)
 
         # lock for waiting on monitor "GO"
         self.waiting                = None
@@ -83,14 +80,27 @@ class Component(object):
         # -----------------
         # ZMQ properties
         # -----------------
-        self.in_socket_args         = in_socket_args
-        self.out_socket_args        = out_socket_args
+        self.in_socket_args         = ComponentSocketArgs(
+                                        uri = socket_uri,
+                                        style = zmq.PULL,
+                                        bind = False
+                                      )
+        self.out_socket_args        = ComponentSocketArgs(
+                                        uri = socket_uri,
+                                        style = zmq.PUSH,
+                                        bind = True
+                                      )
         self.zmq                    = None
         self.context                = None
         self.out_socket             = None
         self.in_socket              = None
-        self.monitor             = monitor
+        self.monitor                = monitor
         self.unframe                = unframe
+        self.prefix                 = ""
+
+        # register two components with the monitor
+        monitor.add_to_topology(self.component_id)
+        monitor.add_to_topology("FORK-"+self.component_id)
 
         # TODO: state_flag is deprecated, remove
         self.state_flag             = COMPONENT_STATE.OK
@@ -109,7 +119,7 @@ class Component(object):
     # ------------
 
 
-    def _run(self):
+    def _run_out(self):
         """
         The main component loop. This is wrapped inside a
         exception reporting context inside of run.
@@ -118,12 +128,11 @@ class Component(object):
         """
         # The process title so you can watch it in top, ps.
         setproctitle(self.gen_func.__name__)
+        self.prefix = "FORK-"
 
         log.info("Start %r" % self)
         log.info("Pid %s" % os.getpid())
         log.info("Group %s" % os.getpgrp())
-
-        self.sockets    = []
 
         self.open()
 
@@ -138,17 +147,36 @@ class Component(object):
 
         for event in self.generator:
             self.heartbeat()
+            event.source_id = self.get_id
             msg = self.frame(event)
             self.out_socket.send(msg)
 
         self.signal_done()
 
-    def run(self, catch_exceptions=True):
+    def _run_in(self):
+        self.open(send=False)
+        self.signal_ready()
+        self.lock_ready()
+        self.wait_ready()
+         # -----------------------
+        # YOU SHALL NOT PASS!!!!!
+        # -----------------------
+        # ... until the monitor signals GO
+
+        # return the generator
+        for event in gen_from_poller(self.poll, self.in_socket, self.unframe):
+            event.source_id = self.get_id
+            yield event
+
+        self.signal_done()
+
+    def run_safe(self, func):
         """
-        Run the component.
+        Run a function that is assumed to include wait_ready and
+        heartbeat. Used to wrap fork_generator and consume_gen.
         """
         try:
-            self._run()
+            return func()
         except Exception as exc:
             if not isinstance(exc, KillSignal):
                 self.signal_exception(exc)
@@ -159,6 +187,23 @@ class Component(object):
         finally:
             log.info("Exiting %r" % self)
 
+
+    def _launch(self):
+        # first, start the generator in its own process. Once
+        # Monitor says "go", Events from the generator will be
+        # FRAME'd and PUSH'd to self.socket_uri.
+        proc = multiprocessing.Process(
+                    target=self.run_safe,
+                    args=(self._run_out,)
+                )
+        proc.start()
+
+        # Start the poller-generator, which will PULL messages
+        # from self.sockiet_uri, UNFRAME'd them, and yield them.
+        return self.run_safe(self._run_in)
+
+    def __iter__(self):
+        return self._launch()
 
     # ----------------------------
     #  Cleanup & Modes of Failure
@@ -420,8 +465,9 @@ class Component(object):
         # notify internal work loop that we're done
         self.done = True # TODO: use state flag
 
-        msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
-        self.out_socket.send(msg)
+        if self.out_socket:
+            msg = zmq.Message(str(CONTROL_PROTOCOL.DONE))
+            self.out_socket.send(msg)
 
 
         # notify monitor we're done
@@ -437,40 +483,32 @@ class Component(object):
         # after the Monitor accepts our prior heartbeat, but just
         # before the next one is sent. So, we hang around for one
         # last heartbeat, and wait an unusually long time.
-        self.heartbeat(timeout=5000)
+        # TODO: decided if this is really necessary.
+        # self.heartbeat(timeout=5000)
 
     # -----------
     #  Messaging
     # -----------
 
-    def open(self):
+    def open(self, send=True):
         """
         Open the connections needed to start doing work.
         Perform any setup that must be done within process.
         """
-
+        self.sockets    = []
         self.zmq = zmq
         self.context = self.zmq.Context()
         self.poll = self.zmq.Poller()
 
         self.setup_control()
 
-        if self.in_socket_args:
-            self.in_socket = self.open_socket(self.in_socket_args)
-            poller_gen = gen_from_poller(
-                            self.poller,
-                            self.in_socket,
-                            self.unframe
-                         )
-            self.generator = self.gen_func(
-                                    poller_gen,
-                                    *self.gen_args,
-                                    **self.gen_kwargs
-                                  )
-        else:
+        if send:
             self.generator = self.gen_func(*self.gen_args, **self.gen_kwargs)
-
-        self.out_socket = self.open_socket(self.out_socket_args)
+            self.out_socket = self.open_socket(self.out_socket_args)
+            self.sockets.extend([self.out_socket])
+        else:
+            self.in_socket = self.open_socket(self.in_socket_args)
+            self.sockets.extend([self.in_socket])
 
     def open_socket(self, sock_args):
         if sock_args.bind:
@@ -577,7 +615,7 @@ class Component(object):
         The time invariant name for this component.
         Must be unique within this zipline.
         """
-        return self.component_id
+        return self.prefix + self.component_id
 
     def debug(self):
         """

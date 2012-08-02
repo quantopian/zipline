@@ -105,6 +105,9 @@ class Monitor(object):
 
         self.missed_beats = Counter()
 
+        # start with an empty topology
+        self.topology = set([])
+
         self.send_sighup = send_sighup
         if self.send_sighup:
             log.info("Request to send sighup/sigint")
@@ -115,6 +118,17 @@ class Monitor(object):
         self.context    = self.zmq.Context()
         self.zmq_poller = self.zmq.Poller
         return
+
+    def add_to_topology(self, component_id):
+        add = set([component_id])
+        self.topology.update(add)
+
+    def freeze_topology(self):
+        if isinstance(self.topology, frozenset):
+            return
+        # we've been incrementally adding components.
+        # time to freeze.
+        self.manage(self.topology)
 
     def manage(self, topology):
         """
@@ -147,6 +161,7 @@ class Monitor(object):
             raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
 
     def run(self):
+        self.freeze_topology()
         self.running = True
         self.init_zmq()
         setproctitle('Monitor')
