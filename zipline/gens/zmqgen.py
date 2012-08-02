@@ -13,6 +13,11 @@ def gen_from_pull_socket(socket_uri, context, unframe):
 
     return gen_from_poller(poller, pull_socket, unframe)
 
+
+# this generator needs to know about the source_ids coming in via
+# the poller, and need to yield DONE messages for each
+# source_id.
+
 def gen_from_poller(poller, in_socket, unframe):
 
     while True:

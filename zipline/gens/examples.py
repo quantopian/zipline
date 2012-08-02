@@ -1,7 +1,4 @@
 import pytz
-from time import sleep
-
-from pprint import pprint as pp
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trading_environment
@@ -26,7 +23,7 @@ if __name__ == "__main__":
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
-    source_a = SpecificEquityTrades(*args_a, **kwargs_a)
+    bundle_a = SourceBundle(SpecificEquityTrades, args_a, kwargs_a)
 
     #Set up source b. Two minutes between events.
     args_b = tuple()
@@ -36,9 +33,10 @@ if __name__ == "__main__":
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
-    source_b = SpecificEquityTrades(*args_a, **kwargs_a)
-    
+    bundle_b = SourceBundle(SpecificEquityTrades, args_b, kwargs_b)
+
     #Set up source c. Three minutes between events.
+
     sort_out = date_sorted_sources(source_a, source_b)     
 
 #     passthrough = TransformBundle(Passthrough, (), {})
@@ -58,6 +56,4 @@ if __name__ == "__main__":
 #     for message in client_out:
     #    pp(message)
         
-        
-
-
+    
