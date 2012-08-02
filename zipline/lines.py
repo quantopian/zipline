@@ -62,7 +62,7 @@ before invoking simulate.
 
 import inspect
 import logbook
-import zipline.utils.factory as factory
+#import zipline.utils.factory as factory
 
 from zipline.components import DataSource
 from zipline.transforms import BaseTransform

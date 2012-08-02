@@ -13,7 +13,6 @@ import humanhash
 import multiprocessing
 from setproctitle import setproctitle
 from collections import namedtuple
-from zipline.gens.utils import hash_args
 
 
 # pyzmq
@@ -48,9 +47,7 @@ class Component(object):
     # ------------
 
     def __init__(self,
-            gen_func,
-            gen_args,
-            gen_kwargs,
+            generator,
             component_id,
             monitor,
             socket_uri,
@@ -66,13 +63,9 @@ class Component(object):
         # -----------------
         # Generator
         # -----------------
-        self.gen_args               = gen_args
-        self.gen_kwargs             = gen_kwargs
-        self.gen_func               = gen_func
-        self.generator              = None
+        self.generator              = generator
         self.frame                  = frame
-        self.component_id           = self.gen_func.__name__ \
-                                        + hash_args(gen_args, gen_kwargs)
+        self.component_id           = hash(self.generator)
 
         # lock for waiting on monitor "GO"
         self.waiting                = None
@@ -503,7 +496,6 @@ class Component(object):
         self.setup_control()
 
         if send:
-            self.generator = self.gen_func(*self.gen_args, **self.gen_kwargs)
             self.out_socket = self.open_socket(self.out_socket_args)
             self.sockets.extend([self.out_socket])
         else:
