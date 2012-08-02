@@ -145,7 +145,9 @@ class ComponentTestCase(TestCase):
         )
 
         launch_monitor(monitor)
-        sorted_out = date_sorted_sources(comp_a, comp_b, comp_c)
+        sources = [comp_a, comp_b, comp_c]
+        gens = [iter(source) for source in sources]
+        sorted_out = date_sorted_sources(gens)
 
         prev = None
         sort_count = 0

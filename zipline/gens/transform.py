@@ -39,61 +39,72 @@ def functional_transform(stream_in, func, *args, **kwargs):
         assert_transform_protocol(out_value)
         yield(namestring, out_value)
 
-def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
+class StatefulTransform(object):
     """
-    Generic transform generator that takes each message from an in-stream
-    and passes it to a state class.  For each call to update, the state
-    class must produce a message to be fed downstream. Any transform class
-    with the FORWARDER class variable set to true will forward all fields
-    in the original message.  Otherwise only dt, tnfm_id, and tnfm_value
-    are forwarded.
+    Generic transform generator that takes each message from an
+    in-stream and passes it to a state class.  For each call to
+    update, the state class must produce a message to be fed
+    downstream. Any transform class with the FORWARDER class variable
+    set to true will forward all fields in the original message.
+    Otherwise only dt, tnfm_id, and tnfm_value are forwarded.
     """
-    forward_all_fields = tnfm_class.__dict__.get('FORWARDER', False)
-    update_in_place = tnfm_class.__dict__.get('UPDATER', False)
-
-    assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
+    def __init__(self, stream_in, tnfm_class, *args, **kwargs):
+        assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
-    assert tnfm_class.__dict__.has_key('update'), \
+        assert tnfm_class.__dict__.has_key('update'), \
         "Stateful transform requires the class to have an update method"
-    
-    # Create an instance of our transform class.
-    state = tnfm_class(*args, **kwargs)
-
-    # Generate the string associated with this generator's output.
-    namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
-
-    # IMPORTANT: Messages may contain pointers that are shared with
-    # other streams, so we only manipulate copies.
-    for message in stream_in:
         
-        assert_sort_unframe_protocol(message)
-        message_copy = deepcopy(message)
-
-        # Same shared pointer issue here as above.
-        tnfm_value = state.update(deepcopy(message_copy))
-
-        # If we want to keep all original values, plus append tnfm_id
-        # and tnfm_value. Used for Passthrough.
-        if forward_all_fields:
-            out_message = message_copy
-            out_message.tnfm_id = namestring
-            out_message.tnfm_value = tnfm_value
-            yield out_message
+        self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
+        self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
+        assert not all([self.forward_all, self.update_in_place])
         
-        # Our expectation is that the transform simply updated the
-        # message it was passed.  Useful for chaining together
-        # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.
-        elif update_in_place:
-            yield tnfm_value
+        self.stream_in = stream_in
 
-        # Otherwise send tnfm_id, tnfm_value, and the message
-        # date. Useful for transforms being piped to a merge.
-        else:
-            out_message = ndict()
-            out_message.tnfm_id = namestring
-            out_message.tnfm_value = tnfm_value
-            out_message.dt = message_copy.dt
-            yield out_message
+        # Create an instance of our transform class.
+        self.state = tnfm_class(*args, **kwargs)
+        
+        # Generate the string associated with this generator's output.
+        self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
+        
+    def get_hash(self):
+        return self.namestring
+
+    def __iter__(self):
+        return self.gen()
+        
+    def gen(self):
+        # IMPORTANT: Messages may contain pointers that are shared with
+        # other streams, so we only manipulate copies.
+        for message in self.stream_in:
+        
+            assert_sort_unframe_protocol(message)
+            message_copy = deepcopy(message)
+
+            # Same shared pointer issue here as above.
+            tnfm_value = self.state.update(deepcopy(message_copy))
+
+            # If we want to keep all original values, plus append tnfm_id
+            # and tnfm_value. Used for Passthrough.
+            if self.forward_all:
+                out_message = message_copy
+                out_message.tnfm_id = self.namestring
+                out_message.tnfm_value = tnfm_value
+                yield out_message
+        
+                # Our expectation is that the transform simply updated the
+                # message it was passed.  Useful for chaining together
+                # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.
+            elif self.update_in_place:
+                yield tnfm_value
+
+                # Otherwise send tnfm_id, tnfm_value, and the message
+                # date. Useful for transforms being piped to a merge.
+            else:
+                out_message = ndict()
+                out_message.tnfm_id = self.namestring
+                out_message.tnfm_value = tnfm_value
+                out_message.dt = message_copy.dt
+                yield out_message
 
 class MovingAverage(object):
     """

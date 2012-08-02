@@ -5,7 +5,7 @@ from numbers import Integral
 
 from zipline import ndict
 
-from zipline.gens.transform import stateful_transform
+from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 
