@@ -7,7 +7,7 @@ from itertools import chain, cycle, ifilter, izip
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trade
-from zipline.gens.utils import hash_args, mock_done
+from zipline.gens.utils import hash_args
 
 def date_gen(start = datetime(2006, 6, 6, 12),
              delta = timedelta(minutes = 1),
@@ -54,9 +54,9 @@ class SpecificEquityTrades(object):
     Yields all events in event_list that match the given sid_filter.
     If no event_list is specified, generates an internal stream of events
     to filter.  Returns all events if filter is None.
-    
+
     Configuration options:
-    
+
     count  : integer representing number of trades
     sids   : list of values representing simulated internal sids
     start  : start date
@@ -67,22 +67,22 @@ class SpecificEquityTrades(object):
     def __init__(self, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
-        
+
         # Unpack config dictionary with default values.
         self.count = kwargs.get('count', 500)
         self.sids = kwargs.get('sids', [1, 2])
         self.start = kwargs.get('start', datetime(2012, 6, 6, 0))
         self.delta = kwargs.get('delta', timedelta(minutes = 1))
-        
+
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
         self.filter = kwargs.get('filter')
-        
+
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
-        
+
         self.generator = self.create_fresh_generator()
-        
+
     def __iter__(self):
         return self.generator
 
@@ -94,22 +94,22 @@ class SpecificEquityTrades(object):
 
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.arg_string
-        
+
     def create_fresh_generator(self):
-        
+
         if self.event_list:
             unfiltered = (event for event in self.event_list)
 
         # Set up iterators for each expected field.
         else:
-            dates = date_gen(count=self.count, 
-                             start=self.start, 
+            dates = date_gen(count=self.count,
+                             start=self.start,
                              delta=self.delta
             )
             prices = mock_prices(self.count)
             volumes = mock_volumes(self.count)
             sids = cycle(self.sids)
-            
+
             # Combine the iterators into a single iterator of arguments
             arg_gen = izip(sids, prices, volumes, dates)
 
@@ -137,7 +137,7 @@ def RandomEquityTrades(object):
     def __init__(self):
         # We shouldn't get any positional args.
         assert args == ()
-        
+
         self.count = config.get('count', 500)
         self.sids = config.get('sids', [1,2])
         self.filter = config.get('filter')
