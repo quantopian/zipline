@@ -35,6 +35,7 @@ def date_sorted_sources(bundles):
     # Guarantee the flat stream will be sorted by date, using source_id as
     # tie-breaker, which is fully deterministic (given deterministic string
     # representation for all args/kwargs)
+
     return date_sort(stream_in, names)
 
 
