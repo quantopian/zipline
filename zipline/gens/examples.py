@@ -23,7 +23,7 @@ if __name__ == "__main__":
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
-    bundle_a = SourceBundle(SpecificEquityTrades, args_a, kwargs_a)
+    source_a = SpecificEquityTrades(*args_a, **kwargs_a)
 
     #Set up source b. Two minutes between events.
     args_b = tuple()
@@ -33,12 +33,12 @@ if __name__ == "__main__":
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
-    bundle_b = SourceBundle(SpecificEquityTrades, args_b, kwargs_b)
+    source_b = SpecificEquityTrades(*args_b, **kwargs_b)
 
     #Set up source c. Three minutes between events.
 
     sort_out = date_sorted_sources(source_a, source_b)     
-
+    
 #     passthrough = TransformBundle(Passthrough, (), {})
 #     mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
 #     tnfm_bundles = (passthrough, mavg_price)

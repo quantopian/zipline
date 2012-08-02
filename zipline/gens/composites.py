@@ -18,15 +18,15 @@ def date_sorted_sources(*sources):
     """
 
     for source in sources:
-        assert source.__dict__.has_key('__init__')
-        assert source.__dict__.has_key('get_hash')
+        assert iter(source), "Source %s not iterable" % source
+        assert source.__class__.__dict__.has_key('get_hash'), "No get_hash"
 
     # Get name hashes to pass to date_sort.
-    names = [source.get_hash for source in sources)
+    names = [source.get_hash() for source in sources]
 
     # Convert the list of generators into a flat stream by pulling
     # one element at a time from each.
-    stream_in = roundrobin(source_gens, names)
+    stream_in = roundrobin(sources, names)
     
     # Guarantee the flat stream will be sorted by date, using source_id as
     # tie-breaker, which is fully deterministic (given deterministic string 
