@@ -70,9 +70,7 @@ class ComponentTestCase(TestCase):
         }
 
         comp_a = Component(
-            SpecificEquityTrades,
-            args_a,
-            kwargs_a,
+            SpecificEquityTrades(*args_a, **kwargs_a),
             monitor,
             socket_uri,
             DATASOURCE_FRAME,
