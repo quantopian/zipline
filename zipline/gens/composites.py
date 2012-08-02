@@ -6,7 +6,7 @@ from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.utils import roundrobin, hash_args
 from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
-from zipline.gens.transform import stateful_transform
+from zipline.gens.transform import StatefulTransform
 
 SourceBundle = namedtuple("SourceBundle", ['source', 'args', 'kwargs'])
 TransformBundle = namedtuple("TransformBundle", ['tnfm', 'args', 'kwargs'])
@@ -54,8 +54,8 @@ def merged_transforms(sorted_stream, bundles):
     tnfms_with_streams = zip(split, bundles)
 
     # Convert the copies into transform streams.
-    tnfm_gens = [
-        stateful_transform(
+    tnfms = [
+        StatefulTransform(
             stream_copy, 
             bundle.tnfm, 
             *bundle.args, 
@@ -63,6 +63,8 @@ def merged_transforms(sorted_stream, bundles):
         )
         for stream_copy, bundle in tnfms_with_streams
     ]
+    tnfm_gens = [tnfm.gen() for tnfm in tnfms]
+
 
     # Roundrobin the outputs of our transforms to create a single flat stream.
     to_merge = roundrobin(tnfm_gens, namestrings)

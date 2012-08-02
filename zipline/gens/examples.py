@@ -7,7 +7,7 @@ from zipline.test_algorithms import TestAlgorithm
 from zipline.gens.composites import SourceBundle, TransformBundle, \
     date_sorted_sources, merged_transforms
 from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.transform import MovingAverage, Passthrough
+from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import trade_simulation_client as tsc
 
 import zipline.protocol as zp
@@ -39,11 +39,10 @@ if __name__ == "__main__":
 
     sort_out = date_sorted_sources(source_a, source_b)     
     
-#     passthrough = TransformBundle(Passthrough, (), {})
-#     mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
-#     tnfm_bundles = (passthrough, mavg_price)
-
-#     merge_out = merged_transforms(sort_out, tnfm_bundles)
+    passthrough = TransformBundle(Passthrough, (), {})
+    mavg_price = TransformBundle(MovingAverage, (timedelta(minutes = 20), ['price']), {})
+    tnfm_bundles = (passthrough, mavg_price)
+    merge_out = merged_transforms(sort_out, tnfm_bundles)
 
 # #   for message in merge_out:
 # #       print message
