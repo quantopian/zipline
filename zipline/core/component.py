@@ -8,7 +8,6 @@ import uuid
 import time
 import socket
 import logbook
-import traceback
 import humanhash
 import multiprocessing
 from setproctitle import setproctitle
@@ -25,7 +24,6 @@ from zipline.core.monitor import PARAMETERS
 from zipline.protocol import (
     CONTROL_PROTOCOL,
     COMPONENT_STATE,
-    COMPONENT_FAILURE,
     CONTROL_FRAME,
     CONTROL_UNFRAME,
     EXCEPTION_FRAME
@@ -48,24 +46,18 @@ class Component(object):
 
     def __init__(self,
             generator,
-            component_id,
             monitor,
             socket_uri,
             frame,
             unframe
             ):
 
-        assert component_id, \
-            "Every component needs a unique and invariant identifier"
-        assert isinstance(component_id, basestring), \
-            "Components must have string IDs"
-
         # -----------------
         # Generator
         # -----------------
         self.generator              = generator
         self.frame                  = frame
-        self.component_id           = hash(self.generator)
+        self.component_id           = self.generator.get_hash()
 
         # lock for waiting on monitor "GO"
         self.waiting                = None
@@ -120,7 +112,7 @@ class Component(object):
         The core logic of the all components is run here.
         """
         # The process title so you can watch it in top, ps.
-        setproctitle(self.gen_func.__name__)
+        setproctitle(self.generator.__class__.__name__)
         self.prefix = "FORK-"
 
         log.info("Start %r" % self)

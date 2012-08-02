@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from unittest2 import TestCase
 from collections import defaultdict
-from zipline.gens.composite import date_sorted_sources
+from zipline.gens.composites import date_sorted_sources
 
 from zipline.finance.trading import SIMULATION_STYLE
 from zipline.core.devsimulator import AddressAllocator
@@ -16,17 +16,13 @@ from zipline.utils.test_utils import (
         launch_monitor
 )
 
-
 from zipline.core import Component
-from zipline.core.component import ComponentSocketArgs
 from zipline.protocol import (
     DATASOURCE_FRAME,
     DATASOURCE_UNFRAME
 )
 
 from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.sort import date_sort
-from zipline.gens.zmqgen import gen_from_poller
 
 import logbook
 log = logbook.Logger('ComponentTestCase')
@@ -85,7 +81,6 @@ class ComponentTestCase(TestCase):
 
     def test_sort(self):
         monitor     = create_monitor(allocator)
-        poller      = zmq.Poller()
         socket_uris    = allocator.lease(3)
         count       = 100
 
@@ -102,9 +97,7 @@ class ComponentTestCase(TestCase):
 
 
         comp_a = Component(
-            SpecificEquityTrades,
-            args_a,
-            kwargs_a,
+            SpecificEquityTrades(*args_a, **kwargs_a),
             monitor,
             socket_uris[0],
             DATASOURCE_FRAME,
@@ -124,9 +117,7 @@ class ComponentTestCase(TestCase):
 
 
         comp_b = Component(
-            SpecificEquityTrades,
-            args_b,
-            kwargs_b,
+            SpecificEquityTrades(*args_b, **kwargs_b),
             monitor,
             socket_uris[1],
             DATASOURCE_FRAME,
@@ -144,9 +135,7 @@ class ComponentTestCase(TestCase):
         }
 
         comp_c = Component(
-            SpecificEquityTrades,
-            args_c,
-            kwargs_c,
+            SpecificEquityTrades(*args_c, **kwargs_c),
             monitor,
             socket_uris[2],
             DATASOURCE_FRAME,
