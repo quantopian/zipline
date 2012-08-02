@@ -1,3 +1,4 @@
+import pytz
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trading_environment
@@ -17,8 +18,8 @@ if __name__ == "__main__":
     #Set up source a. One minute between events.
     args_a = tuple()
     kwargs_a = {
-        'sids'   : [1,2],
-        'start'  : datetime(2012,6,6,0),
+        'sids'   : [1],
+        'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
         'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
@@ -27,9 +28,9 @@ if __name__ == "__main__":
     #Set up source b. Two minutes between events.
     args_b = tuple()
     kwargs_b = {
-        'sids'   : [2,3],
-        'start'  : datetime(2012,6,6,0),
-        'delta'  : timedelta(minutes = 2),
+        'sids'   : [2],
+        'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
+        'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
     bundle_b = SourceBundle(SpecificEquityTrades, args_b, kwargs_b)
@@ -37,9 +38,9 @@ if __name__ == "__main__":
     #Set up source c. Three minutes between events.
     args_c = tuple()
     kwargs_c = {
-        'sids'   : [3,4],
-        'start'  : datetime(2012,6,6,0),
-        'delta'  : timedelta(minutes = 3),
+        'sids'   : [3],
+        'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
+        'delta'  : timedelta(minutes = 1),
         'filter' : filter
     }
     bundle_c = SourceBundle(SpecificEquityTrades, args_c, kwargs_c)
@@ -58,9 +59,9 @@ if __name__ == "__main__":
 #         print message
     
     algo = TestAlgorithm(2, 100, 100)
-    environment = create_trading_environment()
+    environment = create_trading_environment(year = 2012)
     style = zp.SIMULATION_STYLE.PARTIAL_VOLUME
     
     client_out = tsc(merge_out, algo, environment, style)
-    
+    client_out.next()
     

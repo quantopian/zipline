@@ -49,6 +49,7 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
     are forwarded.
     """
     forward_all_fields = tnfm_class.__dict__.get('FORWARDER', False)
+    update_in_place = tnfm_class.__dict__.get('UPDATER', False)
 
     assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
@@ -72,29 +73,21 @@ def stateful_transform(stream_in, tnfm_class, *args, **kwargs):
         tnfm_value = state.update(deepcopy(message_copy))
 
         # If we want to keep all original values, plus append tnfm_id
-        # and tnfm_value.
+        # and tnfm_value. Used for Passthrough.
         if forward_all_fields:
             out_message = message_copy
             out_message.tnfm_id = namestring
             out_message.tnfm_value = tnfm_value
             yield out_message
         
-        # Special logic for TransactionSimulator and
-        # PerformanceTracker.  This is ugly but I want to get to
-        # testing faster.  Should be refactored later to something
-        # that doesn't make Scott cry.
-        elif tnfm_class.__name__ == 'TransactionSimulator':
-            out_message = message_copy
-            out_message.txn = tnfm_value
-            yield out_message
+        # Our expectation is that the transform simply updated the
+        # message it was passed.  Useful for chaining together
+        # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.
+        elif update_in_place:
+            yield tnfm_value
 
-        elif tnfm_class.__name__ == 'PerformanceTracker':
-            out_message = message_copy
-            del out_message['txn']
-            out_message.portfolio = tnfm_value
-            yield out_message
-            
-        # Otherwise send tnfm_id, tnfm_value, and the message date.
+        # Otherwise send tnfm_id, tnfm_value, and the message
+        # date. Useful for transforms being piped to a merge.
         else:
             out_message = ndict()
             out_message.tnfm_id = namestring
