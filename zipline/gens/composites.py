@@ -15,7 +15,7 @@ def date_sorted_sources(*sources):
     """
     Takes an iterable of SortBundles, generating namestrings and initialized datasources
     for each before piping them into a date_sort.
-    """
+n    """
 
     for source in sources:
         assert iter(source), "Source %s not iterable" % source
@@ -27,9 +27,9 @@ def date_sorted_sources(*sources):
     # Convert the list of generators into a flat stream by pulling
     # one element at a time from each.
     stream_in = roundrobin(sources, names)
-
+    
     # Guarantee the flat stream will be sorted by date, using source_id as
-    # tie-breaker, which is fully deterministic (given deterministic string
+    # tie-breaker, which is fully deterministic (given deterministic string 
     # representation for all args/kwargs)
 
     return date_sort(stream_in, names)
@@ -51,15 +51,15 @@ def merged_transforms(sorted_stream, bundles):
 
     # Create a copy of the stream for each transform.
     split = tee(sorted_stream, len(bundles))
-    # Package a stream copy with each bundle
+    # Package a stream copy with each bundle 
     tnfms_with_streams = zip(split, bundles)
 
     # Convert the copies into transform streams.
     tnfms = [
         StatefulTransform(
-            stream_copy,
-            bundle.tnfm,
-            *bundle.args,
+            stream_copy, 
+            bundle.tnfm, 
+            *bundle.args, 
             **bundle.kwargs
         )
         for stream_copy, bundle in tnfms_with_streams

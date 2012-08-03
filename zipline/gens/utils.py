@@ -54,8 +54,6 @@ def roundrobin(sources, namestrings):
                 yield done_message(namestring)
                 del mapping[namestring]
 
-
-
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
     arg_string = '_'.join([str(arg) for arg in args])

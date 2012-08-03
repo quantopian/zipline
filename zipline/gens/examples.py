@@ -1,4 +1,7 @@
 import pytz
+
+from time import sleep
+from pprint import pprint as pp
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trading_environment
@@ -20,7 +23,7 @@ if __name__ == "__main__":
     kwargs_a = {
         'sids'   : [1,2,3],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-        'delta'  : timedelta(minutes = 1),
+        'delta'  : timedelta(minutes = 10),
         'filter' : filter
     }
     source_a = SpecificEquityTrades(*args_a, **kwargs_a)
@@ -30,7 +33,7 @@ if __name__ == "__main__":
     kwargs_b = {
         'sids'   : [2,3,4],
         'start'  : datetime(2012,1,3,14, tzinfo = pytz.utc),
-        'delta'  : timedelta(minutes = 1),
+        'delta'  : timedelta(minutes = 10),
         'filter' : filter
     }
     source_b = SpecificEquityTrades(*args_b, **kwargs_b)
@@ -45,13 +48,12 @@ if __name__ == "__main__":
     
     merge_out = merged_transforms(sort_out, tnfm_bundles)
     
-    import nose.tools; nose.tools.set_trace()
-    algo = TestAlgorithm(2, 100, 100, sid_filter = [2,3])
+    algo = TestAlgorithm(2, 10, 100, sid_filter = [2,3])
     environment = create_trading_environment(year = 2012)
     style = zp.SIMULATION_STYLE.FIXED_SLIPPAGE
     
     client_out = tsc(merge_out, algo, environment, style)
     for message in client_out:
        pp(message)
-        
+       sleep(1)
     

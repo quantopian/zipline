@@ -340,6 +340,12 @@ class Monitor(object):
                         log.info("breaking out of initial heartbeat")
                         break
 
+                # Has the entire topology told us its DONE
+                done = len(self.finished) == len(self.topology)
+                if done:
+                    break
+
+
             # ================
             # Heartbeat Stats
             # ================
