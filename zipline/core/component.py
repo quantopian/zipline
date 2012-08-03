@@ -83,10 +83,6 @@ class Component(object):
         self.unframe                = unframe
         self.prefix                 = ""
 
-        # register two components with the monitor
-        monitor.add_to_topology(self.component_id)
-        monitor.add_to_topology("FORK-"+self.component_id)
-
         # TODO: state_flag is deprecated, remove
         self.state_flag             = COMPONENT_STATE.OK
 
@@ -98,10 +94,19 @@ class Component(object):
         self.guid                   = uuid.uuid4()
         self.huid                   = humanhash.humanize(self.guid.hex)
 
+        # first, start the generator in its own process. Once
+        # Monitor says "go", Events from the generator will be
+        # FRAME'd and PUSH'd to self.socket_uri.
+        proc                        = multiprocessing.Process(
+                                        target=self.loop_send
+                                    )
+        proc.start()
+
         # ------------
-        # Generator
+        # Message Receiver/Generator
         # ------------
-        self.gen                    = None
+        self.recv_gen                = self.create_recv_gen()
+
 
 
     # ------------
@@ -109,94 +114,87 @@ class Component(object):
     # ------------
 
 
-    def _run_out(self):
+    def loop_send(self):
         """
         The main component loop. This is wrapped inside a
         exception reporting context inside of run.
 
         The core logic of the all components is run here.
         """
-        # The process title so you can watch it in top, ps.
-        setproctitle(self.generator.__class__.__name__)
-        self.prefix = "FORK-"
-
-        log.info("Start %r" % self)
-        log.info("Pid %s" % os.getpid())
-        log.info("Group %s" % os.getpgrp())
-
-        self.open()
-
-        self.signal_ready()
-        self.lock_ready()
-        self.wait_ready()
-
-        # -----------------------
-        # YOU SHALL NOT PASS!!!!!
-        # -----------------------
-        # ... until the monitor signals GO
-
-        for event in self.generator:
-            self.heartbeat()
-            event.source_id = self.get_id
-            msg = self.frame(event)
-            self.out_socket.send(msg)
-
-        self.signal_done()
-
-    def _run_in(self):
-        self.open(send=False)
-        self.signal_ready()
-        self.lock_ready()
-        self.wait_ready()
-         # -----------------------
-        # YOU SHALL NOT PASS!!!!!
-        # -----------------------
-        # ... until the monitor signals GO
-
-        # return the generator
-        for event in gen_from_poller(self.poll, self.in_socket, self.unframe):
-            event.source_id = self.get_id
-            yield event
-
-        self.signal_done()
-
-    def run_safe(self, func):
-        """
-        Run a function that is assumed to include wait_ready and
-        heartbeat. Used to wrap fork_generator and consume_gen.
-        """
         try:
-            return func()
+            # The process title so you can watch it in top, ps.
+            setproctitle(self.generator.__class__.__name__)
+            self.prefix = "FORK-"
+
+            log.info("Start %r" % self)
+            log.info("Pid %s" % os.getpid())
+            log.info("Group %s" % os.getpgrp())
+
+            self.open()
+
+            self.signal_ready()
+            self.lock_ready()
+            self.wait_ready()
+
+            # -----------------------
+            # YOU SHALL NOT PASS!!!!!
+            # -----------------------
+            # ... until the monitor signals GO
+
+            for event in self.generator:
+                self.heartbeat()
+                msg = self.frame(event)
+                self.out_socket.send(msg)
+
+            self.signal_done()
+
         except Exception as exc:
-            if not isinstance(exc, KillSignal):
-                self.signal_exception(exc)
-            else:
-                # if we get a kill signal, forcibly close all the
-                # sockets.
-                self.teardown_sockets()
+            self.handle_exception(exc)
         finally:
             log.info("Exiting %r" % self)
 
 
-    def _launch(self):
-        # first, start the generator in its own process. Once
-        # Monitor says "go", Events from the generator will be
-        # FRAME'd and PUSH'd to self.socket_uri.
-        proc = multiprocessing.Process(
-                    target=self.run_safe,
-                    args=(self._run_out,)
-                )
-        proc.start()
+    def create_recv_gen(self):
+        try:
+            self.open(send=False)
+            self.signal_ready()
+            self.lock_ready()
+            # return the generator
+            return self.loop_recv()
+        except Exception as exc:
+            self.handle_exception(exc)
+        finally:
+            log.info("Created Recv Gen for %r" % self)
 
-        # Start the poller-generator, which will PULL messages
-        # from self.sockiet_uri, UNFRAME'd them, and yield them.
-        return self.run_safe(self._run_in)
+    def loop_recv(self):
+        try:
+            # we block on ready here until monitor sends the GO
+            self.wait_ready()
+            log.info("Starting to drain {id}".format(id=self.get_id))
+            for event in gen_from_poller(self.poll, self.in_socket, self.unframe):
+                self.heartbeat()
+                # event.source_id = self.get_id
+                yield event
+
+            self.signal_done()
+        except Exception as exc:
+            self.handle_exception(exc)
+        finally:
+            log.info("Exiting %r" % self)
+
+    def handle_exception(self, exc, re_raise=False):
+        if not isinstance(exc, KillSignal):
+            self.signal_exception(exc)
+        else:
+            # if we get a kill signal, forcibly close all the
+            # sockets.
+            self.teardown_sockets()
 
     def __iter__(self):
-        if not self.gen:
-            self.gen = self._launch()
+        return self
 
-        return self.gen
+    def next(self):
+        return self.recv_gen.next()
 
     # ----------------------------
     #  Cleanup & Modes of Failure

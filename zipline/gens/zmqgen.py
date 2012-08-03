@@ -21,7 +21,7 @@ def gen_from_pull_socket(socket_uri, context, unframe):
 def gen_from_poller(poller, in_socket, unframe):
 
     while True:
-        socks = dict(poller.poll(1000))
+        socks = dict(poller.poll())
 
         if socks.get(in_socket) == zmq.POLLIN:
             message = in_socket.recv()

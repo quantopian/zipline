@@ -120,7 +120,7 @@ class Monitor(object):
         return
 
     def add_to_topology(self, component_id):
-        add = set([component_id])
+        add = set([component_id, "FORK-" + component_id])
         self.topology.update(add)
 
     def freeze_topology(self):

@@ -64,18 +64,19 @@ class ComponentTestCase(TestCase):
             'count'  : count
         }
 
+        trade_gen = SpecificEquityTrades(*args_a, **kwargs_a)
+        monitor.add_to_topology(trade_gen.get_hash())
+
+        launch_monitor(monitor)
+
         comp_a = Component(
-            SpecificEquityTrades(*args_a, **kwargs_a),
+            trade_gen,
             monitor,
             socket_uri,
             DATASOURCE_FRAME,
             DATASOURCE_UNFRAME
         )
 
-        launch_monitor(monitor)
-        iter_a = iter(comp_a)
-        ev = iter_a.next()
-        return
 
         for event in comp_a:
             log.info(event)
@@ -96,16 +97,8 @@ class ComponentTestCase(TestCase):
             'filter' : filter,
             'count'  : count
         }
-
-
-        comp_a = Component(
-            SpecificEquityTrades(*args_a, **kwargs_a),
-            monitor,
-            socket_uris[0],
-            DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
-        )
-
+        trade_gen_a = SpecificEquityTrades(*args_a, **kwargs_a)
+        monitor.add_to_topology(trade_gen_a.get_hash())
 
         #Set up source b. Two minutes between events.
         args_b = tuple()
@@ -116,15 +109,8 @@ class ComponentTestCase(TestCase):
             'filter' : filter,
             'count'  : count
         }
-
-
-        comp_b = Component(
-            SpecificEquityTrades(*args_b, **kwargs_b),
-            monitor,
-            socket_uris[1],
-            DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
-        )
+        trade_gen_b = SpecificEquityTrades(*args_b, **kwargs_b)
+        monitor.add_to_topology(trade_gen_b.get_hash())
 
         #Set up source c. Three minutes between events.
         args_c = tuple()
@@ -136,18 +122,38 @@ class ComponentTestCase(TestCase):
             'count'  : count
         }
 
+        trade_gen_c = SpecificEquityTrades(*args_c, **kwargs_c)
+        monitor.add_to_topology(trade_gen_c.get_hash())
+
+        launch_monitor(monitor)
+
+        comp_a = Component(
+            trade_gen_a,
+            monitor,
+            socket_uris[0],
+            DATASOURCE_FRAME,
+            DATASOURCE_UNFRAME
+        )
+
+        comp_b = Component(
+            trade_gen_b,
+            monitor,
+            socket_uris[1],
+            DATASOURCE_FRAME,
+            DATASOURCE_UNFRAME
+        )
+
         comp_c = Component(
-            SpecificEquityTrades(*args_c, **kwargs_c),
+            trade_gen_c,
             monitor,
             socket_uris[2],
             DATASOURCE_FRAME,
             DATASOURCE_UNFRAME
         )
 
-        launch_monitor(monitor)
         sources = [comp_a, comp_b, comp_c]
-        gens = [iter(source) for source in sources]
-        sorted_out = date_sorted_sources(gens)
+
+        sorted_out = date_sorted_sources(*sources)
 
         prev = None
         sort_count = 0
