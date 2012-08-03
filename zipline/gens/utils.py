@@ -44,7 +44,6 @@ def roundrobin(sources, namestrings):
     assert len(sources) == len(namestrings)
     mapping = OrderedDict(zip(namestrings, sources))
     
-    import nose.tools; nose.tools.set_trace()
     # While our generators have not been exhausted, pull elements
     while mapping.keys() != []:
         for namestring, source in mapping.iteritems():
@@ -54,8 +53,6 @@ def roundrobin(sources, namestrings):
             except StopIteration:
                 yield done_message(namestring)
                 del mapping[namestring]
-
-
 
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
