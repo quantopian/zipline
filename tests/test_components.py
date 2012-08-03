@@ -77,7 +77,6 @@ class ComponentTestCase(TestCase):
             DATASOURCE_UNFRAME
         )
 
-
         for event in comp_a:
             log.info(event)
 
@@ -154,6 +153,9 @@ class ComponentTestCase(TestCase):
         sources = [comp_a, comp_b, comp_c]
 
         sorted_out = date_sorted_sources(*sources)
+
+        import time
+        time.sleep(.25)
 
         prev = None
         sort_count = 0

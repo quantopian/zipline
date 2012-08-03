@@ -340,9 +340,8 @@ class Monitor(object):
                         log.info("breaking out of initial heartbeat")
                         break
 
-                # Has the entire topology told us its DONE
-                done = len(self.finished) == len(self.topology)
-                if done:
+                # Break out if the entire topology told us its DONE
+                if len(self.finished) == len(self.topology):
                     break
 
 
@@ -438,27 +437,22 @@ class Monitor(object):
         bad  = self.tracked   - good - self.finished
         new  = self.responses - good - self.finished
 
-        missing = self.topology - self.tracked - self.finished
-
         for component in new:
             self.new(component)
-
-            if self.debug:
-                log.info('New component %r' % component)
 
         for component in bad:
             self.timed_out(component)
 
-        for component in missing:
+        missing = self.topology - self.tracked - self.finished
 
+        for component in missing:
             if self.debug:
                 log.info('Missing component %r' % component)
 
-        if self.debug:
 
-            for component in self.tracked:
-                if component not in self.topology:
-                    log.info('Uninvited component %r' % component)
+        for component in self.tracked:
+            if component not in self.topology:
+                log.info('Uninvited component %r' % component)
 
     # --------------
     # Init Handlers
