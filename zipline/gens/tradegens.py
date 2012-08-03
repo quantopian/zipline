@@ -84,7 +84,7 @@ class SpecificEquityTrades(object):
         self.generator = self.create_fresh_generator()
 
     def __iter__(self):
-        return self.generator
+        return self
 
     def next(self):
         return self.generator.next()

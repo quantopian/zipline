@@ -11,7 +11,7 @@ from zipline.gens.composites import SourceBundle, TransformBundle, \
     date_sorted_sources, merged_transforms
 from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
-from zipline.gens.tradesimulation import trade_simulation_client as tsc
+from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 
 import zipline.protocol as zp
 
@@ -21,6 +21,7 @@ if __name__ == "__main__":
     #Set up source a. One minute between events.
     args_a = tuple()
     kwargs_a = {
+        'count'  : 2000,
         'sids'   : [1,2,3],
         'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
         'delta'  : timedelta(minutes = 10),
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     #Set up source b. Two minutes between events.
     args_b = tuple()
     kwargs_b = {
+        'count'  : 2000,
         'sids'   : [2,3,4],
         'start'  : datetime(2012,1,3,14, tzinfo = pytz.utc),
         'delta'  : timedelta(minutes = 10),

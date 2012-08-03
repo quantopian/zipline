@@ -42,7 +42,7 @@ def functional_transform(stream_in, func, *args, **kwargs):
 class StatefulTransform(object):
     """
     Generic transform generator that takes each message from an
-    in-stream and passes it to a state class.  For each call to
+    in-stream and passes it to a state object.  For each call to
     update, the state class must produce a message to be fed
     downstream. Any transform class with the FORWARDER class variable
     set to true will forward all fields in the original message.
@@ -63,16 +63,26 @@ class StatefulTransform(object):
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
         
-        # Generate the string associated with this generator's output.
+        # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
+
+        # Generator isn't initialized until someone calls __iter__ or next().
+        self.__generator = None
         
     def get_hash(self):
         return self.namestring
 
+    def next(self):
+        if self.__generator:
+            return self.__generator.next()
+        else:
+            self.__generator = self._gen()
+            return self.__generator.next()
+
     def __iter__(self):
-        return self.gen()
-        
-    def gen(self):
+        return self
+                
+    def _gen(self):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
         for message in self.stream_in:
