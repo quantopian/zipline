@@ -1,13 +1,20 @@
 import zmq
 import pytz
+from pprint import pformat as pf
 from datetime import datetime, timedelta
 
 from unittest2 import TestCase
 from collections import defaultdict
-from zipline.gens.composites import date_sorted_sources
+from zipline.gens.composites import date_sorted_sources, merged_transforms
 
 from zipline.finance.trading import SIMULATION_STYLE
 from zipline.core.devsimulator import AddressAllocator
+from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
+from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+
+from zipline.utils.factory import create_trading_environment
+from zipline.test_algorithms import TestAlgorithm
+
 
 from zipline.utils.test_utils import (
         setup_logger,
@@ -19,7 +26,12 @@ from zipline.utils.test_utils import (
 from zipline.core import Component
 from zipline.protocol import (
     DATASOURCE_FRAME,
-    DATASOURCE_UNFRAME
+    DATASOURCE_UNFRAME,
+    FEED_FRAME,
+    FEED_UNFRAME,
+    MERGE_FRAME,
+    MERGE_UNFRAME,
+    SIMULATION_STYLE
 )
 
 from zipline.gens.tradegens import SpecificEquityTrades
@@ -65,9 +77,7 @@ class ComponentTestCase(TestCase):
         }
 
         trade_gen = SpecificEquityTrades(*args_a, **kwargs_a)
-        monitor.add_to_topology(trade_gen.get_hash())
 
-        launch_monitor(monitor)
 
         comp_a = Component(
             trade_gen,
@@ -77,8 +87,13 @@ class ComponentTestCase(TestCase):
             DATASOURCE_UNFRAME
         )
 
+        launch_monitor(monitor)
+
         for event in comp_a:
             log.info(event)
+
+        # wait for the sending process to exit
+        comp_a.proc.join()
 
 
     def test_sort(self):
@@ -97,7 +112,6 @@ class ComponentTestCase(TestCase):
             'count'  : count
         }
         trade_gen_a = SpecificEquityTrades(*args_a, **kwargs_a)
-        monitor.add_to_topology(trade_gen_a.get_hash())
 
         #Set up source b. Two minutes between events.
         args_b = tuple()
@@ -109,7 +123,6 @@ class ComponentTestCase(TestCase):
             'count'  : count
         }
         trade_gen_b = SpecificEquityTrades(*args_b, **kwargs_b)
-        monitor.add_to_topology(trade_gen_b.get_hash())
 
         #Set up source c. Three minutes between events.
         args_c = tuple()
@@ -122,9 +135,7 @@ class ComponentTestCase(TestCase):
         }
 
         trade_gen_c = SpecificEquityTrades(*args_c, **kwargs_c)
-        monitor.add_to_topology(trade_gen_c.get_hash())
 
-        launch_monitor(monitor)
 
         comp_a = Component(
             trade_gen_a,
@@ -154,6 +165,8 @@ class ComponentTestCase(TestCase):
 
         sorted_out = date_sorted_sources(*sources)
 
+        launch_monitor(monitor)
+
         prev = None
         sort_count = 0
         for msg in sorted_out:
@@ -164,3 +177,160 @@ class ComponentTestCase(TestCase):
             sort_count += 1
 
         self.assertEqual(count*3, sort_count)
+
+        # wait for processes to finish
+        comp_a.proc.join()
+        comp_b.proc.join()
+        comp_c.proc.join()
+
+
+    def test_full(self):
+        monitor     = create_monitor(allocator)
+
+        filter = [2,3]
+        #Set up source a. One minute between events.
+        args_a = tuple()
+        kwargs_a = {
+            'count'  : 325,
+            'sids'   : [1,2,3],
+            'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
+            'delta'  : timedelta(hours = 6),
+            'filter' : filter
+        }
+        source_a = SpecificEquityTrades(*args_a, **kwargs_a)
+
+        #Set up source b. Two minutes between events.
+        args_b = tuple()
+        kwargs_b = {
+            'count'  : 7500,
+            'sids'   : [2,3,4],
+            'start'  : datetime(2012,1,3,14, tzinfo = pytz.utc),
+            'delta'  : timedelta(minutes = 5),
+            'filter' : filter
+        }
+        source_b = SpecificEquityTrades(*args_b, **kwargs_b)
+
+        # ------------------------
+        # Run sources in dedicated processes
+        comp_a = Component(
+            source_a,
+            monitor,
+            allocator.lease(1)[0],
+            DATASOURCE_FRAME,
+            DATASOURCE_UNFRAME,
+            source_a.get_hash()
+        )
+
+        comp_b = Component(
+            source_b,
+            monitor,
+            allocator.lease(1)[0],
+            DATASOURCE_FRAME,
+            DATASOURCE_UNFRAME,
+            source_b.get_hash()
+        )
+
+        # Date sort the sources, and run the sort in a dedicated
+        # process
+        sources = [comp_a, comp_b]
+
+        sorted_out = date_sorted_sources(*sources)
+
+        #launch_monitor(monitor)
+        #import nose.tools; nose.tools.set_trace()
+        #for feed_msg in sorted_out:
+        #    log.info(pf(feed_msg))
+
+        #return
+
+        sorted = Component(
+                sorted_out,
+                monitor,
+                allocator.lease(1)[0],
+                FEED_FRAME,
+                FEED_UNFRAME,
+                "sort"
+                )
+
+
+        passthrough = StatefulTransform(Passthrough)
+        mavg_price = StatefulTransform(
+                MovingAverage,
+                timedelta(minutes = 20),
+                ['price']
+        )
+
+        merged_gen = merged_transforms(sorted, passthrough, mavg_price)
+
+        merged = Component(
+                    merged_gen,
+                    monitor,
+                    allocator.lease(1)[0],
+                    MERGE_FRAME,
+                    MERGE_UNFRAME,
+                    "merge"
+                 )
+
+        algo = TestAlgorithm(2, 10, 100, sid_filter = [2,3])
+        environment = create_trading_environment(year = 2012)
+        style = SIMULATION_STYLE.FIXED_SLIPPAGE
+
+        trading_client = tsc(algo, environment, style)
+
+        launch_monitor(monitor)
+        for message in trading_client.simulate(merged):
+            log.info(pf(message))
+
+
+        # wait for processes to finish
+        comp_a.proc.join()
+        comp_b.proc.join()
+        sorted.proc.join()
+        merged.proc.join()
+        return
+
+
+
+    def test_compound(self):
+        monitor     = create_monitor(allocator)
+
+        filter = [2,3]
+        #Set up source a. One minute between events.
+        args_a = tuple()
+        kwargs_a = {
+            'count'  : 325,
+            'sids'   : [1,2,3],
+            'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
+            'delta'  : timedelta(hours = 6),
+            'filter' : filter
+        }
+        source_a = SpecificEquityTrades(*args_a, **kwargs_a)
+
+        #Set up source b. Two minutes between events.
+        args_b = tuple()
+        kwargs_b = {
+            'count'  : 7500,
+            'sids'   : [2,3,4],
+            'start'  : datetime(2012,1,3,14, tzinfo = pytz.utc),
+            'delta'  : timedelta(minutes = 5),
+            'filter' : filter
+        }
+        source_b = SpecificEquityTrades(*args_b, **kwargs_b)
+
+        sorted_out = date_sorted_sources(source_a, source_b)
+
+        sorted = Component(
+                sorted_out,
+                monitor,
+                allocator.lease(1)[0],
+                FEED_FRAME,
+                FEED_UNFRAME
+        )
+
+        launch_monitor(monitor)
+
+        for event in sorted:
+            log.info(event)
+
+
+        sorted.proc.join()

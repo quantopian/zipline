@@ -53,16 +53,16 @@ class StatefulTransform(object):
         "Stateful transform requires a class."
         assert tnfm_class.__dict__.has_key('update'), \
         "Stateful transform requires the class to have an update method"
-        
+
         self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
         self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
 
         # You can't be both a forwarded and an updater.
         assert not all([self.forward_all, self.update_in_place])
-        
+
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
-        
+
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
 
@@ -76,7 +76,11 @@ class StatefulTransform(object):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
         for message in stream_in:
-        
+            # allow upstream generators to yield None to avoid
+            # blocking.
+            if message == None:
+                continue
+
             assert_sort_unframe_protocol(message)
             message_copy = deepcopy(message)
 
@@ -90,7 +94,7 @@ class StatefulTransform(object):
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 yield out_message
-        
+
                 # Our expectation is that the transform simply updated the
                 # message it was passed.  Useful for chaining together
                 # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.

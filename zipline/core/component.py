@@ -51,7 +51,8 @@ class Component(object):
             monitor,
             socket_uri,
             frame,
-            unframe
+            unframe,
+            component_id
             ):
 
         # -----------------
@@ -59,7 +60,7 @@ class Component(object):
         # -----------------
         self.generator              = generator
         self.frame                  = frame
-        self.component_id           = self.generator.get_hash()
+        self.component_id           = component_id
 
         # lock for waiting on monitor "GO"
         self.waiting                = None
@@ -99,15 +100,16 @@ class Component(object):
         # first, start the generator in its own process. Once
         # Monitor says "go", Events from the generator will be
         # FRAME'd and PUSH'd to self.socket_uri.
-        proc                        = multiprocessing.Process(
-                                        target=self.loop_send
-                                    )
-        proc.start()
+        monitor.add_to_topology(self.component_id)
 
-        # ------------
-        # Message Receiver/Generator
-        # ------------
-        self.recv_gen                = self.create_recv_gen()
+        self.proc                        = multiprocessing.Process(
+                                            target=self.loop_send
+                                        )
+        self.proc.start()
+
+        # Placeholder for receive generator, which will be
+        # created in __iter__
+        self.recv_gen = None
 
 
     # ------------
@@ -123,8 +125,8 @@ class Component(object):
         """
         try:
             # The process title so you can watch it in top, ps.
-            setproctitle(self.generator.__class__.__name__)
             self.prefix = "FORK-"
+            setproctitle(self.get_id)
 
             log.info("Start %r" % self)
             log.info("Pid %s" % os.getpid())
@@ -134,14 +136,15 @@ class Component(object):
 
             self.signal_ready()
             self.lock_ready()
-            self.wait_ready()
 
-            # -----------------------
-            # YOU SHALL NOT PASS!!!!!
-            # -----------------------
-            # ... until the monitor signals GO
-
+            msg = None
             for event in self.generator:
+
+                if hasattr(event, 'dt') and event.dt == 'DONE':
+                    continue
+
+                self.wait_ready()
+
                 self.heartbeat()
                 msg = self.frame(event)
                 self.out_socket.send(msg)
@@ -163,9 +166,6 @@ class Component(object):
 
     def create_recv_gen(self):
         try:
-            self.open(send=False)
-            self.signal_ready()
-            self.lock_ready()
             # return the generator
             return self.loop_recv()
         except Exception as exc:
@@ -175,8 +175,12 @@ class Component(object):
 
     def loop_recv(self):
         try:
+            self.open(send=False)
+            self.signal_ready()
+            self.lock_ready()
+
             # we block on ready here until monitor sends the GO
-            self.wait_ready()
+            # self.wait_ready()
             for event in self.gen_from_poller(self.poll, self.in_socket, self.unframe):
                 yield event
 
@@ -189,7 +193,10 @@ class Component(object):
     def gen_from_poller(self, poller, in_socket, unframe):
 
         while True:
-            socks = dict(poller.poll(0))
+            # Since we will yield None to avoid blocking, we need
+            # to have a small delay to give the poller a chance
+            # to receive a message from upstream.
+            socks = dict(poller.poll(100))
             self.heartbeat()
             if socks.get(in_socket) == zmq.POLLIN:
                 message = in_socket.recv()
@@ -198,6 +205,8 @@ class Component(object):
                 else:
                     event = unframe(message)
                     yield event
+            else:
+                yield
 
     def handle_exception(self, exc, re_raise=False):
         if isinstance(exc, KillSignal):
@@ -215,6 +224,8 @@ class Component(object):
         return self
 
     def next(self):
+        if not self.recv_gen:
+            self.recv_gen = self.create_recv_gen()
         return self.recv_gen.next()
 
     # ----------------------------

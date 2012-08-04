@@ -17,9 +17,9 @@ def merge(stream_in, tnfm_ids):
     and merge them together into an event.  We raise an error if we
     do not receive the same number of events from all sources.
     """
-    
+
     assert isinstance(tnfm_ids, list)
-    
+
     # Set up an internal queue for each expected source.
     tnfms = {}
     for id in tnfm_ids:
@@ -36,7 +36,7 @@ def merge(stream_in, tnfm_ids):
         id = message.tnfm_id
         assert id in tnfm_ids, \
             "Message from unexpected tnfm: %s, %s" % (id, tnfm_ids)
-        
+
         tnfms[id].append(message)
 
         # Only pop messages when we have a pending message from
@@ -58,13 +58,13 @@ def merge_one(sources):
     event_fields = ndict()
 
     for key, queue in sources.iteritems():
-        
+
         # Add transform value to the transforms dict.
         message = queue.popleft()
         event_fields[message.tnfm_id] = message.tnfm_value
         del message['tnfm_id']
         del message['tnfm_value']
-        
+
         # Merge any remaining fields into the event dict.
         event_fields.merge(message)
     return event_fields

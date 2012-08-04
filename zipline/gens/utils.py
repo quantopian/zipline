@@ -49,7 +49,9 @@ def roundrobin(sources, namestrings):
         for namestring, source in mapping.iteritems():
             try:
                 message = source.next()
-                yield message
+                # allow sources to yield None to avoid blocking.
+                if message:
+                    yield message
             except StopIteration:
                 yield done_message(namestring)
                 del mapping[namestring]
