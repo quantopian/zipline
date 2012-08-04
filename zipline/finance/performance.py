@@ -203,10 +203,15 @@ class PerformanceTracker(object):
             self.todays_performance.positions[sid] = Position(sid)
 
     def update(self, event):
-        event.perf_message = self.process_event(event)
-        event.portfolio = self.get_portfolio()
-        del event['TRANSACTION']
-        return event
+        if event.dt == "DONE":
+            event.perf_message = self.handle_simulation_end()
+            del event['TRANSACTION']
+            return event
+        else:
+            event.perf_message = self.process_event(event)
+            event.portfolio = self.get_portfolio()
+            del event['TRANSACTION']
+            return event
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
@@ -270,6 +275,7 @@ class PerformanceTracker(object):
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
+        
 
         return message
 
@@ -296,7 +302,8 @@ class PerformanceTracker(object):
         # calculate progress of test
         self.progress = self.day_count / self.total_days
 
-        #TODO TODO TODO!!
+        # Take a snapshot of our current peformance to return to the
+        # browser.
         daily_update = self.to_dict()
 
         if self.trading_environment.max_drawdown:
@@ -356,12 +363,8 @@ class PerformanceTracker(object):
             exceeded_max_loss = self.exceeded_max_loss
         )
 
-        if self.results_socket:
-            log.info("about to stream the risk report...")
-            risk_dict = self.risk_report.to_dict()
-
-            msg = zp.RISK_FRAME(risk_dict)
-            self.results_socket.send(msg)
+        risk_dict = self.risk_report.to_dict()
+        return risk_dict
 
 class Position(object):
 

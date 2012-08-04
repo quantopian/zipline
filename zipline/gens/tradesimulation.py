@@ -43,65 +43,60 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
     
-    def __init__(self, stream_in, algo, environment, sim_style):
+    def __init__(self, algo, environment, sim_style):
 
-        self.stream_in = stream_in
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
         self.style = sim_style
-
-        self.__generator = None
         
-
     def get_hash(self):
         """
         There should only ever be one TSC in the system.
         """
         return self.__class__.__name__ + hash_args()
 
-    def __iter__(self):
-        return self
-
-    def next(self):
-        if self.__generator:
-            return self.__generator.next()
-        else:
-            self.__generator = self.run_simulation()
-            return self.__generator.next()
-            
-    def run_simulation(self):
+    def simulate(self, stream_in):
         """
         Main generator work loop.
         """
+
         # Simulate filling any open orders made by the previous run of
         # the user's algorithm.  Sets the txn field to true on any
         # event that results in a filled order.
         ordering_client = StatefulTransform(
-            self.stream_in,
             TransactionSimulator,
             self.sids,
             style = self.style
         )
+        with_filled_orders = ordering_client.transform(stream_in)
+
         # Pipe the events with transactions to perf. This will remove
         # the txn field added by TransactionSimulator and replace it
         # with a portfolio object to be passed to the user's
         # algorithm. Also adds a PERF_MESSAGE field which is usually
         # none, but contains an update message once per day.
-        current_portfolio = StatefulTransform(
-            ordering_client,
+        perf_tracker = StatefulTransform(
             PerformanceTracker,
             self.environment,
             self.sids
         )
-        # Pass both the ordering client's state and messages with the
-        # current portfolio into the algorithm for simulation.
+        with_portfolio = perf_tracker.transform(with_filled_orders)
+        
+        # Pass the messages from perf along with the trading client's
+        # state into the algorithm for simulation. We provide the
+        # trading client so that the algorithm can place new orders
+        # into the client's order book.
         algo_results = AlgorithmSimulator(
-            current_portfolio,
+            with_portfolio,
             ordering_client.state,
             self.algo, 
         )
-        
+
+        # The algorithm will yield a daily_results message (as
+        # calculated by the performance tracker) at the end of each
+        # day.  It will also yield a risk report at the end of the
+        # simulation.
         for message in algo_results:        
             yield message
 
@@ -120,7 +115,7 @@ class AlgorithmSimulator(object):
         self.sids = algo.get_sid_filter()
 
         # Monkey patch the user algorithm to place orders in the
-        # txn_sim order book.
+        # TransactionSimulator's order book.
         self.algo.set_order(self.order)
         self.algo.set_logger(logbook.Logger("Algolog"))
 
@@ -189,6 +184,8 @@ class AlgorithmSimulator(object):
             if event.perf_message:
                 yield event.perf_message
                 del event['perf_message']
+                if event.dt == "DONE":
+                    break
                 
             # This should only happen for the first event we run.
             if self.simulation_dt == None:

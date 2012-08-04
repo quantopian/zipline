@@ -114,7 +114,6 @@ class Component(object):
     # Core Methods
     # ------------
 
-
     def loop_send(self):
         """
         The main component loop. This is wrapped inside a

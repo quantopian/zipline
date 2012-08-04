@@ -48,7 +48,7 @@ class StatefulTransform(object):
     set to true will forward all fields in the original message.
     Otherwise only dt, tnfm_id, and tnfm_value are forwarded.
     """
-    def __init__(self, stream_in, tnfm_class, *args, **kwargs):
+    def __init__(self, tnfm_class, *args, **kwargs):
         assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
         assert tnfm_class.__dict__.has_key('update'), \
@@ -56,36 +56,26 @@ class StatefulTransform(object):
         
         self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
         self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
+
+        # You can't be both a forwarded and an updater.
         assert not all([self.forward_all, self.update_in_place])
         
-        self.stream_in = stream_in
-
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
         
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
 
-        # Generator isn't initialized until someone calls __iter__ or next().
-        self.__generator = None
-        
     def get_hash(self):
         return self.namestring
 
-    def next(self):
-        if self.__generator:
-            return self.__generator.next()
-        else:
-            self.__generator = self._gen()
-            return self.__generator.next()
+    def transform(self, stream_in):
+        return self._gen(stream_in)
 
-    def __iter__(self):
-        return self
-                
-    def _gen(self):
+    def _gen(self, stream_in):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
-        for message in self.stream_in:
+        for message in stream_in:
         
             assert_sort_unframe_protocol(message)
             message_copy = deepcopy(message)

@@ -35,6 +35,7 @@ class TransactionSimulator(object):
 
     def update(self, event):
         event.TRANSACTION = None
+        # We only fill transactions on trade events.
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             event.TRANSACTION = self.apply_trade_to_open_orders(event)
         return event
