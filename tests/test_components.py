@@ -154,9 +154,6 @@ class ComponentTestCase(TestCase):
 
         sorted_out = date_sorted_sources(*sources)
 
-        import time
-        time.sleep(.25)
-
         prev = None
         sort_count = 0
         for msg in sorted_out:
