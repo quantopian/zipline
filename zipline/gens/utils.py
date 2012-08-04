@@ -23,7 +23,7 @@ def mock_done(id):
             "source_id" : id,
             'tnfm_id'   : id,
             'tnfm_value': None,
-            'type'      : 0
+            'type'      : DATASOURCE_TYPE.DONE
     })
 
 done_message = mock_done

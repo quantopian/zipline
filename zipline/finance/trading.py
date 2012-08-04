@@ -11,8 +11,8 @@ log = logbook.Logger('Transaction Simulator')
 class TransactionSimulator(object):
     UPDATER = True
 
-    def __init__(self, open_orders, style=SIMULATION_STYLE.PARTIAL_VOLUME):
-        self.open_orders                = open_orders
+    def __init__(self, sid_filter, style=SIMULATION_STYLE.PARTIAL_VOLUME):
+        self.open_orders                = {}
         self.txn_count                  = 0
         self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
@@ -27,8 +27,15 @@ class TransactionSimulator(object):
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
 
+        for sid in sid_filter:
+            self.open_orders[sid] = []
+
+    def place_order(self, order):
+        self.open_orders[order.sid].append(order)
+
     def update(self, event):
         event.TRANSACTION = None
+        # We only fill transactions on trade events.
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             event.TRANSACTION = self.apply_trade_to_open_orders(event)
         return event

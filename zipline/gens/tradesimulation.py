@@ -9,7 +9,7 @@ from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 
-def trade_simulation_client(stream_in, algo, environment, sim_style):
+class TradeSimulationClient(object):
     """
     Generator that takes the expected output of a merge, a user
     algorithm, a trading environment, and a simulator style as
@@ -42,61 +42,118 @@ def trade_simulation_client(stream_in, algo, environment, sim_style):
     overwritten so that only the most recent snapshot of the universe
     is sent to the algo.
     """
-
-    #============
-    # Algo Setup
-    #============
-
-    # Initialize txn_sim's dictionary of orders here so that we can
-    # reference it from within the user's algorithm.
     
-    sids = algo.get_sid_filter()
-    open_orders = {}
+    def __init__(self, algo, environment, sim_style):
 
-    for sid in sids:
-        open_orders[sid] = []
+        self.algo = algo
+        self.sids = algo.get_sid_filter()
+        self.environment = environment
+        self.style = sim_style
+        
+    def get_hash(self):
+        """
+        There should only ever be one TSC in the system.
+        """
+        return self.__class__.__name__ + hash_args()
+
+    def simulate(self, stream_in):
+        """
+        Main generator work loop.
+        """
+
+        # Simulate filling any open orders made by the previous run of
+        # the user's algorithm.  Sets the txn field to true on any
+        # event that results in a filled order.
+        ordering_client = StatefulTransform(
+            TransactionSimulator,
+            self.sids,
+            style = self.style
+        )
+        with_filled_orders = ordering_client.transform(stream_in)
+
+        # Pipe the events with transactions to perf. This will remove
+        # the txn field added by TransactionSimulator and replace it
+        # with a portfolio object to be passed to the user's
+        # algorithm. Also adds a PERF_MESSAGE field which is usually
+        # none, but contains an update message once per day.
+        perf_tracker = StatefulTransform(
+            PerformanceTracker,
+            self.environment,
+            self.sids
+        )
+        with_portfolio = perf_tracker.transform(with_filled_orders)
+        
+        # Pass the messages from perf along with the trading client's
+        # state into the algorithm for simulation. We provide the
+        # trading client so that the algorithm can place new orders
+        # into the client's order book.
+        algo_results = AlgorithmSimulator(
+            with_portfolio,
+            ordering_client.state,
+            self.algo, 
+        )
+
+        # The algorithm will yield a daily_results message (as
+        # calculated by the performance tracker) at the end of each
+        # day.  It will also yield a risk report at the end of the
+        # simulation.
+        for message in algo_results:        
+            yield message
+
+
+class AlgorithmSimulator(object):
     
-    # Pipe the in stream into the transaction simulator.
-    # Creates a txn field on the event containing transaction
-    # information if we filled any pending orders on the event's sid.
-    # TRANSACTION is None if we didn't fill any orders.
-    with_txns = StatefulTransform(
-        stream_in,
-        TransactionSimulator,
-        open_orders,
-        style = sim_style
-    )
-
-    # Pipe the events with transactions to perf. This will remove the
-    # txn field added by TransactionSimulator and replace it with
-    # a portfolio object to be passed to the user's algorithm. Also adds
-    # a PERF_MESSAGE field which is usually none, but contains an update
-    # message once per day.
-    with_portfolio_and_perf_msg = StatefulTransform(
-        with_txns,
-        PerformanceTracker,
-        environment,
-        sids
-    )
-
-    # Batch the event stream by dt to be processed by the user's algo.
-    # Yields perf messages whenever it encounters them.
-    perf_messages = algo_simulator(with_portfolio_and_perf_msg, sids, algo, open_orders)
-
-    for message in perf_messages:        
-        yield message
-
-
-def algo_simulator(stream_in, sids, algo, order_book):
+    def __init__(self, stream_in, order_book, algo): 
     
-    simulation_dt = None
+        self.stream_in = stream_in
 
-    # Closure to pass into the user's algo to allow placing orders
-    # into the txn_sim's dict of open orders.
-    def order(sid, amount):
-        assert sid in sids, "Order on invalid sid: %i" % sid
+        # We extract the order book from the txn client so that 
+        # the algo can place new orders.
+        self.order_book = order_book
+
+        self.algo = algo
+        self.sids = algo.get_sid_filter()
+
+        # Monkey patch the user algorithm to place orders in the
+        # TransactionSimulator's order book.
+        self.algo.set_order(self.order)
+        self.algo.set_logger(logbook.Logger("Algolog"))
+
+        # Call the user's initialize method.
+        self.algo.initialize()
+
+        # The algorithm's universe as of our most recent event.
+        self.universe = ndict()
+        
+        for sid in self.sids:
+            self.universe[sid] = ndict()
+        self.universe.portfolio = None
+
+        # We don't have a datetime for the current snapshot until we
+        # receive a message.
+        self.simulation_dt = None
+        self.this_snapshot_dt = None
+
+        self.__generator = None
+
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        if self.__generator:
+            return self.__generator.next()
+        else:
+            self.__generator = self._gen()
+            return self.__generator.next()
+
+    def order(self, sid, amount):
+        """
+        Closure to pass into the user's algo to allow placing orders
+        into the txn_sim's dict of open orders.
+        """
+        assert sid in self.sids, "Order on invalid sid: %i" % sid
         order = ndict({
-            'dt'     : simulation_dt,
+            'dt'     : self.simulation_dt,
             'sid'    : sid,
             'amount' : int(amount),
             'filled' : 0
@@ -104,91 +161,107 @@ def algo_simulator(stream_in, sids, algo, order_book):
 
         # Tell the user if they try to buy 0 shares of something.
         if order.amount == 0:
-            log = "requested to trade zero shares of {sid}".format(
+            zero_message = "Requested to trade zero shares of {sid}".format(
                 sid=event.sid
             )
-            log.debug(log)
+            log.debug(zero_message)
+            # Don't bother placing orders for 0 shares.
             return 
-        
-        order_book[sid].append(order)
-    
-    # Set the algo's order method.
-    algo.set_order(order)
 
-    # Provide a logbook logging interface to user code.
-    algo.set_logger(logbook.Logger("Algolog"))
+        # Add non-zero orders to the order book.  
+        # !!!IMPORTANT SIDE-EFFECT!!!
+        # This modifies the internal state of the transaction
+        # simulator so that it can fill the placed order when it
+        # receives its next message.
+        self.order_book.place_order(order)
 
-    # Call user-defined initialize method before we process any
-    # events.
-    algo.initialize()
-    
-    universe = ndict()
-    for sid in sids:
-        universe[sid] = ndict()
-    universe.portfolio = None
-    this_snapshot_dt = None
-
-    for event in stream_in:
-        # Yield any perf messages received to be relayed back to the browser.
-        if event.perf_message:
-            yield event.perf_message
-            del event['perf_message']
-
-        # This should only happen for the first event we run.
-        if simulation_dt == None:
-            simulation_dt = event.dt
+    def _gen(self):
+        """
+        Internal generator work loop.
+        """
+        for event in self.stream_in:
+            # Yield any perf messages received to be relayed back to the browser.
+            if event.perf_message:
+                yield event.perf_message
+                del event['perf_message']
+                if event.dt == "DONE":
+                    break
+                
+            # This should only happen for the first event we run.
+            if self.simulation_dt == None:
+                self.simulation_dt = event.dt
             
-        # If we are currently creating a new message and this update
-        # matches the message dt, update the state of the universe.
+            # ======================
+            # Time Compression Logic
+            # ======================
+        
+            if self.this_snapshot_dt != None:
+                self.update_current_snapshot(event)
 
-        if this_snapshot_dt != None:
+            # The algorithm has been missing events because it took
+            # too long processing.  Update the universe with data from
+            # this event, then check if enough time has passed that we
+            # can start a new snapshot.
+            else: 
+                self.update_universe(event)
+                if event.dt >= self.simulation_dt:
+                    self.this_snapshot_dt = event.dt
 
-            if event.dt == this_snapshot_dt:
-                update_universe(event, universe)
-
-            # If we are constructing a snapshot and we hit a new dt, call
-            # handle_data and record how long it takes.
-            else:
-                start_tic = datetime.now()
-                algo.handle_data(universe)
-                stop_tic = datetime.now()
-
-                # How long did you take?
-                delta = stop_tic - start_tic
-
-                # Update the simulation time.
-                simulation_dt = this_snapshot_dt + delta
-                
-                # Update the universe with the new event.
-                update_universe(event, universe)
-
-                # If the current event is later than the simulation
-                # time, update the universe and start constructing
-                # another snapshot.
-                if event.dt >= simulation_dt:
-                    this_snapshot_dt = event.dt
-                else:
-                    this_snapshot_dt = None
-        # We have been fastforwarding.  Update the universe
-        # and check if we can start a new snapshot.
+    def update_current_snapshot(self, event):
+        """
+        Update our current snapshot of the universe. Call handle_data if 
+        """
+        # The new event matches our snapshot dt. Just update the
+        # universe and move on.
+        if event.dt == self.this_snapshot_dt:
+            self.update_universe(event)
+            
+        # The new event does not match our snapshot.  
         else:
-            update_universe(event, universe)
-            if event.dt >= simulation_dt:
-                this_snapshot_dt = event.dt
-
+            self.simulate_current_snapshot()
+            
+            # Once we've finished simulating the old snapshot,
+            # we can update the universe with the new event.
+            self.update_universe(event)
+            
+            # The current event is later than the simulation time,
+            # which means the algorithm finished quickly enough to
+            # receive the new event.  Start a new snapshot with this
+            # event's dt.
+            if event.dt >= self.simulation_dt:
+                self.this_snapshot_dt = event.dt
                 
-
+            # The algorithm spent enough time processing that it
+            # missed the new event. Wait to start a new snapshot until
+            # the events catch up to the algo's simulated dt.
+            else:
+                self.this_snapshot_dt = None
+                
+    def simulate_current_snapshot(self):
+        """
+        Run the user's algo against our current snapshot and update the algo's
+        simulated time.
+        """        
+        start_tic = datetime.now()
+        self.algo.handle_data(self.universe)
+        stop_tic = datetime.now()
+            
+        # How long did you take?
+        delta = stop_tic - start_tic
+            
+        # Update the simulation time.
+        self.simulation_dt = self.this_snapshot_dt + delta
         
-def update_universe(event, universe):
-
-    universe.portfolio = event.portfolio
-    del event['portfolio']
+    def update_universe(self, event):
+        """
+        Update the universe with new event information.
+        """
+        # Update our portfolio.
+        self.universe.portfolio = event.portfolio
     
-    event_sid = event.sid
-    del event['sid']
-        
-    for field in event.keys():
-        universe[event_sid][field] = event[field]
+        # Update our knowledge of this event's sid
+        for field in event.keys():
+            self.universe[event.sid][field] = event[field]
             
     
     
