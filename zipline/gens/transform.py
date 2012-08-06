@@ -56,9 +56,12 @@ class StatefulTransform(object):
 
         self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
         self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
+        self.append_value = tnfm_class.__dict__.get('APPENDER', False)
 
-        # You can't be both a forwarded and an updater.
-        assert not all([self.forward_all, self.update_in_place])
+        # You only one special behavior mode can be set.
+        assert sum(map(int, [self.forward_all, 
+                             self.update_in_place, 
+                             self.append_value])) <= 1
 
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
@@ -75,11 +78,15 @@ class StatefulTransform(object):
     def _gen(self, stream_in):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
+        
         for message in stream_in:
+
             # allow upstream generators to yield None to avoid
             # blocking.
             if message == None:
                 continue
+            
+            #TODO: refactor this to avoid unnecessary copying.
 
             assert_sort_unframe_protocol(message)
             message_copy = deepcopy(message)
@@ -87,22 +94,43 @@ class StatefulTransform(object):
             # Same shared pointer issue here as above.
             tnfm_value = self.state.update(deepcopy(message_copy))
 
-            # If we want to keep all original values, plus append tnfm_id
-            # and tnfm_value. Used for Passthrough.
+            # FORWARDER flag means we want to keep all original
+            # values, plus append tnfm_id and tnfm_value. Used for
+            # preserving the original event fields when our output
+            # will be fed into a merge.
             if self.forward_all:
                 out_message = message_copy
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 yield out_message
 
-                # Our expectation is that the transform simply updated the
-                # message it was passed.  Useful for chaining together
-                # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.
+            # UPDATER flag should be used for transforms that
+            # side-effectfully modify the event they are passed.
+            # Updated messages are passed along exactly as they are
+            # returned to use by our state class. Useful for chaining
+            # specific transforms that won't be fed to a merge.  (See
+            # the implementation of TradeSimulationClient for example
+            # usage of this flag with PerformanceTracker and
+            # TransactionSimulator.
             elif self.update_in_place:
                 yield tnfm_value
+                
+            # APPENDER flag should be used to add a single new
+            # key-value pair to the event. The new key is this
+            # transform's namestring, and it's value is the value
+            # returned by state.update(event). This is almost
+            # identical to the behavior of FORWARDER, except we
+            # compress the two calculated values (tnfm_id, and
+            # tnfm_value) into a single field.
+            elif self.append_value:
+                out_message = message_copy
+                out_message[self.namestring] = tnfm_value
+                yield out_message
 
-                # Otherwise send tnfm_id, tnfm_value, and the message
-                # date. Useful for transforms being piped to a merge.
+            # If no flags are set, we create a new message containing
+            # just the tnfm_id, the event's datetime, and the
+            # calculated tnfm_value. This is the default behavior for
+            # a transform being fed into a merge.
             else:
                 out_message = ndict()
                 out_message.tnfm_id = self.namestring

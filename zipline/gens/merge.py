@@ -11,8 +11,8 @@ from itertools import repeat
 
 def merge(stream_in, tnfm_ids):
     """
-    A generator that takes a generator and a list of source_ids. We
-    maintain an internal queue for each id in source_ids. Once we
+    A generator that takes a generator and a list of transform ids. We
+    maintain an internal queue for each id in tnfm_ids. Once we
     have a message from every queue, we pop an event from each queue
     and merge them together into an event.  We raise an error if we
     do not receive the same number of events from all sources.
@@ -54,9 +54,8 @@ def merge(stream_in, tnfm_ids):
     yield done_message('Merge')
 
 def merge_one(sources):
-    dict_primer = zip(sources.keys(), repeat(None))
-    event_fields = ndict()
 
+    event_fields = ndict()
     for key, queue in sources.iteritems():
 
         # Add transform value to the transforms dict.

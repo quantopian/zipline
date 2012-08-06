@@ -66,6 +66,14 @@ def hash_args(*args, **kwargs):
     hasher.update(combined)
     return hasher.hexdigest()
 
+def sum_true(bool_iterable):
+    """
+    Takes an iterable of boolean values and returns the number of
+    those values that are True.
+    """
+    return sum(map(int, bool_iterable))
+
+
 def assert_datasource_protocol(event):
     """Assert that an event meets the protocol for datasource outputs."""
 
