@@ -27,7 +27,7 @@ def date_sort(stream_in, source_ids):
         # Incoming messages should be the output of DATASOURCE_UNFRAME.
         assert_datasource_unframe_protocol(message), \
             "Bad message in date_sort: %s" % message
-
+        
         # Only allow messages from sources we expect.
         assert message.source_id in sources, "Unexpected source: %s" % message
 
