@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from collections import deque, defaultdict
 from numbers import Number
+from abc import ABCMeta, abstractmethod
 
 from zipline import ndict
 from zipline.gens.utils import assert_sort_unframe_protocol, \
