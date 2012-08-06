@@ -139,42 +139,6 @@ class StatefulTransform(object):
                 out_message.dt = message_copy.dt
                 yield out_message
 
-class MovingAverage(object):
-    """
-    Class that maintains a dictionary from sids to EventWindows
-    Upon receipt of each message we update the
-    corresponding window and return the calculated average.
-    """
-    FORWARDER = False
-
-    def __init__(self, delta, fields):
-        self.delta = delta
-        self.fields = fields
-
-        # No way to pass arguments to the defaultdict factory, so we
-        # need to define a method to generate the correct EventWindows.
-        self.sid_windows = defaultdict(self.create_window)
-
-    def create_window(self):
-        """Factory method for self.sid_windows."""
-        return EventWindow(self.delta, self.fields)
-
-    def update(self, event):
-        """
-        Update the event window for this event's sid.  Return an ndict from
-        tracked fields to averages.
-        """
-
-        assert isinstance(event, ndict),"Bad event in MovingAverage: %s" % event
-        assert event.has_key('sid'), "No sid in MovingAverage: %s" % event
-        assert event.has_key('dt'), "No dt in MovingAverage: %s" % event
-
-        # This will create a new EventWindow if this is the first
-        # message for this sid.
-        window = self.sid_windows[event.sid]
-        window.update(event)
-        return window.get_averages()
-
 class EventWindow:
     """
     Abstract base class for transform classes that calculate iterative

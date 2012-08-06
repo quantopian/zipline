@@ -44,8 +44,10 @@ class MovingAverageEventWindow(EventWindow):
     """
     Calculates a moving average over all specified fields.
     """
+    # Subclass initializer.  The superclass also requires a timedelta
+    # argument, so instantiation should look like:
+    # mavg = MovingAverageEventWindow(timedelta(minutes=1), ['price']) 
     def init(self, fields):
-        # Subclass initializer.  Superclass also expects a timedelta.
         self.fields = fields
         self.totals = defaultdict(float)
 
