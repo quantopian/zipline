@@ -56,9 +56,12 @@ class StatefulTransform(object):
 
         self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
         self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
+        self.append_value = tnfm_class.__dict__.get('APPENDER', False)
 
-        # You can't be both a forwarded and an updater.
-        assert not all([self.forward_all, self.update_in_place])
+        # You only one special behavior mode can be set.
+        assert sum(map(int, [self.forward_all, 
+                             self.update_in_place, 
+                             self.append_value])) <= 1
 
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
@@ -75,11 +78,15 @@ class StatefulTransform(object):
     def _gen(self, stream_in):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
+        
         for message in stream_in:
+
             # allow upstream generators to yield None to avoid
             # blocking.
             if message == None:
                 continue
+            
+            #TODO: refactor this to avoid unnecessary copying.
 
             assert_sort_unframe_protocol(message)
             message_copy = deepcopy(message)
@@ -87,22 +94,43 @@ class StatefulTransform(object):
             # Same shared pointer issue here as above.
             tnfm_value = self.state.update(deepcopy(message_copy))
 
-            # If we want to keep all original values, plus append tnfm_id
-            # and tnfm_value. Used for Passthrough.
+            # FORWARDER flag means we want to keep all original
+            # values, plus append tnfm_id and tnfm_value. Used for
+            # preserving the original event fields when our output
+            # will be fed into a merge.
             if self.forward_all:
                 out_message = message_copy
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 yield out_message
 
-                # Our expectation is that the transform simply updated the
-                # message it was passed.  Useful for chaining together
-                # multiple transforms, e.g. TransactionSimulator/PerformanceTracker.
+            # UPDATER flag should be used for transforms that
+            # side-effectfully modify the event they are passed.
+            # Updated messages are passed along exactly as they are
+            # returned to use by our state class. Useful for chaining
+            # specific transforms that won't be fed to a merge.  (See
+            # the implementation of TradeSimulationClient for example
+            # usage of this flag with PerformanceTracker and
+            # TransactionSimulator.
             elif self.update_in_place:
                 yield tnfm_value
+                
+            # APPENDER flag should be used to add a single new
+            # key-value pair to the event. The new key is this
+            # transform's namestring, and it's value is the value
+            # returned by state.update(event). This is almost
+            # identical to the behavior of FORWARDER, except we
+            # compress the two calculated values (tnfm_id, and
+            # tnfm_value) into a single field.
+            elif self.append_value:
+                out_message = message_copy
+                out_message[self.namestring] = tnfm_value
+                yield out_message
 
-                # Otherwise send tnfm_id, tnfm_value, and the message
-                # date. Useful for transforms being piped to a merge.
+            # If no flags are set, we create a new message containing
+            # just the tnfm_id, the event's datetime, and the
+            # calculated tnfm_value. This is the default behavior for
+            # a transform being fed into a merge.
             else:
                 out_message = ndict()
                 out_message.tnfm_id = self.namestring
@@ -146,20 +174,39 @@ class MovingAverage(object):
         window.update(event)
         return window.get_averages()
 
-class EventWindow(object):
+class EventWindow:
     """
-    Maintains a list of events that are within a certain timedelta
-    of the most recent tick.  The expected use of this class is to
-    track events associated with a single sid. We provide simple
-    functionality for averages, but anything more complicated
-    should be handled by a containing class.
-    """
+    Abstract base class for transform classes that calculate iterative
+    metrics on events within a given timedelta.  Maintains a list of
+    events that are within a certain timedelta of the most recent
+    tick.  Calls self.handle_add(event) for each event added to the
+    window.  Calls self.handle_remove(event) for each event removed
+    from the window.  Subclass these methods along with init(*args,
+    **kwargs) to calculate metrics over the window.  
 
-    def __init__(self, delta, fields):
+    See zipline/gens/mavg.py and zipline/gens/vwap.py for example
+    implementations of moving average and volume-weighted average
+    price.
+    """
+    # Mark this as an abstract base class.
+    __metaclass__ = ABCMeta
+
+    def __init__(self, delta, *args, **kwargs):
         self.ticks  = deque()
         self.delta  = delta
-        self.fields = fields
-        self.totals = defaultdict(float)
+        self.init(*args, **kwargs)
+        
+    @abstractmethod
+    def init(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def handle_add(self, event):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def handle_remove(self, event):
+        raise NotImplementedError()
 
     def __len__(self):
         return len(self.ticks)
@@ -168,44 +215,19 @@ class EventWindow(object):
         self.assert_well_formed(event)
         # Add new event and increment totals.
         self.ticks.append(event)
-        for field in self.fields:
-            self.totals[field] += event[field]
+        self.handle_add(event)
 
-        # We return a list of all out-of-range events we removed.
-        out_of_range = []
-
-        # Clear out expired events, decrementing totals.
+        # Clear out expired event.
+        #
         #           newest               oldest
         #             |                    |
         #             V                    V
-
-        while (self.ticks[-1].dt - self.ticks[0].dt) >= self.delta:
-            # popleft removes and returns ticks[0]
+        while (self.ticks[-1].dt - self.ticks[0].dt) > self.delta:
+            # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
-            # Decrement totals
-            for field in self.fields:
-                self.totals[field] -= popped[field]
-            # Add the popped element to the list of dropped events.
-            out_of_range.append(popped)
-
-        return out_of_range
-
-    def average(self, field):
-        assert field in self.fields
-        if len(self.ticks) == 0:
-            return 0.0
-        else:
-            return self.totals[field] / len(self.ticks)
-
-    def get_averages(self):
-        """
-        Return an ndict of all our tracked averages.
-        """
-        out = ndict()
-        # out.ticks = len(self.ticks)
-        for field in self.fields:
-            out[field] = self.average(field)
-        return out
+            # Subclasses should override handle_remove to define
+            # behavior for removing ticks.
+            self.handle_remove(popped)
 
     def assert_well_formed(self, event):
         assert isinstance(event, ndict), "Bad event in EventWindow:%s" % event
@@ -215,8 +237,3 @@ class EventWindow(object):
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
-        for field in self.fields:
-            assert event.has_key(field), \
-                "Event missing [%s] in EventWindow" % field
-            assert isinstance(event[field], Number), \
-                "Got %s for %s in EventWindow" % (event[field], field)

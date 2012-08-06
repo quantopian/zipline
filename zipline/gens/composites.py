@@ -13,8 +13,9 @@ TransformBundle = namedtuple("TransformBundle", ['tnfm', 'args', 'kwargs'])
 
 def date_sorted_sources(*sources):
     """
-    Takes an iterable of SortBundles, generating namestrings and initialized datasources
-    for each before piping them into a date_sort.
+    Takes an iterable of SortBundles, generating namestrings and
+    initialized datasources for each before piping them into a
+    date_sort.
     """
 
     for source in sources:
@@ -28,21 +29,21 @@ def date_sorted_sources(*sources):
     # one element at a time from each.
     stream_in = roundrobin(sources, names)
     
-    # Guarantee the flat stream will be sorted by date, using source_id as
-    # tie-breaker, which is fully deterministic (given deterministic string 
-    # representation for all args/kwargs)
+    # Guarantee the flat stream will be sorted by date, using
+    # source_id as tie-breaker, which is fully deterministic (given
+    # deterministic string representation for all args/kwargs)
 
     return date_sort(stream_in, names)
 
 def merged_transforms(sorted_stream, *transforms):
     """
-    A generator that takes the expected output of a date_sort, pipes it
-    through a given set of transforms, and runs the results throught a
-    merge to output a unified stream. tnfms should be a list of
-    pointers to generator functions. tnfm_args should be a list of
-    tuples, representing the arguments to be passed to each transform.
-    tnfm_kwargs should be a list of dictionaries representing keyword
-    arguments to each transform.
+    A generator that takes the expected output of a date_sort, pipes
+    it through a given set of transforms, and runs the results
+    through a merge to output a unified stream. tnfms should be a
+    list of pointers to generator functions. tnfm_args should be a
+    list of tuples, representing the arguments to be passed to each
+    transform.  tnfm_kwargs should be a list of dictionaries
+    representing keyword arguments to each transform.
     """
     for transform in transforms:
         assert isinstance(transform, StatefulTransform)
@@ -62,15 +63,35 @@ def merged_transforms(sorted_stream, *transforms):
     # Roundrobin the outputs of our transforms to create a single flat
     # stream.
     to_merge = roundrobin(tnfm_gens, namestrings)
-
     # Pipe the stream into merge.
     merged = merge(to_merge, namestrings)
     # Return the merged events.
     return merged
 
-def zipline(sources, transforms, endpoint):
-    assert isinstance(sources, (list, tuple))
+def sequential_transforms(stream_in, *transforms):
+    """
+    Apply each transform in transforms sequentially to each event in stream_in.
+    Each transform application will add a new entry indexed to the transform's
+    hash string.
+    """
+    
     assert isinstance(transforms, (list, tuple))
+    for tnfm in transforms:
+        tnfm.forward_all = False
+        tnfm.update_in_place = False
+        tnfm.append_value = True
+
+    # Recursively apply all transforms to the stream.
+    stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream), 
+                        transforms, 
+                        stream_in)
+    return stream_out
+
+    
+
+
+    
+    
     
     
     
