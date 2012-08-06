@@ -25,9 +25,9 @@ def mock_prices(count, rand = False):
     """
 
     if rand:
-        return (random.uniform(0.0, 10.0) for i in xrange(count))
+        return (random.uniform(1.0, 10.0) for i in xrange(count))
     else:
-        return (float(i % 11) for i in xrange(1,count+1))
+        return (float(i % 10) + 1.0 for i in xrange(count))
 
 def mock_volumes(count, rand = False):
     """
