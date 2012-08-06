@@ -1,6 +1,5 @@
 import pytz
 
-from time import sleep
 from pprint import pprint as pp
 from datetime import datetime, timedelta
 
@@ -16,7 +15,7 @@ from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 import zipline.protocol as zp
 
 if __name__ == "__main__":
-    
+
     filter = [2,3]
     #Set up source a. One minute between events.
     args_a = tuple()
@@ -42,19 +41,18 @@ if __name__ == "__main__":
 
     #Set up source c. Three minutes between events.
 
-    sorted = date_sorted_sources(source_a, source_b)     
-    
+    sorted = date_sorted_sources(source_a, source_b)
+
     passthrough = StatefulTransform(Passthrough)
     mavg_price = StatefulTransform(MovingAverage, timedelta(minutes = 20), ['price'])
-    
+
     merged = merged_transforms(sorted, passthrough, mavg_price)
-    
+
     algo = TestAlgorithm(2, 10, 100, sid_filter = [2,3])
     environment = create_trading_environment(year = 2012)
     style = zp.SIMULATION_STYLE.FIXED_SLIPPAGE
-    
+
     trading_client = tsc(algo, environment, style)
-    
+
     for message in trading_client.simulate(merged):
        pp(message)
-    

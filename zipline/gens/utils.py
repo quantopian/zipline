@@ -66,6 +66,18 @@ def hash_args(*args, **kwargs):
     hasher.update(combined)
     return hasher.hexdigest()
 
+def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
+    row = ndict({
+        'source_id' : source_id,
+        'type'      : DATASOURCE_TYPE.TRADE,
+        'sid'       : sid,
+        'dt'        : datetime,
+        'price'     : price,
+        'volume'    : amount
+    })
+    return row
+
+
 def assert_datasource_protocol(event):
     """Assert that an event meets the protocol for datasource outputs."""
 

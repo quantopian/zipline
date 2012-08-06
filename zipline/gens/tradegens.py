@@ -6,8 +6,7 @@ import random
 from itertools import chain, cycle, ifilter, izip
 from datetime import datetime, timedelta
 
-from zipline.utils.factory import create_trade
-from zipline.gens.utils import hash_args
+from zipline.gens.utils import hash_args, create_trade
 
 def date_gen(start = datetime(2006, 6, 6, 12),
              delta = timedelta(minutes = 1),
