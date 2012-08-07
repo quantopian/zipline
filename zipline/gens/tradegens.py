@@ -3,13 +3,15 @@ Tools to generate trade events without a backing store. Useful for testing
 and zipline development
 """
 import random
+import pytz
+
 from itertools import chain, cycle, ifilter, izip
 from datetime import datetime, timedelta
 
 from zipline.utils.factory import create_trade
 from zipline.gens.utils import hash_args
 
-def date_gen(start = datetime(2006, 6, 6, 12),
+def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
              delta = timedelta(minutes = 1),
              count = 100):
     """
@@ -71,7 +73,7 @@ class SpecificEquityTrades(object):
         # Unpack config dictionary with default values.
         self.count = kwargs.get('count', 500)
         self.sids = kwargs.get('sids', [1, 2])
-        self.start = kwargs.get('start', datetime(2012, 6, 6, 0))
+        self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
         self.delta = kwargs.get('delta', timedelta(minutes = 1))
 
         # Default to None for event_list and filter.

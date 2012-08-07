@@ -10,6 +10,7 @@ from numbers import Number
 from abc import ABCMeta, abstractmethod
 
 from zipline import ndict
+from zipline.utils.tradingcalendar import trading_days_between
 from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
 

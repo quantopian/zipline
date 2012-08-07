@@ -249,9 +249,11 @@ def compare_by_dt_source_id(x,y):
         return -1
     elif x.source_id > y.source_id:
         return 1
-
     else:
         return 0
 
 #Alias for ease of use                         
 comp = compare_by_dt_source_id
+
+def to_dt(msg):
+    return ndict({'dt': msg})

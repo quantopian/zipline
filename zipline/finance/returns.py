@@ -1,26 +1,24 @@
 from collections import defaultdict
 from zipline.transforms.base import BaseTransform
 
-class ReturnsTransform(BaseTransform):
-
-    def init(self, name):
-        self.state = {}
-        self.state['name'] = name
-        self.by_sid = defaultdict(self._create)
-
-    @property
-    def get_id(self):
-        return self.state['name']
-
-
-    def transform(self, event):
-        cur = self.by_sid[event.sid]
-        cur.update(event)
-        self.state['value'] = cur.returns
-        return self.state
+class Returns(object):
+    """
+    Class that maintains a dictionary from sids to the event
+    representing the most recent closing price.
+    """
+    def __init__(self, days == 1):
+        self.days = days
+        self.mapping = defaultdict(self._create)
+        
+    def update(self, event):
+        """
+        Update and return the calculated returns for this event's sid.
+        """
+        sid_returns = self.mapping[event.sid].update(event)
+        return sid_returns
 
     def _create(self):
-        return ReturnsFromPriorClose()
+        return ReturnsFromPriorClose(days)
 
 class ReturnsFromPriorClose(object):
     """

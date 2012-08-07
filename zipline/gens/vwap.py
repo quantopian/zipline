@@ -59,7 +59,7 @@ class VWAPEventWindow(EventWindow):
         Return the calculated vwap for this sid.
         """
         # By convention, vwap is None if we have no events.
-        if len(self.ticks) == 0
+        if len(self.ticks) == 0:
             return None
         else:
             return (self.flux / self.totalvolume)
@@ -68,15 +68,3 @@ class VWAPEventWindow(EventWindow):
     def assert_required_fields(self, event):
         assert isinstance(event.price, Number)
         assert isinstance(event.volume, Number)
-        
-if __name__ == "__main__":
-    
-    from zipline.gens.tradegens import SpecificEquityTrades
-    from zipline.gens.transform import StatefulTransform
-    
-    source = SpecificEquityTrades()
-    vwap = StatefulTransform(VWAP, timedelta(minutes = 10))
-    
-    out = vwap.transform(source)
-    
-

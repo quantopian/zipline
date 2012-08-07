@@ -95,7 +95,7 @@ HOLIDAYS = {
     'july_4th'     : datetime(2008 , 7  , 4 ),
     'labor_day'    : datetime(2008 , 9  , 1 ),
     'tgiving'      : datetime(2008 , 11 , 27),
-    'christmas'    : datetime(2008 , 5  , 25),
+    'christmas'    : datetime(2008 , 12  , 25),
 }
 
 # Create a rule to recur every weekday starting today
