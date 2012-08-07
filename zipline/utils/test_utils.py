@@ -76,7 +76,7 @@ def drain_zipline(test, zipline):
     time.sleep(1)
 
     # start the simulation
-    zipline.simulate(blocking=True)
+    zipline.simulate(blocking=False)
     output, transaction_count = drain_receiver(test.receiver)
     # some processes will exit after the message stream is
     # finished. We block here to avoid collisions with subsequent
@@ -96,16 +96,15 @@ def drain_receiver(receiver):
     transaction_count  = 0
     while True:
         msg = receiver.recv()
-        if msg == str(zp.CONTROL_PROTOCOL.DONE):
+        update = zp.BT_UPDATE_UNFRAME(msg)
+        output.append(update)
+        if update['prefix'] == 'PERF':
+            transaction_count += \
+                len(update['payload']['daily_perf']['transactions'])
+        elif update['prefix'] == 'EXCEPTION':
             break
-        else:
-            update = zp.BT_UPDATE_UNFRAME(msg)
-            output.append(update)
-            if update['prefix'] == 'PERF':
-                transaction_count += \
-                    len(update['payload']['daily_perf']['transactions'])
-            elif update['prefix'] == 'EXCEPTION':
-                break
+        elif update['prefix'] == 'DONE':
+            break
 
     receiver.close()
     del receiver
@@ -116,9 +115,6 @@ def drain_receiver(receiver):
 def assert_single_position(test, zipline):
     output, transaction_count = drain_zipline(test, zipline)
 
-    test.assertTrue(zipline.sim.ready())
-    test.assertFalse(zipline.sim.exception)
-
     test.assertEqual(
         test.zipline_test_config['order_count'],
         transaction_count
@@ -127,7 +123,8 @@ def assert_single_position(test, zipline):
     # the final message is the risk report, the second to
     # last is the final day's results. Positions is a list of
     # dicts.
-    closing_positions = output[-2]['payload']['daily_perf']['positions']
+    perfs = [x for x in output if x['prefix'] == 'PERF']
+    closing_positions = perfs[-2]['payload']['daily_perf']['positions']
 
     test.assertEqual(
         len(closing_positions),

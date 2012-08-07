@@ -14,13 +14,15 @@ class TestMonitor(TestCase):
     def test_init(self):
         pub_socket   = 'tcp://127.0.0.1:5000'
         route_socket = 'tcp://127.0.0.1:5001'
+        exception_socket = 'tcp://127.0.0.1:5002'
 
-        mon = Monitor(pub_socket, route_socket)
+        mon = Monitor(pub_socket, route_socket, exception_socket)
         mon.manage([])
 
     def test_init_topology(self):
         pub_socket   = 'tcp://127.0.0.1:5000'
         route_socket = 'tcp://127.0.0.1:5001'
+        exception_socket = 'tcp://127.0.0.1:5002'
 
-        mon = Monitor(pub_socket, route_socket, )
+        mon = Monitor(pub_socket, route_socket, exception_socket)
         mon.manage([ 'a', 'b', 'c', 'd' ])

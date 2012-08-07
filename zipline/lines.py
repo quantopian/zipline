@@ -162,8 +162,13 @@ class SimulatedTrading(object):
         finally:
             self.close()
 
+    def signal_done(self):
+        # notify monitor we're done
+        done_frame = zp.DONE_FRAME('succes')
+        self.results_socket.send(done_frame)
+
     def close(self):
-        log.info("Closing Simulation")
+        log.info("Closing Simulation: {id}".format(id=self.sim_id))
 
     def cancel(self):
         if self.proc and self.proc.is_alive():

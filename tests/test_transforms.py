@@ -37,7 +37,7 @@ class ZiplineWithTransformsTestCase(TestCase):
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
-        vwap = VWAPTransform("vwap_10", daycount=10)
+        vwap = VWAP("vwap_10", daycount=10)
         zipline.add_transform(vwap)
 
         zipline.simulate(blocking=True)
@@ -49,7 +49,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
-        setup_logger(self, '/var/log/qexec/qexec.log')
+        setup_logger(self)
 
         trade_history = factory.create_trade_history(
             133,
@@ -74,11 +74,11 @@ class FinanceTransformsTestCase(TestCase):
                     ((10.0 * 100) + (10.0 * 100)) / (200.0),
                     ((10.0 * 100) + (10.0 * 100) + (11.0 * 100)) / (300.0),
                     # First event should get droppped here.
-                    ((10.0 * 100) + (11.0 * 100) + (11.0 * 300)) / (500.0)] 
+                    ((10.0 * 100) + (11.0 * 100) + (11.0 * 300)) / (500.0)]
 
         # Output should match the expected.
         assert tnfm_vals == expected
-        
+
 
     def test_returns(self):
         trade_history = factory.create_trade_history(
@@ -98,13 +98,13 @@ class FinanceTransformsTestCase(TestCase):
 
 
     def test_moving_average(self):
-        
+
         mavg = StatefulTransform(
-            MovingAverage, 
-            timedelta(days = 2), 
+            MovingAverage,
+            timedelta(days = 2),
             ['price', 'volume']
-        ) 
-        
+        )
+
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message.tnfm_value.price for message in transformed]
@@ -120,7 +120,6 @@ class FinanceTransformsTestCase(TestCase):
                            ((100.0 + 100.0 + 100.0) / 3.0),
                            # First event should get dropped here.
                            ((100.0 + 100.0 + 300.0) / 3.0)]
-        
+
         assert tnfm_prices == expected_prices
         assert tnfm_volumes == expected_volumes
-        

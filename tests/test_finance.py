@@ -11,7 +11,6 @@ from collections import defaultdict
 from nose.tools import timed
 
 import zipline.utils.factory as factory
-import zipline.protocol as zp
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import TradingEnvironment
@@ -19,10 +18,9 @@ from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
-from zipline.finance.trading import TransactionSimulator, SIMULATION_STYLE
+from zipline.finance.trading import TransactionSimulator
 from zipline.utils.test_utils import \
         drain_zipline, \
-        check, \
         setup_logger, \
         teardown_logger,\
         assert_single_position
@@ -39,10 +37,8 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'allocator'         : allocator,
-            'sid'               : 133,
-            #'devel'             : True,
-            'results_socket'    : allocator.lease(1)[0]
+            'sid'                   : 133,
+            'results_socket_uri'    : allocator.lease(1)[0]
         }
         self.ctx = zmq.Context()
 
@@ -60,7 +56,7 @@ class FinanceTestCase(TestCase):
             trading_environment
         )
         prev = None
-        for trade in trade_source.event_list:
+        for trade in trade_source:
             if prev:
                 self.assertTrue(trade.dt > prev.dt)
             prev = trade
@@ -123,7 +119,6 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config['order_count'] = 100
         self.zipline_test_config['trade_count'] = 200
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
-
         assert_single_position(self, zipline)
 
     #@timed(DEFAULT_TIMEOUT)
@@ -147,9 +142,6 @@ class FinanceTestCase(TestCase):
             **self.zipline_test_config
         )
         output, transaction_count = drain_zipline(self, zipline)
-
-        self.assertTrue(zipline.sim.ready())
-        self.assertFalse(zipline.sim.exception)
 
         #check that the algorithm received no events
         self.assertEqual(
@@ -301,12 +293,12 @@ class FinanceTestCase(TestCase):
         # if present, expect transaction amounts to match orders exactly.
         complete_fill = params.get('complete_fill')
 
+        sid = 1
         trading_environment = factory.create_trading_environment()
-        trade_sim = TransactionSimulator()
+        trade_sim = TransactionSimulator([sid])
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.first_open
-        sid = 1
 
         generated_trades = factory.create_trade_history(
             sid,
@@ -330,7 +322,7 @@ class FinanceTestCase(TestCase):
                 'dt'        : order_date
             })
 
-            trade_sim.add_open_order(order)
+            trade_sim.place_order(order)
 
             order_date = order_date + order_interval
             # move after market orders to just after market next
@@ -353,14 +345,13 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.amount, order_amount * alternator**i)
 
 
-        tracker = PerformanceTracker(trading_environment)
+        tracker = PerformanceTracker(trading_environment, [sid])
 
         # this approximates the loop inside TradingSimulationClient
         transactions = []
         for trade in generated_trades:
             if trade_delay:
                 trade.dt = trade.dt + trade_delay
-
             txn = trade_sim.apply_trade_to_open_orders(trade)
             if txn:
                 transactions.append(txn)
