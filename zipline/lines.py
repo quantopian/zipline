@@ -99,10 +99,10 @@ class SimulatedTrading(object):
 
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
-        self.transforms.extend(StatefulTransform(Passthrough))
+        self.transforms.append(StatefulTransform(Passthrough))
         self.merged = merged_transforms(self.date_sorted, *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
-        self.gen = self.trading_client.simluate(self.merged)
+        self.gen = self.trading_client.simulate(self.merged)
         self.results_uri = results_socket_uri
         self.results_socket = None
         self.context = context
@@ -111,6 +111,7 @@ class SimulatedTrading(object):
         # optional process if we fork simulate into an
         # independent process.
         self.proc = None
+        self.logger = Logger(sim_id)
 
 
     def simulate(self, blocking=True):
@@ -122,7 +123,7 @@ class SimulatedTrading(object):
             return self.fork_and_sim()
 
     def fork_and_sim(self):
-        self.proc = multiprocessing.Process(self.run_gen)
+        self.proc = multiprocessing.Process(target=self.run_gen)
         self.proc.start()
         return self.proc
 
@@ -133,15 +134,16 @@ class SimulatedTrading(object):
 
             def inject_event_data(record):
                 # Record the simulation time.
-                record.extra['algo_dt'] = self.current_dt
+                #record.extra['algo_dt'] = self.current_dt
+                pass
 
             data_injector = Processor(inject_event_data)
             log_pipeline = NestedSetup([self.zmq_out,data_injector])
             with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
-                self.drain_gen()
+                self.stream_results()
             # if no log socket, just run the algo normally
         else:
-            self.drain_gen()
+            self.stream_results()
 
     def stream_results(self):
         assert self.results_socket, \
@@ -153,7 +155,8 @@ class SimulatedTrading(object):
                 else:
                     msg = zp.RISK_FRAME(event)
                 self.results_socket.send(msg)
-                self.signal_done()
+
+            self.signal_done()
         except Exception as exc:
             self.handle_exception(exc)
         finally:
@@ -186,10 +189,8 @@ class SimulatedTrading(object):
         """
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        log.exception("Unexpected error in run for {id}.".format(id=self.sim_id))
-
         try:
-            log.info('{id} sending exception to monitor'\
+            log.exception('{id} sending exception to result stream.'\
                 .format(id=self.sim_id))
             msg = zp.EXCEPTION_FRAME(
                     exc_traceback,
@@ -197,11 +198,7 @@ class SimulatedTrading(object):
                     exc_value.message
                 )
 
-            exception_frame = zp.CONTROL_FRAME(
-                zp.CONTROL_PROTOCOL.EXCEPTION,
-                msg
-            )
-            self.results_socket.send(exception_frame)
+            self.results_socket.send(msg)
 
         except:
             log.exception("Exception while reporting simulation exception.")
@@ -214,9 +211,6 @@ class SimulatedTrading(object):
             sock = self.context.socket(zmq.PUSH)
             sock.connect(self.results_uri)
             self.results_socket = sock
-            self.sockets.append(sock)
-            self.results_socket = sock
-
             self.setup_logging()
 
     def setup_logging(self, socket = None):
@@ -230,6 +224,10 @@ class SimulatedTrading(object):
         # This is a class, which is instantiated later
         # in run_algorithm. The class provides a generator.
         self.stdout_capture = stdout_only_pipe
+
+    def join(self):
+        if self.proc:
+            self.proc.join()
 
     @staticmethod
     def create_test_zipline(**config):
@@ -333,8 +331,8 @@ class SimulatedTrading(object):
                 test_algo,
                 trading_environment,
                 simulation_style,
-                zmq_context,
                 results_socket_uri,
+                zmq_context,
                 simulation_id)
         #-------------------
 
