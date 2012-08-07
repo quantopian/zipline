@@ -184,7 +184,7 @@ class EventWindow:
         if self.market_aware:
             self.drop_condition = self.out_of_market_window
         else:
-            self.drop_condition = self.out_of_timedelta
+            self.drop_condition = self.out_of_delta
 
     @abstractmethod
     def handle_add(self, event):
