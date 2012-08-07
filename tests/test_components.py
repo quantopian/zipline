@@ -8,7 +8,8 @@ from collections import defaultdict
 from zipline.gens.composites import date_sorted_sources, merged_transforms
 
 from zipline.core.devsimulator import AddressAllocator
-from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
+from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.mavg import MovingAverage
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 
 from zipline.utils.factory import create_trading_environment
@@ -113,7 +114,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uri,
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            "source_a"
         )
 
         launch_monitor(monitor)
@@ -171,7 +173,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[0],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_a.get_hash()
         )
 
         comp_b = Component(
@@ -179,7 +182,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[1],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_b.get_hash()
         )
 
         comp_c = Component(
@@ -187,7 +191,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[2],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_c.get_hash()
         )
 
         sources = [comp_a, comp_b, comp_c]

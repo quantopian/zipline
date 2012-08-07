@@ -26,11 +26,11 @@ class ExceptionTestCase(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'allocator' : allocator,
-            'sid'       : 133,
-            'devel'     : False,
-            'results_socket'    : allocator.lease(1)[0],
-            'simulation_style'  : SIMULATION_STYLE.FIXED_SLIPPAGE
+            'allocator'             : allocator,
+            'sid'                   : 133,
+            'devel'                 : False,
+            'results_socket_uri'    : allocator.lease(1)[0],
+            'simulation_style'      : SIMULATION_STYLE.FIXED_SLIPPAGE
         }
         self.ctx = zmq.Context()
         setup_logger(self)

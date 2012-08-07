@@ -59,43 +59,177 @@ before invoking simulate.
                           |      __init__.                  |
                           +---------------------------------+
 """
-
-import logbook
+import sys
+import zmq
+import multiprocessing
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
+from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 from zipline.utils import factory
-import pytz
 
-from pprint import pprint as pp
-from datetime import datetime, timedelta
-
-from zipline.utils.factory import create_trading_environment
 from zipline.test_algorithms import TestAlgorithm
 
-from zipline.gens.composites import SourceBundle, TransformBundle, \
+from zipline.gens.composites import  \
     date_sorted_sources, merged_transforms
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
+from zipline.gens.transform import Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+from logbook import Logger, NestedSetup, Processor
 
 import zipline.protocol as zp
 
 
-log = logbook.Logger('Lines')
+log = Logger('Lines')
+
+class CancelSignal(Exception):
+    def __init__(self):
+        pass
 
 class SimulatedTrading(object):
 
-    @staticmethod
-    def create_simulation(sources, transforms, algorithm, environment, style):
+    def __init__(self,
+            sources,
+            transforms,
+            algorithm,
+            environment,
+            style,
+            results_socket_uri,
+            context,
+            sim_id):
 
-        sorted = date_sorted_sources(*sources)
-        passthrough = StatefulTransform(Passthrough)
+        self.date_sorted = date_sorted_sources(*sources)
+        self.transforms = transforms
+        self.transforms.extend(StatefulTransform(Passthrough))
+        self.merged = merged_transforms(self.date_sorted, *self.transforms)
+        self.trading_client = tsc(algorithm, environment, style)
+        self.gen = self.trading_client.simluate(self.merged)
+        self.results_uri = results_socket_uri
+        self.results_socket = None
+        self.context = context
+        self.sim_id = sim_id
 
-        merged = merged_transforms(sorted, passthrough, *transforms)
-        trading_client = tsc(algorithm, environment, style)
-        return trading_client.simluate(merged)
+        # optional process if we fork simulate into an
+        # independent process.
+        self.proc = None
 
+
+    def simulate(self, blocking=True):
+
+        # for non-blocking,
+        if blocking:
+            self.run_gen()
+        else:
+            return self.fork_and_sim()
+
+    def fork_and_sim(self):
+        self.proc = multiprocessing.Process(self.run_gen)
+        self.proc.start()
+        return self.proc
+
+    def run_gen(self):
+
+        self.open()
+        if self.zmq_out:
+
+            def inject_event_data(record):
+                # Record the simulation time.
+                record.extra['algo_dt'] = self.current_dt
+
+            data_injector = Processor(inject_event_data)
+            log_pipeline = NestedSetup([self.zmq_out,data_injector])
+            with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+                self.drain_gen()
+            # if no log socket, just run the algo normally
+        else:
+            self.drain_gen()
+
+    def stream_results(self):
+        assert self.results_socket, \
+                "Results socket must exist to stream results"
+        try:
+            for event in self.gen:
+                if event.has_key('daily_perf'):
+                    msg = zp.PERF_FRAME(event)
+                else:
+                    msg = zp.RISK_FRAME(event)
+                self.results_socket.send(msg)
+                self.signal_done()
+        except Exception as exc:
+            self.handle_exception(exc)
+        finally:
+            self.close()
+
+    def close(self):
+        log.info("Closing Simulation")
+
+    def cancel(self):
+        if self.proc and self.proc.is_alive():
+            self.proc.terminate()
+        else:
+            self.gen.throw(CancelSignal())
+
+    def handle_exception(self, exc):
+        if isinstance(exc, CancelSignal):
+            # signal from monitor of an orderly shutdown,
+            # do nothing.
+            pass
+        else:
+            self.signal_exception(exc)
+
+    def signal_exception(self, exc=None):
+        """
+        All exceptions inside any component should boil back to
+        this handler.
+
+        Will inform the system that the component has failed and how it
+        has failed.
+        """
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        log.exception("Unexpected error in run for {id}.".format(id=self.sim_id))
+
+        try:
+            log.info('{id} sending exception to monitor'\
+                .format(id=self.sim_id))
+            msg = zp.EXCEPTION_FRAME(
+                    exc_traceback,
+                    exc_type.__name__,
+                    exc_value.message
+                )
+
+            exception_frame = zp.CONTROL_FRAME(
+                zp.CONTROL_PROTOCOL.EXCEPTION,
+                msg
+            )
+            self.results_socket.send(exception_frame)
+
+        except:
+            log.exception("Exception while reporting simulation exception.")
+
+
+    def open(self):
+        if not self.context:
+            self.context = zmq.Context()
+        if self.results_uri:
+            sock = self.context.socket(zmq.PUSH)
+            sock.connect(self.results_uri)
+            self.results_socket = sock
+            self.sockets.append(sock)
+            self.results_socket = sock
+
+            self.setup_logging()
+
+    def setup_logging(self, socket = None):
+        sock = socket or self.results_socket
+
+        self.zmq_out = ZeroMQLogHandler(
+            socket = sock,
+        )
+
+
+        # This is a class, which is instantiated later
+        # in run_algorithm. The class provides a generator.
+        self.stdout_capture = stdout_only_pipe
 
     @staticmethod
     def create_test_zipline(**config):
@@ -154,6 +288,10 @@ class SimulatedTrading(object):
         if not simulation_style:
             simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
 
+        zmq_context         = config.get('zmq_context', None)
+        simulation_id       = config.get('simumlation_id', 'test_simulation')
+        results_socket_uri  = config.get('results_socket_uri', None)
+
         #-------------------
         # Trade Source
         #-------------------
@@ -189,24 +327,15 @@ class SimulatedTrading(object):
         # Simulation
         #-------------------
 
-        sim = SimulatedTrading.create_simulation(
+        sim = SimulatedTrading(
                 [trade_source],
                 transforms,
                 test_algo,
                 trading_environment,
-                simulation_style)
+                simulation_style,
+                zmq_context,
+                results_socket_uri,
+                simulation_id)
         #-------------------
 
         return sim
-
-
-class ZiplineException(Exception):
-    def __init__(self, zipline_name, msg):
-        self.name = zipline_name
-        self.message = msg
-
-    def __str__(self):
-        return "Unexpected exception {line}: {msg}".format(
-            line=self.name,
-            msg=self.message
-        )
