@@ -17,7 +17,6 @@ class Returns(object):
         assert event.has_key('dt')
         assert event.has_key('price')
         
-        import nose.tools; nose.tools.set_trace()
         tracker = self.mapping[event.sid]
         tracker.update(event)
         
@@ -68,7 +67,7 @@ class ReturnsFromPriorClose(object):
         # to avoid.
 
         if len(self.closes) == self.days:
-            last_close = self.closes[0] 
+            last_close = self.closes[0].price 
             change = event.price - last_close
             self.returns = change / last_close
 
