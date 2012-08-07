@@ -1,6 +1,5 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 from zipline.transforms.base import BaseTransform
-from zipline.utils.tradingcalendar import market_closes
 
 class Returns(object):
     """
@@ -17,14 +16,15 @@ class Returns(object):
         """
         assert event.has_key('dt')
         assert event.has_key('price')
-
+        
+        import nose.tools; nose.tools.set_trace()
         tracker = self.mapping[event.sid]
         tracker.update(event)
         
         return tracker.get_returns()
 
     def _create(self):
-        return ReturnsFromPriorClose(days)
+        return ReturnsFromPriorClose(self.days)
 
 class ReturnsFromPriorClose(object):
     """
@@ -57,7 +57,7 @@ class ReturnsFromPriorClose(object):
                 # if the number of stored events is greater than the
                 # number of days we want to track, the oldest close
                 # is expired and should be discarded.
-                if len(self.closes) > self.days:
+                while len(self.closes) > self.days:
                     # Pop the oldest event.
                     self.closes.popleft()
 
@@ -68,8 +68,9 @@ class ReturnsFromPriorClose(object):
         # to avoid.
 
         if len(self.closes) == self.days:
-            change = event.price - self.closes[0].price
-            self.returns = change / self.last_close.price
+            last_close = self.closes[0] 
+            change = event.price - last_close
+            self.returns = change / last_close
 
 
         # the current event is now the last_event
