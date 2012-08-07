@@ -113,7 +113,6 @@ def drain_receiver(receiver):
 
 
 def assert_single_position(test, zipline):
-    import nose.tools; nose.tools.set_trace()
     output, transaction_count = drain_zipline(test, zipline)
 
     test.assertEqual(

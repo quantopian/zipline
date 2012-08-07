@@ -16,11 +16,6 @@ class Returns(object):
         """
         assert event.has_key('dt')
         assert event.has_key('price')
-<<<<<<< HEAD
-
-=======
-
->>>>>>> 28e6dc15b0b5fc9767ea298c7a2d9cacc05b842e
         tracker = self.mapping[event.sid]
         tracker.update(event)
 

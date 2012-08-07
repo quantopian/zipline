@@ -35,9 +35,9 @@ class FinanceTransformsTestCase(TestCase):
         self.log_handler.pop_application()
 
     def test_vwap(self):
-        
+
         vwap = StatefulTransform(
-            VWAP, 
+            VWAP,
             market_aware = False,
             delta = timedelta(days = 2)
         )
@@ -53,29 +53,29 @@ class FinanceTransformsTestCase(TestCase):
             ((10.0 * 100) + (11.0 * 100)) / (200.0),
             # We should drop the second event here.
             ((11.0 * 100) + (11.0 * 300)) / (400.0)
-        ] 
+        ]
 
         # Output should match the expected.
         assert tnfm_vals == expected
-        
+
     def test_returns(self):
         # Daily returns.
         returns = StatefulTransform(Returns, 1)
-        
+
         transformed = list(returns.transform(self.source))
         tnfm_vals = [message.tnfm_value for message in transformed]
 
         # No returns for the first event because we don't have a
         # previous close.
         expected = [None, 0.0, 0.1, 0.0]
-        
+
         assert tnfm_vals == expected
 
 
         # Two-day returns.  An extra kink here is that the
         # factory will automatically skip a weekend for the
         # last event. Results shouldn't notice this blip.
-        
+
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0, 13.0],
@@ -86,29 +86,28 @@ class FinanceTransformsTestCase(TestCase):
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         returns = StatefulTransform(Returns, 2)
-        
+
         transformed = list(returns.transform(self.source))
         tnfm_vals = [message.tnfm_value for message in transformed]
-        
+
         expected = [
             None,
-            None, 
+            None,
             (13.0 - 10.0) / 10.0,
             (12.0 - 15.0) / 15.0,
             (13.0 - 13.0) / 13.0
         ]
-        
-        import nose.tools; nose.tools.set_trace()
+
         assert tnfm_vals == expected
-        
+
     def test_moving_average(self):
 
         mavg = StatefulTransform(
-            MovingAverage,          
+            MovingAverage,
             market_aware = False,
             fields = ['price', 'volume'],
-            delta = timedelta(days = 2), 
-        ) 
+            delta = timedelta(days = 2),
+        )
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message.tnfm_value.price for message in transformed]
@@ -131,6 +130,6 @@ class FinanceTransformsTestCase(TestCase):
             # Second event should get dropped here.
             ((100.0 + 300.0) / 2.0)
         ]
-        
+
         assert tnfm_prices == expected_prices
         assert tnfm_volumes == expected_volumes
