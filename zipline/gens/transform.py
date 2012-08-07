@@ -10,6 +10,7 @@ from numbers import Number
 from abc import ABCMeta, abstractmethod
 
 from zipline import ndict
+from zipline.utils.tradingcalendar import trading_days_between
 from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
 
@@ -156,15 +157,10 @@ class EventWindow:
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, delta, *args, **kwargs):
+    def __init__(self, delta):
         self.ticks  = deque()
         self.delta  = delta
-        self.init(*args, **kwargs)
         
-    @abstractmethod
-    def init(self):
-        raise NotImplementedError()
-
     @abstractmethod
     def handle_add(self, event):
         raise NotImplementedError()
@@ -193,7 +189,9 @@ class EventWindow:
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
-
+            
+    # All event windows expect to receive events with datetime fields
+    # that arrive in sorted order.
     def assert_well_formed(self, event):
         assert isinstance(event, ndict), "Bad event in EventWindow:%s" % event
         assert event.has_key('dt'), "Missing dt in EventWindow:%s" % event

@@ -5,9 +5,12 @@ from unittest2 import TestCase
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
 import zipline.utils.factory as factory
-from zipline.finance.vwap import DailyVWAP, VWAPTransform
+
+from zipline.gens.tradegens import SpecificEquityTrades
+from zipline.gens.transform import StatefulTransform
+from zipline.gens.vwap import VWAP
+from zipline.gens.mavg import MovingAverage
 from zipline.finance.returns import ReturnsFromPriorClose
-from zipline.finance.movingaverage import MovingAverage
 from zipline.lines import SimulatedTrading
 from zipline.core.devsimulator import AddressAllocator
 
@@ -25,7 +28,7 @@ class ZiplineWithTransformsTestCase(TestCase):
             'sid'       : 133,
             'devel'     : True
         }
-        setup_logger(self, '/var/log/qexec/qexed.log')
+        setup_logger(self, '/var/log/qexec/qexec.log')
 
     def tearDown(self):
         teardown_logger(self)
@@ -48,25 +51,34 @@ class FinanceTransformsTestCase(TestCase):
         self.trading_environment = factory.create_trading_environment()
         setup_logger(self, '/var/log/qexec/qexec.log')
 
-    def tearDown(self):
-        self.log_handler.pop_application()
-
-    def test_vwap(self):
-
         trade_history = factory.create_trade_history(
             133,
-            [10.0, 10.0, 10.0, 11.0],
+            [10.0, 10.0, 11.0, 11.0],
             [100, 100, 100, 300],
             timedelta(days=1),
             self.trading_environment
         )
+        self.source = SpecificEquityTrades(event_list=trade_history)
 
-        vwap = DailyVWAP(days=2)
-        for trade in trade_history:
-            vwap.update(trade)
+    def tearDown(self):
+        self.log_handler.pop_application()
 
-        self.assertEqual(vwap.vwap, 10.75)
+    def test_vwap(self):
+        vwap = StatefulTransform(VWAP, timedelta(days = 2))
+        transformed = list(vwap.transform(self.source))
 
+        # Output values
+        tnfm_vals = [message.tnfm_value for message in transformed]
+        # "Hand calculated" values.
+        expected = [(10.0 * 100) / 100.0,
+                    ((10.0 * 100) + (10.0 * 100)) / (200.0),
+                    ((10.0 * 100) + (10.0 * 100) + (11.0 * 100)) / (300.0),
+                    # First event should get droppped here.
+                    ((10.0 * 100) + (11.0 * 100) + (11.0 * 300)) / (500.0)] 
+
+        # Output should match the expected.
+        assert tnfm_vals == expected
+        
 
     def test_returns(self):
         trade_history = factory.create_trade_history(
@@ -86,17 +98,29 @@ class FinanceTransformsTestCase(TestCase):
 
 
     def test_moving_average(self):
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 10.0, 10.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.trading_environment
-        )
-
-        ma = MovingAverage(days=2)
-        for trade in trade_history:
-            ma.update(trade)
-
-
-        self.assertEqual(ma.average, 10.5)
+        
+        mavg = StatefulTransform(
+            MovingAverage, 
+            timedelta(days = 2), 
+            ['price', 'volume']
+        ) 
+        
+        transformed = list(mavg.transform(self.source))
+        # Output values.
+        tnfm_prices = [message.tnfm_value.price for message in transformed]
+        tnfm_volumes = [message.tnfm_value.volume for message in transformed]
+        # "Hand-calculated" values
+        expected_prices = [((10.0) / 1.0),
+                           ((10.0 + 10.0) / 2.0),
+                           ((10.0 + 10.0 + 11.0) / 3.0),
+                           # First event should get dropped here.
+                           ((10.0 + 11.0 + 11.0) / 3.0)]
+        expected_volumes = [((100.0) / 1.0),
+                           ((100.0 + 100.0) / 2.0),
+                           ((100.0 + 100.0 + 100.0) / 3.0),
+                           # First event should get dropped here.
+                           ((100.0 + 100.0 + 300.0) / 3.0)]
+        
+        assert tnfm_prices == expected_prices
+        assert tnfm_volumes == expected_volumes
+        
