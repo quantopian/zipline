@@ -61,7 +61,10 @@ before invoking simulate.
 """
 import sys
 import zmq
+import os
+from signal import SIGHUP
 import multiprocessing
+from setproctitle import setproctitle
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
@@ -111,15 +114,17 @@ class SimulatedTrading(object):
         # optional process if we fork simulate into an
         # independent process.
         self.proc = None
+        self.send_sighup = False
         self.logger = Logger(sim_id)
 
 
-    def simulate(self, blocking=True):
+    def simulate(self, blocking=True, send_sighup=False):
 
         # for non-blocking,
         if blocking:
             self.run_gen()
         else:
+            self.send_sighup = send_sighup
             return self.fork_and_sim()
 
     def fork_and_sim(self):
@@ -128,7 +133,7 @@ class SimulatedTrading(object):
         return self.proc
 
     def run_gen(self):
-
+        setproctitle(self.sim_id)
         self.open()
         if self.zmq_out:
 
@@ -169,6 +174,10 @@ class SimulatedTrading(object):
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
+        if self.proc and self.send_sighup:
+            ppid = os.getppid()
+            log.warning("Sending SIGHUP")
+            os.kill(ppid, SIGHUP)
 
     def cancel(self):
         if self.proc and self.proc.is_alive():
@@ -233,6 +242,12 @@ class SimulatedTrading(object):
     def join(self):
         if self.proc:
             self.proc.join()
+
+    def get_pids(self):
+        if self.proc:
+            return [self.proc.pid]
+        else:
+            return []
 
     @staticmethod
     def create_test_zipline(**config):
