@@ -20,7 +20,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
-        setup_logger(self, '/var/log/qexec/qexec.log')
+        setup_logger(self)
 
         trade_history = factory.create_trade_history(
             133,
@@ -77,7 +77,6 @@ class FinanceTransformsTestCase(TestCase):
             fields = ['price', 'volume'],
             delta = timedelta(days = 2), 
         ) 
-        
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message.tnfm_value.price for message in transformed]
@@ -100,4 +99,3 @@ class FinanceTransformsTestCase(TestCase):
         
         assert tnfm_prices == expected_prices
         assert tnfm_volumes == expected_volumes
-        

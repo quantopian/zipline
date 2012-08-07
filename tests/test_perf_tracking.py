@@ -543,7 +543,10 @@ shares in position"
         self.trading_environment.capital_base = 1000.0
         self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
         'price', 'changed']
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(
+                self.trading_environment,
+                [sid, sid2]
+        )
 
         for event in trade_history:
             #create a transaction for all but

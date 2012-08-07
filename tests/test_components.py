@@ -8,7 +8,8 @@ from collections import defaultdict
 from zipline.gens.composites import date_sorted_sources, merged_transforms
 
 from zipline.core.devsimulator import AddressAllocator
-from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
+from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.mavg import MovingAverage
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 
 from zipline.utils.factory import create_trading_environment
@@ -113,7 +114,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uri,
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            "source_a"
         )
 
         launch_monitor(monitor)
@@ -171,7 +173,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[0],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_a.get_hash()
         )
 
         comp_b = Component(
@@ -179,7 +182,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[1],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_b.get_hash()
         )
 
         comp_c = Component(
@@ -187,7 +191,8 @@ class ComponentTestCase(TestCase):
             monitor,
             socket_uris[2],
             DATASOURCE_FRAME,
-            DATASOURCE_UNFRAME
+            DATASOURCE_UNFRAME,
+            trade_gen_c.get_hash()
         )
 
         sources = [comp_a, comp_b, comp_c]
@@ -262,8 +267,9 @@ class ComponentTestCase(TestCase):
         passthrough = StatefulTransform(Passthrough)
         mavg_price = StatefulTransform(
                 MovingAverage,
-                timedelta(minutes = 20),
-                ['price']
+                ['price'],
+                market_aware = False,
+                delta=timedelta(minutes = 20)
         )
 
         merged_gen = merged_transforms(sorted, passthrough, mavg_price)
@@ -312,7 +318,12 @@ class ComponentTestCase(TestCase):
         sorted = date_sorted_sources(self.source_a, self.source_b)
 
         passthrough = StatefulTransform(Passthrough)
-        mavg_price = StatefulTransform(MovingAverage, timedelta(minutes = 20), ['price'])
+        mavg_price = StatefulTransform(
+                MovingAverage,
+                ['price'],
+                market_aware=False,
+                delta=timedelta(minutes = 20),
+            )
 
         merged = merged_transforms(sorted, passthrough, mavg_price)
 
@@ -340,8 +351,9 @@ class ComponentTestCase(TestCase):
         passthrough = StatefulTransform(Passthrough)
         mavg_price = StatefulTransform(
                 MovingAverage,
-                timedelta(minutes = 20),
-                ['price']
+                ['price'],
+                market_aware = False,
+                delta=timedelta(minutes = 20)
         )
 
         merged_gen = merged_transforms(sorted, passthrough, mavg_price)

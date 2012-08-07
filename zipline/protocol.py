@@ -570,6 +570,12 @@ def CANCEL_FRAME(date):
 
     return BT_UPDATE_FRAME('CANCEL', result)
 
+def DONE_FRAME(msg):
+    assert isinstance(msg, basestring), \
+            "Done message must be a string."
+
+    return BT_UPDATE_FRAME('DONE', msg)
+
 
 def BT_UPDATE_FRAME(prefix, payload):
     """

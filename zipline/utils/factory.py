@@ -12,7 +12,9 @@ from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 
-from zipline.finance.sources import SpecificEquityTrades, RandomEquityTrades
+from zipline.gens.tradegens import RandomEquityTrades
+from zipline.gens.tradegens import SpecificEquityTrades
+from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 
 # TODO
@@ -69,16 +71,6 @@ def create_trading_environment(year=2006):
 
     return trading_environment
 
-def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
-    row = zp.ndict({
-        'source_id' : source_id,
-        'type'      : zp.DATASOURCE_TYPE.TRADE,
-        'sid'       : sid,
-        'dt'        : datetime,
-        'price'     : price,
-        'volume'    : amount
-    })
-    return row
 
 def get_next_trading_dt(current, interval, trading_calendar):
     next = current
@@ -220,29 +212,20 @@ def create_minutely_trade_source(sids, trade_count, trading_environment):
     )
 
 def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
-    trade_history = []
 
-    price = [10.1] * trade_count
-    volume = [100] * trade_count
+    #Set up source a. One minute between events.
+    args = tuple()
+    kwargs = {
+        'count'  : trade_count,
+        'sids'   : sids,
+        'start'  : trading_environment.first_open,
+        'delta'  : trade_time_increment,
+        'filter' : sids
+    }
+    source = SpecificEquityTrades(*args, **kwargs)
 
-    for sid in sids:
-        start_date = trading_environment.first_open
+    # TODO: do we need to set the trading environment's end to same dt as
+    # the last trade in the history?
+    #trading_environment.period_end = trade_history[-1].dt
 
-        generated_trades = create_trade_history(
-            sid,
-            price,
-            volume,
-            trade_time_increment,
-            trading_environment
-        )
-
-        trade_history.extend(generated_trades)
-
-    trade_history = sorted(trade_history, key=attrgetter('dt'))
-
-    #set the trading environment's end to same dt as the last trade in the
-    #history.
-    trading_environment.period_end = trade_history[-1].dt
-
-    source = SpecificEquityTrades(trade_history)
     return source

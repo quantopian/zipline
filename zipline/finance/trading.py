@@ -31,6 +31,8 @@ class TransactionSimulator(object):
             self.open_orders[sid] = []
 
     def place_order(self, order):
+        # initialized filled field.
+        order.filled = 0
         self.open_orders[order.sid].append(order)
 
     def update(self, event):
@@ -39,7 +41,7 @@ class TransactionSimulator(object):
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             event.TRANSACTION = self.apply_trade_to_open_orders(event)
         return event
-        
+
     def simulate_buy_all(self, event):
         txn = self.create_transaction(
             event.sid,

@@ -63,8 +63,8 @@ class StatefulTransform(object):
         self.append_value = tnfm_class.__dict__.get('APPENDER', False)
 
         # You only one special behavior mode can be set.
-        assert sum(map(int, [self.forward_all, 
-                             self.update_in_place, 
+        assert sum(map(int, [self.forward_all,
+                             self.update_in_place,
                              self.append_value])) <= 1
 
         # Create an instance of our transform class.
@@ -82,14 +82,14 @@ class StatefulTransform(object):
     def _gen(self, stream_in):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
-        
+
         for message in stream_in:
 
             # allow upstream generators to yield None to avoid
             # blocking.
             if message == None:
                 continue
-            
+
             #TODO: refactor this to avoid unnecessary copying.
 
             assert_sort_unframe_protocol(message)
@@ -118,7 +118,7 @@ class StatefulTransform(object):
             # TransactionSimulator.
             elif self.update_in_place:
                 yield tnfm_value
-                
+
             # APPENDER flag should be used to add a single new
             # key-value pair to the event. The new key is this
             # transform's namestring, and it's value is the value
@@ -150,8 +150,8 @@ class EventWindow:
     tick.  Calls self.handle_add(event) for each event added to the
     window.  Calls self.handle_remove(event) for each event removed
     from the window.  Subclass these methods along with init(*args,
-    **kwargs) to calculate metrics over the window.  
-    
+    **kwargs) to calculate metrics over the window.
+
     The market_aware flag is used to toggle whether the eventwindow
     calculates
 
@@ -179,7 +179,7 @@ class EventWindow:
         else:
             assert self.delta and not self.days, \
                 "Non-market-aware mode requires a timedelta."
-        
+
         # Set the behavior for dropping events from the back of the
         # event window.
         if self.market_aware:
@@ -215,14 +215,14 @@ class EventWindow:
         #                                |                    |
         #                                V                    V
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-            
+
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
-            
+
     def out_of_market_window(self, oldest, newest):
         return trading_days_between(oldest, newest) >= self.days
 
@@ -239,6 +239,3 @@ class EventWindow:
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
-
-
-

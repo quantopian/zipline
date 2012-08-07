@@ -1,8 +1,6 @@
 """
 Test the FRAME/UNFRAME functions in the sequence expected from ziplines.
 """
-import pytz
-
 from unittest2 import TestCase
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -10,10 +8,8 @@ from collections import defaultdict
 from nose.tools import timed
 
 import zipline.utils.factory as factory
-from zipline.utils import logger
 import zipline.protocol as zp
 
-from zipline.finance.sources import SpecificEquityTrades
 
 DEFAULT_TIMEOUT = 5 # seconds
 

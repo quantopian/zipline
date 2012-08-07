@@ -59,112 +59,180 @@ before invoking simulate.
                           |      __init__.                  |
                           +---------------------------------+
 """
-
-import inspect
-import logbook
-#import zipline.utils.factory as factory
-
-from zipline.components import DataSource
-from zipline.transforms import BaseTransform
+import sys
+import zmq
+import multiprocessing
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.components import TradeSimulationClient
-from zipline.core.process import ProcessSimulator
-from zipline.core.monitor import Monitor
 from zipline.finance.trading import SIMULATION_STYLE
+from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+from zipline.utils import factory
 
-log = logbook.Logger('Lines')
+from zipline.test_algorithms import TestAlgorithm
+
+from zipline.gens.composites import  \
+    date_sorted_sources, merged_transforms
+from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+from logbook import Logger, NestedSetup, Processor
+
+import zipline.protocol as zp
+
+
+log = Logger('Lines')
+
+class CancelSignal(Exception):
+    def __init__(self):
+        pass
 
 class SimulatedTrading(object):
-    """
-    Zipline with::
 
-    - _no_ data sources.
-    - Trade simulation client, which is available to send callbacks on
-    events and also accept orders to be simulated.
-    - An order data source, which will receive orders from the trade
-    simulation client, and feed them into the event stream to be
-    serialized and order alongside all other data source events.
-    - transaction simulation transformation, which receives the order
-    events and estimates a theoretical execution price and volume.
+    def __init__(self,
+            sources,
+            transforms,
+            algorithm,
+            environment,
+            style,
+            results_socket_uri,
+            context,
+            sim_id):
 
-    All components in this zipline are subject to heartbeat checks and
-    a control monitor, which can kill the entire zipline in the event of
-    exceptions in one of the components or an external request to end the
-    simulation.
-    """
+        self.date_sorted = date_sorted_sources(*sources)
+        self.transforms = transforms
+        self.transforms.append(StatefulTransform(Passthrough))
+        self.merged = merged_transforms(self.date_sorted, *self.transforms)
+        self.trading_client = tsc(algorithm, environment, style)
+        self.gen = self.trading_client.simulate(self.merged)
+        self.results_uri = results_socket_uri
+        self.results_socket = None
+        self.context = context
+        self.sim_id = sim_id
 
-    def __init__(self, **config):
+        # optional process if we fork simulate into an
+        # independent process.
+        self.proc = None
+        self.logger = Logger(sim_id)
+
+
+    def simulate(self, blocking=True):
+
+        # for non-blocking,
+        if blocking:
+            self.run_gen()
+        else:
+            return self.fork_and_sim()
+
+    def fork_and_sim(self):
+        self.proc = multiprocessing.Process(target=self.run_gen)
+        self.proc.start()
+        return self.proc
+
+    def run_gen(self):
+
+        self.open()
+        if self.zmq_out:
+
+            def inject_event_data(record):
+                # Record the simulation time.
+                #record.extra['algo_dt'] = self.current_dt
+                pass
+
+            data_injector = Processor(inject_event_data)
+            log_pipeline = NestedSetup([self.zmq_out,data_injector])
+            with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+                self.stream_results()
+            # if no log socket, just run the algo normally
+        else:
+            self.stream_results()
+
+    def stream_results(self):
+        assert self.results_socket, \
+                "Results socket must exist to stream results"
+        try:
+            for event in self.gen:
+                if event.has_key('daily_perf'):
+                    msg = zp.PERF_FRAME(event)
+                else:
+                    msg = zp.RISK_FRAME(event)
+                self.results_socket.send(msg)
+
+            self.signal_done()
+        except Exception as exc:
+            self.handle_exception(exc)
+        finally:
+            self.close()
+
+    def signal_done(self):
+        # notify monitor we're done
+        done_frame = zp.DONE_FRAME('succes')
+        self.results_socket.send(done_frame)
+
+    def close(self):
+        log.info("Closing Simulation: {id}".format(id=self.sim_id))
+
+    def cancel(self):
+        if self.proc and self.proc.is_alive():
+            self.proc.terminate()
+        else:
+            self.gen.throw(CancelSignal())
+
+    def handle_exception(self, exc):
+        if isinstance(exc, CancelSignal):
+            # signal from monitor of an orderly shutdown,
+            # do nothing.
+            pass
+        else:
+            self.signal_exception(exc)
+
+    def signal_exception(self, exc=None):
         """
-        :param config: a dict with the following required properties::
+        All exceptions inside any component should boil back to
+        this handler.
 
-        - algorithm: a class that follows the algorithm protocol. See
-        :py:meth:`zipline.finance.trading.TradeSimulationClient.add_algorithm
-        for details.
-        - trading_environment: an instance of
-        :py:class:`zipline.trading.TradingEnvironment`
-        - allocator: an instance of
-        :py:class:`zipline.simulator.AddressAllocator`
-        - simulation_style: optional parameter that configures the
-        :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
-        a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
+        Will inform the system that the component has failed and how it
+        has failed.
         """
-        assert isinstance(config, dict)
-        self.algorithm = config['algorithm']
-        self.allocator = config['allocator']
-        self.trading_environment = config['trading_environment']
-        self.sim_style = config.get('simulation_style')
-        self.send_sighup = config.get('send_sighup', False)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        try:
+            log.exception('{id} sending exception to result stream.'\
+                .format(id=self.sim_id))
+            msg = zp.EXCEPTION_FRAME(
+                    exc_traceback,
+                    exc_type.__name__,
+                    exc_value.message
+                )
+
+            self.results_socket.send(msg)
+
+        except:
+            log.exception("Exception while reporting simulation exception.")
 
 
-        self.leased_sockets = []
-        self.sim_context = None
+    def open(self):
+        if not self.context:
+            self.context = zmq.Context()
+        if self.results_uri:
+            sock = self.context.socket(zmq.PUSH)
+            sock.connect(self.results_uri)
+            self.results_socket = sock
+            self.setup_logging()
 
-        sockets = self.allocate_sockets(7)
-        addresses = {
-            'sync_address'   : sockets[0],
-            'data_address'   : sockets[1],
-            'feed_address'   : sockets[2],
-            'merge_address'  : sockets[3],
-            # TODO: this refers to the results of the merge, a
-            # horribly confusing name for the socket.
-            'results_address' : sockets[4],
-        }
+    def setup_logging(self, socket = None):
+        sock = socket or self.results_socket
 
-        self.monitor = Monitor(
-            # pub socket
-            sockets[5],
-            # route socket
-            sockets[6],
-            # exception socket to match tradesimclient's result
-            # socket, because we want to relay exceptions to the
-            # same listener
-            config['results_socket'],
-            send_sighup=self.send_sighup
+        self.zmq_out = ZeroMQLogHandler(
+            socket = sock,
         )
 
-        self.started = False
 
-        self.sim = ProcessSimulator(addresses)
+        # This is a class, which is instantiated later
+        # in run_algorithm. The class provides a generator.
+        self.stdout_capture = stdout_only_pipe
 
-        self.clients = {}
-
-        self.trading_client = TradeSimulationClient(
-            self.trading_environment,
-            self.sim_style,
-            config['results_socket'],
-            self.algorithm
-        )
-        self.add_client(self.trading_client)
-
-        # setup all sources
-        self.sources = {}
-
-        #setup transforms
-        self.transforms = {}
-
-        self.sim.register_monitor( self.monitor )
-
+    def join(self):
+        if self.proc:
+            self.proc.join()
 
     @staticmethod
     def create_test_zipline(**config):
@@ -173,7 +241,6 @@ class SimulatedTrading(object):
 
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
-            - allocator - a :py:class:`zipline.simulator.AddressAllocator`
             - sid - an integer, which will be used as the security ID.
             - order_count - the number of orders the test algo will place,
               defaults to 100
@@ -188,10 +255,11 @@ class SimulatedTrading(object):
             - simulation_style: optional parameter that configures the
               :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
               a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
+            - transforms: optional parameter that provides a list
+              of StatefulTransform objects.
         """
         assert isinstance(config, dict)
 
-        allocator = config['allocator']
         sid = config['sid']
 
         #--------------------
@@ -223,6 +291,10 @@ class SimulatedTrading(object):
         if not simulation_style:
             simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
 
+        zmq_context         = config.get('zmq_context', None)
+        simulation_id       = config.get('simumlation_id', 'test_simulation')
+        results_socket_uri  = config.get('results_socket_uri', None)
+
         #-------------------
         # Trade Source
         #-------------------
@@ -236,6 +308,12 @@ class SimulatedTrading(object):
                 trade_count,
                 trading_environment
             )
+
+        #-------------------
+        # Transforms
+        #-------------------
+        transforms = config.get('transforms', [])
+
         #-------------------
         # Create the Algo
         #-------------------
@@ -248,157 +326,19 @@ class SimulatedTrading(object):
                 order_count
             )
 
-        if config.has_key('results_socket'):
-            results_socket = config['results_socket']
-        else:
-            results_socket = None
         #-------------------
         # Simulation
         #-------------------
-        zipline = SimulatedTrading(**{
-            'algorithm'           : test_algo,
-            'trading_environment' : trading_environment,
-            'allocator'           : allocator,
-            'simulation_style'    : simulation_style,
-            'results_socket'      : results_socket,
-        })
+
+        sim = SimulatedTrading(
+                [trade_source],
+                transforms,
+                test_algo,
+                trading_environment,
+                simulation_style,
+                results_socket_uri,
+                zmq_context,
+                simulation_id)
         #-------------------
 
-        zipline.add_source(trade_source)
-
-        return zipline
-
-    def add_source(self, source):
-        """
-        Adds the source to the zipline, sets the sid filter of the
-        source to the algorithm's sid filter.
-        """
-        assert isinstance(source, DataSource)
-        self.check_started()
-        source.set_filter('sid', self.algorithm.get_sid_filter())
-        self.sim.register_components([source])
-
-        # ``id`` is name of source_id, ``get_id`` is the class name
-        self.sources[source.get_id] = source
-
-    def add_transform(self, transform):
-        assert isinstance(transform, BaseTransform)
-        self.check_started()
-        self.sim.register_components([transform])
-        self.transforms[transform.get_id] = transform
-
-    def add_client(self, client):
-        assert isinstance(client, TradeSimulationClient)
-        self.check_started()
-        self.sim.register_components([client])
-        self.clients[client.get_id] = client
-
-    def check_started(self):
-        if self.started:
-            raise ZiplineException("TradeSimulation", "You cannot add \
-            components after the simulation has begun.")
-
-    def get_cumulative_performance(self):
-        return self.trading_client.perf.cumulative_performance.to_dict()
-
-    def allocate_sockets(self, n):
-        """
-        Allocate sockets local to this line, track them so
-        we can gc after test run.
-        """
-
-        assert isinstance(n, int)
-        assert n > 0
-
-        leased = self.allocator.lease(n)
-        self.leased_sockets.extend(leased)
-
-        return leased
-
-    @property
-    def components(self):
-        """
-        Return the component instances inside of this topology
-        """
-
-        base       = set(self.sim.components.values())
-        transforms = set(self.transforms.values())
-        sources    = set(self.sources.values())
-
-        return base | transforms | sources
-
-    @property
-    def topology(self):
-        """
-        Returns the Component names in the topology of the
-        backtest.
-        """
-
-        # A complete topology is the union of three classes of
-        # components added individually to the simulation client
-        # at various places.
-        #
-        # base       : ['FEED', 'MERGE', 'TRADING_CLIENT', 'PASSTHROUGH']
-        # transforms : ['vwap__01', ... ]
-        # sources    : ['MongoTradeHistory', ... ]
-
-        base       = set(self.sim.components.keys())
-        transforms = set(self.transforms.keys())
-        sources    = set(self.sources.keys())
-
-        return base | transforms | sources
-
-    def setup_monitor(self):
-        """
-        Prepare the monitor to manage the topology specified
-        by this line.
-        """
-        self.monitor.manage(self.topology)
-
-    def simulate(self, blocking=True):
-        self.setup_monitor()
-
-        self.started = True
-        self.sim_context = self.sim.simulate()
-
-        # If we're using a threaded simulator block on the pool
-        # of thread since we're only ever in a test and we don't
-        # generally monitor the state of the system as a hold at
-        # the supervisory layer
-
-        # TODO: better way of identifying concurrency substrate
-        if blocking:
-            for process in self.sim.subprocesses:
-                process.join()
-
-    @property
-    def is_success(self):
-        # TODO: other assertions?
-        if self.sim.did_clean_shutdown():
-            return True
-        else:
-            return False
-
-    #--------------------------------
-    # Component property accessors
-    #--------------------------------
-
-    def get_positions(self):
-        """
-        returns current positions as a dict. draws from the cumulative
-        performance period in the performance tracker.
-        """
-        perf = self.trading_client.perf.cumulative_performance
-        positions = perf.get_positions()
-        return positions
-
-class ZiplineException(Exception):
-    def __init__(self, zipline_name, msg):
-        self.name = zipline_name
-        self.message = msg
-
-    def __str__(self):
-        return "Unexpected exception {line}: {msg}".format(
-            line=self.name,
-            msg=self.message
-        )
+        return sim
