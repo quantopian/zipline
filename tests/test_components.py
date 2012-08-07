@@ -351,8 +351,9 @@ class ComponentTestCase(TestCase):
         passthrough = StatefulTransform(Passthrough)
         mavg_price = StatefulTransform(
                 MovingAverage,
-                timedelta(minutes = 20),
-                ['price']
+                ['price'],
+                market_aware = False,
+                delta=timedelta(minutes = 20)
         )
 
         merged_gen = merged_transforms(sorted, passthrough, mavg_price)
