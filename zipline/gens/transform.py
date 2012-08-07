@@ -213,6 +213,7 @@ class EventWindow:
         #                              oldest               newest
         #                                |                    |
         #                                V                    V
+        import nose.tools; nose.tools.set_trace()
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
             
             # popleft removes and returns the oldest tick in self.ticks
