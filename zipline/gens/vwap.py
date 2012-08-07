@@ -9,16 +9,33 @@ class VWAP(object):
     """
     Class that maintains a dictionary from sids to VWAPEventWindows.
     """
-    def __init__(self, delta):
+    def __init__(self, market_aware, delta=None, days=None):
+
+        self.market_aware = market_aware
         self.delta = delta
+        self.days = days
+        
+        # Market-aware mode only works with full-day windows.
+        if self.market_aware:
+            assert self.days and not self.delta,\
+                "Market-aware mode only works with full-day windows."
+
+        # Non-market-aware mode requires a timedelta.
+        else:
+            assert self.delta and not self.days, \
+                "Non-market-aware mode requires a timedelta."
 
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
-
+        
     def create_window(self):
         """Factory method for self.sid_windows."""
-        return VWAPEventWindow(self.delta)
+        return VWAPEventWindow(
+            self.market_aware, 
+            days = self.days, 
+            delta = self.delta
+        )
 
     def update(self, event):
         """
@@ -31,14 +48,13 @@ class VWAP(object):
         window.update(event)
         return window.get_vwap()
 
-
 class VWAPEventWindow(EventWindow):
     """
     Iteratively maintains a vwap for a single sid over a given
     timedelta.
     """
-    def __init__(self, delta):
-        EventWindow.__init__(self, delta)
+    def __init__(self, market_aware, days=None, delta=None):
+        EventWindow.__init__(self, market_aware, days, delta)
         self.flux = 0.0
         self.totalvolume = 0.0
 

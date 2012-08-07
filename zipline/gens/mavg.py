@@ -13,17 +13,39 @@ class MovingAverage(object):
     maintain a sid's average volume as well as its average price.)
     """
 
-    def __init__(self, delta, fields):
-        self.delta = delta
+    def __init__(self, fields, market_aware, days = None, delta = None):
+
         self.fields = fields
+        self.market_aware = market_aware
+
+        self.delta = delta
+        self.days = days
+
+        # Market-aware mode only works with full-day windows.
+        if self.market_aware:
+            assert self.days and not self.delta,\
+                "Market-aware mode only works with full-day windows."
+
+        # Non-market-aware mode requires a timedelta.
+        else:
+            assert self.delta and not self.days, \
+                "Non-market-aware mode requires a timedelta."
+        
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
 
     def create_window(self):
-        """Factory method for self.sid_windows."""
-        return MovingAverageEventWindow(self.delta, self.fields)
-
+        """
+        Factory method for self.sid_windows.
+        """
+        return MovingAverageEventWindow(
+            self.fields, 
+            self.market_aware, 
+            self.days, 
+            self.delta
+        )
+    
     def update(self, event):
         """
         Update the event window for this event's sid.  Return an ndict
@@ -45,11 +67,11 @@ class MovingAverageEventWindow(EventWindow):
     MovingAverage transform.
     """
 
-    def __init__(self, delta, fields):
+    def __init__(self, fields, market_aware, days, delta):
 
         # Call the superclass constructor to set up base EventWindow
         # infrastructure.
-        EventWindow.__init__(self, delta)
+        EventWindow.__init__(self, market_aware, days, delta)
 
         # We maintain a dictionary of totals for each of our tracked
         # fields.

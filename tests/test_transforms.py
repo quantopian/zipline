@@ -100,9 +100,9 @@ class FinanceTransformsTestCase(TestCase):
     def test_moving_average(self):
         
         mavg = StatefulTransform(
-            MovingAverage, 
-            timedelta(days = 2), 
-            ['price', 'volume']
+            MovingAverage,          
+            fields = ['price', 'volume'],
+            delta = timedelta(days = 2), 
         ) 
         
         transformed = list(mavg.transform(self.source))

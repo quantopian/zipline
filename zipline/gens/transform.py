@@ -2,9 +2,10 @@
 Generator versions of transforms.
 """
 import types
+import pytz
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import deque, defaultdict
 from numbers import Number
 from abc import ABCMeta, abstractmethod
@@ -149,6 +150,9 @@ class EventWindow:
     window.  Calls self.handle_remove(event) for each event removed
     from the window.  Subclass these methods along with init(*args,
     **kwargs) to calculate metrics over the window.  
+    
+    The market_aware flag is used to toggle whether the eventwindow
+    calculates
 
     See zipline/gens/mavg.py and zipline/gens/vwap.py for example
     implementations of moving average and volume-weighted average
@@ -157,10 +161,31 @@ class EventWindow:
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, delta):
+    def __init__(self, market_aware, days = None, delta = None):
+
+        self.market_aware = market_aware
+        self.days = days
+        self.delta = delta
+
         self.ticks  = deque()
-        self.delta  = delta
+
+        # Market-aware mode only works with full-day windows.
+        if self.market_aware:
+            assert self.days and not self.delta,\
+                "Market-aware mode only works with full-day windows."
+
+        # Non-market-aware mode requires a timedelta.
+        else:
+            assert self.delta and not self.days, \
+                "Non-market-aware mode requires a timedelta."
         
+        # Set the behavior for dropping events from the back of the
+        # event window.
+        if self.market_aware:
+            self.drop_condition = self.out_of_market_window
+        else:
+            self.drop_condition = self.out_of_timedelta
+
     @abstractmethod
     def handle_add(self, event):
         raise NotImplementedError()
@@ -174,22 +199,36 @@ class EventWindow:
 
     def update(self, event):
         self.assert_well_formed(event)
+
         # Add new event and increment totals.
         self.ticks.append(event)
+
+        # Subclasses should override handle_add to define behavior for
+        # adding new ticks.
         self.handle_add(event)
 
-        # Clear out expired event.
+        # Clear out any expired events. drop_condition changes depending
+        # on whether or not we are running in market_aware mode.
         #
-        #           newest               oldest
-        #             |                    |
-        #             V                    V
-        while (self.ticks[-1].dt - self.ticks[0].dt) > self.delta:
+        #                              oldest               newest
+        #                                |                    |
+        #                                V                    V
+        while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
+            
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
+
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
             
+    def out_of_market_window(self, oldest, newest):
+        return trading_days_between(oldest, newest) >= self.days
+
+    def out_of_delta(self, oldest, newest):
+        return (newest - oldest) >= self.delta
+
+
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
     def assert_well_formed(self, event):
@@ -200,3 +239,6 @@ class EventWindow:
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
+
+
+
