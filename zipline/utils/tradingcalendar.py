@@ -346,11 +346,13 @@ opens = rrule.rruleset(cache=True)
 opens.rrule(market_opens_with_holidays)
 for holiday_rule in holiday_opens:
     opens.exrule(holiday_rule)
-open_count = opens.count()
 
 closes = rrule.rruleset(cache=True)
 closes.rrule(market_closes_with_holidays)
 for holiday_rule in holiday_closes:
     closes.exrule(holiday_rule)
+
+# This runs the calendar to load all data into a cache.
+open_count = opens.count()
 close_count = closes.count()
 

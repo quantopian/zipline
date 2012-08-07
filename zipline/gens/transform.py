@@ -26,6 +26,7 @@ class Passthrough(object):
     def update(self, event):
         pass
 
+# Deprecated
 def functional_transform(stream_in, func, *args, **kwargs):
     """
     Generic transform generator that takes each message from an in-stream
@@ -213,7 +214,6 @@ class EventWindow:
         #                              oldest               newest
         #                                |                    |
         #                                V                    V
-        import nose.tools; nose.tools.set_trace()
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
             
             # popleft removes and returns the oldest tick in self.ticks
@@ -228,7 +228,6 @@ class EventWindow:
 
     def out_of_delta(self, oldest, newest):
         return (newest - oldest) >= self.delta
-
 
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
