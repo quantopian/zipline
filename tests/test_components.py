@@ -267,8 +267,9 @@ class ComponentTestCase(TestCase):
         passthrough = StatefulTransform(Passthrough)
         mavg_price = StatefulTransform(
                 MovingAverage,
-                timedelta(minutes = 20),
-                ['price']
+                ['price'],
+                market_aware = False,
+                delta=timedelta(minutes = 20)
         )
 
         merged_gen = merged_transforms(sorted, passthrough, mavg_price)
@@ -317,7 +318,12 @@ class ComponentTestCase(TestCase):
         sorted = date_sorted_sources(self.source_a, self.source_b)
 
         passthrough = StatefulTransform(Passthrough)
-        mavg_price = StatefulTransform(MovingAverage, timedelta(minutes = 20), ['price'])
+        mavg_price = StatefulTransform(
+                MovingAverage,
+                ['price'],
+                market_aware=False,
+                delta=timedelta(minutes = 20),
+            )
 
         merged = merged_transforms(sorted, passthrough, mavg_price)
 

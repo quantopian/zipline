@@ -74,7 +74,7 @@ class TradeSimulationClient(object):
         # Pipe the events with transactions to perf. This will remove
         # the txn field added by TransactionSimulator and replace it
         # with a portfolio object to be passed to the user's
-        # algorithm. Also adds a PERF_MESSAGE field which is usually
+        # algorithm. Also adds a perf_message field which is usually
         # none, but contains an update message once per day.
         perf_tracker = StatefulTransform(
             PerformanceTracker,

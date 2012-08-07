@@ -84,8 +84,7 @@ def earlier_in_day(d1, d2):
     """
     Return true if d1 falls earlier in its own day than d2.
     """
-    d1 = d1.replace(year = d2.year, day = d2.day)
-    return d1 < d2
+    return d1.time() < d2.time()
 
 WEEKDAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR]
 
@@ -97,7 +96,8 @@ market_opens_with_holidays = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart=datetime(1970, 1, 1, tzinfo = pytz.utc),
+    dtstart=datetime(2000, 1, 1, tzinfo = pytz.utc),
+    until=datetime(2014 , 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rule that generates all market closes since Jan 1, 1970.
@@ -108,7 +108,8 @@ market_closes_with_holidays = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart=datetime(1970, 1, 1, tzinfo = pytz.utc),
+    dtstart=datetime(2001, 1, 1, tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rules for excluding the market open/close on new years.
@@ -118,7 +119,8 @@ new_years_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 new_years_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -126,7 +128,8 @@ new_years_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rules for excluding MLK day. It is always the third
@@ -138,7 +141,8 @@ mlk_opens = rrule.rrule(
     byhour = 14, 
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 mlk_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -147,7 +151,8 @@ mlk_closes = rrule.rrule(
     byhour = 21, 
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 ) 
 
 # Recurrence rules for generating the market open/close for
@@ -160,7 +165,8 @@ presidents_day_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 presidents_day_closes = rrule.rrule(
     rrule.MONTHLY, 
@@ -169,7 +175,8 @@ presidents_day_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rules for generating the market open/close for good
@@ -181,7 +188,8 @@ good_friday_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 good_friday_closes = rrule.rrule(
     rrule.DAILY,
@@ -189,7 +197,8 @@ good_friday_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 ) 
 
 # Recurrence rules for generating the market open/close for memorial
@@ -201,7 +210,8 @@ memorial_day_opens = rrule.rrule(
     byhour = 14, 
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 memorial_day_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -210,7 +220,8 @@ memorial_day_closes = rrule.rrule(
     byhour = 21, 
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rules for generating the market open/close for July 4th.
@@ -221,7 +232,8 @@ july_4th_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 july_4th_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -230,7 +242,8 @@ july_4th_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rule for generating the market open/close for labor day.
@@ -242,7 +255,8 @@ labor_day_opens = rrule.rrule(
     byhour = 14, 
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 labor_day_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -251,7 +265,8 @@ labor_day_closes = rrule.rrule(
     byhour = 21, 
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence rule for generating the market open/close for
@@ -264,7 +279,8 @@ thanksgiving_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 thanksgiving_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -273,7 +289,8 @@ thanksgiving_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 
 # Recurrence relation for generating the market open/close for
@@ -286,7 +303,8 @@ christmas_opens = rrule.rrule(
     byhour = 14,
     byminute = 30,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
 christmas_closes = rrule.rrule(
     rrule.MONTHLY,
@@ -295,8 +313,10 @@ christmas_closes = rrule.rrule(
     byhour = 21,
     byminute = 0,
     cache = True,
-    dtstart = datetime(1970, 1,1,tzinfo = pytz.utc)
+    dtstart = datetime(2000, 1,1,tzinfo = pytz.utc),
+    until=datetime(2014, 1, 1, tzinfo = pytz.utc)
 )
+
 # All NYSE observed holidays.
 holiday_opens = [
     new_years_opens,
@@ -322,12 +342,15 @@ holiday_closes = [
 ]
 
 # Valid market opens are given by all market opens minus holidays.
-opens = rrule.rruleset()
+opens = rrule.rruleset(cache=True)
 opens.rrule(market_opens_with_holidays)
 for holiday_rule in holiday_opens:
     opens.exrule(holiday_rule)
+open_count = opens.count()
 
-closes = rrule.rruleset()
+closes = rrule.rruleset(cache=True)
 closes.rrule(market_closes_with_holidays)
 for holiday_rule in holiday_closes:
     closes.exrule(holiday_rule)
+close_count = closes.count()
+
