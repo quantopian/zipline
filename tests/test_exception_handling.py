@@ -49,8 +49,7 @@ class ExceptionTestCase(TestCase):
             **self.zipline_test_config
         )
         output, _ = drain_zipline(self, zipline)
-        
-        import nose.tools; nose.tools.set_trace()
+
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
@@ -71,7 +70,6 @@ class ExceptionTestCase(TestCase):
         )
 
         output, _ = drain_zipline(self, zipline)
-        import nose.tools; nose.tools.set_trace()
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
@@ -93,7 +91,6 @@ class ExceptionTestCase(TestCase):
 
         output, _ = drain_zipline(self, zipline)
 
-        import nose.tools; nose.tools.set_trace()
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
