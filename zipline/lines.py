@@ -307,7 +307,7 @@ class SimulatedTrading(object):
             simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
 
         zmq_context         = config.get('zmq_context', None)
-        simulation_id       = config.get('simumlation_id', 'test_simulation')
+        simulation_id       = config.get('simulation_id', 'test_simulation')
         results_socket_uri  = config.get('results_socket_uri', None)
 
         #-------------------
