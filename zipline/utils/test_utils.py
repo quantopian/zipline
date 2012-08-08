@@ -61,7 +61,7 @@ def check(test, a, b, label=None):
         test.assertEqual(a, b, "mismatch on path: " + label)
 
 
-def drain_zipline(test, zipline):
+def drain_zipline(test, zipline, p_blocking=False):
     assert test.ctx, "method expects a valid zmq context"
     assert test.zipline_test_config, "method expects a valid test config"
     assert isinstance(test.zipline_test_config, dict)
@@ -76,7 +76,7 @@ def drain_zipline(test, zipline):
     time.sleep(1)
 
     # start the simulation
-    zipline.simulate(blocking=False)
+    zipline.simulate(blocking=p_blocking)
     output, transaction_count = drain_receiver(test.receiver)
     # some processes will exit after the message stream is
     # finished. We block here to avoid collisions with subsequent

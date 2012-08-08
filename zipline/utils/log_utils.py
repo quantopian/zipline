@@ -120,12 +120,6 @@ class ZeroMQLogHandler(Handler):
         #can't be serialized by JSON, so we need to convert to
         #unix epoch representation.
 
-        if record.time:
-            assert isinstance(record.time, datetime.datetime)
-
-            time = record.time.replace(tzinfo = pytz.utc)
-            #logbook measures time in utc already, no need to convert.
-            record.time = EPOCH(time)
 
         #Do the same if algo_dt is a datetime object.
         if record.extra.has_key('algo_dt'):
@@ -151,6 +145,14 @@ class ZeroMQLogHandler(Handler):
                 data[field] = record.extra[field]
             else:
                 data[field] = None
+
+        if data['time']:
+            assert isinstance(data['time'], datetime.datetime)
+
+            time = data['time'].replace(tzinfo = pytz.utc)
+            #logbook measures time in utc already, no need to convert.
+            data['time'] = EPOCH(time)
+
         return data
 
     def emit(self, record):

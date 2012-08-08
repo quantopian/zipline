@@ -103,7 +103,7 @@ class SimulatedTrading(object):
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         # Formerly merged_transforms.
-        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms) 
+        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
         self.gen = self.trading_client.simulate(self.with_tnfms)
         self.results_uri = results_socket_uri
@@ -137,8 +137,7 @@ class SimulatedTrading(object):
         setproctitle(self.sim_id)
         self.open()
         if self.zmq_out:
-            log_pipeline = NestedSetup([self.zmq_out,data_injector])
-            with log_pipeline.threadbound(), self.stdout_capture(self.print_logger, ''):
+            with self.zmq_out.threadbound():
                 self.stream_results()
             # if no log socket, just run the algo normally
         else:
@@ -148,13 +147,13 @@ class SimulatedTrading(object):
         assert self.results_socket, \
             "Results socket must exist to stream results"
         try:
-            for event in self.gen: 
+            for event in self.gen:
                 if event.has_key('daily_perf'):
                     msg = zp.PERF_FRAME(event)
                 else:
                     msg = zp.RISK_FRAME(event)
                 self.results_socket.send(msg)
-                
+
             self.signal_done()
         except Exception as exc:
             self.handle_exception(exc)
@@ -207,7 +206,7 @@ class SimulatedTrading(object):
                 )
 
             self.results_socket.send(msg)
-            
+
         except:
             log.exception("Exception while reporting simulation exception.")
 
@@ -222,12 +221,16 @@ class SimulatedTrading(object):
 
     def setup_logging(self):
         assert self.results_socket
+        # The filter behavior is: matches are logged, mismatches
+        # are bubbled. If bubble is True, matches are also
+        # bubbled. Since we do not want user logs in our system
+        # logs, we set bubble to False.
         self.zmq_out = ZeroMQLogHandler(
             socket = self.results_socket,
             filter = lambda r, h: r.channel in ['Print', 'AlgoLog'],
-            bubble = True
+            bubble=False
         )
-        
+
     def join(self):
         if self.proc:
             self.proc.join()
