@@ -74,15 +74,15 @@ from zipline.utils import factory
 from zipline.test_algorithms import TestAlgorithm
 
 from zipline.gens.composites import  \
-    date_sorted_sources, merged_transforms
+    date_sorted_sources, merged_transforms, sequential_transforms
 from zipline.gens.transform import Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 from logbook import Logger, NestedSetup, Processor
 
 import zipline.protocol as zp
 
-
 log = Logger('Lines')
+
 
 class CancelSignal(Exception):
     def __init__(self):
@@ -102,10 +102,10 @@ class SimulatedTrading(object):
 
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
-        self.transforms.append(StatefulTransform(Passthrough))
-        self.merged = merged_transforms(self.date_sorted, *self.transforms)
+        # Formerly merged_transforms.
+        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms) 
         self.trading_client = tsc(algorithm, environment, style)
-        self.gen = self.trading_client.simulate(self.merged)
+        self.gen = self.trading_client.simulate(self.with_tnfms)
         self.results_uri = results_socket_uri
         self.results_socket = None
         self.context = context
@@ -137,13 +137,6 @@ class SimulatedTrading(object):
         setproctitle(self.sim_id)
         self.open()
         if self.zmq_out:
-
-            def inject_event_data(record):
-                # Record the simulation time.
-                #record.extra['algo_dt'] = self.current_dt
-                pass
-
-            data_injector = Processor(inject_event_data)
             log_pipeline = NestedSetup([self.zmq_out,data_injector])
             with log_pipeline.threadbound(), self.stdout_capture(self.print_logger, ''):
                 self.stream_results()
@@ -153,15 +146,15 @@ class SimulatedTrading(object):
 
     def stream_results(self):
         assert self.results_socket, \
-                "Results socket must exist to stream results"
+            "Results socket must exist to stream results"
         try:
-            for event in self.gen:
+            for event in self.gen: 
                 if event.has_key('daily_perf'):
                     msg = zp.PERF_FRAME(event)
                 else:
                     msg = zp.RISK_FRAME(event)
                 self.results_socket.send(msg)
-
+                
             self.signal_done()
         except Exception as exc:
             self.handle_exception(exc)
@@ -214,10 +207,9 @@ class SimulatedTrading(object):
                 )
 
             self.results_socket.send(msg)
-
+            
         except:
             log.exception("Exception while reporting simulation exception.")
-
 
     def open(self):
         if not self.context:
@@ -228,17 +220,14 @@ class SimulatedTrading(object):
             self.results_socket = sock
             self.setup_logging()
 
-    def setup_logging(self, socket = None):
-        sock = socket or self.results_socket
-
+    def setup_logging(self):
+        assert self.results_socket
         self.zmq_out = ZeroMQLogHandler(
-            socket = sock,
+            socket = self.results_socket,
+            filter = lambda r, h: r.channel in ['Print', 'AlgoLog'],
+            bubble = True
         )
-
-        # This is a class, which is instantiated later
-        # in run_algorithm. The class provides a generator.
-        self.stdout_capture = stdout_only_pipe
-
+        
     def join(self):
         if self.proc:
             self.proc.join()
@@ -274,7 +263,6 @@ class SimulatedTrading(object):
               of StatefulTransform objects.
         """
         assert isinstance(config, dict)
-
         sid = config['sid']
 
         #--------------------

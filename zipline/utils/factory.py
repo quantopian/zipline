@@ -213,7 +213,6 @@ def create_minutely_trade_source(sids, trade_count, trading_environment):
 
 def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
 
-    #Set up source a. One minute between events.
     args = tuple()
     kwargs = {
         'count'  : trade_count,
