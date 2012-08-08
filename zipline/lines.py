@@ -144,7 +144,7 @@ class SimulatedTrading(object):
 
             data_injector = Processor(inject_event_data)
             log_pipeline = NestedSetup([self.zmq_out,data_injector])
-            with log_pipeline.threadbound(), self.stdout_capture(self.logger, ''):
+            with log_pipeline.threadbound(), self.stdout_capture(Logger('Print'), ''):
                 self.stream_results()
             # if no log socket, just run the algo normally
         else:
@@ -232,7 +232,6 @@ class SimulatedTrading(object):
         self.zmq_out = ZeroMQLogHandler(
             socket = self.results_socket,
         )
-
 
         # This is a class, which is instantiated later
         # in run_algorithm. The class provides a generator.

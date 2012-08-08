@@ -1,5 +1,4 @@
 from collections import defaultdict, deque
-from zipline.transforms.base import BaseTransform
 
 class Returns(object):
     """

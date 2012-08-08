@@ -131,7 +131,7 @@ from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 # Control Protocol
 # -----------------------
 
-PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION', 'CANCEL']
+PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION','CANCEL','DONE', 'LOG']
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
