@@ -155,7 +155,6 @@ class TransactionSimulator(object):
                 }
         return zp.ndict(txn)
 
-
 class TradingEnvironment(object):
 
     def __init__(

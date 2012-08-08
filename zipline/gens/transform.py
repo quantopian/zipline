@@ -125,7 +125,8 @@ class StatefulTransform(object):
             # returned by state.update(event). This is almost
             # identical to the behavior of FORWARDER, except we
             # compress the two calculated values (tnfm_id, and
-            # tnfm_value) into a single field.
+            # tnfm_value) into a single field. This mode is used by
+            # the sequential_transforms composite.
             elif self.append_value:
                 out_message = message_copy
                 out_message[self.namestring] = tnfm_value
