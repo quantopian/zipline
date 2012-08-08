@@ -118,14 +118,14 @@ class ComponentTestCase(TestCase):
             "source_a"
         )
 
-        launch_monitor(monitor)
+        mon_proc = launch_monitor(monitor)
 
         for event in comp_a:
             log.info(event)
 
         # wait for the sending process to exit
         comp_a.proc.join()
-
+        mon_proc.join()
 
     def test_sort(self):
         monitor     = create_monitor(allocator)
@@ -199,7 +199,7 @@ class ComponentTestCase(TestCase):
 
         sorted_out = date_sorted_sources(*sources)
 
-        launch_monitor(monitor)
+        mon_proc = launch_monitor(monitor)
 
         prev = None
         sort_count = 0
@@ -216,6 +216,7 @@ class ComponentTestCase(TestCase):
         comp_a.proc.join()
         comp_b.proc.join()
         comp_c.proc.join()
+        mon_proc.join()
 
 
     def test_full(self):
@@ -246,13 +247,6 @@ class ComponentTestCase(TestCase):
         sources = [comp_a, comp_b]
 
         sorted_out = date_sorted_sources(*sources)
-
-        #launch_monitor(monitor)
-        #import nose.tools; nose.tools.set_trace()
-        #for feed_msg in sorted_out:
-        #    log.info(pf(feed_msg))
-
-        #return
 
         sorted = Component(
                 sorted_out,
@@ -299,7 +293,7 @@ class ComponentTestCase(TestCase):
                 "tsc"
                 )
 
-        launch_monitor(monitor)
+        mon_proc = launch_monitor(monitor)
         for message in tsc_comp:
             log.info(pf(message))
 
@@ -309,6 +303,8 @@ class ComponentTestCase(TestCase):
         comp_b.proc.join()
         sorted.proc.join()
         merged.proc.join()
+        tsc_comp.proc.join()
+        mon_proc.join()
         return
 
     def test_single_thread(self):
@@ -374,7 +370,7 @@ class ComponentTestCase(TestCase):
         tsc_gen = trading_client.simulate(merged)
 
 
-        launch_monitor(monitor)
+        mon_proc = launch_monitor(monitor)
         for message in tsc_gen:
             log.info(pf(message))
 
@@ -382,4 +378,5 @@ class ComponentTestCase(TestCase):
         # wait for processes to finish
         sorted.proc.join()
         merged.proc.join()
+        mon_proc.join()
         return
