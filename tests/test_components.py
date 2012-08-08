@@ -292,7 +292,6 @@ class ComponentTestCase(TestCase):
                 BT_UPDATE_UNFRAME,
                 "tsc"
                 )
-        import nose.tools; nose.tools.set_trace()
         mon_proc = launch_monitor(monitor)
         for message in tsc_comp:
             log.info(pf(message))
