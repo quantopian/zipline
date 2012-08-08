@@ -49,7 +49,8 @@ class ExceptionTestCase(TestCase):
             **self.zipline_test_config
         )
         output, _ = drain_zipline(self, zipline)
-        self.assertEqual(len(output), 2)
+        
+        import nose.tools; nose.tools.set_trace()
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
@@ -70,7 +71,7 @@ class ExceptionTestCase(TestCase):
         )
 
         output, _ = drain_zipline(self, zipline)
-        self.assertEqual(len(output), 3)
+        import nose.tools; nose.tools.set_trace()
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
@@ -91,7 +92,8 @@ class ExceptionTestCase(TestCase):
         )
 
         output, _ = drain_zipline(self, zipline)
-        self.assertEqual(len(output), 6)
+
+        import nose.tools; nose.tools.set_trace()
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
@@ -106,29 +108,30 @@ class ExceptionTestCase(TestCase):
 INITIALIZE_TB =\
 {'message': 'Algo exception in initialize',
  'name': 'Exception',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 157, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo,', 'lineno': 93, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.initialize()', 'lineno': 123, 'method': '__init__'},
+ 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 171, 'method': 'next'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.initialize()', 'lineno': 212, 'method': '_gen'},
            {'filename': '/zipline/test_algorithms.py', 'line': 'raise Exception("Algo exception in initialize")', 'lineno': 166, 'method': 'initialize'}]}
 
 HANDLE_DATA_TB =\
 {'message': 'Algo exception in handle_data',
  'name': 'Exception',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 157, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in algo_results:', 'lineno': 100, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 144, 'method': 'next'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 199, 'method': '_gen'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 221, 'method': 'update_current_snapshot'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 246, 'method': 'simulate_current_snapshot'},
+ 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 168, 'method': 'next'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 240, 'method': '_gen'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 264, 'method': 'update_current_snapshot'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 289, 'method': 'simulate_current_snapshot'},
            {'filename': '/zipline/test_algorithms.py', 'line': 'raise Exception("Algo exception in handle_data")', 'lineno': 187, 'method': 'handle_data'}]}
 
 ZERO_DIV_TB= \
 {'message': 'integer division or modulo by zero',
  'name': 'ZeroDivisionError',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 157, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in algo_results:', 'lineno': 100, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 144, 'method': 'next'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 199, 'method': '_gen'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 221, 'method': 'update_current_snapshot'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 246, 'method': 'simulate_current_snapshot'},
+ 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 168, 'method': 'next'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 240, 'method': '_gen'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 264, 'method': 'update_current_snapshot'},
+           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 289, 'method': 'simulate_current_snapshot'},
            {'filename': '/zipline/test_algorithms.py', 'line': '5/0', 'lineno': 218, 'method': 'handle_data'}]}
