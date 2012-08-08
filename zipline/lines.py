@@ -116,6 +116,7 @@ class SimulatedTrading(object):
         self.proc = None
         self.send_sighup = False
         self.logger = Logger(sim_id)
+        self.print_logger = Logger('Print')
 
 
     def simulate(self, blocking=True, send_sighup=False):
@@ -144,7 +145,7 @@ class SimulatedTrading(object):
 
             data_injector = Processor(inject_event_data)
             log_pipeline = NestedSetup([self.zmq_out,data_injector])
-            with log_pipeline.threadbound(), self.stdout_capture(Logger('Print'), ''):
+            with log_pipeline.threadbound(), self.stdout_capture(self.print_logger, ''):
                 self.stream_results()
             # if no log socket, just run the algo normally
         else:
