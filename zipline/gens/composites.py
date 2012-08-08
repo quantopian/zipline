@@ -85,9 +85,17 @@ def sequential_transforms(stream_in, *transforms):
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream), 
                         transforms, 
                         stream_in)
-    return stream_out
 
-    
+    dt_aliased = alias_dt(stream_out)
+    return dt_aliased
+
+def alias_dt(stream_in):
+    """
+    Alias the dt field to datetime on each message.
+    """
+    for message in stream_in:
+        message['datetime'] = message['dt']
+        yield message
 
 
     

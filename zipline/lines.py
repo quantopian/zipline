@@ -74,7 +74,7 @@ from zipline.utils import factory
 from zipline.test_algorithms import TestAlgorithm
 
 from zipline.gens.composites import  \
-    date_sorted_sources, merged_transforms
+    date_sorted_sources, merged_transforms, sequential_transforms
 from zipline.gens.transform import Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 from logbook import Logger, NestedSetup, Processor
@@ -103,9 +103,10 @@ class SimulatedTrading(object):
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         self.transforms.append(StatefulTransform(Passthrough))
-        self.merged = merged_transforms(self.date_sorted, *self.transforms)
+        # Formerly merged_transforms.
+        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
-        self.gen = self.trading_client.simulate(self.merged)
+        self.gen = self.trading_client.simulate(self.with_tnfms)
         self.results_uri = results_socket_uri
         self.results_socket = None
         self.context = context
