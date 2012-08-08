@@ -66,6 +66,10 @@ def merge_one(sources):
 
         # Merge any remaining fields into the event dict.
         event_fields.merge(message)
+
+    # alias dt with datetime, per algoscript api
+    event_fields['datetime'] = event_fields['dt']
+
     return event_fields
 
 

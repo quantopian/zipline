@@ -34,7 +34,7 @@ class ReturnsFromPriorClose(object):
     def __init__(self, days):
         self.closes = deque()
         self.last_event = None
-        self.returns = None
+        self.returns = 0.0
         self.days = days
 
     def get_returns(self):
