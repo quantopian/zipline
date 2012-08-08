@@ -81,8 +81,8 @@ from logbook import Logger, NestedSetup, Processor
 
 import zipline.protocol as zp
 
-
 log = Logger('Lines')
+
 
 class CancelSignal(Exception):
     def __init__(self):
@@ -102,9 +102,8 @@ class SimulatedTrading(object):
 
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
-        self.transforms.append(StatefulTransform(Passthrough))
         # Formerly merged_transforms.
-        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
+        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms) 
         self.trading_client = tsc(algorithm, environment, style)
         self.gen = self.trading_client.simulate(self.with_tnfms)
         self.results_uri = results_socket_uri
@@ -153,9 +152,9 @@ class SimulatedTrading(object):
 
     def stream_results(self):
         assert self.results_socket, \
-                "Results socket must exist to stream results"
+            "Results socket must exist to stream results"
         try:
-            for event in self.gen:
+            for event in self.gen: 
                 if event.has_key('daily_perf'):
                     msg = zp.PERF_FRAME(event)
                 else:
@@ -218,7 +217,6 @@ class SimulatedTrading(object):
         except:
             log.exception("Exception while reporting simulation exception.")
 
-
     def open(self):
         if not self.context:
             self.context = zmq.Context()
@@ -228,11 +226,11 @@ class SimulatedTrading(object):
             self.results_socket = sock
             self.setup_logging()
 
-    def setup_logging(self, socket = None):
-        sock = socket or self.results_socket
+    def setup_logging(self):
+        assert self.results_socket
 
         self.zmq_out = ZeroMQLogHandler(
-            socket = sock,
+            socket = self.results_socket,
         )
 
 
@@ -275,7 +273,6 @@ class SimulatedTrading(object):
               of StatefulTransform objects.
         """
         assert isinstance(config, dict)
-
         sid = config['sid']
 
         #--------------------
