@@ -51,8 +51,7 @@ def merge(stream_in, tnfm_ids):
         assert len(queue) == 1, "Bad queue in merge on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in merge on exit: %s" % queue
-    yield done_message('Merge')
-
+    
 def merge_one(sources):
 
     event_fields = ndict()

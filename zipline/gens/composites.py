@@ -1,5 +1,5 @@
 import datetime
-from itertools import tee, starmap
+from itertools import tee, starmap, chain
 from collections import namedtuple
 
 from zipline.gens.tradegens import SpecificEquityTrades
@@ -66,7 +66,7 @@ def merged_transforms(sorted_stream, *transforms):
     # Pipe the stream into merge.
     merged = merge(to_merge, namestrings)
     # Return the merged events.
-    return merged
+    return add_done(dt_aliased)
 
 def sequential_transforms(stream_in, *transforms):
     """
@@ -87,7 +87,7 @@ def sequential_transforms(stream_in, *transforms):
                         stream_in)
 
     dt_aliased = alias_dt(stream_out)
-    return dt_aliased
+    return add_done(dt_aliased)
 
 def alias_dt(stream_in):
     """
@@ -95,10 +95,11 @@ def alias_dt(stream_in):
     """
     for message in stream_in:
         message['datetime'] = message['dt']
-        yield message
+        yield message    
 
-
-    
+# Add a done message to a stream.
+def add_done(stream_in):
+    return chain(stream_in, [done_message('Composite')])
     
     
     

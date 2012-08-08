@@ -97,14 +97,13 @@ class TradeSimulationClient(object):
             ordering_client.state,
             self.algo,
         )
-
+        
         # The algorithm will yield a daily_results message (as
         # calculated by the performance tracker) at the end of each
         # day.  It will also yield a risk report at the end of the
         # simulation.
         for message in self.algo_sim:
             yield message
-
 
 class AlgorithmSimulator(object):
 
@@ -215,16 +214,18 @@ class AlgorithmSimulator(object):
             for event in self.stream_in:
                 # Yield any perf messages received to be relayed back to
                 # the browser.
+
                 if event.perf_message:
                     yield event.perf_message
                     del event['perf_message']
-                    if event.dt == "DONE":
-                        if self.this_snapshot_dt:
-                            # stop iteration happened
-                            # mid-snapshot, so we have a universe
-                            # snapshot that is not yet processed
-                            # by the algorithm.
-                            self.simulate_current_snapshot()
+
+                if event.dt == "DONE":
+                    if self.this_snapshot_dt:
+                        # stop iteration happened
+                        # mid-snapshot, so we have a universe
+                        # snapshot that is not yet processed
+                        # by the algorithm.
+                        self.simulate_current_snapshot()
                         break
 
                 # This should only happen for the first event we run.
