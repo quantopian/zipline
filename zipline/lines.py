@@ -136,13 +136,6 @@ class SimulatedTrading(object):
         setproctitle(self.sim_id)
         self.open()
         if self.zmq_out:
-
-            def inject_event_data(record):
-                # Record the simulation time.
-                #record.extra['algo_dt'] = self.current_dt
-                pass
-
-            data_injector = Processor(inject_event_data)
             log_pipeline = NestedSetup([self.zmq_out,data_injector])
             with log_pipeline.threadbound(), self.stdout_capture(Logger('Print'), ''):
                 self.stream_results()
@@ -160,7 +153,7 @@ class SimulatedTrading(object):
                 else:
                     msg = zp.RISK_FRAME(event)
                 self.results_socket.send(msg)
-
+                
             self.signal_done()
         except Exception as exc:
             self.handle_exception(exc)
@@ -213,7 +206,7 @@ class SimulatedTrading(object):
                 )
 
             self.results_socket.send(msg)
-
+            
         except:
             log.exception("Exception while reporting simulation exception.")
 
@@ -228,15 +221,12 @@ class SimulatedTrading(object):
 
     def setup_logging(self):
         assert self.results_socket
-
         self.zmq_out = ZeroMQLogHandler(
             socket = self.results_socket,
+            filter = lambda r, h: r.channel in ['Print', 'AlgoLog'],
+            bubble = True
         )
-
-        # This is a class, which is instantiated later
-        # in run_algorithm. The class provides a generator.
-        self.stdout_capture = stdout_only_pipe
-
+        
     def join(self):
         if self.proc:
             self.proc.join()

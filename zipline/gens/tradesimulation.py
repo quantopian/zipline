@@ -8,6 +8,7 @@ from zipline import ndict
 from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
+from zipline.utils.log_utils import stdout_only_pipe
 
 class TradeSimulationClient(object):
     """
@@ -106,6 +107,10 @@ class AlgorithmSimulator(object):
     def __init__(self, stream_in, order_book, algo): 
     
         self.stream_in = stream_in
+        
+        # ==========
+        # Algo Setup
+        # ==========
 
         # We extract the order book from the txn client so that 
         # the algo can place new orders.
@@ -122,18 +127,36 @@ class AlgorithmSimulator(object):
         # Call the user's initialize method.
         self.algo.initialize()
 
+        # ==============
+        # Snapshot Setup
+        # ==============
+
         # The algorithm's universe as of our most recent event.
         self.universe = ndict()
         
         for sid in self.sids:
             self.universe[sid] = ndict()
         self.universe.portfolio = None
-
+        
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
         self.this_snapshot_dt = None
 
+        # =============
+        # Logging Setup
+        # =============
+        
+        # Processor function for injecting the algo_dt into
+        # user prints/logs.
+        def inject_algo_dt(record):
+            record.extra['algo_dt'] = self.this_snapshot_dt
+        self.processor = logbook.Processor(inject_algo_dt)
+
+        # This is a class, which is instantiated later
+        # in run_algorithm. The class provides a generator.
+        self.stdout_capture = stdout_only_pipe
+        
         self.__generator = None
 
     def __iter__(self):
@@ -158,7 +181,7 @@ class AlgorithmSimulator(object):
             'amount' : int(amount),
             'filled' : 0
         })
-
+        
         # Tell the user if they try to buy 0 shares of something.
         if order.amount == 0:
             zero_message = "Requested to trade zero shares of {sid}".format(
@@ -179,33 +202,40 @@ class AlgorithmSimulator(object):
         """
         Internal generator work loop.
         """
-        for event in self.stream_in:
-            # Yield any perf messages received to be relayed back to the browser.
-            if event.perf_message:
-                yield event.perf_message
-                del event['perf_message']
-                if event.dt == "DONE":
-                    break
-                
-            # This should only happen for the first event we run.
-            if self.simulation_dt == None:
-                self.simulation_dt = event.dt
-            
-            # ======================
-            # Time Compression Logic
-            # ======================
-        
-            if self.this_snapshot_dt != None:
-                self.update_current_snapshot(event)
+        # Capture any output of this generator to stdout and pipe it
+        # to a logbook interface.  Also inject the current algo
+        # snapshot time to any log record generated.
 
-            # The algorithm has been missing events because it took
-            # too long processing.  Update the universe with data from
-            # this event, then check if enough time has passed that we
-            # can start a new snapshot.
-            else: 
-                self.update_universe(event)
-                if event.dt >= self.simulation_dt:
-                    self.this_snapshot_dt = event.dt
+        with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
+            
+            for event in self.stream_in:
+                # Yield any perf messages received to be relayed back to
+                # the browser.
+                if event.perf_message:
+                    yield event.perf_message
+                    del event['perf_message']
+                    if event.dt == "DONE":
+                        break
+
+                # This should only happen for the first event we run.
+                if self.simulation_dt == None:
+                    self.simulation_dt = event.dt
+
+                # ======================
+                # Time Compression Logic
+                # ======================
+
+                if self.this_snapshot_dt != None:
+                    self.update_current_snapshot(event)
+
+                # The algorithm has been missing events because it took
+                # too long processing.  Update the universe with data from
+                # this event, then check if enough time has passed that we
+                # can start a new snapshot.
+                else: 
+                    self.update_universe(event)
+                    if event.dt >= self.simulation_dt:
+                        self.this_snapshot_dt = event.dt
 
     def update_current_snapshot(self, event):
         """
