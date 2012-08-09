@@ -50,14 +50,14 @@ class ExceptionTestCase(TestCase):
         message = output[0]['payload']
         for field in ['date', 'message', 'name', 'stack']:
             assert field in message.keys()
-            
+
         assert message['message'] == 'integer division or modulo by zero'
         assert message['name'] == 'ZeroDivisionError'
 
     def test_tranform_exception(self):
         exc_tnfm = StatefulTransform(ExceptionTransform)
         self.zipline_test_config['transforms'] = [exc_tnfm]
-        
+
         zipline = SimulatedTrading.create_test_zipline(
             **self.zipline_test_config
         )
@@ -67,7 +67,7 @@ class ExceptionTestCase(TestCase):
         message = output[0]['payload']
         for field in ['date', 'message', 'name', 'stack']:
             assert field in message.keys()
-            
+
         assert message['message'] == 'An assertion message'
         assert message['name'] == 'AssertionError'
 
@@ -89,8 +89,11 @@ class ExceptionTestCase(TestCase):
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
-        del payload['date']
-        check(self, payload, INITIALIZE_TB)
+        self.assertEqual(payload['message'],'Algo exception in initialize')
+        self.assertEqual(payload['name'],'Exception')
+        # make sure our path shortening is working
+        self.assertEqual(payload['stack'][0]['filename'], '/zipline/lines.py')
+        self.assertEqual(payload['stack'][-1]['filename'], '/zipline/test_algorithms.py')
 
     def test_exception_in_handle_data(self):
         # Simulation
@@ -110,7 +113,11 @@ class ExceptionTestCase(TestCase):
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
         del payload['date']
-        check(self, payload, HANDLE_DATA_TB)
+        self.assertEqual(payload['message'],'Algo exception in handle_data')
+        self.assertEqual(payload['name'],'Exception')
+        # make sure our path shortening is working
+        self.assertEqual(payload['stack'][0]['filename'], '/zipline/lines.py')
+        self.assertEqual(payload['stack'][-1]['filename'], '/zipline/test_algorithms.py')
 
     def test_zerodivision_exception_in_handle_data(self):
 
@@ -131,40 +138,8 @@ class ExceptionTestCase(TestCase):
         payload = output[-1]['payload']
         self.assertTrue(payload['date'])
         del payload['date']
-        check(self, payload, ZERO_DIV_TB)
-
-        # TODO:
-        #   - define more zipline failure modes: exception in other
-        #   components, exception in Monitor, etc. write tests
-        #   for those scenarios.
-
-INITIALIZE_TB =\
-{'message': 'Algo exception in initialize',
- 'name': 'Exception',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 171, 'method': 'next'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.initialize()', 'lineno': 212, 'method': '_gen'},
-           {'filename': '/zipline/test_algorithms.py', 'line': 'raise Exception("Algo exception in initialize")', 'lineno': 166, 'method': 'initialize'}]}
-
-HANDLE_DATA_TB =\
-{'message': 'Algo exception in handle_data',
- 'name': 'Exception',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 168, 'method': 'next'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 240, 'method': '_gen'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 264, 'method': 'update_current_snapshot'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 289, 'method': 'simulate_current_snapshot'},
-           {'filename': '/zipline/test_algorithms.py', 'line': 'raise Exception("Algo exception in handle_data")', 'lineno': 187, 'method': 'handle_data'}]}
-
-ZERO_DIV_TB= \
-{'message': 'integer division or modulo by zero',
- 'name': 'ZeroDivisionError',
- 'stack': [{'filename': '/zipline/lines.py', 'line': 'for event in self.gen:', 'lineno': 150, 'method': 'stream_results'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'for message in self.algo_sim:', 'lineno': 105, 'method': 'simulate'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'return self.__generator.next()', 'lineno': 168, 'method': 'next'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.update_current_snapshot(event)', 'lineno': 240, 'method': '_gen'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.simulate_current_snapshot()', 'lineno': 264, 'method': 'update_current_snapshot'},
-           {'filename': '/zipline/gens/tradesimulation.py', 'line': 'self.algo.handle_data(self.universe)', 'lineno': 289, 'method': 'simulate_current_snapshot'},
-           {'filename': '/zipline/test_algorithms.py', 'line': '5/0', 'lineno': 218, 'method': 'handle_data'}]}
+        self.assertEqual(payload['message'],'integer division or modulo by zero')
+        self.assertEqual(payload['name'],'ZeroDivisionError')
+        # make sure our path shortening is working
+        self.assertEqual(payload['stack'][0]['filename'], '/zipline/lines.py')
+        self.assertEqual(payload['stack'][-1]['filename'], '/zipline/test_algorithms.py')
