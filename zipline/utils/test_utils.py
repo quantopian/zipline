@@ -4,7 +4,6 @@ import time
 import zipline.protocol as zp
 from datetime import datetime
 import blist
-from bson import ObjectId
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
@@ -61,14 +60,6 @@ def check(test, a, b, label=None):
         check_datetime(test, a, b, label)
     else:
         test.assertEqual(a, b, "mismatch on path: " + label)
-
-def check_excluded(test, a, excluded_keys=[]):
-    for key, value in a.iteritems():
-        test.assertTrue(key not in excluded_keys)
-        test.assertFalse(key.endswith('_id'), 'Avoid _id fields!')
-        test.assertFalse(isinstance(value, ObjectId))
-        if isinstance(value, dict):
-            check_excluded(test, value, excluded_keys)
 
 def drain_zipline(test, zipline, p_blocking=False):
     assert test.ctx, "method expects a valid zmq context"
@@ -179,26 +170,26 @@ def create_monitor(allocator):
     return mon
 
 class ExceptionSource(object):
-    
+
     def __init__(self):
         pass
 
     def get_hash(self):
         return "ExceptionSource"
-    
+
     def __iter__(self):
         return self
 
     def next(self):
         5 / 0
-        
+
 class ExceptionTransform(object):
-    
+
     def __init__(self):
         pass
 
     def get_hash(self):
         return "ExceptionTransform"
-    
+
     def update(self, event):
         assert False, "An assertion message"
