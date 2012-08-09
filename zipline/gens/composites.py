@@ -8,14 +8,10 @@ from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
 from zipline.gens.transform import StatefulTransform
 
-SourceBundle = namedtuple("SourceBundle", ['source', 'args', 'kwargs'])
-TransformBundle = namedtuple("TransformBundle", ['tnfm', 'args', 'kwargs'])
-
 def date_sorted_sources(*sources):
     """
-    Takes an iterable of SortBundles, generating namestrings and
-    initialized datasources for each before piping them into a
-    date_sort.
+    Takes an iterable of sources, generating namestrings and
+    piping their output into date_sort.
     """
 
     for source in sources:
@@ -63,6 +59,7 @@ def merged_transforms(sorted_stream, *transforms):
     # Roundrobin the outputs of our transforms to create a single flat
     # stream.
     to_merge = roundrobin(tnfm_gens, namestrings)
+
     # Pipe the stream into merge.
     merged = merge(to_merge, namestrings)
 

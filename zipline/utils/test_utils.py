@@ -177,3 +177,28 @@ def create_monitor(allocator):
     )
 
     return mon
+
+class ExceptionSource(object):
+    
+    def __init__(self):
+        pass
+
+    def get_hash(self):
+        return "ExceptionSource"
+    
+    def __iter__(self):
+        return self
+
+    def next(self):
+        5 / 0
+        
+class ExceptionTransform(object):
+    
+    def __init__(self):
+        pass
+
+    def get_hash(self):
+        return "ExceptionTransform"
+    
+    def update(self, event):
+        assert False, "An assertion message"
