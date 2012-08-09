@@ -87,7 +87,7 @@ class TradeSimulationClient(object):
             self.sids
         )
         with_portfolio = perf_tracker.transform(with_filled_orders)
-
+        
         # Pass the messages from perf along with the trading client's
         # state into the algorithm for simulation. We provide the
         # trading client so that the algorithm can place new orders
