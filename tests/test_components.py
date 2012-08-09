@@ -90,6 +90,7 @@ class ComponentTestCase(TestCase):
     def tearDown(self):
         teardown_logger(self)
 
+    @skip
     def test_source(self):
         monitor = create_monitor(allocator)
         socket_uri = allocator.lease(1)[0]
@@ -127,6 +128,7 @@ class ComponentTestCase(TestCase):
         comp_a.proc.join()
         mon_proc.join()
 
+    @skip
     def test_sort(self):
         monitor     = create_monitor(allocator)
         socket_uris    = allocator.lease(3)
@@ -329,6 +331,7 @@ class ComponentTestCase(TestCase):
         for message in trading_client.simulate(merged):
             log.info(pf(message))
 
+    @skip
     def test_compound(self):
         monitor     = create_monitor(allocator)
 
