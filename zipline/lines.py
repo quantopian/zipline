@@ -62,7 +62,7 @@ before invoking simulate.
 import sys
 import zmq
 import os
-from signal import SIGHUP
+from signal import SIGHUP, SIGINT
 import multiprocessing
 from setproctitle import setproctitle
 
@@ -118,6 +118,9 @@ class SimulatedTrading(object):
         self.logger = Logger(sim_id)
         self.print_logger = Logger('Print')
 
+        # exit status flag
+        self.success = False
+
 
     def simulate(self, blocking=True, send_sighup=False):
 
@@ -155,28 +158,28 @@ class SimulatedTrading(object):
                 self.results_socket.send(msg)
 
             self.signal_done()
+            self.success = True
         except Exception as exc:
             self.handle_exception(exc)
         finally:
+            # not much to do besides log our exit.
             self.close()
 
     def signal_done(self):
         # notify monitor we're done
-        done_frame = zp.DONE_FRAME('succes')
+        done_frame = zp.DONE_FRAME('success')
         self.results_socket.send(done_frame)
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
         if self.proc and self.send_sighup:
             ppid = os.getppid()
-            log.warning("Sending SIGHUP")
-            os.kill(ppid, SIGHUP)
-
-    def cancel(self):
-        if self.proc and self.proc.is_alive():
-            self.proc.terminate()
-        else:
-            self.gen.throw(CancelSignal())
+            if self.success:
+                log.warning("Sending SIGHUP")
+                os.kill(ppid, SIGHUP)
+            else:
+                log.warning("Sending SIGINT")
+                os.kill(ppid, SIGINT)
 
     def handle_exception(self, exc):
         if isinstance(exc, CancelSignal):

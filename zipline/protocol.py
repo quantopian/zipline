@@ -527,11 +527,15 @@ def EXCEPTION_FRAME(exception_tb, name, message):
     rlist = []
     for stack in stack_list:
         filename = shorten_filename(stack[0])
+        # default the line to empty string rather than None
+        line = ''
+        if stack[3]:
+            line = stack[3]
         rstack = {
             'filename'  : filename,
             'lineno'    : stack[1],
             'method'    : stack[2],
-            'line'      : stack[3]
+            'line'      : line
         }
         rlist.append(rstack)
     result = {

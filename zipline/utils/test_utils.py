@@ -4,6 +4,7 @@ import time
 import zipline.protocol as zp
 from datetime import datetime
 import blist
+from bson import ObjectId
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
@@ -31,6 +32,7 @@ def check_dict(test, a, b, label):
         # ignore the extra fields used by dictshield
         if key in ['progress']:
             continue
+
         test.assertTrue(a.has_key(key), "missing key at: " + label + "." + key)
         test.assertTrue(b.has_key(key), "missing key at: " + label + "." + key)
         a_val = a[key]
@@ -60,6 +62,13 @@ def check(test, a, b, label=None):
     else:
         test.assertEqual(a, b, "mismatch on path: " + label)
 
+def check_excluded(test, a, excluded_keys=[]):
+    for key, value in a.iteritems():
+        test.assertTrue(key not in excluded_keys)
+        test.assertFalse(key.endswith('_id'), 'Avoid _id fields!')
+        test.assertFalse(isinstance(value, ObjectId))
+        if isinstance(value, dict):
+            check_excluded(test, value, excluded_keys)
 
 def drain_zipline(test, zipline, p_blocking=False):
     assert test.ctx, "method expects a valid zmq context"
