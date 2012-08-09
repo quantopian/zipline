@@ -6,13 +6,13 @@ from collections import deque
 
 from zipline import ndict
 from zipline.gens.utils import hash_args, \
-    assert_merge_protocol
-
+    assert_merge_protocol, done_message
+from itertools import repeat
 
 def merge(stream_in, tnfm_ids):
     """
-    A generator that takes a generator and a list of source_ids. We
-    maintain an internal queue for each id in source_ids. Once we
+    A generator that takes a generator and a list of transform ids. We
+    maintain an internal queue for each id in tnfm_ids. Once we
     have a message from every queue, we pop an event from each queue
     and merge them together into an event.  We raise an error if we
     do not receive the same number of events from all sources.
@@ -28,22 +28,22 @@ def merge(stream_in, tnfm_ids):
 
     # Process incoming streams.
     for message in stream_in:
-        assert isinstance(message, tuple), \
-            "Bad message in merge: %s" %message
-        assert len(message) == 2
-        id, value = message
+        assert isinstance(message, ndict)
+        assert message.has_key('tnfm_id')
+        assert message.has_key('tnfm_value')
+        assert message.has_key('dt')
+
+        id = message.tnfm_id
         assert id in tnfm_ids, \
             "Message from unexpected tnfm: %s, %s" % (id, tnfm_ids)
-        assert isinstance(value, ndict), "Bad message in merge: %s" %message
 
-        tnfms[id].append(value)
+        tnfms[id].append(message)
 
         # Only pop messages when we have a pending message from
         # all datasources. Stop if all sources have signalled done.
 
         while ready(tnfms) and not done(tnfms):
             message = merge_one(tnfms)
-            assert_merge_protocol(tnfm_ids, message)
             yield message
 
     # We should have only a done message left in each queue.
@@ -51,13 +51,25 @@ def merge(stream_in, tnfm_ids):
         assert len(queue) == 1, "Bad queue in merge on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in merge on exit: %s" % queue
-
+    
 def merge_one(sources):
-    output = ndict()
+
+    event_fields = ndict()
     for key, queue in sources.iteritems():
-        new_xform = ndict({key: queue.popleft()})
-        output.merge(new_xform)
-    return output
+
+        # Add transform value to the transforms dict.
+        message = queue.popleft()
+        event_fields[message.tnfm_id] = message.tnfm_value
+        del message['tnfm_id']
+        del message['tnfm_value']
+
+        # Merge any remaining fields into the event dict.
+        event_fields.merge(message)
+
+    # alias dt with datetime, per algoscript api
+    event_fields['datetime'] = event_fields['dt']
+
+    return event_fields
 
 
 #TODO: This is replicated in sort.  Probably should be one source file.

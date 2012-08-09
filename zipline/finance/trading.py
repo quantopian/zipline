@@ -9,10 +9,10 @@ from zipline.protocol import SIMULATION_STYLE
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
+    UPDATER = True
 
-    def __init__(self, style=SIMULATION_STYLE.PARTIAL_VOLUME):
+    def __init__(self, sid_filter, style=SIMULATION_STYLE.PARTIAL_VOLUME):
         self.open_orders                = {}
-        self.order_count                = 0
         self.txn_count                  = 0
         self.trade_window               = datetime.timedelta(seconds=30)
         self.orderTTL                   = datetime.timedelta(days=1)
@@ -27,27 +27,20 @@ class TransactionSimulator(object):
         elif style == SIMULATION_STYLE.NOOP:
             self.apply_trade_to_open_orders = self.simulate_noop
 
-    def add_open_order(self, event):
-        # Orders are captured in a buffer by sid. No calculations are done here.
-        # Amount is explicitly converted to an int.
-        # Orders of amount zero are ignored.
+        for sid in sid_filter:
+            self.open_orders[sid] = []
 
-        self.order_count += 1
-        event.amount = int(event.amount)
+    def place_order(self, order):
+        # initialized filled field.
+        order.filled = 0
+        self.open_orders[order.sid].append(order)
 
-        if event.amount == 0:
-            log = "requested to trade zero shares of {sid}".format(
-                sid=event.sid
-            )
-            log.debug(log)
-            return
-
-        if not self.open_orders.has_key(event.sid):
-            self.open_orders[event.sid] = []
-
-        # set the filled property to zero
-        event.filled = 0
-        self.open_orders[event.sid].append(event)
+    def update(self, event):
+        event.TRANSACTION = None
+        # We only fill transactions on trade events.
+        if event.type == zp.DATASOURCE_TYPE.TRADE:
+            event.TRANSACTION = self.apply_trade_to_open_orders(event)
+        return event
 
     def simulate_buy_all(self, event):
         txn = self.create_transaction(
@@ -81,7 +74,7 @@ class TransactionSimulator(object):
         txn = self.create_transaction(
             event.sid,
             amount,
-            event.price + 0.10,
+            event.price + 0.10, # Magic constant?
             event.dt,
             direction
         )
@@ -161,7 +154,6 @@ class TransactionSimulator(object):
                 'commission'    : self.commission * amount * direction
                 }
         return zp.ndict(txn)
-
 
 class TradingEnvironment(object):
 

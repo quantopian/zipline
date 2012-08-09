@@ -1,6 +1,7 @@
 import pytz
 import numbers
 
+from collections import OrderedDict
 from hashlib import md5
 from datetime import datetime
 from itertools import izip_longest
@@ -16,8 +17,16 @@ def mock_raw_event(sid, dt):
     }
     return event
 
-def mock_done(source_id):
-    return ndict({'dt': "DONE", "source_id" : source_id, 'type' : 0})
+def mock_done(id):
+    return ndict({
+            'dt'        : "DONE",
+            "source_id" : id,
+            'tnfm_id'   : id,
+            'tnfm_value': None,
+            'type'      : DATASOURCE_TYPE.DONE
+    })
+
+done_message = mock_done
 
 def alternate(g1, g2):
     """Specialized version of roundrobin for just 2 generators."""
@@ -27,16 +36,25 @@ def alternate(g1, g2):
         if e2 != None:
             yield e2
 
-def roundrobin(*args):
+def roundrobin(sources, namestrings):
     """
     Takes N generators, pulling one element off each until all inputs
     are empty.
     """
-    for elem_tuple in izip_longest(*args):
-        for value in elem_tuple:
-            if value != None:
-                yield value
+    assert len(sources) == len(namestrings)
+    mapping = OrderedDict(zip(namestrings, sources))
 
+    # While our generators have not been exhausted, pull elements
+    while mapping.keys() != []:
+        for namestring, source in mapping.iteritems():
+            try:
+                message = source.next()
+                # allow sources to yield None to avoid blocking.
+                if message:
+                    yield message
+            except StopIteration:
+                yield done_message(namestring)
+                del mapping[namestring]
 
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
@@ -47,6 +65,25 @@ def hash_args(*args, **kwargs):
     hasher = md5()
     hasher.update(combined)
     return hasher.hexdigest()
+
+def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
+    row = ndict({
+        'source_id' : source_id,
+        'type'      : DATASOURCE_TYPE.TRADE,
+        'sid'       : sid,
+        'dt'        : datetime,
+        'price'     : price,
+        'volume'    : amount
+    })
+    return row
+
+def sum_true(bool_iterable):
+    """
+    Takes an iterable of boolean values and returns the number of
+    those values that are True.
+    """
+    return sum(map(int, bool_iterable))
+
 
 def assert_datasource_protocol(event):
     """Assert that an event meets the protocol for datasource outputs."""

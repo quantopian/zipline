@@ -131,7 +131,7 @@ from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 # Control Protocol
 # -----------------------
 
-PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION', 'CANCEL']
+PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION','CANCEL','DONE', 'LOG']
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
@@ -527,11 +527,15 @@ def EXCEPTION_FRAME(exception_tb, name, message):
     rlist = []
     for stack in stack_list:
         filename = shorten_filename(stack[0])
+        # default the line to empty string rather than None
+        line = ''
+        if stack[3]:
+            line = stack[3]
         rstack = {
             'filename'  : filename,
             'lineno'    : stack[1],
             'method'    : stack[2],
-            'line'      : stack[3]
+            'line'      : line
         }
         rlist.append(rstack)
     result = {
@@ -569,6 +573,12 @@ def CANCEL_FRAME(date):
     }
 
     return BT_UPDATE_FRAME('CANCEL', result)
+
+def DONE_FRAME(msg):
+    assert isinstance(msg, basestring), \
+            "Done message must be a string."
+
+    return BT_UPDATE_FRAME('DONE', msg)
 
 
 def BT_UPDATE_FRAME(prefix, payload):

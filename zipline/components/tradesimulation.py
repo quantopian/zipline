@@ -12,7 +12,7 @@ from zipline.utils.protocol_utils import  ndict
 
 from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 
-from logbook import Logger, NestedSetup, Processor, queues
+from logbook import Logger, NestedSetup, Processor
 
 
 log = logbook.Logger('TradeSimulation')
@@ -20,7 +20,7 @@ log = logbook.Logger('TradeSimulation')
 
 class TradeSimulationClient(Component):
 
-    def init(self, trading_environment, sim_style, results_socket):
+    def init(self, trading_environment, sim_style, results_socket, algorithm):
         self.received_count         = 0
         self.prev_dt                = None
         self.event_queue            = None
@@ -29,13 +29,20 @@ class TradeSimulationClient(Component):
         self.trading_environment    = trading_environment
         self.current_dt             = trading_environment.period_start
         self.last_iteration_dur     = datetime.timedelta(seconds=0)
-        self.algorithm              = None
+        self.algorithm              = algorithm
+        self.algorithm.set_order(self.order)
         self.max_wait               = datetime.timedelta(seconds=60)
         self.last_msg_dt            = datetime.datetime.utcnow()
-        self.txn_sim                = TransactionSimulator(sim_style)
+        self.txn_sim                = TransactionSimulator(
+                                        open_orders={},
+                                        style=sim_style
+                                      )
 
         self.event_data = ndict()
-        self.perf = perf.PerformanceTracker(self.trading_environment)
+        self.perf = perf.PerformanceTracker(
+            self.trading_environment,
+            self.algorithm.get_sid_filter()
+        )
         self.zmq_out = None
         self.results_socket = results_socket
         self.algo_initialized = False
@@ -43,19 +50,6 @@ class TradeSimulationClient(Component):
     @property
     def get_id(self):
         return str(zp.FINANCE_COMPONENT.TRADING_CLIENT)
-
-    def set_algorithm(self, algorithm):
-        """
-        :param algorithm: must implement the algorithm protocol. See
-        :py:mod:`zipline.test.algorithm`
-        """
-        self.algorithm = algorithm
-        # register the client's order method with the algorithm
-        self.algorithm.set_order(self.order)
-        # we need to provide the performance tracker with the
-        # sids referenced in the algorithm, so portfolio can
-        # initialize with all possible sids.
-        self.perf.set_sids(self.algorithm.get_sid_filter())
 
     def open(self):
         self.result_feed = self.connect_result()
@@ -184,16 +178,6 @@ class TradeSimulationClient(Component):
             # any fields injected here should be added to
             # LOG_EXTRA_FIELDS in zipline/protocol.py
             self.do_op(self.algorithm.handle_data, data)
-
-    def exception_callback(self, exc_type, exc_value, exc_traceback):
-        if self.results_socket:
-            log.info("Sending exception frame")
-            msg = zp.EXCEPTION_FRAME(
-                exc_traceback,
-                exc_type.__name__,
-                exc_value.message
-            )
-            self.out_socket.send(msg)
 
     def do_op(self, callable_op, *args, **kwargs):
         """ Wrap a callable operation with the zmq logbook

@@ -14,7 +14,6 @@ def date_sort(stream_in, source_ids):
     have messages pending from all sources, we pull the earliest
     message and yield it.
     """
-
     assert isinstance(source_ids, (list, tuple))
 
     # Set up an internal queue for each expected source.
@@ -28,7 +27,7 @@ def date_sort(stream_in, source_ids):
         # Incoming messages should be the output of DATASOURCE_UNFRAME.
         assert_datasource_unframe_protocol(message), \
             "Bad message in date_sort: %s" % message
-
+        
         # Only allow messages from sources we expect.
         assert message.source_id in sources, "Unexpected source: %s" % message
 
@@ -41,7 +40,7 @@ def date_sort(stream_in, source_ids):
             message = pop_oldest(sources)
             assert_sort_protocol(message)
             yield message
-
+    
     # We should have only a done message left in each queue.
     for queue in sources.itervalues():
         assert len(queue) == 1, "Bad queue in date_sort on exit: %s" % queue

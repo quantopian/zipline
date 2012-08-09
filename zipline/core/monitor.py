@@ -1,4 +1,3 @@
-import inspect
 import os
 import zmq
 import sys
@@ -10,8 +9,13 @@ from signal import SIGHUP, SIGINT
 
 from collections import OrderedDict, Counter
 
-from zipline.protocol import CONTROL_PROTOCOL, CONTROL_FRAME, \
-    CONTROL_UNFRAME, CONTROL_STATES, INVALID_CONTROL_FRAME \
+from zipline.protocol import (
+    CONTROL_PROTOCOL,
+    CONTROL_FRAME,
+    CONTROL_UNFRAME,
+    CONTROL_STATES,
+    INVALID_CONTROL_FRAME
+)
 
 from zipline.utils.protocol_utils import ndict
 
@@ -34,7 +38,7 @@ class UnknownChatter(Exception):
         return """Component calling itself "%s" talking on unexpected channel""" % self.named
 
 
-log = logbook.Logger('Controller')
+log = logbook.Logger('Monitor')
 
 # The scalars determining the timing of the monitor behavior for
 # the system.
@@ -52,7 +56,7 @@ PARAMETERS = ndict(dict(
     SYSTEM_TIMEOUT             = 50,
 ))
 
-class Controller(object):
+class Monitor(object):
     """
     A N to M messaging system for inter component communication.
 
@@ -69,7 +73,12 @@ class Controller(object):
     debug = True
     period = PARAMETERS.GENERATIONAL_PERIOD
 
-    def __init__(self, pub_socket, route_socket, send_sighup=False):
+    def __init__(
+        self,
+        pub_socket,
+        route_socket,
+        exception_socket,
+        send_sighup=False):
 
         self.nosignals  = False
         self.context    = None
@@ -90,12 +99,14 @@ class Controller(object):
 
         self.associated = []
 
-        self.pub_socket   = pub_socket
-        self.route_socket = route_socket
-
-        self.error_replay = OrderedDict()
+        self.pub_socket         = pub_socket
+        self.route_socket       = route_socket
+        self.exception_socket   = exception_socket
 
         self.missed_beats = Counter()
+
+        # start with an empty topology
+        self.topology = set([])
 
         self.send_sighup = send_sighup
         if self.send_sighup:
@@ -107,6 +118,17 @@ class Controller(object):
         self.context    = self.zmq.Context()
         self.zmq_poller = self.zmq.Poller
         return
+
+    def add_to_topology(self, component_id):
+        add = set([component_id, "FORK-" + component_id])
+        self.topology.update(add)
+
+    def freeze_topology(self):
+        if isinstance(self.topology, frozenset):
+            return
+        # we've been incrementally adding components.
+        # time to freeze.
+        self.manage(self.topology)
 
     def manage(self, topology):
         """
@@ -139,6 +161,7 @@ class Controller(object):
             raise RuntimeError("Invalid State Transition : %s -> %s" %(old, new))
 
     def run(self):
+        self.freeze_topology()
         self.running = True
         self.init_zmq()
         setproctitle('Monitor')
@@ -243,6 +266,11 @@ class Controller(object):
         self.router.bind(self.route_socket)
         self.router.setsockopt(zmq.LINGER, 0)
 
+        # -- Exception Out --
+        # ===================
+        self.ex_out = self.context.socket(self.zmq.PUSH)
+        self.ex_out.connect(self.exception_socket)
+
         poller = self.zmq.Poller()
         poller.register(self.router, self.zmq.POLLIN)
         #poller.register(self.cancel, self.zmq.POLLIN)
@@ -312,6 +340,11 @@ class Controller(object):
                         log.info("breaking out of initial heartbeat")
                         break
 
+                # Break out if the entire topology told us its DONE
+                if len(self.finished) == len(self.topology):
+                    break
+
+
             # ================
             # Heartbeat Stats
             # ================
@@ -374,6 +407,7 @@ class Controller(object):
         """
         if not self.send_sighup:
             log.warning("Skipping SIGINT")
+            return
         ppid = os.getpid()
         log.warning("Sending SIGINT")
         os.kill(ppid, SIGINT)
@@ -403,28 +437,22 @@ class Controller(object):
         bad  = self.tracked   - good - self.finished
         new  = self.responses - good - self.finished
 
-        missing = self.topology - self.tracked - self.finished
-
         for component in new:
             self.new(component)
 
-            if self.debug:
-                log.info('New component %r' % component)
-
         for component in bad:
-            self.fail(component)
+            self.timed_out(component)
 
+        missing = self.topology - self.tracked - self.finished
 
         for component in missing:
-
             if self.debug:
                 log.info('Missing component %r' % component)
 
-        if self.debug:
 
-            for component in self.tracked:
-                if component not in self.topology:
-                    log.info('Uninvited component %r' % component)
+        for component in self.tracked:
+            if component not in self.topology:
+                log.info('Uninvited component %r' % component)
 
     # --------------
     # Init Handlers
@@ -460,22 +488,16 @@ class Controller(object):
     # Epic Fail Handling
     # ------------------
 
-    def fail_universal(self):
-        # TODO: this requires higher order functionality
-        log.error('Component missed heartbeat, Monitor shutting down system')
-        self.kill()
-
-    def fail(self, component):
+    def timed_out(self, component):
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
-        universal = self.fail_universal
-        fail_handlers = { }
-
         if component in (self.topology - self.finished) or self.freeform:
             log.warning('Component "%s" missed heartbeat' % component)
-            self.tracked.remove(component)
-            fail_handlers.get(component, universal)()
+            # we treat a time out as a severe failure, and
+            # conduct a rapid shutdown
+            self.kill()
+
 
     # -------------------
     # Completion Handling
@@ -489,25 +511,14 @@ class Controller(object):
     # --------------
     # Error Handling
     # --------------
-
-    def exception_universal(self):
-        """
-        Shutdown the system on failure.
-        """
-        log.error('System in exception state, shutting down')
+    def exception(self, component, exception_data):
+        log.error('Component in exception state: %s. Shutting down system and sending exception data to listeners.'\
+            % component)
+        # Send the exception message out to listeners.
+        self.ex_out.send(exception_data)
+        # An exception in one component is treated as a hard
+        # failure, and we conduct a rapid shutdown.
         self.kill()
-
-    def exception(self, component, failure):
-        universal = self.exception_universal
-        exception_handlers = { }
-
-        if component in self.topology or self.freeform:
-            self.error_replay[(component, time.time())] = failure
-            log.error('Component in exception state: %s' % component)
-
-            exception_handlers.get(component, universal)()
-        else:
-            raise UnknownChatter(component)
 
     # -----------------
     # Protocol Handling
@@ -555,7 +566,19 @@ class Controller(object):
 
         # A component is telling us it failed, and how
         if id is CONTROL_PROTOCOL.EXCEPTION:
-            self.exception(identity, status)
+            # status should be a msgpack emitted from
+            # EXCEPTION_FRAME
+            try:
+                exception_data = status
+                self.exception(identity, exception_data)
+            except:
+                # if an exception occurs when we try to handle
+                # the exception, signal the parent that we need
+                # to go down
+                # TODO: should we attempt to call self.exception?
+                log.exception("Unexpected exception sending exception data")
+                self.kill()
+
             return
 
         # A component is telling us its done with work and won't
@@ -605,11 +628,9 @@ class Controller(object):
         self.associated.append(s)
         return s
 
-    def do_error_replay(self):
-        for (component, time), error in self.error_replay.iteritems():
-            log.info('Component Log for -- %s --:\n%s' % (component, error))
-
     def kill(self):
+        """Aggressively exit the whole zipline.
+        """
         if self.state is CONTROL_STATES.TERMINATE:
             return
 
@@ -617,6 +638,9 @@ class Controller(object):
         self.send_hardkill()
         self.state = CONTROL_STATES.TERMINATE
         self.alive = False
+        # send burrito an interrupt, instructing it to kill all
+        # child processes assocated with this zipline.
+        time.sleep(3)
         self.signal_interrupt()
 
     def shutdown(self):

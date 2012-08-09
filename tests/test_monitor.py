@@ -1,7 +1,7 @@
 from zipline.utils.test_utils import setup_logger, teardown_logger
 from unittest2 import TestCase, skip
 
-from zipline.core.monitor import Controller
+from zipline.core.monitor import Monitor
 
 class TestMonitor(TestCase):
     def setUp(self):
@@ -14,13 +14,15 @@ class TestMonitor(TestCase):
     def test_init(self):
         pub_socket   = 'tcp://127.0.0.1:5000'
         route_socket = 'tcp://127.0.0.1:5001'
+        exception_socket = 'tcp://127.0.0.1:5002'
 
-        con = Controller(pub_socket, route_socket)
-        con.manage([])
+        mon = Monitor(pub_socket, route_socket, exception_socket)
+        mon.manage([])
 
     def test_init_topology(self):
         pub_socket   = 'tcp://127.0.0.1:5000'
         route_socket = 'tcp://127.0.0.1:5001'
+        exception_socket = 'tcp://127.0.0.1:5002'
 
-        con = Controller(pub_socket, route_socket, )
-        con.manage([ 'a', 'b', 'c', 'd' ])
+        mon = Monitor(pub_socket, route_socket, exception_socket)
+        mon.manage([ 'a', 'b', 'c', 'd' ])

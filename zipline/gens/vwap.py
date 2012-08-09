@@ -1,0 +1,86 @@
+from numbers import Number
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+from zipline import ndict
+from zipline.gens.transform import EventWindow
+
+class VWAP(object):
+    """
+    Class that maintains a dictionary from sids to VWAPEventWindows.
+    """
+    def __init__(self, market_aware, delta=None, days=None):
+
+        self.market_aware = market_aware
+        self.delta = delta
+        self.days = days
+        
+        # Market-aware mode only works with full-day windows.
+        if self.market_aware:
+            assert self.days and not self.delta,\
+                "Market-aware mode only works with full-day windows."
+
+        # Non-market-aware mode requires a timedelta.
+        else:
+            assert self.delta and not self.days, \
+                "Non-market-aware mode requires a timedelta."
+
+        # No way to pass arguments to the defaultdict factory, so we
+        # need to define a method to generate the correct EventWindows.
+        self.sid_windows = defaultdict(self.create_window)
+        
+    def create_window(self):
+        """Factory method for self.sid_windows."""
+        return VWAPEventWindow(
+            self.market_aware, 
+            days = self.days, 
+            delta = self.delta
+        )
+
+    def update(self, event):
+        """
+        Update the event window for this event's sid. Returns the
+        current vwap for the sid.
+        """
+        # This will create a new EventWindow if this is the first
+        # message for this sid.
+        window = self.sid_windows[event.sid]
+        window.update(event)
+        return window.get_vwap()
+
+class VWAPEventWindow(EventWindow):
+    """
+    Iteratively maintains a vwap for a single sid over a given
+    timedelta.
+    """
+    def __init__(self, market_aware, days=None, delta=None):
+        EventWindow.__init__(self, market_aware, days, delta)
+        self.flux = 0.0
+        self.totalvolume = 0.0
+
+    # Subclass customization for adding new events.
+    def handle_add(self, event):
+        # Sanity check on the event.
+        self.assert_required_fields(event)
+        self.flux += event.volume * event.price
+        self.totalvolume += event.volume
+
+    # Subclass customization for removing expired events.
+    def handle_remove(self, event):
+        self.flux -= event.volume * event.price
+        self.totalvolume -= event.volume
+    
+    def get_vwap(self):
+        """
+        Return the calculated vwap for this sid.
+        """
+        # By convention, vwap is None if we have no events.
+        if len(self.ticks) == 0:
+            return None
+        else:
+            return (self.flux / self.totalvolume)
+
+    # We need numerical price and volume to calculate a vwap.
+    def assert_required_fields(self, event):
+        assert isinstance(event.price, Number)
+        assert isinstance(event.volume, Number)

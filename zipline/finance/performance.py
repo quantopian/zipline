@@ -133,6 +133,7 @@ import zipline.finance.risk as risk
 log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
+    UPDATER = True
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -144,7 +145,7 @@ class PerformanceTracker(object):
 
     """
 
-    def __init__(self, trading_environment):
+    def __init__(self, trading_environment, sid_list):
 
         self.trading_environment     = trading_environment
         self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
@@ -164,7 +165,6 @@ class PerformanceTracker(object):
         self.txn_count               = 0
         self.event_count             = 0
         self.last_dict               = None
-        self.order_log               = []
         self.exceeded_max_loss       = False
 
         self.results_socket = None
@@ -197,10 +197,21 @@ class PerformanceTracker(object):
             # save the transactions for the daily periods
             keep_transactions = True
         )
-
-    def set_sids(self, sid_list):
+        
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
+            self.todays_performance.positions[sid] = Position(sid)
+
+    def update(self, event):
+        if event.dt == "DONE":
+            event.perf_message = self.handle_simulation_end()
+            del event['TRANSACTION']
+            return event
+        else:
+            event.perf_message = self.process_event(event)
+            event.portfolio = self.get_portfolio()
+            del event['TRANSACTION']
+            return event
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
@@ -238,10 +249,10 @@ class PerformanceTracker(object):
             'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()
         }
 
-    def log_order(self, order):
-        self.order_log.append(order)
 
     def process_event(self, event):
+        
+        message = None
 
         if self.exceeded_max_loss:
             return
@@ -250,7 +261,7 @@ class PerformanceTracker(object):
         self.event_count += 1
 
         if(event.dt >= self.market_close):
-            self.handle_market_close()
+            message = self.handle_market_close()
 
         if event.TRANSACTION:
             self.txn_count += 1
@@ -264,9 +275,12 @@ class PerformanceTracker(object):
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
+        
+
+        return message
 
     def handle_market_close(self):
-
+        
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -288,12 +302,10 @@ class PerformanceTracker(object):
         # calculate progress of test
         self.progress = self.day_count / self.total_days
 
-        # Output results
-        if self.results_socket:
-            msg = zp.PERF_FRAME(self.to_dict())
-            self.results_socket.send(msg)
+        # Take a snapshot of our current peformance to return to the
+        # browser.
+        daily_update = self.to_dict()
 
-        #
         if self.trading_environment.max_drawdown:
             returns = self.todays_performance.returns
             max_dd = -1 * self.trading_environment.max_drawdown
@@ -304,7 +316,7 @@ class PerformanceTracker(object):
                 # so it shows up in the update, but don't end the test
                 # here. Let the update go out before stopping
                 self.exceeded_max_loss = True
-                return
+                return daily_update
 
 
         #move the market day markers forward
@@ -326,6 +338,8 @@ class PerformanceTracker(object):
             self.market_close,
             keep_transactions = True
         )
+        
+        return daily_update
 
     def handle_simulation_end(self):
         """
@@ -349,12 +363,8 @@ class PerformanceTracker(object):
             exceeded_max_loss = self.exceeded_max_loss
         )
 
-        if self.results_socket:
-            log.info("about to stream the risk report...")
-            risk_dict = self.risk_report.to_dict()
-
-            msg = zp.RISK_FRAME(risk_dict)
-            self.results_socket.send(msg)
+        risk_dict = self.risk_report.to_dict()
+        return risk_dict
 
 class Position(object):
 
@@ -362,8 +372,8 @@ class Position(object):
         self.sid             = sid
         self.amount          = 0
         self.cost_basis      = 0.0 ##per share
-        self.last_sale_price = None
-        self.last_sale_date  = None
+        self.last_sale_price = 0.0
+        self.last_sale_date  = 0.0
 
     def update(self, txn):
         if(self.sid != txn.sid):
@@ -584,7 +594,6 @@ class PerformancePeriod(object):
 
         return positions
 
-    #
     def get_positions_list(self):
         positions = []
         for sid, pos in self.positions.iteritems():
