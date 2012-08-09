@@ -3,6 +3,7 @@ Generator versions of transforms.
 """
 import types
 import pytz
+import logbook
 
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -14,6 +15,8 @@ from zipline import ndict
 from zipline.utils.tradingcalendar import trading_days_between
 from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
+
+log = logbook.Logger('Transform')
 
 class Passthrough(object):
     FORWARDER = True
@@ -72,6 +75,7 @@ class StatefulTransform(object):
 
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
+        log.info('StatefulTransform [%s] initialized' % self.namestring)
 
     def get_hash(self):
         return self.namestring
@@ -82,7 +86,7 @@ class StatefulTransform(object):
     def _gen(self, stream_in):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams, so we only manipulate copies.
-
+        log.info('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
 
             # allow upstream generators to yield None to avoid
@@ -143,6 +147,7 @@ class StatefulTransform(object):
                 out_message.dt = message_copy.dt
                 yield out_message
 
+        log.info('Finished StatefulTransform [%s]' % self.get_hash())
 class EventWindow:
     """
     Abstract base class for transform classes that calculate iterative

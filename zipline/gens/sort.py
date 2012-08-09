@@ -1,11 +1,15 @@
 """
-Generator version of Feed.
+Sorting generator.
 """
+import logbook
+
 from collections import deque
 from zipline import ndict
 from zipline.gens.utils import  \
     assert_datasource_unframe_protocol, \
     assert_sort_protocol
+
+log = logbook.Logger('Sorting')
 
 def date_sort(stream_in, source_ids):
     """
@@ -23,6 +27,7 @@ def date_sort(stream_in, source_ids):
         sources[id] = deque()
 
     # Process incoming streams.
+    log.info('Sorting first message')
     for message in stream_in:
         # Incoming messages should be the output of DATASOURCE_UNFRAME.
         assert_datasource_unframe_protocol(message), \
@@ -46,6 +51,7 @@ def date_sort(stream_in, source_ids):
         assert len(queue) == 1, "Bad queue in date_sort on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in date_sort on exit: %s" % queue
+    log.info('Successfully finished Sorting')
 
 def ready(sources):
     """

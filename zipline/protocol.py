@@ -654,7 +654,13 @@ def tuple_to_date(date_tuple):
     dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     return dt
 
+# Datasource type should completely determine the other fields of a
+# message with its type.                      
 DATASOURCE_TYPE = Enum(
+    'AS_TRADED_EQUITY', 
+    'MERGE',
+    'SPLIT', 
+    'DIVIDEND',
     'TRADE',
     'EMPTY',
     'DONE'
