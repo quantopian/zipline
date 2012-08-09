@@ -3,7 +3,7 @@ import pytz
 from pprint import pformat as pf
 from datetime import datetime, timedelta
 
-from unittest2 import TestCase
+from unittest2 import TestCase, skip
 from collections import defaultdict
 from zipline.gens.composites import date_sorted_sources, merged_transforms
 
@@ -218,7 +218,7 @@ class ComponentTestCase(TestCase):
         comp_c.proc.join()
         mon_proc.join()
 
-
+    @skip
     def test_full(self):
         monitor     = create_monitor(allocator)
 

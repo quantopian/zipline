@@ -6,7 +6,8 @@ from collections import defaultdict
 import numpy as np
 
 from zipline.core.devsimulator import AddressAllocator
-from zipline.optimize.factory import create_predictable_zipline
+# TODO: refactor the factory to use generators
+# from zipline.optimize.factory import create_predictable_zipline
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90

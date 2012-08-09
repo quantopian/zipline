@@ -7,7 +7,7 @@ import logbook
 from setproctitle import setproctitle
 from signal import SIGHUP, SIGINT
 
-from collections import OrderedDict, Counter
+from collections import Counter
 
 from zipline.protocol import (
     CONTROL_PROTOCOL,
