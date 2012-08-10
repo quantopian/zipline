@@ -68,15 +68,16 @@ from setproctitle import setproctitle
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
-from zipline.utils.log_utils import ZeroMQLogHandler
+from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
 from zipline.utils import factory
 
-from zipline.gens.composites import (
-    date_sorted_sources,
-    sequential_transforms
-)
+from zipline.test_algorithms import TestAlgorithm
+
+from zipline.gens.composites import  \
+    date_sorted_sources, merged_transforms, sequential_transforms
+from zipline.gens.transform import Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
-from logbook import Logger
+from logbook import Logger, NestedSetup, Processor
 
 import zipline.protocol as zp
 
@@ -171,8 +172,6 @@ class SimulatedTrading(object):
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
-        if self.results_socket:
-            self.results_socket.close()
         if self.proc and self.send_sighup:
             ppid = os.getppid()
             if self.success:
@@ -244,6 +243,12 @@ class SimulatedTrading(object):
             return [self.proc.pid]
         else:
             return []
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.gen.next()
 
     @staticmethod
     def create_test_zipline(**config):
@@ -319,12 +324,10 @@ class SimulatedTrading(object):
             trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
-                sid_list,
+                sids,
                 trade_count,
-                trading_environment,
-                concurrent=concurrent_trades
+                trading_environment
             )
-
 
         #-------------------
         # Transforms
