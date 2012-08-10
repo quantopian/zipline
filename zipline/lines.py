@@ -244,10 +244,17 @@ class SimulatedTrading(object):
         else:
             return []
 
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.gen.next()
+
     @staticmethod
     def create_test_zipline(**config):
         """
-        :param config: A configuration object that is a dict with:
+        :param config: A configuration object that is a dict with
+        (all optional):
 
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
@@ -269,7 +276,7 @@ class SimulatedTrading(object):
               of StatefulTransform objects.
         """
         assert isinstance(config, dict)
-        sid = config['sid']
+        sid = config.get('sid', 133)
 
         #--------------------
         # Trading Environment
