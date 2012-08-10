@@ -88,6 +88,29 @@ def sequential_transforms(stream_in, *transforms):
     dt_aliased = alias_dt(stream_out)
     return add_done(dt_aliased)
 
+def sequential_transforms_dict(stream_in, transforms):
+    """
+    Apply each transform in transforms sequentially to each event in stream_in.
+    Each transform application will add a new entry indexed to the transform's
+    hash string.
+    """
+
+    assert isinstance(transforms, dict)
+
+    for tnfm in transforms.itervalues():
+        tnfm.forward_all = False
+        tnfm.update_in_place = False
+        tnfm.append_value = True
+
+    # Recursively apply all transforms to the stream.
+    stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
+                        transforms,
+                        stream_in)
+
+    dt_aliased = alias_dt(stream_out)
+    return add_done(dt_aliased)
+
+
 def alias_dt(stream_in):
     """
     Alias the dt field to datetime on each message.

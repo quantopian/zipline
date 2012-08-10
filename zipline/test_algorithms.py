@@ -46,6 +46,22 @@ The algorithm must expose methods:
 
 """
 
+# Algorithm base class, user algorithms inherit from this as they
+# don't want to have to copy and know about set_order and
+# set_portfolio
+class Algorithm(object):
+    def set_order(self, order_callable):
+        self.order = order_callable
+
+    def get_sid_filter(self):
+        return [self.sid]
+
+    def add_transform(self, transform_class, tag, **kwargs):
+        if not hasattr(self, 'registered_transforms'):
+            self.registered_transforms = {}
+
+        self.registered_transforms[tag] = transform_class(**kwargs)
+
 
 class TestAlgorithm():
     """

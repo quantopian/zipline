@@ -93,10 +93,10 @@ class StatefulTransform(object):
             #TODO: refactor this to avoid unnecessary copying.
 
             assert_sort_unframe_protocol(message)
-            message_copy = deepcopy(message)
-
+            #message_copy = deepcopy(message)
+            message_copy = message
             # Same shared pointer issue here as above.
-            tnfm_value = self.state.update(deepcopy(message_copy))
+            tnfm_value = self.state.update(message_copy)
 
             # FORWARDER flag means we want to keep all original
             # values, plus append tnfm_id and tnfm_value. Used for
