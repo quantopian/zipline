@@ -9,10 +9,10 @@ from itertools import izip
 from zipline.utils.factory import create_trading_environment
 from zipline.test_algorithms import TestAlgorithm
 
-from zipline.gens.composites import SourceBundle, TransformBundle, \
-    date_sorted_sources, merged_transforms, sequential_transforms
+from zipline.gens.composites import date_sorted_sources, merged_transforms, sequential_transforms
 from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.transform import MovingAverage, Passthrough, StatefulTransform
+from zipline.gens.mavg import MovingAverage
+from zipline.gens.transform import Passthrough, StatefulTransform
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 
 import zipline.protocol as zp

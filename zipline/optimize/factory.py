@@ -4,12 +4,11 @@ Factory functions to prepare useful data for optimize tests.
 Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
-import pandas as pd
 
 import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
-from zipline.finance.sources import SpecificEquityTrades
+from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
 from zipline.finance.trading import SIMULATION_STYLE
@@ -66,7 +65,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
 
     trading_environment.period_end = cur
 
-    source = SpecificEquityTrades(events)
+    source = SpecificEquityTrades(event_list=events)
 
     return source
 
