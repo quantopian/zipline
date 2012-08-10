@@ -87,7 +87,7 @@ class TradeSimulationClient(object):
             self.sids
         )
         with_portfolio = perf_tracker.transform(with_filled_orders)
-        
+
         # Pass the messages from perf along with the trading client's
         # state into the algorithm for simulation. We provide the
         # trading client so that the algorithm can place new orders
@@ -97,7 +97,7 @@ class TradeSimulationClient(object):
             ordering_client.state,
             self.algo,
         )
-        
+
         # The algorithm will yield a daily_results message (as
         # calculated by the performance tracker) at the end of each
         # day.  It will also yield a risk report at the end of the
