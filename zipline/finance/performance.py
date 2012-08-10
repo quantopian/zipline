@@ -197,13 +197,20 @@ class PerformanceTracker(object):
             # save the transactions for the daily periods
             keep_transactions = True
         )
-        
+
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
             self.todays_performance.positions[sid] = Position(sid)
 
     def update(self, event):
         if event.dt == "DONE":
+            event.perf_message = self.handle_simulation_end()
+            del event['TRANSACTION']
+            return event
+        elif self.exceeded_max_loss:
+            # in case of max_loss, signal to downstream
+            # generators that we are done.
+            event.dt = "DONE"
             event.perf_message = self.handle_simulation_end()
             del event['TRANSACTION']
             return event
@@ -251,7 +258,7 @@ class PerformanceTracker(object):
 
 
     def process_event(self, event):
-        
+
         message = None
 
         if self.exceeded_max_loss:
@@ -275,12 +282,12 @@ class PerformanceTracker(object):
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
-        
+
 
         return message
 
     def handle_market_close(self):
-        
+
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -338,7 +345,7 @@ class PerformanceTracker(object):
             self.market_close,
             keep_transactions = True
         )
-        
+
         return daily_update
 
     def handle_simulation_end(self):
