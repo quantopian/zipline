@@ -658,7 +658,7 @@ def tuple_to_date(date_tuple):
 # message with its type.                      
 DATASOURCE_TYPE = Enum(
     'AS_TRADED_EQUITY', 
-    'MERGE',
+    'MERGER',
     'SPLIT', 
     'DIVIDEND',
     'TRADE',

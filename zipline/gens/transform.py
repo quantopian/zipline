@@ -105,7 +105,8 @@ class StatefulTransform(object):
             # FORWARDER flag means we want to keep all original
             # values, plus append tnfm_id and tnfm_value. Used for
             # preserving the original event fields when our output
-            # will be fed into a merge.
+            # will be fed into a merge. Currently only Passthrough
+            # uses this flag.
             if self.forward_all:
                 out_message = message_copy
                 out_message.tnfm_id = self.namestring
