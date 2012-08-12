@@ -307,16 +307,15 @@ class RiskMetrics():
         for i in xrange(7):
             if(self.treasury_curves.has_key(self.end_date + i * one_day)):
                 curve = self.treasury_curves[self.end_date + i * one_day]
-                break
 
-        if curve:
-            self.treasury_curve = curve
-            rate = self.treasury_curve[self.treasury_duration]
-            #1month note data begins in 8/2001, so we can use 3month instead.
-            if rate == None and self.treasury_duration == '1month':
-                rate = self.treasury_curve['3month']
-            if rate != None:
-                return rate * (td.days + 1) / 365
+            if curve:
+                self.treasury_curve = curve
+                rate = self.treasury_curve[self.treasury_duration]
+                #1month note data begins in 8/2001, so we can use 3month instead.
+                if rate == None and self.treasury_duration == '1month':
+                    rate = self.treasury_curve['3month']
+                if rate != None:
+                    return rate * (td.days + 1) / 365
 
             message = "no rate for end date = {dt} and term = {term}. Check \
             that date doesn't exceed treasury history range."
