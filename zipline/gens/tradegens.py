@@ -127,15 +127,15 @@ class SpecificEquityTrades(object):
                     delta=self.delta
                 )
 
-        prices = mock_prices(self.count)
-        volumes = mock_volumes(self.count)
+            prices = mock_prices(self.count)
+            volumes = mock_volumes(self.count)
 
-        sids = cycle(self.sids)
-        # Combine the iterators into a single iterator of arguments
-        arg_gen = izip(sids, prices, volumes, dates)
+            sids = cycle(self.sids)
+            # Combine the iterators into a single iterator of arguments
+            arg_gen = izip(sids, prices, volumes, dates)
 
-        # Convert argument packages into events.
-        unfiltered = (create_trade(*args, source_id = self.get_hash())
+            # Convert argument packages into events.
+            unfiltered = (create_trade(*args, source_id = self.get_hash())
                             for args in arg_gen)
 
         # If we specified a sid filter, filter out elements that don't
