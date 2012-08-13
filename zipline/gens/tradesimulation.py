@@ -221,12 +221,17 @@ class AlgorithmSimulator(object):
 
                 if event.dt == "DONE":
                     if self.this_snapshot_dt:
-                        # stop iteration happened
-                        # mid-snapshot, so we have a universe
-                        # snapshot that is not yet processed
-                        # by the algorithm.
+                        # StopIteration happened mid-snapshot, so we
+                        # have a universe snapshot that is not yet
+                        # processed by the algorithm.
                         self.simulate_current_snapshot()
-                        break
+
+                    # Break out of the loop, causing us to raise
+                    # StopIteration This needs to be outside the check
+                    # on self.this_snapshot_dt or else getting a DONE
+                    # immediately after a snapshot finishes will cause
+                    # type errors.
+                    break
 
                 # This should only happen for the first event we run.
                 if self.simulation_dt == None:
