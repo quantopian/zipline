@@ -5,18 +5,22 @@ and zipline development
 import random
 import pytz
 
-from itertools import chain, cycle, ifilter, izip
+from itertools import chain, cycle, ifilter, izip, repeat
 from datetime import datetime, timedelta
 
 from zipline.gens.utils import hash_args, create_trade
 
 def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
              delta = timedelta(minutes = 1),
-             count = 100):
+             count = 100,
+             repeats = None):
     """
     Utility to generate a stream of dates.
     """
-    return (start + (i * delta) for i in xrange(count))
+    if repeats:
+        return (start + (i * delta)  for i in xrange(count) for n in xrange(repeats))
+    else:
+        return (start + (i * delta) for i in xrange(count))
 
 def mock_prices(count, rand = False):
     """
@@ -74,6 +78,7 @@ class SpecificEquityTrades(object):
         self.sids = kwargs.get('sids', [1, 2])
         self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
         self.delta = kwargs.get('delta', timedelta(minutes = 1))
+        self.concurrent = kwargs.get('concurrent', False)
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -103,20 +108,35 @@ class SpecificEquityTrades(object):
 
         # Set up iterators for each expected field.
         else:
-            dates = date_gen(count=self.count,
-                             start=self.start,
-                             delta=self.delta
-            )
-            prices = mock_prices(self.count)
-            volumes = mock_volumes(self.count)
-            sids = cycle(self.sids)
+            if self.concurrent:
+                # in this context the count is the number of
+                # trades per sid, not the total.
+                dates = date_gen(
+                        count=self.count,
+                        start=self.start,
+                        delta=self.delta,
+                        repeats=len(self.sids),
+                    )
 
-            # Combine the iterators into a single iterator of arguments
-            arg_gen = izip(sids, prices, volumes, dates)
 
-            # Convert argument packages into events.
-            unfiltered = (create_trade(*args, source_id = self.get_hash())
-                          for args in arg_gen)
+            else:
+
+                dates = date_gen(
+                    count=self.count,
+                    start=self.start,
+                    delta=self.delta
+                )
+
+        prices = mock_prices(self.count)
+        volumes = mock_volumes(self.count)
+
+        sids = cycle(self.sids)
+        # Combine the iterators into a single iterator of arguments
+        arg_gen = izip(sids, prices, volumes, dates)
+
+        # Convert argument packages into events.
+        unfiltered = (create_trade(*args, source_id = self.get_hash())
+                            for args in arg_gen)
 
         # If we specified a sid filter, filter out elements that don't
         # match the filter.

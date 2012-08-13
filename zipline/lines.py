@@ -269,7 +269,12 @@ class SimulatedTrading(object):
               of StatefulTransform objects.
         """
         assert isinstance(config, dict)
-        sid = config['sid']
+        sid_list = config.get('sid_list')
+        if not sid_list:
+            sid = config.get('sid')
+            sid_list = [sid]
+
+        concurrent_trades = config.get('concurrent_trades', False)
 
         #--------------------
         # Trading Environment
@@ -307,16 +312,16 @@ class SimulatedTrading(object):
         #-------------------
         # Trade Source
         #-------------------
-        sids = [sid]
-        #-------------------
         if config.has_key('trade_source'):
             trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
-                sids,
+                sid_list,
                 trade_count,
-                trading_environment
+                trading_environment,
+                concurrent=concurrent_trades
             )
+
 
         #-------------------
         # Transforms
