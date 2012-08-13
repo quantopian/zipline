@@ -174,7 +174,7 @@ def create_random_trade_source(sid, trade_count, trading_environment):
 
     return source
 
-def create_daily_trade_source(sids, trade_count, trading_environment):
+def create_daily_trade_source(sids, trade_count, trading_environment, concurrent=False):
 
     """
     creates trade_count trades for each sid in sids list.
@@ -189,11 +189,12 @@ def create_daily_trade_source(sids, trade_count, trading_environment):
         sids,
         trade_count,
         timedelta(days=1),
-        trading_environment
+        trading_environment,
+        concurrent=concurrent
     )
 
 
-def create_minutely_trade_source(sids, trade_count, trading_environment):
+def create_minutely_trade_source(sids, trade_count, trading_environment, concurrent=False):
 
     """
     creates trade_count trades for each sid in sids list.
@@ -208,10 +209,11 @@ def create_minutely_trade_source(sids, trade_count, trading_environment):
         sids,
         trade_count,
         timedelta(minutes=1),
-        trading_environment
+        trading_environment,
+        concurrent=concurrent
     )
 
-def create_trade_source(sids, trade_count, trade_time_increment, trading_environment):
+def create_trade_source(sids, trade_count, trade_time_increment, trading_environment, concurrent=False):
 
     args = tuple()
     kwargs = {
@@ -219,7 +221,8 @@ def create_trade_source(sids, trade_count, trade_time_increment, trading_environ
         'sids'   : sids,
         'start'  : trading_environment.first_open,
         'delta'  : trade_time_increment,
-        'filter' : sids
+        'filter' : sids,
+        'concurrent' : concurrent
     }
     source = SpecificEquityTrades(*args, **kwargs)
 
