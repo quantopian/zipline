@@ -167,6 +167,8 @@ class PerformanceTracker(object):
         self.last_dict               = None
         self.exceeded_max_loss       = False
 
+        self.compute_risk_metrics = True
+
         self.results_socket = None
         self.results_addr   = None
 
@@ -297,12 +299,13 @@ class PerformanceTracker(object):
         self.returns.append(todays_return_obj)
 
         #calculate risk metrics for cumulative performance
-        self.cumulative_risk_metrics = risk.RiskMetrics(
-            start_date=self.period_start,
-            end_date=self.market_close.replace(hour=0, minute=0, second=0),
-            returns=self.returns,
-            trading_environment=self.trading_environment
-        )
+        if self.compute_risk_metrics:
+            self.cumulative_risk_metrics = risk.RiskMetrics(
+                start_date=self.period_start,
+                end_date=self.market_close.replace(hour=0, minute=0, second=0),
+                returns=self.returns,
+                trading_environment=self.trading_environment
+            )
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

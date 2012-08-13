@@ -1,5 +1,16 @@
+import pandas as pd
+import numpy as np
+
 from zipline.gens.mavg import MovingAverage
 from datetime import datetime, timedelta
+from zipline.finance.trading import SIMULATION_STYLE
+from zipline.utils import factory
+from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
+from zipline.protocol import DATASOURCE_TYPE
+from zipline import ndict
+from zipline.utils.factory import create_trading_environment
+from zipline.gens.transform import StatefulTransform
+from zipline.lines import SimulatedTrading
 
 class BuySellAlgorithm(object):
     """Algorithm that buys and sells alternatingly. The amount for
@@ -53,12 +64,77 @@ class BuySellAlgorithm(object):
 # Algorithm base class, user algorithms inherit from this as they
 # don't want to have to copy and know about set_order and
 # set_portfolio
-class Algorithm(object):
+class TradingAlgorithm(object):
+    def _setup(self, compute_risk_metrics=False):
+        assert hasattr(self, 'source'), 'source not set.'
+        assert hasattr(self, 'sids'), "sids not set."
+
+        environment = create_trading_environment()
+
+        # Create transforms by wrapping them into StatefulTransforms
+        transforms = []
+        for namestring, trans_descr in self.registered_transforms.iteritems():
+            sf = StatefulTransform(
+                trans_descr['class'],
+                *trans_descr['args'],
+                **trans_descr['kwargs']
+            )
+            sf.namestring = namestring
+
+            transforms.append(sf)
+
+        results_socket_uri = None
+        context = None
+        sim_id = None
+        style = SIMULATION_STYLE.FIXED_SLIPPAGE
+
+        self.simulated_trading = SimulatedTrading(
+            [self.source],
+            transforms,
+            self,
+            environment,
+            style,
+            results_socket_uri,
+            context,
+            sim_id)
+
+        #self.simulated_trading.trading_client.performance_tracker.compute_risk_metrics = compute_risk_metrics
+
+
+    def _create_daily_stats(self, perfs):
+        # create daily stats dataframe
+        daily_perfs = []
+        cum_perfs = []
+        for perf in perfs:
+            if 'daily_perf' in perf:
+                daily_perfs.append(perf['daily_perf'])
+            else:
+                cum_perfs.append(perf)
+
+        daily_dts = [np.datetime64(perf['period_close'], utc=True) for perf in daily_perfs]
+        daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
+
+        return daily_stats
+
+    def run(self, data, compute_risk_metrics=False):
+        self.source = DataFrameSource(data, sids=self.sids)
+
+        self._setup(compute_risk_metrics=compute_risk_metrics)
+
+        # drain simulated_trading
+        perfs = [perf for perf in self.simulated_trading]
+
+        daily_stats = self._create_daily_stats(perfs)
+        return daily_stats
+
+    def set_portfolio(self, portfolio):
+        self.portfolio = portfolio
+
     def set_order(self, order_callable):
         self.order = order_callable
 
     def get_sid_filter(self):
-        return [self.sid]
+        return self.sids
 
     def set_logger(self, logger):
         self.logger = logger
@@ -73,33 +149,3 @@ class Algorithm(object):
         self.registered_transforms[tag] = {'class': transform_class,
                                            'args': args,
                                            'kwargs': kwargs}
-
-
-# Inherits from Algorithm base class
-class DMA(Algorithm):
-    """Dual Moving Average algorithm.
-    """
-
-    def __init__(self, sid, amount, short_window=20, long_window=40):
-        self.sid = sid
-        self.amount = amount
-        self.done = False
-        self.order = None
-        self.frame_count = 0
-        self.portfolio = None
-        self.orders = []
-        self.market_entered = False
-        self.prices = []
-        self.events = 0
-        self.add_transform(MovingAverage, 'short_mavg', ['price'], market_aware=False, delta=timedelta(days=short_window))
-        self.add_transform(MovingAverage, 'long_mavg', ['price'], market_aware=False, delta=timedelta(days=long_window))
-
-    def handle_data(self, data):
-        self.events += 1
-        # access transforms via their user-defined tag
-        if (data[self.sid].short_mavg > data[self.sid].long_mavg) and not self.market_entered:
-            self.order(self.sid, 100)
-            self.market_entered = True
-        elif (data[self.sid].short_mavg < data[self.sid].long_mavg) and self.market_entered:
-            self.order(self.sid, -100)
-            self.market_entered = False

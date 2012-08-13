@@ -16,7 +16,7 @@ def date_sorted_sources(*sources):
 
     for source in sources:
         assert iter(source), "Source %s not iterable" % source
-        assert source.__class__.__dict__.has_key('get_hash'), "No get_hash"
+        assert hasattr(source, 'get_hash'), "No get_hash"
 
     # Get name hashes to pass to date_sort.
     names = [source.get_hash() for source in sources]

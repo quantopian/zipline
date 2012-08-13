@@ -4,6 +4,11 @@ and zipline development
 """
 import random
 import pytz
+from copy import copy
+
+import pandas as pd
+from zipline import ndict
+from zipline.protocol import DATASOURCE_TYPE
 
 from itertools import chain, cycle, ifilter, izip
 from datetime import datetime, timedelta
@@ -130,6 +135,63 @@ class SpecificEquityTrades(object):
 
         # Return the filtered event stream.
         return filtered
+
+
+class DataFrameSource(SpecificEquityTrades):
+    """
+    Yields all events in event_list that match the given sid_filter.
+    If no event_list is specified, generates an internal stream of events
+    to filter.  Returns all events if filter is None.
+
+    Configuration options:
+
+    count  : integer representing number of trades
+    sids   : list of values representing simulated internal sids
+    start  : start date
+    delta  : timedelta between internal events
+    filter : filter to remove the sids
+    """
+
+    def __init__(self, data, **kwargs):
+        assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
+
+        self.data = data
+        # Unpack config dictionary with default values.
+        self.count = kwargs.get('count', 500)
+        self.sids = kwargs.get('sids', [1, 2])
+        self.start = kwargs.get('start', datetime(1957, 1, 1, 0, tzinfo = pytz.utc))
+        self.end = kwargs.get('end', datetime(2010, 1, 1, tzinfo=pytz.utc))
+        self.delta = kwargs.get('delta', timedelta(days = 1))
+
+        # Default to None for event_list and filter.
+        self.filter = kwargs.get('filter')
+
+        # Hash_value for downstream sorting.
+        self.arg_string = hash_args(data, **kwargs)
+
+        self.generator = self.create_fresh_generator()
+
+    def create_fresh_generator(self):
+        def _generator(df=self.data):
+            for dt, series in df.iterrows():
+                dt = dt.tz_localize('UTC')
+                if (self.start > dt) or (dt < self.end):
+                    continue
+                event = {'dt': dt,
+                         'source_id': self.get_hash(),
+                         'type': DATASOURCE_TYPE.TRADE
+                }
+
+                for sid, price in series.iterkv():
+                    event = copy(event)
+                    event['sid'] = 0
+                    event['price'] = price
+
+                    yield ndict(event)
+
+
+        # Return the filtered event stream.
+        return _generator()
 
 
 # !!!!!!! Deprecated for now !!!!!!!!!
