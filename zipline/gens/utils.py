@@ -67,12 +67,17 @@ def hash_args(*args, **kwargs):
     return hasher.hexdigest()
 
 def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
+
     row = ndict({
         'source_id' : source_id,
         'type'      : DATASOURCE_TYPE.TRADE,
         'sid'       : sid,
         'dt'        : datetime,
         'price'     : price,
+        'close'     : price,
+        'open'      : price,
+        'low'       : price * .95,
+        'high'      : price * 1.05,
         'volume'    : amount
     })
     return row
