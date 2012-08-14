@@ -136,7 +136,7 @@ class SpecificEquityTrades(object):
 
             # Convert argument packages into events.
             unfiltered = (create_trade(*args, source_id = self.get_hash())
-                            for args in arg_gen)
+                          for args in arg_gen)
 
         # If we specified a sid filter, filter out elements that don't
         # match the filter.
