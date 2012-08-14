@@ -222,7 +222,7 @@ class AlgorithmSimulator(object):
                 # update our universe, but don't start a snapshot or
                 # pass anything to handle_data.  Discard any
                 # perf messages.
-                if event.dt < self.algo_start:
+                if event.dt != 'DONE' and event.dt < self.algo_start:
                     self.update_universe(event)
                     if event.perf_message:
                         log.info("Discarding perf message because we're in warmup.")
