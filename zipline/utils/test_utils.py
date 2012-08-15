@@ -91,11 +91,13 @@ def create_receiver(socket_addr, ctx):
 
     return receiver
 
-def drain_receiver(receiver):
+def drain_receiver(receiver, count=None):
     output = []
     transaction_count  = 0
+    msg_counter = 0
     while True:
         msg = receiver.recv()
+        msg_counter += 1
         update = zp.BT_UPDATE_UNFRAME(msg)
         output.append(update)
         if update['prefix'] == 'PERF':
@@ -104,6 +106,9 @@ def drain_receiver(receiver):
         elif update['prefix'] == 'EXCEPTION':
             break
         elif update['prefix'] == 'DONE':
+            break
+
+        if count and msg_counter >= count:
             break
 
     receiver.close()
