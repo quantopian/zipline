@@ -1,4 +1,5 @@
 import pytz
+import numpy
 
 from datetime import timedelta, datetime
 from collections import defaultdict
@@ -270,27 +271,44 @@ class FinanceTransformsTestCase(TestCase):
         assert tnfm_volumes == expected_volumes
 
     def test_moving_stddev(self):
-
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0],
             [100, 100, 100, 100],
-            timedelta(days=1),
+            timedelta(hours = 1),
             self.trading_environment
         )
 
         stddev = StatefulTransform(
             MovingStandardDev,
             market_aware = False,
-            delta = timedelta(days = 2),
+            delta = timedelta(minutes = 150),
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         transformed = list(stddev.transform(self.source))
-        
-        vals = [message.tnfm_value for message in transformed]
 
-        assert vals == [0.0, 2.5, 1.0, 0.5]
+        vals = [message.tnfm_value for message in transformed]
+        
+        expected = [
+            None,
+            numpy.std([10.0, 15.0], ddof = 1),
+            numpy.std([10.0, 15.0, 13.0], ddof = 1),
+            numpy.std([15.0, 13.0, 12.0], ddof = 1),
+            ]
+
+        # numpy has odd rounding behavior, cf.
+        # http://docs.scipy.org/doc/numpy/reference/generated/numpy.std.html
+        for v1, v2 in zip(vals, expected):
+
+            if v1 == None:
+                assert v2 == None
+                continue
+            assert round(v1, 5) == round(v2, 5)
+
+
+
+        
         
         
 
