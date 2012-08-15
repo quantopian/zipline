@@ -88,13 +88,13 @@ class MovingStandardDevWindow(EventWindow):
         
     def get_stddev(self):
         
-        # Stddev is 0 if we have only one event.  len(self) is
-        # provided by EventWindow superclass.
-        if len(self) == 1:
-            return 0.0
+        # Sample standard deviation is undefined for a single event or
+        # no events.
+        if len(self) <= 1:
+            return None
 
         else:
-            average = self.sum /len(self.ticks)
-            variance = (self.sum_sqr - self.sum*average) / len(self)
-            stddev = sqrt(variance)
+            average = self.sum /len(self)
+            s_squared = (self.sum_sqr - self.sum*average) / (len(self) - 1) 
+            stddev = sqrt(s_squared)
         return stddev
