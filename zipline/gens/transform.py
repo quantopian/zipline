@@ -159,8 +159,9 @@ class EventWindow:
     from the window.  Subclass these methods along with init(*args,
     **kwargs) to calculate metrics over the window.
 
-    The market_aware flag is used to toggle whether the eventwindow
-    calculates
+    If the market_aware flag is True, the EventWindow drops old events
+    based on the number of elapsed trading days between newest and oldest.
+    Otherwise old events are dropped based on a raw timedelta.
 
     See zipline/gens/mavg.py and zipline/gens/vwap.py for example
     implementations of moving average and volume-weighted average
