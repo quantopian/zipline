@@ -89,6 +89,7 @@ class ZeroMQLogHandler(Handler):
     def __init__(self, socket=None, level=NOTSET, filter=None, bubble=False,
                  context=None, fds = LOG_FIELDS, extra_fds = LOG_EXTRA_FIELDS):
         Handler.__init__(self, level, filter, bubble)
+
         try:
             import zmq
         except ImportError:

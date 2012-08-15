@@ -437,8 +437,8 @@ def TRADE_FRAME(event):
         event.sid,
         event.price,
         event.open,
-        event.close, 
-        event.high, 
+        event.close,
+        event.high,
         event.low,
         event.volume,
         event.dt,
@@ -665,11 +665,11 @@ def tuple_to_date(date_tuple):
     return dt
 
 # Datasource type should completely determine the other fields of a
-# message with its type.                      
+# message with its type.
 DATASOURCE_TYPE = Enum(
-    'AS_TRADED_EQUITY', 
+    'AS_TRADED_EQUITY',
     'MERGER',
-    'SPLIT', 
+    'SPLIT',
     'DIVIDEND',
     'TRADE',
     'EMPTY',
@@ -736,6 +736,9 @@ def LOG_FRAME(payload):
     assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
 
+    # truncation will only work with strings and msgpack will
+    # preserve primitives.
+    payload['msg'] = str(payload['msg'])
 
     return BT_UPDATE_FRAME('LOG', payload)
 
