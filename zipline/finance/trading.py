@@ -184,6 +184,8 @@ class TradingEnvironment(object):
         self.first_open = self.calculate_first_open()
         self.last_close = self.calculate_last_close()
 
+        self.prior_day_open = self.calculate_prior_day_open()
+
     def calculate_first_open(self):
         """
         Finds the first trading day on or after self.period_start.
@@ -193,6 +195,24 @@ class TradingEnvironment(object):
 
         while not self.is_trading_day(first_open):
             first_open = first_open + one_day
+
+        first_open = self.set_NYSE_time(first_open, 9, 30)
+        return first_open
+
+    def calculate_prior_day_open(self):
+        """
+        Finds the first trading day open that falls at least a day
+        before period_start.
+        """
+        one_day    = datetime.timedelta(days=1)
+        first_open = self.period_start - one_day
+
+        if first_open <= self.trading_days[0]:
+            log.warn("Cannot calculate prior day open.")
+            return self.period_start
+
+        while not self.is_trading_day(first_open):
+            first_open = first_open - one_day
 
         first_open = self.set_NYSE_time(first_open, 9, 30)
         return first_open

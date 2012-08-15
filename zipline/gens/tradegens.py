@@ -101,10 +101,16 @@ class SpecificEquityTrades(object):
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.arg_string
 
+    def update_source_id(self, gen):
+        for event in gen:
+            event.source_id = self.get_hash()
+            yield event
+
     def create_fresh_generator(self):
 
         if self.event_list:
-            unfiltered = (event for event in self.event_list)
+            event_gen = (event for event in self.event_list)
+            unfiltered = self.update_source_id(event_gen)
 
         # Set up iterators for each expected field.
         else:

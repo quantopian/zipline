@@ -55,6 +55,9 @@ class TradeSimulationClient(object):
         self.style = sim_style
         self.algo_sim = None
 
+        self.warmup_start = self.environment.prior_day_open
+        self.algo_start = self.environment.first_open
+
     def get_hash(self):
         """
         There should only ever be one TSC in the system.
@@ -96,6 +99,7 @@ class TradeSimulationClient(object):
             with_portfolio,
             ordering_client.state,
             self.algo,
+            self.algo_start
         )
 
         # The algorithm will yield a daily_results message (as
@@ -107,7 +111,7 @@ class TradeSimulationClient(object):
 
 class AlgorithmSimulator(object):
 
-    def __init__(self, stream_in, order_book, algo):
+    def __init__(self, stream_in, order_book, algo, algo_start):
 
         self.stream_in = stream_in
 
@@ -121,6 +125,7 @@ class AlgorithmSimulator(object):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
+        self.algo_start = algo_start
 
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book.
@@ -212,6 +217,17 @@ class AlgorithmSimulator(object):
             self.algo.initialize()
 
             for event in self.stream_in:
+
+                # We're still in the warmup period.  Use the event to
+                # update our universe, but don't start a snapshot or
+                # pass anything to handle_data.  Discard any
+                # perf messages.
+                if event.dt != 'DONE' and event.dt < self.algo_start:
+                    self.update_universe(event)
+                    if event.perf_message:
+                        log.info("Discarding perf message because we're in warmup.")
+                    continue
+
                 # Yield any perf messages received to be relayed back to
                 # the browser.
 
