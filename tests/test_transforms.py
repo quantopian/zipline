@@ -15,6 +15,7 @@ from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.transform import StatefulTransform, EventWindow
 from zipline.gens.vwap import VWAP
 from zipline.gens.mavg import MovingAverage
+from zipline.gens.stddev import MovingStandardDev
 from zipline.gens.returns import Returns
 
 import zipline.utils.factory as factory
@@ -70,6 +71,7 @@ class EventWindowTestCase(TestCase):
             delta = timedelta(minutes = 5),
             days = None
         )
+
         now = utcnow()
 
         # 15 dates, increasing in 1 minute increments.
@@ -99,6 +101,7 @@ class EventWindowTestCase(TestCase):
             delta = None,
             days = 1
         )
+
         dates =  ([self.pre_open]*3)
         dates += ([self.mid_day]*3)
         dates += ([self.post_close]*3)
@@ -239,11 +242,12 @@ class FinanceTransformsTestCase(TestCase):
             fields = ['price', 'volume'],
             delta = timedelta(days = 2),
         )
+        
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message.tnfm_value.price for message in transformed]
         tnfm_volumes = [message.tnfm_value.volume for message in transformed]
-
+        
         # "Hand-calculated" values
         expected_prices = [
             ((10.0) / 1.0),
@@ -264,3 +268,29 @@ class FinanceTransformsTestCase(TestCase):
 
         assert tnfm_prices == expected_prices
         assert tnfm_volumes == expected_volumes
+
+    def test_moving_stddev(self):
+
+        trade_history = factory.create_trade_history(
+            133,
+            [10.0, 15.0, 13.0, 12.0],
+            [100, 100, 100, 100],
+            timedelta(days=1),
+            self.trading_environment
+        )
+
+        stddev = StatefulTransform(
+            MovingStandardDev,
+            market_aware = False,
+            delta = timedelta(days = 2),
+        )
+        self.source = SpecificEquityTrades(event_list=trade_history)
+
+        transformed = list(stddev.transform(self.source))
+        
+        vals = [message.tnfm_value for message in transformed]
+
+        assert vals == [0.0, 2.5, 1.0, 0.5]
+        
+        
+
