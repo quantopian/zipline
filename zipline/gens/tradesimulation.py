@@ -1,3 +1,5 @@
+import signal
+
 from logbook import Logger, Processor
 
 from datetime import datetime, timedelta
@@ -13,10 +15,19 @@ from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
 
+class AlgoTimeoutException(Exception):
+    def __init__(self):
+        pass
+
+def handle_init_timeout(signum, frame):
+    log.error("Algorithm timed out during initialize.")
+    raise 
+
+
 class TradeSimulationClient(object):
     """
-    Generator that takes the expected output of a merge, a user
-    algorithm, a trading environment, and a simulator style as
+    Generator-style class that takes the expected output of a merge, a
+    user algorithm, a trading environment, and a simulator style as
     arguments.  Pipes the merge stream through a TransactionSimulator
     and a PerformanceTracker, which keep track of the current state of
     our algorithm's simulated universe. Results are fed to the user's
@@ -24,7 +35,7 @@ class TradeSimulationClient(object):
     TransactionSimulator's order book.
 
     TransactionSimulator maintains a dictionary from sids to the
-    unfulfilled orders placed by the user's algorithm.  As trade
+    as-yet unfilled orders placed by the user's algorithm.  As trade
     events arrive, if the algorithm has open orders against the
     trade's sid, the simulator will fill orders up to 25% of market
     cap.  Applied transactions are added to a txn field on the event
@@ -40,9 +51,9 @@ class TradeSimulationClient(object):
     performance report, which is appended to event's perf_report
     field.
 
-    Fully processed events are run through a batcher generator, which
-    batches together events with the same dt field into a single event
-    to be fed to the algo. The portfolio object is repeatedly
+    Fully processed events are fed to AlgorithmSimulator, which
+    batches together events with the same dt field into a single
+    snapshot to be fed to the algo. The portfolio object is repeatedly
     overwritten so that only the most recent snapshot of the universe
     is sent to the algo.
     """
@@ -54,13 +65,14 @@ class TradeSimulationClient(object):
         self.environment = environment
         self.style = sim_style
         self.algo_sim = None
-
+        
         self.warmup_start = self.environment.prior_day_open
         self.algo_start = self.environment.first_open
 
     def get_hash(self):
         """
-        There should only ever be one TSC in the system.
+        There should only ever be one TSC in the system, so
+        we don't bother passing args into the hash.
         """
         return self.__class__.__name__ + hash_args()
 
@@ -92,9 +104,9 @@ class TradeSimulationClient(object):
         with_portfolio = perf_tracker.transform(with_filled_orders)
 
         # Pass the messages from perf along with the trading client's
-        # state into the algorithm for simulation. We provide the
-        # trading client so that the algorithm can place new orders
-        # into the client's order book.
+        # state into the algorithm for simulation. We provide a
+        # pointer to the ordering client's internal state so that the
+        # algorithm can place new orders into the client's order book.
         self.algo_sim = AlgorithmSimulator(
             with_portfolio,
             ordering_client.state,
@@ -273,7 +285,9 @@ class AlgorithmSimulator(object):
 
     def update_current_snapshot(self, event):
         """
-        Update our current snapshot of the universe. Call handle_data if
+        Update our current snapshot of the universe. If event.dt doesn't
+        match our current snapshot's dt, we simulate the current snapshot
+        before processing the event.
         """
         # The new event matches our snapshot dt. Just update the
         # universe and move on.
@@ -326,3 +340,4 @@ class AlgorithmSimulator(object):
         # Update our knowledge of this event's sid
         for field in event.keys():
             self.universe[event.sid][field] = event[field]
+
