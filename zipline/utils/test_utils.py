@@ -117,8 +117,8 @@ def drain_receiver(receiver, count=None):
     return output, transaction_count
 
 
-def assert_single_position(test, zipline):
-    output, transaction_count = drain_zipline(test, zipline)
+def assert_single_position(test, zipline, blocking=False):
+    output, transaction_count = drain_zipline(test, zipline, p_blocking=blocking)
 
     test.assertEqual(
         test.zipline_test_config['order_count'],
