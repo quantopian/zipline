@@ -1,11 +1,12 @@
-import signal
 
 from logbook import Logger, Processor
 
 from datetime import datetime, timedelta
 from numbers import Integral
+from itertools import groupby
 
 from zipline import ndict
+from zipline.utils import heartbeat
 
 from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
@@ -16,13 +17,7 @@ from zipline.gens.utils import hash_args
 log = Logger('Trade Simulation')
 
 class AlgoTimeoutException(Exception):
-    def __init__(self):
-        pass
-
-def handle_init_timeout(signum, frame):
-    log.error("Algorithm timed out during initialize.")
-    raise 
-
+    pass
 
 class TradeSimulationClient(object):
     """
@@ -118,12 +113,17 @@ class TradeSimulationClient(object):
         # calculated by the performance tracker) at the end of each
         # day.  It will also yield a risk report at the end of the
         # simulation.
+
         for message in self.algo_sim:
             yield message
 
 class AlgorithmSimulator(object):
 
-    def __init__(self, stream_in, order_book, algo, algo_start):
+    def __init__(self, 
+                 stream_in, 
+                 order_book, 
+                 algo, 
+                 algo_start):
 
         self.stream_in = stream_in
 
@@ -140,15 +140,15 @@ class AlgorithmSimulator(object):
         self.algo_start = algo_start
 
         # Monkey patch the user algorithm to place orders in the
-        # TransactionSimulator's order book.
+        # TransactionSimulator's order book and use our logger.
         self.algo.set_order(self.order)
-        self.algo.set_logger(Logger("AlgoLog"))
-
+        self.algolog = Logger("AlgoLog")
+        self.algo.set_logger(self.algolog)
 
         # ==============
         # Snapshot Setup
         # ==============
-
+        
         # The algorithm's universe as of our most recent event.
         self.universe = ndict()
 
@@ -159,7 +159,7 @@ class AlgorithmSimulator(object):
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
-        self.this_snapshot_dt = None
+        self.snapshot_dt = None
 
         # =============
         # Logging Setup
@@ -168,7 +168,7 @@ class AlgorithmSimulator(object):
         # Processor function for injecting the algo_dt into
         # user prints/logs.
         def inject_algo_dt(record):
-            record.extra['algo_dt'] = self.this_snapshot_dt
+            record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
         # This is a class, which is instantiated later
@@ -225,110 +225,65 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
 
         with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
+            
+            #Set an alarm to go off if initialize takes more than 5 seconds.
+            signal.signal(signal.SIGALRM, self.handle_init_timeout)
+            signal.alarm(5)
             # Call the user's initialize method.
             self.algo.initialize()
+            # Deactivate the alarm.
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-            for event in self.stream_in:
+            # Group together events with the same dt field. This depends on the
+            # events already being sorted.
+            for date, snapshot in groupby(self.stream_in, lambda e: e.dt):
+                
+                # Set the simulation date to be the first event we see.
+                # This should only occur once, at the start of the test.
+                if self.simulation_dt == None:
+                    self.simulation_dt = date
+
+                # Done message has the risk report, so we yield before exiting.
+                if date == 'DONE':
+                    for event in snapshot:
+                        yield event.perf_message
 
                 # We're still in the warmup period.  Use the event to
-                # update our universe, but don't start a snapshot or
-                # pass anything to handle_data.  Discard any
-                # perf messages.
-                if event.dt != 'DONE' and event.dt < self.algo_start:
-                    self.update_universe(event)
-                    if event.perf_message:
-                        log.info("Discarding perf message because we're in warmup.")
-                    continue
+                # update our universe, but don't yield any perf messages,
+                # and don't send a snapshot to handle_data.
+                elif date < self.algo_start:
+                    for event in snapshot:
+                        del event['perf_message']
+                        self.update_universe(event)
 
-                # Yield any perf messages received to be relayed back to
-                # the browser.
-
-                if event.perf_message:
-                    yield event.perf_message
-                    del event['perf_message']
-
-                if event.dt == "DONE":
-                    if self.this_snapshot_dt:
-                        # StopIteration happened mid-snapshot, so we
-                        # have a universe snapshot that is not yet
-                        # processed by the algorithm.
-                        self.simulate_current_snapshot()
-
-                    # Break out of the loop, causing us to raise
-                    # StopIteration This needs to be outside the check
-                    # on self.this_snapshot_dt or else getting a DONE
-                    # immediately after a snapshot finishes will cause
-                    # type errors.
-                    break
-
-                # This should only happen for the first event we run.
-                if self.simulation_dt == None:
-                    self.simulation_dt = event.dt
-
-                # ======================
-                # Time Compression Logic
-                # ======================
-
-                if self.this_snapshot_dt != None:
-                    self.update_current_snapshot(event)
-
-                # The algorithm has been missing events because it took
-                # too long processing.  Update the universe with data from
-                # this event, then check if enough time has passed that we
-                # can start a new snapshot.
+                # The algo has taken so long to process events that
+                # its simulated time is later than the event time.
+                # Update the universe and yield any perf messages
+                # encountered, but don't call handle_data.
+                elif date < self.simulation_dt:
+                    for event in snapshot:
+                        # Only yield if we have something interesting to say.
+                        if event.perf_message != None:
+                            yield event.perf_message
+                        # Delete the message before updating so we don't send it
+                        # to the user.
+                        del event['perf_message']
+                        self.update_universe(event)
+                        
+                # Regular snapshot.  Update the universe and send a snapshot
+                # to handle data.
                 else:
-                    self.update_universe(event)
-                    if event.dt >= self.simulation_dt:
-                        self.this_snapshot_dt = event.dt
-
-
-
-    def update_current_snapshot(self, event):
-        """
-        Update our current snapshot of the universe. If event.dt doesn't
-        match our current snapshot's dt, we simulate the current snapshot
-        before processing the event.
-        """
-        # The new event matches our snapshot dt. Just update the
-        # universe and move on.
-        if event.dt == self.this_snapshot_dt:
-            self.update_universe(event)
-
-        # The new event does not match our snapshot.
-        else:
-            self.simulate_current_snapshot()
-
-            # Once we've finished simulating the old snapshot,
-            # we can update the universe with the new event.
-            self.update_universe(event)
-
-            # The current event is later than the simulation time,
-            # which means the algorithm finished quickly enough to
-            # receive the new event.  Start a new snapshot with this
-            # event's dt.
-            if event.dt >= self.simulation_dt:
-                self.this_snapshot_dt = event.dt
-
-            # The algorithm spent enough time processing that it
-            # missed the new event. Wait to start a new snapshot until
-            # the events catch up to the algo's simulated dt.
-            else:
-                self.this_snapshot_dt = None
-
-    def simulate_current_snapshot(self):
-        """
-        Run the user's algo against our current snapshot and update the algo's
-        simulated time.
-        """
-        start_tic = datetime.now()
-        self.algo.handle_data(self.universe)
-        stop_tic = datetime.now()
-
-        # How long did you take?
-        delta = stop_tic - start_tic
-
-        # Update the simulation time.
-        self.simulation_dt = self.this_snapshot_dt + delta
+                    for event in snapshot:
+                        # Only yield if we have something interesting to say.
+                        if event.perf_message != None:
+                            yield event.perf_message
+                        del event['perf_message']
+                        
+                        self.update_universe(event)
+                    
+                    # Send the current state of the universe to the user's algo.
+                    self.simulate_snapshot(date)
 
     def update_universe(self, event):
         """
@@ -341,3 +296,34 @@ class AlgorithmSimulator(object):
         for field in event.keys():
             self.universe[event.sid][field] = event[field]
 
+    # Ping every 10 seconds. Timeout after 9 pings.
+    @heartbeat(10, 9, self.handle_simulation_ping) 
+    def simulate_snapshot(self, date):
+        """
+        Run the user's algo against our current snapshot and update
+        the algo's simulated time.
+        """
+        start_tic = datetime.now()
+        
+        self.algo.handle_data(self.universe)
+        stop_tic = datetime.now()
+        
+        # How long did you take?
+        delta = stop_tic - start_tic
+
+        # Update the simulation time.
+        self.simulation_dt = date + delta
+
+    def handle_init_timeout(self, signum, frame):
+        """
+        Handler method for initialize timeout.
+        """
+        log.error("Algorithm timed out during initialize.")
+        raise AlgoTimeoutException("More than 5 seconds in initialize.")
+
+    def handle_simulation_ping(self, frame):
+        """
+        Frame handler for decorated simulate_snapshot method.
+        """
+
+    
