@@ -61,7 +61,7 @@ class timeout(object):
         # Deactivate the alarm on exit. This will re-raise
         # any exceptions raised inside the with block.
         signal.signal(signal.SIGALRM, self.handler)
-        signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
+        signal.setitimer(signal.ITIMER_REAL, 0, 0)
     
 class heartbeat(object):
     """
