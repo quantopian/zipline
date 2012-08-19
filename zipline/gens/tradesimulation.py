@@ -1,4 +1,4 @@
-
+import signal
 from logbook import Logger, Processor
 
 from datetime import datetime, timedelta
@@ -6,7 +6,7 @@ from numbers import Integral
 from itertools import groupby
 
 from zipline import ndict
-from zipline.utils import heartbeat
+from zipline.utils.timeout import heartbeat
 
 from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
@@ -225,7 +225,7 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
 
         with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
-            
+
             #Set an alarm to go off if initialize takes more than 5 seconds.
             signal.signal(signal.SIGALRM, self.handle_init_timeout)
             signal.alarm(5)
@@ -297,7 +297,7 @@ class AlgorithmSimulator(object):
             self.universe[event.sid][field] = event[field]
 
     # Ping every 10 seconds. Timeout after 9 pings.
-    @heartbeat(10, 9, self.handle_simulation_ping) 
+    # @heartbeat(10, 9, self.handle_simulation_ping) 
     def simulate_snapshot(self, date):
         """
         Run the user's algo against our current snapshot and update
@@ -325,5 +325,5 @@ class AlgorithmSimulator(object):
         """
         Frame handler for decorated simulate_snapshot method.
         """
-
+        print 'foo'
     
