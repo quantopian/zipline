@@ -303,6 +303,10 @@ class AlgorithmSimulator(object):
         Run the user's algo against our current snapshot and update
         the algo's simulated time.
         """
+        # Needs to be set so that we inject the proper date into algo
+        # log/print lines.
+        self.snapshot_dt = date
+
         start_tic = datetime.now()
         
         self.algo.handle_data(self.universe)
