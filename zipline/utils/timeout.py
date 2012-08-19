@@ -1,84 +1,109 @@
 import signal
 
+from functools import wraps
+
 from pprint import pprint as pp
 from numbers import Number
 from logbook import Logger
 
 class Timeout(Exception):
     
-    def __init__(self, frame):
+    def __init__(self, frame, message=''):
         self.frame = frame
+        self.message = message
         
-
 class timeout(object):
     """
-    Decorator to make a function raise TimeoutException if it spends
-    more than a specified number of seconds executing.
+    Utility to make a function raise TimeoutException if it spends
+    more than a specified number of seconds executing. Can be used
+    as a decorator to apply a static timeout to a function, or as 
+    a context manager to dynamically add a timeout to a code block.
     """
 
-    def __init__(self, seconds):
+    def __init__(self, seconds, message=''):
         self.seconds = seconds
+        self.message = message
         assert isinstance(seconds, Number), "Failed to specify a timeout."
         assert seconds > 0, "Timeout must be greater than 0"
 
     def handler(self, signum, frame):
-        raise Timeout(frame)
+        raise Timeout(frame, self.message)
 
     def __call__(self, fn):
-
-        def wrapped(*args, **kwargs):
+        
+        @wraps(fn)
+        def call_fn_with_timeout(*args, **kwargs):
             # Set the alarm.
             signal.signal(signal.SIGALRM, self.handler)
-            signal.alarm(self.seconds)
+            signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
             try:
                 outval = fn(*args, **kwargs)
 
             # Deactivate the alarm once we're done so that the
             # decorator doesn't have unexpected side-effects later.
-            # Note that this will still raise TimeoutException if the
+            # Note that this will still raise Timeout if the
             # call to fn takes too long.
             finally:
-                signal.alarm(0)
+                signal.setitimer(signal.ITIMER_REAL, 0, 0)
                 signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
             # Return the value of fn if it finished before the alarm.  This
             # won't execute if the Timeout was raised.
             return outval
-        return wrapped
+        return call_fn_with_timeout
+
+    def __enter__(self):
+        # Set the alarm on entrance.
+        signal.signal(signal.SIGALRM, self.handler)
+        signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
+            
+    def __exit__(self, type, value, traceback):
+        # Deactivate the alarm on exit. This will re-raise
+        # any exceptions raised inside the with block.
+        signal.signal(signal.SIGALRM, self.handler)
+        signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
     
 class heartbeat(object):
     """
-    Decorator to perform pseudo-heartbeat checks on a single-threaded
+    Utility to perform pseudo-heartbeat checks on a single-threaded
     function. Calls frame_handler on the current stack frame of the 
-    decorated function every ``interval`` seconds.  After ``max_interval``
-    intervals, raises MaxHeartBeats
+    wrapped function every ``interval`` seconds.  After ``max_interval``
+    intervals, raises Timeout.  Can be used either as a decorator or
+    a context manager.
     """
+    def __init__(self, 
+                 interval, 
+                 max_intervals, 
+                 frame_handler=None, 
+                 timeout_message=''):
 
-    def __init__(self, interval, max_intervals, frame_handler=None):
-        self.count = 0
         self.interval = interval
         self.max_intervals = max_intervals
         self.frame_handler = frame_handler
+        self.timeout_message = timeout_message
+        self.count = 0
         
     def handler(self, signum, frame):
         self.count += 1
         if self.frame_handler:
-            self.frame_handler(frame)
+            self.frame_handler(self.count, frame)
             
-        if self.count > self.max_intervals:
-            raise Timeout(frame)
+        if self.count >= self.max_intervals:
+            raise Timeout(frame, self.timeout_message)
 
     def __call__(self, fn):
-        def wrapped(*args, **kwargs):
-            # Set a timer to call our handler every N seconds. 
+
+        @wraps(fn)
+        def call_fn_with_heartbeat(*args, **kwargs):
+            # Set a timer to call our handler every ``interval`` seconds. 
             signal.signal(signal.SIGALRM, self.handler)
             signal.setitimer(signal.ITIMER_REAL, self.interval, self.interval)
             try:
                 outval = fn(*args, **kwargs)
 
-            # Deactivate the timer once we're done so that the
-            # decorator doesn't have unexpected side-effects later.
             finally:
+                # Deactivate the timer once we're done so that the
+                # decorator doesn't have unexpected side-effects later.
                 signal.setitimer(signal.ITIMER_REAL, 0, 0)
                 signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
@@ -86,17 +111,15 @@ class heartbeat(object):
             # an exception.  This won't execute if the Timeout or any
             # other exception was raised by self.handle.
             return outval
-        return wrapped
-   
-if __name__ == "__main__":
-    import time
+        return call_fn_with_heartbeat
     
-    def pframe_g(frame):
-        print frame.f_globals
-
-    @heartbeat(1, 10, pframe_g)
-    def foo():
-        for i in xrange(10000):
-            time.sleep(.1)
-            print i
-    foo()
+    def __enter__(self):
+        # Set a timer to call our handler every N seconds. 
+        signal.signal(signal.SIGALRM, self.handler)
+        signal.setitimer(signal.ITIMER_REAL, self.interval, self.interval)
+        
+    def __exit__(self, type, value, traceback):
+        # Turn off the timer on exit.  This will re-raise any exception raised
+        # during execution of the with-block
+        signal.setitimer(signal.ITIMER_REAL, 0, 0)
+        signal.signal(signal.SIGALRM, signal.SIG_DFL)
