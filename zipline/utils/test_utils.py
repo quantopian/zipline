@@ -119,6 +119,7 @@ def drain_receiver(receiver, count=None):
 
 def assert_single_position(test, zipline, blocking=False):
     output, transaction_count = drain_zipline(test, zipline, p_blocking=blocking)
+    test.assertEqual(output[-1]['prefix'], 'DONE')
 
     test.assertEqual(
         test.zipline_test_config['order_count'],
