@@ -106,6 +106,7 @@ class heartbeat(object):
                 # decorator doesn't have unexpected side-effects later.
                 signal.setitimer(signal.ITIMER_REAL, 0, 0)
                 signal.signal(signal.SIGALRM, signal.SIG_DFL)
+                self.count = 0
 
             # Return the value of fn if it finished without tripping
             # an exception.  This won't execute if the Timeout or any
@@ -115,11 +116,13 @@ class heartbeat(object):
     
     def __enter__(self):
         # Set a timer to call our handler every N seconds. 
+        self.count = 0
         signal.signal(signal.SIGALRM, self.handler)
         signal.setitimer(signal.ITIMER_REAL, self.interval, self.interval)
         
     def __exit__(self, type, value, traceback):
         # Turn off the timer on exit.  This will re-raise any exception raised
         # during execution of the with-block
+        self.count = 0
         signal.setitimer(signal.ITIMER_REAL, 0, 0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)

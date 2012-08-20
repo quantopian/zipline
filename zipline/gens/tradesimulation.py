@@ -61,7 +61,6 @@ class TradeSimulationClient(object):
         self.sids = algo.get_sid_filter()
         self.environment = environment
         self.style = sim_style
-        self.algo_sim = None
         
         self.warmup_start = self.environment.prior_day_open
         self.algo_start = self.environment.first_open
@@ -150,8 +149,10 @@ class AlgorithmSimulator(object):
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
             t = beat_count * HEARTBEAT_INTERVAL
-            warning = "handle_data has been processing for %i seconds" %t
+            warning = "handle_data has been processing for %i seconds" %t            
+            # Log the warning to our logs as well as the user's log output.
             self.algolog.warn(warning)
+            log.warn(warning)
 
         # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
         # seconds, raising an exception after MAX_HEARTBEATS
