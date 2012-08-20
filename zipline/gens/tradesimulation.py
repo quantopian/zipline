@@ -18,8 +18,8 @@ log = Logger('Trade Simulation')
 
 # TODO: make these arguments rather than global constants
 INIT_TIMEOUT = 5
-HEARTBEAT_INTERVAL = 10 # seconds
-MAX_HEARTBEAT_INTERVALS = 9 #count
+HEARTBEAT_INTERVAL = 1 # seconds
+MAX_HEARTBEAT_INTERVALS = 15 #count
 
 class TradeSimulationClient(object):
     """
