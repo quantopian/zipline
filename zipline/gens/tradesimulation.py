@@ -18,8 +18,8 @@ log = Logger('Trade Simulation')
 
 # TODO: make these arguments rather than global constants
 INIT_TIMEOUT = 5
-HEARTBEAT_INTERVAL = 1 # seconds
-MAX_HEARTBEAT_INTERVALS = 15
+HEARTBEAT_INTERVAL = 10 # seconds
+MAX_HEARTBEAT_INTERVALS = 9 #count
 
 class TradeSimulationClient(object):
     """
@@ -62,7 +62,7 @@ class TradeSimulationClient(object):
         self.environment = environment
         self.style = sim_style
         self.algo_sim = None
-        
+
         self.warmup_start = self.environment.prior_day_open
         self.algo_start = self.environment.first_open
 
@@ -121,10 +121,10 @@ class TradeSimulationClient(object):
 
 class AlgorithmSimulator(object):
 
-    def __init__(self, 
-                 stream_in, 
-                 order_book, 
-                 algo, 
+    def __init__(self,
+                 stream_in,
+                 order_book,
+                 algo,
                  algo_start):
 
         self.stream_in = stream_in
@@ -156,8 +156,8 @@ class AlgorithmSimulator(object):
         # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
         # seconds, raising an exception after MAX_HEARTBEATS
         self.heartbeat_monitor = heartbeat(
-            HEARTBEAT_INTERVAL, 
-            MAX_HEARTBEAT_INTERVALS, 
+            HEARTBEAT_INTERVAL,
+            MAX_HEARTBEAT_INTERVALS,
             frame_handler=log_heartbeats,
             timeout_message="Too much time spent in handle_data call"
         )
@@ -165,7 +165,7 @@ class AlgorithmSimulator(object):
         # ==============
         # Snapshot Setup
         # ==============
-        
+
         # The algorithm's universe as of our most recent event.
         self.universe = ndict()
 
@@ -249,12 +249,12 @@ class AlgorithmSimulator(object):
             # Group together events with the same dt field. This depends on the
             # events already being sorted.
             for date, snapshot in groupby(self.stream_in, lambda e: e.dt):
-                
+
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
                 if self.simulation_dt == None:
                     self.simulation_dt = date
-                    
+
                 # Done message has the risk report, so we yield before exiting.
                 if date == 'DONE':
                     for event in snapshot:
@@ -281,7 +281,7 @@ class AlgorithmSimulator(object):
                         # to the user.
                         del event['perf_message']
                         self.update_universe(event)
-                        
+
                 # Regular snapshot.  Update the universe and send a snapshot
                 # to handle data.
                 else:
@@ -290,9 +290,9 @@ class AlgorithmSimulator(object):
                         if event.perf_message != None:
                             yield event.perf_message
                         del event['perf_message']
-                        
+
                         self.update_universe(event)
-                    
+
                     # Send the current state of the universe to the user's algo.
                     self.simulate_snapshot(date)
 
@@ -320,7 +320,7 @@ class AlgorithmSimulator(object):
         with self.heartbeat_monitor:
             self.algo.handle_data(self.universe)
         stop_tic = datetime.now()
-        
+
         # How long did you take?
         delta = stop_tic - start_tic
 
