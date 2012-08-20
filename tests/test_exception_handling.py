@@ -3,7 +3,8 @@ import zmq
 from unittest2 import TestCase
 from collections import defaultdict
 
-from zipline.test_algorithms import ExceptionAlgorithm, DivByZeroAlgorithm
+from zipline.test_algorithms import ExceptionAlgorithm, DivByZeroAlgorithm, \
+    InitializeTimeoutAlgorithm, TooMuchProcessingAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
 from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
@@ -143,3 +144,35 @@ class ExceptionTestCase(TestCase):
         # make sure our path shortening is working
         self.assertEqual(payload['stack'][0]['filename'], '/zipline/lines.py')
         self.assertEqual(payload['stack'][-1]['filename'], '/zipline/test_algorithms.py')
+
+    def test_initialize_timeout(self):
+        
+        self.zipline_test_config['algorithm'] = \
+            InitializeTimeoutAlgorithm(
+                self.zipline_test_config['sid']
+            )
+        
+        zipline = SimulatedTrading.create_test_zipline(
+            **self.zipline_test_config
+        )
+        output, _ = drain_zipline(self, zipline)
+        self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
+        payload = output[-1]['payload']
+        self.assertEqual(payload['name'],'Timeout')
+        self.assertEqual(payload['message'], 'Call to initialize timed out')
+
+#     def test_heartbeat(self):
+        
+#         self.zipline_test_config['algorithm'] = \
+#             TooMuchProcessingAlgorithm(
+#                 self.zipline_test_config['sid']
+#             )
+#         zipline = SimulatedTrading.create_test_zipline(
+#             **self.zipline_test_config
+#         )
+#         output, _ = drain_zipline(self, zipline)
+#         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
+#         payload = output[-1]['payload']
+#         self.assertEqual(payload['name'],'Timeout')
+#         self.assertEqual(payload['message'], 'Too much time spent in handle_data call')
+        
