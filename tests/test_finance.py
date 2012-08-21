@@ -20,7 +20,6 @@ from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.test_utils import \
-        drain_zipline, \
         setup_logger, \
         teardown_logger,\
         assert_single_position
