@@ -13,25 +13,23 @@ class delayed_signals(object):
     """
 
     def handler(self, signum, frame=None):
-        self.got.append([self.trapped.index(signum), frame])
+        self.got.append({'signum': signum, 'frame': frame})
 
     def __init__(self, signals):
-        self.trapped = signals
-        self.orig_handlers = []
+        self.signals = signals
+        self.handlers = {}
         self.got = []
 
     def __enter__(self):
-        for sig in self.trapped:
-            self.orig_handlers.append(signal(sig, self.handler))
+        for signum in self.signals:
+            # signal() returns the old signal handler
+            self.handlers[signum] = signal(signum, self.handler)
 
     def __exit__(self, time, value, traceback):
-        for i in xrange(len(self.trapped)):
-            signal(self.trapped[i], self.orig_handlers[i])
-        for intercepted in self.got:
-            i = intercepted[0]
-            signum = self.trapped[i]
-            frame = intercepted[1]
-            self.orig_handlers[i](signum, frame)
+        for signum, handler in self.handlers.items():
+            signal(signum, handler)
+        for signum, frame in ((i['signum'], i['frame']) for i in self.got):
+            self.handlers[signum](signum, frame)
 
     def __call__(self, fn):
         @wraps(fn)
