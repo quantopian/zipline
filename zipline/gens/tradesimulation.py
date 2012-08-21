@@ -259,6 +259,7 @@ class AlgorithmSimulator(object):
                 if date == 'DONE':
                     for event in snapshot:
                         yield event.perf_message
+                    break
 
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
