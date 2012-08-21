@@ -11,6 +11,8 @@ class Timeout(Exception):
     def __init__(self, frame, message=''):
         self.frame = frame
         self.message = message
+
+# TODO: fix code replication here.
         
 class timeout(object):
     """
@@ -33,7 +35,7 @@ class timeout(object):
         
         @wraps(fn)
         def call_fn_with_timeout(*args, **kwargs):
-            # Set the alarm.
+            # Set the alarm, saving any handler that existed previously.
             signal.signal(signal.SIGALRM, self.handler)
             signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
             try:
@@ -45,7 +47,7 @@ class timeout(object):
             # call to fn takes too long.
             finally:
                 signal.setitimer(signal.ITIMER_REAL, 0, 0)
-                signal.signal(signal.SIGALRM, signal.SIG_DFL)
+                signal.signal(signal.SIGALRM, self.prior_handler)
 
             # Return the value of fn if it finished before the alarm.  This
             # won't execute if the Timeout was raised.

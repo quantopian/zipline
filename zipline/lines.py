@@ -121,7 +121,6 @@ class SimulatedTrading(object):
         # exit status flag
         self.success = False
 
-
     def simulate(self, blocking=True, send_sighup=False):
 
         # for non-blocking,
@@ -356,3 +355,26 @@ class SimulatedTrading(object):
         #-------------------
 
         return sim
+
+class SimulatedTradingLite(object):
+    """
+    SimulatedTrading without multiprocess and without zmq.
+    Useful for profiling the core logic and for rapid testing
+    of new features.
+    """
+    def __init__(self,
+            sources,
+            transforms,
+            algorithm,
+            environment,
+            style):
+
+        self.date_sorted = date_sorted_sources(*sources)
+        self.transforms = transforms
+        # Formerly merged_transforms.
+        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
+        self.trading_client = tsc(algorithm, environment, style)
+        self.gen = self.trading_client.simulate(self.with_tnfms)
+        
+    def get_results(self):
+        return self.gen
