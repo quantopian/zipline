@@ -19,7 +19,7 @@ from zipline.gens.utils import assert_sort_unframe_protocol, \
 log = logbook.Logger('Transform')
 
 class Passthrough(object):
-    FORWARDER = True
+    PASSTHROUGH = True
     """
     Trivial class for forwarding events.
     """
@@ -28,23 +28,6 @@ class Passthrough(object):
 
     def update(self, event):
         pass
-
-# Deprecated
-def functional_transform(stream_in, func, *args, **kwargs):
-    """
-    Generic transform generator that takes each message from an in-stream
-    and yields the output of a function on that message. Not sure how
-    useful this will be in reality, but good for testing.
-    """
-    assert isinstance(func, types.FunctionType), \
-        "Functional"
-    namestring = func.__name__ + hash_args(*args, **kwargs)
-
-    for message in stream_in:
-        assert_sort_unframe_protocol(message)
-        out_value = func(message, *args, **kwargs)
-        assert_transform_protocol(out_value)
-        yield(namestring, out_value)
 
 class StatefulTransform(object):
     """
@@ -61,18 +44,15 @@ class StatefulTransform(object):
         assert tnfm_class.__dict__.has_key('update'), \
         "Stateful transform requires the class to have an update method"
 
-        self.forward_all = tnfm_class.__dict__.get('FORWARDER', False)
-        self.update_in_place = tnfm_class.__dict__.get('UPDATER', False)
-        self.append_value = tnfm_class.__dict__.get('APPENDER', False)
-
-        # You only one special behavior mode can be set.
-        assert sum(map(int, [self.forward_all,
-                             self.update_in_place,
-                             self.append_value])) <= 1
-
+        # Flag set inside the Passthrough transform class to signify special
+        # behavior if we are being fed to merged_transforms.
+        self.passthrough = tnfm_class.__dict__.get('PASSTHROUGH', False)
+        
+        self.sequential = True
+        self.merged = False
+        
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
-        self._copying = False
 
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
@@ -80,9 +60,6 @@ class StatefulTransform(object):
 
     def get_hash(self):
         return self.namestring
-
-    def set_copyting(self):
-        self._copying = True
 
     def transform(self, stream_in):
         return self._gen(stream_in)
@@ -101,58 +78,47 @@ class StatefulTransform(object):
 
             assert_sort_unframe_protocol(message)
             
-            # Copying flag is used by merged_transforms to ensure
+            # This flag is set by by merged_transforms to ensure
             # isolation of messages.
-            if self._copying:
+            if self.merged:
                 message = deepcopy(message)
-                
-            # Same shared pointer issue here as above.
+            
             tnfm_value = self.state.update(message)
 
-            # FORWARDER flag means we want to keep all original
+            # PASSTHROUGH flag means we want to keep all original
             # values, plus append tnfm_id and tnfm_value. Used for
             # preserving the original event fields when our output
             # will be fed into a merge. Currently only Passthrough
             # uses this flag.
-            if self.forward_all:
+            if self.passthrough and self.merged:
                 out_message = message
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 yield out_message
 
-            # UPDATER flag should be used for transforms that
-            # side-effectfully modify the event they are passed.
-            # Updated messages are passed along exactly as they are
-            # returned to use by our state class. Useful for chaining
-            # specific transforms that won't be fed to a merge.  (See
-            # the implementation of TradeSimulationClient for example
-            # usage of this flag with PerformanceTracker and
-            # TransactionSimulator.
-            elif self.update_in_place:
-                yield tnfm_value
-
-            # APPENDER flag should be used to add a single new
-            # key-value pair to the event. The new key is this
-            # transform's namestring, and it's value is the value
-            # returned by state.update(event). This is almost
-            # identical to the behavior of FORWARDER, except we
-            # compress the two calculated values (tnfm_id, and
-            # tnfm_value) into a single field. This mode is used by
-            # the sequential_transforms composite.
-            elif self.append_value:
-                out_message = message
-                out_message[self.namestring] = tnfm_value
-                yield out_message
-
-            # If no flags are set, we create a new message containing
-            # just the tnfm_id, the event's datetime, and the
-            # calculated tnfm_value. This is the default behavior for
-            # a transform being fed into a merge.
-            else:
+            # If the merged flag is set, we create a new message
+            # containing just the tnfm_id, the event's datetime, and
+            # the calculated tnfm_value. This is the default behavior
+            # for a non-passthrough transform being fed into a merge.
+            elif self.merged:
                 out_message = ndict()
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 out_message.dt = message.dt
+                yield out_message
+            
+            # Sequential flag should be used to add a single new
+            # key-value pair to the event. The new key is this
+            # transform's namestring, and its value is the value
+            # returned by state.update(event). This is almost
+            # identical to the behavior of FORWARDER, except we
+            # compress the two calculated values (tnfm_id, and
+            # tnfm_value) into a single field. This mode is used by
+            # the sequential_transforms composite and is the default
+            # if no behavior is specified by the internal state class.
+            elif self.sequential:
+                out_message = message
+                out_message[self.namestring] = tnfm_value
                 yield out_message
 
         log.info('Finished StatefulTransform [%s]' % self.get_hash())

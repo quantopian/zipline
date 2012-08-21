@@ -9,7 +9,6 @@ from zipline.protocol import SIMULATION_STYLE
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
-    UPDATER = True
 
     def __init__(self, sid_filter, style=SIMULATION_STYLE.PARTIAL_VOLUME):
         self.open_orders                = {}
@@ -34,6 +33,13 @@ class TransactionSimulator(object):
         # initialized filled field.
         order.filled = 0
         self.open_orders[order.sid].append(order)
+
+    def transform(self, stream_in):
+        """
+        Main generator work loop.
+        """
+        for event in stream_in:
+            yield self.update(event)
 
     def update(self, event):
         event.TRANSACTION = None
