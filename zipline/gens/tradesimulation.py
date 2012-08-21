@@ -115,7 +115,7 @@ class TradeSimulationClient(object):
         # calculated by the performance tracker) at the end of each
         # day.  It will also yield a risk report at the end of the
         # simulation.
-
+        
         for message in self.algo_sim:
             yield message
 
@@ -259,7 +259,7 @@ class AlgorithmSimulator(object):
                 if date == 'DONE':
                     for event in snapshot:
                         yield event.perf_message
-
+                    break
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
@@ -292,7 +292,7 @@ class AlgorithmSimulator(object):
                         del event['perf_message']
 
                         self.update_universe(event)
-
+                        
                     # Send the current state of the universe to the user's algo.
                     self.simulate_snapshot(date)
 
@@ -315,7 +315,7 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
-
+        
         start_tic = datetime.now()
         with self.heartbeat_monitor:
             self.algo.handle_data(self.universe)
