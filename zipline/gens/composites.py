@@ -43,7 +43,7 @@ def merged_transforms(sorted_stream, *transforms):
     """
     for transform in transforms:
         assert isinstance(transform, StatefulTransform)
-
+        transform.set_copying()
     # Generate expected hashes for each transform
     namestrings = [tnfm.get_hash() for tnfm in transforms]
 
