@@ -260,6 +260,7 @@ class AlgorithmSimulator(object):
                     for event in snapshot:
                         yield event.perf_message
                     break
+
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
