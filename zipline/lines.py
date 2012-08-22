@@ -171,6 +171,8 @@ class SimulatedTrading(object):
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
+        if self.results_socket:
+            self.results_socket.close()
         if self.proc and self.send_sighup:
             ppid = os.getppid()
             if self.success:

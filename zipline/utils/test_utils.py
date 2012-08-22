@@ -15,6 +15,7 @@ def setup_logger(test, path='/var/log/zipline/zipline.log'):
 
 def teardown_logger(test):
     test.log_handler.pop_application()
+    test.log_handler.close()
 
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
@@ -119,6 +120,7 @@ def drain_receiver(receiver, count=None):
 
 def assert_single_position(test, zipline, blocking=False):
     output, transaction_count = drain_zipline(test, zipline, p_blocking=blocking)
+    test.assertEqual(output[-1]['prefix'], 'DONE')
 
     test.assertEqual(
         test.zipline_test_config['order_count'],
