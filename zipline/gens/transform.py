@@ -12,7 +12,7 @@ from numbers import Number
 from abc import ABCMeta, abstractmethod
 
 from zipline import ndict
-from zipline.utils.tradingcalendar import trading_days_between
+from zipline.utils.tradingcalendar import non_trading_days
 from zipline.gens.utils import assert_sort_unframe_protocol, \
     assert_transform_protocol, hash_args
 
@@ -48,8 +48,11 @@ class StatefulTransform(object):
         # behavior if we are being fed to merged_transforms.
         self.passthrough = tnfm_class.__dict__.get('PASSTHROUGH', False)
         
-        self.sequential = True
-        self.merged = False
+        # Flags specifying how to append the calculated value.
+        # Merged is the default for ease of testing, but we use sequential
+        # in production.
+        self.sequential = False
+        self.merged = True
         
         # Create an instance of our transform class.
         self.state = tnfm_class(*args, **kwargs)
@@ -120,8 +123,9 @@ class StatefulTransform(object):
                 out_message = message
                 out_message[self.namestring] = tnfm_value
                 yield out_message
-
+                
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
+
 class EventWindow:
     """
     Abstract base class for transform classes that calculate iterative
@@ -153,8 +157,13 @@ class EventWindow:
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
-            assert self.days and not self.delta,\
+            assert self.days and self.delta == None,\
                 "Market-aware mode only works with full-day windows."
+            self.all_holidays = deque(non_trading_days)
+            self.cur_holidays = deque()
+            # Keeping a copy of days as a timedelta makes it easier
+            # to track holidays.
+            self.delta = timedelta(days=self.days)
 
         # Non-market-aware mode requires a timedelta.
         else:
@@ -188,6 +197,9 @@ class EventWindow:
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
+        
+        if self.market_aware:
+            self.add_new_holidays(event.dt)
 
         # Clear out any expired events. drop_condition changes depending
         # on whether or not we are running in market_aware mode.
@@ -196,16 +208,40 @@ class EventWindow:
         #                                |                    |
         #                                V                    V
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-
+            
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
+            
+    def add_new_holidays(self, newest):
+        # Add to our tracked window any untracked holidays that are
+        # older than our newest event. (newest should always be
+        # self.ticks[-1])
+        while len(self.all_holidays) > 0 and self.all_holidays[0] <= newest:
+            self.cur_holidays.append(self.all_holidays.popleft())
+
+    def drop_old_holidays(self, oldest):
+        # Drop from our tracked window any holidays that are older
+        # than our oldest tracked event. (oldest should always
+        # be self.ticks[0])
+        while len(self.cur_holidays) > 0 and self.cur_holidays[0] < oldest:
+            self.cur_holidays.popleft()
 
     def out_of_market_window(self, oldest, newest):
-        return trading_days_between(oldest, newest) >= self.days
+        self.drop_old_holidays(oldest)
+        calendar_dates_between = (newest.date() - oldest.date()).days
+        holidays_between = len(self.cur_holidays)
+        trading_days_between = calendar_dates_between - holidays_between
+        
+        # "Put back" a day if oldest is earlier in its day than newest,
+        # reflecting the fact that we haven't yet completed the last
+        # day in the window.
+        if oldest.time() > newest.time():
+            trading_days_between -= 1
+        return trading_days_between >= self.days
 
     def out_of_delta(self, oldest, newest):
         return (newest - oldest) >= self.delta

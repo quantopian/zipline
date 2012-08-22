@@ -219,7 +219,7 @@ class PerformanceTracker(object):
                 del event['TRANSACTION']
                 yield event
                 # Cut off the rest of the stream.
-                yield StopIteration()
+                raise StopIteration()
             else:
                 event.perf_message = self.process_event(event)
                 event.portfolio = self.get_portfolio()

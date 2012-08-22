@@ -77,11 +77,11 @@ def sequential_transforms(stream_in, *transforms):
     """
 
     assert isinstance(transforms, (list, tuple))
-    for tnfm in transforms:
-        tnfm.forward_all = False
-        tnfm.update_in_place = False
-        tnfm.append_value = True
 
+    for tnfm in transforms:
+        tnfm.sequential = True
+        tnfm.merged = False
+    
     # Recursively apply all transforms to the stream.
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
                         transforms,
