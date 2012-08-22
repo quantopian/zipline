@@ -13,7 +13,7 @@ matplotlib==1.1.0
 numexpr==2.0.1
 Cython==0.15.1
 patsy==0.1.0
-statsmodels==0.5.0
+statsmodels==0.5.0-tutorial-beta
 
 
 # ZeroMQ
