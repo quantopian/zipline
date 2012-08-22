@@ -1,35 +1,13 @@
 import os
 import re
 import sys
-import glob
 import time
-from distutils.dep_util import newer
 
-#from distutils.extension import Extension
-from setuptools.extension import Extension
-
-from paver.easy import options, Bunch, task, needs, path, info
+from paver.easy import options, Bunch, task, path
 from paver.setuputils import install_distutils_tasks, \
     find_packages, find_package_data
 from subprocess import call
 install_distutils_tasks()
-
-# =========
-# Compilers
-# =========
-
-try:
-    from Cython.Compiler.Main import compile
-    from Cython.Distutils import build_ext
-    have_cython = True
-except ImportError:
-    have_cython = False
-
-try:
-    import numpy as np
-    have_numpy = True
-except:
-    have_numpy = False
 
 # ===================
 # Release Information
@@ -69,11 +47,6 @@ def parse_requirements(file_name):
             requirements.append(line)
     return requirements
 
-example = Extension(
-    "zipline/speedups/example", ["zipline/speedups/example.pyx"],
-     #include_dirs=[np.get_include()],
-)
-
 # ============
 # Dependencies
 # ============
@@ -87,11 +60,6 @@ tests_require = install_requires + parse_requirements('./etc/requirements_dev.tx
 # ========
 # seutp.py
 # ========
-
-if have_numpy and have_cython:
-    cext = [example]
-else:
-    cext = []
 
 options(
     sphinx = Bunch(
@@ -127,10 +95,6 @@ options(
              'Topic :: Scientific/Engineering :: Information Analysis',
              'Topic :: System :: Distributed Computing',
           ],
-          ext_modules            = cext,
-          cmdclass               = {
-              'build_ext': build_ext
-          },
           entry_points           = {
               'console_scripts': [
                   'zipline = zipline.core.interpreter:main',
@@ -138,41 +102,6 @@ options(
           },
       ),
 )
-
-# ============
-# C Extensions
-# ============
-
-@task
-def clean_inplace():
-    """
-    Remove shared objects and C files from the extension
-    directory.
-    """
-    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.c')):
-        p = path(fn)
-        p.remove()
-
-    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.so')):
-        p = path(fn)
-        p.remove()
-
-@task
-def build_cython():
-    for fn in glob.glob(os.path.join(SRC_PATH, 'speedups', '*.pyx')):
-        p = path(fn)
-
-        modname = p.splitext()[0].basename()
-        dest = p.splitext()[0] + '.c'
-
-        if newer(p.abspath(), dest.abspath()):
-            info('cython %s -o %s'%(p, dest.basename()))
-            compile(p.abspath(), full_module_name=modname)
-
-@task
-@needs(['build_cython', 'setuptools.command.build_ext'])
-def build_ext():
-     pass
 
 # ======
 # Tasks
