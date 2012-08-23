@@ -68,16 +68,15 @@ from setproctitle import setproctitle
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
-from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+from zipline.utils.log_utils import ZeroMQLogHandler
 from zipline.utils import factory
 
-from zipline.test_algorithms import TestAlgorithm
-
-from zipline.gens.composites import  \
-    date_sorted_sources, merged_transforms, sequential_transforms
-from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.composites import (
+    date_sorted_sources,
+    sequential_transforms
+)
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
-from logbook import Logger, NestedSetup, Processor
+from logbook import Logger
 
 import zipline.protocol as zp
 
