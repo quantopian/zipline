@@ -21,7 +21,7 @@ class Timeout(object):
     as a decorator to apply a static timeout to a function, or as 
     a context manager to dynamically add a timeout to a code block.
     """
-
+    
     def __init__(self, seconds, message=''):
         self.seconds = seconds
         self.message = message
@@ -29,7 +29,7 @@ class Timeout(object):
         assert seconds > 0, "Timeout must be greater than 0"
 
     def handler(self, signum, frame):
-        raise Timeout(frame, self.message)
+        raise TimeoutException(frame, self.message)
 
     def __call__(self, fn):
         
@@ -91,7 +91,7 @@ class Heartbeat(object):
             self.frame_handler(self.count, frame)
             
         if self.count >= self.max_intervals:
-            raise Timeout(frame, self.timeout_message)
+            raise TimeoutException(frame, self.timeout_message)
 
     def __call__(self, fn):
 

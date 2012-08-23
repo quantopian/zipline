@@ -167,9 +167,6 @@ class PerformanceTracker(object):
         self.last_dict               = None
         self.exceeded_max_loss       = False
 
-        self.results_socket = None
-        self.results_addr   = None
-
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
             # initial positions are empty
@@ -228,21 +225,6 @@ class PerformanceTracker(object):
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
-
-    def open(self, context):
-        if self.results_addr:
-            sock = context.socket(zmq.PUSH)
-            sock.connect(self.results_addr)
-            self.results_socket = sock
-        else:
-            log.warn("Not streaming results because no results socket given")
-
-    def publish_to(self, results_addr):
-        """
-        Publish the performance results asynchronously to a
-        socket.
-        """
-        self.results_socket = results_addr
 
     def to_dict(self):
         """

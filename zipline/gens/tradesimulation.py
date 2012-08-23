@@ -6,7 +6,7 @@ from numbers import Integral
 from itertools import groupby
 
 from zipline import ndict
-from zipline.utils.timeout import timeout, heartbeat, Timeout
+from zipline.utils.timeout import Heartbeat, Timeout
 
 from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
@@ -85,7 +85,7 @@ class TradeSimulationClient(object):
         """
 
         # Simulate filling any open orders made by the previous run of
-        # the user's algorithm.  Sets the TRANSACTION field to true on any
+        # the user's algorithm.  Fills the Transaction field on any
         # event that results in a filled order.
         with_filled_orders = self.ordering_client.transform(stream_in)
 
@@ -141,7 +141,7 @@ class AlgorithmSimulator(object):
 
         # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
         # seconds, raising an exception after MAX_HEARTBEATS
-        self.heartbeat_monitor = heartbeat(
+        self.heartbeat_monitor = Heartbeat(
             HEARTBEAT_INTERVAL,
             MAX_HEARTBEAT_INTERVALS,
             frame_handler=log_heartbeats,
@@ -216,7 +216,7 @@ class AlgorithmSimulator(object):
         with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
 
             # Call user's initialize method with a timeout.
-            with timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
+            with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
                 self.algo.initialize()
 
             # Group together events with the same dt field. This depends on the
