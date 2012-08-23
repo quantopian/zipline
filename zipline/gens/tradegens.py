@@ -182,7 +182,7 @@ class DataFrameSource(SpecificEquityTrades):
         self.data = data
         # Unpack config dictionary with default values.
         self.count = kwargs.get('count', 500)
-        self.sids = kwargs.get('sids', [1, 2])
+        self.sids = kwargs.get('sids', [0])
         self.start = kwargs.get('start', datetime(1957, 1, 1, 0, tzinfo = pytz.utc))
         self.end = kwargs.get('end', datetime(2010, 1, 1, tzinfo=pytz.utc))
         self.delta = kwargs.get('delta', timedelta(days = 1))
@@ -198,8 +198,7 @@ class DataFrameSource(SpecificEquityTrades):
     def create_fresh_generator(self):
         def _generator(df=self.data):
             for dt, series in df.iterrows():
-                dt = dt.tz_localize('UTC')
-                if (self.start > dt) or (dt < self.end):
+                if (dt < self.start) or (dt > self.end):
                     continue
                 event = {'dt': dt,
                          'source_id': self.get_hash(),

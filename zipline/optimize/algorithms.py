@@ -10,8 +10,12 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline import ndict
 from zipline.utils.factory import create_trading_environment
 from zipline.gens.transform import StatefulTransform
-from zipline.lines import SimulatedTradingLite
+from zipline.lines import SimulatedTradingLite,  SimulatedTrading
 
+from logbook import Logger
+
+
+logger = Logger('Algo')
 class BuySellAlgorithm(object):
     """Algorithm that buys and sells alternatingly. The amount for
     each order can be specified. In addition, an offset that will
@@ -118,7 +122,7 @@ class TradingAlgorithm(object):
         self._setup(compute_risk_metrics=compute_risk_metrics)
 
         # drain simulated_trading
-        perfs = [perf for perf in self.simulated_trading]
+        perfs = list(self.simulated_trading)
 
         daily_stats = self._create_daily_stats(perfs)
         return daily_stats
@@ -174,7 +178,7 @@ class BuySellAlgorithmNew(TradingAlgorithm):
 
     def handle_data(self, data):
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
-        self.order(self.sid, order_size)
+        self.order(self.sids[0], order_size)
 
         #sell next time around.
         self.buy_or_sell *= -1

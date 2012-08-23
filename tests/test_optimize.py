@@ -27,7 +27,7 @@ class TestUpDown(TestCase):
     def setUp(self):
         self.zipline_test_config = {
             'allocator'   : allocator,
-            'sid'         : 133,
+            'sid'         : [0],
             'trade_count' : 5,
             'amplitude'   : 30,
             'base_price'  : 50
@@ -48,7 +48,7 @@ class TestUpDown(TestCase):
 
         """
 
-        zipline, config = create_predictable_zipline(
+        algo, config = create_predictable_zipline(
             self.zipline_test_config,
             offset=0,
             simulate=False
@@ -74,9 +74,7 @@ class TestUpDown(TestCase):
             "Minimum price does not equal expected maximum price."
         )
 
-        zipline.run(config['trade_source'])
-
-        algo = config['algorithm']
+        algo.run(config['trade_source'])
 
         orders = np.asarray(algo.orders)
         max_order_idx = np.where(orders==orders.max())[0]

@@ -179,7 +179,7 @@ class SimulatedTrading(object):
             else:
                 log.warning("Sending SIGINT")
                 os.kill(ppid, SIGINT)
-        
+
     def handle_exception(self, exc):
         if isinstance(exc, CancelSignal):
             # signal from monitor of an orderly shutdown,
@@ -206,7 +206,7 @@ class SimulatedTrading(object):
                     exc_type.__name__,
                     exc_value.message
                 )
-            
+
             self.results_socket.send(msg)
         except:
             log.exception("Exception while reporting simulation exception.")
@@ -380,6 +380,13 @@ class SimulatedTradingLite(object):
         self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
         self.gen = self.trading_client.simulate(self.with_tnfms)
-        
+
+
     def get_results(self):
         return self.gen
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.gen.next()
