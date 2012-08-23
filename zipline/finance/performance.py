@@ -133,7 +133,7 @@ import zipline.finance.risk as risk
 log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
-    UPDATER = True
+    
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -166,12 +166,6 @@ class PerformanceTracker(object):
         self.event_count             = 0
         self.last_dict               = None
         self.exceeded_max_loss       = False
-	self.no_more_updates	     = False
-
-        self.compute_risk_metrics = True
-
-        self.results_socket = None
-        self.results_addr   = None
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -204,48 +198,33 @@ class PerformanceTracker(object):
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
             self.todays_performance.positions[sid] = Position(sid)
-
-    def update(self, event):
-        if self.no_more_updates:
-            return zp.ndict({'dt':0})
-        elif event.dt == "DONE":
-            event.perf_message = self.handle_simulation_end()
-            del event['TRANSACTION']
-            self.no_more_updates = True
-            return event
-        elif self.exceeded_max_loss:
-            # in case of max_loss, signal to downstream
-            # generators that we are done.
-            event.dt = "DONE"
-            event.perf_message = self.handle_simulation_end()
-            del event['TRANSACTION']
-	    self.no_more_updates = True
-            return event
-        else:
-            event.perf_message = self.process_event(event)
-            event.portfolio = self.get_portfolio()
-            del event['TRANSACTION']
-            return event
+    
+    def transform(self, stream_in):
+        """
+        Main generator work loop.
+        """
+        for event in stream_in:
+            if event.dt == "DONE":
+                event.perf_message = self.handle_simulation_end()
+                del event['TRANSACTION']
+                yield event
+            elif self.exceeded_max_loss:
+                # in case of max_loss, signal to downstream
+                # generators that we are done.
+                event.dt = "DONE"
+                event.perf_message = self.handle_simulation_end()
+                del event['TRANSACTION']
+                yield event
+                # Cut off the rest of the stream.
+                raise StopIteration()
+            else:
+                event.perf_message = self.process_event(event)
+                event.portfolio = self.get_portfolio()
+                del event['TRANSACTION']
+                yield event
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
-
-    def open(self, context):
-        if self.results_addr:
-            sock = context.socket(zmq.PUSH)
-            sock.connect(self.results_addr)
-            self.results_socket = sock
-        else:
-            log.warn("Not streaming results because no results socket given")
-
-    def publish_to(self, results_addr):
-        """
-        Publish the performance results asynchronously to a
-        socket.
-        """
-        #assert isinstance(results_addr, basestring), type(results_addr)
-        #self.results_addr = results_addr
-        self.results_socket = results_addr
 
     def to_dict(self):
         """
@@ -269,7 +248,7 @@ class PerformanceTracker(object):
         message = None
 
         if self.exceeded_max_loss:
-            return
+            return message
 
         assert isinstance(event, zp.ndict)
         self.event_count += 1
@@ -290,7 +269,6 @@ class PerformanceTracker(object):
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
 
-
         return message
 
     def handle_market_close(self):
@@ -304,13 +282,12 @@ class PerformanceTracker(object):
         self.returns.append(todays_return_obj)
 
         #calculate risk metrics for cumulative performance
-        if self.compute_risk_metrics:
-            self.cumulative_risk_metrics = risk.RiskMetrics(
-                start_date=self.period_start,
-                end_date=self.market_close.replace(hour=0, minute=0, second=0),
-                returns=self.returns,
-                trading_environment=self.trading_environment
-            )
+        self.cumulative_risk_metrics = risk.RiskMetrics(
+            start_date=self.period_start,
+            end_date=self.market_close.replace(hour=0, minute=0, second=0),
+            returns=self.returns,
+            trading_environment=self.trading_environment
+        )
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

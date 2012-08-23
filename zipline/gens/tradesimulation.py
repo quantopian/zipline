@@ -6,7 +6,7 @@ from numbers import Integral
 from itertools import groupby
 
 from zipline import ndict
-from zipline.utils.timeout import timeout, heartbeat, Timeout
+from zipline.utils.timeout import Heartbeat, Timeout
 
 from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
@@ -61,10 +61,16 @@ class TradeSimulationClient(object):
         self.sids = algo.get_sid_filter()
         self.environment = environment
         self.style = sim_style
-        self.algo_sim = None
 
-        self.warmup_start = self.environment.prior_day_open
+        self.ordering_client = TransactionSimulator(self.sids, style=self.style)
+        self.perf_tracker = PerformanceTracker(self.environment, self.sids)
+
         self.algo_start = self.environment.first_open
+        self.algo_sim = AlgorithmSimulator(
+            self.ordering_client,
+            self.algo,
+            self.algo_start
+        )
 
     def get_hash(self):
         """
@@ -79,56 +85,36 @@ class TradeSimulationClient(object):
         """
 
         # Simulate filling any open orders made by the previous run of
-        # the user's algorithm.  Sets the txn field to true on any
+        # the user's algorithm.  Fills the Transaction field on any
         # event that results in a filled order.
-        ordering_client = StatefulTransform(
-            TransactionSimulator,
-            self.sids,
-            style = self.style
-        )
-        with_filled_orders = ordering_client.transform(stream_in)
+        with_filled_orders = self.ordering_client.transform(stream_in)
 
         # Pipe the events with transactions to perf. This will remove
-        # the txn field added by TransactionSimulator and replace it
-        # with a portfolio object to be passed to the user's
+        # the TRANSACTION field added by TransactionSimulator and replace it
+        # with a portfolio field to be passed to the user's
         # algorithm. Also adds a perf_message field which is usually
         # none, but contains an update message once per day.
-        perf_tracker = StatefulTransform(
-            PerformanceTracker,
-            self.environment,
-            self.sids
-        )
-        with_portfolio = perf_tracker.transform(with_filled_orders)
+        with_portfolio = self.perf_tracker.transform(with_filled_orders)
 
-        # Pass the messages from perf along with the trading client's
-        # state into the algorithm for simulation. We provide a
-        # pointer to the ordering client's internal state so that the
-        # algorithm can place new orders into the client's order book.
-        self.algo_sim = AlgorithmSimulator(
-            with_portfolio,
-            ordering_client.state,
-            self.algo,
-            self.algo_start
-        )
+        # Pass the messages from perf to the user's algorithm for simulation.
+        # Events are batched by dt so that the algo handles all events for a
+        # given timestamp at one one go.
+        performance_messages = self.algo_sim.transform(with_portfolio)
 
         # The algorithm will yield a daily_results message (as
         # calculated by the performance tracker) at the end of each
         # day.  It will also yield a risk report at the end of the
         # simulation.
-
-        for message in self.algo_sim:
+        for message in performance_messages:
             yield message
 
 class AlgorithmSimulator(object):
-
+    
     def __init__(self,
-                 stream_in,
                  order_book,
                  algo,
                  algo_start):
-
-        self.stream_in = stream_in
-
+        
         # ==========
         # Algo Setup
         # ==========
@@ -155,7 +141,7 @@ class AlgorithmSimulator(object):
 
         # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
         # seconds, raising an exception after MAX_HEARTBEATS
-        self.heartbeat_monitor = heartbeat(
+        self.heartbeat_monitor = Heartbeat(
             HEARTBEAT_INTERVAL,
             MAX_HEARTBEAT_INTERVALS,
             frame_handler=log_heartbeats,
@@ -168,7 +154,6 @@ class AlgorithmSimulator(object):
 
         # The algorithm's universe as of our most recent event.
         self.universe = ndict()
-
         for sid in self.sids:
             self.universe[sid] = ndict()
         self.universe.portfolio = None
@@ -188,21 +173,9 @@ class AlgorithmSimulator(object):
             record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-        # This is a class, which is instantiated later
-        # in run_algorithm. The class provides a generator.
+        # Single_use generator that uses the @contextmanager decorator
+        # to monkey patch sys.stdout with a logbook interface.
         self.stdout_capture = stdout_only_pipe
-
-        self.__generator = None
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        if self.__generator:
-            return self.__generator.next()
-        else:
-            self.__generator = self._gen()
-            return self.__generator.next()
 
     def order(self, sid, amount):
         """
@@ -232,10 +205,10 @@ class AlgorithmSimulator(object):
         # simulator so that it can fill the placed order when it
         # receives its next message.
         self.order_book.place_order(order)
-
-    def _gen(self):
+        
+    def transform(self, stream_in):
         """
-        Internal generator work loop.
+        Main generator work loop.
         """
         # Capture any output of this generator to stdout and pipe it
         # to a logbook interface.  Also inject the current algo
@@ -243,12 +216,12 @@ class AlgorithmSimulator(object):
         with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
 
             # Call user's initialize method with a timeout.
-            with timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
+            with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
                 self.algo.initialize()
 
             # Group together events with the same dt field. This depends on the
             # events already being sorted.
-            for date, snapshot in groupby(self.stream_in, lambda e: e.dt):
+            for date, snapshot in groupby(stream_in, lambda e: e.dt):
 
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
@@ -259,7 +232,7 @@ class AlgorithmSimulator(object):
                 if date == 'DONE':
                     for event in snapshot:
                         yield event.perf_message
-                    break
+                    raise StopIteration()
 
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
@@ -293,7 +266,7 @@ class AlgorithmSimulator(object):
                         del event['perf_message']
 
                         self.update_universe(event)
-
+                        
                     # Send the current state of the universe to the user's algo.
                     self.simulate_snapshot(date)
 
@@ -316,7 +289,7 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
-
+        
         start_tic = datetime.now()
         with self.heartbeat_monitor:
             self.algo.handle_data(self.universe)

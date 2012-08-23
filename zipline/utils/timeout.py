@@ -6,20 +6,22 @@ from pprint import pprint as pp
 from numbers import Number
 from logbook import Logger
 
-class Timeout(Exception):
+class TimeoutException(Exception):
     
     def __init__(self, frame, message=''):
         self.frame = frame
         self.message = message
+
+# TODO: fix code replication here.
         
-class timeout(object):
+class Timeout(object):
     """
     Utility to make a function raise TimeoutException if it spends
     more than a specified number of seconds executing. Can be used
     as a decorator to apply a static timeout to a function, or as 
     a context manager to dynamically add a timeout to a code block.
     """
-
+    
     def __init__(self, seconds, message=''):
         self.seconds = seconds
         self.message = message
@@ -27,13 +29,13 @@ class timeout(object):
         assert seconds > 0, "Timeout must be greater than 0"
 
     def handler(self, signum, frame):
-        raise Timeout(frame, self.message)
+        raise TimeoutException(frame, self.message)
 
     def __call__(self, fn):
         
         @wraps(fn)
         def call_fn_with_timeout(*args, **kwargs):
-            # Set the alarm.
+            # Set the alarm, saving any handler that existed previously.
             signal.signal(signal.SIGALRM, self.handler)
             signal.setitimer(signal.ITIMER_REAL, self.seconds, 0)
             try:
@@ -63,7 +65,7 @@ class timeout(object):
         signal.signal(signal.SIGALRM, self.handler)
         signal.setitimer(signal.ITIMER_REAL, 0, 0)
     
-class heartbeat(object):
+class Heartbeat(object):
     """
     Utility to perform pseudo-heartbeat checks on a single-threaded
     function. Calls frame_handler on the current stack frame of the 
@@ -89,7 +91,7 @@ class heartbeat(object):
             self.frame_handler(self.count, frame)
             
         if self.count >= self.max_intervals:
-            raise Timeout(frame, self.timeout_message)
+            raise TimeoutException(frame, self.timeout_message)
 
     def __call__(self, fn):
 

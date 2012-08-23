@@ -160,7 +160,7 @@ class ExceptionTestCase(TestCase):
         output, _ = drain_zipline(self, zipline)
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
-        self.assertEqual(payload['name'],'Timeout')
+        self.assertEqual(payload['name'],'TimeoutException')
         self.assertEqual(payload['message'], 'Call to initialize timed out')
 
     def test_heartbeat(self):
@@ -186,6 +186,6 @@ class ExceptionTestCase(TestCase):
         # Assert that the last message is a timeout exception.
         self.assertEqual(output[-1]['prefix'], 'EXCEPTION')
         payload = output[-1]['payload']
-        self.assertEqual(payload['name'],'Timeout')
+        self.assertEqual(payload['name'],'TimeoutException')
         self.assertEqual(payload['message'], 'Too much time spent in handle_data call')
         
