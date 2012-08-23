@@ -47,6 +47,7 @@ class TestUpDown(TestCase):
         UpDownSource and BuySellAlgorithm interact correctly."
 
         """
+
         zipline, config = create_predictable_zipline(
             self.zipline_test_config,
             offset=0,

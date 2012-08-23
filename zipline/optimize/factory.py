@@ -1,20 +1,21 @@
+
 """
 Factory functions to prepare useful data for optimize tests.
 
 Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
+import pandas as pd
+from copy import copy
+from itertools import cycle
 
 import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.optimize.algorithms import BuySellAlgorithm
+from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
+from zipline.optimize.algorithms import BuySellAlgorithmNew
 from zipline.lines import SimulatedTrading
 from zipline.finance.trading import SIMULATION_STYLE
-
-from copy import copy
-from itertools import cycle
 
 def create_updown_trade_source(sid, trade_count, trading_environment, base_price, amplitude):
     """Create the updown trade source. This source emits events with
@@ -38,8 +39,6 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
         source : SpecificEquityTrades
             The trade source emitting up down events.
     """
-    volume = 1000
-    events = []
     price = base_price-amplitude/2.
 
     cur = trading_environment.first_open
@@ -47,27 +46,18 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
 
     #create iterator to cycle through up and down phases
     change = cycle([1,-1])
-
+    prices = []
+    dts = []
     for i in xrange(trade_count + 2):
         cur = get_next_trading_dt(cur, one_day, trading_environment)
-
-        event = zp.ndict({
-            "type"      : zp.DATASOURCE_TYPE.TRADE,
-            "sid"       : sid,
-            "price"     : price,
-            "volume"    : volume,
-            "dt"        : cur,
-        })
-
-        events.append(event)
+        dts.append(cur)
+        prices.append(price)
 
         price += change.next()*amplitude
 
-    trading_environment.period_end = cur
+    df = pd.DataFrame(index=dts, data=prices, columns=[0])
 
-    source = SpecificEquityTrades(event_list=events)
-
-    return source
+    return df
 
 
 def create_predictable_zipline(config, offset=0, simulate=True):
@@ -121,7 +111,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
                                         amplitude)
 
     if 'algorithm' not in config:
-        config['algorithm'] = BuySellAlgorithm(sid, 100, offset)
+        algorithm = BuySellAlgorithmNew(sid, 100, offset)
 
     config['order_count'] = trade_count - 1
     config['trade_count'] = trade_count
@@ -130,9 +120,9 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
     config['devel'] = True
 
-    zipline = SimulatedTrading.create_test_zipline(**config)
-
     if simulate:
-        zipline.drain_zipline(blocking=True)
+        algorithm.run()
 
-    return zipline, config
+    return algorithm, config
+
+

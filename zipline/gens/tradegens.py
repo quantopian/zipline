@@ -7,7 +7,11 @@ import pytz
 
 from itertools import chain, cycle, ifilter, izip, repeat
 from datetime import datetime, timedelta
+import pandas as pd
+from copy import copy
 
+from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils import ndict
 from zipline.gens.utils import hash_args, create_trade
 
 def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),

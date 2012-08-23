@@ -46,9 +46,6 @@ class BuySellAlgorithm(object):
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
 
-    def set_logger(self, logger):
-        self.logger = logger
-
     def handle_data(self, frame):
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
         self.order(self.sid, order_size)
@@ -76,15 +73,16 @@ class TradingAlgorithm(object):
 
         # Create transforms by wrapping them into StatefulTransforms
         transforms = []
-        for namestring, trans_descr in self.registered_transforms.iteritems():
-            sf = StatefulTransform(
-                trans_descr['class'],
-                *trans_descr['args'],
-                **trans_descr['kwargs']
-            )
-            sf.namestring = namestring
+        if hasattr(self, 'registered_transforms'):
+            for namestring, trans_descr in self.registered_transforms.iteritems():
+                sf = StatefulTransform(
+                    trans_descr['class'],
+                    *trans_descr['args'],
+                    **trans_descr['kwargs']
+                )
+                sf.namestring = namestring
 
-            transforms.append(sf)
+                transforms.append(sf)
 
 
         style = SIMULATION_STYLE.FIXED_SLIPPAGE
@@ -95,6 +93,7 @@ class TradingAlgorithm(object):
             self,
             environment,
             style)
+
         #self.simulated_trading.trading_client.performance_tracker.compute_risk_metrics = compute_risk_metrics
 
 
@@ -119,7 +118,7 @@ class TradingAlgorithm(object):
         self._setup(compute_risk_metrics=compute_risk_metrics)
 
         # drain simulated_trading
-        perfs = list(self.simulated_trading)
+        perfs = [perf for perf in self.simulated_trading]
 
         daily_stats = self._create_daily_stats(perfs)
         return daily_stats
@@ -146,3 +145,41 @@ class TradingAlgorithm(object):
         self.registered_transforms[tag] = {'class': transform_class,
                                            'args': args,
                                            'kwargs': kwargs}
+
+
+class BuySellAlgorithmNew(TradingAlgorithm):
+    """Algorithm that buys and sells alternatingly. The amount for
+    each order can be specified. In addition, an offset that will
+    quadratically reduce the amount that will be bought can be
+    specified.
+
+    This algorithm is used to test the parameter optimization
+    framework. If combined with the UpDown trade source, an offset of
+    0 will produce maximum returns.
+
+    """
+
+    def __init__(self, sids, amount, offset):
+        self.sids = sids
+        self.amount = amount
+        self.incr = 0
+        self.done = False
+        self.order = None
+        self.frame_count = 0
+        self.portfolio = None
+        self.buy_or_sell = -1
+        self.offset = offset
+        self.orders = []
+        self.prices = []
+
+    def handle_data(self, data):
+        order_size = self.buy_or_sell * (self.amount - (self.offset**2))
+        self.order(self.sid, order_size)
+
+        #sell next time around.
+        self.buy_or_sell *= -1
+
+        self.orders.append(order_size)
+
+        self.frame_count += 1
+        self.incr += 1
