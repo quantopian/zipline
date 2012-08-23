@@ -20,7 +20,6 @@ from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.test_utils import \
-        drain_zipline, \
         setup_logger, \
         teardown_logger,\
         assert_single_position
@@ -120,36 +119,6 @@ class FinanceTestCase(TestCase):
         self.zipline_test_config['trade_count'] = 200
         zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
         assert_single_position(self, zipline)
-
-    #@timed(DEFAULT_TIMEOUT)
-    def test_sid_filter(self):
-        # Ensure the algorithm's filter prevents events from arriving.
-        # create a test algorithm whose filter will not match any of the
-        # trade events sourced inside the zipline.
-        order_amount = 100
-        order_count = 100
-        no_match_sid = 222
-        test_algo = TestAlgorithm(
-            no_match_sid,
-            order_amount,
-            order_count
-        )
-
-        self.zipline_test_config['trade_count'] = 200
-        self.zipline_test_config['algorithm'] = test_algo
-
-        zipline = SimulatedTrading.create_test_zipline(
-            **self.zipline_test_config
-        )
-        output, transaction_count = drain_zipline(self, zipline)
-
-        #check that the algorithm received no events
-        self.assertEqual(
-            0,
-            transaction_count,
-            "The algorithm should not receive any events due to filtering."
-        )
-
 
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.

@@ -4,24 +4,23 @@ and zipline development
 """
 import random
 import pytz
-from copy import copy
 
-import pandas as pd
-from zipline import ndict
-from zipline.protocol import DATASOURCE_TYPE
-
-from itertools import chain, cycle, ifilter, izip
+from itertools import chain, cycle, ifilter, izip, repeat
 from datetime import datetime, timedelta
 
 from zipline.gens.utils import hash_args, create_trade
 
 def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
              delta = timedelta(minutes = 1),
-             count = 100):
+             count = 100,
+             repeats = None):
     """
     Utility to generate a stream of dates.
     """
-    return (start + (i * delta) for i in xrange(count))
+    if repeats:
+        return (start + (i * delta)  for i in xrange(count) for n in xrange(repeats))
+    else:
+        return (start + (i * delta) for i in xrange(count))
 
 def mock_prices(count, rand = False):
     """
@@ -101,20 +100,41 @@ class SpecificEquityTrades(object):
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.arg_string
 
+    def update_source_id(self, gen):
+        for event in gen:
+            event.source_id = self.get_hash()
+            yield event
+
     def create_fresh_generator(self):
+
         if self.event_list:
-            for event in self.event_list:
-                event['source_id'] = self.get_hash()
-            unfiltered = (event for event in self.event_list)
+            event_gen = (event for event in self.event_list)
+            unfiltered = self.update_source_id(event_gen)
 
         # Set up iterators for each expected field.
         else:
-            dates = date_gen(count=self.count,
-                             start=self.start,
-                             delta=self.delta
-            )
+            if self.concurrent:
+                # in this context the count is the number of
+                # trades per sid, not the total.
+                dates = date_gen(
+                        count=self.count,
+                        start=self.start,
+                        delta=self.delta,
+                        repeats=len(self.sids),
+                    )
+
+
+            else:
+
+                dates = date_gen(
+                    count=self.count,
+                    start=self.start,
+                    delta=self.delta
+                )
+
             prices = mock_prices(self.count)
             volumes = mock_volumes(self.count)
+
             sids = cycle(self.sids)
 
             # Combine the iterators into a single iterator of arguments

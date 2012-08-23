@@ -237,6 +237,56 @@ class DivByZeroAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+class InitializeTimeoutAlgorithm():
+    def __init__(self, sid):
+        self.sid = sid
+        self.incr = 0
+
+    def initialize(self):
+        import time
+        from zipline.gens.tradesimulation import INIT_TIMEOUT
+        time.sleep(INIT_TIMEOUT + 1)
+
+    def set_order(self, order_callable):
+        pass
+
+    def set_logger(self, logger):
+        pass
+
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        pass
+
+    def get_sid_filter(self):
+        return [self.sid]
+    
+class TooMuchProcessingAlgorithm():
+    def __init__(self, sid):
+        self.sid = sid
+
+    def initialize(self):
+        pass
+
+    def set_order(self, order_callable):
+        pass
+
+    def set_logger(self, logger):
+        pass
+
+    def set_portfolio(self, portfolio):
+        pass
+
+    def handle_data(self, data):
+        # Unless we're running on some sort of
+        # supercomputer this will hit timeout.
+        for i in xrange(1000000000):
+            self.foo = i
+
+    def get_sid_filter(self):
+        return [self.sid]
+    
 class TimeoutAlgorithm():
 
     def __init__(self, sid):

@@ -15,6 +15,7 @@ def setup_logger(test, path='/var/log/zipline/zipline.log'):
 
 def teardown_logger(test):
     test.log_handler.pop_application()
+    test.log_handler.close()
 
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
@@ -91,11 +92,13 @@ def create_receiver(socket_addr, ctx):
 
     return receiver
 
-def drain_receiver(receiver):
+def drain_receiver(receiver, count=None):
     output = []
     transaction_count  = 0
+    msg_counter = 0
     while True:
         msg = receiver.recv()
+        msg_counter += 1
         update = zp.BT_UPDATE_UNFRAME(msg)
         output.append(update)
         if update['prefix'] == 'PERF':
@@ -106,14 +109,18 @@ def drain_receiver(receiver):
         elif update['prefix'] == 'DONE':
             break
 
+        if count and msg_counter >= count:
+            break
+
     receiver.close()
     del receiver
 
     return output, transaction_count
 
 
-def assert_single_position(test, zipline):
-    output, transaction_count = drain_zipline(test, zipline)
+def assert_single_position(test, zipline, blocking=False):
+    output, transaction_count = drain_zipline(test, zipline, p_blocking=blocking)
+    test.assertEqual(output[-1]['prefix'], 'DONE')
 
     test.assertEqual(
         test.zipline_test_config['order_count'],

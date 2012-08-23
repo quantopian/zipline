@@ -63,30 +63,20 @@ import sys
 import zmq
 import os
 from signal import SIGHUP, SIGINT
-import datetime
-import pytz
-import pandas as pd
-import numpy as np
-
 import multiprocessing
 from setproctitle import setproctitle
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
-from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+from zipline.utils.log_utils import ZeroMQLogHandler
 from zipline.utils import factory
-from zipline.utils.factory import create_trading_environment
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline import ndict
-from zipline.protocol import DATASOURCE_TYPE
 
-from zipline.test_algorithms import TestAlgorithm
-
-from zipline.gens.composites import  \
-    date_sorted_sources, merged_transforms, sequential_transforms
-from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.composites import (
+    date_sorted_sources,
+    sequential_transforms
+)
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
-from logbook import Logger, NestedSetup, Processor
+from logbook import Logger
 
 import zipline.protocol as zp
 
@@ -181,6 +171,8 @@ class SimulatedTrading(object):
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
+        if self.results_socket:
+            self.results_socket.close()
         if self.proc and self.send_sighup:
             ppid = os.getppid()
             if self.success:
@@ -253,17 +245,10 @@ class SimulatedTrading(object):
         else:
             return []
 
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return self.gen.next()
-
     @staticmethod
     def create_test_zipline(**config):
         """
-        :param config: A configuration object that is a dict with
-        (all optional):
+        :param config: A configuration object that is a dict with:
 
             - environment - a \
               :py:class:`zipline.finance.trading.TradingEnvironment`
@@ -285,7 +270,12 @@ class SimulatedTrading(object):
               of StatefulTransform objects.
         """
         assert isinstance(config, dict)
-        sid = config.get('sid', 133)
+        sid_list = config.get('sid_list')
+        if not sid_list:
+            sid = config.get('sid')
+            sid_list = [sid]
+
+        concurrent_trades = config.get('concurrent_trades', False)
 
         #--------------------
         # Trading Environment
@@ -329,10 +319,12 @@ class SimulatedTrading(object):
             trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
-                sids,
+                sid_list,
                 trade_count,
-                trading_environment
+                trading_environment,
+                concurrent=concurrent_trades
             )
+
 
         #-------------------
         # Transforms
@@ -367,98 +359,3 @@ class SimulatedTrading(object):
         #-------------------
 
         return sim
-
-
-def create_sp_source(start_dt=None, end_dt=None):
-    if start_dt is None:
-        start_dt = datetime.datetime(2002, 1, 1, tzinfo=pytz.utc)
-    if end_dt is None:
-        end_dt = datetime.datetime(2008, 1, 1, tzinfo=pytz.utc)
-
-    sp_events, _ = factory.load_market_data()
-    sp_transformed = []
-    for event in sp_events:
-        transformed = ndict(event.to_dict())
-        if (transformed.dt < start_dt) or (transformed.dt > end_dt):
-            continue
-        transformed['sid'] = 0
-        transformed['price'] = transformed['returns']
-        transformed['type'] = DATASOURCE_TYPE.TRADE
-        sp_transformed.append(transformed)
-
-    source = SpecificEquityTrades(event_list=sp_transformed)
-
-    return source
-
-class Zipline(object):
-    def __init__(self, **kwargs):
-        algorithm = kwargs.get('algorithm', TestAlgorithm)
-        source_descrs = kwargs.get('sources', ['S&P'])
-        if isinstance(source_descrs, str):
-            source_descrs = [source_descrs]
-
-        sources = []
-        for source_descr in source_descrs:
-            if isinstance(source_descr, str):
-                if source_descr == 'S&P':
-                    source = create_sp_source()
-                else:
-                    raise NotImplementedError, "Source with name {source_descr} not known.".format(source_descr=source_descr)
-            else:
-                source = source_descr
-
-            sources.append(source)
-
-        environment = kwargs.get('environment', create_trading_environment())
-
-        try:
-            transform_descrs = kwargs.get('transforms', algorithm.registered_transforms)
-        except:
-            print "Couldn't load any registered_transforms."
-            transform_descrs = {}
-
-        # Create transforms by wrapping them into StatefulTransforms
-        transforms = []
-        for namestring, trans_descr in transform_descrs.iteritems():
-            sf = StatefulTransform(
-                trans_descr['class'],
-                *trans_descr['args'],
-                **trans_descr['kwargs']
-            )
-            sf.namestring = namestring
-
-            transforms.append(sf)
-
-        results_socket_uri = None
-        context = None
-        sim_id = None
-        style = SIMULATION_STYLE.FIXED_SLIPPAGE
-
-        self.simulated_trading = SimulatedTrading(
-            sources,
-            transforms,
-            algorithm,
-            environment,
-            style,
-            results_socket_uri,
-            context,
-            sim_id)
-
-
-    def run(self):
-        # drain simulated_trading
-        perfs = [perf for perf in self.simulated_trading]
-
-        # create daily stats dataframe
-        daily_perfs = []
-        cum_perfs = []
-        for perf in perfs:
-            if 'daily_perf' in perf:
-                daily_perfs.append(perf['daily_perf'])
-            else:
-                cum_perfs.append(perf)
-
-        daily_dts = [np.datetime64(perf['period_close'], utc=True) for perf in daily_perfs]
-        daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-
-        return daily_stats

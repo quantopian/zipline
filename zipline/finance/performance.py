@@ -166,6 +166,7 @@ class PerformanceTracker(object):
         self.event_count             = 0
         self.last_dict               = None
         self.exceeded_max_loss       = False
+	self.no_more_updates	     = False
 
         self.compute_risk_metrics = True
 
@@ -205,9 +206,12 @@ class PerformanceTracker(object):
             self.todays_performance.positions[sid] = Position(sid)
 
     def update(self, event):
-        if event.dt == "DONE":
+        if self.no_more_updates:
+            return zp.ndict({'dt':0})
+        elif event.dt == "DONE":
             event.perf_message = self.handle_simulation_end()
             del event['TRANSACTION']
+            self.no_more_updates = True
             return event
         elif self.exceeded_max_loss:
             # in case of max_loss, signal to downstream
@@ -215,6 +219,7 @@ class PerformanceTracker(object):
             event.dt = "DONE"
             event.perf_message = self.handle_simulation_end()
             del event['TRANSACTION']
+	    self.no_more_updates = True
             return event
         else:
             event.perf_message = self.process_event(event)

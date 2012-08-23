@@ -132,6 +132,7 @@ from utils.date_utils import EPOCH, UN_EPOCH, epoch_now
 # -----------------------
 
 PRODUCTION_PREFIXES = ['PERF', 'RISK', 'EXCEPTION','CANCEL','DONE', 'LOG']
+PRICE_FIELDS = ['price', 'open', 'close', 'high', 'low']
 
 INVALID_CONTROL_FRAME = FrameExceptionFactory('CONTROL')
 
@@ -428,21 +429,26 @@ def TRADE_FRAME(event):
     assert isinstance(event, ndict)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
-    assert isinstance(event.price, numbers.Real)
+    for field in PRICE_FIELDS:
+        assert isinstance(event[field], numbers.Real)
     assert isinstance(event.volume, numbers.Integral)
     PACK_DATE(event)
     return msgpack.dumps(tuple([
         event.sid,
         event.price,
+        event.open,
+        event.close,
+        event.high,
+        event.low,
         event.volume,
         event.dt,
-        event.type,
+        event.type
     ]))
 
 def TRADE_UNFRAME(msg):
     try:
         packed = msgpack.loads(msg)
-        sid, price, volume, dt, source_type = packed
+        sid, price, open, close, high, low, volume, dt, source_type = packed
 
         assert isinstance(sid, int)
         assert isinstance(price, numbers.Real)
@@ -450,6 +456,10 @@ def TRADE_UNFRAME(msg):
         rval = ndict({
             'sid'       : sid,
             'price'     : price,
+            'open'      : open,
+            'close'     : close,
+            'high'      : high,
+            'low'       : low,
             'volume'    : volume,
             'dt'        : dt,
             'type'      : source_type
@@ -654,7 +664,13 @@ def tuple_to_date(date_tuple):
     dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     return dt
 
+# Datasource type should completely determine the other fields of a
+# message with its type.
 DATASOURCE_TYPE = Enum(
+    'AS_TRADED_EQUITY',
+    'MERGER',
+    'SPLIT',
+    'DIVIDEND',
     'TRADE',
     'EMPTY',
     'DONE'
@@ -720,6 +736,9 @@ def LOG_FRAME(payload):
     assert payload.has_key('msg'),\
         "LOG_FRAME with no message"
 
+    # truncation will only work with strings and msgpack will
+    # preserve primitives.
+    payload['msg'] = str(payload['msg'])
 
     return BT_UPDATE_FRAME('LOG', payload)
 

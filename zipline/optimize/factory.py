@@ -133,6 +133,6 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     zipline = SimulatedTrading.create_test_zipline(**config)
 
     if simulate:
-        zipline.simulate(blocking=True)
+        zipline.drain_zipline(blocking=True)
 
     return zipline, config
