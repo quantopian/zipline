@@ -6,7 +6,7 @@ from pprint import pprint as pp
 from numbers import Number
 from logbook import Logger
 
-class Timeout(Exception):
+class TimeoutException(Exception):
     
     def __init__(self, frame, message=''):
         self.frame = frame
@@ -14,7 +14,7 @@ class Timeout(Exception):
 
 # TODO: fix code replication here.
         
-class timeout(object):
+class Timeout(object):
     """
     Utility to make a function raise TimeoutException if it spends
     more than a specified number of seconds executing. Can be used
@@ -47,7 +47,7 @@ class timeout(object):
             # call to fn takes too long.
             finally:
                 signal.setitimer(signal.ITIMER_REAL, 0, 0)
-                signal.signal(signal.SIGALRM, self.prior_handler)
+                signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
             # Return the value of fn if it finished before the alarm.  This
             # won't execute if the Timeout was raised.
@@ -65,7 +65,7 @@ class timeout(object):
         signal.signal(signal.SIGALRM, self.handler)
         signal.setitimer(signal.ITIMER_REAL, 0, 0)
     
-class heartbeat(object):
+class Heartbeat(object):
     """
     Utility to perform pseudo-heartbeat checks on a single-threaded
     function. Calls frame_handler on the current stack frame of the 
