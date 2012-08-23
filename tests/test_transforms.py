@@ -46,24 +46,20 @@ class EventWindowTestCase(TestCase):
     def setUp(self):
         setup_logger(self)
         
-        # Constants calling before open, during the day, and after
-        # close on a valid trading day.
-        self.pre_open = datetime(2012, 8, 7, 13, tzinfo = pytz.utc)
-        self.mid_day = datetime(2012, 8, 7, 15, tzinfo = pytz.utc)
-        self.post_close = datetime(2012, 8, 7, 22, tzinfo = pytz.utc)
+        self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
+        self.eleven_normal_days = [self.monday + i*timedelta(days=1) 
+                                   for i in xrange(11)]
 
-        # Constants calling before open, during the day, and after
-        # close on a saturday.
-        self.pre_open_saturday = datetime(2012, 8, 11, 13, tzinfo = pytz.utc)
-        self.mid_day_saturday = datetime(2012, 8, 11, 15, tzinfo = pytz.utc)
-        self.post_close_saturday = datetime(2012, 8, 11, 22, tzinfo = pytz.utc)
+        # Modify the end of the period slightly to exercise the
+        # incomplete day logic.
+        self.eleven_normal_days[-1] -= timedelta(minutes = 1)
+        self.eleven_normal_days.append(self.monday+timedelta(days=11,seconds=1))
+        
+        # Second set of dates to test holiday handling.
+        self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
+        self.week_of_jul4 = [self.jul4_monday + i*timedelta(days=1)
+                                   for i in xrange(5)]
 
-        # Constants calling before open, during the day, and after
-        # close on a holiday.
-        self.pre_open_holiday = datetime(2012, 12, 25, 13, tzinfo = pytz.utc)
-        self.mid_day_holiday = datetime(2012, 12, 25, tzinfo = pytz.utc)
-        self.post_close_holiday = datetime(2012, 12, 25, 22, tzinfo = pytz.utc)
-                          
     def test_event_window_with_timedelta(self):
         
         # Keep all events within a 5 minute window.
@@ -96,58 +92,46 @@ class EventWindowTestCase(TestCase):
             for dropped in window.removed:
                 assert message.dt - dropped.dt >= timedelta(minutes = 5)
 
-    def test_market_aware_window(self):
+    def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(
             market_aware = True, 
             delta = None,
-            days = 1
+            days = 3
         )
-
-        dates =  ([self.pre_open]*3)
-        dates += ([self.mid_day]*3)
-        dates += ([self.post_close]*3)
-        dates += [self.pre_open + timedelta(days = 1, seconds = 1)]
-        events = [to_dt(date) for date in dates]
-
+        events = [to_dt(date) for date in self.eleven_normal_days]
+        lengths = []
         # Run the events.
         for event in events:
             window.update(event)
+            # Record the length of the window after each event.
+            lengths.append(len(window.ticks))
         
-        # We should have removed the pre_open events on the first day.
-        # The rest should be intact.
-            
+        # The window stretches out during the weekend because we wait
+        # to drop events until the weekend ends. The last window is
+        # briefly longer because it doesn't complete a full day.  The
+        # window then shrinks once the day completes
+        assert lengths == [1, 2, 3, 3, 3, 4, 5, 5, 5, 3, 4, 3]
         assert window.added == events
-        assert window.removed == events[0:3]
-        assert list(window.ticks) == events[3:]
+        assert window.removed == events[:-3]
 
-    def test_market_aware_window_weekend(self):
+    def test_market_aware_window_holiday(self):
         window = NoopEventWindow(
             market_aware = True, 
             delta = None,
             days = 2
         )
-        dates = [self.pre_open_saturday - timedelta(days = 1, seconds=1)]
-        dates += [self.mid_day_saturday - timedelta(days = 1, seconds=1)]
-        dates += [self.post_close_saturday - timedelta(days = 1, seconds=1)]
-        dates += [self.mid_day_saturday + timedelta(days = 1)]
-        
-        events = [to_dt(date) for date in dates]
+        events = [to_dt(date) for date in self.week_of_jul4]
+        lengths = []
 
         # Run the events.
         for event in events:
             window.update(event)
+            # Record the length of the window after each event.
+            lengths.append(len(window.ticks))
         
-        # We shouldn't remove any events.
+        assert lengths == [1, 2, 3, 3, 2]
         assert window.added == events
-        assert window.removed == []
-        assert list(window.ticks) == events
-        
-        extra = to_dt(self.mid_day_saturday + timedelta(days = 2))
-        window.update(extra)
-
-        # We should remove only the first event.
-        assert window.removed == [events[0]]
-        assert list(window.ticks) == events[1:] + [extra]
+        assert window.removed == events[:-2]
         
     def tearDown(self):
         setup_logger(self)

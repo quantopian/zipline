@@ -9,7 +9,6 @@ from zipline.protocol import SIMULATION_STYLE
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
-    UPDATER = True
 
     def __init__(self, sid_filter, style=SIMULATION_STYLE.PARTIAL_VOLUME):
         self.open_orders                = {}
@@ -34,6 +33,13 @@ class TransactionSimulator(object):
         # initialized filled field.
         order.filled = 0
         self.open_orders[order.sid].append(order)
+
+    def transform(self, stream_in):
+        """
+        Main generator work loop.
+        """
+        for event in stream_in:
+            yield self.update(event)
 
     def update(self, event):
         event.TRANSACTION = None
@@ -177,13 +183,21 @@ class TradingEnvironment(object):
         self.period_trading_days = None
         self.max_drawdown = max_drawdown
 
+        assert self.period_start <= self.period_end, \
+            "Period start falls after period end."       
+
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm
 
+        assert self.period_start <= self.trading_days[-1], \
+            "Period start falls after the last known trading day."
+        assert self.period_end >= self.trading_days[0], \
+            "Period end falls before the first known trading day."
+
         self.first_open = self.calculate_first_open()
         self.last_close = self.calculate_last_close()
-
+        
         self.prior_day_open = self.calculate_prior_day_open()
 
     def calculate_first_open(self):
