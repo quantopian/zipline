@@ -371,7 +371,25 @@ class SimulatedTradingLite(object):
             algorithm,
             environment,
             style):
+        """
+        @sources - an iterable of iterables
+        These iterables must yield ndicts that contain:
+        - type :: a ziplines.protocol.DATASOURCE_TYPE
+        - dt :: a milliseconds since epoch timestamp in UTC
 
+        @transforms - An iterable of instances of StatefulTransform.
+
+        @algorithm - An object that implements:
+        `def initialize(self)`
+        `def handle_data(self, data)`
+        `def get_sid_filter(self)`
+        `def set_logger(self, logger)`
+        `def set_order(self, order_callable)`
+
+        @environment - An instance of finance.trading.TradingEnvironment
+
+        @style - protocol.SIMULATION_STYLE
+        """
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         # Formerly merged_transforms.
