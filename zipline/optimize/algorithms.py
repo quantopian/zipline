@@ -10,7 +10,7 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline import ndict
 from zipline.utils.factory import create_trading_environment
 from zipline.gens.transform import StatefulTransform
-from zipline.lines import SimulatedTrading
+from zipline.lines import SimulatedTradingLite
 
 class BuySellAlgorithm(object):
     """Algorithm that buys and sells alternatingly. The amount for
@@ -45,6 +45,9 @@ class BuySellAlgorithm(object):
 
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
+
+    def set_logger(self, logger):
+        self.logger = logger
 
     def handle_data(self, frame):
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
@@ -83,21 +86,15 @@ class TradingAlgorithm(object):
 
             transforms.append(sf)
 
-        results_socket_uri = None
-        context = None
-        sim_id = None
+
         style = SIMULATION_STYLE.FIXED_SLIPPAGE
 
-        self.simulated_trading = SimulatedTrading(
+        self.simulated_trading = SimulatedTradingLite(
             [self.source],
             transforms,
             self,
             environment,
-            style,
-            results_socket_uri,
-            context,
-            sim_id)
-
+            style)
         #self.simulated_trading.trading_client.performance_tracker.compute_risk_metrics = compute_risk_metrics
 
 
@@ -122,7 +119,7 @@ class TradingAlgorithm(object):
         self._setup(compute_risk_metrics=compute_risk_metrics)
 
         # drain simulated_trading
-        perfs = [perf for perf in self.simulated_trading]
+        perfs = list(self.simulated_trading)
 
         daily_stats = self._create_daily_stats(perfs)
         return daily_stats

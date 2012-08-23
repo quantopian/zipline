@@ -57,7 +57,7 @@ class TestUpDown(TestCase):
         base_price = self.zipline_test_config['base_price']
         amplitude = self.zipline_test_config['amplitude']
 
-        prices = np.array([event.price for event in config['trade_source'].event_list])
+        prices = config['trade_source'][0].values
         max_price_idx = np.where(prices==prices.max())[0]
         min_price_idx = np.where(prices==prices.min())[0]
         self.assertTrue(np.all(max_price_idx % 2 == 1),
@@ -73,7 +73,7 @@ class TestUpDown(TestCase):
             "Minimum price does not equal expected maximum price."
         )
 
-        zipline.simulate(blocking=True)
+        zipline.run(config['trade_source'])
 
         algo = config['algorithm']
 
