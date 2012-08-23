@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/bin/bash -e
 
-echo $hash
+a=0
 while read line
 do     
-    if [[ $line != \#* ]] ; then
+    if [[ -n "$line" && "$line" != \#* ]] ; then
         #echo $line
         pip install $line
     fi
+    ((a = a + 1))
 done < $1
-echo "Final line count is: $a";
+echo "$0: Final package count is $a";
