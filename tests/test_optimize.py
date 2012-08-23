@@ -50,8 +50,7 @@ class TestUpDown(TestCase):
 
         algo, config = create_predictable_zipline(
             self.zipline_test_config,
-            offset=0,
-            simulate=False
+            offset=0
         )
 
         #extract arguments
@@ -74,7 +73,9 @@ class TestUpDown(TestCase):
             "Minimum price does not equal expected maximum price."
         )
 
-        algo.run(config['trade_source'])
+        stats = algo.run(config['trade_source'])
+
+        self.assertTrue(len(stats) != 0)
 
         orders = np.asarray(algo.orders)
         max_order_idx = np.where(orders==orders.max())[0]
@@ -93,6 +94,8 @@ class TestUpDown(TestCase):
             "Algorithm did not sell when price was going to increase."
         )
 
+        from nose.tools import set_trace; set_trace()
+
 #    @skip
     def test_concavity_of_returns(self):
         """verify concave relationship between free parameter and
@@ -110,12 +113,15 @@ class TestUpDown(TestCase):
         compound_returns = np.empty(len(test_offsets))
         ziplines = []
         for i, offset in enumerate(test_offsets):
-            zipline, config = create_predictable_zipline(
+            algo, config = create_predictable_zipline(
                 self.zipline_test_config,
                 offset=offset,
             )
-            ziplines.append(zipline)
-            compound_returns[i] = zipline.get_cumulative_performance()['returns']
+            results = algo.run(config['trade_source'])
+            ziplines.append(algo)
+
+            compound_returns[i] = results.returns.sum()
+
 
         self.assertTrue(np.all(compound_returns[supposed_max] > compound_returns[np.logical_not(supposed_max)]),
             "Maximum compound returns are not where they are supposed to be."

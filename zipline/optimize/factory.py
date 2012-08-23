@@ -42,7 +42,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
     price = base_price-amplitude/2.
 
     cur = trading_environment.first_open
-    one_day = timedelta(minutes = 1)#days = 1)
+    one_day = timedelta(days = 1)
 
     #create iterator to cycle through up and down phases
     change = cycle([1,-1])
@@ -60,7 +60,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
     return df
 
 
-def create_predictable_zipline(config, offset=0, simulate=True):
+def create_predictable_zipline(config, offset=0):
     """Create a test zipline object as specified by config. The
     zipline will use the UpDown tradesource which is perfectly
     predictable.
@@ -118,10 +118,6 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['trade_source'] = source
     config['environment'] = trading_environment
     config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
-    config['devel'] = True
-
-    if simulate:
-        algorithm.run()
 
     return algorithm, config
 

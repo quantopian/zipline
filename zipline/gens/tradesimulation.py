@@ -109,12 +109,12 @@ class TradeSimulationClient(object):
             yield message
 
 class AlgorithmSimulator(object):
-    
+
     def __init__(self,
                  order_book,
                  algo,
                  algo_start):
-        
+
         # ==========
         # Algo Setup
         # ==========
@@ -205,7 +205,7 @@ class AlgorithmSimulator(object):
         # simulator so that it can fill the placed order when it
         # receives its next message.
         self.order_book.place_order(order)
-        
+
     def transform(self, stream_in):
         """
         Main generator work loop.
@@ -266,7 +266,7 @@ class AlgorithmSimulator(object):
                         del event['perf_message']
 
                         self.update_universe(event)
-                        
+
                     # Send the current state of the universe to the user's algo.
                     self.simulate_snapshot(date)
 
@@ -289,7 +289,7 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
-        
+
         start_tic = datetime.now()
         with self.heartbeat_monitor:
             self.algo.handle_data(self.universe)

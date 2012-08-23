@@ -73,7 +73,7 @@ class TradingAlgorithm(object):
         assert hasattr(self, 'source'), 'source not set.'
         assert hasattr(self, 'sids'), "sids not set."
 
-        environment = create_trading_environment()
+        environment = create_trading_environment(start=self.data.index[0], end=self.data.index[-1])
 
         # Create transforms by wrapping them into StatefulTransforms
         transforms = []
@@ -118,11 +118,16 @@ class TradingAlgorithm(object):
 
     def run(self, data, compute_risk_metrics=False):
         self.source = DataFrameSource(data, sids=self.sids)
-
+        self.data = data
         self._setup(compute_risk_metrics=compute_risk_metrics)
 
         # drain simulated_trading
-        perfs = list(self.simulated_trading)
+        perfs = []
+        for perf in self.simulated_trading:
+            from nose.tools import set_trace; set_trace()
+            perfs.append(perf)
+
+        #perfs = list(self.simulated_trading)
 
         daily_stats = self._create_daily_stats(perfs)
         return daily_stats
@@ -187,3 +192,4 @@ class BuySellAlgorithmNew(TradingAlgorithm):
 
         self.frame_count += 1
         self.incr += 1
+        from nose.tools import set_trace; set_trace()
