@@ -161,9 +161,6 @@ class EventWindow:
                 "Market-aware mode only works with full-day windows."
             self.all_holidays = deque(non_trading_days)
             self.cur_holidays = deque()
-            # Keeping a copy of days as a timedelta makes it easier
-            # to track holidays.
-            self.delta = timedelta(days=self.days)
 
         # Non-market-aware mode requires a timedelta.
         else:

@@ -181,7 +181,7 @@ class SimulatedTrading(object):
             else:
                 log.warning("Sending SIGINT")
                 os.kill(ppid, SIGINT)
-
+        
     def handle_exception(self, exc):
         if isinstance(exc, CancelSignal):
             # signal from monitor of an orderly shutdown,
@@ -208,9 +208,8 @@ class SimulatedTrading(object):
                     exc_type.__name__,
                     exc_value.message
                 )
-
+            
             self.results_socket.send(msg)
-
         except:
             log.exception("Exception while reporting simulation exception.")
 
