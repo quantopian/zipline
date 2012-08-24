@@ -125,8 +125,6 @@ import datetime
 import pytz
 import math
 
-import zmq
-
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
