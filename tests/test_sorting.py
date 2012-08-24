@@ -1,22 +1,22 @@
 import pytz
 
 from unittest2 import TestCase
-from itertools import cycle, chain, izip, izip_longest
+from itertools import chain, izip_longest
 from datetime import datetime, timedelta
 from collections import deque
 
 from zipline import ndict
-from zipline.gens.sort import \
-    date_sort, \
-    ready, \
-    done, \
-    queue_is_ready,\
+from zipline.gens.sort import (
+    date_sort,
+    ready,
+    done,
+    queue_is_ready,
     queue_is_done
-from zipline.gens.utils import hash_args, alternate, done_message
-from zipline.gens.tradegens import date_gen, SpecificEquityTrades
+)
+from zipline.gens.utils import alternate, done_message
+from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.composites import date_sorted_sources
 
-import zipline.protocol as zp
 
 class HelperTestCase(TestCase):
 

@@ -2,14 +2,11 @@ import pytz
 import numpy
 
 from datetime import timedelta, datetime
-from collections import defaultdict
 from unittest2 import TestCase
 
 from zipline import ndict
 
-from zipline.lines import SimulatedTrading
-
-from zipline.utils.test_utils import setup_logger, teardown_logger
+from zipline.utils.test_utils import setup_logger
 from zipline.utils.date_utils import utcnow
 
 from zipline.gens.tradegens import SpecificEquityTrades
