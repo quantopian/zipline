@@ -5,6 +5,7 @@ from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
 from zipline.gens.transform import StatefulTransform
 
+
 def date_sorted_sources(*sources):
     """
     Takes an iterable of sources, generating namestrings and
@@ -13,7 +14,7 @@ def date_sorted_sources(*sources):
 
     for source in sources:
         assert iter(source), "Source %s not iterable" % source
-        assert source.__class__.__dict__.has_key('get_hash'), "No get_hash"
+        assert 'get_hash' in source.__class__.__dict__, "No get_hash"
 
     # Get name hashes to pass to date_sort.
     names = [source.get_hash() for source in sources]
@@ -27,6 +28,7 @@ def date_sorted_sources(*sources):
     # deterministic string representation for all args/kwargs)
 
     return date_sort(stream_in, names)
+
 
 def merged_transforms(sorted_stream, *transforms):
     """
@@ -42,7 +44,7 @@ def merged_transforms(sorted_stream, *transforms):
         assert isinstance(transform, StatefulTransform)
         transform.merged = True
         transform.sequential = False
-        
+
     # Generate expected hashes for each transform
     namestrings = [tnfm.get_hash() for tnfm in transforms]
 
@@ -66,6 +68,7 @@ def merged_transforms(sorted_stream, *transforms):
     # Return the merged events.
     return add_done(dt_aliased)
 
+
 def sequential_transforms(stream_in, *transforms):
     """
     Apply each transform in transforms sequentially to each event in stream_in.
@@ -78,7 +81,7 @@ def sequential_transforms(stream_in, *transforms):
     for tnfm in transforms:
         tnfm.sequential = True
         tnfm.merged = False
-    
+
     # Recursively apply all transforms to the stream.
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
                         transforms,
@@ -87,6 +90,7 @@ def sequential_transforms(stream_in, *transforms):
     dt_aliased = alias_dt(stream_out)
     return add_done(dt_aliased)
 
+
 def alias_dt(stream_in):
     """
     Alias the dt field to datetime on each message.
@@ -94,6 +98,7 @@ def alias_dt(stream_in):
     for message in stream_in:
         message['datetime'] = message['dt']
         yield message
+
 
 # Add a done message to a stream.
 def add_done(stream_in):
