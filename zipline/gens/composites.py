@@ -1,9 +1,6 @@
-import datetime
-from itertools import tee, starmap, chain
-from collections import namedtuple
+from itertools import tee, chain
 
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.utils import roundrobin, hash_args, done_message
+from zipline.gens.utils import roundrobin, done_message
 from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
 from zipline.gens.transform import StatefulTransform
