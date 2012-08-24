@@ -9,16 +9,15 @@ from zipline.finance.trading import SIMULATION_STYLE
 from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.gens.transform import StatefulTransform
-from zipline.gens.tradesimulation import HEARTBEAT_INTERVAL, \
-    MAX_HEARTBEAT_INTERVALS
+from zipline.gens.tradesimulation import MAX_HEARTBEAT_INTERVALS
 
-from zipline.utils.test_utils import \
-        drain_zipline, \
-        check, \
-        setup_logger, \
-        teardown_logger, \
-        ExceptionSource, \
-        ExceptionTransform
+from zipline.utils.test_utils import (
+    drain_zipline,
+    setup_logger,
+    teardown_logger,
+    ExceptionSource,
+    ExceptionTransform
+)
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
