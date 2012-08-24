@@ -1,6 +1,5 @@
 msgpack-python==0.1.12
 humanhash==0.0.1
-ujson==1.18
 iso8601==0.1.4
 
 # ZeroMQ
