@@ -1,5 +1,5 @@
 from zipline.utils.test_utils import setup_logger, teardown_logger
-from unittest2 import TestCase, skip
+from unittest2 import TestCase
 
 from zipline.core.monitor import Monitor
 
