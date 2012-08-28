@@ -29,6 +29,21 @@ class Passthrough(object):
     def update(self, event):
         pass
 
+class TransformMeta(type):
+    """
+    Metaclass that automatically packages a class inside of
+    StatefulTransform on initialization. Specifically, if Foo is a
+    class with its __metaclass__ attribute set to TransformMeta, then
+    calling Foo(*args, **kwargs) will return StatefulTransform(Foo,
+    *args, **kwargs) instead of an instance of Foo. (Note that you can
+    still recover an instance of a "raw" Foo by introspecting the
+    resulting StatefulTransform's 'state' field.
+    """
+    
+    def __call__(cls, *args, **kwargs):
+        return StatefulTransform(cls, *args, **kwargs)
+
+
 class StatefulTransform(object):
     """
     Generic transform generator that takes each message from an
@@ -55,11 +70,23 @@ class StatefulTransform(object):
         self.merged = True
         
         # Create an instance of our transform class.
-        self.state = tnfm_class(*args, **kwargs)
+        if isinstance(tnfm_class, TransformMeta):
+            # Classes derived TransformMeta have their __call__
+            # attribute overridden.  Since this is what is usually
+            # used to create an instance, we have to delegate the
+            # responsibility of creating an instance to
+            # TransformMeta's parent class, which is 'type'. This is
+            # what is implicitly done behind the scenes by the python
+            # interpreter for most classes anyway, but here we have to
+            # be explicit because we've overridden the method that
+            # usually resolves to our super call.
+            self.state = super(TransformMeta, tnfm_class).__call__(*args, **kwargs)
+        # Normal object instantiation.
+        else:
+            self.state = tnfm_class(*args, **kwargs)
 
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
-        log.info('StatefulTransform [%s] initialized' % self.namestring)
 
     def get_hash(self):
         return self.namestring
