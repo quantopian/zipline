@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 from zipline import ndict
-from zipline.gens.transform import EventWindow
+from zipline.gens.transform import EventWindow, TransformMeta
 
 class MovingAverage(object):
     """
@@ -12,6 +12,7 @@ class MovingAverage(object):
     averages over any number of distinct fields (For example, we can
     maintain a sid's average volume as well as its average price.)
     """
+    __metaclass__ = TransformMeta
 
     def __init__(self, fields, market_aware, days = None, delta = None):
 

@@ -3,12 +3,14 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 from zipline import ndict
-from zipline.gens.transform import EventWindow
+from zipline.gens.transform import EventWindow, TransformMeta
 
 class VWAP(object):
     """
     Class that maintains a dictionary from sids to VWAPEventWindows.
     """
+    __metaclass__ = TransformMeta
+
     def __init__(self, market_aware, delta=None, days=None):
 
         self.market_aware = market_aware

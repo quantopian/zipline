@@ -153,8 +153,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_vwap(self):
 
-        vwap = StatefulTransform(
-            VWAP,
+        vwap = VWAP(
             market_aware = False,
             delta = timedelta(days = 2)
         )
@@ -177,7 +176,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_returns(self):
         # Daily returns.
-        returns = StatefulTransform(Returns, 1)
+        returns = Returns(1)
 
         transformed = list(returns.transform(self.source))
         tnfm_vals = [message.tnfm_value for message in transformed]
@@ -218,8 +217,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_moving_average(self):
 
-        mavg = StatefulTransform(
-            MovingAverage,
+        mavg = MovingAverage(
             market_aware = False,
             fields = ['price', 'volume'],
             delta = timedelta(days = 2),
@@ -260,8 +258,7 @@ class FinanceTransformsTestCase(TestCase):
             self.trading_environment
         )
 
-        stddev = StatefulTransform(
-            MovingStandardDev,
+        stddev = MovingStandardDev(
             market_aware = False,
             delta = timedelta(minutes = 150),
         )

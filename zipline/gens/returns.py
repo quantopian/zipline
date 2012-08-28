@@ -1,3 +1,4 @@
+from zipline.gens.transform import TransformMeta
 from collections import defaultdict, deque
 
 class Returns(object):
@@ -5,6 +6,8 @@ class Returns(object):
     Class that maintains a dictionary from sids to the sid's
     closing price N trading days ago.
     """
+    __metaclass__ = TransformMeta
+
     def __init__(self, days):
         self.days = days
         self.mapping = defaultdict(self._create)
