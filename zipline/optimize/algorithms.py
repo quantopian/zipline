@@ -14,8 +14,8 @@ from zipline.lines import SimulatedTradingLite,  SimulatedTrading
 
 from logbook import Logger
 
-
 logger = Logger('Algo')
+
 class BuySellAlgorithm(object):
     """Algorithm that buys and sells alternatingly. The amount for
     each order can be specified. In addition, an offset that will
@@ -184,6 +184,7 @@ class BuySellAlgorithmNew(TradingAlgorithm):
     def handle_data(self, data):
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
         self.order(self.sids[0], order_size)
+        logger.debug("ordering" + str(order_size))
 
         #sell next time around.
         self.buy_or_sell *= -1
@@ -192,4 +193,4 @@ class BuySellAlgorithmNew(TradingAlgorithm):
 
         self.frame_count += 1
         self.incr += 1
-        from nose.tools import set_trace; set_trace()
+
