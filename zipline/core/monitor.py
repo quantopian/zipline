@@ -379,7 +379,7 @@ class Monitor(object):
                 # Noop exit func
                 #sys.exitfunc = lambda: None
 
-                # Send SIGHUP to buritto
+                # Send SIGHUP to burrito
                 self.signal_hangup()
 
             if not self.alive:
