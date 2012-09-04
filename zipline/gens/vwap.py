@@ -1,8 +1,6 @@
 from numbers import Number
-from datetime import datetime, timedelta
 from collections import defaultdict
 
-from zipline import ndict
 from zipline.gens.transform import EventWindow, TransformMeta
 
 class VWAP(object):
