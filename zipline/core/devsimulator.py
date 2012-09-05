@@ -34,4 +34,3 @@ class AddressAllocator(object):
 
     def reaquire(self, *conn):
         pass
-
