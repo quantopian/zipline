@@ -1,9 +1,9 @@
 from numbers import Number
-from datetime import datetime, timedelta
 from collections import defaultdict
 
 from zipline import ndict
 from zipline.gens.transform import EventWindow, TransformMeta
+
 
 class MovingAverage(object):
     """
@@ -14,7 +14,7 @@ class MovingAverage(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, fields, market_aware, days = None, delta = None):
+    def __init__(self, fields, market_aware, days=None, delta=None):
 
         self.fields = fields
         self.market_aware = market_aware
@@ -31,7 +31,7 @@ class MovingAverage(object):
         else:
             assert self.delta and not self.days, \
                 "Non-market-aware mode requires a timedelta."
-        
+
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
@@ -41,12 +41,12 @@ class MovingAverage(object):
         Factory method for self.sid_windows.
         """
         return MovingAverageEventWindow(
-            self.fields, 
-            self.market_aware, 
-            self.days, 
+            self.fields,
+            self.market_aware,
+            self.days,
             self.delta
         )
-    
+
     def update(self, event):
         """
         Update the event window for this event's sid.  Return an ndict
@@ -57,6 +57,7 @@ class MovingAverage(object):
         window = self.sid_windows[event.sid]
         window.update(event)
         return window.get_averages()
+
 
 class MovingAverageEventWindow(EventWindow):
     """
@@ -103,7 +104,7 @@ class MovingAverageEventWindow(EventWindow):
         # Averages are None by convention if we have no ticks.
         if len(self.ticks) == 0:
             return 0.0
-        
+
         # Calculate and return the average.  len(self.ticks) is O(1).
         else:
             return self.totals[field] / len(self.ticks)
@@ -112,7 +113,7 @@ class MovingAverageEventWindow(EventWindow):
         """
         Return an ndict of all our tracked averages.
         """
-        out = ndict()        
+        out = ndict()
         for field in self.fields:
             out[field] = self.average(field)
         return out
@@ -125,4 +126,5 @@ class MovingAverageEventWindow(EventWindow):
             assert event.has_key(field), \
                 "Event missing [%s] in MovingAverageEventWindow" % field
             assert isinstance(event[field], Number), \
-                "Got %s for %s in MovingAverageEventWindow" % (event[field], field)
+                "Got %s for %s in MovingAverageEventWindow" % (event[field],
+                                                               field)
