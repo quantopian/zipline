@@ -7,7 +7,6 @@ import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
-from zipline.core.monitor import Monitor
 
 
 def setup_logger(test, path='/var/log/zipline/zipline.log'):
@@ -165,25 +164,6 @@ def launch_monitor(monitor):
     proc = multiprocessing.Process(target=monitor.run)
     proc.start()
     return proc
-
-
-def create_monitor(allocator):
-    sockets = allocator.lease(3)
-    mon = Monitor(
-        # pub socket
-        sockets[0],
-        # route socket
-        sockets[1],
-        # exception socket to match tradesimclient's result
-        # socket, because we want to relay exceptions to the
-        # same listener
-        sockets[2],
-        # this controller is expected to run in a test, so no
-        # need to signal the parent process on success or error.
-        send_sighup=False
-    )
-
-    return mon
 
 
 class ExceptionSource(object):
