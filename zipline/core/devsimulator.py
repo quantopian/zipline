@@ -4,7 +4,6 @@ See :py:method""
 """
 
 import logbook
-import threading
 
 log = logbook.Logger('Dev Simulator')
 
