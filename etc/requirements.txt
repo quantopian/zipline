@@ -6,10 +6,6 @@ iso8601==0.1.4
 pyzmq==2.1.11
 gevent-zeromq==0.2.2
 
-# Packaging
-distribute==0.6.27
-setuptools==0.6c11
-
 # Unix
 setproctitle==1.1.6
 
