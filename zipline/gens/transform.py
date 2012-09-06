@@ -2,19 +2,16 @@
 Generator versions of transforms.
 """
 import types
-import pytz
 import logbook
 
 from copy import deepcopy
-from datetime import datetime, timedelta
-from collections import deque, defaultdict
-from numbers import Number
+from datetime import datetime
+from collections import deque
 from abc import ABCMeta, abstractmethod
 
 from zipline import ndict
 from zipline.utils.tradingcalendar import non_trading_days
-from zipline.gens.utils import assert_sort_unframe_protocol, \
-    assert_transform_protocol, hash_args
+from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
 log = logbook.Logger('Transform')
 
