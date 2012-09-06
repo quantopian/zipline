@@ -150,7 +150,7 @@ class StatefulTransform(object):
                 
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
 
-class EventWindow:
+class EventWindow(object):
     """
     Abstract base class for transform classes that calculate iterative
     metrics on events within a given timedelta.  Maintains a list of
