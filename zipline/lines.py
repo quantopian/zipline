@@ -83,11 +83,6 @@ import zipline.protocol as zp
 log = Logger('Lines')
 
 
-class CancelSignal(Exception):
-    def __init__(self):
-        pass
-
-
 class SimulatedTrading(object):
 
     def __init__(self,
@@ -184,12 +179,7 @@ class SimulatedTrading(object):
                 os.kill(ppid, SIGINT)
 
     def handle_exception(self, exc):
-        if isinstance(exc, CancelSignal):
-            # signal from monitor of an orderly shutdown,
-            # do nothing.
-            pass
-        else:
-            self.signal_exception(exc)
+        self.signal_exception(exc)
 
     def signal_exception(self, exc=None):
         """
