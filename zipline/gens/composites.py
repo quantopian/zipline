@@ -1,12 +1,10 @@
-import datetime
-from itertools import tee, starmap, chain
-from collections import namedtuple
+from itertools import tee, chain
 
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.utils import roundrobin, hash_args, done_message
+from zipline.gens.utils import roundrobin, done_message
 from zipline.gens.sort import date_sort
 from zipline.gens.merge import merge
 from zipline.gens.transform import StatefulTransform
+
 
 def date_sorted_sources(*sources):
     """
@@ -31,6 +29,7 @@ def date_sorted_sources(*sources):
 
     return date_sort(stream_in, names)
 
+
 def merged_transforms(sorted_stream, *transforms):
     """
     A generator that takes the expected output of a date_sort, pipes
@@ -45,7 +44,7 @@ def merged_transforms(sorted_stream, *transforms):
         assert isinstance(transform, StatefulTransform)
         transform.merged = True
         transform.sequential = False
-        
+
     # Generate expected hashes for each transform
     namestrings = [tnfm.get_hash() for tnfm in transforms]
 
@@ -69,6 +68,7 @@ def merged_transforms(sorted_stream, *transforms):
     # Return the merged events.
     return add_done(dt_aliased)
 
+
 def sequential_transforms(stream_in, *transforms):
     """
     Apply each transform in transforms sequentially to each event in stream_in.
@@ -81,28 +81,6 @@ def sequential_transforms(stream_in, *transforms):
     for tnfm in transforms:
         tnfm.sequential = True
         tnfm.merged = False
-    
-    # Recursively apply all transforms to the stream.
-    stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
-                        transforms,
-                        stream_in)
-
-    dt_aliased = alias_dt(stream_out)
-    return add_done(dt_aliased)
-
-def sequential_transforms_dict(stream_in, transforms):
-    """
-    Apply each transform in transforms sequentially to each event in stream_in.
-    Each transform application will add a new entry indexed to the transform's
-    hash string.
-    """
-
-    assert isinstance(transforms, dict)
-
-    for tnfm in transforms.itervalues():
-        tnfm.forward_all = False
-        tnfm.update_in_place = False
-        tnfm.append_value = True
 
     # Recursively apply all transforms to the stream.
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
@@ -120,6 +98,7 @@ def alias_dt(stream_in):
     for message in stream_in:
         message['datetime'] = message['dt']
         yield message
+
 
 # Add a done message to a stream.
 def add_done(stream_in):

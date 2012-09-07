@@ -1,10 +1,14 @@
+from zipline.gens.transform import TransformMeta
 from collections import defaultdict, deque
+
 
 class Returns(object):
     """
     Class that maintains a dictionary from sids to the sid's
     closing price N trading days ago.
     """
+    __metaclass__ = TransformMeta
+
     def __init__(self, days):
         self.days = days
         self.mapping = defaultdict(self._create)
@@ -13,8 +17,8 @@ class Returns(object):
         """
         Update and return the calculated returns for this event's sid.
         """
-        assert event.has_key('dt')
-        assert event.has_key('price')
+        assert 'dt' in event
+        assert 'price' in event
         tracker = self.mapping[event.sid]
         tracker.update(event)
 
@@ -22,6 +26,7 @@ class Returns(object):
 
     def _create(self):
         return ReturnsFromPriorClose(self.days)
+
 
 class ReturnsFromPriorClose(object):
     """
@@ -68,7 +73,6 @@ class ReturnsFromPriorClose(object):
             last_close = self.closes[0].price
             change = event.price - last_close
             self.returns = change / last_close
-
 
         # the current event is now the last_event
         self.last_event = event

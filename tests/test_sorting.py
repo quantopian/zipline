@@ -1,22 +1,22 @@
 import pytz
 
 from unittest2 import TestCase
-from itertools import cycle, chain, izip, izip_longest
+from itertools import chain, izip_longest
 from datetime import datetime, timedelta
 from collections import deque
 
 from zipline import ndict
-from zipline.gens.sort import \
-    date_sort, \
-    ready, \
-    done, \
-    queue_is_ready,\
+from zipline.gens.sort import (
+    date_sort,
+    ready,
+    done,
+    queue_is_ready,
     queue_is_done
-from zipline.gens.utils import hash_args, alternate, done_message
-from zipline.gens.tradegens import date_gen, SpecificEquityTrades
+)
+from zipline.gens.utils import alternate, done_message
+from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.composites import date_sorted_sources
 
-import zipline.protocol as zp
 
 class HelperTestCase(TestCase):
 
@@ -35,7 +35,6 @@ class HelperTestCase(TestCase):
         queue.append(to_dt('foo'))
         assert queue_is_ready(queue)
         assert not queue_is_done(queue)
-
 
         queue.appendleft(to_dt('DONE'))
         assert queue_is_ready(queue)
@@ -81,6 +80,7 @@ class HelperTestCase(TestCase):
         assert ready(sources)
         assert done(sources)
 
+
 class DateSortTestCase(TestCase):
 
     def setUp(self):
@@ -99,7 +99,7 @@ class DateSortTestCase(TestCase):
             assert m1 == m2
 
     def test_single_source(self):
-        
+
         # Just using the built-in defaults.  See
         # zipline/gens/tradegens.py
         source = SpecificEquityTrades()
@@ -111,28 +111,28 @@ class DateSortTestCase(TestCase):
         self.run_date_sort(with_done, expected, [source.get_hash()])
 
     def test_multi_source(self):
-        
-        filter = [2,3]
+
+        filter = [2, 3]
         args_a = tuple()
         kwargs_a = {
-            'count'  : 100,
-            'sids'   : [1,2,3],
-            'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-            'delta'  : timedelta(minutes = 6),
-            'filter' : filter
+            'count': 100,
+            'sids': [1, 2, 3],
+            'start': datetime(2012, 1, 3, 15, tzinfo=pytz.utc),
+            'delta': timedelta(minutes=6),
+            'filter': filter
         }
         source_a = SpecificEquityTrades(*args_a, **kwargs_a)
 
         args_b = tuple()
         kwargs_b = {
-            'count'  : 100,
-            'sids'   : [2,3,4],
-            'start'  : datetime(2012,1,3,15, tzinfo = pytz.utc),
-            'delta'  : timedelta(minutes = 5),
-            'filter' : filter
+            'count': 100,
+            'sids': [2, 3, 4],
+            'start': datetime(2012, 1, 3, 15, tzinfo=pytz.utc),
+            'delta': timedelta(minutes=5),
+            'filter': filter
         }
         source_b = SpecificEquityTrades(*args_b, **kwargs_b)
-        
+
         all_events = list(chain(source_a, source_b))
 
         # The expected output is all events, sorted by dt with
@@ -150,76 +150,75 @@ class DateSortTestCase(TestCase):
         with_done_b = chain(source_b, [done_message(source_b.get_hash())])
 
         interleaved = alternate(with_done_a, with_done_b)
-        
+
         # Test sort with alternating messages from source_a and
         # source_b.
         self.run_date_sort(interleaved, expected, source_ids)
-        
+
         source_a.rewind()
         source_b.rewind()
         with_done_a = chain(source_a, [done_message(source_a.get_hash())])
         with_done_b = chain(source_b, [done_message(source_b.get_hash())])
-        
+
         sequential = chain(with_done_a, with_done_b)
-        
+
         # Test sort with all messages from a, followed by all messages
         # from b.
-        
-        self.run_date_sort(sequential, expected, source_ids)
 
+        self.run_date_sort(sequential, expected, source_ids)
 
     def test_sort_composite(self):
 
-        filter = [1,2]
+        filter = [1, 2]
 
         #Set up source a. One hour between events.
         args_a = tuple()
         kwargs_a = {
-            'count'  : 100,
-            'sids'   : [1],
-            'start'  : datetime(2012,6,6,0),
-            'delta'  : timedelta(hours = 1),
-            'filter' : filter
+            'count': 100,
+            'sids': [1],
+            'start': datetime(2012, 6, 6, 0),
+            'delta': timedelta(hours=1),
+            'filter': filter
         }
         source_a = SpecificEquityTrades(*args_a, **kwargs_a)
 
         #Set up source b. One day between events.
         args_b = tuple()
         kwargs_b = {
-            'count'  : 50,
-            'sids'   : [2],
-            'start'  : datetime(2012,6,6,0),
-            'delta'  : timedelta(days = 1),
-            'filter' : filter
+            'count': 50,
+            'sids': [2],
+            'start': datetime(2012, 6, 6, 0),
+            'delta': timedelta(days=1),
+            'filter': filter
         }
         source_b = SpecificEquityTrades(*args_b, **kwargs_b)
 
         #Set up source c. One minute between events.
         args_c = tuple()
         kwargs_c = {
-            'count'  : 150,
-            'sids'   : [1,2],
-            'start'  : datetime(2012,6,6,0),
-            'delta'  : timedelta(minutes = 1),
-            'filter' : filter
+            'count': 150,
+            'sids': [1, 2],
+            'start': datetime(2012, 6, 6, 0),
+            'delta': timedelta(minutes=1),
+            'filter': filter
         }
         source_c = SpecificEquityTrades(*args_c, **kwargs_c)
         # Set up source d. This should produce no events because the
         # internal sids don't match the filter.
         args_d = tuple()
         kwargs_d = {
-            'count'  : 50,
-            'sids'   : [3],
-            'start'  : datetime(2012,6,6,0),
-            'delta'  : timedelta(minutes = 1),
-            'filter' : filter
+            'count': 50,
+            'sids': [3],
+            'start': datetime(2012, 6, 6, 0),
+            'delta': timedelta(minutes=1),
+            'filter': filter
         }
         source_d = SpecificEquityTrades(*args_d, **kwargs_d)
         sources = [source_a, source_b, source_c, source_d]
         hashes = [source.get_hash() for source in sources]
-        
+
         sort_out = date_sorted_sources(*sources)
-        
+
         # Read all the values from sort and assert that they arrive in
         # the correct sorting with the expected hash values.
         to_list = list(sort_out)
@@ -239,7 +238,8 @@ class DateSortTestCase(TestCase):
 
         assert to_list == expected
 
-def compare_by_dt_source_id(x,y):
+
+def compare_by_dt_source_id(x, y):
     if x.dt < y.dt:
         return -1
     elif x.dt > y.dt:
@@ -252,8 +252,9 @@ def compare_by_dt_source_id(x,y):
     else:
         return 0
 
-#Alias for ease of use                         
+#Alias for ease of use
 comp = compare_by_dt_source_id
+
 
 def to_dt(msg):
     return ndict({'dt': msg})

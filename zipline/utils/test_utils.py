@@ -7,15 +7,17 @@ import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
-from zipline.core.monitor import Monitor
+
 
 def setup_logger(test, path='/var/log/zipline/zipline.log'):
     test.log_handler = FileHandler(path)
     test.log_handler.push_application()
 
+
 def teardown_logger(test):
     test.log_handler.pop_application()
     test.log_handler.close()
+
 
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
@@ -33,8 +35,8 @@ def check_dict(test, a, b, label):
         if key in ['progress']:
             continue
 
-        test.assertTrue(a.has_key(key), "missing key at: " + label + "." + key)
-        test.assertTrue(b.has_key(key), "missing key at: " + label + "." + key)
+        test.assertTrue(key in a, "missing key at: " + label + "." + key)
+        test.assertTrue(key in b, "missing key at: " + label + "." + key)
         a_val = a[key]
         b_val = b[key]
         check(test, a_val, b_val, label + "." + key)
@@ -62,6 +64,7 @@ def check(test, a, b, label=None):
     else:
         test.assertEqual(a, b, "mismatch on path: " + label)
 
+
 def drain_zipline(test, zipline, p_blocking=False):
     assert test.ctx, "method expects a valid zmq context"
     assert test.zipline_test_config, "method expects a valid test config"
@@ -86,15 +89,17 @@ def drain_zipline(test, zipline, p_blocking=False):
 
     return output, transaction_count
 
+
 def create_receiver(socket_addr, ctx):
     receiver = ctx.socket(zmq.PULL)
     receiver.bind(socket_addr)
 
     return receiver
 
+
 def drain_receiver(receiver, count=None):
     output = []
-    transaction_count  = 0
+    transaction_count = 0
     msg_counter = 0
     while True:
         msg = receiver.recv()
@@ -119,7 +124,9 @@ def drain_receiver(receiver, count=None):
 
 
 def assert_single_position(test, zipline, blocking=False):
-    output, transaction_count = drain_zipline(test, zipline, p_blocking=blocking)
+    output, transaction_count = drain_zipline(test,
+                                              zipline,
+                                              p_blocking=blocking)
     test.assertEqual(output[-1]['prefix'], 'DONE')
 
     test.assertEqual(
@@ -152,29 +159,12 @@ def launch_component(component):
     proc.start()
     return proc
 
+
 def launch_monitor(monitor):
     proc = multiprocessing.Process(target=monitor.run)
     proc.start()
     return proc
 
-
-def create_monitor(allocator):
-    sockets = allocator.lease(3)
-    mon = Monitor(
-        # pub socket
-        sockets[0],
-        # route socket
-        sockets[1],
-        # exception socket to match tradesimclient's result
-        # socket, because we want to relay exceptions to the
-        # same listener
-        sockets[2],
-        # this controller is expected to run in a test, so no
-        # need to signal the parent process on success or error.
-        send_sighup=False
-    )
-
-    return mon
 
 class ExceptionSource(object):
 
@@ -189,6 +179,7 @@ class ExceptionSource(object):
 
     def next(self):
         5 / 0
+
 
 class ExceptionTransform(object):
 

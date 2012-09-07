@@ -4,7 +4,6 @@ See :py:method""
 """
 
 import logbook
-import threading
 
 log = logbook.Logger('Dev Simulator')
 
@@ -13,6 +12,7 @@ WARNING WARNING WARNING
 THE DEVSIMULATOR IS DEPRECATED, IT WILL NOT BEHAVE LIKE ANY OTHER
 SYSTEM USED IN TESTS OR IN PRODUCTION
 """
+
 
 class AddressAllocator(object):
     """
@@ -28,7 +28,7 @@ class AddressAllocator(object):
         ]
 
     def lease(self, n):
-        sockets = self.sockets[self.idx:self.idx+n]
+        sockets = self.sockets[self.idx: self.idx + n]
         self.idx += n
         return sockets
 

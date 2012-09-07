@@ -1,14 +1,11 @@
-import signal
 from logbook import Logger, Processor
 
-from datetime import datetime, timedelta
-from numbers import Integral
+from datetime import datetime
 from itertools import groupby
 
 from zipline import ndict
 from zipline.utils.timeout import Heartbeat, Timeout
 
-from zipline.gens.transform import StatefulTransform
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.log_utils import stdout_only_pipe

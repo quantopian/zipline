@@ -8,25 +8,28 @@ from itertools import izip_longest
 from zipline import ndict
 from zipline.protocol import DATASOURCE_TYPE
 
+
 def mock_raw_event(sid, dt):
     event = {
-        'sid'    : sid,
-        'dt'     : dt,
-        'price'  : 1.0,
-        'volume' : 1
+        'sid': sid,
+        'dt': dt,
+        'price': 1.0,
+        'volume': 1
     }
     return event
 
+
 def mock_done(id):
     return ndict({
-            'dt'        : "DONE",
-            "source_id" : id,
-            'tnfm_id'   : id,
+            'dt': "DONE",
+            "source_id": id,
+            'tnfm_id': id,
             'tnfm_value': None,
-            'type'      : DATASOURCE_TYPE.DONE
+            'type': DATASOURCE_TYPE.DONE
     })
 
 done_message = mock_done
+
 
 def alternate(g1, g2):
     """Specialized version of roundrobin for just 2 generators."""
@@ -35,6 +38,7 @@ def alternate(g1, g2):
             yield e1
         if e2 != None:
             yield e2
+
 
 def roundrobin(sources, namestrings):
     """
@@ -56,31 +60,35 @@ def roundrobin(sources, namestrings):
                 yield done_message(namestring)
                 del mapping[namestring]
 
+
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
     arg_string = '_'.join([str(arg) for arg in args])
-    kwarg_string = '_'.join([str(key) + '=' + str(value) for key, value in kwargs.iteritems()])
+    kwarg_string = '_'.join([str(key) + '=' + str(value)
+                             for key, value in kwargs.iteritems()])
     combined = ':'.join([arg_string, kwarg_string])
 
     hasher = md5()
     hasher.update(combined)
     return hasher.hexdigest()
 
-def create_trade(sid, price, amount, datetime, source_id = "test_factory"):
+
+def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
     row = ndict({
-        'source_id' : source_id,
-        'type'      : DATASOURCE_TYPE.TRADE,
-        'sid'       : sid,
-        'dt'        : datetime,
-        'price'     : price,
-        'close'     : price,
-        'open'      : price,
-        'low'       : price * .95,
-        'high'      : price * 1.05,
-        'volume'    : amount
+        'source_id': source_id,
+        'type': DATASOURCE_TYPE.TRADE,
+        'sid': sid,
+        'dt': datetime,
+        'price': price,
+        'close': price,
+        'open': price,
+        'low': price * .95,
+        'high': price * 1.05,
+        'volume': amount
     })
     return row
+
 
 def sum_true(bool_iterable):
     """
@@ -102,6 +110,7 @@ def assert_datasource_protocol(event):
         assert isinstance(event.dt, datetime)
         assert event.dt.tzinfo == pytz.utc
 
+
 def assert_trade_protocol(event):
     """Assert that an event meets the protocol for datasource TRADE outputs."""
     assert_datasource_protocol(event)
@@ -113,32 +122,38 @@ def assert_trade_protocol(event):
     assert isinstance(event.volume, numbers.Integral)
     assert isinstance(event.dt, datetime)
 
+
 def assert_datasource_unframe_protocol(event):
     """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert event.has_key('dt')
+    assert 'dt' in event
+
 
 def assert_sort_protocol(event):
     """Assert that an event is valid input to zp.FEED_FRAME."""
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert event.has_key('dt')
+    assert 'dt' in event
+
 
 def assert_sort_unframe_protocol(event):
     """Same as above."""
     assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert event.has_key('dt')
+    assert 'dt' in event
+
 
 def assert_transform_protocol(event):
     """Transforms should return an ndict to be merged by merge."""
     assert isinstance(event, ndict)
 
+
 def assert_merge_protocol(tnfm_ids, message):
-    """Merge should output an ndict with a field for each id in its transform set."""
+    """Merge should output an ndict with a field for each id
+    in its transform set."""
     assert isinstance(message, ndict)
     assert set(tnfm_ids) == set(message.keys())

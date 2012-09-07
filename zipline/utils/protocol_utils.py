@@ -2,7 +2,6 @@ import copy
 import pandas
 from ctypes import Structure, c_ubyte
 from collections import MutableMapping
-from itertools import izip
 
 def Enum(*options):
     """

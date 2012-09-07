@@ -68,25 +68,20 @@ from setproctitle import setproctitle
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import SIMULATION_STYLE
-from zipline.utils.log_utils import ZeroMQLogHandler, stdout_only_pipe
+from zipline.utils.log_utils import ZeroMQLogHandler
 from zipline.utils import factory
 
-from zipline.test_algorithms import TestAlgorithm
-
-from zipline.gens.composites import  \
-    date_sorted_sources, merged_transforms, sequential_transforms
-from zipline.gens.transform import Passthrough, StatefulTransform
+from zipline.gens.composites import (
+    date_sorted_sources,
+    sequential_transforms
+)
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
-from logbook import Logger, NestedSetup, Processor
+from logbook import Logger
 
 import zipline.protocol as zp
 
 log = Logger('Lines')
 
-
-class CancelSignal(Exception):
-    def __init__(self):
-        pass
 
 class SimulatedTrading(object):
 
@@ -103,7 +98,8 @@ class SimulatedTrading(object):
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         # Formerly merged_transforms.
-        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
+        self.with_tnfms = sequential_transforms(self.date_sorted,
+                                                *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
         self.gen = self.trading_client.simulate(self.with_tnfms)
         self.results_uri = results_socket_uri
@@ -150,7 +146,7 @@ class SimulatedTrading(object):
             "Results socket must exist to stream results"
         try:
             for event in self.gen:
-                if event.has_key('daily_perf'):
+                if 'daily_perf' in event:
                     msg = zp.PERF_FRAME(event)
                 else:
                     msg = zp.RISK_FRAME(event)
@@ -171,6 +167,8 @@ class SimulatedTrading(object):
 
     def close(self):
         log.info("Closing Simulation: {id}".format(id=self.sim_id))
+        if self.results_socket:
+            self.results_socket.close()
         if self.proc and self.send_sighup:
             ppid = os.getppid()
             if self.success:
@@ -181,12 +179,7 @@ class SimulatedTrading(object):
                 os.kill(ppid, SIGINT)
 
     def handle_exception(self, exc):
-        if isinstance(exc, CancelSignal):
-            # signal from monitor of an orderly shutdown,
-            # do nothing.
-            pass
-        else:
-            self.signal_exception(exc)
+        self.signal_exception(exc)
 
     def signal_exception(self, exc=None):
         """
@@ -227,8 +220,8 @@ class SimulatedTrading(object):
         # bubbled. Since we do not want user logs in our system
         # logs, we set bubble to False.
         self.zmq_out = ZeroMQLogHandler(
-            socket = self.results_socket,
-            filter = lambda r, h: r.channel in ['Print', 'AlgoLog'],
+            socket=self.results_socket,
+            filter=lambda r, h: r.channel in ['Print', 'AlgoLog'],
             bubble=False
         )
 
@@ -241,12 +234,6 @@ class SimulatedTrading(object):
             return [self.proc.pid]
         else:
             return []
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return self.gen.next()
 
     @staticmethod
     def create_test_zipline(**config):
@@ -268,7 +255,8 @@ class SimulatedTrading(object):
               is the source, with daily frequency in trades.
             - simulation_style: optional parameter that configures the
               :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
-              a SIMULATION_STYLE as defined in :py:mod:`zipline.finance.trading`
+              a SIMULATION_STYLE as defined in
+              :py:mod:`zipline.finance.trading`
             - transforms: optional parameter that provides a list
               of StatefulTransform objects.
         """
@@ -283,22 +271,22 @@ class SimulatedTrading(object):
         #--------------------
         # Trading Environment
         #--------------------
-        if config.has_key('environment'):
+        if 'environment' in config:
             trading_environment = config['environment']
         else:
             trading_environment = factory.create_trading_environment()
 
-        if config.has_key('order_count'):
+        if 'order_count' in config:
             order_count = config['order_count']
         else:
             order_count = 100
 
-        if config.has_key('order_amount'):
+        if 'order_amount' in config:
             order_amount = config['order_amount']
         else:
             order_amount = 100
 
-        if config.has_key('trade_count'):
+        if 'trade_count' in config:
             trade_count = config['trade_count']
         else:
             # to ensure all orders are filled, we provide one more
@@ -309,22 +297,21 @@ class SimulatedTrading(object):
         if not simulation_style:
             simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
 
-        zmq_context         = config.get('zmq_context', None)
-        simulation_id       = config.get('simulation_id', 'test_simulation')
-        results_socket_uri  = config.get('results_socket_uri', None)
+        zmq_context = config.get('zmq_context', None)
+        simulation_id = config.get('simulation_id', 'test_simulation')
+        results_socket_uri = config.get('results_socket_uri', None)
 
         #-------------------
         # Trade Source
         #-------------------
-        sids = [sid]
-        #-------------------
-        if config.has_key('trade_source'):
+        if 'trade_source' in config:
             trade_source = config['trade_source']
         else:
             trade_source = factory.create_daily_trade_source(
-                sids,
+                sid_list,
                 trade_count,
-                trading_environment
+                trading_environment,
+                concurrent=concurrent_trades
             )
 
         #-------------------
@@ -335,7 +322,7 @@ class SimulatedTrading(object):
         #-------------------
         # Create the Algo
         #-------------------
-        if config.has_key('algorithm'):
+        if 'algorithm' in config:
             test_algo = config['algorithm']
         else:
             test_algo = TestAlgorithm(
@@ -361,6 +348,7 @@ class SimulatedTrading(object):
 
         return sim
 
+
 class SimulatedTradingLite(object):
     """
     SimulatedTrading without multiprocess and without zmq.
@@ -373,14 +361,32 @@ class SimulatedTradingLite(object):
             algorithm,
             environment,
             style):
+        """
+        @sources - an iterable of iterables
+        These iterables must yield ndicts that contain:
+        - type :: a ziplines.protocol.DATASOURCE_TYPE
+        - dt :: a milliseconds since epoch timestamp in UTC
 
+        @transforms - An iterable of instances of StatefulTransform.
+
+        @algorithm - An object that implements:
+        `def initialize(self)`
+        `def handle_data(self, data)`
+        `def get_sid_filter(self)`
+        `def set_logger(self, logger)`
+        `def set_order(self, order_callable)`
+
+        @environment - An instance of finance.trading.TradingEnvironment
+
+        @style - protocol.SIMULATION_STYLE
+        """
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         # Formerly merged_transforms.
-        self.with_tnfms = sequential_transforms(self.date_sorted, *self.transforms)
+        self.with_tnfms = sequential_transforms(self.date_sorted,
+                                                *self.transforms)
         self.trading_client = tsc(algorithm, environment, style)
         self.gen = self.trading_client.simulate(self.with_tnfms)
-
 
     def get_results(self):
         return self.gen

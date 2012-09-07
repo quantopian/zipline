@@ -12,7 +12,6 @@ from nose.tools import timed
 
 import zipline.utils.factory as factory
 
-from zipline.test_algorithms import TestAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading

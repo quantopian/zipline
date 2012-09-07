@@ -2,14 +2,11 @@ import pytz
 import numpy
 
 from datetime import timedelta, datetime
-from collections import defaultdict
 from unittest2 import TestCase
 
 from zipline import ndict
 
-from zipline.lines import SimulatedTrading
-
-from zipline.utils.test_utils import setup_logger, teardown_logger
+from zipline.utils.test_utils import setup_logger
 from zipline.utils.date_utils import utcnow
 
 from zipline.gens.tradegens import SpecificEquityTrades
@@ -156,8 +153,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_vwap(self):
 
-        vwap = StatefulTransform(
-            VWAP,
+        vwap = VWAP(
             market_aware = False,
             delta = timedelta(days = 2)
         )
@@ -180,7 +176,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_returns(self):
         # Daily returns.
-        returns = StatefulTransform(Returns, 1)
+        returns = Returns(1)
 
         transformed = list(returns.transform(self.source))
         tnfm_vals = [message.tnfm_value for message in transformed]
@@ -221,8 +217,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_moving_average(self):
 
-        mavg = StatefulTransform(
-            MovingAverage,
+        mavg = MovingAverage(
             market_aware = False,
             fields = ['price', 'volume'],
             delta = timedelta(days = 2),
@@ -263,8 +258,7 @@ class FinanceTransformsTestCase(TestCase):
             self.trading_environment
         )
 
-        stddev = StatefulTransform(
-            MovingStandardDev,
+        stddev = MovingStandardDev(
             market_aware = False,
             delta = timedelta(minutes = 150),
         )

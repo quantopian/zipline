@@ -1,20 +1,21 @@
 from numbers import Number
-from datetime import datetime, timedelta
 from collections import defaultdict
 
-from zipline import ndict
-from zipline.gens.transform import EventWindow
+from zipline.gens.transform import EventWindow, TransformMeta
+
 
 class VWAP(object):
     """
     Class that maintains a dictionary from sids to VWAPEventWindows.
     """
+    __metaclass__ = TransformMeta
+
     def __init__(self, market_aware, delta=None, days=None):
 
         self.market_aware = market_aware
         self.delta = delta
         self.days = days
-        
+
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
             assert self.days and not self.delta,\
@@ -28,13 +29,13 @@ class VWAP(object):
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
-        
+
     def create_window(self):
         """Factory method for self.sid_windows."""
         return VWAPEventWindow(
-            self.market_aware, 
-            days = self.days, 
-            delta = self.delta
+            self.market_aware,
+            days=self.days,
+            delta=self.delta
         )
 
     def update(self, event):
@@ -47,6 +48,7 @@ class VWAP(object):
         window = self.sid_windows[event.sid]
         window.update(event)
         return window.get_vwap()
+
 
 class VWAPEventWindow(EventWindow):
     """
@@ -69,7 +71,7 @@ class VWAPEventWindow(EventWindow):
     def handle_remove(self, event):
         self.flux -= event.volume * event.price
         self.totalvolume -= event.volume
-    
+
     def get_vwap(self):
         """
         Return the calculated vwap for this sid.

@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 import zipline.protocol as zp
 
-from zipline.gens.tradegens import RandomEquityTrades
 from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment

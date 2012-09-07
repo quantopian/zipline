@@ -215,35 +215,3 @@ class DataFrameSource(SpecificEquityTrades):
 
         # Return the filtered event stream.
         return _generator()
-
-
-# !!!!!!! Deprecated for now !!!!!!!!!
-
-def RandomEquityTrades(object):
-
-    def __init__(self):
-        # We shouldn't get any positional args.
-        assert args == ()
-
-        self.count = config.get('count', 500)
-        self.sids = config.get('sids', [1,2])
-        self.filter = config.get('filter')
-
-        dates = fuzzy_dates(count)
-        prices = mock_prices(count, rand = True)
-        volumes = mock_volumes(count, rand = True)
-        sids = cycle(sids)
-
-    arg_gen = izip(sids, prices, volumes, dates)
-
-    unfiltered = (create_trade(*args) for args in arg_gen)
-
-    if filter:
-        filtered = ifilter(lambda event: event.sid in filter, unfiltered)
-    else:
-        filtered = unfiltered
-    return filtered
-
-# if __name__ == "__main__":
-#     import nose.tools; nose.tools.set_trace()
-#     trades = SpecificEquityTrades(filter = [1])

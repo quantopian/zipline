@@ -4,7 +4,7 @@ from collections import defaultdict
 from math import sqrt
 
 from zipline import ndict
-from zipline.gens.transform import EventWindow
+from zipline.gens.transform import EventWindow, TransformMeta
 
 class MovingStandardDev(object):
     """
@@ -13,6 +13,7 @@ class MovingStandardDev(object):
     standard deviation of all events falling within the specified
     window.
     """
+    __metaclass__ = TransformMeta
 
     def __init__(self, market_aware, days = None, delta = None):
 

@@ -1,15 +1,10 @@
 msgpack-python==0.1.12
 humanhash==0.0.1
-ujson==1.18
 iso8601==0.1.4
 
 # ZeroMQ
 pyzmq==2.1.11
 gevent-zeromq==0.2.2
-
-# Packaging
-distribute==0.6.27
-setuptools==0.6c11
 
 # Unix
 setproctitle==1.1.6
@@ -18,4 +13,3 @@ setproctitle==1.1.6
 Logbook==0.3
 
 blist==1.3.4
-psutil==0.4.1
