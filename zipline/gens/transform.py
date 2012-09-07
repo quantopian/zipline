@@ -9,6 +9,8 @@ from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
 
+import pandas as pd
+
 from zipline import ndict
 from zipline.utils.tradingcalendar import non_trading_days
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
@@ -36,7 +38,7 @@ class TransformMeta(type):
     still recover an instance of a "raw" Foo by introspecting the
     resulting StatefulTransform's 'state' field.
     """
-    
+
     def __call__(cls, *args, **kwargs):
         return StatefulTransform(cls, *args, **kwargs)
 
@@ -53,19 +55,19 @@ class StatefulTransform(object):
     def __init__(self, tnfm_class, *args, **kwargs):
         assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
-        assert tnfm_class.__dict__.has_key('update'), \
+        assert hasattr(tnfm_class, 'update'), \
         "Stateful transform requires the class to have an update method"
 
         # Flag set inside the Passthrough transform class to signify special
         # behavior if we are being fed to merged_transforms.
-        self.passthrough = tnfm_class.__dict__.get('PASSTHROUGH', False)
-        
+        self.passthrough = hasattr(tnfm_class, 'PASSTHROUGH')
+
         # Flags specifying how to append the calculated value.
         # Merged is the default for ease of testing, but we use sequential
         # in production.
         self.sequential = False
         self.merged = True
-        
+
         # Create an instance of our transform class.
         if isinstance(tnfm_class, TransformMeta):
             # Classes derived TransformMeta have their __call__
@@ -104,12 +106,12 @@ class StatefulTransform(object):
                 continue
 
             assert_sort_unframe_protocol(message)
-            
+
             # This flag is set by by merged_transforms to ensure
             # isolation of messages.
             if self.merged:
                 message = deepcopy(message)
-            
+
             tnfm_value = self.state.update(message)
 
             # PASSTHROUGH flag means we want to keep all original
@@ -133,7 +135,7 @@ class StatefulTransform(object):
                 out_message.tnfm_value = tnfm_value
                 out_message.dt = message.dt
                 yield out_message
-            
+
             # Sequential flag should be used to add a single new
             # key-value pair to the event. The new key is this
             # transform's namestring, and its value is the value
@@ -147,8 +149,10 @@ class StatefulTransform(object):
                 out_message = message
                 out_message[self.namestring] = tnfm_value
                 yield out_message
-                
+
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
+
+
 
 class EventWindow(object):
     """
@@ -218,7 +222,7 @@ class EventWindow(object):
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
-        
+
         if self.market_aware:
             self.add_new_holidays(event.dt)
 
@@ -229,14 +233,14 @@ class EventWindow(object):
         #                                |                    |
         #                                V                    V
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-            
+
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
-            
+
     def add_new_holidays(self, newest):
         # Add to our tracked window any untracked holidays that are
         # older than our newest event. (newest should always be
@@ -256,7 +260,7 @@ class EventWindow(object):
         calendar_dates_between = (newest.date() - oldest.date()).days
         holidays_between = len(self.cur_holidays)
         trading_days_between = calendar_dates_between - holidays_between
-        
+
         # "Put back" a day if oldest is earlier in its day than newest,
         # reflecting the fact that we haven't yet completed the last
         # day in the window.
@@ -277,3 +281,64 @@ class EventWindow(object):
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
+
+
+class BatchWindow(EventWindow):
+    def __init__(self, func, refresh_period=None, wind_length=None, sids=None):
+        super(BatchWindow, self).__init__(True, days=wind_length, delta=None)
+        self.func = func
+        self.sids = sids
+        self.refresh_period = refresh_period
+        self.wind_length = wind_length
+
+        self.last_calc = False
+        self.full = False
+        self.last_refresh = None
+
+        self.updated = False
+
+    def handle_data(self, data):
+        """
+        New method to handle a data frame as sent to the algorithm's handle_data
+        method.
+        """
+        dts = [data[sid].datetime for sid in self.sids]
+        prices = [data[sid].price for sid in self.sids]
+        volumes = [data[sid].volume for sid in self.sids]
+
+        price_df = pd.DataFrame(prices, columns=self.sids, index=dts)
+        volume_df = pd.DataFrame(volumes, columns=self.sids, index=dts)
+
+        event = ndict({
+                  'dt'    : max(dts),
+                  'prices': price_df,
+                  'volumes': volume_df,
+                })
+
+        self.update(event)
+
+    def handle_add(self, event):
+        if not self.last_calc:
+            self.last_calc = event.dt
+            return
+
+        age = event.dt - self.last_refresh
+        if age.days >= self.refresh_period:
+            self.prices = pd.concat(self.ticks.prices)
+            self.volumes = pd.concat(self.ticks.volumes)
+
+            self.updated = True
+        else:
+            self.updated = False
+
+        self.last_refresh = event.dt
+
+    def handle_remove(self, event):
+        # since an event is expiring, we know the window is full
+        self.full = True
+
+    def __call__(self, *args, **kwargs):
+        if self.updated:
+            self.cached = self.func(self.prices, self.volumes, *args, **kwargs)
+
+        return self.cached
