@@ -75,7 +75,6 @@ Scientific python on the Mac can be a bit confusing because of the many independ
 - umfpack 	- you need this to build scipy. ```brew install umfpack```
 - swig		- you need this to build scipy. ```brew install swig```
 - hdf5	 	- you need this to build tables. ```brew install hdf5```
-- zeromq 	- you need this to run qbt. ```brew install zmq``` 
 
 
 Data Sources
