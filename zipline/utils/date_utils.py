@@ -3,7 +3,6 @@ from collections import namedtuple
 import time
 import pytz
 import iso8601
-import calendar
 from dateutil import rrule
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import *
@@ -140,4 +139,10 @@ if __name__ == '__main__':
 def date_to_datetime(t):
     dt = datetime.fromordinal(t.toordinal())
     dt = dt.replace(tzinfo = pytz.utc)
+    return dt
+
+def tuple_to_date(date_tuple):
+    year, month, day, hour, minute, second, micros = date_tuple
+    dt = datetime(year, month, day, hour, minute, second)
+    dt = dt.replace(microsecond = micros, tzinfo = pytz.utc)
     return dt
