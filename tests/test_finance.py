@@ -2,7 +2,6 @@
 Tests for the zipline.finance package
 """
 import pytz
-import zmq
 
 from unittest2 import TestCase
 from datetime import datetime, timedelta
@@ -36,9 +35,7 @@ class FinanceTestCase(TestCase):
     def setUp(self):
         self.zipline_test_config = {
             'sid'                   : 133,
-            'results_socket_uri'    : allocator.lease(1)[0]
         }
-        self.ctx = zmq.Context()
 
         setup_logger(self)
 
