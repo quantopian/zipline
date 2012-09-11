@@ -62,7 +62,7 @@ def check(test, a, b, label=None):
         test.assertEqual(a, b, "mismatch on path: " + label)
 
 
-def assert_single_position(test, zipline):
+def drain_zipline(test, zipline):
     output = []
     transaction_count = 0
     msg_counter = 0
@@ -74,6 +74,12 @@ def assert_single_position(test, zipline):
             transaction_count += \
                 len(update['daily_perf']['transactions'])
 
+    return output, transaction_count
+
+
+def assert_single_position(test, zipline):
+
+    output, transaction_count = drain_zipline(test, zipline)
 
     test.assertEqual(
         test.zipline_test_config['order_count'],
@@ -97,18 +103,6 @@ def assert_single_position(test, zipline):
         sid,
         "Portfolio should have one position in " + str(sid)
     )
-
-
-def launch_component(component):
-    proc = multiprocessing.Process(target=component.run)
-    proc.start()
-    return proc
-
-
-def launch_monitor(monitor):
-    proc = multiprocessing.Process(target=monitor.run)
-    proc.start()
-    return proc
 
 
 class ExceptionSource(object):

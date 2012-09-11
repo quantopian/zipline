@@ -229,7 +229,8 @@ class InitializeTimeoutAlgorithm():
     def initialize(self):
         import time
         from zipline.gens.tradesimulation import INIT_TIMEOUT
-        time.sleep(INIT_TIMEOUT + 1)
+        time.sleep(INIT_TIMEOUT + 1000)
+
 
     def set_order(self, order_callable):
         pass
@@ -245,7 +246,7 @@ class InitializeTimeoutAlgorithm():
 
     def get_sid_filter(self):
         return [self.sid]
-    
+
 class TooMuchProcessingAlgorithm():
     def __init__(self, sid):
         self.sid = sid
@@ -270,7 +271,7 @@ class TooMuchProcessingAlgorithm():
 
     def get_sid_filter(self):
         return [self.sid]
-    
+
 class TimeoutAlgorithm():
 
     def __init__(self, sid):
