@@ -21,7 +21,6 @@ from zipline.utils.test_utils import (
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
-allocator = AddressAllocator(1000)
 
 class ExceptionTestCase(TestCase):
 

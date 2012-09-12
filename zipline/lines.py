@@ -112,9 +112,9 @@ class SimulatedTrading(object):
         self.gen = self.trading_client.simulate(self.with_tnfms)
 
     def __iter__(self):
-        return self.gen
+        return self
 
-    def __next__(self):
+    def next(self):
         return self.gen.next()
 
     @staticmethod

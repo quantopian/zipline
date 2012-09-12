@@ -12,7 +12,6 @@ from nose.tools import timed
 import zipline.utils.factory as factory
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
@@ -26,7 +25,6 @@ from zipline.utils.test_utils import \
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
-allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
 
