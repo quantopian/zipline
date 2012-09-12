@@ -70,7 +70,7 @@ def drain_zipline(test, zipline):
     for update in zipline:
         msg_counter += 1
         output.append(update)
-        if update.has_key('daily_perf'):
+        if 'daily_perf' in update:
             transaction_count += \
                 len(update['daily_perf']['transactions'])
 

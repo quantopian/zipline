@@ -46,8 +46,8 @@ class ExceptionTestCase(TestCase):
             output, _ = drain_zipline(self, zipline)
 
         self.assertEqual(
-                ctx.exception.message,
-                'integer division or modulo by zero'
+            ctx.exception.message,
+            'integer division or modulo by zero'
         )
 
 
@@ -149,6 +149,6 @@ class ExceptionTestCase(TestCase):
             output, _ = drain_zipline(self, zipline)
 
         self.assertEqual(
-                ctx.exception.message,
-                'Too much time spent in handle_data call'
-            )
+            ctx.exception.message,
+            'Too much time spent in handle_data call'
+        )
