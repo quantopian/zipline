@@ -2,7 +2,6 @@
 Tests for the zipline.finance package
 """
 import pytz
-import zmq
 
 from unittest2 import TestCase
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ from nose.tools import timed
 import zipline.utils.factory as factory
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.core.devsimulator import AddressAllocator
 from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
@@ -27,7 +25,6 @@ from zipline.utils.test_utils import \
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
-allocator = AddressAllocator(1000)
 
 class FinanceTestCase(TestCase):
 
@@ -36,9 +33,7 @@ class FinanceTestCase(TestCase):
     def setUp(self):
         self.zipline_test_config = {
             'sid'                   : 133,
-            'results_socket_uri'    : allocator.lease(1)[0]
         }
-        self.ctx = zmq.Context()
 
         setup_logger(self)
 

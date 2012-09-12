@@ -9,8 +9,10 @@ from os.path import join, abspath, dirname
 from operator import attrgetter
 
 from datetime import datetime, timedelta
+from zipline.utils.date_utils import tuple_to_date
+from zipline.utils.protocol_utils import ndict
+
 import zipline.finance.risk as risk
-import zipline.protocol as zp
 
 from zipline.gens.tradegens import RandomEquityTrades
 from zipline.gens.tradegens import SpecificEquityTrades
@@ -33,7 +35,7 @@ def load_market_data():
     bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
     for packed_date, returns in bm_list:
-        event_dt = zp.tuple_to_date(packed_date)
+        event_dt = tuple_to_date(packed_date)
         #event_dt = event_dt.replace(
         #    hour=0,
         #    minute=0,
@@ -49,7 +51,7 @@ def load_market_data():
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for packed_date, curve in tr_list:
-        tr_dt = zp.tuple_to_date(packed_date)
+        tr_dt = tuple_to_date(packed_date)
         #tr_dt = tr_dt.replace(hour=0, minute=0, second=0, tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve
 
@@ -95,7 +97,7 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     return trades
 
 def create_txn(sid, price, amount, datetime, btrid=None):
-    txn = zp.ndict({
+    txn = ndict({
         'sid'    : sid,
         'amount' : amount,
         'dt'     : datetime,
