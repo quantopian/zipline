@@ -339,6 +339,6 @@ class BatchWindow(EventWindow):
 
     def __call__(self, *args, **kwargs):
         if self.updated:
-            self.cached = self.func(self.prices, self.volumes, *args, **kwargs)
+            self.cached = self.get_value(self.prices, self.volumes, *args, **kwargs)
 
         return self.cached
