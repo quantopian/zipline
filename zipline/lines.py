@@ -61,7 +61,6 @@ before invoking simulate.
 """
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.finance.trading import SIMULATION_STYLE
 from zipline.utils import factory
 
 from zipline.gens.composites import (
@@ -69,6 +68,8 @@ from zipline.gens.composites import (
     sequential_transforms
 )
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+from zipline.finance.slippage import FixedSlippage
+
 from logbook import Logger
 
 log = Logger('Lines')
@@ -81,7 +82,7 @@ class SimulatedTrading(object):
             transforms,
             algorithm,
             environment,
-            style):
+            slippage):
         """
         @sources - an iterable of iterables
         These iterables must yield ndicts that contain:
@@ -99,16 +100,16 @@ class SimulatedTrading(object):
 
         @environment - An instance of finance.trading.TradingEnvironment
 
-        @style - protocol.SIMULATION_STYLE
+        @slippage - an object with a simulate method that takes a
+        trade event and returns a transaction
         """
-
 
         self.date_sorted = date_sorted_sources(*sources)
         self.transforms = transforms
         # Formerly merged_transforms.
         self.with_tnfms = sequential_transforms(self.date_sorted,
                                                 *self.transforms)
-        self.trading_client = tsc(algorithm, environment, style)
+        self.trading_client = tsc(algorithm, environment, slippage)
         self.gen = self.trading_client.simulate(self.with_tnfms)
 
     def __iter__(self):
@@ -135,9 +136,10 @@ class SimulatedTrading(object):
             - trade_source - optional parameter to specify trades, if present.
               If not present :py:class:`zipline.sources.SpecificEquityTrades`
               is the source, with daily frequency in trades.
-            - simulation_style: optional parameter that configures the
-              :py:class:`zipline.finance.trading.TransactionSimulator`. Expects
-              a SIMULATION_STYLE as defined in
+            - slippage: optional parameter that configures the
+              :py:class:`zipline.gens.tradingsimulation.TransactionSimulator`. Expects
+              an object with a simulate mehod, such as
+              :py:class:`zipline.gens.tradingsimulation.FixedSlippage`.
               :py:mod:`zipline.finance.trading`
             - transforms: optional parameter that provides a list
               of StatefulTransform objects.
@@ -175,9 +177,7 @@ class SimulatedTrading(object):
             # trade than order
             trade_count = 101
 
-        simulation_style = config.get('simulation_style')
-        if not simulation_style:
-            simulation_style = SIMULATION_STYLE.FIXED_SLIPPAGE
+        slippage = config.get('slippage', FixedSlippage())
 
         #-------------------
         # Trade Source
@@ -218,7 +218,7 @@ class SimulatedTrading(object):
                 transforms,
                 test_algo,
                 trading_environment,
-                simulation_style,
+                slippage,
                 )
         #-------------------
 

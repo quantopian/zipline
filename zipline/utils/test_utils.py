@@ -1,4 +1,3 @@
-import multiprocessing
 from datetime import datetime
 import blist
 from zipline.utils.date_utils import EPOCH

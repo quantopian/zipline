@@ -21,7 +21,7 @@ MAX_HEARTBEAT_INTERVALS = 15 #count
 class TradeSimulationClient(object):
     """
     Generator-style class that takes the expected output of a merge, a
-    user algorithm, a trading environment, and a simulator style as
+    user algorithm, a trading environment, and a simulator slippage as
     arguments.  Pipes the merge stream through a TransactionSimulator
     and a PerformanceTracker, which keep track of the current state of
     our algorithm's simulated universe. Results are fed to the user's
@@ -52,14 +52,14 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, sim_style):
+    def __init__(self, algo, environment, slippage):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.style = sim_style
+        self.slippage = slippage
 
-        self.ordering_client = TransactionSimulator(self.sids, style=self.style)
+        self.ordering_client = TransactionSimulator(self.slippage)
         self.perf_tracker = PerformanceTracker(self.environment, self.sids)
 
         self.algo_start = self.environment.first_open
@@ -106,12 +106,12 @@ class TradeSimulationClient(object):
             yield message
 
 class AlgorithmSimulator(object):
-    
+
     def __init__(self,
                  order_book,
                  algo,
                  algo_start):
-        
+
         # ==========
         # Algo Setup
         # ==========
@@ -202,7 +202,7 @@ class AlgorithmSimulator(object):
         # simulator so that it can fill the placed order when it
         # receives its next message.
         self.order_book.place_order(order)
-        
+
     def transform(self, stream_in):
         """
         Main generator work loop.
@@ -263,7 +263,7 @@ class AlgorithmSimulator(object):
                         del event['perf_message']
 
                         self.update_universe(event)
-                        
+
                     # Send the current state of the universe to the user's algo.
                     self.simulate_snapshot(date)
 
@@ -286,7 +286,7 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
-        
+
         start_tic = datetime.now()
         with self.heartbeat_monitor:
             self.algo.handle_data(self.universe)
