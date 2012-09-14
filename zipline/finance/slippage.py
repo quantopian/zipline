@@ -18,17 +18,10 @@ class VolumeShareSlippage(object):
     def __init__(self,
             volume_limit=.25,
             price_impact=0.1,
-            commission=0.03,
-            ttl=None):
+            commission=0.03):
         self.volume_limit = volume_limit
         self.price_impact = price_impact
         self.commission = commission
-        if ttl:
-            assert isinstance(ttl, timedelta), \
-                    "ttl must be a datetime.timedelta"
-            self.ttl = ttl
-        else:
-            self.ttl = timedelta(days=1)
 
     def simulate(self, event, open_orders):
 

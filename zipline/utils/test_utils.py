@@ -80,10 +80,16 @@ def assert_single_position(test, zipline):
 
     output, transaction_count = drain_zipline(test, zipline)
 
-    test.assertEqual(
-        test.zipline_test_config['order_count'],
-        transaction_count
-    )
+    if 'expected_transactions' in test.zipline_test_config:
+        test.assertEqual(
+            test.zipline_test_config['expected_transactions'],
+            transaction_count
+        )
+    else:
+        test.assertEqual(
+            test.zipline_test_config['order_count'],
+            transaction_count
+        )
 
     # the final message is the risk report, the second to
     # last is the final day's results. Positions is a list of
@@ -102,6 +108,8 @@ def assert_single_position(test, zipline):
         sid,
         "Portfolio should have one position in " + str(sid)
     )
+
+    return output, transaction_count
 
 
 class ExceptionSource(object):

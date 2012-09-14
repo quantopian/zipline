@@ -130,6 +130,9 @@ class AlgorithmSimulator(object):
         self.algolog = Logger("AlgoLog")
         self.algo.set_logger(self.algolog)
 
+        # Porived user algorithm with slippage override.
+        self.algo.set_slippage_override(self.override_slippage)
+
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
             t = beat_count * HEARTBEAT_INTERVAL
@@ -173,6 +176,9 @@ class AlgorithmSimulator(object):
         # Single_use generator that uses the @contextmanager decorator
         # to monkey patch sys.stdout with a logbook interface.
         self.stdout_capture = stdout_only_pipe
+
+    def override_slippage(self, slippage):
+        self.order_book.slippage = slippage
 
     def order(self, sid, amount):
         """

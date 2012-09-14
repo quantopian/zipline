@@ -44,6 +44,12 @@ The algorithm must expose methods:
 
         self.Portfolio[sid(133)]['cost_basis']
 
+  - set_slippage_override: method that accepts a callable. Will
+    be set as the value of the set_slippage_override method of
+    the trading_client. This allows an algorithm to change the
+    slippage model used to predict transactions based on orders
+    and trade events.
+
 """
 
 
@@ -90,7 +96,10 @@ class TestAlgorithm():
     def get_sid_filter(self):
         return self.sid_filter
 
-#
+    def set_slippage_override(self, slippage_callable):
+        pass
+
+    #
 class HeavyBuyAlgorithm():
     """
     This algorithm will send a specified number of orders, to allow unit tests
@@ -128,6 +137,9 @@ class HeavyBuyAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class NoopAlgorithm(object):
     """
     Dolce fa niente.
@@ -150,6 +162,9 @@ class NoopAlgorithm(object):
 
     def get_sid_filter(self):
         return []
+
+    def set_slippage_override(self, slippage_callable):
+        pass
 
 class ExceptionAlgorithm(object):
     """
@@ -194,6 +209,9 @@ class ExceptionAlgorithm(object):
         else:
             return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class DivByZeroAlgorithm():
 
     def __init__(self, sid):
@@ -221,6 +239,9 @@ class DivByZeroAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class InitializeTimeoutAlgorithm():
     def __init__(self, sid):
         self.sid = sid
@@ -247,6 +268,9 @@ class InitializeTimeoutAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class TooMuchProcessingAlgorithm():
     def __init__(self, sid):
         self.sid = sid
@@ -271,6 +295,9 @@ class TooMuchProcessingAlgorithm():
 
     def get_sid_filter(self):
         return [self.sid]
+
+    def set_slippage_override(self, slippage_callable):
+        pass
 
 class TimeoutAlgorithm():
 
@@ -299,6 +326,9 @@ class TimeoutAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class TestPrintAlgorithm():
 
     def __init__(self, sid):
@@ -323,6 +353,9 @@ class TestPrintAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
+    def set_slippage_override(self, slippage_callable):
+        pass
+
 class TestLoggingAlgorithm():
 
     def __init__(self, sid):
@@ -346,3 +379,6 @@ class TestLoggingAlgorithm():
 
     def get_sid_filter(self):
         return [self.sid]
+
+    def set_slippage_override(self, slippage_callable):
+        pass
