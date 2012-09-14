@@ -41,10 +41,6 @@ Performance Tracking
     |                 | For details look at the comments for               |
     |                 | :py:meth:`zipline.finance.risk.RiskMetrics.to_dict`|
     +-----------------+----------------------------------------------------+
-    | exceeded_max_   | True if the simulation was stopped because single  |
-    | loss            | day losses exceeded the max_drawdown stipulated in |
-    |                 | trading_environment.                               |
-    +-----------------+----------------------------------------------------+
 
 Position Tracking
 =================
@@ -131,7 +127,7 @@ import zipline.finance.risk as risk
 log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
-    
+
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -163,7 +159,6 @@ class PerformanceTracker(object):
         self.txn_count               = 0
         self.event_count             = 0
         self.last_dict               = None
-        self.exceeded_max_loss       = False
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -196,7 +191,7 @@ class PerformanceTracker(object):
         for sid in sid_list:
             self.cumulative_performance.positions[sid] = Position(sid)
             self.todays_performance.positions[sid] = Position(sid)
-    
+
     def transform(self, stream_in):
         """
         Main generator work loop.
@@ -206,15 +201,6 @@ class PerformanceTracker(object):
                 event.perf_message = self.handle_simulation_end()
                 del event['TRANSACTION']
                 yield event
-            elif self.exceeded_max_loss:
-                # in case of max_loss, signal to downstream
-                # generators that we are done.
-                event.dt = "DONE"
-                event.perf_message = self.handle_simulation_end()
-                del event['TRANSACTION']
-                yield event
-                # Cut off the rest of the stream.
-                raise StopIteration()
             else:
                 event.perf_message = self.process_event(event)
                 event.portfolio = self.get_portfolio()
@@ -244,9 +230,6 @@ class PerformanceTracker(object):
     def process_event(self, event):
 
         message = None
-
-        if self.exceeded_max_loss:
-            return message
 
         assert isinstance(event, zp.ndict)
         self.event_count += 1
@@ -296,19 +279,6 @@ class PerformanceTracker(object):
         # browser.
         daily_update = self.to_dict()
 
-        if self.trading_environment.max_drawdown:
-            returns = self.todays_performance.returns
-            max_dd = -1 * self.trading_environment.max_drawdown
-            if returns < max_dd:
-                log.info(str(returns) + " broke through " + str(max_dd))
-                log.info("Exceeded max drawdown.")
-                # mark the perf period with max loss flag,
-                # so it shows up in the update, but don't end the test
-                # here. Let the update go out before stopping
-                self.exceeded_max_loss = True
-                return daily_update
-
-
         #move the market day markers forward
         self.market_open = self.market_open + self.calendar_day
 
@@ -343,14 +313,11 @@ class PerformanceTracker(object):
 
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
-        # In the case of max drawdown, we needn't close again.
-        if not self.exceeded_max_loss:
-            self.handle_market_close()
+        self.handle_market_close()
 
         self.risk_report = risk.RiskReport(
             self.returns,
-            self.trading_environment,
-            exceeded_max_loss = self.exceeded_max_loss
+            self.trading_environment
         )
 
         risk_dict = self.risk_report.to_dict()
