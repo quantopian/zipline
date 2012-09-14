@@ -49,8 +49,7 @@ class TradingEnvironment(object):
         treasury_curves,
         period_start    = None,
         period_end      = None,
-        capital_base    = None,
-        max_drawdown    = None
+        capital_base    = None
     ):
 
         self.trading_days = []
@@ -61,7 +60,6 @@ class TradingEnvironment(object):
         self.period_end = period_end
         self.capital_base = capital_base
         self.period_trading_days = None
-        self.max_drawdown = max_drawdown
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."

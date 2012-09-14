@@ -66,7 +66,6 @@ class FinanceTestCase(TestCase):
             period_start = datetime(2008, 1, 1, tzinfo = pytz.utc),
             period_end = datetime(2008, 12, 31, tzinfo = pytz.utc),
             capital_base = 100000,
-            max_drawdown = 0.50
         )
         #holidays taken from: http://www.nyse.com/press/1191407641943.html
         new_years   = datetime(2008, 1, 1, tzinfo = pytz.utc)
