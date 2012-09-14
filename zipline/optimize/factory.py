@@ -12,7 +12,7 @@ from zipline.utils.factory import get_next_trading_dt, create_trading_environmen
 from zipline.finance.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
-from zipline.finance.trading import SIMULATION_STYLE
+from zipline.finance.slippage import FixedSlippage
 
 from copy import copy
 from itertools import cycle
@@ -128,7 +128,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['trade_count'] = trade_count
     config['trade_source'] = source
     config['environment'] = trading_environment
-    config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
+    config['slippage'] = FixedSlippage()
     config['devel'] = True
 
     zipline = SimulatedTrading.create_test_zipline(**config)

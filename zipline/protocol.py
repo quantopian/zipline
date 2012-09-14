@@ -24,13 +24,3 @@ FINANCE_COMPONENT = namelookup({
     'TRADING_CLIENT'   : 'TRADING_CLIENT',
     'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
 })
-
-
-# the simulation style enumerates the available transaction simulation
-# strategies.
-SIMULATION_STYLE  = Enum(
-    'PARTIAL_VOLUME',
-    'BUY_ALL',
-    'FIXED_SLIPPAGE',
-    'NOOP'
-)

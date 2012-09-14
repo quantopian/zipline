@@ -4,8 +4,7 @@ from collections import defaultdict
 
 from zipline.test_algorithms import ExceptionAlgorithm, DivByZeroAlgorithm, \
     InitializeTimeoutAlgorithm, TooMuchProcessingAlgorithm
-from zipline.finance.trading import SIMULATION_STYLE
-from zipline.core.devsimulator import AddressAllocator
+from zipline.finance.slippage import FixedSlippage
 from zipline.lines import SimulatedTrading
 from zipline.gens.transform import StatefulTransform
 from zipline.utils.timeout import TimeoutException
@@ -29,7 +28,7 @@ class ExceptionTestCase(TestCase):
     def setUp(self):
         self.zipline_test_config = {
             'sid'                   : 133,
-            'simulation_style'      : SIMULATION_STYLE.FIXED_SLIPPAGE
+            'slippage'      : FixedSlippage()
         }
         setup_logger(self)
 

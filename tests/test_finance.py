@@ -16,11 +16,12 @@ from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
-from zipline.utils.test_utils import \
-        setup_logger, \
-        teardown_logger,\
+from zipline.finance.slippage import VolumeShareSlippage
+from zipline.utils.test_utils import(
+        setup_logger,
+        teardown_logger,
         assert_single_position
-
+)
 
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
@@ -258,7 +259,7 @@ class FinanceTestCase(TestCase):
 
         sid = 1
         trading_environment = factory.create_trading_environment()
-        trade_sim = TransactionSimulator([sid])
+        trade_sim = TransactionSimulator()
         price = [10.1] * trade_count
         volume = [100] * trade_count
         start_date = trading_environment.first_open
@@ -315,12 +316,9 @@ class FinanceTestCase(TestCase):
         for trade in generated_trades:
             if trade_delay:
                 trade.dt = trade.dt + trade_delay
-            txn = trade_sim.apply_trade_to_open_orders(trade)
-            if txn:
-                transactions.append(txn)
-                trade.TRANSACTION = txn
-            else:
-                trade.TRANSACTION = None
+            trade_sim.update(trade)
+            if trade.TRANSACTION:
+                transactions.append(trade.TRANSACTION)
 
             tracker.process_event(trade)
 
