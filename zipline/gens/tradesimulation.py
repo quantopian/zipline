@@ -193,6 +193,8 @@ class AlgorithmSimulator(object):
             'filled' : 0
         })
 
+        log.debug(order)
+
         # Tell the user if they try to buy 0 shares of something.
         if order.amount == 0:
             zero_message = "Requested to trade zero shares of {sid}".format(

@@ -122,7 +122,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
                                         amplitude)
 
     if 'algorithm' not in config:
-        config['algorithm'] = BuySellAlgorithm(sid, 100, offset)
+        algorithm = BuySellAlgorithmNew(sid, 100, offset)
 
     config['order_count'] = trade_count - 1
     config['trade_count'] = trade_count
@@ -131,9 +131,4 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['slippage'] = FixedSlippage()
     config['devel'] = True
 
-    zipline = SimulatedTrading.create_test_zipline(**config)
-
-    if simulate:
-        zipline.simulate(blocking=True)
-
-    return zipline, config
+    return algorithm, config

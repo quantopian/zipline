@@ -52,7 +52,6 @@ The algorithm must expose methods:
 
 """
 
-
 class TestAlgorithm():
     """
     This algorithm will send a specified number of orders, to allow unit tests
@@ -60,8 +59,7 @@ class TestAlgorithm():
     at the close of a simulation.
     """
 
-    def __init__(self, sid, amount, order_count, sid_filter=None):
-        self.count = order_count
+    def __init__(self, sid, amount, sid_filter=None):
         self.sid = sid
         self.amount = amount
         self.incr = 0
@@ -69,6 +67,7 @@ class TestAlgorithm():
         self.order = None
         self.frame_count = 0
         self.portfolio = None
+
         if sid_filter:
             self.sid_filter = sid_filter
         else:

@@ -7,7 +7,11 @@ import pytz
 
 from itertools import chain, cycle, ifilter, izip, repeat
 from datetime import datetime, timedelta
+import pandas as pd
+from copy import copy
 
+from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils import ndict
 from zipline.gens.utils import hash_args, create_trade
 
 def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
@@ -78,7 +82,6 @@ class SpecificEquityTrades(object):
         self.sids = kwargs.get('sids', [1, 2])
         self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
         self.delta = kwargs.get('delta', timedelta(minutes = 1))
-        self.concurrent = kwargs.get('concurrent', False)
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -137,6 +140,7 @@ class SpecificEquityTrades(object):
             volumes = mock_volumes(self.count)
 
             sids = cycle(self.sids)
+
             # Combine the iterators into a single iterator of arguments
             arg_gen = izip(sids, prices, volumes, dates)
 
@@ -157,33 +161,57 @@ class SpecificEquityTrades(object):
         return filtered
 
 
-# !!!!!!! Deprecated for now !!!!!!!!!
+class DataFrameSource(SpecificEquityTrades):
+    """
+    Yields all events in event_list that match the given sid_filter.
+    If no event_list is specified, generates an internal stream of events
+    to filter.  Returns all events if filter is None.
 
-def RandomEquityTrades(object):
+    Configuration options:
 
-    def __init__(self):
-        # We shouldn't get any positional args.
-        assert args == ()
+    count  : integer representing number of trades
+    sids   : list of values representing simulated internal sids
+    start  : start date
+    delta  : timedelta between internal events
+    filter : filter to remove the sids
+    """
 
-        self.count = config.get('count', 500)
-        self.sids = config.get('sids', [1,2])
-        self.filter = config.get('filter')
+    def __init__(self, data, **kwargs):
+        assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
-        dates = fuzzy_dates(count)
-        prices = mock_prices(count, rand = True)
-        volumes = mock_volumes(count, rand = True)
-        sids = cycle(sids)
+        self.data = data
+        # Unpack config dictionary with default values.
+        self.count = kwargs.get('count', 500)
+        self.sids = kwargs.get('sids', [0])
+        self.start = kwargs.get('start', datetime(1957, 1, 1, 0, tzinfo = pytz.utc))
+        self.end = kwargs.get('end', datetime(2010, 1, 1, tzinfo=pytz.utc))
+        self.delta = kwargs.get('delta', timedelta(days = 1))
 
-    arg_gen = izip(sids, prices, volumes, dates)
+        # Default to None for event_list and filter.
+        self.filter = kwargs.get('filter')
 
-    unfiltered = (create_trade(*args) for args in arg_gen)
+        # Hash_value for downstream sorting.
+        self.arg_string = hash_args(data, **kwargs)
 
-    if filter:
-        filtered = ifilter(lambda event: event.sid in filter, unfiltered)
-    else:
-        filtered = unfiltered
-    return filtered
+        self.generator = self.create_fresh_generator()
 
-# if __name__ == "__main__":
-#     import nose.tools; nose.tools.set_trace()
-#     trades = SpecificEquityTrades(filter = [1])
+    def create_fresh_generator(self):
+        def _generator(df=self.data):
+            for dt, series in df.iterrows():
+                if (dt < self.start) or (dt > self.end):
+                    continue
+                event = {'dt': dt,
+                         'source_id': self.get_hash(),
+                         'type': DATASOURCE_TYPE.TRADE
+                }
+
+                for sid, price in series.iterkv():
+                    event = copy(event)
+                    event['sid'] = 0
+                    event['price'] = price
+
+                    yield ndict(event)
+
+
+        # Return the filtered event stream.
+        return _generator()
