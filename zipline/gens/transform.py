@@ -286,7 +286,6 @@ class EventWindow(object):
 class BatchWindow(EventWindow):
     def __init__(self, func, refresh_period=None, wind_length=None, sids=None):
         super(BatchWindow, self).__init__(True, days=wind_length, delta=None)
-        self.func = func
         self.sids = sids
         self.refresh_period = refresh_period
         self.wind_length = wind_length
@@ -297,27 +296,29 @@ class BatchWindow(EventWindow):
 
         self.updated = False
 
-    def handle_data(self, data):
-        """
-        New method to handle a data frame as sent to the algorithm's handle_data
-        method.
-        """
-        dts = [data[sid].datetime for sid in self.sids]
-        prices = [data[sid].price for sid in self.sids]
-        volumes = [data[sid].volume for sid in self.sids]
+    # def handle_data(self, data):
+    #     """
+    #     New method to handle a data frame as sent to the algorithm's handle_data
+    #     method.
+    #     """
+    #     dts = [data[sid].datetime for sid in self.sids]
+    #     prices = [data[sid].price for sid in self.sids]
+    #     volumes = [data[sid].volume for sid in self.sids]
 
-        price_df = pd.DataFrame(prices, columns=self.sids, index=dts)
-        volume_df = pd.DataFrame(volumes, columns=self.sids, index=dts)
+    #     price_df = pd.DataFrame(prices, columns=self.sids, index=dts)
+    #     volume_df = pd.DataFrame(volumes, columns=self.sids, index=dts)
 
-        event = ndict({
-                  'dt'    : max(dts),
-                  'prices': price_df,
-                  'volumes': volume_df,
-                })
+    #     event = ndict({
+    #               'dt'    : max(dts),
+    #               'prices': price_df,
+    #               'volumes': volume_df,
+    #             })
 
-        self.update(event)
+    #     self.update(event)
 
     def handle_add(self, event):
+        import pdb; pdb.set_trace()
+
         if not self.last_calc:
             self.last_calc = event.dt
             return
