@@ -1,7 +1,4 @@
-from zipline.lines import Zipline
 import pandas as pd
-import pandas.io.data as dt
-from pandas.io.data import DataReader
 
 import numpy as np
 #from mpl_toolkits.mplot3d import Axes3D
@@ -35,12 +32,12 @@ class DMA(TradingAlgorithm):
             self.invested[sid] = False
 
         self.add_transform(MovingAverage, 'short_mavg', ['price'],
-                           market_aware=False,
-                           delta=timedelta(days=int(short_window)))
+                           market_aware=True,
+                           days=short_window) #timedelta(days=int(short_window)))
 
         self.add_transform(MovingAverage, 'long_mavg', ['price'],
-                           market_aware=False,
-                           delta=timedelta(days=int(long_window)))
+                           market_aware=True,
+                           days=long_window) #timedelta(days=int(long_window)))
 
     def handle_data(self, data):
         self.events += 1
@@ -55,48 +52,21 @@ class DMA(TradingAlgorithm):
                 self.invested[sid] = False
 
 
-class DanVWAP(TradingAlgorithm):
-    """Dual Moving Average algorithm.
-    """
-    def __init__(self, sids, amount=100, short_window=20, long_window=40):
-        self.sids = sids
-        self.amount = amount
-        self.done = False
-        self.order = None
-        self.frame_count = 0
-        self.portfolio = None
-        self.orders = []
-
-        self.prices = []
-        self.port = 0
-
-        self.add_transform(MovingAverage, 'short_mavg', ['price'],
-                           market_aware=False,
-                           delta=timedelta(days=int(short_window)))
-
-        self.add_transform(MovingAverage, 'long_mavg', ['price'],
-                           market_aware=False,
-                           delta=timedelta(days=int(long_window)))
-
-    def handle_data(self, data):
-        for sid in self.sids:
-            average=data[sid].vwap(5)
-            price=data[sid].price
-
-            if price>average*1.05:
-                self.order(sid, self.amount)
-
-
 def load_close_px(indexes=None, stocks=None):
+    from pandas.io.data import DataReader
+    import pytz
+
     if indexes is None:
         indexes = {'SPX' : '^GSPC'}
     if stocks is None:
-        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
+        stocks = ['AAPL'] #, 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
 
-    start = pd.datetime(1990, 1, 1)
-    end = pd.datetime.today()
+    #start = pd.datetime(1990, 1, 1)
+    start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = pd.datetime(1992, 1, 1, 0, 0, 0, 0, pytz.utc) #pd.datetime.today()
 
     data = {}
+
     for stock in stocks:
         print stock
         stkd = DataReader(stock, 'yahoo', start, end).sort_index()
@@ -107,15 +77,18 @@ def load_close_px(indexes=None, stocks=None):
         stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
         data[name] = stkd
 
-    df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
+    #df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
+    df = pd.DataFrame({i: d['Close'] for i, d in enumerate(data.itervalues())})
+    df.index = df.index.tz_localize(pytz.utc)
 
     return df
 
 
 def run((short_window, long_window)):
-    data = pd.DataFrame.from_csv('SP500.csv')
+    #data = pd.DataFrame.from_csv('SP500.csv')
+    data = load_close_px()
     myalgo = DMA([0], amount=100, short_window=short_window, long_window=long_window)
-    stats = myalgo.run(data, compute_risk_metrics=False)
+    stats = myalgo.run(data)
     stats['sw'] = short_window
     stats['lw'] = long_window
     return stats

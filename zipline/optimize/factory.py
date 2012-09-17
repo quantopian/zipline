@@ -1,4 +1,3 @@
-
 """
 Factory functions to prepare useful data for optimize tests.
 
@@ -6,16 +5,17 @@ Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
 import pandas as pd
-from copy import copy
-from itertools import cycle
 
 import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
-from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
-from zipline.optimize.algorithms import BuySellAlgorithmNew
+from zipline.finance.sources import SpecificEquityTrades
+from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.lines import SimulatedTrading
-from zipline.finance.trading import SIMULATION_STYLE
+from zipline.finance.slippage import FixedSlippage
+
+from copy import copy
+from itertools import cycle
 
 def create_updown_trade_source(sid, trade_count, trading_environment, base_price, amplitude):
     """Create the updown trade source. This source emits events with
@@ -39,28 +39,39 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
         source : SpecificEquityTrades
             The trade source emitting up down events.
     """
+    volume = 1000
+    events = []
     price = base_price-amplitude/2.
 
     cur = trading_environment.first_open
-    one_day = timedelta(days = 1)
+    one_day = timedelta(minutes = 1)#days = 1)
 
     #create iterator to cycle through up and down phases
     change = cycle([1,-1])
-    prices = []
-    dts = []
+
     for i in xrange(trade_count + 2):
         cur = get_next_trading_dt(cur, one_day, trading_environment)
-        dts.append(cur)
-        prices.append(price)
+
+        event = zp.ndict({
+            "type"      : zp.DATASOURCE_TYPE.TRADE,
+            "sid"       : sid,
+            "price"     : price,
+            "volume"    : volume,
+            "dt"        : cur,
+        })
+
+        events.append(event)
 
         price += change.next()*amplitude
 
-    df = pd.DataFrame(index=dts, data=prices, columns=[0])
+    trading_environment.period_end = cur
 
-    return df
+    source = SpecificEquityTrades(events)
+
+    return source
 
 
-def create_predictable_zipline(config, offset=0):
+def create_predictable_zipline(config, offset=0, simulate=True):
     """Create a test zipline object as specified by config. The
     zipline will use the UpDown tradesource which is perfectly
     predictable.
@@ -117,8 +128,7 @@ def create_predictable_zipline(config, offset=0):
     config['trade_count'] = trade_count
     config['trade_source'] = source
     config['environment'] = trading_environment
-    config['simulation_style'] = SIMULATION_STYLE.FIXED_SLIPPAGE
+    config['slippage'] = FixedSlippage()
+    config['devel'] = True
 
     return algorithm, config
-
-

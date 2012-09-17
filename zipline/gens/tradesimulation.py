@@ -21,7 +21,7 @@ MAX_HEARTBEAT_INTERVALS = 15 #count
 class TradeSimulationClient(object):
     """
     Generator-style class that takes the expected output of a merge, a
-    user algorithm, a trading environment, and a simulator style as
+    user algorithm, a trading environment, and a simulator slippage as
     arguments.  Pipes the merge stream through a TransactionSimulator
     and a PerformanceTracker, which keep track of the current state of
     our algorithm's simulated universe. Results are fed to the user's
@@ -52,14 +52,14 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, sim_style):
+    def __init__(self, algo, environment, slippage):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.style = sim_style
+        self.slippage = slippage
 
-        self.ordering_client = TransactionSimulator(self.sids, style=self.style)
+        self.ordering_client = TransactionSimulator(self.slippage)
         self.perf_tracker = PerformanceTracker(self.environment, self.sids)
 
         self.algo_start = self.environment.first_open
@@ -130,6 +130,9 @@ class AlgorithmSimulator(object):
         self.algolog = Logger("AlgoLog")
         self.algo.set_logger(self.algolog)
 
+        # Porived user algorithm with slippage override.
+        self.algo.set_slippage_override(self.override_slippage)
+
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
             t = beat_count * HEARTBEAT_INTERVAL
@@ -173,6 +176,9 @@ class AlgorithmSimulator(object):
         # Single_use generator that uses the @contextmanager decorator
         # to monkey patch sys.stdout with a logbook interface.
         self.stdout_capture = stdout_only_pipe
+
+    def override_slippage(self, slippage):
+        self.order_book.slippage = slippage
 
     def order(self, sid, amount):
         """

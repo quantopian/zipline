@@ -12,8 +12,6 @@ from zipline.optimize.factory import create_predictable_zipline
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
-allocator = AddressAllocator(1000)
-
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
 class TestUpDown(TestCase):
@@ -26,7 +24,6 @@ class TestUpDown(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'allocator'   : allocator,
             'sid'         : [0],
             'trade_count' : 5,
             'amplitude'   : 30,
@@ -38,7 +35,7 @@ class TestUpDown(TestCase):
     def tearDown(self):
         teardown_logger(self)
 
-#    @skip
+    @skip
     @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
@@ -94,9 +91,7 @@ class TestUpDown(TestCase):
             "Algorithm did not sell when price was going to increase."
         )
 
-        from nose.tools import set_trace; set_trace()
-
-#    @skip
+    @skip
     def test_concavity_of_returns(self):
         """verify concave relationship between free parameter and
         returns in certain region around the max. Moreover,
@@ -141,7 +136,7 @@ class TestUpDown(TestCase):
             idx[0] -= 1
             idx[1] += 1
 
-#    @skip
+    @skip
     def test_optimize(self):
         """verify that gradient descent (Powell's method) can find
         the optimal free parameter under which the BuySellAlgorithm produces

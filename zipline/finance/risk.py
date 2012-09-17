@@ -332,7 +332,7 @@ class RiskReport():
         self,
         algorithm_returns,
         trading_environment,
-        exceeded_max_loss=False):
+        ):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
@@ -340,7 +340,6 @@ class RiskReport():
 
         self.algorithm_returns = algorithm_returns
         self.trading_environment = trading_environment
-        self.exceeded_max_loss = exceeded_max_loss
         self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
@@ -375,7 +374,6 @@ class RiskReport():
             'three_month'       : [x.to_dict() for x in self.three_month_periods],
             'six_month'         : [x.to_dict() for x in self.six_month_periods],
             'twelve_month'      : [x.to_dict() for x in self.year_periods],
-            'exceeded_max_loss' : self.exceeded_max_loss,
             'created'           : self.created
         }
 

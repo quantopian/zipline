@@ -2,13 +2,6 @@ msgpack-python==0.1.12
 humanhash==0.0.1
 iso8601==0.1.4
 
-# ZeroMQ
-pyzmq==2.1.11
-gevent-zeromq==0.2.2
-
-# Unix
-setproctitle==1.1.6
-
 # Logging
 Logbook==0.3
 

@@ -7,7 +7,7 @@ numpy>=1.6.1
 pandas==0.8.0
 scipy>=0.10.0
 
-matplotlib==1.1.0
+#matplotlib==1.1.0
 #http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.tar.gz
 
 numexpr==2.0.1
@@ -16,5 +16,3 @@ patsy==0.1.0
 statsmodels>=0.5.0
 scikit-learn==0.11
 
-# ZeroMQ
-pyzmq==2.1.11

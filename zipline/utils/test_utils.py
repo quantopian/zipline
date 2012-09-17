@@ -1,7 +1,3 @@
-import multiprocessing
-import zmq
-import time
-import zipline.protocol as zp
 from datetime import datetime
 import blist
 from zipline.utils.date_utils import EPOCH
@@ -65,80 +61,40 @@ def check(test, a, b, label=None):
         test.assertEqual(a, b, "mismatch on path: " + label)
 
 
-def drain_zipline(test, zipline, p_blocking=False):
-    assert test.ctx, "method expects a valid zmq context"
-    assert test.zipline_test_config, "method expects a valid test config"
-    assert isinstance(test.zipline_test_config, dict)
-    assert test.zipline_test_config['results_socket_uri'], \
-            "need to specify a socket address for logs/perf/risk"
-    test.receiver = create_receiver(
-        test.zipline_test_config['results_socket_uri'],
-        test.ctx
-    )
-    # Bind and connect are asynch, so allow time for bind before
-    # starting the zipline (TSC connects internally).
-    time.sleep(1)
-
-    # start the simulation
-    zipline.simulate(blocking=p_blocking)
-    output, transaction_count = drain_receiver(test.receiver)
-    # some processes will exit after the message stream is
-    # finished. We block here to avoid collisions with subsequent
-    # ziplines.
-    zipline.join()
-
-    return output, transaction_count
-
-
-def create_receiver(socket_addr, ctx):
-    receiver = ctx.socket(zmq.PULL)
-    receiver.bind(socket_addr)
-
-    return receiver
-
-
-def drain_receiver(receiver, count=None):
+def drain_zipline(test, zipline):
     output = []
     transaction_count = 0
     msg_counter = 0
-    while True:
-        msg = receiver.recv()
+    # start the simulation
+    for update in zipline:
         msg_counter += 1
-        update = zp.BT_UPDATE_UNFRAME(msg)
         output.append(update)
-        if update['prefix'] == 'PERF':
+        if 'daily_perf' in update:
             transaction_count += \
-                len(update['payload']['daily_perf']['transactions'])
-        elif update['prefix'] == 'EXCEPTION':
-            break
-        elif update['prefix'] == 'DONE':
-            break
-
-        if count and msg_counter >= count:
-            break
-
-    receiver.close()
-    del receiver
+                len(update['daily_perf']['transactions'])
 
     return output, transaction_count
 
 
-def assert_single_position(test, zipline, blocking=False):
-    output, transaction_count = drain_zipline(test,
-                                              zipline,
-                                              p_blocking=blocking)
-    test.assertEqual(output[-1]['prefix'], 'DONE')
+def assert_single_position(test, zipline):
 
-    test.assertEqual(
-        test.zipline_test_config['order_count'],
-        transaction_count
-    )
+    output, transaction_count = drain_zipline(test, zipline)
+
+    if 'expected_transactions' in test.zipline_test_config:
+        test.assertEqual(
+            test.zipline_test_config['expected_transactions'],
+            transaction_count
+        )
+    else:
+        test.assertEqual(
+            test.zipline_test_config['order_count'],
+            transaction_count
+        )
 
     # the final message is the risk report, the second to
     # last is the final day's results. Positions is a list of
     # dicts.
-    perfs = [x for x in output if x['prefix'] == 'PERF']
-    closing_positions = perfs[-2]['payload']['daily_perf']['positions']
+    closing_positions = output[-2]['daily_perf']['positions']
 
     test.assertEqual(
         len(closing_positions),
@@ -153,17 +109,7 @@ def assert_single_position(test, zipline, blocking=False):
         "Portfolio should have one position in " + str(sid)
     )
 
-
-def launch_component(component):
-    proc = multiprocessing.Process(target=component.run)
-    proc.start()
-    return proc
-
-
-def launch_monitor(monitor):
-    proc = multiprocessing.Process(target=monitor.run)
-    proc.start()
-    return proc
+    return output, transaction_count
 
 
 class ExceptionSource(object):
