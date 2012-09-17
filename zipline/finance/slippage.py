@@ -117,7 +117,7 @@ class FixedSlippage(object):
         txn = create_transaction(
             event.sid,
             amount,
-            event.price + self.spread/2.0,
+            event.price + (self.spread/2.0 * direction),
             event.dt,
             direction,
             self.commission
