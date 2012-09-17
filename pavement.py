@@ -110,7 +110,6 @@ options(
 # Because I'm lazy
 stuff_i_want_in_my_debug_shell = [
     ('qutil', 'zipline.util', []),
-    ('zmq', 'zmq', []),
 ]
 
 @task

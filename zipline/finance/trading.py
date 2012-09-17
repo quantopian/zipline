@@ -1,33 +1,25 @@
 import pytz
-import math
 import logbook
 import datetime
 
+from collections import defaultdict
+
 import zipline.protocol as zp
-from zipline.protocol import SIMULATION_STYLE
+from zipline.finance.slippage import VolumeShareSlippage, FixedSlippage
 
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
 
-    def __init__(self, sid_filter, style=SIMULATION_STYLE.PARTIAL_VOLUME):
-        self.open_orders                = {}
-        self.txn_count                  = 0
-        self.trade_window               = datetime.timedelta(seconds=30)
-        self.orderTTL                   = datetime.timedelta(days=1)
-        self.commission                 = 0.03
+    def __init__(self, slippage=None):
+        if slippage:
+            assert isinstance(slippage, (VolumeShareSlippage, FixedSlippage))
+            self.slippage = slippage
+        else:
+            self.slippage = VolumeShareSlippage()
 
-        if not style or style == SIMULATION_STYLE.PARTIAL_VOLUME:
-            self.apply_trade_to_open_orders = self.simulate_with_partial_volume
-        elif style == SIMULATION_STYLE.BUY_ALL:
-            self.apply_trade_to_open_orders =  self.simulate_buy_all
-        elif style == SIMULATION_STYLE.FIXED_SLIPPAGE:
-            self.apply_trade_to_open_orders = self.simulate_with_fixed_cost
-        elif style == SIMULATION_STYLE.NOOP:
-            self.apply_trade_to_open_orders = self.simulate_noop
+        self.open_orders = defaultdict(list)
 
-        for sid in sid_filter:
-            self.open_orders[sid] = []
 
     def place_order(self, order):
         # initialized filled field.
@@ -45,121 +37,9 @@ class TransactionSimulator(object):
         event.TRANSACTION = None
         # We only fill transactions on trade events.
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            event.TRANSACTION = self.apply_trade_to_open_orders(event)
+            event.TRANSACTION = self.slippage.simulate(event, self.open_orders)
         return event
 
-    def simulate_buy_all(self, event):
-        txn = self.create_transaction(
-            event.sid,
-            event.volume,
-            event.price,
-            event.dt,
-            1
-        )
-        return txn
-
-    def simulate_noop(self, event):
-        return None
-
-    def simulate_with_fixed_cost(self, event):
-        if self.open_orders.has_key(event.sid):
-            orders = self.open_orders[event.sid]
-            orders = sorted(orders, key=lambda o: o.dt)
-        else:
-            return None
-
-        amount = 0
-        for order in orders:
-            amount += order.amount
-
-        if(amount == 0):
-            return
-
-        direction = amount / math.fabs(amount)
-
-        txn = self.create_transaction(
-            event.sid,
-            amount,
-            event.price + 0.10, # Magic constant?
-            event.dt,
-            direction
-        )
-
-        self.open_orders[event.sid] = []
-
-        return txn
-
-    def simulate_with_partial_volume(self, event):
-        if(event.volume == 0):
-            #there are zero volume events bc some stocks trade
-            #less frequently than once per minute.
-            return None
-
-        if self.open_orders.has_key(event.sid):
-            orders = self.open_orders[event.sid]
-            orders = sorted(orders, key=lambda o: o.dt)
-        else:
-            return None
-
-        dt = event.dt
-        expired = []
-        total_order = 0
-        simulated_amount = 0
-        simulated_impact = 0.0
-        direction = 1.0
-        for order in orders:
-
-            if(order.dt < event.dt):
-
-                # orders are only good on the day they are issued
-                if order.dt.day < event.dt.day:
-                    continue
-
-                open_amount = order.amount - order.filled
-
-                if(open_amount != 0):
-                    direction = open_amount / math.fabs(open_amount)
-                else:
-                    direction = 1
-
-                desired_order = total_order + open_amount
-
-                volume_share = direction * (desired_order) / event.volume
-                if volume_share > .25:
-                    volume_share = .25
-                simulated_amount = int(volume_share * event.volume * direction)
-                simulated_impact = (volume_share)**2 * .1 * direction * event.price
-
-                order.filled += (simulated_amount - total_order)
-                total_order = simulated_amount
-
-                # we cap the volume share at 25% of a trade
-                if volume_share == .25:
-                    break
-
-        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
-
-        self.open_orders[event.sid] = orders
-
-
-        if simulated_amount != 0:
-            return self.create_transaction(
-                event.sid,
-                simulated_amount,
-                event.price + simulated_impact,
-                dt.replace(tzinfo = pytz.utc),
-                direction
-            )
-
-    def create_transaction(self, sid, amount, price, dt, direction):
-        self.txn_count += 1
-        txn = {'sid'            : sid,
-                'amount'        : int(amount),
-                'dt'            : dt,
-                'price'         : price,
-                'commission'    : self.commission * amount * direction
-                }
-        return zp.ndict(txn)
 
 class TradingEnvironment(object):
 
@@ -169,8 +49,7 @@ class TradingEnvironment(object):
         treasury_curves,
         period_start    = None,
         period_end      = None,
-        capital_base    = None,
-        max_drawdown    = None
+        capital_base    = None
     ):
 
         self.trading_days = []
@@ -181,10 +60,9 @@ class TradingEnvironment(object):
         self.period_end = period_end
         self.capital_base = capital_base
         self.period_trading_days = None
-        self.max_drawdown = max_drawdown
 
         assert self.period_start <= self.period_end, \
-            "Period start falls after period end."       
+            "Period start falls after period end."
 
         for bm in benchmark_returns:
             self.trading_days.append(bm.date)
@@ -197,7 +75,7 @@ class TradingEnvironment(object):
 
         self.first_open = self.calculate_first_open()
         self.last_close = self.calculate_last_close()
-        
+
         self.prior_day_open = self.calculate_prior_day_open()
 
     def calculate_first_open(self):

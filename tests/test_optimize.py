@@ -12,8 +12,6 @@ from zipline.core.devsimulator import AddressAllocator
 DEFAULT_TIMEOUT = 15 # seconds
 EXTENDED_TIMEOUT = 90
 
-allocator = AddressAllocator(1000)
-
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
 class TestUpDown(TestCase):
@@ -26,7 +24,6 @@ class TestUpDown(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'allocator'   : allocator,
             'sid'         : 133,
             'trade_count' : 5,
             'amplitude'   : 30,
