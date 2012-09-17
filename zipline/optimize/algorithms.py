@@ -48,6 +48,7 @@ class BuySellAlgorithm(object):
         self.portfolio = portfolio
 
     def handle_data(self, frame):
+        print frame.sid
         order_size = self.buy_or_sell * (self.amount - (self.offset**2))
         self.order(self.sid, order_size)
 
@@ -62,40 +63,114 @@ class BuySellAlgorithm(object):
     def get_sid_filter(self):
         return [self.sid]
 
-# Algorithm base class, user algorithms inherit from this as they
-# don't want to have to copy and know about set_order and
-# set_portfolio
-class TradingAlgorithm(object):
-    def _setup(self):
-        assert hasattr(self, 'source'), 'source not set.'
-        assert hasattr(self, 'sids'), "sids not set."
 
-        environment = create_trading_environment(start=self.data.index[0], end=self.data.index[-1])
+class TradingAlgorithm(object):
+    """
+    Base class for trading algorithms. Inherit and overload handle_data(data).
+
+    A new algorithm could look like this:
+    ```
+    class MyAlgo(TradingAlgorithm):
+        def initialize(amount):
+            self.amount = amount
+
+        def handle_data(data):
+            sid = self.sids[0]
+            self.order(sid, amount)
+    ```
+    To then run this algorithm:
+
+    >>> my_algo = MyAlgo(100)
+    >>> stats = my_algo.run(data)
+
+    """
+    def __init__(self, sids, *args, **kwargs):
+        """
+        Initialize sids and other state variables.
+
+        Calls user-defined initialize and forwarding *args and **kwargs.
+        """
+        self.sids = sids
+        self.done = False
+        self.order = None
+        self.frame_count = 0
+        self.portfolio = None
+
+        self.registered_transforms = {}
+
+        # call to user-defined initialize method
+        self.initialize(*args, **kwargs)
+
+    def _create_simulator(self, source):
+        """
+        Create trading environment, transforms and SimulatedTrading object.
+
+        Gets called by self.run(data).
+        """
+        environment = create_trading_environment(start=source.data.index[0], end=source.data.index[-1])
 
         # Create transforms by wrapping them into StatefulTransforms
         transforms = []
-        if hasattr(self, 'registered_transforms'):
-            for namestring, trans_descr in self.registered_transforms.iteritems():
-                sf = StatefulTransform(
-                    trans_descr['class'],
-                    *trans_descr['args'],
-                    **trans_descr['kwargs']
-                )
-                sf.namestring = namestring
+        for namestring, trans_descr in self.registered_transforms.iteritems():
+            sf = StatefulTransform(
+                trans_descr['class'],
+                *trans_descr['args'],
+                **trans_descr['kwargs']
+            )
+            sf.namestring = namestring
 
-                transforms.append(sf)
+            transforms.append(sf)
 
-
-        self.simulated_trading = SimulatedTrading(
-            [self.source],
+        # SimulatedTrading is the main class handling data streaming,
+        # application of transforms and calling of the user algo.
+        return SimulatedTrading(
+            [source],
             transforms,
             self,
             environment,
             FixedSlippage()
         )
 
+    def run(self, data):
+        """
+        Run the algorithm.
+
+        :Arguments:
+            data : pandas.DataFrame
+               * columns must consist of ints representing the different sids
+               * index must be TimeStamps
+               * array contents should be price
+
+        :Returns:
+            daily_stats : pandas.DataFrame
+              Daily performance metrics such as returns, alpha etc.
+
+        """
+        assert isinstance(data, pd.DataFrame)
+        assert isinstance(data.index, pd.Timeseries)
+
+        source = DataFrameSource(data, sids=self.sids)
+
+        # create transforms and zipline
+        simulated_trading = self._create_simulator(source)
+
+        # loop through simulated_trading, each iteration returns a
+        # perf ndict
+        perfs = []
+        for perf in simulated_trading:
+            #from nose.tools import set_trace; set_trace()
+            perfs.append(perf)
+
+        #perfs = list(self.simulated_trading)
+
+        # convert perf ndict to pandas dataframe
+        daily_stats = self._create_daily_stats(perfs)
+
+        return daily_stats
+
+
     def _create_daily_stats(self, perfs):
-        # create daily stats dataframe
+        # create daily and cumulative stats dataframe
         daily_perfs = []
         cum_perfs = []
         for perf in perfs:
@@ -109,21 +184,23 @@ class TradingAlgorithm(object):
 
         return daily_stats
 
-    def run(self, data, compute_risk_metrics=False):
-        self.source = DataFrameSource(data, sids=self.sids)
-        self.data = data
-        self._setup()
+    def add_transform(self, transform_class, tag, *args, **kwargs):
+        """Add a single-sid, sequential transform to the model.
 
-        # drain simulated_trading
-        perfs = []
-        for perf in self.simulated_trading:
-            #from nose.tools import set_trace; set_trace()
-            perfs.append(perf)
+        :Arguments:
+            transform_class : class
+                Which transform to use. E.g. mavg.
+            tag : str
+                How to name the transform. Can later be access via:
+                data[sid].tag()
 
-        #perfs = list(self.simulated_trading)
+        Extra args and kwargs will be forwarded to the transform
+        instantiation.
 
-        daily_stats = self._create_daily_stats(perfs)
-        return daily_stats
+        """
+        self.registered_transforms[tag] = {'class': transform_class,
+                                           'args': args,
+                                           'kwargs': kwargs}
 
     def set_portfolio(self, portfolio):
         self.portfolio = portfolio
@@ -137,19 +214,12 @@ class TradingAlgorithm(object):
     def set_logger(self, logger):
         self.logger = logger
 
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         pass
 
     def set_slippage_override(self, slippage_callable):
         pass
 
-    def add_transform(self, transform_class, tag, *args, **kwargs):
-        if not hasattr(self, 'registered_transforms'):
-            self.registered_transforms = {}
-
-        self.registered_transforms[tag] = {'class': transform_class,
-                                           'args': args,
-                                           'kwargs': kwargs}
 
 
 class BuySellAlgorithmNew(TradingAlgorithm):

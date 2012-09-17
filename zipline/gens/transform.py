@@ -217,7 +217,7 @@ class EventWindow(object):
         self.assert_well_formed(event)
 
         # Add new event and increment totals.
-        self.ticks.append(event)
+        self.ticks.append(deepcopy(event))
 
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
@@ -266,6 +266,7 @@ class EventWindow(object):
         # day in the window.
         if oldest.time() > newest.time():
             trading_days_between -= 1
+
         return trading_days_between >= self.days
 
     def out_of_delta(self, oldest, newest):
@@ -284,62 +285,84 @@ class EventWindow(object):
 
 
 class BatchWindow(EventWindow):
-    def __init__(self, func, refresh_period=None, wind_length=None, sids=None):
-        super(BatchWindow, self).__init__(True, days=wind_length, delta=None)
+    def __init__(self, func=None, refresh_period=None, days=None, sids=None):
+        super(BatchWindow, self).__init__(True, days=days, delta=None)
+        self.func = func
         self.sids = sids
         self.refresh_period = refresh_period
-        self.wind_length = wind_length
+        self.days = days
 
-        self.last_calc = False
         self.full = False
         self.last_refresh = None
 
         self.updated = False
+        self.data = None
 
-    # def handle_data(self, data):
-    #     """
-    #     New method to handle a data frame as sent to the algorithm's handle_data
-    #     method.
-    #     """
-    #     dts = [data[sid].datetime for sid in self.sids]
-    #     prices = [data[sid].price for sid in self.sids]
-    #     volumes = [data[sid].volume for sid in self.sids]
+    def handle_data(self, data):
+        """
+        New method to handle a data frame as sent to the algorithm's handle_data
+        method.
+        """
+        # extract dates
+        dts = [data[sid].datetime for sid in self.sids]
+        # we have to provide the event with a dt. This is only for
+        # checking if the event is outside the window or not so a
+        # couple of seconds shouldn't matter
+        data.dt = max(dts)
 
-    #     price_df = pd.DataFrame(prices, columns=self.sids, index=dts)
-    #     volume_df = pd.DataFrame(volumes, columns=self.sids, index=dts)
+        # append data frame to window
+        self.update(data)
 
-    #     event = ndict({
-    #               'dt'    : max(dts),
-    #               'prices': price_df,
-    #               'volumes': volume_df,
-    #             })
-
-    #     self.update(event)
+        # return newly computed or cached value
+        return self.compute()
 
     def handle_add(self, event):
-        import pdb; pdb.set_trace()
-
-        if not self.last_calc:
-            self.last_calc = event.dt
+        if not self.last_refresh:
+            self.last_refresh = event.dt
             return
 
         age = event.dt - self.last_refresh
         if age.days >= self.refresh_period:
-            self.prices = pd.concat(self.ticks.prices)
-            self.volumes = pd.concat(self.ticks.volumes)
+            # create Series price object
+            data_sids = {}
+            for sid in self.sids:
+                dts = [tick[sid].dt for tick in self.ticks]
+                prices = [tick[sid].price for tick in self.ticks]
+                data_sids[sid] = pd.Series(prices, index=dts)
+
+            # concatenate different sids into one df
+            self.data = pd.concat(data_sids, axis=1)
 
             self.updated = True
+            self.last_refresh = event.dt
         else:
             self.updated = False
-
-        self.last_refresh = event.dt
 
     def handle_remove(self, event):
         # since an event is expiring, we know the window is full
         self.full = True
 
-    def __call__(self, *args, **kwargs):
+    def get_value(self, *args, **kwargs):
+        raise NotImplementedError("Either overwrite get_value or provide a func argument.")
+
+    def compute(self, *args, **kwargs):
+        if self.data is None:
+            return False
+
         if self.updated:
-            self.cached = self.get_value(self.prices, self.volumes, *args, **kwargs)
+            if self.func is not None:
+                # user supplied function
+                self.cached = self.func(self.data, *args, **kwargs)
+            else:
+                # assume inheritance
+                self.cached = self.get_value(self.data, *args, **kwargs)
 
         return self.cached
+
+
+# decorator for BatchWindow
+def batch_transform(func):
+    def create_transform(*args, **kwargs):
+        return BatchWindow(*args, func=func, **kwargs)
+
+    return create_transform

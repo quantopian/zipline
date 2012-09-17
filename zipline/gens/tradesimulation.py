@@ -2,6 +2,7 @@ from logbook import Logger, Processor
 
 from datetime import datetime
 from itertools import groupby
+from operator import attrgetter
 
 from zipline import ndict
 from zipline.utils.timeout import Heartbeat, Timeout
@@ -226,8 +227,7 @@ class AlgorithmSimulator(object):
 
             # Group together events with the same dt field. This depends on the
             # events already being sorted.
-            for date, snapshot in groupby(stream_in, lambda e: e.dt):
-
+            for date, snapshot in groupby(stream_in, attrgetter('dt')):
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
                 if self.simulation_dt == None:

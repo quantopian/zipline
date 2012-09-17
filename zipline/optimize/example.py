@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
 from zipline.gens.mavg import MovingAverage
+from zipline.gens.cov import  CovEventWindow, cov
 from zipline.optimize.algorithms import TradingAlgorithm
 from datetime import timedelta
 
@@ -15,15 +16,9 @@ from datetime import timedelta
 class DMA(TradingAlgorithm):
     """Dual Moving Average algorithm.
     """
-    def __init__(self, sids, amount=100, short_window=20, long_window=40):
-        self.sids = sids
-        self.amount = amount
-        self.done = False
-        self.order = None
-        self.frame_count = 0
-        self.portfolio = None
+    def initialize(self, amount=100, short_window=20, long_window=40):
         self.orders = []
-
+        self.amount = amount
         self.prices = []
         self.events = 0
 
@@ -33,14 +28,21 @@ class DMA(TradingAlgorithm):
 
         self.add_transform(MovingAverage, 'short_mavg', ['price'],
                            market_aware=True,
-                           days=short_window) #timedelta(days=int(short_window)))
+                           days=short_window)
 
         self.add_transform(MovingAverage, 'long_mavg', ['price'],
                            market_aware=True,
-                           days=long_window) #timedelta(days=int(long_window)))
+                           days=long_window)
+
+        self.cov = CovEventWindow(sids=self.sids, refresh_period=1, days=5)
+        self.cov2 = cov(sids=self.sids, refresh_period=1, days=5)
 
     def handle_data(self, data):
         self.events += 1
+
+        cov = self.cov.handle_data(data)
+        cov = self.cov2.handle_data(data)
+        print cov
 
         for sid in self.sids:
             # access transforms via their user-defined tag
@@ -86,8 +88,8 @@ def load_close_px(indexes=None, stocks=None):
 
 def run((short_window, long_window)):
     #data = pd.DataFrame.from_csv('SP500.csv')
-    data = load_close_px()
-    myalgo = DMA([0], amount=100, short_window=short_window, long_window=long_window)
+    data = pd.DataFrame.from_csv('aapl.csv') #load_close_px()
+    myalgo = DMA([0, 1], amount=100, short_window=short_window, long_window=long_window)
     stats = myalgo.run(data)
     stats['sw'] = short_window
     stats['lw'] = long_window
@@ -153,3 +155,5 @@ def plot_returns(port_returns, bmk_returns):
     cum_bmk.plot(label='Benchmark')
     plt.title('Portfolio performance')
     plt.legend(loc='best')
+
+print run((10, 20))

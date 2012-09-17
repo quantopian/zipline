@@ -181,11 +181,11 @@ class DataFrameSource(SpecificEquityTrades):
 
         self.data = data
         # Unpack config dictionary with default values.
-        self.count = kwargs.get('count', 500)
-        self.sids = kwargs.get('sids', [0])
-        self.start = kwargs.get('start', datetime(1957, 1, 1, 0, tzinfo = pytz.utc))
-        self.end = kwargs.get('end', datetime(2010, 1, 1, tzinfo=pytz.utc))
-        self.delta = kwargs.get('delta', timedelta(days = 1))
+        self.count = kwargs.get('count', len(data))
+        self.sids = kwargs.get('sids', data.columns)
+        self.start = kwargs.get('start', data.index[0])
+        self.end = kwargs.get('end', data.index[-1])
+        self.delta = kwargs.get('delta', data.index[1]-data.index[0])
 
         # Default to None for event_list and filter.
         self.filter = kwargs.get('filter')
@@ -207,7 +207,7 @@ class DataFrameSource(SpecificEquityTrades):
 
                 for sid, price in series.iterkv():
                     event = copy(event)
-                    event['sid'] = 0
+                    event['sid'] = sid
                     event['price'] = price
 
                     yield ndict(event)

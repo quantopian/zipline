@@ -98,7 +98,7 @@ class TestAlgorithm():
     def set_slippage_override(self, slippage_callable):
         pass
 
-    #
+
 class HeavyBuyAlgorithm():
     """
     This algorithm will send a specified number of orders, to allow unit tests
