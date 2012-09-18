@@ -105,7 +105,7 @@ class TradingAlgorithm(object):
         """
         Create trading environment, transforms and SimulatedTrading object.
 
-        Gets called by self.run(data).
+        Gets called by self.run().
         """
         environment = create_trading_environment(start=source.data.index[0], end=source.data.index[-1])
 
@@ -147,7 +147,7 @@ class TradingAlgorithm(object):
 
         """
         assert isinstance(data, pd.DataFrame)
-        assert isinstance(data.index, pd.Timeseries)
+        assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
         source = DataFrameSource(data, sids=self.sids)
 
@@ -156,12 +156,7 @@ class TradingAlgorithm(object):
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict
-        perfs = []
-        for perf in simulated_trading:
-            #from nose.tools import set_trace; set_trace()
-            perfs.append(perf)
-
-        #perfs = list(self.simulated_trading)
+        perfs = list(self.simulated_trading)
 
         # convert perf ndict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)

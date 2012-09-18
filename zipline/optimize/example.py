@@ -88,7 +88,8 @@ def load_close_px(indexes=None, stocks=None):
 
 def run((short_window, long_window)):
     #data = pd.DataFrame.from_csv('SP500.csv')
-    data = pd.DataFrame.from_csv('aapl.csv') #load_close_px()
+    #data = pd.DataFrame.from_csv('aapl.csv') #load_close_px()
+    data = load_close_px()
     myalgo = DMA([0, 1], amount=100, short_window=short_window, long_window=long_window)
     stats = myalgo.run(data)
     stats['sw'] = short_window
