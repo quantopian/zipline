@@ -9,9 +9,8 @@ import pandas as pd
 import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
-from zipline.finance.sources import SpecificEquityTrades
+from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithmNew
-from zipline.lines import SimulatedTrading
 from zipline.finance.slippage import FixedSlippage
 
 from copy import copy
