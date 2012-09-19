@@ -1,25 +1,26 @@
+# WARNING: This file is still work in progress and contains rather
+# random code snippets.
+
 import pandas as pd
 
 import numpy as np
-#from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib.pyplot as plt
 import cProfile
 from zipline.gens.mavg import MovingAverage
-from zipline.gens.cov import  CovEventWindow, cov
-from zipline.optimize.algorithms import TradingAlgorithm
-from datetime import timedelta
+from zipline.gens.cov import  CovTransform, cov
+from zipline.algorithm import TradingAlgorithm
+from zipline.gens.transform import BatchTransform, batch_transform
 
-#from mpi4py_map import map
+@batch_transform
+def cov(data):
+    return data.price.cov()
 
-# Inherits from Algorithm base class
 class DMA(TradingAlgorithm):
     """Dual Moving Average algorithm.
     """
     def initialize(self, amount=100, short_window=20, long_window=40):
-        self.orders = []
         self.amount = amount
-        self.prices = []
         self.events = 0
 
         self.invested = {}
@@ -34,14 +35,12 @@ class DMA(TradingAlgorithm):
                            market_aware=True,
                            days=long_window)
 
-        self.cov = CovEventWindow(sids=self.sids, refresh_period=1, days=5)
-        self.cov2 = cov(sids=self.sids, refresh_period=1, days=5)
+        self.cov = cov(sids=self.sids, refresh_period=1, days=5)
 
     def handle_data(self, data):
         self.events += 1
 
         cov = self.cov.handle_data(data)
-        cov = self.cov2.handle_data(data)
         print cov
 
         for sid in self.sids:

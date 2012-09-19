@@ -212,6 +212,5 @@ class DataFrameSource(SpecificEquityTrades):
 
                     yield ndict(event)
 
-
         # Return the filtered event stream.
         return _generator()

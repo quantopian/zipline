@@ -5,12 +5,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from zipline.core.devsimulator import AddressAllocator
-# TODO: refactor the factory to use generators
 from zipline.optimize.factory import create_predictable_zipline
-
-DEFAULT_TIMEOUT = 15 # seconds
-EXTENDED_TIMEOUT = 90
 
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
@@ -36,7 +31,6 @@ class TestUpDown(TestCase):
         teardown_logger(self)
 
     @skip
-    @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
         behavior and that BuySellAlgorithm places the buy/sell

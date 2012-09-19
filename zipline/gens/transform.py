@@ -175,13 +175,13 @@ class EventWindow(object):
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, market_aware, days = None, delta = None):
+    def __init__(self, market_aware, days=None, delta=None):
 
         self.market_aware = market_aware
         self.days = days
         self.delta = delta
 
-        self.ticks  = deque()
+        self.ticks = deque()
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
@@ -284,9 +284,46 @@ class EventWindow(object):
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
 
 
-class BatchWindow(EventWindow):
-    def __init__(self, func=None, refresh_period=None, days=None, sids=None):
-        super(BatchWindow, self).__init__(True, days=days, delta=None)
+class BatchTransform(EventWindow):
+    """Base class for batch transforms with a trailing window of
+    variable length. As opposed to pure EventWindows that get a stream
+    of events and are bound to a single SID, this class creates stream
+    of pandas DataFrames with each colum representing a sid.
+
+    There are two ways to create a new batch window:
+    (i) Inherit from BatchTransform and overload get_value(data).
+        E.g.:
+        ```
+        class MyBatchTransform(BatchTransform):
+            def get_value(self, data):
+               # compute difference between the means of sid 0 and sid 1
+               return data[0].mean() - data[1].mean()
+        ```
+
+    (ii) Use the batch_transform decorator.
+        E.g.:
+        ```
+        @batch_transform
+        def my_batch_transform(data):
+            return data[0].mean() - data[1].mean()
+
+        ```
+
+    In you algorithm you would then have to instantiate this in the initialize() method:
+    ```
+    self.my_batch_transform = MyBatchTransform()
+    ```
+
+    To then use it, inside of the algorithm handle_data(), call the
+    handle_data() of the BatchTransform and pass it the current event:
+    ```
+    result = self.my_batch_transform(data)
+    ```
+
+    """
+
+    def __init__(self, func=None, refresh_period=None, market_aware=True, delta=None, days=None, sids=None):
+        super(BatchTransform, self).__init__(market_aware, days=days, delta=delta)
         self.func = func
         self.sids = sids
         self.refresh_period = refresh_period
@@ -310,7 +347,8 @@ class BatchWindow(EventWindow):
         # couple of seconds shouldn't matter
         data.dt = max(dts)
 
-        # append data frame to window
+        # append data frame to window. update() will call handle_add() and
+        # handle_remove() appropriately
         self.update(data)
 
         # return newly computed or cached value
@@ -323,15 +361,30 @@ class BatchWindow(EventWindow):
 
         age = event.dt - self.last_refresh
         if age.days >= self.refresh_period:
-            # create Series price object
-            data_sids = {}
-            for sid in self.sids:
-                dts = [tick[sid].dt for tick in self.ticks]
-                prices = [tick[sid].price for tick in self.ticks]
-                data_sids[sid] = pd.Series(prices, index=dts)
+            # Create a pandas.Panel (i.e. 3d DataFrame) from the
+            # events in the current window.
+            #
+            # The resulting panel looks like this:
+            # index : field_name (e.g. price)
+            # major axis/rows : dt
+            # minor axis/colums : sid
+            #
+            # This Panel data structure ultimately gets passed to the
+            # user-overloaded get_value() method.
+            fields = {}
+            for field_name in ['price', 'volume']:
+                # Skip non-existant fields
+                if field_name not in self.ticks[0][self.sids[0]]:
+                    continue
 
-            # concatenate different sids into one df
-            self.data = pd.concat(data_sids, axis=1)
+                values_per_sid = {}
+                for sid in self.sids:
+                    values_per_sid[sid] = pd.Series({tick[sid].dt: tick[sid][field_name] for tick in self.ticks})
+
+                # concatenate different sids into one df
+                fields[field_name] = pd.DataFrame.from_dict(values_per_sid)
+
+            self.data = pd.Panel.from_dict(fields, orient='items')
 
             self.updated = True
             self.last_refresh = event.dt
@@ -347,7 +400,7 @@ class BatchWindow(EventWindow):
 
     def compute(self, *args, **kwargs):
         if self.data is None:
-            return False
+            return None
 
         if self.updated:
             if self.func is not None:
@@ -360,9 +413,14 @@ class BatchWindow(EventWindow):
         return self.cached
 
 
-# decorator for BatchWindow
 def batch_transform(func):
-    def create_transform(*args, **kwargs):
-        return BatchWindow(*args, func=func, **kwargs)
+    """Decorator function to use instead of inheriting from BatchTransform.
+    For an example on how to use this, see the doc string of BatchTransform.
+    """
 
-    return create_transform
+    def create_window(*args, **kwargs):
+        # passes the user defined function to BatchTransform which it
+        # will call instead of self.get_value()
+        return BatchTransform(*args, func=func, **kwargs)
+
+    return create_window
