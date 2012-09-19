@@ -296,8 +296,8 @@ class AlgorithmSimulator(object):
         self.snapshot_dt = date
 
         start_tic = datetime.now()
-        with self.heartbeat_monitor:
-            self.algo.handle_data(self.universe)
+        #with self.heartbeat_monitor:
+        self.algo.handle_data(self.universe)
         stop_tic = datetime.now()
 
         # How long did you take?

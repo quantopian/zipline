@@ -324,7 +324,11 @@ class BatchTransform(EventWindow):
 
     def __init__(self, func=None, refresh_period=None, market_aware=True, delta=None, days=None, sids=None):
         super(BatchTransform, self).__init__(market_aware, days=days, delta=delta)
-        self.func = func
+        if func is not None:
+            self.compute_transform_value = func
+        else:
+            self.compute_transform_value = self.get_value
+
         self.sids = sids
         self.refresh_period = refresh_period
         self.days = days
@@ -352,7 +356,7 @@ class BatchTransform(EventWindow):
         self.update(data)
 
         # return newly computed or cached value
-        return self.compute()
+        return self.get_transform_value()
 
     def handle_add(self, event):
         if not self.last_refresh:
@@ -398,17 +402,12 @@ class BatchTransform(EventWindow):
     def get_value(self, *args, **kwargs):
         raise NotImplementedError("Either overwrite get_value or provide a func argument.")
 
-    def compute(self, *args, **kwargs):
+    def get_transform_value(self, *args, **kwargs):
         if self.data is None:
             return None
 
         if self.updated:
-            if self.func is not None:
-                # user supplied function
-                self.cached = self.func(self.data, *args, **kwargs)
-            else:
-                # assume inheritance
-                self.cached = self.get_value(self.data, *args, **kwargs)
+            self.cached = self.compute_transform_value(self.data, *args, **kwargs)
 
         return self.cached
 

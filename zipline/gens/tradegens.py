@@ -82,6 +82,7 @@ class SpecificEquityTrades(object):
         self.sids = kwargs.get('sids', [1, 2])
         self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
         self.delta = kwargs.get('delta', timedelta(minutes = 1))
+        self.concurrent = kwargs.get('concurrent', False)
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')

@@ -4,7 +4,6 @@ Factory functions to prepare useful data for optimize tests.
 Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
-import pandas as pd
 
 import zipline.protocol as zp
 
