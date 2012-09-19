@@ -59,7 +59,8 @@ class TestAlgorithm():
     at the close of a simulation.
     """
 
-    def __init__(self, sid, amount, sid_filter=None):
+    def __init__(self, sid, amount, order_count, sid_filter=None):
+        self.count = order_count
         self.sid = sid
         self.amount = amount
         self.incr = 0
