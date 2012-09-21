@@ -9,6 +9,7 @@ from itertools import chain, cycle, ifilter, izip, repeat
 from datetime import datetime, timedelta
 import pandas as pd
 from copy import copy
+import numpy as np
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils import ndict
@@ -77,16 +78,30 @@ class SpecificEquityTrades(object):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
 
-        # Unpack config dictionary with default values.
-        self.count = kwargs.get('count', 500)
-        self.sids = kwargs.get('sids', [1, 2])
-        self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
-        self.delta = kwargs.get('delta', timedelta(minutes = 1))
-        self.concurrent = kwargs.get('concurrent', False)
-
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
         self.filter = kwargs.get('filter')
+
+        if self.event_list is not None:
+            # If event_list is provided, extract parameters from there
+            # This isn't really clean and ultimately I think this
+            # class should serve a single purpose (either take an
+            # event_list or autocreate events).
+            self.count = kwargs.get('count', len(self.event_list))
+            self.sids = kwargs.get('sids', np.unique([event.sid for event in self.event_list]).tolist())
+            self.start = kwargs.get('start', self.event_list[0].dt)
+            self.end = kwargs.get('start', self.event_list[-1].dt)
+            self.delta = kwargs.get('delta', self.event_list[1].dt - self.event_list[0].dt)
+            self.concurrent = kwargs.get('concurrent', False)
+
+        else:
+            # Unpack config dictionary with default values.
+            self.count = kwargs.get('count', 500)
+            self.sids = kwargs.get('sids', [1, 2])
+            self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
+            self.delta = kwargs.get('delta', timedelta(minutes = 1))
+            self.concurrent = kwargs.get('concurrent', False)
+
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
@@ -188,9 +203,6 @@ class DataFrameSource(SpecificEquityTrades):
         self.end = kwargs.get('end', data.index[-1])
         self.delta = kwargs.get('delta', data.index[1]-data.index[0])
 
-        # Default to None for event_list and filter.
-        self.filter = kwargs.get('filter')
-
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
 
@@ -214,4 +226,5 @@ class DataFrameSource(SpecificEquityTrades):
                     yield ndict(event)
 
         # Return the filtered event stream.
-        return _generator()
+        drop_sids = lambda x: x.sid in self.sids
+        return ifilter(drop_sids, _generator())

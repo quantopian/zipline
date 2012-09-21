@@ -10,13 +10,14 @@ from zipline.utils.test_utils import setup_logger
 from zipline.utils.date_utils import utcnow
 
 from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.transform import StatefulTransform, EventWindow, BatchTransform, batch_transform
+from zipline.gens.transform import StatefulTransform, EventWindow
 from zipline.gens.vwap import VWAP
 from zipline.gens.mavg import MovingAverage
 from zipline.gens.stddev import MovingStandardDev
 from zipline.gens.returns import Returns
 import zipline.utils.factory as factory
-from zipline import TradingAlgorithm
+
+from zipline.test_algorithms import BatchTransformAlgorithm
 
 def to_dt(msg):
     return ndict({'dt': msg})
@@ -288,36 +289,7 @@ class FinanceTransformsTestCase(TestCase):
 ############################################################
 # Test BatchTransform
 
-class NoopBatchTransform(BatchTransform):
-    def get_value(self, data):
-        return data.price
-
-@batch_transform
-def noop_batch_decorator(data):
-    return data.price
-
-class BatchTransformAlgorithm(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.history_class = []
-        self.history_decorator = []
-        self.days = 3
-        self.noop_class = NoopBatchTransform(sids=[0, 1],
-                                          market_aware=False,
-                                          refresh_period=2,
-                                          delta=timedelta(days=self.days))
-
-        self.noop_decorator = noop_batch_decorator(sids=[0, 1],
-                                                   market_aware=False,
-                                                   refresh_period=2,
-                                                   delta=timedelta(days=self.days))
-
-    def handle_data(self, data):
-        window_class = self.noop_class.handle_data(data)
-        window_decorator = self.noop_decorator.handle_data(data)
-        self.history_class.append(window_class)
-        self.history_decorator.append(window_decorator)
-
-class BatchTransformTestCase():
+class BatchTransformTestCase(TestCase):
     def setUp(self):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
@@ -329,21 +301,8 @@ class BatchTransformTestCase():
         assert algo.history_class[:2] == algo.history_decorator[:2] == [None, None], "First two iterations should return None"
 
         # test overloaded class
-        # every 2nd event should be identical because of refresh_period=2
-        # not sure why actual length gets up to 4, bug in EventWindow?
-        assert np.all(algo.history_class[2][0].values == [2, 4, 6])
-        assert np.all(algo.history_class[2][1].values == [3, 5, 7])
-        assert np.all(algo.history_class[3][0].values == [2, 4, 6])
-        assert np.all(algo.history_class[3][1].values == [3, 5, 7])
-        assert np.all(algo.history_class[4][0].values == [4, 6, 8, 10])
-        assert np.all(algo.history_class[4][1].values == [5, 7, 9, 11])
-
-        # test decorator
-        assert np.all(algo.history_decorator[2][0].values == [2, 4, 6])
-        assert np.all(algo.history_decorator[2][1].values == [3, 5, 7])
-        assert np.all(algo.history_decorator[3][0].values == [2, 4, 6])
-        assert np.all(algo.history_decorator[3][1].values == [3, 5, 7])
-        assert np.all(algo.history_decorator[4][0].values == [4, 6, 8, 10])
-        assert np.all(algo.history_decorator[4][1].values == [5, 7, 9, 11])
-
+        for test_history in [algo.history_class, algo.history_decorator]:
+            self.assertTrue(np.all(test_history[2].values.flatten() == range(4, 10)))
+            self.assertTrue(np.all(test_history[3].values.flatten() == range(4, 10)))
+            self.assertTrue(np.all(test_history[4].values.flatten() == range(6, 14)))
 

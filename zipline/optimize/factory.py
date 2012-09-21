@@ -9,7 +9,7 @@ import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
 from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.optimize.algorithms import BuySellAlgorithmNew
+from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.finance.slippage import FixedSlippage
 
 from copy import copy
@@ -120,7 +120,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
                                         amplitude)
 
     if 'algorithm' not in config:
-        algorithm = BuySellAlgorithmNew(sid, 100, offset)
+        algorithm = BuySellAlgorithm(sids=[sid], amount=100, offset=offset)
 
     config['order_count'] = trade_count - 1
     config['trade_count'] = trade_count

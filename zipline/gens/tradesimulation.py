@@ -194,8 +194,6 @@ class AlgorithmSimulator(object):
             'filled' : 0
         })
 
-        log.debug(order)
-
         # Tell the user if they try to buy 0 shares of something.
         if order.amount == 0:
             zero_message = "Requested to trade zero shares of {sid}".format(
@@ -296,8 +294,8 @@ class AlgorithmSimulator(object):
         self.snapshot_dt = date
 
         start_tic = datetime.now()
-        #with self.heartbeat_monitor:
-        self.algo.handle_data(self.universe)
+        with self.heartbeat_monitor:
+            self.algo.handle_data(self.universe)
         stop_tic = datetime.now()
 
         # How long did you take?

@@ -9,8 +9,8 @@ from zipline.finance.slippage import FixedSlippage
 
 
 class TradingAlgorithm(object):
-    """
-    Base class for trading algorithms. Inherit and overload handle_data(data).
+    """Base class for trading algorithms. Inherit and overload
+    initialize() and handle_data(data).
 
     A new algorithm could look like this:
     ```
@@ -22,7 +22,7 @@ class TradingAlgorithm(object):
             sid = self.sids[0]
             self.order(sid, amount)
     ```
-    To then run this algorithm:
+    To then to run this algorithm:
 
     >>> my_algo = MyAlgo(100, sids=[0])
     >>> stats = my_algo.run(data)
@@ -45,13 +45,13 @@ class TradingAlgorithm(object):
         # call to user-defined initialize method
         self.initialize(*args, **kwargs)
 
-    def _create_simulator(self, source):
+    def _create_simulator(self, start, end):
         """
         Create trading environment, transforms and SimulatedTrading object.
 
         Gets called by self.run().
         """
-        environment = create_trading_environment(start=source.data.index[0], end=source.data.index[-1])
+        environment = create_trading_environment(start=start, end=end)
 
         # Create transforms by wrapping them into StatefulTransforms
         transforms = []
@@ -68,39 +68,59 @@ class TradingAlgorithm(object):
         # SimulatedTrading is the main class handling data streaming,
         # application of transforms and calling of the user algo.
         return SimulatedTrading(
-            [source],
+            self.sources,
             transforms,
             self,
             environment,
             FixedSlippage()
         )
 
-    def run(self, source):
-        """
-        Run the algorithm.
+    def run(self, source, start=None, end=None):
+        """Run the algorithm.
 
         :Arguments:
-            data : zipline source or pandas.DataFrame
-               pandas.DataFrame must have the following structure:
-               * column names must consist of ints representing the different sids
-               * index must be TimeStamps
-               * array contents should be price
+            source : can be either:
+                     - pandas.DataFrame
+                     - zipline source
+                     - list of zipline sources
+
+               If pandas.DataFrame is provided, it must have the
+               following structure:
+               * column names must consist of ints representing the
+                 different sids
+               * index must be DatetimeIndex
+               * array contents should be price info.
 
         :Returns:
             daily_stats : pandas.DataFrame
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if isinstance(source, pd.DataFrame):
+        if isinstance(source, (list, tuple)):
+            assert start is not None and end is not None, \
+            "When providing a list of sources, start and end date have to be specified."
+        elif isinstance(source, pd.DataFrame):
             assert isinstance(source.index, pd.tseries.index.DatetimeIndex)
+            # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source, sids=self.sids)
 
+        # If values not set, try to extract from source.
+        if start is None:
+            start = source.start
+        if end is None:
+            end = source.end
+
+        if not isinstance(source, (list, tuple)):
+            self.sources = [source]
+        else:
+            self.sources = source
+
         # create transforms and zipline
-        simulated_trading = self._create_simulator(source)
+        self.simulated_trading = self._create_simulator(start=start, end=end)
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict
-        perfs = list(simulated_trading)
+        perfs = list(self.simulated_trading)
 
         # convert perf ndict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
@@ -122,6 +142,7 @@ class TradingAlgorithm(object):
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
         return daily_stats
+
 
     def add_transform(self, transform_class, tag, *args, **kwargs):
         """Add a single-sid, sequential transform to the model.
