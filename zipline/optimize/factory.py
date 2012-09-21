@@ -4,14 +4,12 @@ Factory functions to prepare useful data for optimize tests.
 Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
-import pandas as pd
 
 import zipline.protocol as zp
 
 from zipline.utils.factory import get_next_trading_dt, create_trading_environment
-from zipline.finance.sources import SpecificEquityTrades
+from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
-from zipline.lines import SimulatedTrading
 from zipline.finance.slippage import FixedSlippage
 
 from copy import copy
@@ -122,7 +120,7 @@ def create_predictable_zipline(config, offset=0, simulate=True):
                                         amplitude)
 
     if 'algorithm' not in config:
-        config['algorithm'] = BuySellAlgorithm(sid, 100, offset)
+        algorithm = BuySellAlgorithm(sids=[sid], amount=100, offset=offset)
 
     config['order_count'] = trade_count - 1
     config['trade_count'] = trade_count
@@ -131,9 +129,4 @@ def create_predictable_zipline(config, offset=0, simulate=True):
     config['slippage'] = FixedSlippage()
     config['devel'] = True
 
-    zipline = SimulatedTrading.create_test_zipline(**config)
-
-    if simulate:
-        zipline.simulate(blocking=True)
-
-    return zipline, config
+    return algorithm, config

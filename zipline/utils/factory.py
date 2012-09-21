@@ -8,14 +8,14 @@ import random
 from os.path import join, abspath, dirname
 from operator import attrgetter
 
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
-from zipline.utils.date_utils import tuple_to_date
-from zipline.utils.protocol_utils import ndict
 
 import zipline.finance.risk as risk
-
-from zipline.gens.tradegens import RandomEquityTrades
-from zipline.gens.tradegens import SpecificEquityTrades
+from zipline.utils.date_utils import tuple_to_date
+from zipline.utils.protocol_utils import ndict
+from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 
@@ -57,12 +57,15 @@ def load_market_data():
 
     return bm_returns, tr_curves
 
-def create_trading_environment(year=2006):
+def create_trading_environment(year=2006, start=None, end=None):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
 
-    start = datetime(year, 1, 1, tzinfo=pytz.utc)
-    end   = datetime(year, 12, 31, tzinfo=pytz.utc)
+    if start is None:
+        start = datetime(year, 1, 1, tzinfo=pytz.utc)
+    if end is None:
+        end   = datetime(year, 12, 31, tzinfo=pytz.utc)
+
     trading_environment = TradingEnvironment(
         benchmark_returns,
         treasury_curves,
@@ -88,7 +91,6 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     current = trading_calendar.first_open
 
     for price, amount in zip(prices, amounts):
-
         trade = create_trade(sid, price, amount, current)
         trades.append(trade)
         current = get_next_trading_dt(current, interval, trading_calendar)
@@ -233,3 +235,12 @@ def create_trade_source(sids, trade_count, trade_time_increment, trading_environ
     #trading_environment.period_end = trade_history[-1].dt
 
     return source
+
+def create_test_df_source():
+    start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+    end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    x = np.arange(2., 14.).reshape((6, 2))
+    df = pd.DataFrame(x, index=index, columns=[0, 1])
+
+    return DataFrameSource(df), df

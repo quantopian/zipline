@@ -5,12 +5,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from zipline.core.devsimulator import AddressAllocator
-# TODO: refactor the factory to use generators
-# from zipline.optimize.factory import create_predictable_zipline
-
-DEFAULT_TIMEOUT = 15 # seconds
-EXTENDED_TIMEOUT = 90
+from zipline.optimize.factory import create_predictable_zipline
 
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
@@ -24,7 +19,7 @@ class TestUpDown(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'sid'         : 133,
+            'sid'         : [0],
             'trade_count' : 5,
             'amplitude'   : 30,
             'base_price'  : 50
@@ -36,7 +31,6 @@ class TestUpDown(TestCase):
         teardown_logger(self)
 
     @skip
-    @timed(DEFAULT_TIMEOUT)
     def test_source_and_orders(self):
         """verify that UpDownSource is having the correct
         behavior and that BuySellAlgorithm places the buy/sell
@@ -44,17 +38,17 @@ class TestUpDown(TestCase):
         UpDownSource and BuySellAlgorithm interact correctly."
 
         """
-        zipline, config = create_predictable_zipline(
+
+        algo, config = create_predictable_zipline(
             self.zipline_test_config,
-            offset=0,
-            simulate=False
+            offset=0
         )
 
         #extract arguments
         base_price = self.zipline_test_config['base_price']
         amplitude = self.zipline_test_config['amplitude']
 
-        prices = np.array([event.price for event in config['trade_source'].event_list])
+        prices = config['trade_source'][0].values
         max_price_idx = np.where(prices==prices.max())[0]
         min_price_idx = np.where(prices==prices.min())[0]
         self.assertTrue(np.all(max_price_idx % 2 == 1),
@@ -70,9 +64,9 @@ class TestUpDown(TestCase):
             "Minimum price does not equal expected maximum price."
         )
 
-        zipline.simulate(blocking=True)
+        stats = algo.run(config['trade_source'])
 
-        algo = config['algorithm']
+        self.assertTrue(len(stats) != 0)
 
         orders = np.asarray(algo.orders)
         max_order_idx = np.where(orders==orders.max())[0]
@@ -108,12 +102,15 @@ class TestUpDown(TestCase):
         compound_returns = np.empty(len(test_offsets))
         ziplines = []
         for i, offset in enumerate(test_offsets):
-            zipline, config = create_predictable_zipline(
+            algo, config = create_predictable_zipline(
                 self.zipline_test_config,
                 offset=offset,
             )
-            ziplines.append(zipline)
-            compound_returns[i] = zipline.get_cumulative_performance()['returns']
+            results = algo.run(config['trade_source'])
+            ziplines.append(algo)
+
+            compound_returns[i] = results.returns.sum()
+
 
         self.assertTrue(np.all(compound_returns[supposed_max] > compound_returns[np.logical_not(supposed_max)]),
             "Maximum compound returns are not where they are supposed to be."

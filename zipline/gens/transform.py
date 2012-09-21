@@ -9,6 +9,8 @@ from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
 
+import pandas as pd
+
 from zipline import ndict
 from zipline.utils.tradingcalendar import non_trading_days
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
@@ -36,7 +38,7 @@ class TransformMeta(type):
     still recover an instance of a "raw" Foo by introspecting the
     resulting StatefulTransform's 'state' field.
     """
-    
+
     def __call__(cls, *args, **kwargs):
         return StatefulTransform(cls, *args, **kwargs)
 
@@ -53,19 +55,19 @@ class StatefulTransform(object):
     def __init__(self, tnfm_class, *args, **kwargs):
         assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
         "Stateful transform requires a class."
-        assert tnfm_class.__dict__.has_key('update'), \
+        assert hasattr(tnfm_class, 'update'), \
         "Stateful transform requires the class to have an update method"
 
         # Flag set inside the Passthrough transform class to signify special
         # behavior if we are being fed to merged_transforms.
-        self.passthrough = tnfm_class.__dict__.get('PASSTHROUGH', False)
-        
+        self.passthrough = hasattr(tnfm_class, 'PASSTHROUGH')
+
         # Flags specifying how to append the calculated value.
         # Merged is the default for ease of testing, but we use sequential
         # in production.
         self.sequential = False
         self.merged = True
-        
+
         # Create an instance of our transform class.
         if isinstance(tnfm_class, TransformMeta):
             # Classes derived TransformMeta have their __call__
@@ -104,12 +106,12 @@ class StatefulTransform(object):
                 continue
 
             assert_sort_unframe_protocol(message)
-            
+
             # This flag is set by by merged_transforms to ensure
             # isolation of messages.
             if self.merged:
                 message = deepcopy(message)
-            
+
             tnfm_value = self.state.update(message)
 
             # PASSTHROUGH flag means we want to keep all original
@@ -133,7 +135,7 @@ class StatefulTransform(object):
                 out_message.tnfm_value = tnfm_value
                 out_message.dt = message.dt
                 yield out_message
-            
+
             # Sequential flag should be used to add a single new
             # key-value pair to the event. The new key is this
             # transform's namestring, and its value is the value
@@ -147,8 +149,10 @@ class StatefulTransform(object):
                 out_message = message
                 out_message[self.namestring] = tnfm_value
                 yield out_message
-                
+
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
+
+
 
 class EventWindow(object):
     """
@@ -171,13 +175,13 @@ class EventWindow(object):
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, market_aware, days = None, delta = None):
+    def __init__(self, market_aware, days=None, delta=None):
 
         self.market_aware = market_aware
         self.days = days
         self.delta = delta
 
-        self.ticks  = deque()
+        self.ticks = deque()
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
@@ -213,12 +217,12 @@ class EventWindow(object):
         self.assert_well_formed(event)
 
         # Add new event and increment totals.
-        self.ticks.append(event)
+        self.ticks.append(deepcopy(event))
 
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
-        
+
         if self.market_aware:
             self.add_new_holidays(event.dt)
 
@@ -229,14 +233,14 @@ class EventWindow(object):
         #                                |                    |
         #                                V                    V
         while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-            
+
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
             # Subclasses should override handle_remove to define
             # behavior for removing ticks.
             self.handle_remove(popped)
-            
+
     def add_new_holidays(self, newest):
         # Add to our tracked window any untracked holidays that are
         # older than our newest event. (newest should always be
@@ -256,12 +260,13 @@ class EventWindow(object):
         calendar_dates_between = (newest.date() - oldest.date()).days
         holidays_between = len(self.cur_holidays)
         trading_days_between = calendar_dates_between - holidays_between
-        
+
         # "Put back" a day if oldest is earlier in its day than newest,
         # reflecting the fact that we haven't yet completed the last
         # day in the window.
         if oldest.time() > newest.time():
             trading_days_between -= 1
+
         return trading_days_between >= self.days
 
     def out_of_delta(self, oldest, newest):
@@ -277,3 +282,144 @@ class EventWindow(object):
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
                 "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
+
+
+class BatchTransform(EventWindow):
+    """Base class for batch transforms with a trailing window of
+    variable length. As opposed to pure EventWindows that get a stream
+    of events and are bound to a single SID, this class creates stream
+    of pandas DataFrames with each colum representing a sid.
+
+    There are two ways to create a new batch window:
+    (i) Inherit from BatchTransform and overload get_value(data).
+        E.g.:
+        ```
+        class MyBatchTransform(BatchTransform):
+            def get_value(self, data):
+               # compute difference between the means of sid 0 and sid 1
+               return data[0].mean() - data[1].mean()
+        ```
+
+    (ii) Use the batch_transform decorator.
+        E.g.:
+        ```
+        @batch_transform
+        def my_batch_transform(data):
+            return data[0].mean() - data[1].mean()
+
+        ```
+
+    In you algorithm you would then have to instantiate this in the initialize() method:
+    ```
+    self.my_batch_transform = MyBatchTransform()
+    ```
+
+    To then use it, inside of the algorithm handle_data(), call the
+    handle_data() of the BatchTransform and pass it the current event:
+    ```
+    result = self.my_batch_transform(data)
+    ```
+
+    """
+
+    def __init__(self, func=None, refresh_period=None, market_aware=True, delta=None, days=None, sids=None):
+        super(BatchTransform, self).__init__(market_aware, days=days, delta=delta)
+        if func is not None:
+            self.compute_transform_value = func
+        else:
+            self.compute_transform_value = self.get_value
+
+        self.sids = sids
+        self.refresh_period = refresh_period
+        self.days = days
+
+        self.full = False
+        self.last_refresh = None
+
+        self.updated = False
+        self.data = None
+
+    def handle_data(self, data):
+        """
+        New method to handle a data frame as sent to the algorithm's handle_data
+        method.
+        """
+        # extract dates
+        dts = [data[sid].datetime for sid in self.sids]
+        # we have to provide the event with a dt. This is only for
+        # checking if the event is outside the window or not so a
+        # couple of seconds shouldn't matter
+        data.dt = max(dts)
+
+        # append data frame to window. update() will call handle_add() and
+        # handle_remove() appropriately
+        self.update(data)
+
+        # return newly computed or cached value
+        return self.get_transform_value()
+
+    def handle_add(self, event):
+        if not self.last_refresh:
+            self.last_refresh = event.dt
+            return
+
+        age = event.dt - self.last_refresh
+        if age.days >= self.refresh_period:
+            # Create a pandas.Panel (i.e. 3d DataFrame) from the
+            # events in the current window.
+            #
+            # The resulting panel looks like this:
+            # index : field_name (e.g. price)
+            # major axis/rows : dt
+            # minor axis/colums : sid
+            #
+            # This Panel data structure ultimately gets passed to the
+            # user-overloaded get_value() method.
+            fields = {}
+            for field_name in ['price', 'volume']:
+                # Skip non-existant fields
+                if field_name not in self.ticks[0][self.sids[0]]:
+                    continue
+
+                values_per_sid = {}
+                for sid in self.sids:
+                    values_per_sid[sid] = pd.Series({tick[sid].dt: tick[sid][field_name] for tick in self.ticks})
+
+                # concatenate different sids into one df
+                fields[field_name] = pd.DataFrame.from_dict(values_per_sid)
+
+            self.data = pd.Panel.from_dict(fields, orient='items')
+
+            self.updated = True
+            self.last_refresh = event.dt
+        else:
+            self.updated = False
+
+    def handle_remove(self, event):
+        # since an event is expiring, we know the window is full
+        self.full = True
+
+    def get_value(self, *args, **kwargs):
+        raise NotImplementedError("Either overwrite get_value or provide a func argument.")
+
+    def get_transform_value(self, *args, **kwargs):
+        if self.data is None:
+            return None
+
+        if self.updated:
+            self.cached = self.compute_transform_value(self.data, *args, **kwargs)
+
+        return self.cached
+
+
+def batch_transform(func):
+    """Decorator function to use instead of inheriting from BatchTransform.
+    For an example on how to use this, see the doc string of BatchTransform.
+    """
+
+    def create_window(*args, **kwargs):
+        # passes the user defined function to BatchTransform which it
+        # will call instead of self.get_value()
+        return BatchTransform(*args, func=func, **kwargs)
+
+    return create_window

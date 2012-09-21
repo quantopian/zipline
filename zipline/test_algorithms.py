@@ -69,6 +69,7 @@ class TestAlgorithm():
         self.order = None
         self.frame_count = 0
         self.portfolio = None
+
         if sid_filter:
             self.sid_filter = sid_filter
         else:
@@ -99,7 +100,7 @@ class TestAlgorithm():
     def set_slippage_override(self, slippage_callable):
         pass
 
-    #
+
 class HeavyBuyAlgorithm():
     """
     This algorithm will send a specified number of orders, to allow unit tests
@@ -382,3 +383,49 @@ class TestLoggingAlgorithm():
 
     def set_slippage_override(self, slippage_callable):
         pass
+
+
+from datetime import timedelta
+from zipline.algorithm import TradingAlgorithm
+from zipline.gens.transform import BatchTransform, batch_transform
+from zipline.gens.mavg import MovingAverage
+
+class TestRegisterTransformAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.add_transform(MovingAverage, 'mavg', ['price'],
+                           market_aware=True,
+                           days=2)
+
+    def handle_data(self, data):
+        pass
+
+class NoopBatchTransform(BatchTransform):
+    def get_value(self, data):
+        return data.price
+
+@batch_transform
+def noop_batch_decorator(data):
+    return data.price
+
+class BatchTransformAlgorithm(TradingAlgorithm):
+    def initialize(self, *args, **kwargs):
+        self.history_class = []
+        self.history_decorator = []
+        self.days = 3
+        self.noop_class = NoopBatchTransform(sids=[0, 1],
+                                          market_aware=False,
+                                          refresh_period=2,
+                                          delta=timedelta(days=self.days))
+
+        self.noop_decorator = noop_batch_decorator(sids=[0, 1],
+                                                   market_aware=False,
+                                                   refresh_period=2,
+                                                   delta=timedelta(days=self.days))
+
+    def handle_data(self, data):
+        window_class = self.noop_class.handle_data(data)
+        window_decorator = self.noop_decorator.handle_data(data)
+        self.history_class.append(window_class)
+        self.history_decorator.append(window_decorator)
+
+

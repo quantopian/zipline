@@ -1,5 +1,5 @@
 import pytz
-import numpy
+import numpy as np
 
 from datetime import timedelta, datetime
 from unittest2 import TestCase
@@ -15,8 +15,9 @@ from zipline.gens.vwap import VWAP
 from zipline.gens.mavg import MovingAverage
 from zipline.gens.stddev import MovingStandardDev
 from zipline.gens.returns import Returns
-
 import zipline.utils.factory as factory
+
+from zipline.test_algorithms import BatchTransformAlgorithm
 
 def to_dt(msg):
     return ndict({'dt': msg})
@@ -42,26 +43,26 @@ class EventWindowTestCase(TestCase):
 
     def setUp(self):
         setup_logger(self)
-        
+
         self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
-        self.eleven_normal_days = [self.monday + i*timedelta(days=1) 
+        self.eleven_normal_days = [self.monday + i*timedelta(days=1)
                                    for i in xrange(11)]
 
         # Modify the end of the period slightly to exercise the
         # incomplete day logic.
         self.eleven_normal_days[-1] -= timedelta(minutes = 1)
         self.eleven_normal_days.append(self.monday+timedelta(days=11,seconds=1))
-        
+
         # Second set of dates to test holiday handling.
         self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
         self.week_of_jul4 = [self.jul4_monday + i*timedelta(days=1)
                                    for i in xrange(5)]
 
     def test_event_window_with_timedelta(self):
-        
+
         # Keep all events within a 5 minute window.
         window = NoopEventWindow(
-            market_aware = False, 
+            market_aware = False,
             delta = timedelta(minutes = 5),
             days = None
         )
@@ -91,7 +92,7 @@ class EventWindowTestCase(TestCase):
 
     def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(
-            market_aware = True, 
+            market_aware = True,
             delta = None,
             days = 3
         )
@@ -102,7 +103,7 @@ class EventWindowTestCase(TestCase):
             window.update(event)
             # Record the length of the window after each event.
             lengths.append(len(window.ticks))
-        
+
         # The window stretches out during the weekend because we wait
         # to drop events until the weekend ends. The last window is
         # briefly longer because it doesn't complete a full day.  The
@@ -113,7 +114,7 @@ class EventWindowTestCase(TestCase):
 
     def test_market_aware_window_holiday(self):
         window = NoopEventWindow(
-            market_aware = True, 
+            market_aware = True,
             delta = None,
             days = 2
         )
@@ -125,11 +126,11 @@ class EventWindowTestCase(TestCase):
             window.update(event)
             # Record the length of the window after each event.
             lengths.append(len(window.ticks))
-        
+
         assert lengths == [1, 2, 3, 3, 2]
         assert window.added == events
         assert window.removed == events[:-2]
-        
+
     def tearDown(self):
         setup_logger(self)
 
@@ -186,7 +187,7 @@ class FinanceTransformsTestCase(TestCase):
         expected = [0.0, 0.0, 0.1, 0.0]
 
         assert tnfm_vals == expected
-        
+
         # Two-day returns.  An extra kink here is that the
         # factory will automatically skip a weekend for the
         # last event. Results shouldn't notice this blip.
@@ -222,12 +223,12 @@ class FinanceTransformsTestCase(TestCase):
             fields = ['price', 'volume'],
             delta = timedelta(days = 2),
         )
-        
+
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message.tnfm_value.price for message in transformed]
         tnfm_volumes = [message.tnfm_value.volume for message in transformed]
-        
+
         # "Hand-calculated" values
         expected_prices = [
             ((10.0) / 1.0),
@@ -267,16 +268,16 @@ class FinanceTransformsTestCase(TestCase):
         transformed = list(stddev.transform(self.source))
 
         vals = [message.tnfm_value for message in transformed]
-        
+
         expected = [
             None,
-            numpy.std([10.0, 15.0], ddof = 1),
-            numpy.std([10.0, 15.0, 13.0], ddof = 1),
-            numpy.std([15.0, 13.0, 12.0], ddof = 1),
+            np.std([10.0, 15.0], ddof = 1),
+            np.std([10.0, 15.0, 13.0], ddof = 1),
+            np.std([15.0, 13.0, 12.0], ddof = 1),
             ]
 
-        # numpy has odd rounding behavior, cf.
-        # http://docs.scipy.org/doc/numpy/reference/generated/numpy.std.html
+        # np has odd rounding behavior, cf.
+        # http://docs.scipy.org/doc/np/reference/generated/np.std.html
         for v1, v2 in zip(vals, expected):
 
             if v1 == None:
@@ -285,8 +286,23 @@ class FinanceTransformsTestCase(TestCase):
             assert round(v1, 5) == round(v2, 5)
 
 
+############################################################
+# Test BatchTransform
 
-        
-        
-        
+class BatchTransformTestCase(TestCase):
+    def setUp(self):
+        setup_logger(self)
+        self.source, self.df = factory.create_test_df_source()
+
+    def test_batch_inherit(self):
+        algo = BatchTransformAlgorithm(sids=[0, 1])
+        algo.run(self.source)
+
+        assert algo.history_class[:2] == algo.history_decorator[:2] == [None, None], "First two iterations should return None"
+
+        # test overloaded class
+        for test_history in [algo.history_class, algo.history_decorator]:
+            self.assertTrue(np.all(test_history[2].values.flatten() == range(4, 10)))
+            self.assertTrue(np.all(test_history[3].values.flatten() == range(4, 10)))
+            self.assertTrue(np.all(test_history[4].values.flatten() == range(6, 14)))
 
