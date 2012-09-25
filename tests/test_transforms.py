@@ -294,15 +294,23 @@ class BatchTransformTestCase(TestCase):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
 
-    def test_batch_inherit(self):
+    def test_event_window(self):
         algo = BatchTransformAlgorithm(sids=[0, 1])
         algo.run(self.source)
 
-        assert algo.history_class[:2] == algo.history_decorator[:2] == [None, None], "First two iterations should return None"
+        assert algo.history_return_price_class[:2] == algo.history_return_price_decorator[:2] == [None, None], "First two iterations should return None"
 
         # test overloaded class
-        for test_history in [algo.history_class, algo.history_decorator]:
+        for test_history in [algo.history_return_price_class, algo.history_return_price_decorator]:
             self.assertTrue(np.all(test_history[2].values.flatten() == range(4, 10)))
             self.assertTrue(np.all(test_history[3].values.flatten() == range(4, 10)))
             self.assertTrue(np.all(test_history[4].values.flatten() == range(6, 14)))
+
+    def test_passing_of_args(self):
+        algo = BatchTransformAlgorithm([0, 1], 1, kwarg='str')
+        algo.run(self.source)
+        self.assertEqual(algo.args, (1,))
+        self.assertEqual(algo.kwargs, {'kwarg':'str'})
+        expected_item = ((1, ), {'kwarg': 'str'})
+        self.assertEqual(algo.history_return_args, [None, None, expected_item, expected_item, expected_item])
 

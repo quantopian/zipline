@@ -24,7 +24,7 @@ class TradingAlgorithm(object):
     ```
     To then to run this algorithm:
 
-    >>> my_algo = MyAlgo(100, sids=[0])
+    >>> my_algo = MyAlgo([0], 100) # first argument has to be list of sids
     >>> stats = my_algo.run(data)
 
     """
@@ -32,7 +32,7 @@ class TradingAlgorithm(object):
         """
         Initialize sids and other state variables.
 
-        Calls user-defined initialize and forwarding *args and **kwargs.
+        Calls user-defined initialize() forwarding *args and **kwargs.
         """
         self.sids = sids
         self.done = False
@@ -44,6 +44,8 @@ class TradingAlgorithm(object):
 
         # call to user-defined initialize method
         self.initialize(*args, **kwargs)
+
+        self.initialized = True
 
     def _create_simulator(self, start, end):
         """
