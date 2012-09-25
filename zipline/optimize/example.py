@@ -71,11 +71,11 @@ def load_close_px(indexes=None, stocks=None):
     df = pd.DataFrame({i: d['Close'] for i, d in enumerate(data.itervalues())})
     df.index = df.index.tz_localize(pytz.utc)
 
+    df.save('close_px.dat')
     return df
 
 
 def run((short_window, long_window)):
-    #data = pd.DataFrame.from_csv('SP500.csv')
     data = pd.load('close_px.dat')
     #data = load_close_px()
     myalgo = DMA([0, 1], amount=100, short_window=short_window, long_window=long_window)
