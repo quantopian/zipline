@@ -8,13 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
 from zipline.gens.mavg import MovingAverage
-from zipline.gens.cov import  CovTransform, cov
 from zipline.algorithm import TradingAlgorithm
-from zipline.gens.transform import BatchTransform, batch_transform
-
-@batch_transform
-def cov(data):
-    return data.price.cov()
 
 class DMA(TradingAlgorithm):
     """Dual Moving Average algorithm.
@@ -35,13 +29,8 @@ class DMA(TradingAlgorithm):
                            market_aware=True,
                            days=long_window)
 
-        self.cov = cov(sids=self.sids, refresh_period=1, days=5)
-
     def handle_data(self, data):
         self.events += 1
-
-        cov = self.cov.handle_data(data)
-        print cov
 
         for sid in self.sids:
             # access transforms via their user-defined tag
@@ -87,8 +76,8 @@ def load_close_px(indexes=None, stocks=None):
 
 def run((short_window, long_window)):
     #data = pd.DataFrame.from_csv('SP500.csv')
-    #data = pd.DataFrame.from_csv('aapl.csv') #load_close_px()
-    data = load_close_px()
+    data = pd.load('close_px.dat')
+    #data = load_close_px()
     myalgo = DMA([0, 1], amount=100, short_window=short_window, long_window=long_window)
     stats = myalgo.run(data)
     stats['sw'] = short_window
