@@ -217,63 +217,63 @@ class AlgorithmSimulator(object):
         # Capture any output of this generator to stdout and pipe it
         # to a logbook interface.  Also inject the current algo
         # snapshot time to any log record generated.
-        with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
+        #with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
 
-            # Call user's initialize method with a timeout (only if
-            # initialize wasn't called already).
-            if not getattr(self.algo, 'initialized', False):
-                with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
-                    self.algo.initialize()
+        # Call user's initialize method with a timeout (only if
+        # initialize wasn't called already).
+        if not getattr(self.algo, 'initialized', False):
+            with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
+                self.algo.initialize()
 
-            # Group together events with the same dt field. This depends on the
-            # events already being sorted.
-            for date, snapshot in groupby(stream_in, attrgetter('dt')):
-                # Set the simulation date to be the first event we see.
-                # This should only occur once, at the start of the test.
-                if self.simulation_dt == None:
-                    self.simulation_dt = date
+        # Group together events with the same dt field. This depends on the
+        # events already being sorted.
+        for date, snapshot in groupby(stream_in, attrgetter('dt')):
+            # Set the simulation date to be the first event we see.
+            # This should only occur once, at the start of the test.
+            if self.simulation_dt == None:
+                self.simulation_dt = date
 
-                # Done message has the risk report, so we yield before exiting.
-                if date == 'DONE':
-                    for event in snapshot:
+            # Done message has the risk report, so we yield before exiting.
+            if date == 'DONE':
+                for event in snapshot:
+                    yield event.perf_message
+                raise StopIteration()
+
+            # We're still in the warmup period.  Use the event to
+            # update our universe, but don't yield any perf messages,
+            # and don't send a snapshot to handle_data.
+            elif date < self.algo_start:
+                for event in snapshot:
+                    del event['perf_message']
+                    self.update_universe(event)
+
+            # The algo has taken so long to process events that
+            # its simulated time is later than the event time.
+            # Update the universe and yield any perf messages
+            # encountered, but don't call handle_data.
+            elif date < self.simulation_dt:
+                for event in snapshot:
+                    # Only yield if we have something interesting to say.
+                    if event.perf_message != None:
                         yield event.perf_message
-                    raise StopIteration()
+                    # Delete the message before updating so we don't send it
+                    # to the user.
+                    del event['perf_message']
+                    self.update_universe(event)
 
-                # We're still in the warmup period.  Use the event to
-                # update our universe, but don't yield any perf messages,
-                # and don't send a snapshot to handle_data.
-                elif date < self.algo_start:
-                    for event in snapshot:
-                        del event['perf_message']
-                        self.update_universe(event)
+            # Regular snapshot.  Update the universe and send a snapshot
+            # to handle data.
+            else:
+                for event in snapshot:
+                    # Only yield if we have something interesting to say.
+                    if event.perf_message != None:
+                        yield event.perf_message
+                    del event['perf_message']
 
-                # The algo has taken so long to process events that
-                # its simulated time is later than the event time.
-                # Update the universe and yield any perf messages
-                # encountered, but don't call handle_data.
-                elif date < self.simulation_dt:
-                    for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message != None:
-                            yield event.perf_message
-                        # Delete the message before updating so we don't send it
-                        # to the user.
-                        del event['perf_message']
-                        self.update_universe(event)
+                    self.update_universe(event)
 
-                # Regular snapshot.  Update the universe and send a snapshot
-                # to handle data.
-                else:
-                    for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message != None:
-                            yield event.perf_message
-                        del event['perf_message']
-
-                        self.update_universe(event)
-
-                    # Send the current state of the universe to the user's algo.
-                    self.simulate_snapshot(date)
+                # Send the current state of the universe to the user's algo.
+                self.simulate_snapshot(date)
 
     def update_universe(self, event):
         """

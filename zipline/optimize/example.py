@@ -56,17 +56,17 @@ class DMA(TradingAlgorithm):
 def load_close_px(indexes=None, stocks=None):
     from pandas.io.data import DataReader
     import pytz
+    from collections import OrderedDict
 
     if indexes is None:
         indexes = {'SPX' : '^GSPC'}
     if stocks is None:
-        stocks = ['AAPL'] #, 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
+        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
 
-    #start = pd.datetime(1990, 1, 1)
     start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = pd.datetime(1992, 1, 1, 0, 0, 0, 0, pytz.utc) #pd.datetime.today()
+    end = pd.datetime(1992, 1, 1, 0, 0, 0, 0, pytz.utc)
 
-    data = {}
+    data = OrderedDict()
 
     for stock in stocks:
         print stock
