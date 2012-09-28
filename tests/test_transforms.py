@@ -298,7 +298,8 @@ class BatchTransformTestCase(TestCase):
         algo = BatchTransformAlgorithm(sids=[0, 1])
         algo.run(self.source)
 
-        assert algo.history_return_price_class[:2] == algo.history_return_price_decorator[:2] == [None, None], "First two iterations should return None"
+        self.assertEqual(algo.history_return_price_class[:2], [None, None], "First two iterations should return None")
+        self.assertEqual(algo.history_return_price_decorator[:2], [None, None], "First two iterations should return None")
 
         # test overloaded class
         for test_history in [algo.history_return_price_class, algo.history_return_price_decorator]:
@@ -308,9 +309,9 @@ class BatchTransformTestCase(TestCase):
 
     def test_passing_of_args(self):
         algo = BatchTransformAlgorithm([0, 1], 1, kwarg='str')
-        algo.run(self.source)
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg':'str'})
+
+        algo.run(self.source)
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(algo.history_return_args, [None, None, expected_item, expected_item, expected_item])
-
