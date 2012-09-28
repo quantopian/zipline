@@ -399,33 +399,53 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         pass
 
-class NoopBatchTransform(BatchTransform):
+##########################################
+# Algorithm using simple batch transforms
+
+class ReturnPriceBatchTransform(BatchTransform):
     def get_value(self, data):
         return data.price
 
 @batch_transform
-def noop_batch_decorator(data):
+def return_price_batch_decorator(data):
     return data.price
+
+@batch_transform
+def return_args_batch_decorator(data, *args, **kwargs):
+    return args, kwargs
 
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.history_class = []
-        self.history_decorator = []
-        self.days = 3
-        self.noop_class = NoopBatchTransform(sids=[0, 1],
-                                          market_aware=False,
-                                          refresh_period=2,
-                                          delta=timedelta(days=self.days))
+        self.history_return_price_class = []
+        self.history_return_price_decorator = []
+        self.history_return_args = []
 
-        self.noop_decorator = noop_batch_decorator(sids=[0, 1],
-                                                   market_aware=False,
-                                                   refresh_period=2,
-                                                   delta=timedelta(days=self.days))
+        self.days = 3
+
+        self.args = args
+        self.kwargs = kwargs
+
+        self.return_price_class = ReturnPriceBatchTransform(sids=self.sids,
+                                                            market_aware=False,
+                                                            refresh_period=2,
+                                                            delta=timedelta(days=self.days)
+        )
+
+        self.return_price_decorator = return_price_batch_decorator(sids=self.sids,
+                                                                   market_aware=False,
+                                                                   refresh_period=2,
+                                                                   delta=timedelta(days=self.days)
+        )
+
+        self.return_args_batch = return_args_batch_decorator(sids=self.sids,
+                                                             market_aware=False,
+                                                             refresh_period=2,
+                                                             delta=timedelta(days=self.days)
+        )
 
     def handle_data(self, data):
-        window_class = self.noop_class.handle_data(data)
-        window_decorator = self.noop_decorator.handle_data(data)
-        self.history_class.append(window_class)
-        self.history_decorator.append(window_decorator)
+        self.history_return_price_class.append(self.return_price_class.handle_data(data))
+        self.history_return_price_decorator.append(self.return_price_decorator.handle_data(data))
+        self.history_return_args.append(self.return_args_batch.handle_data(data, *self.args, **self.kwargs))
 
 

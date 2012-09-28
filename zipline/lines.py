@@ -60,7 +60,6 @@ before invoking simulate.
                           +---------------------------------+
 """
 
-from zipline.test_algorithms import TestAlgorithm
 from zipline.utils import factory
 
 from zipline.gens.composites import (
@@ -144,6 +143,8 @@ class SimulatedTrading(object):
             - transforms: optional parameter that provides a list
               of StatefulTransform objects.
         """
+        from zipline.test_algorithms import TestAlgorithm
+
         assert isinstance(config, dict)
         sid_list = config.get('sid_list')
         if not sid_list:

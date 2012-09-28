@@ -339,7 +339,7 @@ class BatchTransform(EventWindow):
         self.updated = False
         self.data = None
 
-    def handle_data(self, data):
+    def handle_data(self, data, *args, **kwargs):
         """
         New method to handle a data frame as sent to the algorithm's handle_data
         method.
@@ -356,7 +356,7 @@ class BatchTransform(EventWindow):
         self.update(data)
 
         # return newly computed or cached value
-        return self.get_transform_value()
+        return self.get_transform_value(*args, **kwargs)
 
     def handle_add(self, event):
         if not self.last_refresh:

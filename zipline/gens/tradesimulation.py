@@ -219,9 +219,11 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
         #with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
 
-        # Call user's initialize method with a timeout.
-        with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
-            self.algo.initialize()
+        # Call user's initialize method with a timeout (only if
+        # initialize wasn't called already).
+        if not getattr(self.algo, 'initialized', False):
+            with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
+                self.algo.initialize()
 
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
