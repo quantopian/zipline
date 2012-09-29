@@ -1,4 +1,4 @@
-class PerShareCommission(object):
+class PerShare(object):
 
     def __init__(self, cost=0.03):
         self.cost = cost
@@ -7,7 +7,7 @@ class PerShareCommission(object):
     def calculate(self, transaction):
         return self.cost, abs(transaction.amount * self.cost)
 
-class PerTradeCommission(object):
+class PerTrade(object):
 
     def __init__(self, cost=5.0):
         self.cost = cost

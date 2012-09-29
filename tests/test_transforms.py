@@ -307,6 +307,21 @@ class BatchTransformTestCase(TestCase):
             self.assertTrue(np.all(test_history[3].values.flatten() == range(4, 10)))
             self.assertTrue(np.all(test_history[4].values.flatten() == range(6, 14)))
 
+            np.testing.assert_array_equal(
+                    range(4, 10),
+                    test_history[2].values.flatten()
+            )
+
+            np.testing.assert_array_equal(
+                    range(4, 10),
+                    test_history[3].values.flatten()
+            )
+
+            np.testing.assert_array_equal(
+                    range(6, 14),
+                    test_history[4].values.flatten()
+            )
+
     def test_passing_of_args(self):
         algo = BatchTransformAlgorithm([0, 1], 1, kwarg='str')
         self.assertEqual(algo.args, (1,))
