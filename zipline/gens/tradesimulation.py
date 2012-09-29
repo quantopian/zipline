@@ -9,7 +9,6 @@ from zipline.utils.timeout import Heartbeat, Timeout
 
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
-from zipline.utils.log_utils import stdout_only_pipe
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -53,14 +52,14 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, slippage):
+    def __init__(self, algo, environment, txn_sim):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.slippage = slippage
+        self.txn_sim = txn_sim
 
-        self.ordering_client = TransactionSimulator(self.slippage)
+        self.ordering_client = TransactionSimulator(self.txn_sim)
         self.perf_tracker = PerformanceTracker(self.environment, self.sids)
 
         self.algo_start = self.environment.first_open
@@ -132,7 +131,7 @@ class AlgorithmSimulator(object):
         self.algo.set_logger(self.algolog)
 
         # Porived user algorithm with slippage override.
-        self.algo.set_slippage_override(self.override_slippage)
+        self.algo.set_simulate_override(self.simulate_override)
 
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
@@ -174,11 +173,7 @@ class AlgorithmSimulator(object):
             record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-        # Single_use generator that uses the @contextmanager decorator
-        # to monkey patch sys.stdout with a logbook interface.
-        self.stdout_capture = stdout_only_pipe
-
-    def override_slippage(self, slippage):
+    def simulate_override(self, slippage):
         self.order_book.slippage = slippage
 
     def order(self, sid, amount):
