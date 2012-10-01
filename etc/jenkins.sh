@@ -10,8 +10,8 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 mkvirtualenv zipline
 workon zipline
-./etc/ordered_pip.sh ./etc/requirements.txt
-./etc/ordered_pip.sh ./etc/requirements_dev.txt
+pip install -r ./etc/requirements.txt
+pip install -r ./etc/requirements_dev.txt
 
 # Show what we have installed
 pip freeze
