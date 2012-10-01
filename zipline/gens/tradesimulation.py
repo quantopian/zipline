@@ -52,14 +52,14 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, txn_sim):
+    def __init__(self, algo, environment, transact):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.txn_sim = txn_sim
+        self.transact = transact
 
-        self.ordering_client = TransactionSimulator(self.txn_sim)
+        self.ordering_client = TransactionSimulator(self.transact)
         self.perf_tracker = PerformanceTracker(self.environment, self.sids)
 
         self.algo_start = self.environment.first_open
@@ -130,8 +130,10 @@ class AlgorithmSimulator(object):
         self.algolog = Logger("AlgoLog")
         self.algo.set_logger(self.algolog)
 
-        # Porived user algorithm with slippage override.
-        self.algo.set_simulate_override(self.simulate_override)
+        # Provide user algorithm with a setter for the transact
+        # method (method that constructs transactions based on
+        # open orders and trade events).
+        self.algo.set_transact_setter(self.set_transact)
 
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
@@ -173,13 +175,17 @@ class AlgorithmSimulator(object):
             record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-    def simulate_override(self, slippage):
-        self.order_book.slippage = slippage
+    def set_transact(self, transact):
+        """
+        Set the method that will be called to create a
+        transaction from open orders and trade events.
+        """
+        self.order_book.transact = transact
 
     def order(self, sid, amount):
         """
         Closure to pass into the user's algo to allow placing orders
-        into the txn_sim's dict of open orders.
+        into the transaction simulator's dict of open orders.
         """
         assert sid in self.sids, "Order on invalid sid: %i" % sid
         order = ndict({
@@ -230,7 +236,7 @@ class AlgorithmSimulator(object):
                 if date == 'DONE':
                     for event in snapshot:
                         yield event.perf_message
-                    raise StopIteration()
+                    raise StopIteration
 
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,

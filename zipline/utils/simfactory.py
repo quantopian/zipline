@@ -2,7 +2,7 @@ import zipline.utils.factory as factory
 
 from zipline.test_algorithms import TestAlgorithm
 from zipline.lines import SimulatedTrading
-from zipline.finance.slippage import FixedSlippage, simulate_method_factory
+from zipline.finance.slippage import FixedSlippage, transact_partial
 from zipline.finance.commission import PerShare
 
 def create_test_zipline(**config):
@@ -65,7 +65,7 @@ def create_test_zipline(**config):
 
        slippage = config.get('slippage', FixedSlippage())
        commission = PerShare()
-       sim_method = simulate_method_factory(slippage, commission)
+       transact_method = transact_partial(slippage, commission)
 
        #-------------------
        # Trade Source
@@ -106,7 +106,7 @@ def create_test_zipline(**config):
                transforms,
                test_algo,
                trading_environment,
-               sim_method
+               transact_method
                )
        #-------------------
 

@@ -1,20 +1,25 @@
 import pytz
 import math
 
+from functools import partial
+
 import zipline.protocol as zp
 
+def transact_stub(slippage, commission, open_orders, events):
+    """
+    This is intended to be wrapped in a partial, so that the
+    slippage and commission models can be enclosed.
+    """
+    transaction = slippage.simulate(open_orders, events)
+    if transaction:
+        per_share, total_commission = commission.calculate(transaction)
+        transaction.price = transaction.price + per_share
+        transaction.commission = total_commission
+    return transaction
 
-def simulate_method_factory(slippage, commission):
 
-    def simulate(open_orders, events):
-        transaction = slippage.simulate(open_orders, events)
-        if transaction:
-            per_share, total_commission = commission.calculate(transaction)
-            transaction.price = transaction.price + per_share
-            transaction.commission = total_commission
-        return transaction
-
-    return simulate
+def transact_partial(slippage, commission):
+    return partial(transact_stub, slippage, commission)
 
 def create_transaction(sid, amount, price, dt):
 
