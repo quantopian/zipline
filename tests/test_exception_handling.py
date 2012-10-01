@@ -2,12 +2,14 @@
 from unittest2 import TestCase
 from collections import defaultdict
 
+import zipline.utils.simfactory as simfactory
 from zipline.test_algorithms import ExceptionAlgorithm, DivByZeroAlgorithm, \
     InitializeTimeoutAlgorithm, TooMuchProcessingAlgorithm
 from zipline.finance.slippage import FixedSlippage
 from zipline.lines import SimulatedTrading
 from zipline.gens.transform import StatefulTransform
 from zipline.utils.timeout import TimeoutException
+
 
 from zipline.utils.test_utils import (
     drain_zipline,
@@ -37,7 +39,7 @@ class ExceptionTestCase(TestCase):
 
     def test_datasource_exception(self):
         self.zipline_test_config['trade_source'] = ExceptionSource()
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -54,7 +56,7 @@ class ExceptionTestCase(TestCase):
         exc_tnfm = StatefulTransform(ExceptionTransform)
         self.zipline_test_config['transforms'] = [exc_tnfm]
 
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -72,7 +74,7 @@ class ExceptionTestCase(TestCase):
                     self.zipline_test_config['sid']
                 )
 
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -90,7 +92,7 @@ class ExceptionTestCase(TestCase):
                     self.zipline_test_config['sid']
                 )
 
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -108,7 +110,7 @@ class ExceptionTestCase(TestCase):
                     self.zipline_test_config['sid']
                 )
 
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -125,7 +127,7 @@ class ExceptionTestCase(TestCase):
                 self.zipline_test_config['sid']
             )
 
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 
@@ -140,7 +142,7 @@ class ExceptionTestCase(TestCase):
             TooMuchProcessingAlgorithm(
                 self.zipline_test_config['sid']
                 )
-        zipline = SimulatedTrading.create_test_zipline(
+        zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
         )
 

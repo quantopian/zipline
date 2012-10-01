@@ -10,6 +10,7 @@ from collections import defaultdict
 from nose.tools import timed
 
 import zipline.utils.factory as factory
+import zipline.utils.simfactory as simfactory
 
 from zipline.finance.trading import TradingEnvironment
 from zipline.lines import SimulatedTrading
@@ -111,7 +112,7 @@ class FinanceTestCase(TestCase):
         #provide enough trades to ensure all orders are filled.
         self.zipline_test_config['order_count'] = 100
         self.zipline_test_config['trade_count'] = 200
-        zipline = SimulatedTrading.create_test_zipline(**self.zipline_test_config)
+        zipline = simfactory.create_test_zipline(**self.zipline_test_config)
         assert_single_position(self, zipline)
 
     # TODO: write tests for short sales

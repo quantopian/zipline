@@ -5,18 +5,24 @@ import datetime
 from collections import defaultdict
 
 import zipline.protocol as zp
-from zipline.finance.slippage import VolumeShareSlippage, FixedSlippage
+from zipline.finance.slippage import (
+        VolumeShareSlippage,
+        transact_partial
+    )
+from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
 
-    def __init__(self, slippage=None):
-        if slippage:
-            assert isinstance(slippage, (VolumeShareSlippage, FixedSlippage))
-            self.slippage = slippage
+    def __init__(self, transact=None):
+        if transact != None:
+            self.transact = transact
         else:
-            self.slippage = VolumeShareSlippage()
+            self.transact =  transact_partial(
+                                VolumeShareSlippage(),
+                                PerShare()
+                             )
 
         self.open_orders = defaultdict(list)
 
@@ -37,7 +43,7 @@ class TransactionSimulator(object):
         event.TRANSACTION = None
         # We only fill transactions on trade events.
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            event.TRANSACTION = self.slippage.simulate(event, self.open_orders)
+            event.TRANSACTION = self.transact(event, self.open_orders)
         return event
 
 

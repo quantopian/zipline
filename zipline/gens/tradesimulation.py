@@ -9,7 +9,6 @@ from zipline.utils.timeout import Heartbeat, Timeout
 
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
-from zipline.utils.log_utils import stdout_only_pipe
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -53,14 +52,14 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, slippage):
+    def __init__(self, algo, environment, transact):
 
         self.algo = algo
         self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.slippage = slippage
+        self.transact = transact
 
-        self.ordering_client = TransactionSimulator(self.slippage)
+        self.ordering_client = TransactionSimulator(self.transact)
         self.perf_tracker = PerformanceTracker(self.environment, self.sids)
 
         self.algo_start = self.environment.first_open
@@ -131,8 +130,10 @@ class AlgorithmSimulator(object):
         self.algolog = Logger("AlgoLog")
         self.algo.set_logger(self.algolog)
 
-        # Porived user algorithm with slippage override.
-        self.algo.set_slippage_override(self.override_slippage)
+        # Provide user algorithm with a setter for the transact
+        # method (method that constructs transactions based on
+        # open orders and trade events).
+        self.algo.set_transact_setter(self.set_transact)
 
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
@@ -174,17 +175,17 @@ class AlgorithmSimulator(object):
             record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-        # Single_use generator that uses the @contextmanager decorator
-        # to monkey patch sys.stdout with a logbook interface.
-        self.stdout_capture = stdout_only_pipe
-
-    def override_slippage(self, slippage):
-        self.order_book.slippage = slippage
+    def set_transact(self, transact):
+        """
+        Set the method that will be called to create a
+        transaction from open orders and trade events.
+        """
+        self.order_book.transact = transact
 
     def order(self, sid, amount):
         """
         Closure to pass into the user's algo to allow placing orders
-        into the txn_sim's dict of open orders.
+        into the transaction simulator's dict of open orders.
         """
         assert sid in self.sids, "Order on invalid sid: %i" % sid
         order = ndict({
@@ -214,66 +215,64 @@ class AlgorithmSimulator(object):
         """
         Main generator work loop.
         """
-        # Capture any output of this generator to stdout and pipe it
-        # to a logbook interface.  Also inject the current algo
-        # snapshot time to any log record generated.
-        #with self.processor.threadbound(), self.stdout_capture(Logger('Print'),''):
-
         # Call user's initialize method with a timeout (only if
         # initialize wasn't called already).
         if not getattr(self.algo, 'initialized', False):
             with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
                 self.algo.initialize()
 
-        # Group together events with the same dt field. This depends on the
-        # events already being sorted.
-        for date, snapshot in groupby(stream_in, attrgetter('dt')):
-            # Set the simulation date to be the first event we see.
-            # This should only occur once, at the start of the test.
-            if self.simulation_dt == None:
-                self.simulation_dt = date
+        # inject the current algo
+        # snapshot time to any log record generated.
+        with self.processor.threadbound():
+            # Group together events with the same dt field. This depends on the
+            # events already being sorted.
+            for date, snapshot in groupby(stream_in, attrgetter('dt')):
+                # Set the simulation date to be the first event we see.
+                # This should only occur once, at the start of the test.
+                if self.simulation_dt == None:
+                    self.simulation_dt = date
 
-            # Done message has the risk report, so we yield before exiting.
-            if date == 'DONE':
-                for event in snapshot:
-                    yield event.perf_message
-                raise StopIteration()
-
-            # We're still in the warmup period.  Use the event to
-            # update our universe, but don't yield any perf messages,
-            # and don't send a snapshot to handle_data.
-            elif date < self.algo_start:
-                for event in snapshot:
-                    del event['perf_message']
-                    self.update_universe(event)
-
-            # The algo has taken so long to process events that
-            # its simulated time is later than the event time.
-            # Update the universe and yield any perf messages
-            # encountered, but don't call handle_data.
-            elif date < self.simulation_dt:
-                for event in snapshot:
-                    # Only yield if we have something interesting to say.
-                    if event.perf_message != None:
+                # Done message has the risk report, so we yield before exiting.
+                if date == 'DONE':
+                    for event in snapshot:
                         yield event.perf_message
-                    # Delete the message before updating so we don't send it
-                    # to the user.
-                    del event['perf_message']
-                    self.update_universe(event)
+                    raise StopIteration
 
-            # Regular snapshot.  Update the universe and send a snapshot
-            # to handle data.
-            else:
-                for event in snapshot:
-                    # Only yield if we have something interesting to say.
-                    if event.perf_message != None:
-                        yield event.perf_message
-                    del event['perf_message']
+                # We're still in the warmup period.  Use the event to
+                # update our universe, but don't yield any perf messages,
+                # and don't send a snapshot to handle_data.
+                elif date < self.algo_start:
+                    for event in snapshot:
+                        del event['perf_message']
+                        self.update_universe(event)
 
-                    self.update_universe(event)
+                # The algo has taken so long to process events that
+                # its simulated time is later than the event time.
+                # Update the universe and yield any perf messages
+                # encountered, but don't call handle_data.
+                elif date < self.simulation_dt:
+                    for event in snapshot:
+                        # Only yield if we have something interesting to say.
+                        if event.perf_message != None:
+                            yield event.perf_message
+                        # Delete the message before updating so we don't send it
+                        # to the user.
+                        del event['perf_message']
+                        self.update_universe(event)
 
-                # Send the current state of the universe to the user's algo.
-                self.simulate_snapshot(date)
+                # Regular snapshot.  Update the universe and send a snapshot
+                # to handle data.
+                else:
+                    for event in snapshot:
+                        # Only yield if we have something interesting to say.
+                        if event.perf_message != None:
+                            yield event.perf_message
+                        del event['perf_message']
+
+                        self.update_universe(event)
+
+                    # Send the current state of the universe to the user's algo.
+                    self.simulate_snapshot(date)
 
     def update_universe(self, event):
         """

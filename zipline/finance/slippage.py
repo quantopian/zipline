@@ -1,27 +1,46 @@
 import pytz
 import math
-from datetime import timedelta
+
+from functools import partial
 
 import zipline.protocol as zp
 
-def create_transaction(sid, amount, price, dt, direction, commission):
+def transact_stub(slippage, commission, open_orders, events):
+    """
+    This is intended to be wrapped in a partial, so that the
+    slippage and commission models can be enclosed.
+    """
+    transaction = slippage.simulate(open_orders, events)
+    if transaction:
+        per_share, total_commission = commission.calculate(transaction)
+        transaction.price = transaction.price + per_share
+        transaction.commission = total_commission
+    return transaction
+
+
+def transact_partial(slippage, commission):
+    return partial(transact_stub, slippage, commission)
+
+def create_transaction(sid, amount, price, dt):
+
     txn = {'sid'            : sid,
-            'amount'        : int(amount),
-            'dt'            : dt,
-            'price'         : price,
-            'commission'    : commission * amount * direction
+                'amount'        : int(amount),
+                'dt'            : dt,
+                'price'         : price,
           }
-    return zp.ndict(txn)
+
+    transaction = zp.ndict(txn)
+    return transaction
+
 
 class VolumeShareSlippage(object):
 
     def __init__(self,
             volume_limit=.25,
-            price_impact=0.1,
-            commission=0.03):
+            price_impact=0.1):
+
         self.volume_limit = volume_limit
         self.price_impact = price_impact
-        self.commission = commission
 
     def simulate(self, event, open_orders):
 
@@ -83,20 +102,16 @@ class VolumeShareSlippage(object):
                 simulated_amount,
                 event.price + simulated_impact,
                 dt.replace(tzinfo = pytz.utc),
-                direction,
-                self.commission
             )
 
 class FixedSlippage(object):
 
-    def __init__(self, spread=0.0, commission=0.0):
+    def __init__(self, spread=0.0):
         """
         Use the fixed slippage model, which will just add/subtract a specified spread
         spread/2 will be added on buys and subtracted on sells per share
-        commission will be charged per share
         """
         self.spread = spread
-        self.commission = commission
 
     def simulate(self, event, open_orders):
         if event.sid in open_orders:
@@ -118,9 +133,7 @@ class FixedSlippage(object):
             event.sid,
             amount,
             event.price + (self.spread/2.0 * direction),
-            event.dt,
-            direction,
-            self.commission
+            event.dt
         )
 
         open_orders[event.sid] = []

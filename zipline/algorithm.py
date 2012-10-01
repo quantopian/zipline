@@ -5,7 +5,8 @@ from zipline.gens.tradegens import DataFrameSource
 from zipline.utils.factory import create_trading_environment
 from zipline.gens.transform import StatefulTransform
 from zipline.lines import SimulatedTrading
-from zipline.finance.slippage import FixedSlippage
+from zipline.finance.slippage import FixedSlippage, transact_partial
+from zipline.finance.commission import PerShare
 
 
 class TradingAlgorithm(object):
@@ -74,7 +75,7 @@ class TradingAlgorithm(object):
             transforms,
             self,
             environment,
-            FixedSlippage()
+            transact_partial(FixedSlippage(), PerShare(0.0))
         )
 
     def run(self, source, start=None, end=None):
@@ -179,8 +180,5 @@ class TradingAlgorithm(object):
     def initialize(self, *args, **kwargs):
         pass
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, transact_setter):
         pass
-
-
-

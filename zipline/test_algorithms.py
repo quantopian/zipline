@@ -44,8 +44,8 @@ The algorithm must expose methods:
 
         self.Portfolio[sid(133)]['cost_basis']
 
-  - set_slippage_override: method that accepts a callable. Will
-    be set as the value of the set_slippage_override method of
+  - set_transact_setter: method that accepts a callable. Will
+    be set as the value of the set_transact_setter method of
     the trading_client. This allows an algorithm to change the
     slippage model used to predict transactions based on orders
     and trade events.
@@ -97,7 +97,7 @@ class TestAlgorithm():
     def get_sid_filter(self):
         return self.sid_filter
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 
@@ -138,7 +138,7 @@ class HeavyBuyAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class NoopAlgorithm(object):
@@ -164,7 +164,7 @@ class NoopAlgorithm(object):
     def get_sid_filter(self):
         return []
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class ExceptionAlgorithm(object):
@@ -210,7 +210,7 @@ class ExceptionAlgorithm(object):
         else:
             return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class DivByZeroAlgorithm():
@@ -240,7 +240,7 @@ class DivByZeroAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class InitializeTimeoutAlgorithm():
@@ -269,7 +269,7 @@ class InitializeTimeoutAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class TooMuchProcessingAlgorithm():
@@ -297,7 +297,7 @@ class TooMuchProcessingAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class TimeoutAlgorithm():
@@ -327,7 +327,7 @@ class TimeoutAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class TestPrintAlgorithm():
@@ -354,7 +354,7 @@ class TestPrintAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 class TestLoggingAlgorithm():
@@ -381,7 +381,7 @@ class TestLoggingAlgorithm():
     def get_sid_filter(self):
         return [self.sid]
 
-    def set_slippage_override(self, slippage_callable):
+    def set_transact_setter(self, txn_sim_callable):
         pass
 
 
@@ -447,5 +447,3 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_price_class.append(self.return_price_class.handle_data(data))
         self.history_return_price_decorator.append(self.return_price_decorator.handle_data(data))
         self.history_return_args.append(self.return_args_batch.handle_data(data, *self.args, **self.kwargs))
-
-
