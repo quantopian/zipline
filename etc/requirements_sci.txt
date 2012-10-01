@@ -4,7 +4,6 @@ python-dateutil==1.5
 
 # Core scientific python
 numpy>=1.6.1
--U git+git://github.com/pydata/pandas.git@v0.9.0rc2
 scipy>=0.10.0
 
 #matplotlib==1.1.0
@@ -15,4 +14,5 @@ Cython==0.15.1
 patsy==0.1.0
 statsmodels>=0.5.0
 scikit-learn==0.11
+-U git+git://github.com/pydata/pandas.git@v0.9.0rc2
 
