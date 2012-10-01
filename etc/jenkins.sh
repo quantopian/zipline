@@ -8,6 +8,7 @@ if [ ! -d $WORKON_HOME ]; then
 fi
 source /usr/local/bin/virtualenvwrapper.sh
 
+mkvirtualenv zipline
 workon zipline
 ./etc/ordered_pip.sh ./etc/requirements.txt
 ./etc/ordered_pip.sh ./etc/requirements_dev.txt
