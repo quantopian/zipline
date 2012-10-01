@@ -1,38 +1,5 @@
 ipython==0.12
 
-# For debugger
-fancycompleter==0.2
-pyrepl==0.8.2
-Pygments==1.5
-pdbpp==0.7.2
-
-
 # Testing
 unittest2
 nose==1.1.2
-coverage==3.5.1
-mock==0.7.2
-nosexcover==1.0.7
-pylint==0.25.1
-
-# Documentation
-docutils==0.8.1
-Sphinx==1.1.2
-
-# Task running
-Paver==1.0.5
-Paved==0.3
-
-# pycco deps
-Markdown==2.1.1
-Pycco==0.3.0
-pystache==0.4.0
-smartypants==1.6.0.3
-wsgiref==0.1.2
-
-# misc
-pycleaner==1.1.1
--e git://github.com/pydata/vbench.git#egg=vbench
-
-# profilers
-yappi==0.62

@@ -12,7 +12,6 @@ mkvirtualenv zipline
 workon zipline
 ./etc/ordered_pip.sh ./etc/requirements.txt
 ./etc/ordered_pip.sh ./etc/requirements_dev.txt
-./etc/ordered_pip.sh ./etc/requirements_sci.txt
 
 # Show what we have installed
 pip freeze

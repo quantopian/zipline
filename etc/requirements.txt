@@ -6,3 +6,11 @@ iso8601==0.1.4
 Logbook==0.3
 
 blist==1.3.4
+
+# Scientific Libraries
+
+pytz==2011n
+numpy==1.6.1
+Cython==0.15.1
+
+-e git+git://github.com/pydata/pandas.git@v0.9.0rc2#egg=pandas
