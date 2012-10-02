@@ -10,10 +10,12 @@ def transact_stub(slippage, commission, open_orders, events):
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
+
     transaction = slippage.simulate(open_orders, events)
-    if transaction:
+    if transaction and transaction.amount != 0:
+        direction = abs(transaction.amount) / transaction.amount
         per_share, total_commission = commission.calculate(transaction)
-        transaction.price = transaction.price + per_share
+        transaction.price = transaction.price + (per_share * direction)
         transaction.commission = total_commission
     return transaction
 
