@@ -13,11 +13,9 @@ import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.lines import SimulatedTrading
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
-from zipline.finance.slippage import VolumeShareSlippage
 from zipline.utils.test_utils import(
         setup_logger,
         teardown_logger,
