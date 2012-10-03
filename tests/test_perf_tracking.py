@@ -10,6 +10,7 @@ import zipline.protocol as zp
 
 from zipline.finance.trading import TradingEnvironment
 
+
 class PerformanceTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -38,14 +39,13 @@ check treasury and benchmark data in findb, and re-run the test."""
         self.trading_environment = TradingEnvironment(
             self.benchmark_returns,
             self.treasury_curves,
-            period_start = self.dt,
-            period_end = self.end_dt
+            period_start=self.dt,
+            period_end=self.end_dt
         )
 
         self.onesec = datetime.timedelta(seconds=1)
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
-
 
         self.dt = self.trading_environment.trading_days[random_index]
 
@@ -60,13 +60,13 @@ check treasury and benchmark data in findb, and re-run the test."""
         #post some trades in the market
         trades = factory.create_trade_history(
             1,
-            [10,10,10,11],
-            [100,100,100,100],
+            [10, 10, 10, 11],
+            [100, 100, 100, 100],
             self.onesec,
             self.trading_environment
         )
 
-        txn = factory.create_txn(1,10.0,100,self.dt + self.onesec)
+        txn = factory.create_txn(1, 10.0, 100, self.dt + self.onesec)
         pp = perf.PerformancePeriod({}, 0.0, 1000.0)
 
         pp.execute_transaction(txn)
@@ -82,7 +82,10 @@ check treasury and benchmark data in findb, and re-run the test."""
             cost of sole txn in test"
         )
 
-        self.assertEqual(len(pp.positions),1,"should be just one position")
+        self.assertEqual(
+            len(pp.positions),
+            1,
+            "should be just one position")
 
         self.assertEqual(
             pp.positions[1].sid,
@@ -127,8 +130,8 @@ check treasury and benchmark data in findb, and re-run the test."""
 single short-sale transaction"""
         trades = factory.create_trade_history(
             1,
-            [10,10,10,11,10,9],
-            [100,100,100,100,100,100],
+            [10, 10, 10, 11, 10, 9],
+            [100, 100, 100, 100, 100, 100],
             self.onesec,
             self.trading_environment
         )
@@ -187,7 +190,7 @@ single short-sale transaction"""
             shares in position"
         )
 
-        self.assertEqual(pp.pnl,-100,"gain of 1 on 100 shares should be 100")
+        self.assertEqual(pp.pnl, -100, "gain of 1 on 100 shares should be 100")
 
         # simulate additional trades, and ensure that the position value
         # reflects the new price
@@ -321,8 +324,8 @@ trade after cover"""
 
         trades = factory.create_trade_history(
             1,
-            [10,10,10,11,9,8,7,8,9,10],
-            [100,100,100,100,100,100,100,100,100,100],
+            [10, 10, 10, 11, 9, 8, 7, 8, 9, 10],
+            [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
             self.onesec,
             self.trading_environment
         )
@@ -334,7 +337,7 @@ trade after cover"""
             self.dt + self.onesec
         )
 
-        cover_txn = factory.create_txn(1,7.0,100,self.dt + self.onesec * 6)
+        cover_txn = factory.create_txn(1, 7.0, 100, self.dt + self.onesec * 6)
         pp = perf.PerformancePeriod({}, 0.0, 1000.0)
 
         pp.execute_transaction(short_txn)
@@ -400,16 +403,16 @@ shares in position"
     def test_cost_basis_calc(self):
         trades = factory.create_trade_history(
             1,
-            [10,11,11,12],
-            [100,100,100,100],
+            [10, 11, 11, 12],
+            [100, 100, 100, 100],
             self.onesec,
             self.trading_environment
         )
 
         transactions = factory.create_txn_history(
             1,
-            [10,11,11,12],
-            [100,100,100,100],
+            [10, 11, 11, 12],
+            [100, 100, 100, 100],
             self.onesec,
             self.trading_environment
         )
@@ -468,11 +471,12 @@ shares in position"
         self.assertEqual(
             pp2.positions[1].last_sale_price,
             10,
-            "should have a last sale of 10, was {val}".format(val=pp2.positions[1].last_sale_price)
+            "should have a last sale of 10, was {val}".format(
+                val=pp2.positions[1].last_sale_price)
         )
 
         self.assertEqual(
-            round(pp2.positions[1].cost_basis,2),
+            round(pp2.positions[1].cost_basis, 2),
             11.33,
             "should have a cost basis of 11.33"
         )
@@ -498,7 +502,7 @@ shares in position"
         )
 
         self.assertEqual(
-            round(pp3.positions[1].cost_basis,2),
+            round(pp3.positions[1].cost_basis, 2),
             11.33,
             "should have a cost basis of 11.33"
         )
@@ -541,8 +545,12 @@ shares in position"
         self.trading_environment.period_start = trade_history[0].dt
         self.trading_environment.period_end = trade_history[-1].dt
         self.trading_environment.capital_base = 1000.0
-        self.trading_environment.frame_index = ['sid', 'volume', 'dt', \
-        'price', 'changed']
+        self.trading_environment.frame_index = [
+            'sid',
+            'volume',
+            'dt',
+            'price',
+            'changed']
         perf_tracker = perf.PerformanceTracker(
                 self.trading_environment,
                 [sid, sid2]
@@ -553,11 +561,11 @@ shares in position"
             #first trade in each sid, to simulate None transaction
             if(event.dt != self.trading_environment.period_start):
                 txn = zp.ndict({
-                    'sid'        : event.sid,
-                    'amount'     : -25,
-                    'dt'         : event.dt,
-                    'price'      : 10.0,
-                    'commission' : 0.50
+                    'sid': event.sid,
+                    'amount': -25,
+                    'dt': event.dt,
+                    'price': 10.0,
+                    'commission': 0.50
                 })
             else:
                 txn = None
