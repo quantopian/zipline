@@ -5,9 +5,7 @@ Generator version of Merge.
 from collections import deque
 
 from zipline import ndict
-from zipline.gens.utils import hash_args, \
-    assert_merge_protocol, done_message
-from itertools import repeat
+
 
 def merge(stream_in, tnfm_ids):
     """
