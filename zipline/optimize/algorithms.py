@@ -3,6 +3,7 @@ from zipline.algorithm import TradingAlgorithm
 
 logger = Logger('Algo')
 
+
 class BuySellAlgorithm(TradingAlgorithm):
     """Algorithm that buys and sells alternatingly. The amount for
     each order can be specified. In addition, an offset that will
@@ -22,7 +23,7 @@ class BuySellAlgorithm(TradingAlgorithm):
         self.orders = []
 
     def handle_data(self, data):
-        order_size = self.buy_or_sell * (self.amount - (self.offset**2))
+        order_size = self.buy_or_sell * (self.amount - (self.offset ** 2))
         self.order(self.sids[0], order_size)
         logger.debug("ordering" + str(order_size))
 
@@ -30,4 +31,3 @@ class BuySellAlgorithm(TradingAlgorithm):
         self.buy_or_sell *= -1
 
         self.orders.append(order_size)
-
