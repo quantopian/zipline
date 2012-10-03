@@ -101,7 +101,8 @@ class TradingAlgorithm(object):
         """
         if isinstance(source, (list, tuple)):
             assert start is not None and end is not None, \
-            "When providing a list of sources, start and end date have to be specified."
+            """When providing a list of sources, \
+start and end date have to be specified."""
         elif isinstance(source, pd.DataFrame):
             assert isinstance(source.index, pd.tseries.index.DatetimeIndex)
             # if DataFrame provided, wrap in DataFrameSource
@@ -130,7 +131,6 @@ class TradingAlgorithm(object):
 
         return daily_stats
 
-
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
         daily_perfs = []
@@ -141,11 +141,11 @@ class TradingAlgorithm(object):
             else:
                 cum_perfs.append(perf)
 
-        daily_dts = [np.datetime64(perf['period_close'], utc=True) for perf in daily_perfs]
+        daily_dts = [np.datetime64(perf['period_close'], utc=True)
+                     for perf in daily_perfs]
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
         return daily_stats
-
 
     def add_transform(self, transform_class, tag, *args, **kwargs):
         """Add a single-sid, sequential transform to the model.
