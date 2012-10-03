@@ -59,8 +59,6 @@ before invoking simulate.
                           |      __init__.                  |
                           +---------------------------------+
 """
-
-from zipline.utils import factory
 from zipline.gens.composites import (
     date_sorted_sources,
     sequential_transforms
