@@ -7,6 +7,7 @@ from zipline.test_algorithms import TestRegisterTransformAlgorithm
 from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
 from zipline.gens.mavg import MovingAverage
 
+
 class TestTransformAlgorithm(TestCase):
     def setUp(self):
         setup_logger(self)
@@ -37,7 +38,8 @@ class TestTransformAlgorithm(TestCase):
 
     def test_multi_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(sids=[0, 1, 133])
-        algo.run([self.source, self.df_source], start=self.df.index[0], end=self.df.index[-1])
+        algo.run([self.source, self.df_source],
+                 start=self.df.index[0], end=self.df.index[-1])
         self.assertEqual(len(algo.sources), 2)
 
     def test_df_as_input(self):
@@ -51,7 +53,6 @@ class TestTransformAlgorithm(TestCase):
         assert algo.get_sid_filter() == algo.sids == [133]
         assert 'mavg' in algo.registered_transforms
         assert algo.registered_transforms['mavg']['args'] == (['price'],)
-        assert algo.registered_transforms['mavg']['kwargs'] == {'days': 2, 'market_aware': True}
+        assert algo.registered_transforms['mavg']['kwargs'] == \
+            {'days': 2, 'market_aware': True}
         assert algo.registered_transforms['mavg']['class'] is MovingAverage
-
-

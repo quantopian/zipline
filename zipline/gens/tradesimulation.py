@@ -15,8 +15,9 @@ log = Logger('Trade Simulation')
 
 # TODO: make these arguments rather than global constants
 INIT_TIMEOUT = 5
-HEARTBEAT_INTERVAL = 1 # seconds
-MAX_HEARTBEAT_INTERVALS = 15 #count
+HEARTBEAT_INTERVAL = 1  # seconds
+MAX_HEARTBEAT_INTERVALS = 15  # count
+
 
 class TradeSimulationClient(object):
     """
@@ -105,6 +106,7 @@ class TradeSimulationClient(object):
         for message in performance_messages:
             yield message
 
+
 class AlgorithmSimulator(object):
 
     def __init__(self,
@@ -138,7 +140,7 @@ class AlgorithmSimulator(object):
         # Handler for heartbeats during calls to handle_data.
         def log_heartbeats(beat_count, stackframe):
             t = beat_count * HEARTBEAT_INTERVAL
-            warning = "handle_data has been processing for %i seconds" %t
+            warning = "handle_data has been processing for %i seconds" % t
             self.algolog.warn(warning)
 
         # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
@@ -189,10 +191,10 @@ class AlgorithmSimulator(object):
         """
         assert sid in self.sids, "Order on invalid sid: %i" % sid
         order = ndict({
-            'dt'     : self.simulation_dt,
-            'sid'    : sid,
-            'amount' : int(amount),
-            'filled' : 0
+            'dt': self.simulation_dt,
+            'sid': sid,
+            'amount': int(amount),
+            'filled': 0
         })
 
         # Tell the user if they try to buy 0 shares of something.
@@ -229,7 +231,7 @@ class AlgorithmSimulator(object):
             for date, snapshot in groupby(stream_in, attrgetter('dt')):
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
-                if self.simulation_dt == None:
+                if self.simulation_dt is None:
                     self.simulation_dt = date
 
                 # Done message has the risk report, so we yield before exiting.
@@ -253,10 +255,10 @@ class AlgorithmSimulator(object):
                 elif date < self.simulation_dt:
                     for event in snapshot:
                         # Only yield if we have something interesting to say.
-                        if event.perf_message != None:
+                        if event.perf_message is not None:
                             yield event.perf_message
-                        # Delete the message before updating so we don't send it
-                        # to the user.
+                        # Delete the message before updating,
+                        # so we don't send it to the user.
                         del event['perf_message']
                         self.update_universe(event)
 
@@ -265,13 +267,14 @@ class AlgorithmSimulator(object):
                 else:
                     for event in snapshot:
                         # Only yield if we have something interesting to say.
-                        if event.perf_message != None:
+                        if event.perf_message is not None:
                             yield event.perf_message
                         del event['perf_message']
 
                         self.update_universe(event)
 
-                    # Send the current state of the universe to the user's algo.
+                    # Send the current state of the universe
+                    # to the user's algo.
                     self.simulate_snapshot(date)
 
     def update_universe(self, event):

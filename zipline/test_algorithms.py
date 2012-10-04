@@ -141,6 +141,7 @@ class HeavyBuyAlgorithm():
     def set_transact_setter(self, txn_sim_callable):
         pass
 
+
 class NoopAlgorithm(object):
     """
     Dolce fa niente.
@@ -166,6 +167,7 @@ class NoopAlgorithm(object):
 
     def set_transact_setter(self, txn_sim_callable):
         pass
+
 
 class ExceptionAlgorithm(object):
     """
@@ -213,6 +215,7 @@ class ExceptionAlgorithm(object):
     def set_transact_setter(self, txn_sim_callable):
         pass
 
+
 class DivByZeroAlgorithm():
 
     def __init__(self, sid):
@@ -234,7 +237,7 @@ class DivByZeroAlgorithm():
     def handle_data(self, data):
         self.incr += 1
         if self.incr > 4:
-            5/0
+            5 / 0
         pass
 
     def get_sid_filter(self):
@@ -242,6 +245,7 @@ class DivByZeroAlgorithm():
 
     def set_transact_setter(self, txn_sim_callable):
         pass
+
 
 class InitializeTimeoutAlgorithm():
     def __init__(self, sid):
@@ -252,7 +256,6 @@ class InitializeTimeoutAlgorithm():
         import time
         from zipline.gens.tradesimulation import INIT_TIMEOUT
         time.sleep(INIT_TIMEOUT + 1000)
-
 
     def set_order(self, order_callable):
         pass
@@ -271,6 +274,7 @@ class InitializeTimeoutAlgorithm():
 
     def set_transact_setter(self, txn_sim_callable):
         pass
+
 
 class TooMuchProcessingAlgorithm():
     def __init__(self, sid):
@@ -299,6 +303,7 @@ class TooMuchProcessingAlgorithm():
 
     def set_transact_setter(self, txn_sim_callable):
         pass
+
 
 class TimeoutAlgorithm():
 
@@ -330,6 +335,7 @@ class TimeoutAlgorithm():
     def set_transact_setter(self, txn_sim_callable):
         pass
 
+
 class TestPrintAlgorithm():
 
     def __init__(self, sid):
@@ -356,6 +362,7 @@ class TestPrintAlgorithm():
 
     def set_transact_setter(self, txn_sim_callable):
         pass
+
 
 class TestLoggingAlgorithm():
 
@@ -390,6 +397,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.gens.transform import BatchTransform, batch_transform
 from zipline.gens.mavg import MovingAverage
 
+
 class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.add_transform(MovingAverage, 'mavg', ['price'],
@@ -399,6 +407,7 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         pass
 
+
 ##########################################
 # Algorithm using simple batch transforms
 
@@ -406,13 +415,16 @@ class ReturnPriceBatchTransform(BatchTransform):
     def get_value(self, data):
         return data.price
 
+
 @batch_transform
 def return_price_batch_decorator(data):
     return data.price
 
+
 @batch_transform
 def return_args_batch_decorator(data, *args, **kwargs):
     return args, kwargs
+
 
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
@@ -425,25 +437,32 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.args = args
         self.kwargs = kwargs
 
-        self.return_price_class = ReturnPriceBatchTransform(sids=self.sids,
-                                                            market_aware=False,
-                                                            refresh_period=2,
-                                                            delta=timedelta(days=self.days)
+        self.return_price_class = ReturnPriceBatchTransform(
+            sids=self.sids,
+            market_aware=False,
+            refresh_period=2,
+            delta=timedelta(days=self.days)
         )
 
-        self.return_price_decorator = return_price_batch_decorator(sids=self.sids,
-                                                                   market_aware=False,
-                                                                   refresh_period=2,
-                                                                   delta=timedelta(days=self.days)
+        self.return_price_decorator = return_price_batch_decorator(
+            sids=self.sids,
+            market_aware=False,
+            refresh_period=2,
+            delta=timedelta(days=self.days)
         )
 
-        self.return_args_batch = return_args_batch_decorator(sids=self.sids,
-                                                             market_aware=False,
-                                                             refresh_period=2,
-                                                             delta=timedelta(days=self.days)
+        self.return_args_batch = return_args_batch_decorator(
+            sids=self.sids,
+            market_aware=False,
+            refresh_period=2,
+            delta=timedelta(days=self.days)
         )
 
     def handle_data(self, data):
-        self.history_return_price_class.append(self.return_price_class.handle_data(data))
-        self.history_return_price_decorator.append(self.return_price_decorator.handle_data(data))
-        self.history_return_args.append(self.return_args_batch.handle_data(data, *self.args, **self.kwargs))
+        self.history_return_price_class.append(
+            self.return_price_class.handle_data(data))
+        self.history_return_price_decorator.append(
+            self.return_price_decorator.handle_data(data))
+        self.history_return_args.append(
+            self.return_args_batch.handle_data(
+                data, *self.args, **self.kwargs))

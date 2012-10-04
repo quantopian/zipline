@@ -3,6 +3,7 @@ from unittest2 import TestCase
 import zipline.utils.factory as factory
 from zipline.gens.tradegens import DataFrameSource
 
+
 class TestDataFrameSource(TestCase):
     def test_streaming_of_df(self):
         source, df = factory.create_test_df_source()

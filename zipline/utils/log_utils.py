@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 log = logbook.Logger("LogUtils")
 
+
 class redirector(object):
     def __init__(self, logger, name):
         self.logger = logger
@@ -17,11 +18,12 @@ class redirector(object):
         if not self.buffer:
             return
         out_form = """ [{pipe_name}] \n{buffer}""".format(
-            pipe_name = self.name,
-            buffer    = self.buffer
+            pipe_name=self.name,
+            buffer=self.buffer
         )
         self.logger.error(out_form)
         self.buffer = bytes()
+
 
 class log_redirector(object):
     def __init__(self, logger):
@@ -29,7 +31,7 @@ class log_redirector(object):
 
     def write(self, line):
         #Absorb blank lines from print statements.
-        if line =='\n':
+        if line == '\n':
             return
 
         else:
@@ -38,6 +40,7 @@ class log_redirector(object):
 
     def flush(self, final=False):
         pass
+
 
 @contextmanager
 def stdout_pipe(logger, pipe_name):
@@ -54,6 +57,7 @@ def stdout_pipe(logger, pipe_name):
     sys.stderr.flush()
     sys.stdout.flush()
     sys.stdout, sys.stderr = orig_fds
+
 
 @contextmanager
 def stdout_only_pipe(logger, pipe_name):

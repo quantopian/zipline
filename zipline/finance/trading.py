@@ -13,19 +13,20 @@ from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
 
+
 class TransactionSimulator(object):
 
     def __init__(self, transact=None):
-        if transact != None:
+
+        if transact is not None:
             self.transact = transact
         else:
-            self.transact =  transact_partial(
-                                VolumeShareSlippage(),
-                                PerShare()
-                             )
+            self.transact = transact_partial(
+                VolumeShareSlippage(),
+                PerShare()
+            )
 
         self.open_orders = defaultdict(list)
-
 
     def place_order(self, order):
         # initialized filled field.
@@ -53,9 +54,9 @@ class TradingEnvironment(object):
         self,
         benchmark_returns,
         treasury_curves,
-        period_start    = None,
-        period_end      = None,
-        capital_base    = None
+        period_start=None,
+        period_end=None,
+        capital_base=None
     ):
 
         self.trading_days = []
@@ -88,8 +89,8 @@ class TradingEnvironment(object):
         """
         Finds the first trading day on or after self.period_start.
         """
-        first_open  = self.period_start
-        one_day      = datetime.timedelta(days=1)
+        first_open = self.period_start
+        one_day = datetime.timedelta(days=1)
 
         while not self.is_trading_day(first_open):
             first_open = first_open + one_day
@@ -102,7 +103,7 @@ class TradingEnvironment(object):
         Finds the first trading day open that falls at least a day
         before period_start.
         """
-        one_day    = datetime.timedelta(days=1)
+        one_day = datetime.timedelta(days=1)
         first_open = self.period_start - one_day
 
         if first_open <= self.trading_days[0]:
@@ -119,8 +120,8 @@ class TradingEnvironment(object):
         """
         Finds the last trading day on or before self.period_end
         """
-        last_close  = self.period_end
-        one_day     = datetime.timedelta(days=1)
+        last_close = self.period_end
+        one_day = datetime.timedelta(days=1)
 
         while not self.is_trading_day(last_close):
             last_close = last_close - one_day
@@ -136,12 +137,12 @@ class TradingEnvironment(object):
             month=dt.month,
             day=dt.day
         )
-        local = pytz.timezone ('US/Eastern')
-        local_dt = naive.replace (tzinfo = local)
+        local = pytz.timezone('US/Eastern')
+        local_dt = naive.replace(tzinfo=local)
         # set the clock to the opening bell in NYC time.
         local_dt = local_dt.replace(hour=hour, minute=minute)
         # convert to UTC
-        utc_dt = local_dt.astimezone (pytz.utc)
+        utc_dt = local_dt.astimezone(pytz.utc)
         return utc_dt
 
     def normalize_date(self, test_date):
@@ -155,17 +156,16 @@ class TradingEnvironment(object):
     @property
     def days_in_period(self):
         """return the number of trading days within the period [start, end)"""
-        assert(self.period_start != None)
-        assert(self.period_end != None)
+        assert self.period_start is not None
+        assert self.period_end is not None
 
-        if self.period_trading_days == None:
+        if self.period_trading_days is None:
             self.period_trading_days = []
             for date in self.trading_days:
                 if date > self.period_end:
                     break
                 if date >= self.period_start:
                     self.period_trading_days.append(date)
-
 
         return len(self.period_trading_days)
 
@@ -181,11 +181,11 @@ class TradingEnvironment(object):
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
-        return self.trading_day_map.has_key(dt)
+        return (dt in self.trading_day_map)
 
     def get_benchmark_daily_return(self, test_date):
         date = self.normalize_date(test_date)
-        if self.trading_day_map.has_key(date):
+        if date in self.trading_day_map:
             return self.trading_day_map[date].returns
         else:
             return 0.0

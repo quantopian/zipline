@@ -3,6 +3,7 @@ from itertools import chain
 from zipline.gens.utils import roundrobin, done_message
 from zipline.gens.sort import date_sort
 
+
 def date_sorted_sources(*sources):
     """
     Takes an iterable of sources, generating namestrings and
@@ -26,6 +27,7 @@ def date_sorted_sources(*sources):
 
     return date_sort(stream_in, names)
 
+
 def sequential_transforms(stream_in, *transforms):
     """
     Apply each transform in transforms sequentially to each event in stream_in.
@@ -43,7 +45,6 @@ def sequential_transforms(stream_in, *transforms):
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
                         transforms,
                         stream_in)
-
 
     dt_aliased = alias_dt(stream_out)
     return add_done(dt_aliased)

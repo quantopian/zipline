@@ -12,13 +12,13 @@ class PerShare(object):
         """
         self.cost = cost
 
-
     def calculate(self, transaction):
         """
         returns a tuple of:
         (per share commission, total transaction commission)
         """
         return self.cost, abs(transaction.amount * self.cost)
+
 
 class PerTrade(object):
     """

@@ -11,6 +11,7 @@ from zipline.gens.utils import  \
 
 log = logbook.Logger('Sorting')
 
+
 def date_sort(stream_in, source_ids):
     """
     A generator that takes a generator and a list of source_ids.  We
@@ -51,6 +52,7 @@ def date_sort(stream_in, source_ids):
         assert queue[0].dt == "DONE", \
             "Bad last message in date_sort on exit: %s" % queue
 
+
 def ready(sources):
     """
     Feed is ready when every internal queue has at least one
@@ -58,16 +60,19 @@ def ready(sources):
     True only if ready(sources).
     """
     assert isinstance(sources, dict)
-    return all( (queue_is_ready(source) for source in sources.itervalues()) )
+    return all((queue_is_ready(source) for source in sources.itervalues()))
+
 
 def queue_is_ready(queue):
     assert isinstance(queue, deque)
     return len(queue) > 0
 
+
 def done(sources):
     """Feed is done when all internal queues have only a "DONE" message."""
     assert isinstance(sources, dict)
-    return all( (queue_is_done(source) for source in sources.itervalues()) )
+    return all((queue_is_done(source) for source in sources.itervalues()))
+
 
 def queue_is_done(queue):
     assert isinstance(queue, deque)
@@ -78,6 +83,7 @@ def queue_is_done(queue):
         return True
     else:
         return False
+
 
 def pop_oldest(sources):
 
@@ -92,7 +98,7 @@ def pop_oldest(sources):
         if current_event.dt == "DONE":
             continue
         # Any event is older than nothing.
-        elif oldest_event == None:
+        elif oldest_event is None:
             oldest_event = current_event
         # Keep the older event.  Break ties by source_id. This will
         # trip an assert if we have duplicate sources.
@@ -101,6 +107,7 @@ def pop_oldest(sources):
 
     # Pop the oldest event we found from its queue and return it.
     return sources[oldest_event.source_id].popleft()
+
 
 # Return the event with the older timestamp.  Break ties by source_id.
 def older(oldest, current):

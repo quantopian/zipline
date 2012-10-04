@@ -126,8 +126,8 @@ import zipline.finance.risk as risk
 
 log = logbook.Logger('Performance')
 
-class PerformanceTracker(object):
 
+class PerformanceTracker(object):
     """
     Tracks the performance of the zipline as it is running in
     the simulator, relays this out to the Deluge broker and then
@@ -141,24 +141,24 @@ class PerformanceTracker(object):
 
     def __init__(self, trading_environment, sid_list):
 
-        self.trading_environment     = trading_environment
-        self.trading_day             = datetime.timedelta(hours = 6, minutes = 30)
-        self.calendar_day            = datetime.timedelta(hours = 24)
-        self.started_at              = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.trading_environment = trading_environment
+        self.trading_day = datetime.timedelta(hours=6, minutes=30)
+        self.calendar_day = datetime.timedelta(hours=24)
+        self.started_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-        self.period_start            = self.trading_environment.period_start
-        self.period_end              = self.trading_environment.period_end
-        self.market_open             = self.trading_environment.first_open
-        self.market_close            = self.market_open + self.trading_day
-        self.progress                = 0.0
-        self.total_days              = self.trading_environment.days_in_period
+        self.period_start = self.trading_environment.period_start
+        self.period_end = self.trading_environment.period_end
+        self.market_open = self.trading_environment.first_open
+        self.market_close = self.market_open + self.trading_day
+        self.progress = 0.0
+        self.total_days = self.trading_environment.days_in_period
         # one indexed so that we reach 100%
-        self.day_count               = 0.0
-        self.capital_base            = self.trading_environment.capital_base
-        self.returns                 = []
-        self.txn_count               = 0
-        self.event_count             = 0
-        self.last_dict               = None
+        self.day_count = 0.0
+        self.capital_base = self.trading_environment.capital_base
+        self.returns = []
+        self.txn_count = 0
+        self.event_count = 0
+        self.last_dict = None
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -185,7 +185,7 @@ class PerformanceTracker(object):
             self.market_open,
             self.market_close,
             # save the transactions for the daily periods
-            keep_transactions = True
+            keep_transactions=True
         )
 
         for sid in sid_list:
@@ -216,16 +216,15 @@ class PerformanceTracker(object):
         Returns a dict object of the form described in header comments.
         """
         return {
-            'started_at'              : self.started_at,
-            'period_start'            : self.period_start,
-            'period_end'              : self.period_end,
-            'progress'                : self.progress,
-            'capital_base'            : self.capital_base,
-            'cumulative_perf'         : self.cumulative_performance.to_dict(),
-            'daily_perf'              : self.todays_performance.to_dict(),
-            'cumulative_risk_metrics' : self.cumulative_risk_metrics.to_dict()
+            'started_at': self.started_at,
+            'period_start': self.period_start,
+            'period_end': self.period_end,
+            'progress': self.progress,
+            'capital_base': self.capital_base,
+            'cumulative_perf': self.cumulative_performance.to_dict(),
+            'daily_perf': self.todays_performance.to_dict(),
+            'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
-
 
     def process_event(self, event):
 
@@ -284,7 +283,8 @@ class PerformanceTracker(object):
 
         while not self.trading_environment.is_trading_day(self.market_open):
             if self.market_open > self.trading_environment.trading_days[-1]:
-                raise Exception("Attempt to backtest beyond available history.")
+                raise Exception(
+                    "Attempt to backtest beyond available history.")
             self.market_open = self.market_open + self.calendar_day
 
         self.market_close = self.market_open + self.trading_day
@@ -296,7 +296,7 @@ class PerformanceTracker(object):
             self.todays_performance.ending_cash,
             self.market_open,
             self.market_close,
-            keep_transactions = True
+            keep_transactions=True
         )
 
         return daily_update
@@ -309,7 +309,8 @@ class PerformanceTracker(object):
 
         log_msg = "Simulated {n} trading days out of {m}."
         log.info(log_msg.format(n=self.day_count, m=self.total_days))
-        log.info("first open: {d}".format(d=self.trading_environment.first_open))
+        log.info("first open: {d}".format(
+            d=self.trading_environment.first_open))
 
         # the stream will end on the last trading day, but will not trigger
         # an end of day, so we trigger the final market close here.
@@ -323,14 +324,15 @@ class PerformanceTracker(object):
         risk_dict = self.risk_report.to_dict()
         return risk_dict
 
+
 class Position(object):
 
     def __init__(self, sid):
-        self.sid             = sid
-        self.amount          = 0
-        self.cost_basis      = 0.0 ##per share
+        self.sid = sid
+        self.amount = 0
+        self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
-        self.last_sale_date  = 0.0
+        self.last_sale_date = 0.0
 
     def update(self, txn):
         if(self.sid != txn.sid):
@@ -341,25 +343,24 @@ class Position(object):
             self.cost_basis = 0.0
             self.amount = 0
         else:
-            prev_cost       = self.cost_basis*self.amount
-            txn_cost        = txn.amount*txn.price
-            total_cost      = prev_cost + txn_cost
-            total_shares    = self.amount + txn.amount
-            self.cost_basis = total_cost/total_shares
-            self.amount     = self.amount + txn.amount
+            prev_cost = self.cost_basis * self.amount
+            txn_cost = txn.amount * txn.price
+            total_cost = prev_cost + txn_cost
+            total_shares = self.amount + txn.amount
+            self.cost_basis = total_cost / total_shares
+            self.amount = self.amount + txn.amount
 
     def currentValue(self):
         return self.amount * self.last_sale_price
-
 
     def __repr__(self):
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
         last_sale_price: {last_sale_price}"
         return template.format(
-            sid             = self.sid,
-            amount          = self.amount,
-            cost_basis      = self.cost_basis,
-            last_sale_price = self.last_sale_price
+            sid=self.sid,
+            amount=self.amount,
+            cost_basis=self.cost_basis,
+            last_sale_price=self.last_sale_price
         )
 
     def to_dict(self):
@@ -368,10 +369,10 @@ class Position(object):
         Returns a dict object of the form:
         """
         return {
-            'sid'             : self.sid,
-            'amount'          : self.amount,
-            'cost_basis'      : self.cost_basis,
-            'last_sale_price' : self.last_sale_price
+            'sid': self.sid,
+            'amount': self.amount,
+            'cost_basis': self.cost_basis,
+            'last_sale_price': self.last_sale_price
         }
 
 
@@ -389,32 +390,32 @@ class PerformancePeriod(object):
         self.period_open = period_open
         self.period_close = period_close
 
-        self.ending_value            = 0.0
-        self.period_capital_used     = 0.0
-        self.pnl                     = 0.0
+        self.ending_value = 0.0
+        self.period_capital_used = 0.0
+        self.pnl = 0.0
         #sid => position object
-        self.positions               = initial_positions
-        self.starting_value          = starting_value
+        self.positions = initial_positions
+        self.starting_value = starting_value
         #cash balance at start of period
-        self.starting_cash           = starting_cash
-        self.ending_cash             = starting_cash
-        self.keep_transactions       = keep_transactions
-        self.processed_transactions  = []
+        self.starting_cash = starting_cash
+        self.ending_cash = starting_cash
+        self.keep_transactions = keep_transactions
+        self.processed_transactions = []
         self.cumulative_capital_used = 0.0
-        self.max_capital_used        = 0.0
-        self.max_leverage            = 0.0
+        self.max_capital_used = 0.0
+        self.max_leverage = 0.0
 
         self.calculate_performance()
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
 
-        total_at_start      = self.starting_cash + self.starting_value
-        self.ending_cash    = self.starting_cash + self.period_capital_used
-        total_at_end        = self.ending_cash + self.ending_value
+        total_at_start = self.starting_cash + self.starting_value
+        self.ending_cash = self.starting_cash + self.period_capital_used
+        total_at_end = self.ending_cash + self.ending_value
 
-        self.pnl            = total_at_end - total_at_start
-        if(total_at_start != 0):
+        self.pnl = total_at_end - total_at_start
+        if total_at_start != 0:
             self.returns = self.pnl / total_at_start
         else:
             self.returns = 0.0
@@ -423,16 +424,14 @@ class PerformancePeriod(object):
 
         # Update Position
         # ----------------
-        if(not self.positions.has_key(txn.sid)):
+        if txn.sid not in self.positions:
             self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
 
-
         # Max Leverage
         # ---------------
         # Calculate the maximum capital used and maximum leverage
-
         transaction_cost = txn.price * txn.amount
         self.cumulative_capital_used += transaction_cost
 
@@ -447,46 +446,46 @@ class PerformancePeriod(object):
             )
 
             # we're adding a 10% cushion to the capital used.
-            self.max_leverage = 1.1 * self.max_capital_used / self.starting_cash
+            self.max_leverage = 1.1 * \
+                self.max_capital_used / self.starting_cash
 
         # add transaction to the list of processed transactions
         if self.keep_transactions:
             self.processed_transactions.append(txn)
 
     def round_to_nearest(self, x, base=5):
-        return int(base * round(float(x)/base))
+        return int(base * round(float(x) / base))
 
     def calculate_positions_value(self):
         mktValue = 0.0
-        for key,pos in self.positions.iteritems():
+        for key, pos in self.positions.iteritems():
             mktValue += pos.currentValue()
         return mktValue
 
     def update_last_sale(self, event):
         is_trade = event.type == zp.DATASOURCE_TYPE.TRADE
-        if self.positions.has_key(event.sid) and is_trade:
+        if event.sid in self.positions and is_trade:
             self.positions[event.sid].last_sale_price = event.price
             self.positions[event.sid].last_sale_date = event.dt
 
     def __core_dict(self):
         rval = {
-            'ending_value'              : self.ending_value,
-            'capital_used'              : self.period_capital_used,
-            'starting_value'            : self.starting_value,
-            'starting_cash'             : self.starting_cash,
-            'ending_cash'               : self.ending_cash,
-            'portfolio_value'           : self.ending_cash + self.ending_value,
-            'cumulative_capital_used'   : self.cumulative_capital_used,
-            'max_capital_used'          : self.max_capital_used,
-            'max_leverage'              : self.max_leverage,
-            'pnl'                       : self.pnl,
-            'returns'                   : self.returns,
-            'period_open'               : self.period_open,
-            'period_close'              : self.period_close
+            'ending_value': self.ending_value,
+            'capital_used': self.period_capital_used,
+            'starting_value': self.starting_value,
+            'starting_cash': self.starting_cash,
+            'ending_cash': self.ending_cash,
+            'portfolio_value': self.ending_cash + self.ending_value,
+            'cumulative_capital_used': self.cumulative_capital_used,
+            'max_capital_used': self.max_capital_used,
+            'max_leverage': self.max_leverage,
+            'pnl': self.pnl,
+            'returns': self.returns,
+            'period_open': self.period_open,
+            'period_close': self.period_close
         }
 
         return rval
-
 
     def to_dict(self):
         """

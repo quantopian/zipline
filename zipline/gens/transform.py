@@ -17,6 +17,7 @@ from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
 log = logbook.Logger('Transform')
 
+
 class Passthrough(object):
     PASSTHROUGH = True
     """
@@ -27,6 +28,7 @@ class Passthrough(object):
 
     def update(self, event):
         pass
+
 
 class TransformMeta(type):
     """
@@ -79,7 +81,8 @@ class StatefulTransform(object):
             # interpreter for most classes anyway, but here we have to
             # be explicit because we've overridden the method that
             # usually resolves to our super call.
-            self.state = super(TransformMeta, tnfm_class).__call__(*args, **kwargs)
+            self.state = super(TransformMeta, tnfm_class).__call__(
+                *args, **kwargs)
         # Normal object instantiation.
         else:
             self.state = tnfm_class(*args, **kwargs)
@@ -102,7 +105,7 @@ class StatefulTransform(object):
 
             # allow upstream generators to yield None to avoid
             # blocking.
-            if message == None:
+            if message is None:
                 continue
 
             assert_sort_unframe_protocol(message)
@@ -153,7 +156,6 @@ class StatefulTransform(object):
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
 
 
-
 class EventWindow(object):
     """
     Abstract base class for transform classes that calculate iterative
@@ -185,7 +187,7 @@ class EventWindow(object):
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
-            assert self.days and self.delta == None,\
+            assert self.days and self.delta is None, \
                 "Market-aware mode only works with full-day windows."
             self.all_holidays = deque(non_trading_days)
             self.cur_holidays = deque()
@@ -276,12 +278,14 @@ class EventWindow(object):
     # that arrive in sorted order.
     def assert_well_formed(self, event):
         assert isinstance(event, ndict), "Bad event in EventWindow:%s" % event
-        assert event.has_key('dt'), "Missing dt in EventWindow:%s" % event
-        assert isinstance(event.dt, datetime),"Bad dt in EventWindow:%s" % event
+        assert 'dt' in event, "Missing dt in EventWindow:%s" % event
+        assert isinstance(event.dt, datetime), \
+            "Bad dt in EventWindow:%s" % event
         if len(self.ticks) > 0:
             # Something is wrong if new event is older than previous.
             assert event.dt >= self.ticks[-1].dt, \
-                "Events arrived out of order in EventWindow: %s -> %s" % (event, self.ticks[0])
+                "Events arrived out of order in EventWindow: %s -> %s" % \
+                (event, self.ticks[0])
 
 
 class BatchTransform(EventWindow):
@@ -309,7 +313,8 @@ class BatchTransform(EventWindow):
 
         ```
 
-    In you algorithm you would then have to instantiate this in the initialize() method:
+    In you algorithm you would then have to instantiate
+    this in the initialize() method:
     ```
     self.my_batch_transform = MyBatchTransform()
     ```
@@ -322,8 +327,15 @@ class BatchTransform(EventWindow):
 
     """
 
-    def __init__(self, func=None, refresh_period=None, market_aware=True, delta=None, days=None, sids=None):
-        super(BatchTransform, self).__init__(market_aware, days=days, delta=delta)
+    def __init__(self,
+                 func=None,
+                 refresh_period=None,
+                 market_aware=True,
+                 delta=None,
+                 days=None,
+                 sids=None):
+        super(BatchTransform, self).__init__(
+            market_aware, days=days, delta=delta)
         if func is not None:
             self.compute_transform_value = func
         else:
@@ -341,8 +353,8 @@ class BatchTransform(EventWindow):
 
     def handle_data(self, data, *args, **kwargs):
         """
-        New method to handle a data frame as sent to the algorithm's handle_data
-        method.
+        New method to handle a data frame as sent to the algorithm's
+        handle_data method.
         """
         # extract dates
         dts = [data[sid].datetime for sid in self.sids]
@@ -383,7 +395,9 @@ class BatchTransform(EventWindow):
 
                 values_per_sid = {}
                 for sid in self.sids:
-                    values_per_sid[sid] = pd.Series({tick[sid].dt: tick[sid][field_name] for tick in self.ticks})
+                    values_per_sid[sid] = pd.Series(
+                        {tick[sid].dt: tick[sid][field_name]
+                         for tick in self.ticks})
 
                 # concatenate different sids into one df
                 fields[field_name] = pd.DataFrame.from_dict(values_per_sid)
@@ -400,14 +414,16 @@ class BatchTransform(EventWindow):
         self.full = True
 
     def get_value(self, *args, **kwargs):
-        raise NotImplementedError("Either overwrite get_value or provide a func argument.")
+        raise NotImplementedError(
+            "Either overwrite get_value or provide a func argument.")
 
     def get_transform_value(self, *args, **kwargs):
         if self.data is None:
             return None
 
         if self.updated:
-            self.cached = self.compute_transform_value(self.data, *args, **kwargs)
+            self.cached = self.compute_transform_value(self.data,
+                                                       *args, **kwargs)
 
         return self.cached
 
