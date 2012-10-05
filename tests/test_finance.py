@@ -320,7 +320,7 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator ** i)
 
-        tracker = PerformanceTracker(trading_environment, [sid])
+        tracker = PerformanceTracker(trading_environment)
 
         # this approximates the loop inside TradingSimulationClient
         transactions = []

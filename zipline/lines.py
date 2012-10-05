@@ -59,6 +59,7 @@ before invoking simulate.
                           |      __init__.                  |
                           +---------------------------------+
 """
+
 from zipline.gens.composites import (
     date_sorted_sources,
     sequential_transforms
@@ -76,8 +77,8 @@ class SimulatedTrading(object):
             sources,
             transforms,
             algorithm,
-            environment,
-            sim_method=None):
+            environment
+            ):
         """
         @sources - an iterable of iterables
         These iterables must yield ndicts that contain:
@@ -104,7 +105,13 @@ class SimulatedTrading(object):
         # Formerly merged_transforms.
         self.with_tnfms = sequential_transforms(self.date_sorted,
                                                 *self.transforms)
-        self.trading_client = tsc(algorithm, environment, sim_method)
+        self.trading_client = tsc(algorithm, environment)
+
+        # give the algorithm access to the simulator to control
+        # state such as universe, commissions, and slippage. With
+        # great power comes great responsibility.
+        algorithm.simulator = self
+
         self.gen = self.trading_client.simulate(self.with_tnfms)
 
     def __iter__(self):

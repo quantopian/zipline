@@ -567,8 +567,7 @@ shares in position"
             'price',
             'changed']
         perf_tracker = perf.PerformanceTracker(
-                self.trading_environment,
-                [sid, sid2]
+                self.trading_environment
         )
 
         for event in trade_history:

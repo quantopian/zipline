@@ -31,16 +31,8 @@ log = logbook.Logger('Transaction Simulator')
 
 class TransactionSimulator(object):
 
-    def __init__(self, transact=None):
-
-        if transact is not None:
-            self.transact = transact
-        else:
-            self.transact = transact_partial(
-                VolumeShareSlippage(),
-                PerShare()
-            )
-
+    def __init__(self):
+        self.transact = transact_partial(VolumeShareSlippage(), PerShare())
         self.open_orders = defaultdict(list)
 
     def place_order(self, order):

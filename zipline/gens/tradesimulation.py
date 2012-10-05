@@ -21,18 +21,12 @@ from itertools import groupby
 from operator import attrgetter
 
 from zipline import ndict
-from zipline.utils.timeout import Heartbeat, Timeout
 
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
-
-# TODO: make these arguments rather than global constants
-INIT_TIMEOUT = 5
-HEARTBEAT_INTERVAL = 1  # seconds
-MAX_HEARTBEAT_INTERVALS = 15  # count
 
 
 class TradeSimulationClient(object):
@@ -69,15 +63,13 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment, transact):
+    def __init__(self, algo, environment):
 
         self.algo = algo
-        self.sids = algo.get_sid_filter()
         self.environment = environment
-        self.transact = transact
 
-        self.ordering_client = TransactionSimulator(self.transact)
-        self.perf_tracker = PerformanceTracker(self.environment, self.sids)
+        self.ordering_client = TransactionSimulator()
+        self.perf_tracker = PerformanceTracker(self.environment)
 
         self.algo_start = self.environment.first_open
         self.algo_sim = AlgorithmSimulator(
@@ -139,7 +131,6 @@ class AlgorithmSimulator(object):
         self.order_book = order_book
 
         self.algo = algo
-        self.sids = algo.get_sid_filter()
         self.algo_start = algo_start
 
         # Monkey patch the user algorithm to place orders in the
@@ -148,35 +139,18 @@ class AlgorithmSimulator(object):
         self.algolog = Logger("AlgoLog")
         self.algo.set_logger(self.algolog)
 
-        # Provide user algorithm with a setter for the transact
-        # method (method that constructs transactions based on
-        # open orders and trade events).
-        self.algo.set_transact_setter(self.set_transact)
-
-        # Handler for heartbeats during calls to handle_data.
-        def log_heartbeats(beat_count, stackframe):
-            t = beat_count * HEARTBEAT_INTERVAL
-            warning = "handle_data has been processing for %i seconds" % t
-            self.algolog.warn(warning)
-
-        # Context manager that calls log_heartbeats every HEARTBEAT_INTERVAL
-        # seconds, raising an exception after MAX_HEARTBEATS
-        self.heartbeat_monitor = Heartbeat(
-            HEARTBEAT_INTERVAL,
-            MAX_HEARTBEAT_INTERVALS,
-            frame_handler=log_heartbeats,
-            timeout_message="Too much time spent in handle_data call"
-        )
-
         # ==============
         # Snapshot Setup
         # ==============
 
         # The algorithm's universe as of our most recent event.
-        self.universe = ndict()
-        for sid in self.sids:
-            self.universe[sid] = ndict()
-        self.universe.portfolio = None
+        # We want an ndict that will have empty ndicts as default
+        # values on missing keys.
+        self.universe = ndict(default=ndict)
+        # TODO: these keys are being inserted because universe
+        # has a default dictionary backing __internal.
+        # del self.universe['__members__']
+        # del self.universe['__methods__']
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -193,19 +167,11 @@ class AlgorithmSimulator(object):
             record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-    def set_transact(self, transact):
-        """
-        Set the method that will be called to create a
-        transaction from open orders and trade events.
-        """
-        self.order_book.transact = transact
-
     def order(self, sid, amount):
         """
         Closure to pass into the user's algo to allow placing orders
         into the transaction simulator's dict of open orders.
         """
-        assert sid in self.sids, "Order on invalid sid: %i" % sid
         order = ndict({
             'dt': self.simulation_dt,
             'sid': sid,
@@ -233,12 +199,6 @@ class AlgorithmSimulator(object):
         """
         Main generator work loop.
         """
-        # Call user's initialize method with a timeout (only if
-        # initialize wasn't called already).
-        if not getattr(self.algo, 'initialized', False):
-            with Timeout(INIT_TIMEOUT, message="Call to initialize timed out"):
-                self.algo.initialize()
-
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
@@ -298,7 +258,7 @@ class AlgorithmSimulator(object):
         Update the universe with new event information.
         """
         # Update our portfolio.
-        self.universe.portfolio = event.portfolio
+        self.algo.set_portfolio(event.portfolio)
 
         # Update our knowledge of this event's sid
         for field in event.keys():
@@ -312,10 +272,8 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
-
         start_tic = datetime.now()
-        with self.heartbeat_monitor:
-            self.algo.handle_data(self.universe)
+        self.algo.handle_data(self.universe)
         stop_tic = datetime.now()
 
         # How long did you take?

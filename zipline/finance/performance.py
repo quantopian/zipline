@@ -154,7 +154,7 @@ class PerformanceTracker(object):
 
     """
 
-    def __init__(self, trading_environment, sid_list):
+    def __init__(self, trading_environment):
 
         self.trading_environment = trading_environment
         self.trading_day = datetime.timedelta(hours=6, minutes=30)
@@ -203,9 +203,8 @@ class PerformanceTracker(object):
             keep_transactions=True
         )
 
-        for sid in sid_list:
-            self.cumulative_performance.positions[sid] = Position(sid)
-            self.todays_performance.positions[sid] = Position(sid)
+        self.cumulative_performance.positions = positiondict()
+        self.todays_performance.positions = positiondict()
 
     def transform(self, stream_in):
         """
@@ -571,3 +570,9 @@ class PerformancePeriod(object):
             cur = pos.to_dict()
             positions.append(cur)
         return positions
+
+
+class positiondict(dict):
+
+    def __missing__(self, key):
+        return Position(key)

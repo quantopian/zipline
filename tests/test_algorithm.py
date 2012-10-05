@@ -65,7 +65,6 @@ class TestTransformAlgorithm(TestCase):
     def test_transform_registered(self):
         algo = TestRegisterTransformAlgorithm(sids=[133])
         algo.run(self.source)
-        assert algo.get_sid_filter() == algo.sids == [133]
         assert 'mavg' in algo.registered_transforms
         assert algo.registered_transforms['mavg']['args'] == (['price'],)
         assert algo.registered_transforms['mavg']['kwargs'] == \

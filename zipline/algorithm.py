@@ -19,9 +19,20 @@ import numpy as np
 from zipline.gens.tradegens import DataFrameSource
 from zipline.utils.factory import create_trading_environment
 from zipline.gens.transform import StatefulTransform
-from zipline.lines import SimulatedTrading
-from zipline.finance.slippage import FixedSlippage, transact_partial
-from zipline.finance.commission import PerShare
+from zipline.finance.slippage import (
+        VolumeShareSlippage,
+        FixedSlippage,
+        transact_partial
+)
+from zipline.finance.commission import PerShare, PerTrade
+
+
+from zipline.gens.composites import (
+    date_sorted_sources,
+    sequential_transforms
+)
+from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+from zipline import MESSAGES
 
 
 class TradingAlgorithm(object):
@@ -44,54 +55,46 @@ class TradingAlgorithm(object):
     >>> stats = my_algo.run(data)
 
     """
-    def __init__(self, sids, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Initialize sids and other state variables.
-
-        Calls user-defined initialize() forwarding *args and **kwargs.
         """
-        self.sids = sids
         self.done = False
         self.order = None
         self.frame_count = 0
         self.portfolio = None
 
         self.registered_transforms = {}
+        self.transforms = []
+        self.sources = []
 
-        # call to user-defined initialize method
+        # default components for transact
+        self.slippage = VolumeShareSlippage()
+        self.commission = PerShare()
+
+        # an algorithm subclass needs to set initialized to True
+        # when it is fully initialized.
+        self.initialized = False
+
+        # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
-        self.initialized = True
-
-    def _create_simulator(self, start, end):
+    def _create_generator(self, environment):
         """
         Create trading environment, transforms and SimulatedTrading object.
 
         Gets called by self.run().
         """
-        environment = create_trading_environment(start=start, end=end)
 
-        # Create transforms by wrapping them into StatefulTransforms
-        transforms = []
-        for namestring, trans_descr in self.registered_transforms.iteritems():
-            sf = StatefulTransform(
-                trans_descr['class'],
-                *trans_descr['args'],
-                **trans_descr['kwargs']
-            )
-            sf.namestring = namestring
+        self.date_sorted = date_sorted_sources(*self.sources)
+        self.with_tnfms = sequential_transforms(self.date_sorted,
+                                                *self.transforms)
+        self.trading_client = tsc(self, environment)
 
-            transforms.append(sf)
+        transact_method = transact_partial(self.slippage, self.commission)
+        self.set_transact(transact_method)
 
-        # SimulatedTrading is the main class handling data streaming,
-        # application of transforms and calling of the user algo.
-        return SimulatedTrading(
-            self.sources,
-            transforms,
-            self,
-            environment,
-            transact_partial(FixedSlippage(), PerShare(0.0))
-        )
+        return self.trading_client.simulate(self.with_tnfms)
 
     def run(self, source, start=None, end=None):
         """Run the algorithm.
@@ -121,7 +124,7 @@ start and end date have to be specified."""
         elif isinstance(source, pd.DataFrame):
             assert isinstance(source.index, pd.tseries.index.DatetimeIndex)
             # if DataFrame provided, wrap in DataFrameSource
-            source = DataFrameSource(source, sids=self.sids)
+            source = DataFrameSource(source)
 
         # If values not set, try to extract from source.
         if start is None:
@@ -134,12 +137,25 @@ start and end date have to be specified."""
         else:
             self.sources = source
 
+        # Create transforms by wrapping them into StatefulTransforms
+        for namestring, trans_descr in self.registered_transforms.iteritems():
+            sf = StatefulTransform(
+                trans_descr['class'],
+                *trans_descr['args'],
+                **trans_descr['kwargs']
+            )
+            sf.namestring = namestring
+
+            self.transforms.append(sf)
+
+        environment = create_trading_environment(start=start, end=end)
+
         # create transforms and zipline
-        self.simulated_trading = self._create_simulator(start=start, end=end)
+        self.gen = self._create_generator(environment)
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict
-        perfs = list(self.simulated_trading)
+        perfs = list(self.gen)
 
         # convert perf ndict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
@@ -186,14 +202,39 @@ start and end date have to be specified."""
     def set_order(self, order_callable):
         self.order = order_callable
 
-    def get_sid_filter(self):
-        return self.sids
-
     def set_logger(self, logger):
         self.logger = logger
 
-    def initialize(self, *args, **kwargs):
+    def init(self, *args, **kwargs):
+        """Called from constructor."""
         pass
 
-    def set_transact_setter(self, transact_setter):
-        pass
+    def set_transact(self, transact):
+        """
+        Set the method that will be called to create a
+        transaction from open orders and trade events.
+        """
+        self.trading_client.ordering_client.transact = transact
+
+    def set_slippage(self, slippage):
+        assert isinstance(slippage, (VolumeShareSlippage, FixedSlippage)), \
+                MESSAGES.ERRORS.UNSUPPORTED_SLIPPAGE_MODEL
+        if self.initialized:
+            raise Exception(MESSAGES.ERRORS.OVERRIDE_SLIPPAGE_POST_INIT)
+        self.slippage = slippage
+
+    def set_commission(self, commission):
+        assert isinstance(commission, (PerShare, PerTrade)), \
+                MESSAGES.ERRORS.UNSUPPORTED_COMMISSION_MODEL
+
+        if self.initialized:
+            raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)
+        self.commission = commission
+
+    def set_sources(self, sources):
+        assert isinstance(sources, list)
+        self.sources = sources
+
+    def set_transforms(self, transforms):
+        assert isinstance(transforms, list)
+        self.transforms = transforms

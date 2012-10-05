@@ -26,7 +26,6 @@ def transact_stub(slippage, commission, open_orders, events):
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-
     transaction = slippage.simulate(open_orders, events)
     if transaction and transaction.amount != 0:
         direction = abs(transaction.amount) / transaction.amount
