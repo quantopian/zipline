@@ -3,3 +3,7 @@ ipython==0.12
 # Testing
 unittest2
 nose==1.1.2
+
+# Linting
+
+flake8==1.4
