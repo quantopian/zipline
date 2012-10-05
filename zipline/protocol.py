@@ -15,12 +15,12 @@ DATASOURCE_TYPE = Enum(
 
 #Transform type needs to be a ndict to facilitate merging.
 TRANSFORM_TYPE = ndict({
-    'PASSTHROUGH' : 'PASSTHROUGH',
-    'EMPTY'       : ''
+    'PASSTHROUGH': 'PASSTHROUGH',
+    'EMPTY': ''
 })
 
 
 FINANCE_COMPONENT = namelookup({
-    'TRADING_CLIENT'   : 'TRADING_CLIENT',
-    'PORTFOLIO_CLIENT' : 'PORTFOLIO_CLIENT',
+    'TRADING_CLIENT': 'TRADING_CLIENT',
+    'PORTFOLIO_CLIENT': 'PORTFOLIO_CLIENT',
 })

@@ -6,7 +6,6 @@ import zipline.utils.simfactory as simfactory
 from zipline.test_algorithms import ExceptionAlgorithm, DivByZeroAlgorithm, \
     InitializeTimeoutAlgorithm, TooMuchProcessingAlgorithm
 from zipline.finance.slippage import FixedSlippage
-from zipline.lines import SimulatedTrading
 from zipline.gens.transform import StatefulTransform
 from zipline.utils.timeout import TimeoutException
 
@@ -19,7 +18,7 @@ from zipline.utils.test_utils import (
     ExceptionTransform
 )
 
-DEFAULT_TIMEOUT = 15 # seconds
+DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 
@@ -29,8 +28,8 @@ class ExceptionTestCase(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'sid'                   : 133,
-            'slippage'      : FixedSlippage()
+            'sid': 133,
+            'slippage': FixedSlippage()
         }
         setup_logger(self)
 
@@ -51,7 +50,6 @@ class ExceptionTestCase(TestCase):
             'integer division or modulo by zero'
         )
 
-
     def test_tranform_exception(self):
         exc_tnfm = StatefulTransform(ExceptionTransform)
         self.zipline_test_config['transforms'] = [exc_tnfm]
@@ -63,7 +61,8 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(AssertionError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,'An assertion message')
+        self.assertEqual(ctx.exception.message,
+                         'An assertion message')
 
     def test_exception_in_init(self):
         # Simulation
@@ -81,7 +80,8 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(Exception) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,'Algo exception in initialize')
+        self.assertEqual(ctx.exception.message,
+                         'Algo exception in initialize')
 
     def test_exception_in_handle_data(self):
         # Simulation
@@ -99,7 +99,8 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(Exception) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,'Algo exception in handle_data')
+        self.assertEqual(ctx.exception.message,
+                         'Algo exception in handle_data')
 
     def test_zerodivision_exception_in_handle_data(self):
 
@@ -117,8 +118,8 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(ZeroDivisionError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,'integer division or modulo by zero')
-
+        self.assertEqual(ctx.exception.message,
+                         'integer division or modulo by zero')
 
     def test_initialize_timeout(self):
 
@@ -134,7 +135,7 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(TimeoutException) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,'Call to initialize timed out')
+        self.assertEqual(ctx.exception.message, 'Call to initialize timed out')
 
     def test_heartbeat(self):
 

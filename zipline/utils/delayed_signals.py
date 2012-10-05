@@ -1,5 +1,6 @@
 from functools import wraps
-from signal    import signal
+from signal import signal
+
 
 class delayed_signals(object):
     """

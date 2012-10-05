@@ -3,6 +3,7 @@ import pandas
 from ctypes import Structure, c_ubyte
 from collections import MutableMapping
 
+
 def Enum(*options):
     """
     Fast enums are very important when we want really tight
@@ -14,6 +15,7 @@ def Enum(*options):
         __iter__ = lambda s: iter(range(len(options)))
     return cstruct(*range(len(options)))
 
+
 def FrameExceptionFactory(name):
     """
     Exception factory with a closure around the frame class name.
@@ -24,11 +26,12 @@ def FrameExceptionFactory(name):
 
         def __str__(self):
             return "Invalid {framecls} Frame: {got}".format(
-                framecls = name,
-                got = self.got,
+                framecls=name,
+                got=self.got,
             )
 
     return InvalidFrame
+
 
 class ndict(MutableMapping):
     """
@@ -160,6 +163,7 @@ class ndict(MutableMapping):
 
         #return True
 
+
 # This is not neccesarily the most intuitive construction, but
 # we're aiming for raw performance rather than readability. So
 # we do things that we would not normally do in business logic.
@@ -167,14 +171,18 @@ def namelookup(dct):
     ks = dct.keys()
     vs = dct.values()
     dct = {}
+
     class _lookup:
         __slots__ = ks
+
         def __init__(self):
             for k, v in zip(ks, vs):
-                setattr(self,k,v)
+                setattr(self, k, v)
             self.__setattr__ = self.locked
-        def locked(self,k,v):
+
+        def locked(self, k, v):
             raise Exception('Name lookups are fixed at init.')
+
         def __repr__(self):
             return '<namelookup %s>' % self.__slots__
     del dct

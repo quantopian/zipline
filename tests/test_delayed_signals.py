@@ -1,10 +1,11 @@
 import os
-from   signal    import signal, SIGHUP, SIGINT
+from signal import signal, SIGHUP, SIGINT
 import time
-from   types     import FrameType
+from types import FrameType
 import unittest
 
 from zipline.utils.delayed_signals import delayed_signals
+
 
 class DelayedSignals(unittest.TestCase):
     def handler(self, signum, frame):

@@ -1,10 +1,9 @@
 from numbers import Number
-from datetime import datetime, timedelta
 from collections import defaultdict
 from math import sqrt
 
-from zipline import ndict
 from zipline.gens.transform import EventWindow, TransformMeta
+
 
 class MovingStandardDev(object):
     """
@@ -15,7 +14,7 @@ class MovingStandardDev(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, market_aware, days = None, delta = None):
+    def __init__(self, market_aware, days=None, delta=None):
 
         self.market_aware = market_aware
 
@@ -31,11 +30,11 @@ class MovingStandardDev(object):
         else:
             assert self.delta and not self.days, \
                 "Non-market-aware mode requires a timedelta."
-        
+
         # No way to pass arguments to the defaultdict factory, so we
         # need to define a method to generate the correct EventWindows.
         self.sid_windows = defaultdict(self.create_window)
-        
+
     def create_window(self):
         """
         Factory method for self.sid_windows.
@@ -45,7 +44,7 @@ class MovingStandardDev(object):
             self.days,
             self.delta
         )
-    
+
     def update(self, event):
         """
         Update the event window for this event's sid.  Return an ndict
@@ -56,46 +55,46 @@ class MovingStandardDev(object):
         window = self.sid_windows[event.sid]
         window.update(event)
         return window.get_stddev()
-    
+
+
 class MovingStandardDevWindow(EventWindow):
     """
     Iteratively calculates standard deviation for a particular sid
     over a given time window.  The expected functionality of this
     class is to be instantiated inside a MovingStandardDev.
     """
-    
+
     def __init__(self, market_aware, days, delta):
-        
         # Call the superclass constructor to set up base EventWindow
         # infrastructure.
         EventWindow.__init__(self, market_aware, days, delta)
 
         self.sum = 0.0
         self.sum_sqr = 0.0
-                
+
     def handle_add(self, event):
-        assert event.has_key('price')
+        assert 'price' in event
         assert isinstance(event.price, Number)
 
         self.sum += event.price
         self.sum_sqr += event.price ** 2
-                
+
     def handle_remove(self, event):
-        assert event.has_key('price')
+        assert 'price' in event
         assert isinstance(event.price, Number)
-        
+
         self.sum -= event.price
         self.sum_sqr -= event.price ** 2
-        
+
     def get_stddev(self):
-        
         # Sample standard deviation is undefined for a single event or
         # no events.
         if len(self) <= 1:
             return None
 
         else:
-            average = self.sum /len(self)
-            s_squared = (self.sum_sqr - self.sum*average) / (len(self) - 1) 
+            average = self.sum / len(self)
+            s_squared = (self.sum_sqr - self.sum * average) \
+                        / (len(self) - 1)
             stddev = sqrt(s_squared)
         return stddev

@@ -5,7 +5,7 @@ and zipline development
 import random
 import pytz
 
-from itertools import chain, cycle, ifilter, izip, repeat
+from itertools import cycle, ifilter, izip
 from datetime import datetime, timedelta
 import pandas as pd
 from copy import copy
@@ -15,19 +15,23 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils import ndict
 from zipline.gens.utils import hash_args, create_trade
 
-def date_gen(start = datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
-             delta = timedelta(minutes = 1),
-             count = 100,
-             repeats = None):
+
+def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
+             delta=timedelta(minutes=1),
+             count=100,
+             repeats=None):
     """
     Utility to generate a stream of dates.
     """
     if repeats:
-        return (start + (i * delta)  for i in xrange(count) for n in xrange(repeats))
+        return (start + (i * delta)
+                for i in xrange(count)
+                for n in xrange(repeats))
     else:
         return (start + (i * delta) for i in xrange(count))
 
-def mock_prices(count, rand = False):
+
+def mock_prices(count, rand=False):
     """
     Utility to generate a stream of mock prices. By default
     cycles through values from 0.0 to 10.0, n times.  Optional
@@ -39,7 +43,8 @@ def mock_prices(count, rand = False):
     else:
         return (float(i % 10) + 1.0 for i in xrange(count))
 
-def mock_volumes(count, rand = False):
+
+def mock_volumes(count, rand=False):
     """
     Utility to generate a set of volumes. By default cycles
     through values from 100 to 1000, incrementing by 50.  Optional
@@ -48,16 +53,18 @@ def mock_volumes(count, rand = False):
     if rand:
         return (random.randrange(100, 1000) for i in xrange(count))
     else:
-        return ((i * 50)%900 + 100 for i in xrange(count))
+        return ((i * 50) % 900 + 100 for i in xrange(count))
 
-def fuzzy_dates(count = 500):
+
+def fuzzy_dates(count=500):
     """
     Add +-10 seconds to each event from a date_gen.  Note that this
     still guarantees sorting, since the default on date_gen is minute
     separation of events.
     """
-    for date in date_gen(count = count):
-        yield date + timedelta(seconds = random.randint(-10, 10))
+    for date in date_gen(count=count):
+        yield date + timedelta(seconds=random.randint(-10, 10))
+
 
 class SpecificEquityTrades(object):
     """
@@ -88,20 +95,27 @@ class SpecificEquityTrades(object):
             # class should serve a single purpose (either take an
             # event_list or autocreate events).
             self.count = kwargs.get('count', len(self.event_list))
-            self.sids = kwargs.get('sids', np.unique([event.sid for event in self.event_list]).tolist())
+            self.sids = kwargs.get(
+                'sids',
+                np.unique([event.sid for event in self.event_list]).tolist())
             self.start = kwargs.get('start', self.event_list[0].dt)
             self.end = kwargs.get('start', self.event_list[-1].dt)
-            self.delta = kwargs.get('delta', self.event_list[1].dt - self.event_list[0].dt)
+            self.delta = kwargs.get(
+                'delta',
+                self.event_list[1].dt - self.event_list[0].dt)
             self.concurrent = kwargs.get('concurrent', False)
 
         else:
             # Unpack config dictionary with default values.
             self.count = kwargs.get('count', 500)
             self.sids = kwargs.get('sids', [1, 2])
-            self.start = kwargs.get('start', datetime(2008, 6, 6, 15, tzinfo = pytz.utc))
-            self.delta = kwargs.get('delta', timedelta(minutes = 1))
+            self.start = kwargs.get(
+                'start',
+                datetime(2008, 6, 6, 15, tzinfo=pytz.utc))
+            self.delta = kwargs.get(
+                'delta',
+                timedelta(minutes=1))
             self.concurrent = kwargs.get('concurrent', False)
-
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
@@ -142,10 +156,7 @@ class SpecificEquityTrades(object):
                         delta=self.delta,
                         repeats=len(self.sids),
                     )
-
-
             else:
-
                 dates = date_gen(
                     count=self.count,
                     start=self.start,
@@ -161,13 +172,14 @@ class SpecificEquityTrades(object):
             arg_gen = izip(sids, prices, volumes, dates)
 
             # Convert argument packages into events.
-            unfiltered = (create_trade(*args, source_id = self.get_hash())
+            unfiltered = (create_trade(*args, source_id=self.get_hash())
                           for args in arg_gen)
 
         # If we specified a sid filter, filter out elements that don't
         # match the filter.
         if self.filter:
-            filtered = ifilter(lambda event: event.sid in self.filter, unfiltered)
+            filtered = ifilter(
+                lambda event: event.sid in self.filter, unfiltered)
 
         # Otherwise just use all events.
         else:
@@ -201,7 +213,7 @@ class DataFrameSource(SpecificEquityTrades):
         self.sids = kwargs.get('sids', data.columns)
         self.start = kwargs.get('start', data.index[0])
         self.end = kwargs.get('end', data.index[-1])
-        self.delta = kwargs.get('delta', data.index[1]-data.index[0])
+        self.delta = kwargs.get('delta', data.index[1] - data.index[0])
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)

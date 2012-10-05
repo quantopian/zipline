@@ -7,7 +7,10 @@ from datetime import timedelta
 
 import zipline.protocol as zp
 
-from zipline.utils.factory import get_next_trading_dt, create_trading_environment
+from zipline.utils.factory import (
+    get_next_trading_dt,
+    create_trading_environment
+)
 from zipline.gens.tradegens import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.finance.slippage import FixedSlippage
@@ -15,7 +18,9 @@ from zipline.finance.slippage import FixedSlippage
 from copy import copy
 from itertools import cycle
 
-def create_updown_trade_source(sid, trade_count, trading_environment, base_price, amplitude):
+
+def create_updown_trade_source(sid, trade_count, trading_environment,
+                               base_price, amplitude):
     """Create the updown trade source. This source emits events with
     the price going up and down by the same amount in each
     iteration. The trade source is thus perfectly predictable. This is
@@ -27,7 +32,8 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
         trade_count : int
             How many trade events to create (will also influence order count)
         trading_environment : TradeEnvironment object
-            The trading environment to use (see zipline.factory.create_trading_environment)
+            The trading environment to use
+            (see zipline.factory.create_trading_environment)
         base_price : int
             The average price that each iteration will hover around.
         amplitude : int
@@ -39,28 +45,28 @@ def create_updown_trade_source(sid, trade_count, trading_environment, base_price
     """
     volume = 1000
     events = []
-    price = base_price-amplitude/2.
+    price = base_price - amplitude / 2.
 
     cur = trading_environment.first_open
-    one_day = timedelta(minutes = 1)#days = 1)
+    one_day = timedelta(minutes=1)
 
     #create iterator to cycle through up and down phases
-    change = cycle([1,-1])
+    change = cycle([1, -1])
 
     for i in xrange(trade_count + 2):
         cur = get_next_trading_dt(cur, one_day, trading_environment)
 
         event = zp.ndict({
-            "type"      : zp.DATASOURCE_TYPE.TRADE,
-            "sid"       : sid,
-            "price"     : price,
-            "volume"    : volume,
-            "dt"        : cur,
+            "type": zp.DATASOURCE_TYPE.TRADE,
+            "sid": sid,
+            "price": price,
+            "volume": volume,
+            "dt": cur,
         })
 
         events.append(event)
 
-        price += change.next()*amplitude
+        price += change.next() * amplitude
 
     trading_environment.period_end = cur
 

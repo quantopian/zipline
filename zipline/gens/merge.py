@@ -27,9 +27,9 @@ def merge(stream_in, tnfm_ids):
     # Process incoming streams.
     for message in stream_in:
         assert isinstance(message, ndict)
-        assert message.has_key('tnfm_id')
-        assert message.has_key('tnfm_value')
-        assert message.has_key('dt')
+        assert 'tnmf_id' in message
+        assert 'tnfm_value' in message
+        assert 'dt' in message
 
         id = message.tnfm_id
         assert id in tnfm_ids, \
@@ -49,7 +49,8 @@ def merge(stream_in, tnfm_ids):
         assert len(queue) == 1, "Bad queue in merge on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in merge on exit: %s" % queue
-    
+
+
 def merge_one(sources):
 
     event_fields = ndict()
@@ -74,19 +75,23 @@ def merge_one(sources):
 def ready(sources):
     """
     Feed is ready when every internal queue has at least one message. Note that
-    this include DONE messages, so done(sources) is True only if ready(sources).
+    this include DONE messages, so done(sources) is True,
+    only if ready(sources).
     """
     assert isinstance(sources, dict)
-    return all( (queue_is_ready(source) for source in sources.itervalues()) )
+    return all((queue_is_ready(source) for source in sources.itervalues()))
+
 
 def queue_is_ready(queue):
     assert isinstance(queue, deque)
     return len(queue) > 0
 
+
 def done(sources):
     """Feed is done when all internal queues have only a "DONE" message."""
     assert isinstance(sources, dict)
-    return all( (queue_is_done(source) for source in sources.itervalues()) )
+    return all((queue_is_done(source) for source in sources.itervalues()))
+
 
 def queue_is_done(queue):
     assert isinstance(queue, deque)

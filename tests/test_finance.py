@@ -22,7 +22,7 @@ from zipline.utils.test_utils import(
         assert_single_position
 )
 
-DEFAULT_TIMEOUT = 15 # seconds
+DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 
@@ -32,7 +32,7 @@ class FinanceTestCase(TestCase):
 
     def setUp(self):
         self.zipline_test_config = {
-            'sid'                   : 133,
+            'sid': 133,
         }
 
         setup_logger(self)
@@ -62,22 +62,22 @@ class FinanceTestCase(TestCase):
         env = TradingEnvironment(
             benchmark_returns,
             treasury_curves,
-            period_start = datetime(2008, 1, 1, tzinfo = pytz.utc),
-            period_end = datetime(2008, 12, 31, tzinfo = pytz.utc),
-            capital_base = 100000,
+            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
+            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
+            capital_base=100000,
         )
         #holidays taken from: http://www.nyse.com/press/1191407641943.html
-        new_years   = datetime(2008, 1, 1, tzinfo = pytz.utc)
-        mlk_day     = datetime(2008, 1, 21, tzinfo = pytz.utc)
-        presidents  = datetime(2008, 2, 18, tzinfo = pytz.utc)
-        good_friday = datetime(2008, 3, 21, tzinfo = pytz.utc)
-        memorial_day= datetime(2008, 5, 26, tzinfo = pytz.utc)
-        july_4th    = datetime(2008, 7, 4, tzinfo = pytz.utc)
-        labor_day   = datetime(2008, 9, 1, tzinfo = pytz.utc)
-        tgiving     = datetime(2008, 11, 27, tzinfo = pytz.utc)
-        christmas   = datetime(2008, 5, 25, tzinfo = pytz.utc)
-        a_saturday  = datetime(2008, 8, 2, tzinfo = pytz.utc)
-        a_sunday    = datetime(2008, 10, 12, tzinfo = pytz.utc)
+        new_years = datetime(2008, 1, 1, tzinfo=pytz.utc)
+        mlk_day = datetime(2008, 1, 21, tzinfo=pytz.utc)
+        presidents = datetime(2008, 2, 18, tzinfo=pytz.utc)
+        good_friday = datetime(2008, 3, 21, tzinfo=pytz.utc)
+        memorial_day = datetime(2008, 5, 26, tzinfo=pytz.utc)
+        july_4th = datetime(2008, 7, 4, tzinfo=pytz.utc)
+        labor_day = datetime(2008, 9, 1, tzinfo=pytz.utc)
+        tgiving = datetime(2008, 11, 27, tzinfo=pytz.utc)
+        christmas = datetime(2008, 5, 25, tzinfo=pytz.utc)
+        a_saturday = datetime(2008, 8, 2, tzinfo=pytz.utc)
+        a_sunday = datetime(2008, 10, 12, tzinfo=pytz.utc)
         holidays = [
             new_years,
             mlk_day,
@@ -95,8 +95,8 @@ class FinanceTestCase(TestCase):
         for holiday in holidays:
             self.assertTrue(not env.is_trading_day(holiday))
 
-        first_trading_day = datetime(2008, 1, 2, tzinfo = pytz.utc)
-        last_trading_day  = datetime(2008, 12, 31, tzinfo = pytz.utc)
+        first_trading_day = datetime(2008, 1, 2, tzinfo=pytz.utc)
+        last_trading_day = datetime(2008, 12, 31, tzinfo=pytz.utc)
         workdays = [first_trading_day, last_trading_day]
 
         for workday in workdays:
@@ -121,32 +121,32 @@ class FinanceTestCase(TestCase):
 
         # create a scenario where order size and trade size are equal
         # so that orders must be spread out over several trades.
-        params ={
-            'trade_count':360,
-            'trade_amount':100,
+        params = {
+            'trade_count': 360,
+            'trade_amount': 100,
             'trade_interval': timedelta(minutes=1),
-            'order_count':2,
-            'order_amount':100,
+            'order_count': 2,
+            'order_amount': 100,
             'order_interval': timedelta(minutes=1),
             # because we placed an order for 100 shares, and the volume
             # of each trade is 100, the simulator should spread the order
             # into 4 trades of 25 shares per order.
-            'expected_txn_count':8,
-            'expected_txn_volume':2 * 100
+            'expected_txn_count': 8,
+            'expected_txn_volume': 2 * 100
         }
 
         self.transaction_sim(**params)
 
         # same scenario, but with short sales
-        params2 ={
-            'trade_count':360,
-            'trade_amount':100,
+        params2 = {
+            'trade_count': 360,
+            'trade_amount': 100,
             'trade_interval': timedelta(minutes=1),
-            'order_count':2,
-            'order_amount':-100,
+            'order_count': 2,
+            'order_amount': -100,
             'order_interval': timedelta(minutes=1),
-            'expected_txn_count':8,
-            'expected_txn_volume':2 * -100
+            'expected_txn_count': 8,
+            'expected_txn_volume': 2 * -100
         }
 
         self.transaction_sim(**params2)
@@ -155,30 +155,30 @@ class FinanceTestCase(TestCase):
     def test_collapsing_orders(self):
         # create a scenario where order.amount <<< trade.volume
         # to test that several orders can be covered properly by one trade.
-        params1 ={
-            'trade_count':6,
-            'trade_amount':100,
+        params1 = {
+            'trade_count': 6,
+            'trade_amount': 100,
             'trade_interval': timedelta(hours=1),
-            'order_count':24,
-            'order_amount':1,
+            'order_count': 24,
+            'order_amount': 1,
             'order_interval': timedelta(minutes=1),
             # because we placed an orders totaling less than 25% of one trade
             # the simulator should produce just one transaction.
-            'expected_txn_count':1,
-            'expected_txn_volume':24 * 1
+            'expected_txn_count': 1,
+            'expected_txn_volume': 24 * 1
         }
         self.transaction_sim(**params1)
 
         # second verse, same as the first. except short!
-        params2 ={
-            'trade_count':6,
-            'trade_amount':100,
+        params2 = {
+            'trade_count': 6,
+            'trade_amount': 100,
             'trade_interval': timedelta(hours=1),
-            'order_count':24,
-            'order_amount':-1,
+            'order_count': 24,
+            'order_amount': -1,
             'order_interval': timedelta(minutes=1),
-            'expected_txn_count':1,
-            'expected_txn_volume':24 * -1
+            'expected_txn_count': 1,
+            'expected_txn_volume': 24 * -1
         }
         self.transaction_sim(**params2)
 
@@ -187,33 +187,33 @@ class FinanceTestCase(TestCase):
         # create a scenario where orders expire without being filled
         # entirely
         params1 = {
-            'trade_count':100,
-            'trade_amount':100,
+            'trade_count': 100,
+            'trade_amount': 100,
             'trade_delay': timedelta(minutes=5),
             'trade_interval': timedelta(days=1),
-            'order_count':3,
-            'order_amount':1000,
+            'order_count': 3,
+            'order_amount': 1000,
             'order_interval': timedelta(minutes=30),
             # because we placed an orders totaling less than 25% of one trade
             # the simulator should produce just one transaction.
-            'expected_txn_count' : 1,
-            'expected_txn_volume' : 25
+            'expected_txn_count': 1,
+            'expected_txn_volume': 25
         }
         self.transaction_sim(**params1)
 
         # same scenario, but short sales.
         params2 = {
-            'trade_count'           : 100,
-            'trade_amount'          : 100,
-            'trade_delay'           : timedelta(minutes=5),
-            'trade_interval'        : timedelta(days=1),
-            'order_count'           : 3,
-            'order_amount'          :-1000,
-            'order_interval'        : timedelta(minutes=30),
+            'trade_count': 100,
+            'trade_amount': 100,
+            'trade_delay': timedelta(minutes=5),
+            'trade_interval': timedelta(days=1),
+            'order_count': 3,
+            'order_amount': -1000,
+            'order_interval': timedelta(minutes=30),
             # because we placed an orders totaling less than 25% of one trade
             # the simulator should produce just one transaction.
-            'expected_txn_count'    : 1,
-            'expected_txn_volume'   : -25
+            'expected_txn_count': 1,
+            'expected_txn_volume': -25
         }
         self.transaction_sim(**params2)
 
@@ -221,16 +221,16 @@ class FinanceTestCase(TestCase):
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells
         params1 = {
-            'trade_count'           : int(6.5 * 60 * 4),
-            'trade_amount'          : 100,
-            'trade_interval'        : timedelta(minutes=1),
-            'order_count'           : 4,
-            'order_amount'          : 10,
-            'order_interval'        : timedelta(hours=24),
-            'alternate'             : True,
-            'complete_fill'         : True,
-            'expected_txn_count'    : 4,
-            'expected_txn_volume'   : 0 #equal buys and sells
+            'trade_count': int(6.5 * 60 * 4),
+            'trade_amount': 100,
+            'trade_interval': timedelta(minutes=1),
+            'order_count': 4,
+            'order_amount': 10,
+            'order_interval': timedelta(hours=24),
+            'alternate': True,
+            'complete_fill': True,
+            'expected_txn_count': 4,
+            'expected_txn_volume': 0  # equal buys and sells
         }
         self.transaction_sim(**params1)
 
@@ -239,14 +239,13 @@ class FinanceTestCase(TestCase):
         results for conversion of orders to transactions given a
         trade history"""
 
-        trade_count         = params['trade_count']
-        trade_amount        = params['trade_amount']
-        trade_interval      = params['trade_interval']
-        trade_delay         = params.get('trade_delay')
-        order_count         = params['order_count']
-        order_amount        = params['order_amount']
-        order_interval      = params['order_interval']
-        expected_txn_count  = params['expected_txn_count']
+        trade_count = params['trade_count']
+        trade_interval = params['trade_interval']
+        trade_delay = params.get('trade_delay')
+        order_count = params['order_count']
+        order_amount = params['order_amount']
+        order_interval = params['order_interval']
+        expected_txn_count = params['expected_txn_count']
         expected_txn_volume = params['expected_txn_volume']
         # optional parameters
         # ---------------------
@@ -279,9 +278,9 @@ class FinanceTestCase(TestCase):
         for i in xrange(order_count):
             order = ndict(
             {
-                'sid'       : sid,
-                'amount'    : order_amount * alternator**i,
-                'dt'        : order_date
+                'sid': sid,
+                'amount': order_amount * alternator ** i,
+                'dt': order_date
             })
 
             trade_sim.place_order(order)
@@ -297,15 +296,14 @@ class FinanceTestCase(TestCase):
         # there should now be one open order list stored under the sid
         oo = trade_sim.open_orders
         self.assertEqual(len(oo), 1)
-        self.assertTrue(oo.has_key(sid))
+        self.assertTrue(sid in oo)
         order_list = oo[sid]
         self.assertEqual(order_count, len(order_list))
 
         for i in xrange(order_count):
             order = order_list[i]
             self.assertEqual(order.sid, sid)
-            self.assertEqual(order.amount, order_amount * alternator**i)
-
+            self.assertEqual(order.amount, order_amount * alternator ** i)
 
         tracker = PerformanceTracker(trading_environment, [sid])
 
@@ -339,6 +337,6 @@ class FinanceTestCase(TestCase):
 
         # the open orders should now be empty
         oo = trade_sim.open_orders
-        self.assertTrue(oo.has_key(sid))
+        self.assertTrue(sid in oo)
         order_list = oo[sid]
         self.assertEqual(0, len(order_list))

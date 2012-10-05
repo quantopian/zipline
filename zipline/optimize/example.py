@@ -6,9 +6,9 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-import cProfile
 from zipline.gens.mavg import MovingAverage
 from zipline.algorithm import TradingAlgorithm
+
 
 class DMA(TradingAlgorithm):
     """Dual Moving Average algorithm.
@@ -34,10 +34,14 @@ class DMA(TradingAlgorithm):
 
         for sid in self.sids:
             # access transforms via their user-defined tag
-            if (data[sid].short_mavg['price'] > data[sid].long_mavg['price']) and not self.invested[sid]:
+            if (data[sid].short_mavg['price'] >
+                data[sid].long_mavg['price']) \
+            and not self.invested[sid]:
                 self.order(sid, self.amount)
                 self.invested[sid] = True
-            elif (data[sid].short_mavg['price'] < data[sid].long_mavg['price']) and self.invested[sid]:
+            elif (data[sid].short_mavg['price'] <
+                  data[sid].long_mavg['price']) \
+                and self.invested[sid]:
                 self.order(sid, -self.amount)
                 self.invested[sid] = False
 
@@ -48,7 +52,7 @@ def load_close_px(indexes=None, stocks=None):
     from collections import OrderedDict
 
     if indexes is None:
-        indexes = {'SPX' : '^GSPC'}
+        indexes = {'SPX': '^GSPC'}
     if stocks is None:
         stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
 
@@ -78,11 +82,15 @@ def load_close_px(indexes=None, stocks=None):
 def run((short_window, long_window)):
     data = pd.load('close_px.dat')
     #data = load_close_px()
-    myalgo = DMA([0, 1], amount=100, short_window=short_window, long_window=long_window)
+    myalgo = DMA([0, 1],
+                 amount=100,
+                 short_window=short_window,
+                 long_window=long_window)
     stats = myalgo.run(data)
     stats['sw'] = short_window
     stats['lw'] = long_window
     return stats
+
 
 def explore_params():
     sws, lws = np.mgrid[10:20:5, 10:20:5]
@@ -97,7 +105,6 @@ def explore_params():
     plt.savefig('DMA_contour.png')
     plt.show()
 
-#stats = run((10, 50))
 
 def get_opt_holdings_qp(univ_rets, track_rets):
     from cvxopt import matrix
@@ -115,6 +122,7 @@ def get_opt_holdings_qp(univ_rets, track_rets):
         raise Exception('optimum not reached by QP')
     return pd.Series(np.array(result['x']).ravel(), index=univ_rets.columns)
 
+
 def opt_portfolio(cov, budget, min_return):
     from cvxopt import matrix
     from cvxopt.solvers import qp
@@ -122,7 +130,7 @@ def opt_portfolio(cov, budget, min_return):
     cov = matrix(2 * cov)
     q = matrix(np.zeros(n))
 
-    h = matrix(budget) # G*x < h
+    h = matrix(budget)  # G*x < h
     # coneqp
     result = qp(cov, q, h=h)
     if result['status'] != 'optimal':
@@ -130,9 +138,11 @@ def opt_portfolio(cov, budget, min_return):
 
     return pd.Series(np.array(result['x']).ravel())
 
+
 def calc_te(weights, univ_rets, track_rets):
     port_rets = (univ_rets * weights).sum(1)
     return (port_rets - track_rets).std()
+
 
 def plot_returns(port_returns, bmk_returns):
     plt.figure()

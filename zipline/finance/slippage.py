@@ -5,6 +5,7 @@ from functools import partial
 
 import zipline.protocol as zp
 
+
 def transact_stub(slippage, commission, open_orders, events):
     """
     This is intended to be wrapped in a partial, so that the
@@ -23,12 +24,13 @@ def transact_stub(slippage, commission, open_orders, events):
 def transact_partial(slippage, commission):
     return partial(transact_stub, slippage, commission)
 
+
 def create_transaction(sid, amount, price, dt):
 
-    txn = {'sid'            : sid,
-                'amount'        : int(amount),
-                'dt'            : dt,
-                'price'         : price,
+    txn = {'sid': sid,
+           'amount': int(amount),
+           'dt': dt,
+           'price': price,
           }
 
     transaction = zp.ndict(txn)
@@ -83,7 +85,8 @@ class VolumeShareSlippage(object):
                 if volume_share > self.volume_limit:
                     volume_share = self.volume_limit
                 simulated_amount = int(volume_share * event.volume * direction)
-                simulated_impact = (volume_share)**2 * self.price_impact * direction * event.price
+                simulated_impact = (volume_share) ** 2 \
+                * self.price_impact * direction * event.price
 
                 order.filled += (simulated_amount - total_order)
                 total_order = simulated_amount
@@ -92,26 +95,28 @@ class VolumeShareSlippage(object):
                 if volume_share == self.volume_limit:
                     break
 
-
-        orders = [ x for x in orders if abs(x.amount - x.filled) > 0 and x.dt.day >= event.dt.day]
+        orders = [x for x in orders
+                  if abs(x.amount - x.filled) > 0
+                  and x.dt.day >= event.dt.day]
 
         open_orders[event.sid] = orders
-
 
         if simulated_amount != 0:
             return create_transaction(
                 event.sid,
                 simulated_amount,
                 event.price + simulated_impact,
-                dt.replace(tzinfo = pytz.utc),
+                dt.replace(tzinfo=pytz.utc),
             )
+
 
 class FixedSlippage(object):
 
     def __init__(self, spread=0.0):
         """
-        Use the fixed slippage model, which will just add/subtract a specified spread
-        spread/2 will be added on buys and subtracted on sells per share
+        Use the fixed slippage model, which will just add/subtract
+        a specified spread spread/2 will be added on buys and subtracted
+        on sells per share
         """
         self.spread = spread
 
@@ -134,7 +139,7 @@ class FixedSlippage(object):
         txn = create_transaction(
             event.sid,
             amount,
-            event.price + (self.spread/2.0 * direction),
+            event.price + (self.spread / 2.0 * direction),
             event.dt
         )
 

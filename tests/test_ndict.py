@@ -5,6 +5,7 @@ from copy import deepcopy
 
 from zipline.utils.protocol_utils import ndict
 
+
 def test_ndict():
     nd = ndict({})
 
@@ -18,10 +19,10 @@ def test_ndict():
     nd['x'] = 1
     assert nd.x == 1
     assert nd['x'] == 1
-    assert nd.get('y') == None
+    assert nd.get('y') is None
     assert nd.get('y', 'fizzpop') == 'fizzpop'
-    assert nd.has_key('x') == True
-    assert nd.has_key('y') == False
+    assert 'x' in nd
+    assert 'y' not in nd
 
     assert 'x' in nd
     assert 'y' not in nd
@@ -35,7 +36,7 @@ def test_ndict():
     # Class isolation
     assert '__init__' not in nd
     assert '__iter__' not in nd
-    assert not nd.__dict__.has_key('x')
+    assert 'x' not in nd.__dict__
     assert nd.get('__init__') is None
     assert 'x' not in set(dir(nd))
 
@@ -49,24 +50,27 @@ def test_ndict():
     class ndictlike(object):
         x = 1
 
-    assert { 'x': 1 } == nd
+    assert {'x': 1} == nd
     assert ndictlike() != nd
 
     # Deletion
     del nd['x']
-    assert not nd.has_key('x')
+    assert 'x' not in nd
     assert nd.get('x') is None
-
 
     for n in xrange(1000):
         dt = datetime.utcnow().replace(tzinfo=pytz.utc)
-        nd2 = ndict({"dt":dt, "otherdata":"ishere"*1000, "maybeanint":3})
+        nd2 = ndict({"dt": dt,
+                     "otherdata": "ishere" * 1000,
+                     "maybeanint": 3})
 
     nd2.dt2 = dt
 
+
 def test_ndict_deepcopy():
     def assert_correctly_copied(orig, copy):
-        assert nd == nd_dc, "Deepcopied ndict should have same keys and values."
+        assert nd == nd_dc, \
+            "Deepcopied ndict should have same keys and values."
 
         nd_dc.z = 3
         assert 'z' not in nd, "'z' also added to original ndict."
@@ -79,7 +83,8 @@ def test_ndict_deepcopy():
     nd_dc = deepcopy(nd)
     assert_correctly_copied(nd, nd_dc)
 
-    nd = ndict({'x':[1,2,3], 'y': {1: 1}})
+    nd = ndict({'x': [1, 2, 3],
+                'y': {1: 1}})
     nd_dc = deepcopy(nd)
     assert_correctly_copied(nd, nd_dc)
     nd_dc.x.append(4)

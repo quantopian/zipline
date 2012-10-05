@@ -45,6 +45,7 @@ from zipline.utils.date_utils import epoch_now
 
 log = logbook.Logger('Risk')
 
+
 def advance_by_months(dt, jump_in_months):
     month = dt.month + jump_in_months
     years = month / 12
@@ -58,7 +59,7 @@ def advance_by_months(dt, jump_in_months):
         month = 12
         years = years - 1
 
-    return dt.replace(year = dt.year + years, month = month)
+    return dt.replace(year=dt.year + years, month=month)
 
 
 class DailyReturn():
@@ -71,8 +72,8 @@ class DailyReturn():
 
     def to_dict(self):
         return {
-            'dt'      : self.date,
-            'returns' : self.returns
+            'dt': self.date,
+            'returns': self.returns
         }
 
     def __repr__(self):
@@ -108,16 +109,18 @@ class RiskMetrics():
             )
             raise Exception(message)
 
-
         self.trading_days = len(self.benchmark_returns)
-        self.benchmark_volatility = self.calculate_volatility(self.benchmark_returns)
-        self.algorithm_volatility = self.calculate_volatility(self.algorithm_returns)
+        self.benchmark_volatility = self.calculate_volatility(
+            self.benchmark_returns)
+        self.algorithm_volatility = self.calculate_volatility(
+            self.algorithm_returns)
         self.treasury_period_return = self.choose_treasury()
         self.sharpe = self.calculate_sharpe()
         self.beta, self.algorithm_covariance, self.benchmark_variance, \
         self.condition_number, self.eigen_values = self.calculate_beta()
         self.alpha = self.calculate_alpha()
-        self.excess_return = self.algorithm_period_returns - self.treasury_period_return
+        self.excess_return = self.algorithm_period_returns - \
+                             self.treasury_period_return
         self.max_drawdown = self.calculate_max_drawdown()
 
     def to_dict(self):
@@ -127,18 +130,18 @@ class RiskMetrics():
         """
         period_label = self.end_date.strftime("%Y-%m")
         rval = {
-            'trading_days'          : self.trading_days,
-            'benchmark_volatility'  : self.benchmark_volatility,
-            'algo_volatility'       : self.algorithm_volatility,
+            'trading_days': self.trading_days,
+            'benchmark_volatility': self.benchmark_volatility,
+            'algo_volatility': self.algorithm_volatility,
             'treasury_period_return': self.treasury_period_return,
-            'algorithm_period_return' : self.algorithm_period_returns,
-            'benchmark_period_return' : self.benchmark_period_returns,
-            'sharpe'                : self.sharpe,
-            'beta'                  : self.beta,
-            'alpha'                 : self.alpha,
-            'excess_return'         : self.excess_return,
-            'max_drawdown'          : self.max_drawdown,
-            'period_label'          : period_label
+            'algorithm_period_return': self.algorithm_period_returns,
+            'benchmark_period_return': self.benchmark_period_returns,
+            'sharpe': self.sharpe,
+            'beta': self.beta,
+            'alpha': self.alpha,
+            'excess_return': self.excess_return,
+            'max_drawdown': self.max_drawdown,
+            'period_label': period_label
         }
 
         # check if a field in rval is nan, and replace it with
@@ -149,26 +152,27 @@ class RiskMetrics():
             else:
                 return False
 
-        return {k:None if check_entry(k,v) else v for k,v in rval.iteritems()}
+        return {k: None if check_entry(k, v) else v
+                for k, v in rval.iteritems()}
 
     def __repr__(self):
         statements = []
         metrics = [
-            "algorithm_period_returns" ,
-            "benchmark_period_returns" ,
-            "excess_return"            ,
-            "trading_days"             ,
-            "benchmark_volatility"     ,
-            "algorithm_volatility"     ,
-            "sharpe"                   ,
-            "algorithm_covariance"     ,
-            "benchmark_variance"       ,
-            "beta"                     ,
-            "alpha"                    ,
-            "max_drawdown"             ,
-            "algorithm_returns"        ,
-            "benchmark_returns"        ,
-            "condition_number"         ,
+            "algorithm_period_returns",
+            "benchmark_period_returns",
+            "excess_return",
+            "trading_days",
+            "benchmark_volatility",
+            "algorithm_volatility",
+            "sharpe",
+            "algorithm_covariance",
+            "benchmark_variance",
+            "beta",
+            "alpha",
+            "max_drawdown",
+            "algorithm_returns",
+            "benchmark_returns",
+            "condition_number",
             "eigen_values"
         ]
 
@@ -208,8 +212,8 @@ class RiskMetrics():
         if self.algorithm_volatility == 0:
             return 0.0
 
-        return ( (self.algorithm_period_returns - self.treasury_period_return) /
-            self.algorithm_volatility )
+        return ((self.algorithm_period_returns - self.treasury_period_return) /
+                self.algorithm_volatility)
 
     def calculate_beta(self):
         """
@@ -225,7 +229,8 @@ class RiskMetrics():
         if len(self.algorithm_returns) < 2:
             return 0.0, 0.0, 0.0, 0.0, []
 
-        returns_matrix = np.vstack([self.algorithm_returns, self.benchmark_returns])
+        returns_matrix = np.vstack([self.algorithm_returns,
+                                    self.benchmark_returns])
         C = np.cov(returns_matrix)
         eigen_values = la.eigvals(C)
         condition_number = max(eigen_values) / min(eigen_values)
@@ -245,7 +250,10 @@ class RiskMetrics():
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return self.algorithm_period_returns - (self.treasury_period_return + self.beta * (self.benchmark_period_returns - self.treasury_period_return))
+        return self.algorithm_period_returns - \
+            (self.treasury_period_return +
+             self.beta *
+             (self.benchmark_period_returns - self.treasury_period_return))
 
     def calculate_max_drawdown(self):
         compounded_returns = []
@@ -255,25 +263,25 @@ class RiskMetrics():
                 cur_return = math.log(1.0 + r) + cur_return
             #this is a guard for a single day returning -100%
             except ValueError:
-                log.debug("{cur} return, zeroing the returns".format(cur=cur_return))
+                log.debug("{cur} return, zeroing the returns".format(
+                    cur=cur_return))
                 cur_return = 0.0
             compounded_returns.append(cur_return)
 
         cur_max = None
         max_drawdown = None
         for cur in compounded_returns:
-            if cur_max == None or cur > cur_max:
+            if cur_max is None or cur > cur_max:
                 cur_max = cur
 
             drawdown = (cur - cur_max)
-            if max_drawdown == None or drawdown < max_drawdown:
+            if max_drawdown is None or drawdown < max_drawdown:
                 max_drawdown = drawdown
 
-        if max_drawdown == None:
+        if max_drawdown is None:
             return 0.0
 
         return 1.0 - math.exp(max_drawdown)
-
 
     def choose_treasury(self):
         td = self.end_date - self.start_date
@@ -298,22 +306,23 @@ class RiskMetrics():
         else:
             self.treasury_duration = '30year'
 
-
         one_day = datetime.timedelta(days=1)
 
         curve = None
         # in case end date is not a trading day, search for the next market
         # day for an interest rate
         for i in xrange(7):
-            if(self.treasury_curves.has_key(self.end_date + i * one_day)):
-                curve = self.treasury_curves[self.end_date + i * one_day]
+            day = self.end_date + i * one_day
+            if day in self.treasury_curves:
+                curve = self.treasury_curves[day]
                 self.treasury_curve = curve
                 rate = self.treasury_curve[self.treasury_duration]
-                #1month note data begins in 8/2001, so we can use 3month instead.
-                if rate == None and self.treasury_duration == '1month':
+                # 1month note data begins in 8/2001,
+                # so we can use 3month instead.
+                if rate is None and self.treasury_duration == '1month':
                     rate = self.treasury_curve['3month']
 
-                if rate != None:
+                if rate is not None:
                     return rate * (td.days + 1) / 365
 
         message = "no rate for end date = {dt} and term = {term}. Check \
@@ -323,7 +332,6 @@ class RiskMetrics():
             term=self.treasury_duration
         )
         raise Exception(message)
-
 
 
 class RiskReport():
@@ -370,15 +378,15 @@ class RiskReport():
         provided for each period.
         """
         return {
-            'one_month'         : [x.to_dict() for x in self.month_periods],
-            'three_month'       : [x.to_dict() for x in self.three_month_periods],
-            'six_month'         : [x.to_dict() for x in self.six_month_periods],
-            'twelve_month'      : [x.to_dict() for x in self.year_periods],
-            'created'           : self.created
+            'one_month': [x.to_dict() for x in self.month_periods],
+            'three_month': [x.to_dict() for x in self.three_month_periods],
+            'six_month': [x.to_dict() for x in self.six_month_periods],
+            'twelve_month': [x.to_dict() for x in self.year_periods],
+            'created': self.created
         }
 
     def periodsInRange(self, months_per, start, end):
-        one_day = datetime.timedelta(days = 1)
+        one_day = datetime.timedelta(days=1)
         ends = []
         cur_start = start.replace(day=1)
 
@@ -389,7 +397,7 @@ class RiskReport():
 
         #ensure that we have an end at the end of a calendar month, in case
         #the return series ends mid-month...
-        the_end = advance_by_months(end.replace(day=1),1) - one_day
+        the_end = advance_by_months(end.replace(day=1), 1) - one_day
         while True:
             cur_end = advance_by_months(cur_start, months_per) - one_day
             if(cur_end > the_end):

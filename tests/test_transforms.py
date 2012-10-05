@@ -19,8 +19,10 @@ import zipline.utils.factory as factory
 
 from zipline.test_algorithms import BatchTransformAlgorithm
 
+
 def to_dt(msg):
     return ndict({'dt': msg})
+
 
 class NoopEventWindow(EventWindow):
     """
@@ -39,38 +41,40 @@ class NoopEventWindow(EventWindow):
     def handle_remove(self, event):
         self.removed.append(event)
 
+
 class EventWindowTestCase(TestCase):
 
     def setUp(self):
         setup_logger(self)
 
         self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
-        self.eleven_normal_days = [self.monday + i*timedelta(days=1)
+        self.eleven_normal_days = [self.monday + i * timedelta(days=1)
                                    for i in xrange(11)]
 
         # Modify the end of the period slightly to exercise the
         # incomplete day logic.
-        self.eleven_normal_days[-1] -= timedelta(minutes = 1)
-        self.eleven_normal_days.append(self.monday+timedelta(days=11,seconds=1))
+        self.eleven_normal_days[-1] -= timedelta(minutes=1)
+        self.eleven_normal_days.append(self.monday +
+                                       timedelta(days=11, seconds=1))
 
         # Second set of dates to test holiday handling.
         self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
-        self.week_of_jul4 = [self.jul4_monday + i*timedelta(days=1)
-                                   for i in xrange(5)]
+        self.week_of_jul4 = [self.jul4_monday + i * timedelta(days=1)
+                             for i in xrange(5)]
 
     def test_event_window_with_timedelta(self):
 
         # Keep all events within a 5 minute window.
         window = NoopEventWindow(
-            market_aware = False,
-            delta = timedelta(minutes = 5),
-            days = None
+            market_aware=False,
+            delta=timedelta(minutes=5),
+            days=None
         )
 
         now = utcnow()
 
         # 15 dates, increasing in 1 minute increments.
-        dates = [now + i * timedelta(minutes = 1)
+        dates = [now + i * timedelta(minutes=1)
                  for i in xrange(15)]
 
         # Turn the dates into the format required by EventWindow.
@@ -88,13 +92,13 @@ class EventWindowTestCase(TestCase):
             # Assert that we removed only events that fall outside (or
             # on the boundary of) the delta.
             for dropped in window.removed:
-                assert message.dt - dropped.dt >= timedelta(minutes = 5)
+                assert message.dt - dropped.dt >= timedelta(minutes=5)
 
     def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(
-            market_aware = True,
-            delta = None,
-            days = 3
+            market_aware=True,
+            delta=None,
+            days=3
         )
         events = [to_dt(date) for date in self.eleven_normal_days]
         lengths = []
@@ -114,9 +118,9 @@ class EventWindowTestCase(TestCase):
 
     def test_market_aware_window_holiday(self):
         window = NoopEventWindow(
-            market_aware = True,
-            delta = None,
-            days = 2
+            market_aware=True,
+            delta=None,
+            days=2
         )
         events = [to_dt(date) for date in self.week_of_jul4]
         lengths = []
@@ -133,6 +137,7 @@ class EventWindowTestCase(TestCase):
 
     def tearDown(self):
         setup_logger(self)
+
 
 class FinanceTransformsTestCase(TestCase):
 
@@ -155,8 +160,8 @@ class FinanceTransformsTestCase(TestCase):
     def test_vwap(self):
 
         vwap = VWAP(
-            market_aware = False,
-            delta = timedelta(days = 2)
+            market_aware=False,
+            delta=timedelta(days=2)
         )
         transformed = list(vwap.transform(self.source))
 
@@ -219,9 +224,9 @@ class FinanceTransformsTestCase(TestCase):
     def test_moving_average(self):
 
         mavg = MovingAverage(
-            market_aware = False,
-            fields = ['price', 'volume'],
-            delta = timedelta(days = 2),
+            market_aware=False,
+            fields=['price', 'volume'],
+            delta=timedelta(days=2),
         )
 
         transformed = list(mavg.transform(self.source))
@@ -255,13 +260,13 @@ class FinanceTransformsTestCase(TestCase):
             133,
             [10.0, 15.0, 13.0, 12.0],
             [100, 100, 100, 100],
-            timedelta(hours = 1),
+            timedelta(hours=1),
             self.trading_environment
         )
 
         stddev = MovingStandardDev(
-            market_aware = False,
-            delta = timedelta(minutes = 150),
+            market_aware=False,
+            delta=timedelta(minutes=150),
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
@@ -271,17 +276,17 @@ class FinanceTransformsTestCase(TestCase):
 
         expected = [
             None,
-            np.std([10.0, 15.0], ddof = 1),
-            np.std([10.0, 15.0, 13.0], ddof = 1),
-            np.std([15.0, 13.0, 12.0], ddof = 1),
+            np.std([10.0, 15.0], ddof=1),
+            np.std([10.0, 15.0, 13.0], ddof=1),
+            np.std([15.0, 13.0, 12.0], ddof=1),
             ]
 
         # np has odd rounding behavior, cf.
         # http://docs.scipy.org/doc/np/reference/generated/np.std.html
         for v1, v2 in zip(vals, expected):
 
-            if v1 == None:
-                assert v2 == None
+            if v1 is None:
+                assert v2 is None
                 continue
             assert round(v1, 5) == round(v2, 5)
 
@@ -298,11 +303,16 @@ class BatchTransformTestCase(TestCase):
         algo = BatchTransformAlgorithm(sids=[0, 1])
         algo.run(self.source)
 
-        self.assertEqual(algo.history_return_price_class[:2], [None, None], "First two iterations should return None")
-        self.assertEqual(algo.history_return_price_decorator[:2], [None, None], "First two iterations should return None")
+        self.assertEqual(algo.history_return_price_class[:2],
+                         [None, None],
+                         "First two iterations should return None")
+        self.assertEqual(algo.history_return_price_decorator[:2],
+                         [None, None],
+                         "First two iterations should return None")
 
         # test overloaded class
-        for test_history in [algo.history_return_price_class, algo.history_return_price_decorator]:
+        for test_history in [algo.history_return_price_class,
+                             algo.history_return_price_decorator]:
             np.testing.assert_array_equal(
                     range(4, 10),
                     test_history[2].values.flatten()
@@ -321,8 +331,10 @@ class BatchTransformTestCase(TestCase):
     def test_passing_of_args(self):
         algo = BatchTransformAlgorithm([0, 1], 1, kwarg='str')
         self.assertEqual(algo.args, (1,))
-        self.assertEqual(algo.kwargs, {'kwarg':'str'})
+        self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
         algo.run(self.source)
         expected_item = ((1, ), {'kwarg': 'str'})
-        self.assertEqual(algo.history_return_args, [None, None, expected_item, expected_item, expected_item])
+        self.assertEqual(
+            algo.history_return_args,
+            [None, None, expected_item, expected_item, expected_item])

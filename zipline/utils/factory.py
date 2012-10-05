@@ -19,16 +19,19 @@ from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 
+
 # TODO
 def data_path():
     from zipline import data
     data_path = dirname(abspath(data.__file__))
     return data_path
 
+
 def logger_path():
     import zipline
     log_path = dirname(abspath(zipline.__file__))
     return os.join(log_path, 'logging.cfg')
+
 
 def load_market_data():
     fp_bm = open(join(data_path(), "benchmark.msgpack"), "rb")
@@ -57,6 +60,7 @@ def load_market_data():
 
     return bm_returns, tr_curves
 
+
 def create_trading_environment(year=2006, start=None, end=None):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
@@ -64,14 +68,14 @@ def create_trading_environment(year=2006, start=None, end=None):
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
     if end is None:
-        end   = datetime(year, 12, 31, tzinfo=pytz.utc)
+        end = datetime(year, 12, 31, tzinfo=pytz.utc)
 
     trading_environment = TradingEnvironment(
         benchmark_returns,
         treasury_curves,
-        period_start = start,
-        period_end = end,
-        capital_base = 100000.0
+        period_start=start,
+        period_end=end,
+        capital_base=100000.0
     )
 
     return trading_environment
@@ -86,6 +90,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
 
     return next
 
+
 def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     trades = []
     current = trading_calendar.first_open
@@ -98,14 +103,16 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     assert len(trades) == len(prices)
     return trades
 
+
 def create_txn(sid, price, amount, datetime, btrid=None):
     txn = ndict({
-        'sid'    : sid,
-        'amount' : amount,
-        'dt'     : datetime,
-        'price'  : price,
+        'sid': sid,
+        'amount': amount,
+        'dt': datetime,
+        'price': price,
     })
     return txn
+
 
 def create_txn_history(sid, priceList, amtList, interval, trading_calendar):
     txns = []
@@ -126,7 +133,7 @@ def create_returns(daycount, trading_calendar):
     """
     test_range = []
     current = trading_calendar.first_open
-    one_day = timedelta(days = 1)
+    one_day = timedelta(days=1)
 
     for day in range(daycount):
         current = current + one_day
@@ -140,7 +147,7 @@ def create_returns(daycount, trading_calendar):
 def create_returns_from_range(trading_calendar):
     current = trading_calendar.first_open
     end = trading_calendar.last_close
-    one_day = timedelta(days = 1)
+    one_day = timedelta(days=1)
     test_range = []
     while current <= end:
         r = risk.DailyReturn(current, random.random())
@@ -149,9 +156,10 @@ def create_returns_from_range(trading_calendar):
 
     return test_range
 
+
 def create_returns_from_list(returns, trading_calendar):
     current = trading_calendar.first_open
-    one_day = timedelta(days = 1)
+    one_day = timedelta(days=1)
     test_range = []
 
     #sometimes the range starts with a non-trading day.
@@ -165,21 +173,9 @@ def create_returns_from_list(returns, trading_calendar):
 
     return test_range
 
-def create_random_trade_source(sid, trade_count, trading_environment):
-    # create the source
-    source = RandomEquityTrades(sid, trade_count)
 
-    # make the period_end of trading_environment match
-    cur = trading_environment.first_open
-    one_day = timedelta(days = 1)
-    for i in range(trade_count + 2):
-       cur = get_next_trading_dt(cur, one_day, trading_environment)
-    trading_environment.period_end = cur
-
-    return source
-
-def create_daily_trade_source(sids, trade_count, trading_environment, concurrent=False):
-
+def create_daily_trade_source(sids, trade_count, trading_environment,
+                              concurrent=False):
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on trading_environment.period_start, and daily
@@ -198,8 +194,8 @@ def create_daily_trade_source(sids, trade_count, trading_environment, concurrent
     )
 
 
-def create_minutely_trade_source(sids, trade_count, trading_environment, concurrent=False):
-
+def create_minutely_trade_source(sids, trade_count, trading_environment,
+                                 concurrent=False):
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on trading_environment.period_start, and every minute
@@ -217,16 +213,19 @@ def create_minutely_trade_source(sids, trade_count, trading_environment, concurr
         concurrent=concurrent
     )
 
-def create_trade_source(sids, trade_count, trade_time_increment, trading_environment, concurrent=False):
+
+def create_trade_source(sids, trade_count,
+                        trade_time_increment, trading_environment,
+                        concurrent=False):
 
     args = tuple()
     kwargs = {
-        'count'  : trade_count,
-        'sids'   : sids,
-        'start'  : trading_environment.first_open,
-        'delta'  : trade_time_increment,
-        'filter' : sids,
-        'concurrent' : concurrent
+        'count': trade_count,
+        'sids': sids,
+        'start': trading_environment.first_open,
+        'delta': trade_time_increment,
+        'filter': sids,
+        'concurrent': concurrent
     }
     source = SpecificEquityTrades(*args, **kwargs)
 
@@ -236,6 +235,7 @@ def create_trade_source(sids, trade_count, trade_time_increment, trading_environ
 
     return source
 
+
 def create_test_df_source():
     start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
     end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
@@ -244,5 +244,3 @@ def create_test_df_source():
     df = pd.DataFrame(x, index=index, columns=[0, 1])
 
     return DataFrameSource(df), df
-
-
