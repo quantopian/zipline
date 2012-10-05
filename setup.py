@@ -11,7 +11,7 @@ setup(name='zipline',
       long_description=open('README.md').read(),
       license='Apache 2.0',
       classifiers=[
-          'Development Status :: 2 - Pre-Alpha',
+          'Development Status :: 4 - Beta',
           'License :: OSI Approved :: Apache Software License',
           'Natural Language :: English',
           'Programming Language :: Python',
