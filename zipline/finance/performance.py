@@ -178,7 +178,7 @@ class PerformanceTracker(object):
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
             # initial positions are empty
-            {},
+            positiondict(),
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
@@ -191,7 +191,7 @@ class PerformanceTracker(object):
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
             # initial positions are empty
-            {},
+            positiondict(),
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
@@ -202,9 +202,6 @@ class PerformanceTracker(object):
             # save the transactions for the daily periods
             keep_transactions=True
         )
-
-        self.cumulative_performance.positions = positiondict()
-        self.todays_performance.positions = positiondict()
 
     def transform(self, stream_in):
         """
@@ -407,6 +404,7 @@ class PerformancePeriod(object):
         self.ending_value = 0.0
         self.period_capital_used = 0.0
         self.pnl = 0.0
+        assert isinstance(initial_positions, positiondict)
         #sid => position object
         self.positions = initial_positions
         self.starting_value = starting_value
@@ -435,11 +433,10 @@ class PerformancePeriod(object):
             self.returns = 0.0
 
     def execute_transaction(self, txn):
-
         # Update Position
         # ----------------
-        if txn.sid not in self.positions:
-            self.positions[txn.sid] = Position(txn.sid)
+        #if txn.sid not in self.positions:
+        #    self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
 
@@ -575,4 +572,6 @@ class PerformancePeriod(object):
 class positiondict(dict):
 
     def __missing__(self, key):
-        return Position(key)
+        pos = Position(key)
+        self[key] = pos
+        return pos
