@@ -15,6 +15,7 @@
 
 
 from logbook import Logger, Processor
+from collections import defaultdict
 
 from datetime import datetime
 from itertools import groupby
@@ -146,7 +147,7 @@ class AlgorithmSimulator(object):
         # The algorithm's universe as of our most recent event.
         # We want an ndict that will have empty ndicts as default
         # values on missing keys.
-        self.universe = ndict(default=ndict)
+        self.universe = ndict(internal=defaultdict(ndict))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.

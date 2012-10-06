@@ -1,7 +1,7 @@
 import copy
 import pandas
 from ctypes import Structure, c_ubyte
-from collections import MutableMapping, defaultdict
+from collections import MutableMapping
 
 
 def Enum(*options):
@@ -45,9 +45,9 @@ class ndict(MutableMapping):
     cls = None
     __slots__ = ['cls', '__internal']
 
-    def __init__(self, dct=None, default=None):
-        if default is not None:
-            self.__internal = defaultdict(default)
+    def __init__(self, dct=None, internal=None):
+        if internal is not None:
+            self.__internal = internal
         else:
             self.__internal = dict()
 

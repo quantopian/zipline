@@ -544,21 +544,16 @@ class PerformancePeriod(object):
         del(portfolio['max_leverage'])
         del(portfolio['max_capital_used'])
 
-        portfolio['positions'] = self.get_positions(ndicted=True)
+        portfolio['positions'] = self.get_positions()
         return zp.ndict(portfolio)
 
-    def get_positions(self, ndicted=False):
-        if ndicted:
-            positions = zp.ndict({})
-        else:
-            positions = {}
+    def get_positions(self):
+
+        positions = zp.ndict(internal=position_ndict())
 
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
-            if ndicted:
-                positions[sid] = zp.ndict(cur)
-            else:
-                positions[sid] = cur
+            positions[sid] = zp.ndict(cur)
 
         return positions
 
@@ -575,4 +570,12 @@ class positiondict(dict):
     def __missing__(self, key):
         pos = Position(key)
         self[key] = pos
+        return pos
+
+
+class position_ndict(dict):
+
+    def __missing__(self, key):
+        pos = Position(key)
+        self[key] = zp.ndict(pos.to_dict())
         return pos
