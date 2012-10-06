@@ -86,10 +86,11 @@ def create_test_zipline(**config):
             concurrent=concurrent_trades
         )
 
+    test_algo.set_sources([trade_source])
+
     #-------------------
     # Transforms
     #-------------------
-    test_algo.set_sources([trade_source])
 
     transforms = config.get('transforms', None)
     if transforms is not None:
@@ -104,6 +105,6 @@ def create_test_zipline(**config):
 
     # ------------------
     # generator/simulator
-    sim = test_algo._create_generator(trading_environment)
+    sim = test_algo.get_generator(trading_environment)
 
     return sim

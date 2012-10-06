@@ -147,10 +147,6 @@ class AlgorithmSimulator(object):
         # We want an ndict that will have empty ndicts as default
         # values on missing keys.
         self.universe = ndict(default=ndict)
-        # TODO: these keys are being inserted because universe
-        # has a default dictionary backing __internal.
-        # del self.universe['__members__']
-        # del self.universe['__methods__']
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.

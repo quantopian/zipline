@@ -404,9 +404,12 @@ class PerformancePeriod(object):
         self.ending_value = 0.0
         self.period_capital_used = 0.0
         self.pnl = 0.0
-        assert isinstance(initial_positions, positiondict)
         #sid => position object
-        self.positions = initial_positions
+        if not isinstance(initial_positions, positiondict):
+            self.positions = positiondict()
+            self.positions.update(initial_positions)
+        else:
+            self.positions = initial_positions
         self.starting_value = starting_value
         #cash balance at start of period
         self.starting_cash = starting_cash
@@ -435,8 +438,6 @@ class PerformancePeriod(object):
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
-        #if txn.sid not in self.positions:
-        #    self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
 

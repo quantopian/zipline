@@ -47,9 +47,10 @@ class ndict(MutableMapping):
 
     def __init__(self, dct=None, default=None):
         if default is not None:
-            self.__internal = dict()
-        else:
             self.__internal = defaultdict(default)
+        else:
+            self.__internal = dict()
+
         if not ndict.cls:
             ndict.cls = frozenset(dir(self))
 

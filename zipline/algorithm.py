@@ -81,9 +81,8 @@ class TradingAlgorithm(object):
 
     def _create_generator(self, environment):
         """
-        Create trading environment, transforms and SimulatedTrading object.
-
-        Gets called by self.run().
+        Create a basic generator setup using the sources and
+        transforms attached to this algorithm.
         """
 
         self.date_sorted = date_sorted_sources(*self.sources)
@@ -96,6 +95,17 @@ class TradingAlgorithm(object):
 
         return self.trading_client.simulate(self.with_tnfms)
 
+    def get_generator(self, environment):
+        """
+        Override this method to add new logic to the construction
+        of the generator. Overrides can use the _create_generator
+        method to get a standard construction generator.
+        """
+        return self._create_generator(environment)
+
+    # TODO: make a new subclass, e.g. BatchAlgorithm, and move
+    # the run method to the subclass, and refactor to put the
+    # generator creation logic into get_generator.
     def run(self, source, start=None, end=None):
         """Run the algorithm.
 
