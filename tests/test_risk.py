@@ -26,7 +26,7 @@ from zipline.finance.trading import TradingEnvironment
 class Risk(unittest.TestCase):
 
     def setUp(self):
-        #qutil.configure_logging()
+
         start_date = datetime.datetime(
             year=2006,
             month=1,
