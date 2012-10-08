@@ -115,12 +115,6 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
         self.order(self.sid, self.amount)
         self.incr += 1
 
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
 
 class NoopAlgorithm(TradingAlgorithm):
     """
@@ -190,34 +184,6 @@ class DivByZeroAlgorithm(TradingAlgorithm):
         pass
 
 
-class InitializeTimeoutAlgorithm(TradingAlgorithm):
-
-    def initialize(self, sid):
-        self.sid = sid
-        self.incr = 0
-        import time
-        from zipline.gens.tradesimulation import INIT_TIMEOUT
-        time.sleep(INIT_TIMEOUT + 1000)
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        pass
-
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
 class TooMuchProcessingAlgorithm(TradingAlgorithm):
 
     def initialize(self, sid):
@@ -241,31 +207,6 @@ class TimeoutAlgorithm(TradingAlgorithm):
             import time
             time.sleep(100)
         pass
-
-
-class TestPrintAlgorithm(TradingAlgorithm):
-
-    def initialize(self, sid):
-        self.sid = sid
-        print "Initializing..."
-
-    def handle_data(self, data):
-        print "Handling Data..."
-        pass
-
-
-class TestLoggingAlgorithm(TradingAlgorithm):
-
-    def initialize(self, sid):
-        self.log = None
-        self.sid = sid
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        self.log.info("Handling Data...")
-
 
 from datetime import timedelta
 from zipline.algorithm import TradingAlgorithm

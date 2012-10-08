@@ -68,6 +68,8 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
+        self.logger = None
+
         # default components for transact
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()

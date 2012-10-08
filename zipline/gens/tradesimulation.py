@@ -137,8 +137,6 @@ class AlgorithmSimulator(object):
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
         self.algo.set_order(self.order)
-        self.algolog = Logger("AlgoLog")
-        self.algo.set_logger(self.algolog)
 
         # ==============
         # Snapshot Setup
