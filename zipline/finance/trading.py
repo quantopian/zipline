@@ -21,9 +21,9 @@ from collections import defaultdict
 
 import zipline.protocol as zp
 from zipline.finance.slippage import (
-        VolumeShareSlippage,
-        transact_partial
-    )
+    VolumeShareSlippage,
+    transact_partial
+)
 from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
