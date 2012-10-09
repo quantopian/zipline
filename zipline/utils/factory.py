@@ -120,7 +120,7 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar):
     return trades
 
 
-def create_txn(sid, price, amount, datetime, btrid=None):
+def create_txn(sid, price, amount, datetime):
     txn = ndict({
         'sid': sid,
         'amount': amount,
