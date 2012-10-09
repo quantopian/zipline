@@ -83,7 +83,9 @@ class VolumeShareSlippage(object):
             if(order.dt < event.dt):
 
                 # orders are only good on the day they are issued
-                if order.dt.day < event.dt.day:
+
+                if (order.dt.year, order.dt.day) < \
+                   (event.dt.year, event.dt.day):
                     continue
 
                 open_amount = order.amount - order.filled
