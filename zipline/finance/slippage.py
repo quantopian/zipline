@@ -21,12 +21,12 @@ from functools import partial
 import zipline.protocol as zp
 
 
-def transact_stub(slippage, commission, open_orders, events):
+def transact_stub(slippage, commission, event, open_orders):
     """
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-    transaction = slippage.simulate(open_orders, events)
+    transaction = slippage.simulate(event, open_orders)
     if transaction and transaction.amount != 0:
         direction = abs(transaction.amount) / transaction.amount
         per_share, total_commission = commission.calculate(transaction)
