@@ -54,8 +54,8 @@ def create_transaction(sid, amount, price, dt):
 class VolumeShareSlippage(object):
 
     def __init__(self,
-            volume_limit=.25,
-            price_impact=0.1):
+                 volume_limit=.25,
+                 price_impact=0.1):
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
