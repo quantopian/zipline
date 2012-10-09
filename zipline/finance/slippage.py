@@ -80,36 +80,28 @@ class VolumeShareSlippage(object):
         direction = 1.0
         for order in orders:
 
-            if(order.dt < event.dt):
+            open_amount = order.amount - order.filled
 
-                # orders are only good on the day they are issued
+            if(open_amount != 0):
+                direction = open_amount / math.fabs(open_amount)
+            else:
+                direction = 1
 
-                if (order.dt.year, order.dt.day) < \
-                   (event.dt.year, event.dt.day):
-                    continue
+            desired_order = total_order + open_amount
 
-                open_amount = order.amount - order.filled
+            volume_share = direction * (desired_order) / event.volume
+            if volume_share > self.volume_limit:
+                volume_share = self.volume_limit
+            simulated_amount = int(volume_share * event.volume * direction)
+            simulated_impact = (volume_share) ** 2 \
+            * self.price_impact * direction * event.price
 
-                if(open_amount != 0):
-                    direction = open_amount / math.fabs(open_amount)
-                else:
-                    direction = 1
+            order.filled += (simulated_amount - total_order)
+            total_order = simulated_amount
 
-                desired_order = total_order + open_amount
-
-                volume_share = direction * (desired_order) / event.volume
-                if volume_share > self.volume_limit:
-                    volume_share = self.volume_limit
-                simulated_amount = int(volume_share * event.volume * direction)
-                simulated_impact = (volume_share) ** 2 \
-                * self.price_impact * direction * event.price
-
-                order.filled += (simulated_amount - total_order)
-                total_order = simulated_amount
-
-                # we cap the volume share at configured % of a trade
-                if volume_share == self.volume_limit:
-                    break
+            # we cap the volume share at configured % of a trade
+            if volume_share == self.volume_limit:
+                break
 
         orders = [x for x in orders
                   if abs(x.amount - x.filled) > 0
