@@ -63,8 +63,6 @@ class SlippageTestCase(TestCase):
             open_orders
         )
 
-        self.assertIsNotNone(txn)
-
         expected_txn = {
             'price': float(3.01875),
             'dt': datetime.datetime(
