@@ -94,9 +94,8 @@ class VolumeShareSlippage(object):
 
             desired_order = total_order + open_amount
 
-            volume_share = direction * (desired_order) / event.volume
-            if volume_share > self.volume_limit:
-                volume_share = self.volume_limit
+            volume_share = min(direction * (desired_order) / event.volume,
+                               self.volume_limit)
             simulated_amount = int(volume_share * event.volume * direction)
             simulated_impact = (volume_share) ** 2 \
             * self.price_impact * direction * event.price
