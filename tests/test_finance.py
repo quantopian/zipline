@@ -198,41 +198,6 @@ class FinanceTestCase(TestCase):
         self.transaction_sim(**params2)
 
     @timed(DEFAULT_TIMEOUT)
-    def test_partial_expiration_orders(self):
-        # create a scenario where orders expire without being filled
-        # entirely
-        params1 = {
-            'trade_count': 100,
-            'trade_amount': 100,
-            'trade_delay': timedelta(minutes=5),
-            'trade_interval': timedelta(days=1),
-            'order_count': 3,
-            'order_amount': 1000,
-            'order_interval': timedelta(minutes=30),
-            # because we placed an orders totaling less than 25% of one trade
-            # the simulator should produce just one transaction.
-            'expected_txn_count': 1,
-            'expected_txn_volume': 25
-        }
-        self.transaction_sim(**params1)
-
-        # same scenario, but short sales.
-        params2 = {
-            'trade_count': 100,
-            'trade_amount': 100,
-            'trade_delay': timedelta(minutes=5),
-            'trade_interval': timedelta(days=1),
-            'order_count': 3,
-            'order_amount': -1000,
-            'order_interval': timedelta(minutes=30),
-            # because we placed an orders totaling less than 25% of one trade
-            # the simulator should produce just one transaction.
-            'expected_txn_count': 1,
-            'expected_txn_volume': -25
-        }
-        self.transaction_sim(**params2)
-
-    @timed(DEFAULT_TIMEOUT)
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells
         params1 = {
