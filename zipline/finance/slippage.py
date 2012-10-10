@@ -70,6 +70,10 @@ class VolumeShareSlippage(object):
         if event.sid in open_orders:
             orders = open_orders[event.sid]
             orders = sorted(orders, key=lambda o: o.dt)
+            # Only use orders for the current day or before
+            current_orders = filter(
+                lambda o: o.dt.toordinal() <= event.dt.toordinal(),
+                orders)
         else:
             return None
 
@@ -78,7 +82,8 @@ class VolumeShareSlippage(object):
         simulated_amount = 0
         simulated_impact = 0.0
         direction = 1.0
-        for order in orders:
+
+        for order in current_orders:
 
             open_amount = order.amount - order.filled
 
