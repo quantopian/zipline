@@ -107,11 +107,11 @@ class VolumeShareSlippage(object):
             if volume_share == self.volume_limit:
                 break
 
-        orders = [x for x in orders
-                  if abs(x.amount - x.filled) > 0
-                  and x.dt.day >= event.dt.day]
+        filled_orders = [x for x in orders
+                         if abs(x.amount - x.filled) > 0
+                         and x.dt.day >= event.dt.day]
 
-        open_orders[event.sid] = orders
+        open_orders[event.sid] = filled_orders
 
         if simulated_amount != 0:
             return create_transaction(
