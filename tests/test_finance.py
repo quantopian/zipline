@@ -197,6 +197,20 @@ class FinanceTestCase(TestCase):
         }
         self.transaction_sim(**params2)
 
+        # Runs the collapsed trades over daily trade intervals.
+        # Ensuring that our delay works for daily intervals as well.
+        params3 = {
+            'trade_count': 6,
+            'trade_amount': 100,
+            'trade_interval': timedelta(days=1),
+            'order_count': 24,
+            'order_amount': 1,
+            'order_interval': timedelta(minutes=1),
+            'expected_txn_count': 1,
+            'expected_txn_volume': 24 * 1
+        }
+        self.transaction_sim(**params3)
+
     @timed(DEFAULT_TIMEOUT)
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells

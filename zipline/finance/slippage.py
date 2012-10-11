@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 
 import pytz
 import math
@@ -55,10 +56,12 @@ class VolumeShareSlippage(object):
 
     def __init__(self,
                  volume_limit=.25,
-                 price_impact=0.1):
+                 price_impact=0.1,
+                 delay=timedelta(minutes=1)):
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
+        self.delay = delay
 
     def simulate(self, event, open_orders):
 
@@ -72,7 +75,7 @@ class VolumeShareSlippage(object):
             orders = sorted(orders, key=lambda o: o.dt)
             # Only use orders for the current day or before
             current_orders = filter(
-                lambda o: o.dt.toordinal() <= event.dt.toordinal(),
+                lambda o: o.dt + self.delay <= event.dt,
                 orders)
         else:
             return None
