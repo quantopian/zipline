@@ -17,7 +17,6 @@
 """
 Factory functions to prepare useful data for tests.
 """
-import os
 import pytz
 import msgpack
 import random
