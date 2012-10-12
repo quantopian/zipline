@@ -16,6 +16,7 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+test.log
 
 *.py[co]
 

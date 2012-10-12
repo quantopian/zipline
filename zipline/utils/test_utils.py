@@ -5,7 +5,7 @@ from itertools import izip
 from logbook import FileHandler
 
 
-def setup_logger(test, path='/var/log/zipline/zipline.log'):
+def setup_logger(test, path='test.log'):
     test.log_handler = FileHandler(path)
     test.log_handler.push_application()
 
