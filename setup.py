@@ -21,7 +21,13 @@ setup(name='zipline',
       description='A backtester for financial algorithms.',
       author='Quantopian Inc.',
       author_email='opensource@quantopian.com',
-      packages=['zipline'],
+      packages=[
+          'zipline',
+          'zipline.finance',
+          'zipline.gens',
+          'zipline.optimize',
+          'zipline.utils'
+      ],
       long_description=open('README.md').read(),
       license='Apache 2.0',
       classifiers=[
