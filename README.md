@@ -6,8 +6,6 @@ Zipline is a realtime stream processing system.
 System Setup
 ==============
 
-You need to have zeromq installed - http://www.zeromq.org/intro:get-the-software. 
-
 Running
 -------
 
@@ -16,7 +14,6 @@ Initial `virtualenv` setup::
     $ mkvirtualenv zipline
     $ workon zipline
 	# Go get coffee, the following will compile a heap of C/C++ code
-    $ ./etc/ordered_pip.sh etc/requirements_sci.txt
 	$ ./etc/ordered_pip.sh etc/requirements.txt
 	# And optionally:
 	$ ./etc/ordered_pip.sh etc/requirements_dev.txt
