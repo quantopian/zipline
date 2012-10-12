@@ -39,7 +39,7 @@ class TestUpDown(TestCase):
             'amplitude': 30,
             'base_price': 50
         }
-        setup_logger(self, '/var/log/qexec/qexec.log')
+        setup_logger(self)
 
     def tearDown(self):
         teardown_logger(self)
