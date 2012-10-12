@@ -7,6 +7,17 @@ Zipline
 
 from utils.protocol_utils import ndict
 
+import data
+import finance
+import gens
+import optimize
+import utils
+
 __all__ = [
-    ndict
+    'ndict',
+    'data',
+    'finance',
+    'gens',
+    'optimize',
+    'utils'
 ]
