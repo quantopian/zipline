@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 
 import pytz
 import math
@@ -21,13 +22,12 @@ from functools import partial
 import zipline.protocol as zp
 
 
-def transact_stub(slippage, commission, open_orders, events):
+def transact_stub(slippage, commission, event, open_orders):
     """
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-
-    transaction = slippage.simulate(open_orders, events)
+    transaction = slippage.simulate(event, open_orders)
     if transaction and transaction.amount != 0:
         direction = abs(transaction.amount) / transaction.amount
         per_share, total_commission = commission.calculate(transaction)
@@ -55,11 +55,13 @@ def create_transaction(sid, amount, price, dt):
 class VolumeShareSlippage(object):
 
     def __init__(self,
-            volume_limit=.25,
-            price_impact=0.1):
+                 volume_limit=.25,
+                 price_impact=0.1,
+                 delay=timedelta(minutes=1)):
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
+        self.delay = delay
 
     def simulate(self, event, open_orders):
 
@@ -71,6 +73,10 @@ class VolumeShareSlippage(object):
         if event.sid in open_orders:
             orders = open_orders[event.sid]
             orders = sorted(orders, key=lambda o: o.dt)
+            # Only use orders for the current day or before
+            current_orders = filter(
+                lambda o: o.dt + self.delay <= event.dt,
+                orders)
         else:
             return None
 
@@ -79,42 +85,36 @@ class VolumeShareSlippage(object):
         simulated_amount = 0
         simulated_impact = 0.0
         direction = 1.0
-        for order in orders:
 
-            if(order.dt < event.dt):
+        for order in current_orders:
 
-                # orders are only good on the day they are issued
-                if order.dt.day < event.dt.day:
-                    continue
+            open_amount = order.amount - order.filled
 
-                open_amount = order.amount - order.filled
+            if(open_amount != 0):
+                direction = open_amount / math.fabs(open_amount)
+            else:
+                direction = 1
 
-                if(open_amount != 0):
-                    direction = open_amount / math.fabs(open_amount)
-                else:
-                    direction = 1
+            desired_order = total_order + open_amount
 
-                desired_order = total_order + open_amount
+            volume_share = min(direction * (desired_order) / event.volume,
+                               self.volume_limit)
+            simulated_amount = int(volume_share * event.volume * direction)
+            simulated_impact = (volume_share) ** 2 \
+            * self.price_impact * direction * event.price
 
-                volume_share = direction * (desired_order) / event.volume
-                if volume_share > self.volume_limit:
-                    volume_share = self.volume_limit
-                simulated_amount = int(volume_share * event.volume * direction)
-                simulated_impact = (volume_share) ** 2 \
-                * self.price_impact * direction * event.price
+            order.filled += (simulated_amount - total_order)
+            total_order = simulated_amount
 
-                order.filled += (simulated_amount - total_order)
-                total_order = simulated_amount
+            # we cap the volume share at configured % of a trade
+            if volume_share == self.volume_limit:
+                break
 
-                # we cap the volume share at configured % of a trade
-                if volume_share == self.volume_limit:
-                    break
+        filled_orders = [x for x in orders
+                         if abs(x.amount - x.filled) > 0
+                         and x.dt.day >= event.dt.day]
 
-        orders = [x for x in orders
-                  if abs(x.amount - x.filled) > 0
-                  and x.dt.day >= event.dt.day]
-
-        open_orders[event.sid] = orders
+        open_orders[event.sid] = filled_orders
 
         if simulated_amount != 0:
             return create_transaction(

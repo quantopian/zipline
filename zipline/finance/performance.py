@@ -154,7 +154,7 @@ class PerformanceTracker(object):
 
     """
 
-    def __init__(self, trading_environment, sid_list):
+    def __init__(self, trading_environment):
 
         self.trading_environment = trading_environment
         self.trading_day = datetime.timedelta(hours=6, minutes=30)
@@ -178,7 +178,7 @@ class PerformanceTracker(object):
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
             # initial positions are empty
-            {},
+            positiondict(),
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
@@ -191,7 +191,7 @@ class PerformanceTracker(object):
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
             # initial positions are empty
-            {},
+            positiondict(),
             # initial portfolio positions have zero value
             0,
             # initial cash is your capital base.
@@ -202,10 +202,6 @@ class PerformanceTracker(object):
             # save the transactions for the daily periods
             keep_transactions=True
         )
-
-        for sid in sid_list:
-            self.cumulative_performance.positions[sid] = Position(sid)
-            self.todays_performance.positions[sid] = Position(sid)
 
     def transform(self, stream_in):
         """
@@ -409,7 +405,11 @@ class PerformancePeriod(object):
         self.period_capital_used = 0.0
         self.pnl = 0.0
         #sid => position object
-        self.positions = initial_positions
+        if not isinstance(initial_positions, positiondict):
+            self.positions = positiondict()
+            self.positions.update(initial_positions)
+        else:
+            self.positions = initial_positions
         self.starting_value = starting_value
         #cash balance at start of period
         self.starting_cash = starting_cash
@@ -436,11 +436,8 @@ class PerformancePeriod(object):
             self.returns = 0.0
 
     def execute_transaction(self, txn):
-
         # Update Position
         # ----------------
-        if txn.sid not in self.positions:
-            self.positions[txn.sid] = Position(txn.sid)
         self.positions[txn.sid].update(txn)
         self.period_capital_used += -1 * txn.price * txn.amount
 
@@ -547,21 +544,16 @@ class PerformancePeriod(object):
         del(portfolio['max_leverage'])
         del(portfolio['max_capital_used'])
 
-        portfolio['positions'] = self.get_positions(ndicted=True)
+        portfolio['positions'] = self.get_positions()
         return zp.ndict(portfolio)
 
-    def get_positions(self, ndicted=False):
-        if ndicted:
-            positions = zp.ndict({})
-        else:
-            positions = {}
+    def get_positions(self):
+
+        positions = zp.ndict(internal=position_ndict())
 
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
-            if ndicted:
-                positions[sid] = zp.ndict(cur)
-            else:
-                positions[sid] = cur
+            positions[sid] = zp.ndict(cur)
 
         return positions
 
@@ -571,3 +563,19 @@ class PerformancePeriod(object):
             cur = pos.to_dict()
             positions.append(cur)
         return positions
+
+
+class positiondict(dict):
+
+    def __missing__(self, key):
+        pos = Position(key)
+        self[key] = pos
+        return pos
+
+
+class position_ndict(dict):
+
+    def __missing__(self, key):
+        pos = Position(key)
+        self[key] = zp.ndict(pos.to_dict())
+        return pos

@@ -348,16 +348,16 @@ class BatchTransform(EventWindow):
                  refresh_period=None,
                  market_aware=True,
                  delta=None,
-                 days=None,
-                 sids=None):
-        super(BatchTransform, self).__init__(
-            market_aware, days=days, delta=delta)
+                 days=None):
+
+        super(BatchTransform, self).__init__(market_aware,
+                                             days=days, delta=delta)
+
         if func is not None:
             self.compute_transform_value = func
         else:
             self.compute_transform_value = self.get_value
 
-        self.sids = sids
         self.refresh_period = refresh_period
         self.days = days
 
@@ -373,15 +373,20 @@ class BatchTransform(EventWindow):
         handle_data method.
         """
         # extract dates
-        dts = [data[sid].datetime for sid in self.sids]
+        #dts = [data[sid].datetime for sid in self.sids]
+        dts = [event.datetime for event in data.itervalues()]
         # we have to provide the event with a dt. This is only for
         # checking if the event is outside the window or not so a
-        # couple of seconds shouldn't matter
-        data.dt = max(dts)
+        # couple of seconds shouldn't matter. We don't add it to
+        # the data parameter, because it would mix dt with the
+        # sid keys.
+        event = ndict()
+        event.dt = max(dts)
+        event.data = data
 
         # append data frame to window. update() will call handle_add() and
         # handle_remove() appropriately
-        self.update(data)
+        self.update(event)
 
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
@@ -403,17 +408,23 @@ class BatchTransform(EventWindow):
             #
             # This Panel data structure ultimately gets passed to the
             # user-overloaded get_value() method.
+            #
+            # self.ticks contains ndicts with data, dt keys.
+            # event parameter is an ndict with data, dt keys.
             fields = {}
             for field_name in ['price', 'volume']:
+                sids = self.ticks[0].data.keys()
                 # Skip non-existant fields
-                if field_name not in self.ticks[0][self.sids[0]]:
+                if field_name not in self.ticks[0].data[sids[0]]:
                     continue
 
                 values_per_sid = {}
-                for sid in self.sids:
+
+                for sid in sids:
                     values_per_sid[sid] = pd.Series(
-                        {tick[sid].dt: tick[sid][field_name]
-                         for tick in self.ticks})
+                        {tick.data[sid].dt: tick.data[sid][field_name]
+                         for tick in self.ticks}
+                    )
 
                 # concatenate different sids into one df
                 fields[field_name] = pd.DataFrame.from_dict(values_per_sid)

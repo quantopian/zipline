@@ -67,41 +67,27 @@ The algorithm must expose methods:
     and trade events.
 
 """
+from zipline.algorithm import TradingAlgorithm
+from zipline.finance.slippage import FixedSlippage
 
 
-class TestAlgorithm():
+class TestAlgorithm(TradingAlgorithm):
     """
     This algorithm will send a specified number of orders, to allow unit tests
     to verify the orders sent/received, transactions created, and positions
     at the close of a simulation.
     """
 
-    def __init__(self, sid, amount, order_count, sid_filter=None):
+    def initialize(self, sid, amount, order_count, sid_filter=None):
         self.count = order_count
         self.sid = sid
         self.amount = amount
         self.incr = 0
-        self.done = False
-        self.order = None
-        self.frame_count = 0
-        self.portfolio = None
 
         if sid_filter:
             self.sid_filter = sid_filter
         else:
             self.sid_filter = [self.sid]
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        self.order = order_callable
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        self.portfolio = portfolio
 
     def handle_data(self, data):
         self.frame_count += 1
@@ -110,40 +96,18 @@ class TestAlgorithm():
             self.order(self.sid, self.amount)
             self.incr += 1
 
-    def get_sid_filter(self):
-        return self.sid_filter
 
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
-class HeavyBuyAlgorithm():
+class HeavyBuyAlgorithm(TradingAlgorithm):
     """
     This algorithm will send a specified number of orders, to allow unit tests
     to verify the orders sent/received, transactions created, and positions
     at the close of a simulation.
     """
 
-    def __init__(self, sid, amount):
+    def initialize(self, sid, amount):
         self.sid = sid
         self.amount = amount
         self.incr = 0
-        self.done = False
-        self.order = None
-        self.frame_count = 0
-        self.portfolio = None
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        self.order = order_callable
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        self.portfolio = portfolio
 
     def handle_data(self, data):
         self.frame_count += 1
@@ -151,33 +115,11 @@ class HeavyBuyAlgorithm():
         self.order(self.sid, self.amount)
         self.incr += 1
 
-    def get_sid_filter(self):
-        return [self.sid]
 
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
-class NoopAlgorithm(object):
+class NoopAlgorithm(TradingAlgorithm):
     """
     Dolce fa niente.
     """
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        pass
-
     def get_sid_filter(self):
         return []
 
@@ -185,17 +127,17 @@ class NoopAlgorithm(object):
         pass
 
 
-class ExceptionAlgorithm(object):
+class ExceptionAlgorithm(TradingAlgorithm):
     """
     Throw an exception from the method name specified in the
     constructor.
     """
 
-    def __init__(self, throw_from, sid):
+    def initialize(self, throw_from, sid):
+
         self.throw_from = throw_from
         self.sid = sid
 
-    def initialize(self):
         if self.throw_from == "initialize":
             raise Exception("Algo exception in initialize")
         else:
@@ -206,9 +148,6 @@ class ExceptionAlgorithm(object):
             raise Exception("Algo exception in set_order")
         else:
             pass
-
-    def set_logger(self, logger):
-        pass
 
     def set_portfolio(self, portfolio):
         if self.throw_from == "set_portfolio":
@@ -232,23 +171,11 @@ class ExceptionAlgorithm(object):
         pass
 
 
-class DivByZeroAlgorithm():
+class DivByZeroAlgorithm(TradingAlgorithm):
 
-    def __init__(self, sid):
+    def initialize(self, sid):
         self.sid = sid
         self.incr = 0
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
 
     def handle_data(self, data):
         self.incr += 1
@@ -256,57 +183,11 @@ class DivByZeroAlgorithm():
             5 / 0
         pass
 
-    def get_sid_filter(self):
-        return [self.sid]
 
-    def set_transact_setter(self, txn_sim_callable):
-        pass
+class TooMuchProcessingAlgorithm(TradingAlgorithm):
 
-
-class InitializeTimeoutAlgorithm():
-    def __init__(self, sid):
+    def initialize(self, sid):
         self.sid = sid
-        self.incr = 0
-
-    def initialize(self):
-        import time
-        from zipline.gens.tradesimulation import INIT_TIMEOUT
-        time.sleep(INIT_TIMEOUT + 1000)
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        pass
-
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
-class TooMuchProcessingAlgorithm():
-    def __init__(self, sid):
-        self.sid = sid
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
 
     def handle_data(self, data):
         # Unless we're running on some sort of
@@ -314,99 +195,18 @@ class TooMuchProcessingAlgorithm():
         for i in xrange(1000000000):
             self.foo = i
 
-    def get_sid_filter(self):
-        return [self.sid]
 
-    def set_transact_setter(self, txn_sim_callable):
-        pass
+class TimeoutAlgorithm(TradingAlgorithm):
 
-
-class TimeoutAlgorithm():
-
-    def __init__(self, sid):
+    def initialize(self, sid):
         self.sid = sid
         self.incr = 0
-
-    def initialize(self):
-        pass
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
 
     def handle_data(self, data):
         if self.incr > 4:
             import time
             time.sleep(100)
         pass
-
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
-class TestPrintAlgorithm():
-
-    def __init__(self, sid):
-        self.sid = sid
-
-    def initialize(self):
-        print "Initializing..."
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        pass
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        print "Handling Data..."
-        pass
-
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
-class TestLoggingAlgorithm():
-
-    def __init__(self, sid):
-        self.log = None
-        self.sid = sid
-
-    def initialize(self):
-        self.log.info("Initializing...")
-
-    def set_order(self, order_callable):
-        pass
-
-    def set_logger(self, logger):
-        self.log = logger
-
-    def set_portfolio(self, portfolio):
-        pass
-
-    def handle_data(self, data):
-        self.log.info("Handling Data...")
-
-    def get_sid_filter(self):
-        return [self.sid]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
 
 from datetime import timedelta
 from zipline.algorithm import TradingAlgorithm
@@ -415,10 +215,12 @@ from zipline.gens.mavg import MovingAverage
 
 
 class TestRegisterTransformAlgorithm(TradingAlgorithm):
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         self.add_transform(MovingAverage, 'mavg', ['price'],
                            market_aware=True,
                            days=2)
+
+        self.set_slippage(FixedSlippage())
 
     def handle_data(self, data):
         pass
@@ -454,25 +256,24 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.kwargs = kwargs
 
         self.return_price_class = ReturnPriceBatchTransform(
-            sids=self.sids,
             market_aware=False,
             refresh_period=2,
             delta=timedelta(days=self.days)
         )
 
         self.return_price_decorator = return_price_batch_decorator(
-            sids=self.sids,
             market_aware=False,
             refresh_period=2,
             delta=timedelta(days=self.days)
         )
 
         self.return_args_batch = return_args_batch_decorator(
-            sids=self.sids,
             market_aware=False,
             refresh_period=2,
             delta=timedelta(days=self.days)
         )
+
+        self.set_slippage(FixedSlippage())
 
     def handle_data(self, data):
         self.history_return_price_class.append(

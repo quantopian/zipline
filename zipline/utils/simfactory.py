@@ -1,36 +1,33 @@
 import zipline.utils.factory as factory
 
 from zipline.test_algorithms import TestAlgorithm
-from zipline.lines import SimulatedTrading
-from zipline.finance.slippage import FixedSlippage, transact_partial
-from zipline.finance.commission import PerShare
 
 
 def create_test_zipline(**config):
     """
-    :param config: A configuration object that is a dict with:
+       :param config: A configuration object that is a dict with:
 
-    - environment - a \
-      :py:class:`zipline.finance.trading.TradingEnvironment`
-    - sid - an integer, which will be used as the security ID.
-    - order_count - the number of orders the test algo will place,
-      defaults to 100
-    - order_amount - the number of shares per order, defaults to 100
-    - trade_count - the number of trades to simulate, defaults to 101
-      to ensure all orders are processed.
-    - algorithm - optional parameter providing an algorithm. defaults
-      to :py:class:`zipline.test.algorithms.TestAlgorithm`
-    - trade_source - optional parameter to specify trades, if present.
-      If not present :py:class:`zipline.sources.SpecificEquityTrades`
-      is the source, with daily frequency in trades.
-    - slippage: optional parameter that configures the
-      :py:class:`zipline.gens.tradingsimulation.TransactionSimulator`. Expects
-      an object with a simulate mehod, such as
-      :py:class:`zipline.gens.tradingsimulation.FixedSlippage`.
-      :py:mod:`zipline.finance.trading`
-    - transforms: optional parameter that provides a list
-      of StatefulTransform objects.
-    """
+           - environment - a \
+             :py:class:`zipline.finance.trading.TradingEnvironment`
+           - sid - an integer, which will be used as the security ID.
+           - order_count - the number of orders the test algo will place,
+             defaults to 100
+           - order_amount - the number of shares per order, defaults to 100
+           - trade_count - the number of trades to simulate, defaults to 101
+             to ensure all orders are processed.
+           - algorithm - optional parameter providing an algorithm. defaults
+             to :py:class:`zipline.test.algorithms.TestAlgorithm`
+           - trade_source - optional parameter to specify trades, if present.
+             If not present :py:class:`zipline.sources.SpecificEquityTrades`
+             is the source, with daily frequency in trades.
+           - slippage: optional parameter that configures the
+             :py:class:`zipline.gens.tradingsimulation.TransactionSimulator`.
+             Expects an object with a simulate mehod, such as
+             :py:class:`zipline.gens.tradingsimulation.FixedSlippage`.
+             :py:mod:`zipline.finance.trading`
+           - transforms: optional parameter that provides a list
+             of StatefulTransform objects.
+       """
     assert isinstance(config, dict)
     sid_list = config.get('sid_list')
     if not sid_list:
@@ -64,12 +61,20 @@ def create_test_zipline(**config):
         # trade than order
         trade_count = 101
 
-    slippage = config.get('slippage', FixedSlippage())
-    commission = PerShare()
-    transact_method = transact_partial(slippage, commission)
+    #-------------------
+    # Create the Algo
+    #-------------------
+    if 'algorithm' in config:
+        test_algo = config['algorithm']
+    else:
+        test_algo = TestAlgorithm(
+            sid,
+            order_amount,
+            order_count
+        )
 
     #-------------------
-   # Trade Source
+    # Trade Source
     #-------------------
     if 'trade_source' in config:
         trade_source = config['trade_source']
@@ -81,34 +86,25 @@ def create_test_zipline(**config):
             concurrent=concurrent_trades
         )
 
+    test_algo.set_sources([trade_source])
+
     #-------------------
     # Transforms
     #-------------------
-    transforms = config.get('transforms', [])
+
+    transforms = config.get('transforms', None)
+    if transforms is not None:
+        test_algo.set_transforms(transforms)
 
     #-------------------
-    # Create the Algo
-    #-------------------
-    if 'algorithm' in config:
-        test_algo = config['algorithm']
-    else:
-        test_algo = TestAlgorithm(
-            sid,
-            order_amount,
-            order_count
-       )
+    # Slippage
+    # ------------------
+    slippage = config.get('slippage', None)
+    if slippage is not None:
+        test_algo.set_slippage(slippage)
 
-    #-------------------
-    # Simulation
-    #-------------------
-
-    sim = SimulatedTrading(
-        [trade_source],
-        transforms,
-        test_algo,
-        trading_environment,
-        transact_method
-    )
-    #-------------------
+    # ------------------
+    # generator/simulator
+    sim = test_algo.get_generator(trading_environment)
 
     return sim

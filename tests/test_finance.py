@@ -197,40 +197,19 @@ class FinanceTestCase(TestCase):
         }
         self.transaction_sim(**params2)
 
-    @timed(DEFAULT_TIMEOUT)
-    def test_partial_expiration_orders(self):
-        # create a scenario where orders expire without being filled
-        # entirely
-        params1 = {
-            'trade_count': 100,
+        # Runs the collapsed trades over daily trade intervals.
+        # Ensuring that our delay works for daily intervals as well.
+        params3 = {
+            'trade_count': 6,
             'trade_amount': 100,
-            'trade_delay': timedelta(minutes=5),
             'trade_interval': timedelta(days=1),
-            'order_count': 3,
-            'order_amount': 1000,
-            'order_interval': timedelta(minutes=30),
-            # because we placed an orders totaling less than 25% of one trade
-            # the simulator should produce just one transaction.
+            'order_count': 24,
+            'order_amount': 1,
+            'order_interval': timedelta(minutes=1),
             'expected_txn_count': 1,
-            'expected_txn_volume': 25
+            'expected_txn_volume': 24 * 1
         }
-        self.transaction_sim(**params1)
-
-        # same scenario, but short sales.
-        params2 = {
-            'trade_count': 100,
-            'trade_amount': 100,
-            'trade_delay': timedelta(minutes=5),
-            'trade_interval': timedelta(days=1),
-            'order_count': 3,
-            'order_amount': -1000,
-            'order_interval': timedelta(minutes=30),
-            # because we placed an orders totaling less than 25% of one trade
-            # the simulator should produce just one transaction.
-            'expected_txn_count': 1,
-            'expected_txn_volume': -25
-        }
-        self.transaction_sim(**params2)
+        self.transaction_sim(**params3)
 
     @timed(DEFAULT_TIMEOUT)
     def test_alternating_long_short(self):
@@ -320,7 +299,7 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator ** i)
 
-        tracker = PerformanceTracker(trading_environment, [sid])
+        tracker = PerformanceTracker(trading_environment)
 
         # this approximates the loop inside TradingSimulationClient
         transactions = []

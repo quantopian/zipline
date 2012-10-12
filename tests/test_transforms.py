@@ -32,6 +32,7 @@ from zipline.gens.stddev import MovingStandardDev
 from zipline.gens.returns import Returns
 import zipline.utils.factory as factory
 
+
 from zipline.test_algorithms import BatchTransformAlgorithm
 
 
@@ -315,7 +316,7 @@ class BatchTransformTestCase(TestCase):
         self.source, self.df = factory.create_test_df_source()
 
     def test_event_window(self):
-        algo = BatchTransformAlgorithm(sids=[0, 1])
+        algo = BatchTransformAlgorithm()
         algo.run(self.source)
 
         self.assertEqual(algo.history_return_price_class[:2],
@@ -344,7 +345,7 @@ class BatchTransformTestCase(TestCase):
             )
 
     def test_passing_of_args(self):
-        algo = BatchTransformAlgorithm([0, 1], 1, kwarg='str')
+        algo = BatchTransformAlgorithm(1, kwarg='str')
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
