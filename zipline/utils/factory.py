@@ -43,12 +43,6 @@ def data_path():
     return data_path
 
 
-def logger_path():
-    import zipline
-    log_path = dirname(abspath(zipline.__file__))
-    return os.join(log_path, 'logging.cfg')
-
-
 def load_market_data():
     fp_bm = open(join(data_path(), "benchmark.msgpack"), "rb")
     bm_list = msgpack.loads(fp_bm.read())
