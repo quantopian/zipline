@@ -12,4 +12,4 @@ pytz==2011n
 numpy==1.6.1
 Cython==0.15.1
 
--e git+git://github.com/pydata/pandas.git@v0.9.0rc2#egg=pandas
+pandas==0.9.0
