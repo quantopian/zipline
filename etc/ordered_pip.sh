@@ -4,7 +4,6 @@ a=0
 while read line
 do     
     if [[ -n "$line" && "$line" != \#* ]] ; then
-	line=${line%#*}
         pip install $line
     fi
     ((a = a + 1))
