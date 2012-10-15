@@ -28,12 +28,12 @@ To run tests::
 
 Tooling hints
 ================
-QBT relies heavily on scientific python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
+zipline relies heavily on scientific Python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
 
 - some kind of package manager for your platform. package managers generally give you a way to search, install, uninstall, and check currently installed packages. They also do a great job of managing dependencies.
-   - linux: yum/apt-get
-   - mac: homebrew/macport/fink (I highly recommend homebrew: https://github.com/mxcl/homebrew) 
-   - windows: probably best if you use a complete distribution, like: enthought, ActiveState, or Python(x,y)
+   - Linux: yum/apt-get
+   - Mac OS: homebrew/macport/fink (I highly recommend homebrew: https://github.com/mxcl/homebrew) 
+   - Windows: probably best if you use a complete distribution, like: enthought, ActiveState, or Python(x,y)
 - Python also provides good package management tools to help you manage the components you install for Python.
    - pip
    - easy_install/setuptools. I have always used setuptools, and I've been quite happy with it. Just remember that setuptools is coupled to your python version. 
@@ -54,13 +54,13 @@ Scientific python on the Mac can be a bit confusing because of the many independ
 
 Data Sources
 =============
-The Backtest can handle multiple concurrent data sources. QBT will start a subprocess to run each datasource, and merge all events from all sources into a single serial feed, ordered by date.
+The Backtest can handle multiple concurrent data sources. zipline will start a subprocess to run each datasource, and merge all events from all sources into a single serial feed, ordered by date.
 
 Data sources have events with very different frequencies. For example, liquid stocks will trade many times per minute, while illiquid stocks may trade just once a day. In order to serialize events from all sources into a single feed, qbt loads events from all sources into memory, then sorts. The communication happens like this:
-1. QBT requests the next event from each data source, ignoring date (i.e. just next in sequence for all)
-2. Using the earliest date from all the events from all sources, QBT then asks for "next after <date>" from all sources. 
+1. zipline requests the next event from each data source, ignoring date (i.e. just next in sequence for all)
+2. Using the earliest date from all the events from all sources, zipline then asks for "next after <date>" from all sources. 
 3. All datasources send all events in their history from before <date>, moving their internal pointer forward to the next unsent event.
-4. QBT merges all events in memory
+4. zipline merges all events in memory
 5. goto 1!
 
 Style Guide
