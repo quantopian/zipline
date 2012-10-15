@@ -16,23 +16,6 @@ def Enum(*options):
     return cstruct(*range(len(options)))
 
 
-def FrameExceptionFactory(name):
-    """
-    Exception factory with a closure around the frame class name.
-    """
-    class InvalidFrame(Exception):
-        def __init__(self, got):
-            self.got = got
-
-        def __str__(self):
-            return "Invalid {framecls} Frame: {got}".format(
-                framecls=name,
-                got=self.got,
-            )
-
-    return InvalidFrame
-
-
 class ndict(MutableMapping):
     """
     Xtreme Namedicts 2.0
