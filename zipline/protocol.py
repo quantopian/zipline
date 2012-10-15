@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from utils.protocol_utils import Enum, ndict, namelookup
+from utils.protocol_utils import Enum, ndict
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -33,10 +33,4 @@ DATASOURCE_TYPE = Enum(
 TRANSFORM_TYPE = ndict({
     'PASSTHROUGH': 'PASSTHROUGH',
     'EMPTY': ''
-})
-
-
-FINANCE_COMPONENT = namelookup({
-    'TRADING_CLIENT': 'TRADING_CLIENT',
-    'PORTFOLIO_CLIENT': 'PORTFOLIO_CLIENT',
 })

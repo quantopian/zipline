@@ -148,28 +148,3 @@ class ndict(MutableMapping):
                 #return False
 
         #return True
-
-
-# This is not neccesarily the most intuitive construction, but
-# we're aiming for raw performance rather than readability. So
-# we do things that we would not normally do in business logic.
-def namelookup(dct):
-    ks = dct.keys()
-    vs = dct.values()
-    dct = {}
-
-    class _lookup:
-        __slots__ = ks
-
-        def __init__(self):
-            for k, v in zip(ks, vs):
-                setattr(self, k, v)
-            self.__setattr__ = self.locked
-
-        def locked(self, k, v):
-            raise Exception('Name lookups are fixed at init.')
-
-        def __repr__(self):
-            return '<namelookup %s>' % self.__slots__
-    del dct
-    return _lookup()
