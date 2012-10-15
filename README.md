@@ -31,12 +31,12 @@ Tooling hints
 zipline relies heavily on scientific Python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
 
 - some kind of package manager for your platform. package managers generally give you a way to search, install, uninstall, and check currently installed packages. They also do a great job of managing dependencies.
-   - Linux: yum/apt-get
-   - Mac OS: homebrew/macport/fink (I highly recommend homebrew: https://github.com/mxcl/homebrew) 
-   - Windows: probably best if you use a complete distribution, like: enthought, ActiveState, or Python(x,y)
+    - Linux: yum/apt-get
+    - Mac OS: homebrew/macport/fink (I highly recommend homebrew: https://github.com/mxcl/homebrew) 
+    - Windows: probably best if you use a complete distribution, like: enthought, ActiveState, or Python(x,y)
 - Python also provides good package management tools to help you manage the components you install for Python.
-   - pip
-   - easy_install/setuptools. I have always used setuptools, and I've been quite happy with it. Just remember that setuptools is coupled to your python version. 
+    - pip
+    - easy_install/setuptools. I have always used setuptools, and I've been quite happy with it. Just remember that setuptools is coupled to your python version. 
 - virtualenv and virtualenvwrapper are your very best friends. They complement your python package manager by allowing you to create and quickly switch between named configurations.
     - *Install all the versions of Python you like to use, but install setuptools, virtualenv, and virtualenvwrapper with the very latest python.* Use the latest python to install the latest setuptools, and the latest setuptools to install virtualenv and virtualenvwrapper. virtualenvwrapper allows you to specify the python version you wish to use (mkvirtualenv -p <python executable> <env name>), so you can create envs of any python denomination.
 
