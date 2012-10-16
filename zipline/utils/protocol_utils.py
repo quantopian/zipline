@@ -101,8 +101,7 @@ class ndict(MutableMapping):
         if hasattr(self, '_ndict_contains__'):
             return self._ndict_contains__(key)
         else:
-             return self.__internal.__contains__(key)
-
+            return self.__internal.__contains__(key)
 
     # Compatability with namedicts
     # ----------------------------
