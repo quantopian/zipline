@@ -20,9 +20,10 @@ import logbook
 
 from collections import deque
 from zipline import ndict
-from zipline.gens.utils import  \
-    assert_datasource_unframe_protocol, \
+from zipline.gens.utils import (
+    assert_datasource_unframe_protocol,
     assert_sort_protocol
+)
 
 log = logbook.Logger('Sorting')
 
