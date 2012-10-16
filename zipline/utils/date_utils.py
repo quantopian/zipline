@@ -128,13 +128,6 @@ def utcnow():
     return datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
-class utcdatetime(datetime):
-    def __new__(cls, *args, **kwargs):
-        kwargs['tzinfo'] = pytz.utc
-        dt = datetime.__new__(cls, *args, **kwargs)
-        return dt
-
-
 def days_since_epoch(ms_since_epoch):
     dt = UN_EPOCH(ms_since_epoch)
     delta = dt - UNIX_EPOCH
