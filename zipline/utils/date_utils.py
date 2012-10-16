@@ -198,12 +198,6 @@ if __name__ == '__main__':
     print time.time() - tic
 
 
-def date_to_datetime(t):
-    dt = datetime.fromordinal(t.toordinal())
-    dt = dt.replace(tzinfo=pytz.utc)
-    return dt
-
-
 def tuple_to_date(date_tuple):
     year, month, day, hour, minute, second, micros = date_tuple
     dt = datetime(year, month, day, hour, minute, second)
