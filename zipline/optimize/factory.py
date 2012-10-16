@@ -21,6 +21,7 @@ Author: Thomas V. Wiecki (thomas.wiecki@gmail.com), 2012
 """
 from datetime import timedelta
 
+from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 
 from zipline.utils.factory import (
@@ -72,7 +73,7 @@ def create_updown_trade_source(sid, trade_count, trading_environment,
     for i in xrange(trade_count + 2):
         cur = get_next_trading_dt(cur, one_day, trading_environment)
 
-        event = zp.ndict({
+        event = ndict({
             "type": zp.DATASOURCE_TYPE.TRADE,
             "sid": sid,
             "price": price,
