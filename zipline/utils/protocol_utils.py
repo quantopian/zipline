@@ -96,6 +96,14 @@ class ndict(MutableMapping):
     def __len__(self):
         return len(self.__internal)
 
+    #TODO: Eddie please help!
+    def __contains__(self, key):
+        if hasattr(self, '_ndict_contains__'):
+            return self._ndict_contains__(key)
+        else:
+             return self.__internal.__contains__(key)
+
+
     # Compatability with namedicts
     # ----------------------------
 
