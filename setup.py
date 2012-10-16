@@ -14,20 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='zipline',
       version='0.5.0',
       description='A backtester for financial algorithms.',
       author='Quantopian Inc.',
       author_email='opensource@quantopian.com',
-      packages=[
-          'zipline',
-          'zipline.finance',
-          'zipline.gens',
-          'zipline.optimize',
-          'zipline.utils'
-      ],
+      packages=find_packages(),
       long_description=open('README.md').read(),
       license='Apache 2.0',
       classifiers=[
@@ -50,5 +44,6 @@ setup(name='zipline',
           'pytz',
           'numpy',
           'pandas'
-          ]
+          ],
+      url="https://github.com/quantopian/zipline"
 )
