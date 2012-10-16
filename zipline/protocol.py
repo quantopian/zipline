@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from utils.protocol_utils import Enum, ndict
+from utils.protocol_utils import Enum
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -27,10 +27,3 @@ DATASOURCE_TYPE = Enum(
     'EMPTY',
     'DONE'
 )
-
-
-#Transform type needs to be a ndict to facilitate merging.
-TRANSFORM_TYPE = ndict({
-    'PASSTHROUGH': 'PASSTHROUGH',
-    'EMPTY': ''
-})

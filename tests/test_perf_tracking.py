@@ -21,7 +21,7 @@ import pytz
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-import zipline.protocol as zp
+from zipline.utils.protocol_utils import ndict
 
 from zipline.finance.trading import TradingEnvironment
 
@@ -574,7 +574,7 @@ shares in position"
             #create a transaction for all but
             #first trade in each sid, to simulate None transaction
             if(event.dt != self.trading_environment.period_start):
-                txn = zp.ndict({
+                txn = ndict({
                     'sid': event.sid,
                     'amount': -25,
                     'dt': event.dt,

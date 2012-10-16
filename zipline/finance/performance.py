@@ -136,6 +136,7 @@ import datetime
 import pytz
 import math
 
+from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
@@ -241,7 +242,7 @@ class PerformanceTracker(object):
 
         message = None
 
-        assert isinstance(event, zp.ndict)
+        assert isinstance(event, ndict)
         self.event_count += 1
 
         if(event.dt >= self.market_close):
@@ -545,15 +546,15 @@ class PerformancePeriod(object):
         del(portfolio['max_capital_used'])
 
         portfolio['positions'] = self.get_positions()
-        return zp.ndict(portfolio)
+        return ndict(portfolio)
 
     def get_positions(self):
 
-        positions = zp.ndict(internal=position_ndict())
+        positions = ndict(internal=position_ndict())
 
         for sid, pos in self.positions.iteritems():
             cur = pos.to_dict()
-            positions[sid] = zp.ndict(cur)
+            positions[sid] = ndict(cur)
 
         return positions
 
@@ -577,5 +578,5 @@ class position_ndict(dict):
 
     def __missing__(self, key):
         pos = Position(key)
-        self[key] = zp.ndict(pos.to_dict())
+        self[key] = ndict(pos.to_dict())
         return pos

@@ -19,7 +19,7 @@ import math
 
 from functools import partial
 
-import zipline.protocol as zp
+from zipline.utils.protocol_utils import ndict
 
 
 def transact_stub(slippage, commission, event, open_orders):
@@ -48,7 +48,7 @@ def create_transaction(sid, amount, price, dt):
            'price': price,
           }
 
-    transaction = zp.ndict(txn)
+    transaction = ndict(txn)
     return transaction
 
 
