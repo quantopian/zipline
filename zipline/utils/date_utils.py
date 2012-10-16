@@ -14,24 +14,11 @@
 # limitations under the License.
 
 
-from collections import namedtuple
-
 import time
 import pytz
 import iso8601
 from dateutil import rrule
 from datetime import datetime, timedelta
-
-# Datetime Tuple
-# --------------
-d_tuple = namedtuple('dt',
-                     ['year',
-                      'month',
-                      'day',
-                      'hour',
-                      'minute',
-                      'second',
-                      'micros'])
 
 
 # iso8061 utility
