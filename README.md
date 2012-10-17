@@ -65,6 +65,10 @@ Discussion and Help
 
 Discussion of the project is held at the Google Group, <zipline@googlegroups.com>, <https://groups.google.com/forum/#!forum/zipline>.
 
+Source
+======
+The source for Zipline is hosted at <https://github.com/quantopian/zipline>.
+
 Contact
 =======
 
