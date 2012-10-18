@@ -492,13 +492,20 @@ class RiskMetricsIterative(RiskMetricsBase):
     def update_compounded_log_returns(self):
         if len(self.algorithm_returns) == 0:
             return
-        elif len(self.compounded_log_returns) == 0:
-            self.compounded_log_returns.append(
-                math.log(1 + self.algorithm_returns[-1]))
+
+        try:
+            compound = math.log(1 + self.algorithm_returns[-1])
+        except ValueError:
+            compound = 0.0
+            # BUG? Shouldn't this be set to log(1.0 + 0) ?
+
+        if len(self.compounded_log_returns) == 0:
+            self.compounded_log_returns.append(compound)
         else:
             self.compounded_log_returns.append(
                 self.compounded_log_returns[-1] +
-                math.log(1 + self.algorithm_returns[-1]))
+                compound
+            )
 
     def calculate_period_returns(self, returns):
         period_returns = 1.0
