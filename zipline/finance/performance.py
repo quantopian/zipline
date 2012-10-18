@@ -175,6 +175,8 @@ class PerformanceTracker(object):
         self.txn_count = 0
         self.event_count = 0
         self.last_dict = None
+        self.cumulative_risk_metrics = risk.RiskMetricsIterative(
+            self.period_start, self.trading_environment)
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -273,13 +275,9 @@ class PerformanceTracker(object):
         )
         self.returns.append(todays_return_obj)
 
-        #calculate risk metrics for cumulative performance
-        self.cumulative_risk_metrics = risk.RiskMetrics(
-            start_date=self.period_start,
-            end_date=self.market_close.replace(hour=0, minute=0, second=0),
-            returns=self.returns,
-            trading_environment=self.trading_environment
-        )
+        #update risk metrics for cumulative performance
+        self.cumulative_risk_metrics.update(
+            self.todays_performance.returns, datetime.timedelta(days=1))
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

@@ -105,6 +105,9 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(environment)
 
+    def initialize(self, *args, **kwargs):
+        pass
+
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.

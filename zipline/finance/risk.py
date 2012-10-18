@@ -77,7 +77,7 @@ def advance_by_months(dt, jump_in_months):
     return dt.replace(year=dt.year + years, month=month)
 
 
-class DailyReturn():
+class DailyReturn(object):
 
     def __init__(self, date, returns):
 
@@ -95,7 +95,7 @@ class DailyReturn():
         return str(self.date) + " - " + str(self.returns)
 
 
-class RiskMetrics():
+class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns, trading_environment):
 
         self.treasury_curves = trading_environment.treasury_curves
@@ -216,8 +216,6 @@ class RiskMetrics():
         return period_returns, returns
 
     def calculate_volatility(self, daily_returns):
-        # TODO: we should be using an annualized number for the
-        # square root, not the days in the period.
         return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
 
     def calculate_sharpe(self):
@@ -228,7 +226,7 @@ class RiskMetrics():
             return 0.0
 
         return ((self.algorithm_period_returns - self.treasury_period_return) /
-                self.algorithm_volatility)
+                 self.algorithm_volatility)
 
     def calculate_beta(self):
         """
@@ -266,8 +264,7 @@ class RiskMetrics():
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
         return self.algorithm_period_returns - \
-            (self.treasury_period_return +
-             self.beta *
+            (self.treasury_period_return + self.beta *
              (self.benchmark_period_returns - self.treasury_period_return))
 
     def calculate_max_drawdown(self):
@@ -275,12 +272,13 @@ class RiskMetrics():
         cur_return = 0.0
         for r in self.algorithm_returns:
             try:
-                cur_return = math.log(1.0 + r) + cur_return
+                cur_return += math.log(1.0 + r)
             #this is a guard for a single day returning -100%
             except ValueError:
                 log.debug("{cur} return, zeroing the returns".format(
                     cur=cur_return))
                 cur_return = 0.0
+                # BUG? Shouldn't this be set to log(1.0 + 0) ?
             compounded_returns.append(cur_return)
 
         cur_max = None
@@ -327,9 +325,8 @@ class RiskMetrics():
         # in case end date is not a trading day, search for the next market
         # day for an interest rate
         for i in xrange(7):
-            day = self.end_date + i * one_day
-            if day in self.treasury_curves:
-                curve = self.treasury_curves[day]
+            if (self.end_date + i * one_day) in self.treasury_curves:
+                curve = self.treasury_curves[self.end_date + i * one_day]
                 self.treasury_curve = curve
                 rate = self.treasury_curve[self.treasury_duration]
                 # 1month note data begins in 8/2001,
@@ -349,8 +346,213 @@ class RiskMetrics():
         raise Exception(message)
 
 
-class RiskReport():
+class RiskMetricsIterative(RiskMetricsBase):
+    """Iterative version of RiskMetrics.
+    Should behave exaclty like RiskMetricsBatch.
 
+    :Usage:
+        Instantiate RiskMetricsIterative once.
+        Call update() method on each dt to update the metrics.
+    """
+
+    def __init__(self, start_date, trading_environment):
+        self.treasury_curves = trading_environment.treasury_curves
+        self.start_date = start_date
+        self.end_date = start_date
+        self.trading_environment = trading_environment
+
+        self.compounded_log_returns = []
+        self.moving_avg = []
+
+        self.algorithm_returns = []
+        self.benchmark_returns = []
+        self.algorithm_volatility = []
+        self.benchmark_volatility = []
+        self.algorithm_period_returns = []
+        self.benchmark_period_returns = []
+        self.sharpe = []
+        self.beta = []
+        self.alpha = []
+        self.max_drawdown = 0
+        self.current_max = -np.inf
+        self.excess_returns = []
+        self.last_dt = start_date
+        self.trading_days = 0
+
+        self.all_benchmark_returns = [
+                    x for x in self.trading_environment.benchmark_returns
+                    if x.date >= self.start_date
+        ]
+
+    def update(self, returns_in_period, dt):
+        if self.trading_environment.is_trading_day(self.end_date):
+            self.algorithm_returns.append(returns_in_period)
+            self.benchmark_returns.append(
+                self.all_benchmark_returns.pop(0).returns)
+            self.trading_days += 1
+            self.update_compounded_log_returns()
+
+        self.end_date += dt
+        self.end_date = self.end_date.replace(hour=0, minute=0, second=0)
+
+        self.algorithm_period_returns.append(
+            self.calculate_period_returns(self.algorithm_returns))
+        self.benchmark_period_returns.append(
+            self.calculate_period_returns(self.benchmark_returns))
+
+        if(len(self.benchmark_returns) != len(self.algorithm_returns)):
+            message = "Mismatch between benchmark_returns ({bm_count}) and \
+            algorithm_returns ({algo_count}) in range {start} : {end}"
+            message = message.format(
+                bm_count=len(self.benchmark_returns),
+                algo_count=len(self.algorithm_returns),
+                start=self.start_date,
+                end=self.end_date
+            )
+            raise Exception(message)
+
+        self.update_current_max()
+        self.benchmark_volatility.append(
+            self.calculate_volatility(self.benchmark_returns))
+        self.algorithm_volatility.append(
+            self.calculate_volatility(self.algorithm_returns))
+        self.treasury_period_return = self.choose_treasury()
+        self.excess_returns.append(
+            self.algorithm_period_returns[-1] - self.treasury_period_return)
+        self.beta.append(self.calculate_beta()[0])
+        self.alpha.append(self.calculate_alpha())
+        self.sharpe.append(self.calculate_sharpe())
+        self.max_drawdown = self.calculate_max_drawdown()
+
+    def to_dict(self):
+        """
+        Creates a dictionary representing the state of the risk report.
+        Returns a dict object of the form:
+        """
+        period_label = self.end_date.strftime("%Y-%m")
+        rval = {
+            'trading_days': self.trading_days,
+            'benchmark_volatility': self.benchmark_volatility[-1],
+            'algo_volatility': self.algorithm_volatility[-1],
+            'treasury_period_return': self.treasury_period_return,
+            'algorithm_period_return': self.algorithm_period_returns[-1],
+            'benchmark_period_return': self.benchmark_period_returns[-1],
+            'sharpe': self.sharpe[-1],
+            'beta': self.beta[-1],
+            'alpha': self.alpha[-1],
+            'excess_return': self.excess_returns[-1],
+            'max_drawdown': self.max_drawdown,
+            'period_label': period_label
+        }
+
+        # check if a field in rval is nan, and replace it with
+        # None.
+        def check_entry(key, value):
+            if key != 'period_label':
+                return np.isnan(value)
+            else:
+                return False
+
+        return {k: None
+                if check_entry(k, v)
+                else v for k, v in rval.iteritems()}
+
+    def __repr__(self):
+        statements = []
+        metrics = [
+            "algorithm_period_returns",
+            "benchmark_period_returns",
+            "excess_returns",
+            "trading_days",
+            "benchmark_volatility",
+            "algorithm_volatility",
+            "sharpe",
+            "algorithm_covariance",
+            "benchmark_variance",
+            "beta",
+            "alpha",
+            "max_drawdown",
+            "algorithm_returns",
+            "benchmark_returns",
+            "condition_number",
+            "eigen_values"
+        ]
+
+        for metric in metrics:
+            value = getattr(self, metric)
+            if isinstance(value, list):
+                if len(value) == 0:
+                    value = np.nan
+                else:
+                    value = value[-1]
+            statements.append("{m}:{v}".format(m=metric, v=value))
+
+        return '\n'.join(statements)
+
+    def update_compounded_log_returns(self):
+        if len(self.algorithm_returns) == 0:
+            return
+        elif len(self.compounded_log_returns) == 0:
+            self.compounded_log_returns.append(
+                math.log(1 + self.algorithm_returns[-1]))
+        else:
+            self.compounded_log_returns.append(
+                self.compounded_log_returns[-1] +
+                math.log(1 + self.algorithm_returns[-1]))
+
+    def calculate_period_returns(self, returns):
+        period_returns = 1.0
+
+        for r in returns:
+            period_returns *= (1.0 + r)
+
+        period_returns -= 1.0
+        return period_returns
+
+    def update_current_max(self):
+        if len(self.compounded_log_returns) == 0:
+            return
+        if self.current_max < self.compounded_log_returns[-1]:
+            self.current_max = self.compounded_log_returns[-1]
+
+    def calculate_max_drawdown(self):
+        if len(self.compounded_log_returns) == 0:
+            return self.max_drawdown
+
+        cur_drawdown = 1.0 - math.exp(
+            self.compounded_log_returns[-1] -
+            self.current_max)
+
+        if self.max_drawdown < cur_drawdown:
+            return cur_drawdown
+        else:
+            return self.max_drawdown
+
+    def calculate_sharpe(self):
+        """
+        http://en.wikipedia.org/wiki/Sharpe_ratio
+        """
+        if self.algorithm_volatility[-1] == 0:
+            return 0.0
+
+        return (self.algorithm_period_returns[-1] -
+                self.treasury_period_return) / self.algorithm_volatility[-1]
+
+    def calculate_alpha(self):
+        """
+        http://en.wikipedia.org/wiki/Alpha_(investment)
+        """
+        return (self.algorithm_period_returns[-1] -
+                (self.treasury_period_return + self.beta[-1] *
+                 (self.benchmark_period_returns[-1] -
+                  self.treasury_period_return)))
+
+
+class RiskMetricsBatch(RiskMetricsBase):
+    pass
+
+
+class RiskReport(object):
     def __init__(
         self,
         algorithm_returns,
@@ -372,10 +574,11 @@ class RiskReport():
             start_date = self.algorithm_returns[0].date
             end_date = self.algorithm_returns[-1].date
 
-        self.month_periods = self.periodsInRange(1, start_date, end_date)
-        self.three_month_periods = self.periodsInRange(3, start_date, end_date)
-        self.six_month_periods = self.periodsInRange(6, start_date, end_date)
-        self.year_periods = self.periodsInRange(12, start_date, end_date)
+        self.month_periods = self.periods_in_range(1, start_date, end_date)
+        self.three_month_periods = self.periods_in_range(
+            3, start_date, end_date)
+        self.six_month_periods = self.periods_in_range(6, start_date, end_date)
+        self.year_periods = self.periods_in_range(12, start_date, end_date)
 
     def to_dict(self):
         """
@@ -400,7 +603,7 @@ class RiskReport():
             'created': self.created
         }
 
-    def periodsInRange(self, months_per, start, end):
+    def periods_in_range(self, months_per, start, end):
         one_day = datetime.timedelta(days=1)
         ends = []
         cur_start = start.replace(day=1)
@@ -417,7 +620,7 @@ class RiskReport():
             cur_end = advance_by_months(cur_start, months_per) - one_day
             if(cur_end > the_end):
                 break
-            cur_period_metrics = RiskMetrics(
+            cur_period_metrics = RiskMetricsBatch(
                 start_date=cur_start,
                 end_date=cur_end,
                 returns=self.algorithm_returns,

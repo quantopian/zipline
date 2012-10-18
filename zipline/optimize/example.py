@@ -24,6 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from zipline.gens.mavg import MovingAverage
 from zipline.algorithm import TradingAlgorithm
+from zipline.gens.transform import batch_transform
 
 
 class DMA(TradingAlgorithm):
@@ -62,6 +63,37 @@ class DMA(TradingAlgorithm):
                 self.invested[sid] = False
 
 
+class DualMovingAverage(TradingAlgorithm):
+    """Dual Moving Average algorithm.
+    """
+    def initialize(self, short_window=200, long_window=400):
+        self.short_mavg = []
+        self.long_mavg = []
+
+        self.invested = False
+
+        self.add_transform(MovingAverage, 'short_mavg', ['price'],
+                           market_aware=True,
+                           days=short_window)
+
+        self.add_transform(MovingAverage, 'long_mavg', ['price'],
+                           market_aware=True,
+                           days=long_window)
+
+    def handle_data(self, data):
+        self.short_mavg.append(data['AAPL'].short_mavg['price'])
+        self.long_mavg.append(data['AAPL'].long_mavg['price'])
+
+        if (data['AAPL'].short_mavg['price'] >
+            data['AAPL'].long_mavg['price']) and not self.invested:
+            self.order('AAPL', 100)
+            self.invested = True
+        elif (data['AAPL'].short_mavg['price'] <
+              data['AAPL'].long_mavg['price']) and self.invested:
+            self.order('AAPL', -100)
+            self.invested = False
+
+
 def load_close_px(indexes=None, stocks=None):
     from pandas.io.data import DataReader
     import pytz
@@ -70,10 +102,10 @@ def load_close_px(indexes=None, stocks=None):
     if indexes is None:
         indexes = {'SPX': '^GSPC'}
     if stocks is None:
-        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP']
+        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP', 'KO']
 
     start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = pd.datetime(1992, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = pd.datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
 
     data = OrderedDict()
 
@@ -87,8 +119,8 @@ def load_close_px(indexes=None, stocks=None):
         stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
         data[name] = stkd
 
-    #df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
-    df = pd.DataFrame({i: d['Close'] for i, d in enumerate(data.itervalues())})
+    df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
+
     df.index = df.index.tz_localize(pytz.utc)
 
     df.save('close_px.dat')
@@ -171,4 +203,55 @@ def plot_returns(port_returns, bmk_returns):
     plt.title('Portfolio performance')
     plt.legend(loc='best')
 
-print run((10, 20))
+#print run((10, 20))
+
+import statsmodels.api as sm
+
+
+@batch_transform
+def ols_transform(data, spreads):
+    p0 = data.price['PEP']
+    p1 = sm.add_constant(data.price['KO'])
+    beta, intercept = sm.OLS(p0, p1).fit().params
+
+    spread = (data.price['PEP'] - (beta * data.price['KO'] + intercept))[-1]
+
+    if len(spreads) > 10:
+        z_score = (spread - np.mean(spreads[-10:])) / np.std(spreads[-10:])
+    else:
+        z_score = np.nan
+
+    spreads.append(spread)
+
+    return z_score
+
+
+class Pairtrade(TradingAlgorithm):
+    def initialize(self):
+        self.spreads = []
+        self.invested = False
+        self.ols_transform = ols_transform(refresh_period=10, days=10)
+
+    def handle_data(self, data):
+        zscore = self.ols_transform.handle_data(data, self.spreads)
+
+        if zscore == np.nan:
+            return
+
+        if zscore >= 2.0 and not self.invested:
+            self.order('PEP', int(100 / data['PEP'].price))
+            self.order('KO', -int(100 / data['KO'].price))
+        elif zscore <= -2.0 and not self.invested:
+            self.order('KO', -int(100 / data['KO'].price))
+            self.order('PEP', int(100 / data['PEP'].price))
+        elif abs(zscore) < .5 and self.invested:
+            pass
+
+
+def run_pairtrade():
+    data = load_close_px()
+    data.save('close_px.dat')
+    #data = pd.load('close_px.dat')
+    myalgo = Pairtrade()
+    stats = myalgo.run(data)
+    return stats
