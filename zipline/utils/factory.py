@@ -34,16 +34,27 @@ from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 
+from zipline import data
+
 
 # TODO
 def data_path():
-    from zipline import data
     data_path = dirname(abspath(data.__file__))
     return data_path
 
 
 def load_market_data():
-    fp_bm = open(join(data_path(), "benchmark.msgpack"), "rb")
+    benchmark_data_path = join(data_path(), "benchmark.msgpack")
+    try:
+        fp_bm = open(benchmark_data_path, "rb")
+    except IOError:
+        print """
+data msgpacks aren't distribute with source.
+Fetching data from Yahoo Finance.
+""".strip()
+        data.loader.dump_benchmarks()
+        fp_bm = open(benchmark_data_path, "rb")
+
     bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
     for packed_date, returns in bm_list:
@@ -59,6 +70,18 @@ def load_market_data():
         bm_returns.append(daily_return)
 
     bm_returns = sorted(bm_returns, key=attrgetter('date'))
+
+    treasury_data_path = join(data_path(), "treasury_curves.msgpack")
+    try:
+        fp_bm = open(treasury_data_path, "rb")
+    except IOError:
+        print """
+data msgpacks aren't distribute with source.
+Fetching data from data.treasury.gov
+""".strip()
+        data.loader.dump_treasury_curves()
+        fp_bm = open(treasury_data_path, "rb")
+
     fp_tr = open(join(data_path(), "treasury_curves.msgpack"), "rb")
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
