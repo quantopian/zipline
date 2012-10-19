@@ -14,9 +14,11 @@
 # limitations under the License.
 
 """
-Tools to generate trade events without a backing store. Useful for testing
-and zipline development
+Tools to generate data sources.
 """
+
+__all__ = ['DataFrameSource', 'SpecificEquityTrades']
+
 import random
 import pytz
 

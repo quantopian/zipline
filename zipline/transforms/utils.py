@@ -186,7 +186,7 @@ class EventWindow(object):
     based on the number of elapsed trading days between newest and oldest.
     Otherwise old events are dropped based on a raw timedelta.
 
-    See zipline/gens/mavg.py and zipline/gens/vwap.py for example
+    See zipline/transforms/mavg.py and zipline/transforms/vwap.py for example
     implementations of moving average and volume-weighted average
     price.
     """

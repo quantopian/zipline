@@ -17,7 +17,7 @@ from numbers import Number
 from collections import defaultdict
 from math import sqrt
 
-from zipline.gens.transform import EventWindow, TransformMeta
+from zipline.transforms.utils import EventWindow, TransformMeta
 
 
 class MovingStandardDev(object):

@@ -28,7 +28,7 @@ from zipline.utils.factory import (
     get_next_trading_dt,
     create_trading_environment
 )
-from zipline.gens.tradegens import SpecificEquityTrades
+from zipline.sources import SpecificEquityTrades
 from zipline.optimize.algorithms import BuySellAlgorithm
 from zipline.finance.slippage import FixedSlippage
 

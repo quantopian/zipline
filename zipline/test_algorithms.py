@@ -210,8 +210,8 @@ class TimeoutAlgorithm(TradingAlgorithm):
 
 from datetime import timedelta
 from zipline.algorithm import TradingAlgorithm
-from zipline.gens.transform import BatchTransform, batch_transform
-from zipline.gens.mavg import MovingAverage
+from zipline.transforms import BatchTransform, batch_transform
+from zipline.transforms import MovingAverage
 
 
 class TestRegisterTransformAlgorithm(TradingAlgorithm):
