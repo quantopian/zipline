@@ -29,7 +29,7 @@ from zipline.gens.sort import (
     queue_is_done
 )
 from zipline.gens.utils import alternate, done_message
-from zipline.gens.tradegens import SpecificEquityTrades
+from zipline.sources import SpecificEquityTrades
 from zipline.gens.composites import date_sorted_sources
 
 
@@ -116,7 +116,7 @@ class DateSortTestCase(TestCase):
     def test_single_source(self):
 
         # Just using the built-in defaults.  See
-        # zipline/gens/tradegens.py
+        # zipline.sources.py
         source = SpecificEquityTrades()
         expected = list(source)
         source.rewind()

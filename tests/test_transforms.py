@@ -24,14 +24,13 @@ from zipline import ndict
 from zipline.utils.test_utils import setup_logger
 from zipline.utils.date_utils import utcnow
 
-from zipline.gens.tradegens import SpecificEquityTrades
-from zipline.gens.transform import StatefulTransform, EventWindow
-from zipline.gens.vwap import VWAP
-from zipline.gens.mavg import MovingAverage
-from zipline.gens.stddev import MovingStandardDev
-from zipline.gens.returns import Returns
+from zipline.sources import SpecificEquityTrades
+from zipline.transforms.utils import StatefulTransform, EventWindow
+from zipline.transforms import MovingVWAP
+from zipline.transforms import MovingAverage
+from zipline.transforms import MovingStandardDev
+from zipline.transforms import Returns
 import zipline.utils.factory as factory
-
 
 from zipline.test_algorithms import BatchTransformAlgorithm
 
@@ -175,7 +174,7 @@ class FinanceTransformsTestCase(TestCase):
 
     def test_vwap(self):
 
-        vwap = VWAP(
+        vwap = MovingVWAP(
             market_aware=False,
             delta=timedelta(days=2)
         )

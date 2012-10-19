@@ -22,7 +22,7 @@ from zipline.test_algorithms import (
     DivByZeroAlgorithm,
 )
 from zipline.finance.slippage import FixedSlippage
-from zipline.gens.transform import StatefulTransform
+from zipline.transforms.utils import StatefulTransform
 
 
 from zipline.utils.test_utils import (

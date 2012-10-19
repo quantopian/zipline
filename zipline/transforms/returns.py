@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from zipline.gens.transform import TransformMeta
+from zipline.transforms.utils import TransformMeta
 from collections import defaultdict, deque
 
 
