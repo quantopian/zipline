@@ -3,7 +3,7 @@ python:
   - "2.7"
 install:
   - pip install -r etc/requirements_dev.txt
-  - pip install -r etc/ordered_pip.sh etc/requirements.txt
+  - etc/ordered_pip.sh etc/requirements.txt
 before_script:
   - "flake8 zipline tests" 
 script:
