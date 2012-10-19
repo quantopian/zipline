@@ -16,9 +16,9 @@
 import pandas as pd
 import numpy as np
 
-from zipline.gens.tradegens import DataFrameSource
+from zipline.sources import DataFrameSource
 from zipline.utils.factory import create_trading_environment
-from zipline.gens.transform import StatefulTransform
+from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
         VolumeShareSlippage,
         FixedSlippage,

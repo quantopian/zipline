@@ -17,7 +17,7 @@ from numbers import Number
 from collections import defaultdict
 
 from zipline import ndict
-from zipline.gens.transform import EventWindow, TransformMeta
+from zipline.transforms.utils import EventWindow, TransformMeta
 
 
 class MovingAverage(object):

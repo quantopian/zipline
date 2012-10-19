@@ -16,7 +16,7 @@
 from unittest2 import TestCase
 
 import zipline.utils.factory as factory
-from zipline.gens.tradegens import DataFrameSource
+from zipline.sources import DataFrameSource
 
 
 class TestDataFrameSource(TestCase):

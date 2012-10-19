@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 from zipline.utils.date_utils import tuple_to_date
 from zipline.utils.protocol_utils import ndict
-from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
+from zipline.sources import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 

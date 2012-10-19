@@ -22,9 +22,9 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-from zipline.gens.mavg import MovingAverage
+from zipline.transforms import MovingAverage
 from zipline.algorithm import TradingAlgorithm
-from zipline.gens.transform import batch_transform
+from zipline.transforms import batch_transform
 
 
 class DMA(TradingAlgorithm):

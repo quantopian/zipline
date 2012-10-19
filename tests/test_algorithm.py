@@ -20,8 +20,8 @@ import numpy as np
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
 from zipline.test_algorithms import TestRegisterTransformAlgorithm
-from zipline.gens.tradegens import SpecificEquityTrades, DataFrameSource
-from zipline.gens.mavg import MovingAverage
+from zipline.sources import SpecificEquityTrades, DataFrameSource
+from zipline.transforms import MovingAverage
 
 
 class TestTransformAlgorithm(TestCase):
