@@ -9,4 +9,4 @@ install:
 before_script:
   - "flake8 zipline tests" 
 script:
-  - nosetesst
+  - nosetests
