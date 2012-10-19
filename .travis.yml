@@ -2,7 +2,7 @@ language: python
 python:
   - "2.7"
 before_install:
-  - apt-get install gfortran
+  - sudo apt-get install gfortran
 install:
   - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose | xargs pip install
   - etc/ordered_pip.sh etc/requirements.txt
