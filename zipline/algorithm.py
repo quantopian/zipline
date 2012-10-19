@@ -153,6 +153,7 @@ start and end date have to be specified."""
             self.sources = source
 
         # Create transforms by wrapping them into StatefulTransforms
+        self.transforms = []
         for namestring, trans_descr in self.registered_transforms.iteritems():
             sf = StatefulTransform(
                 trans_descr['class'],

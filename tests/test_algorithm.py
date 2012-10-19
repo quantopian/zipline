@@ -15,6 +15,7 @@
 
 from unittest2 import TestCase
 from datetime import timedelta
+import numpy as np
 
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
@@ -61,6 +62,13 @@ class TestTransformAlgorithm(TestCase):
         algo = TestRegisterTransformAlgorithm(sids=[0, 1])
         algo.run(self.df)
         assert isinstance(algo.sources[0], DataFrameSource)
+
+    def test_run_twice(self):
+        algo = TestRegisterTransformAlgorithm(sids=[0, 1])
+        res1 = algo.run(self.df)
+        res2 = algo.run(self.df)
+
+        np.testing.assert_array_equal(res1, res2)
 
     def test_transform_registered(self):
         algo = TestRegisterTransformAlgorithm(sids=[133])
