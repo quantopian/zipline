@@ -454,6 +454,9 @@ class BatchTransform(EventWindow):
 
         return self.cached
 
+    def __call__(self, f):
+        self.compute_transform_value = f
+        return self.handle_data
 
 def batch_transform(func):
     """Decorator function to use instead of inheriting from BatchTransform.
