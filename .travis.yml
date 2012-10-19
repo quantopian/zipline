@@ -1,0 +1,10 @@
+language: python
+python:
+  - "2.7"
+install:
+  - pip install -r etc/requirements_dev.txt
+  - pip install -r etc/requirements.txt
+before_script:
+  - "flake8 zipline tests" 
+script:
+  - nosetests
