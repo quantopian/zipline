@@ -1,11 +1,12 @@
 language: python
 python:
   - "2.7"
-install:
+before_install:
   - apt-get install gfortran
+install:
   - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose | xargs pip install
   - etc/ordered_pip.sh etc/requirements.txt
 before_script:
   - "flake8 zipline tests" 
 script:
-  - nosetests
+  - nosetesst
