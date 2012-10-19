@@ -69,6 +69,10 @@ Source
 ======
 The source for Zipline is hosted at <https://github.com/quantopian/zipline>.
 
+Build Status
+============
+[![Build Status](https://travis-ci.org/quantopian/zipline.png)](https://travis-ci.org/quantopian/zipline)
+
 Contact
 =======
 
