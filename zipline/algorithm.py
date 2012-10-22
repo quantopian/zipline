@@ -134,8 +134,8 @@ class TradingAlgorithm(object):
         """
         if isinstance(source, (list, tuple)):
             assert start is not None and end is not None, \
-            """When providing a list of sources, \
-start and end date have to be specified."""
+                """When providing a list of sources, \
+                start and end date have to be specified."""
         elif isinstance(source, pd.DataFrame):
             assert isinstance(source.index, pd.tseries.index.DatetimeIndex)
             # if DataFrame provided, wrap in DataFrameSource
@@ -234,14 +234,14 @@ start and end date have to be specified."""
 
     def set_slippage(self, slippage):
         assert isinstance(slippage, (VolumeShareSlippage, FixedSlippage)), \
-                MESSAGES.ERRORS.UNSUPPORTED_SLIPPAGE_MODEL
+            MESSAGES.ERRORS.UNSUPPORTED_SLIPPAGE_MODEL
         if self.initialized:
             raise Exception(MESSAGES.ERRORS.OVERRIDE_SLIPPAGE_POST_INIT)
         self.slippage = slippage
 
     def set_commission(self, commission):
         assert isinstance(commission, (PerShare, PerTrade)), \
-                MESSAGES.ERRORS.UNSUPPORTED_COMMISSION_MODEL
+            MESSAGES.ERRORS.UNSUPPORTED_COMMISSION_MODEL
 
         if self.initialized:
             raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)

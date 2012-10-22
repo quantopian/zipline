@@ -294,7 +294,7 @@ class FinanceTransformsTestCase(TestCase):
             np.std([10.0, 15.0], ddof=1),
             np.std([10.0, 15.0, 13.0], ddof=1),
             np.std([15.0, 13.0, 12.0], ddof=1),
-            ]
+        ]
 
         # np has odd rounding behavior, cf.
         # http://docs.scipy.org/doc/np/reference/generated/np.std.html

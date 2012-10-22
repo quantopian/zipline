@@ -101,7 +101,7 @@ class VolumeShareSlippage(object):
                                self.volume_limit)
             simulated_amount = int(volume_share * event.volume * direction)
             simulated_impact = (volume_share) ** 2 \
-            * self.price_impact * direction * event.price
+                * self.price_impact * direction * event.price
 
             order.filled += (simulated_amount - total_order)
             total_order = simulated_amount

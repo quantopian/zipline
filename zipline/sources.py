@@ -168,11 +168,11 @@ class SpecificEquityTrades(object):
                 # in this context the count is the number of
                 # trades per sid, not the total.
                 dates = date_gen(
-                        count=self.count,
-                        start=self.start,
-                        delta=self.delta,
-                        repeats=len(self.sids),
-                    )
+                    count=self.count,
+                    start=self.start,
+                    delta=self.delta,
+                    repeats=len(self.sids),
+                )
             else:
                 dates = date_gen(
                     count=self.count,
