@@ -22,8 +22,10 @@ import msgpack
 import random
 from os.path import join, abspath, dirname
 from operator import attrgetter
+from collections import OrderedDict
 
 import pandas as pd
+from pandas.io.data import DataReader
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -276,3 +278,51 @@ def create_test_df_source():
     df = pd.DataFrame(x, index=index, columns=[0, 1])
 
     return DataFrameSource(df), df
+
+
+def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
+    """Load closing prices from yahoo finance.
+
+    :Optional:
+        indexes : dict (Default: {'SPX': '^GSPC'})
+            Financial indexes to load.
+        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
+                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
+            Stock closing prices to load.
+        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices from start date on.
+        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices until end date.
+
+    :Note:
+        This is based on code presented in a talk by Wes McKinney:
+        http://wesmckinney.com/files/20111017/notebook_output.pdf
+    """
+
+    if indexes is None:
+        indexes = {'SPX': '^GSPC'}
+    if stocks is None:
+        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP', 'KO']
+    if start is None:
+        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
+    if end is None:
+        end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+    assert start < end, "start date is later than end date."
+
+    data = OrderedDict()
+
+    for stock in stocks:
+        print stock
+        stkd = DataReader(stock, 'yahoo', start, end).sort_index()
+        data[stock] = stkd
+
+    for name, ticker in indexes.iteritems():
+        print name
+        stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
+        data[name] = stkd
+
+    df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
+    df.index = df.index.tz_localize(pytz.utc)
+
+    return df
