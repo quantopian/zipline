@@ -132,10 +132,10 @@ class RiskMetricsBase(object):
         self.treasury_period_return = self.choose_treasury()
         self.sharpe = self.calculate_sharpe()
         self.beta, self.algorithm_covariance, self.benchmark_variance, \
-        self.condition_number, self.eigen_values = self.calculate_beta()
+            self.condition_number, self.eigen_values = self.calculate_beta()
         self.alpha = self.calculate_alpha()
         self.excess_return = self.algorithm_period_returns - \
-                             self.treasury_period_return
+            self.treasury_period_return
         self.max_drawdown = self.calculate_max_drawdown()
 
     def to_dict(self):
@@ -203,8 +203,8 @@ class RiskMetricsBase(object):
         returns = [
             x.returns for x in daily_returns
             if x.date >= self.start_date and
-               x.date <= self.end_date and
-               self.trading_environment.is_trading_day(x.date)
+            x.date <= self.end_date and
+            self.trading_environment.is_trading_day(x.date)
         ]
 
         period_returns = 1.0
@@ -226,7 +226,7 @@ class RiskMetricsBase(object):
             return 0.0
 
         return ((self.algorithm_period_returns - self.treasury_period_return) /
-                 self.algorithm_volatility)
+                self.algorithm_volatility)
 
     def calculate_beta(self):
         """
@@ -564,7 +564,7 @@ class RiskReport(object):
         self,
         algorithm_returns,
         trading_environment,
-        ):
+    ):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order

@@ -44,7 +44,7 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
         self.end_date = datetime.datetime(
             year=2006, month=12, day=31, tzinfo=pytz.utc)
         self.benchmark_returns, self.treasury_curves = \
-        factory.load_market_data()
+            factory.load_market_data()
 
         self.trading_env = TradingEnvironment(
             self.benchmark_returns,
@@ -115,8 +115,8 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
             self.assertEqual(set(risk_original_dict.keys()),
                              set(risk_refactor_dict.keys()))
 
-            err_msg_format = \
-"In update step {iter}: {measure} should be {truth} but is {returned}!"
+            err_msg_format = """\
+"In update step {iter}: {measure} should be {truth} but is {returned}!"""
 
             for measure in risk_original_dict.iterkeys():
                 if measure == 'max_drawdown':

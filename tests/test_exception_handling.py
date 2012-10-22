@@ -83,10 +83,10 @@ class ExceptionTestCase(TestCase):
         # Simulation
         # ----------
         self.zipline_test_config['algorithm'] = \
-                ExceptionAlgorithm(
-                    'handle_data',
-                    self.zipline_test_config['sid']
-                )
+            ExceptionAlgorithm(
+                'handle_data',
+                self.zipline_test_config['sid']
+            )
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
@@ -103,9 +103,9 @@ class ExceptionTestCase(TestCase):
         # Simulation
         # ----------
         self.zipline_test_config['algorithm'] = \
-                DivByZeroAlgorithm(
-                    self.zipline_test_config['sid']
-                )
+            DivByZeroAlgorithm(
+                self.zipline_test_config['sid']
+            )
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config

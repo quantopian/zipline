@@ -30,7 +30,7 @@ class PerformanceTestCase(unittest.TestCase):
 
     def setUp(self):
         self.benchmark_returns, self.treasury_curves = \
-        factory.load_market_data()
+            factory.load_market_data()
 
         for n in range(100):
 
@@ -127,8 +127,7 @@ check treasury and benchmark data in findb, and re-run the test."""
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
                 exp=trades[-1]['price'],
-                act=pp.positions[1].last_sale_price
-            )
+                act=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(
@@ -446,8 +445,7 @@ shares in position"
             pp.positions[1].last_sale_price,
             trades[-1].price,
             "should have a last sale of 12, got {val}".format(
-                val=pp.positions[1].last_sale_price
-                )
+                val=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(

@@ -127,7 +127,7 @@ def _row_cb(mapping, row):
         target: apply_mapping(mapping, row)
         for target, mapping
         in mapping.iteritems()
-        }
+    }
 
 
 def make_row_cb(mapping):

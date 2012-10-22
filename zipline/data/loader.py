@@ -38,7 +38,7 @@ def dump_treasury_curves():
     for curve in get_treasury_data():
         print curve
         date_as_tuple = curve['date'].timetuple()[0:6] + \
-                        (curve['date'].microsecond,)
+            (curve['date'].microsecond,)
         # Not ideal but massaging data into expected format
         del curve['date']
         tr = (date_as_tuple, curve)
@@ -57,13 +57,13 @@ def dump_benchmarks():
     Puts source treasury and data into zipline.
     """
     benchmark_path = os.path.join(os.path.dirname(__file__),
-                           "benchmark.msgpack")
+                                  "benchmark.msgpack")
     benchmark_fp = open(benchmark_path, "wb")
     benchmark_data = []
     for daily_return in get_benchmark_returns():
         print daily_return
         date_as_tuple = daily_return.date.timetuple()[0:6] + \
-                        (daily_return.date.microsecond,)
+            (daily_return.date.microsecond,)
         # Not ideal but massaging data into expected format
         benchmark = (date_as_tuple, daily_return.returns)
         benchmark_data.append(benchmark)
