@@ -10,7 +10,6 @@ from zipline.utils.protocol_utils import ndict
 import data
 import finance
 import gens
-import optimize
 import utils
 
 __all__ = [
@@ -18,6 +17,5 @@ __all__ = [
     'data',
     'finance',
     'gens',
-    'optimize',
     'utils'
 ]
