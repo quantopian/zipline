@@ -72,7 +72,7 @@ class FinanceTestCase(TestCase):
     @timed(DEFAULT_TIMEOUT)
     def test_trading_environment(self):
         benchmark_returns, treasury_curves = \
-        factory.load_market_data()
+            factory.load_market_data()
 
         env = TradingEnvironment(
             benchmark_returns,
@@ -270,8 +270,7 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            order = ndict(
-            {
+            order = ndict({
                 'sid': sid,
                 'amount': order_amount * alternator ** i,
                 'dt': order_date

@@ -55,8 +55,7 @@ class SlippageTestCase(TestCase):
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
                  'filled': 0, 'sid': 133})
-            ]
-        }
+        ]}
 
         txn = slippage_model.simulate(
             event,
@@ -69,7 +68,7 @@ class SlippageTestCase(TestCase):
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': int(50),
             'sid': int(133)
-            }
+        }
 
         self.assertIsNotNone(txn)
 

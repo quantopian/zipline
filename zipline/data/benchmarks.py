@@ -101,7 +101,7 @@ def get_benchmark_returns():
 
     for data_point in get_benchmark_data():
         returns = (data_point['close'] - data_point['open']) / \
-                  data_point['open']
+            data_point['open']
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
         benchmark_returns.append(daily_return)
 

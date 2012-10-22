@@ -7,6 +7,6 @@ install:
   - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose | xargs pip install
   - etc/ordered_pip.sh etc/requirements.txt
 before_script:
-  - "flake8 zipline tests" 
+  - "flake8 --ignore=E124,E125,E126 zipline tests"
 script:
   - nosetests

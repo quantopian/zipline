@@ -110,6 +110,6 @@ class MovingStandardDevWindow(EventWindow):
         else:
             average = self.sum / len(self)
             s_squared = (self.sum_sqr - self.sum * average) \
-                        / (len(self) - 1)
+                / (len(self) - 1)
             stddev = sqrt(s_squared)
         return stddev

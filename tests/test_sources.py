@@ -35,4 +35,4 @@ class TestDataFrameSource(TestCase):
         _, df = factory.create_test_df_source()
         source = DataFrameSource(df, sids=[0])
         assert 1 not in [event.sid for event in source], \
-        "DataFrameSource should only stream selected sid 0, not sid 1."
+            "DataFrameSource should only stream selected sid 0, not sid 1."

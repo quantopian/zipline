@@ -58,7 +58,7 @@ To ensure that changes and patches are focused on behavior changes, the zipline 
 
 The maintainers check the code using the flake8 script, <https://github.com/jcrocholl/pep8/>, which is included in the requirements_dev.txt.
 
-Before submitting patches or pull requests, please ensure that your changes pass ```flake8 zipline tests```
+Before submitting patches or pull requests, please ensure that your changes pass ```flake8 --ignore=E124,E125,E126 zipline tests```
 
 Discussion and Help
 ===================

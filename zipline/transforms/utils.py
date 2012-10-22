@@ -72,9 +72,9 @@ class StatefulTransform(object):
     """
     def __init__(self, tnfm_class, *args, **kwargs):
         assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
-        "Stateful transform requires a class."
+            "Stateful transform requires a class."
         assert hasattr(tnfm_class, 'update'), \
-        "Stateful transform requires the class to have an update method"
+            "Stateful transform requires the class to have an update method"
 
         # Flag set inside the Passthrough transform class to signify special
         # behavior if we are being fed to merged_transforms.
