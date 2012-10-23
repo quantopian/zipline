@@ -37,7 +37,7 @@ class Returns(object):
         tracker = self.mapping[event.sid]
         tracker.update(event)
 
-        return tracker.get_returns()
+        return tracker.returns
 
     def _create(self):
         return ReturnsFromPriorClose(self.days)
@@ -55,9 +55,6 @@ class ReturnsFromPriorClose(object):
         self.last_event = None
         self.returns = 0.0
         self.days = days
-
-    def get_returns(self):
-        return self.returns
 
     def update(self, event):
 
