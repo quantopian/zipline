@@ -1,3 +1,4 @@
+
 #
 # Copyright 2012 Quantopian, Inc.
 #
