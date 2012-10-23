@@ -3,20 +3,30 @@ Zipline
 
 Zipline is a financial backtester for trading algorithms written in
 Python. The system is fundamentally event-driven and a close
-approximation of how live-trading systems operate. Moreover, Zipline
-comes "batteries included" as many common statistics like moving
-average and linear regression can be readily accessed from within a
-user-written algorithm. Input of historical data and output of
-performance statistics is based on Pandas DataFrames to integrate
-nicely into the existing Python eco-system. Furthermore, statistic and
-machine learning libraries like matplotlib, scipy, statsmodels, and
-sklearn support development, analysis and visualization of
-state-of-the-art trading systems.
+approximation of how live-trading systems operate.
 
 Zipline is currently used in production as the backtesting engine
-powering Quantopian.com -- a free, community-centered platform that
-allows development and real-time backtesting of trading algorithms in
-the web browser.
+powering <https://app.quantopian.com> -- a free, community-centered
+platform that allows development and real-time backtesting of trading
+algorithms in the web browser.
+
+Features
+========
+
+* Ease of use: Zipline tries to get out of your way so that you can
+focus on algorithm development. See below for a code example.
+
+* Zipline comes "batteries included" as many common statistics like
+moving average and linear regression can be readily accessed from
+within a user-written algorithm.
+
+* Input of historical data and output of performance statistics is
+based on Pandas DataFrames to integrate nicely into the existing
+Python eco-system.
+
+* Statistic and machine learning libraries like matplotlib, scipy,
+statsmodels, and sklearn support development, analysis and
+visualization of state-of-the-art trading systems.
 
 Installation
 ============
@@ -48,7 +58,8 @@ Dependencies
 Quickstart
 ==========
 
-The following code implements a dual moving average algorithm and tests it on data obtained from yahoo finance.
+The following code implements a simple dual moving average algorithm
+and tests it on data extracted from yahoo finance.
 
 ```python
 from zipline.algorithm import TradingAlgorithm
@@ -91,29 +102,38 @@ class DualMovingAverage(TradingAlgorithm):
 data = load_from_yahoo()
 dma = DualMovingAverage()
 results = dma.run(data)
-
 ```
 
 Style Guide
 ===========
 
-To ensure that changes and patches are focused on behavior changes, the zipline codebase adheres to PEP-8, <http://www.python.org/dev/peps/pep-0008/>.
+To ensure that changes and patches are focused on behavior changes,
+the zipline codebase adheres to PEP-8,
+<http://www.python.org/dev/peps/pep-0008/>.
 
-The maintainers check the code using the flake8 script, <https://github.com/jcrocholl/pep8/>, which is included in the requirements_dev.txt.
+The maintainers check the code using the flake8 script,
+<https://github.com/jcrocholl/pep8/>, which is included in the
+requirements_dev.txt.
 
-Before submitting patches or pull requests, please ensure that your changes pass ```flake8 --ignore=E124,E125,E126 zipline tests```
+Before submitting patches or pull requests, please ensure that your
+changes pass ```flake8 --ignore=E124,E125,E126 zipline tests```
 
 Discussion and Help
 ===================
 
-Discussion of the project is held at the Google Group, <zipline@googlegroups.com>, <https://groups.google.com/forum/#!forum/zipline>.
+Discussion of the project is held at the Google Group,
+<zipline@googlegroups.com>,
+<https://groups.google.com/forum/#!forum/zipline>.
 
 Source
 ======
-The source for Zipline is hosted at <https://github.com/quantopian/zipline>.
+
+The source for Zipline is hosted at
+<https://github.com/quantopian/zipline>.
 
 Build Status
 ============
+
 [![Build Status](https://travis-ci.org/quantopian/zipline.png)](https://travis-ci.org/quantopian/zipline)
 
 Contact
