@@ -104,6 +104,8 @@ dma = DualMovingAverage()
 results = dma.run(data)
 ```
 
+You can find other examples in the zipline/examples directory.
+
 Style Guide
 ===========
 
