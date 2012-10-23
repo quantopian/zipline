@@ -214,10 +214,10 @@ class AlgorithmSimulator(object):
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
-                elif date < self.algo_start:
-                    for event in snapshot:
-                        del event['perf_message']
-                        self.update_universe(event)
+                # elif date < self.algo_start:
+                #     for event in snapshot:
+                #         del event['perf_message']
+                #         self.update_universe(event)
 
                 # The algo has taken so long to process events that
                 # its simulated time is later than the event time.

@@ -252,7 +252,6 @@ class DataFrameSource(SpecificEquityTrades):
                     event['sid'] = sid
                     event['price'] = price
                     event['volume'] = 1000
-
                     yield ndict(event)
 
         # Return the filtered event stream.
