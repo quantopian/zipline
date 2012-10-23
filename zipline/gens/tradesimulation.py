@@ -132,7 +132,9 @@ class AlgorithmSimulator(object):
         self.order_book = order_book
 
         self.algo = algo
-        self.algo_start = algo_start
+        self.algo_start = algo_start.replace(hour=0, minute=0,
+                                             second=0,
+                                             microsecond=0)
 
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
