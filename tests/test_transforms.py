@@ -329,17 +329,17 @@ class BatchTransformTestCase(TestCase):
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
             np.testing.assert_array_equal(
-                    range(4, 10),
+                    range(2, 8),
                     test_history[2].values.flatten()
             )
 
             np.testing.assert_array_equal(
-                    range(4, 10),
+                    range(2, 8),
                     test_history[3].values.flatten()
             )
 
             np.testing.assert_array_equal(
-                    range(6, 14),
+                    range(4, 12),
                     test_history[4].values.flatten()
             )
 
@@ -352,4 +352,5 @@ class BatchTransformTestCase(TestCase):
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(
             algo.history_return_args,
-            [None, None, expected_item, expected_item, expected_item])
+            [None, None, expected_item, expected_item,
+             expected_item, expected_item])
