@@ -193,7 +193,7 @@ class EventWindow(object):
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, market_aware, days=None, delta=None):
+    def __init__(self, market_aware=True, days=None, delta=None):
 
         self.market_aware = market_aware
         self.days = days

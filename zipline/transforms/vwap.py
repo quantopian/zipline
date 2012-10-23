@@ -26,7 +26,7 @@ class MovingVWAP(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, market_aware, delta=None, days=None):
+    def __init__(self, market_aware=True, delta=None, days=None):
 
         self.market_aware = market_aware
         self.delta = delta

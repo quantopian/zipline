@@ -29,7 +29,7 @@ class MovingStandardDev(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, market_aware, days=None, delta=None):
+    def __init__(self, market_aware=True, days=None, delta=None):
 
         self.market_aware = market_aware
 
