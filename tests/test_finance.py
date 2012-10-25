@@ -20,7 +20,6 @@ import pytz
 
 from unittest2 import TestCase
 from datetime import datetime, timedelta
-from collections import defaultdict
 
 from nose.tools import timed
 
@@ -42,8 +41,6 @@ EXTENDED_TIMEOUT = 90
 
 
 class FinanceTestCase(TestCase):
-
-    leased_sockets = defaultdict(list)
 
     def setUp(self):
         self.zipline_test_config = {
