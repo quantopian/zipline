@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from unittest2 import TestCase
-from collections import defaultdict
 
 import zipline.utils.simfactory as simfactory
 from zipline.test_algorithms import (
@@ -38,8 +37,6 @@ EXTENDED_TIMEOUT = 90
 
 
 class ExceptionTestCase(TestCase):
-
-    leased_sockets = defaultdict(list)
 
     def setUp(self):
         self.zipline_test_config = {
