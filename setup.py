@@ -44,6 +44,6 @@ setup(name='zipline',
           'pytz',
           'numpy',
           'pandas'
-          ],
+      ],
       url="https://github.com/quantopian/zipline"
 )
