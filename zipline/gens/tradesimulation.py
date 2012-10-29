@@ -269,6 +269,7 @@ class AlgorithmSimulator(object):
         # Needs to be set so that we inject the proper date into algo
         # log/print lines.
         self.snapshot_dt = date
+        self.algo.set_datetime(self.snapshot_dt)
         start_tic = datetime.now()
         self.algo.handle_data(self.universe)
         stop_tic = datetime.now()

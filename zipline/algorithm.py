@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytz
 import pandas as pd
 import numpy as np
 
+from datetime import datetime
+
+from zipline.utils.date_utils import EPOCH, UN_EPOCH
 from zipline.sources import DataFrameSource
 from zipline.utils.factory import create_trading_environment
 from zipline.transforms.utils import StatefulTransform
@@ -63,6 +67,7 @@ class TradingAlgorithm(object):
         self.order = None
         self.frame_count = 0
         self.portfolio = None
+        self.datetime = None
 
         self.registered_transforms = {}
         self.transforms = []
@@ -220,6 +225,19 @@ class TradingAlgorithm(object):
 
     def set_logger(self, logger):
         self.logger = logger
+
+    def set_datetime(self, dt):
+        assert isinstance(dt, datetime), \
+                "Attempt to set algorithm's current time with non-datetime"
+        assert dt.tzinfo == pytz.utc, \
+                "Algorithm expects a utc datetime"
+        self.datetime = dt
+
+    def get_datetime(self):
+        # lossless copy of the date
+        epoch = EPOCH(self.datetime)
+        date_copy = UN_EPOCH(epoch)
+        return date_copy
 
     def init(self, *args, **kwargs):
         """Called from constructor."""
