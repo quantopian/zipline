@@ -228,9 +228,9 @@ class TradingAlgorithm(object):
 
     def set_datetime(self, dt):
         assert isinstance(dt, datetime), \
-                "Attempt to set algorithm's current time with non-datetime"
+            "Attempt to set algorithm's current time with non-datetime"
         assert dt.tzinfo == pytz.utc, \
-                "Algorithm expects a utc datetime"
+            "Algorithm expects a utc datetime"
         self.datetime = dt
 
     def get_datetime(self):
