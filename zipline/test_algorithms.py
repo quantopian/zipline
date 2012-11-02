@@ -283,3 +283,18 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args.append(
             self.return_args_batch.handle_data(
                 data, *self.args, **self.kwargs))
+
+
+class SetPortfolioAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that tries to set the portfolio directly.
+
+    The portfolio should be treated as a read-only object
+    within the algorithm.
+    """
+
+    def initialize(self, *args, **kwargs):
+        pass
+
+    def handle_data(self, data):
+        self.portfolio = 3
