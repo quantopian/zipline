@@ -19,6 +19,7 @@ import zipline.utils.simfactory as simfactory
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
+    SetPortfolioAlgorithm,
 )
 from zipline.finance.slippage import FixedSlippage
 from zipline.transforms.utils import StatefulTransform
@@ -113,3 +114,25 @@ class ExceptionTestCase(TestCase):
 
         self.assertEqual(ctx.exception.message,
                          'integer division or modulo by zero')
+
+    def test_set_portfolio(self):
+        """
+        Are we protected against overwriting an algo's portfolio?
+        """
+
+        # Simulation
+        # ----------
+        self.zipline_test_config['algorithm'] = \
+            SetPortfolioAlgorithm(
+                self.zipline_test_config['sid']
+            )
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config
+        )
+
+        with self.assertRaises(AttributeError) as ctx:
+            output, _ = drain_zipline(self, zipline)
+
+        self.assertEqual(ctx.exception.message,
+                         "can't set attribute")
