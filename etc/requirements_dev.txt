@@ -1,4 +1,4 @@
-ipython==0.12
+ipython==0.13.1
 
 # Testing
 unittest2
