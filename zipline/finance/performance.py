@@ -544,6 +544,7 @@ class PerformancePeriod(object):
         del(portfolio['max_capital_used'])
 
         portfolio['positions'] = self.get_positions()
+
         return ndict(portfolio)
 
     def get_positions(self):

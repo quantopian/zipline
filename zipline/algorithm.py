@@ -66,7 +66,7 @@ class TradingAlgorithm(object):
         self.done = False
         self.order = None
         self.frame_count = 0
-        self.portfolio = None
+        self._portfolio = None
         self.datetime = None
 
         self.registered_transforms = {}
@@ -217,8 +217,12 @@ class TradingAlgorithm(object):
                                            'args': args,
                                            'kwargs': kwargs}
 
+    @property
+    def portfolio(self):
+        return self._portfolio
+
     def set_portfolio(self, portfolio):
-        self.portfolio = portfolio
+        self._portfolio = portfolio
 
     def set_order(self, order_callable):
         self.order = order_callable
