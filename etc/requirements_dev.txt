@@ -5,7 +5,7 @@ unittest2
 nose==1.1.2
 
 # Fetching sample data
-requests==0.14.1
+requests==0.14.2
 
 # Linting
 
