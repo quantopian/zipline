@@ -8,7 +8,7 @@ blist==1.3.4
 
 # Scientific Libraries
 
-pytz==2011n
+pytz==2012h
 numpy==1.6.1
 Cython==0.15.1
 
