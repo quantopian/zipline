@@ -2,7 +2,7 @@ ipython==0.12
 
 # Testing
 unittest2
-nose==1.1.2
+nose==1.2.1
 
 # Fetching sample data
 requests==0.14.2
