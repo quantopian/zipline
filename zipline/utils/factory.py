@@ -26,12 +26,13 @@ from collections import OrderedDict
 
 import pandas as pd
 from pandas.io.data import DataReader
+import numpy as np
 from datetime import datetime, timedelta
 
 import zipline.finance.risk as risk
 from zipline.utils.date_utils import tuple_to_date
 from zipline.utils.protocol_utils import ndict
-from zipline.sources import SpecificEquityTrades
+from zipline.sources import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 
@@ -267,6 +268,17 @@ def create_trade_source(sids, trade_count,
     #trading_environment.period_end = trade_history[-1].dt
 
     return source
+
+
+def create_test_df_source():
+    start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+    end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    x = np.arange(2., len(index) * 2 + 2).reshape((-1, 2))
+
+    df = pd.DataFrame(x, index=index, columns=[0, 1])
+
+    return DataFrameSource(df), df
 
 
 def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
