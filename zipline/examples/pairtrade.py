@@ -117,7 +117,7 @@ if __name__ == '__main__':
     pairtrade = Pairtrade()
     results = pairtrade.run(data)
     data['spreads'] = np.nan
-    data.spreads[70:] = pairtrade.spreads
+    data.spreads[100:] = pairtrade.spreads
 
     ax1 = plt.subplot(211)
     data[['PEP', 'KO']].plot(ax=ax1)

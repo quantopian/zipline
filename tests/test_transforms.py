@@ -15,6 +15,7 @@
 
 import pytz
 import numpy as np
+import pandas as pd
 
 from datetime import timedelta, datetime
 from unittest2 import TestCase
@@ -324,6 +325,9 @@ class BatchTransformTestCase(TestCase):
         self.assertEqual(algo.history_return_price_decorator[:2],
                          [None, None],
                          "First two iterations should return None")
+        self.assertEqual(algo.history_return_price_market_aware[:2],
+                         [None, None],
+                         "First two iterations should return None")
 
         # test overloaded class
         for test_history in [algo.history_return_price_class,
@@ -354,3 +358,23 @@ class BatchTransformTestCase(TestCase):
             algo.history_return_args,
             [None, None, expected_item, expected_item,
              expected_item, expected_item])
+
+
+class BatchTransformMarketAware(TestCase):
+    def setUp(self):
+        setup_logger(self)
+        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
+        end = pd.datetime(1994, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+        self.data = factory.load_from_yahoo(stocks=['AAPL'],
+                                            indexes={},
+                                            start=start, end=end)
+
+    def test_event_window(self):
+        days = 50
+        algo = BatchTransformAlgorithm(days=days, refresh_period=days)
+        algo.run(self.data)
+
+        self.assertEqual(algo.history_return_price_market_aware[:days],
+                         [None] * days,
+                         "First 10 iterations should return None")

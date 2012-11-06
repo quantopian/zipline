@@ -270,11 +270,15 @@ def create_trade_source(sids, trade_count,
     return source
 
 
-def create_test_df_source():
-    start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
-    end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
-    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
-    x = np.arange(2., 14.).reshape((6, 2))
+def create_test_df_source(index=None, start=None, end=None):
+    if start is None:
+        start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+    if end is None:
+        end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+    if index is None:
+        index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    x = np.arange(2., len(index) * 2 + 2).reshape((-1, 2))
+
     df = pd.DataFrame(x, index=index, columns=[0, 1])
 
     return DataFrameSource(df), df

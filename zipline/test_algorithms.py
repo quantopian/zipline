@@ -246,31 +246,39 @@ def return_args_batch_decorator(data, *args, **kwargs):
 
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.history_return_price_class = []
-        self.history_return_price_decorator = []
-        self.history_return_args = []
-
-        self.days = 3
+        self.refresh_period = kwargs.pop('refresh_period', 2)
+        self.days = kwargs.pop('days', 3)
 
         self.args = args
         self.kwargs = kwargs
 
+        self.history_return_price_class = []
+        self.history_return_price_decorator = []
+        self.history_return_args = []
+        self.history_return_price_market_aware = []
+
         self.return_price_class = ReturnPriceBatchTransform(
             market_aware=False,
-            refresh_period=2,
+            refresh_period=self.refresh_period,
             delta=timedelta(days=self.days)
         )
 
         self.return_price_decorator = return_price_batch_decorator(
             market_aware=False,
-            refresh_period=2,
+            refresh_period=self.refresh_period,
             delta=timedelta(days=self.days)
         )
 
         self.return_args_batch = return_args_batch_decorator(
             market_aware=False,
-            refresh_period=2,
+            refresh_period=self.refresh_period,
             delta=timedelta(days=self.days)
+        )
+
+        self.return_price_market_aware = ReturnPriceBatchTransform(
+            market_aware=True,
+            refresh_period=self.refresh_period,
+            days=self.days
         )
 
         self.set_slippage(FixedSlippage())
@@ -283,6 +291,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args.append(
             self.return_args_batch.handle_data(
                 data, *self.args, **self.kwargs))
+        self.history_return_price_market_aware.append(
+            self.return_price_market_aware.handle_data(data))
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):
