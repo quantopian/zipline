@@ -15,6 +15,7 @@
 
 import pytz
 import numpy as np
+import pandas as pd
 
 from datetime import timedelta, datetime
 from unittest2 import TestCase
@@ -57,8 +58,7 @@ class NoopEventWindow(EventWindow):
         self.removed.append(event)
 
 
-class EventWindowTestCase(TestCase):
-
+class TestEventWindow(TestCase):
     def setUp(self):
         setup_logger(self)
 
@@ -154,7 +154,7 @@ class EventWindowTestCase(TestCase):
         setup_logger(self)
 
 
-class FinanceTransformsTestCase(TestCase):
+class TestFinanceTransforms(TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
@@ -309,7 +309,7 @@ class FinanceTransformsTestCase(TestCase):
 ############################################################
 # Test BatchTransform
 
-class BatchTransformTestCase(TestCase):
+class TestBatchTransform(TestCase):
     def setUp(self):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
@@ -322,6 +322,9 @@ class BatchTransformTestCase(TestCase):
                          [None, None],
                          "First two iterations should return None")
         self.assertEqual(algo.history_return_price_decorator[:2],
+                         [None, None],
+                         "First two iterations should return None")
+        self.assertEqual(algo.history_return_price_market_aware[:2],
                          [None, None],
                          "First two iterations should return None")
 
@@ -354,3 +357,27 @@ class BatchTransformTestCase(TestCase):
             algo.history_return_args,
             [None, None, expected_item, expected_item,
              expected_item, expected_item])
+
+
+class TestBatchTransformMarketAware(TestCase):
+    def setUp(self):
+        setup_logger(self)
+        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
+        end = pd.datetime(1994, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+        self.data = factory.load_from_yahoo(stocks=['AAPL'],
+                                            indexes={},
+                                            start=start, end=end)
+
+    def test_event_window(self):
+        days = 50
+        algo = BatchTransformAlgorithm(days=days, refresh_period=days)
+        algo.run(self.data)
+
+        self.assertEqual(algo.history_return_price_market_aware[:days],
+                         [None] * days,
+                         "First {days} iterations should return None"
+                         .format(days=days))
+        self.assertFalse(algo.history_return_price_market_aware[days + 1]
+                         is None,
+                         "Window is contains too many Nones.")

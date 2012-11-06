@@ -360,9 +360,10 @@ class BatchTransform(EventWindow):
 
         self.refresh_period = refresh_period
         self.days = days
+        self.trading_days_since_update = 0
 
         self.full = False
-        self.last_refresh = None
+        self.last_dt = None
 
         self.updated = False
         self.data = None
@@ -392,12 +393,15 @@ class BatchTransform(EventWindow):
         return self.get_transform_value(*args, **kwargs)
 
     def handle_add(self, event):
-        if not self.last_refresh:
-            self.last_refresh = event.dt
+        if not self.last_dt:
+            self.last_dt = event.dt
             return
 
-        age = event.dt - self.last_refresh
-        if age.days >= self.refresh_period:
+        if self.last_dt.day != event.dt.day:
+            self.last_dt = event.dt
+            self.trading_days_since_update += 1
+
+        if self.trading_days_since_update >= self.refresh_period:
             # Create a pandas.Panel (i.e. 3d DataFrame) from the
             # events in the current window.
             #
@@ -432,7 +436,7 @@ class BatchTransform(EventWindow):
             self.data = pd.Panel.from_dict(fields, orient='items')
 
             self.updated = True
-            self.last_refresh = event.dt
+            self.trading_days_since_update = 0
         else:
             self.updated = False
 
