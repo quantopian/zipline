@@ -42,6 +42,7 @@ setup(name='zipline',
           'Logbook',
           'blist',
           'pytz',
+          'requests',
           'numpy',
           'pandas'
       ],
