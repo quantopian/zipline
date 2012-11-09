@@ -15,16 +15,32 @@
 
 
 import os
-
-if __name__ == "__main__":
-    import sys
-    sys.path.append(os.path.abspath('.'))
-    print sys.path
+from os.path import expanduser
 
 import msgpack
 
 from treasuries import get_treasury_data
 from benchmarks import get_benchmark_returns
+
+# TODO: Make this path customizable.
+DATA_PATH = os.path.join(
+    expanduser("~"),
+    '.zipline',
+    'data'
+)
+
+
+def get_datafile(name, mode='r'):
+    """
+    Returns a handle to data file.
+
+    Creates containing directory, if needed.
+    """
+
+    if not os.path.exists(DATA_PATH):
+        os.makedirs(DATA_PATH)
+
+    return open(os.path.join(DATA_PATH, name), mode)
 
 
 def dump_treasury_curves():
@@ -36,7 +52,6 @@ def dump_treasury_curves():
     tr_data = []
 
     for curve in get_treasury_data():
-        print curve
         date_as_tuple = curve['date'].timetuple()[0:6] + \
             (curve['date'].microsecond,)
         # Not ideal but massaging data into expected format
@@ -44,10 +59,8 @@ def dump_treasury_curves():
         tr = (date_as_tuple, curve)
         tr_data.append(tr)
 
-    tr_path = os.path.join(os.path.dirname(__file__),
-                           "treasury_curves.msgpack")
-    tr_fp = open(tr_path, "wb")
-    tr_fp.write(msgpack.dumps(tr_data))
+    with get_datafile('treasury_curves.msgpack', mode='wb') as tr_fp:
+        tr_fp.write(msgpack.dumps(tr_data))
 
 
 def dump_benchmarks():
@@ -56,16 +69,13 @@ def dump_benchmarks():
 
     Puts source treasury and data into zipline.
     """
-    benchmark_path = os.path.join(os.path.dirname(__file__),
-                                  "benchmark.msgpack")
-    benchmark_fp = open(benchmark_path, "wb")
     benchmark_data = []
     for daily_return in get_benchmark_returns():
-        print daily_return
         date_as_tuple = daily_return.date.timetuple()[0:6] + \
             (daily_return.date.microsecond,)
         # Not ideal but massaging data into expected format
         benchmark = (date_as_tuple, daily_return.returns)
         benchmark_data.append(benchmark)
 
-    benchmark_fp.write(msgpack.dumps(benchmark_data))
+    with get_datafile('benchmark.msgpack', mode='wb') as bmark_fp:
+        bmark_fp.write(msgpack.dumps(benchmark_data))
