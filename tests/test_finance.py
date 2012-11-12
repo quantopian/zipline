@@ -18,7 +18,10 @@ Tests for the zipline.finance package
 """
 import pytz
 
-from unittest2 import TestCase
+try:
+    from unittest2 import TestCase
+except ImportError:
+    from unittest import TestCase
 from datetime import datetime, timedelta
 
 from nose.tools import timed
