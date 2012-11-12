@@ -20,7 +20,6 @@ Factory functions to prepare useful data for tests.
 import pytz
 import msgpack
 import random
-from os.path import join, abspath, dirname
 from operator import attrgetter
 from collections import OrderedDict
 
@@ -35,27 +34,23 @@ from zipline.utils.protocol_utils import ndict
 from zipline.sources import SpecificEquityTrades, DataFrameSource
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
-
-from zipline import data
-
-
-# TODO
-def data_path():
-    data_path = dirname(abspath(data.__file__))
-    return data_path
+from zipline.data.loader import (
+    get_datafile,
+    dump_benchmarks,
+    dump_treasury_curves
+)
 
 
 def load_market_data():
-    benchmark_data_path = join(data_path(), "benchmark.msgpack")
     try:
-        fp_bm = open(benchmark_data_path, "rb")
+        fp_bm = get_datafile('benchmark.msgpack', "rb")
     except IOError:
         print """
 data msgpacks aren't distribute with source.
 Fetching data from Yahoo Finance.
 """.strip()
-        data.loader.dump_benchmarks()
-        fp_bm = open(benchmark_data_path, "rb")
+        dump_benchmarks()
+        fp_bm = get_datafile('benchmark.msgpack', "rb")
 
     bm_list = msgpack.loads(fp_bm.read())
     bm_returns = []
@@ -71,26 +66,28 @@ Fetching data from Yahoo Finance.
         daily_return = risk.DailyReturn(date=event_dt, returns=returns)
         bm_returns.append(daily_return)
 
+    fp_bm.close()
+
     bm_returns = sorted(bm_returns, key=attrgetter('date'))
 
-    treasury_data_path = join(data_path(), "treasury_curves.msgpack")
     try:
-        fp_bm = open(treasury_data_path, "rb")
+        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
     except IOError:
         print """
 data msgpacks aren't distribute with source.
 Fetching data from data.treasury.gov
 """.strip()
-        data.loader.dump_treasury_curves()
-        fp_bm = open(treasury_data_path, "rb")
+        dump_treasury_curves()
+        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
 
-    fp_tr = open(join(data_path(), "treasury_curves.msgpack"), "rb")
     tr_list = msgpack.loads(fp_tr.read())
     tr_curves = {}
     for packed_date, curve in tr_list:
         tr_dt = tuple_to_date(packed_date)
         #tr_dt = tr_dt.replace(hour=0, minute=0, second=0, tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve
+
+    fp_tr.close()
 
     return bm_returns, tr_curves
 
