@@ -1,7 +1,6 @@
 ipython==0.13.1
 
 # Testing
-unittest2
 nose==1.2.1
 
 # Fetching sample data
