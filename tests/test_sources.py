@@ -17,7 +17,8 @@ try:
     import unittest2
     TestCase = unittest2.TestCase
 except ImportError:
-    from unittest import TestCase
+    import unittest
+    TestCase = unittest.TestCase
 
 import zipline.utils.factory as factory
 from zipline.sources import DataFrameSource

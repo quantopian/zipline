@@ -17,7 +17,8 @@ try:
     import unittest2
     TestCase = unittest2.TestCase
 except ImportError:
-    from unittest import TestCase
+    import unittest
+    TestCase = unittest.TestCase
 from datetime import timedelta
 import numpy as np
 
