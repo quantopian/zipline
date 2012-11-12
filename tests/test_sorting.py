@@ -15,12 +15,7 @@
 
 import pytz
 
-try:
-    import unittest2
-    TestCase = unittest2.TestCase
-except ImportError:
-    import unittest
-    TestCase = unittest.TestCase
+from unittest import TestCase
 from itertools import chain, izip_longest
 from datetime import datetime, timedelta
 from collections import deque

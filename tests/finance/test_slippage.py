@@ -20,12 +20,7 @@ import datetime
 
 import pytz
 
-try:
-    import unittest2
-    TestCase = unittest2.TestCase
-except ImportError:
-    import unittest
-    TestCase = unittest.TestCase
+from unittest import TestCase
 
 from zipline.finance.slippage import VolumeShareSlippage
 

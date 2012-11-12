@@ -13,12 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import unittest2
-    TestCase = unittest2.TestCase
-except ImportError:
-    import unittest
-    TestCase = unittest.TestCase
+from unittest import TestCase
 from zipline.utils.factory import load_from_yahoo
 import pandas as pd
 import pytz

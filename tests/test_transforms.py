@@ -18,12 +18,7 @@ import numpy as np
 import pandas as pd
 
 from datetime import timedelta, datetime
-try:
-    import unittest2
-    TestCase = unittest2.TestCase
-except ImportError:
-    import unittest
-    TestCase = unittest.TestCase
+from unittest import TestCase
 
 from zipline import ndict
 
