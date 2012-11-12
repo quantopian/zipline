@@ -19,7 +19,8 @@ import pandas as pd
 
 from datetime import timedelta, datetime
 try:
-    from unittest2 import TestCase
+    import unittest2
+    TestCase = unittest2.TestCase
 except ImportError:
     from unittest import TestCase
 
