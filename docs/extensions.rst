@@ -38,7 +38,7 @@ don't.
 Compilers
 =========
 
-Compatability
+Compatibility
 
     - Do not use Clang
     - Do not use GCC-LLVM
@@ -73,13 +73,17 @@ To build in development ::
 Pure C
 ======
 
-.. highlight :: c
+.. highlight:: c
+
+::
+
     #include "Python.h"
 
 Releasing the GIL
 =================
 
 ::
+
     from libc.stdio cimport printf
 
     with nogil:
@@ -97,6 +101,8 @@ really the only way.
 
 Vim
 ===
+
+.. highlight:: vim
 
 For syntax highlighting in Vim::
 
