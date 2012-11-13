@@ -9,14 +9,6 @@ zipline Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`lines` Module
--------------------
-
-.. automodule:: zipline.lines
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`protocol` Module
 ----------------------
 
