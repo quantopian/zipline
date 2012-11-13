@@ -19,33 +19,37 @@ Algorithm Protocol
 ===================
 
 For a class to be passed as a trading algorithm to the
-:py:class:`zipline.lines.SimulatedTrading` zipline
-it must follow an implementation protocol. Examples of this algorithm protocol
-are provided below.
+:py:class:`zipline.lines.SimulatedTrading` zipline it must follow an
+implementation protocol. Examples of this algorithm protocol are provided
+below.
 
 The algorithm must expose methods:
 
   - initialize: method that takes no args, no returns. Simply called to
-  enable the algorithm to set any internal state needed.
+    enable the algorithm to set any internal state needed.
 
-  - get_sid_filter: method that takes no args, and returns a list
-  of valid sids. List must have a length between 1 and 10. If None is returned
-  the filter will block all events.
+  - get_sid_filter: method that takes no args, and returns a list of valid
+    sids. List must have a length between 1 and 10. If None is returned the
+    filter will block all events.
 
   - handle_data: method that accepts a :py:class:`zipline.protocol_utils.ndict`
-  of the current state of the simulation universe. An example data ndict::
+    of the current state of the simulation universe. An example data ndict:
 
-    +-----------------+--------------+----------------+--------------------+
-    |                 | sid(133)     |  sid(134)      | sid(135)           |
-    +=================+==============+================+====================+
-    | price           | $10.10       | $22.50         | $13.37             |
-    +-----------------+--------------+----------------+--------------------+
-    | volume          | 10,000       | 5,000          | 50,000             |
-    +-----------------+--------------+----------------+--------------------+
-    | mvg_avg_30      | $9.97        | $22.61         | $13.37             |
-    +-----------------+--------------+----------------+--------------------+
-    | dt              | 6/30/2012    | 6/30/2011      | 6/29/2012          |
-    +-----------------+--------------+----------------+--------------------+
+        ..  This outputs the table as an HTML table but for some reason there
+            is no bounding box. Make the previous paragraph ending colon a
+            double-colon to turn this back into blockquoted table in ASCII art.
+
+        +-----------------+--------------+----------------+-------------------+
+        |                 | sid(133)     |  sid(134)      | sid(135)          |
+        +=================+==============+================+===================+
+        | price           | $10.10       | $22.50         | $13.37            |
+        +-----------------+--------------+----------------+-------------------+
+        | volume          | 10,000       | 5,000          | 50,000            |
+        +-----------------+--------------+----------------+-------------------+
+        | mvg_avg_30      | $9.97        | $22.61         | $13.37            |
+        +-----------------+--------------+----------------+-------------------+
+        | dt              | 6/30/2012    | 6/30/2011      | 6/29/2012         |
+        +-----------------+--------------+----------------+-------------------+
 
   - set_order: method that accepts a callable. Will be set as the value of the
     order method of trading_client. An algorithm can then place orders with a
