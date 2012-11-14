@@ -37,7 +37,6 @@ Contents
    installation.rst
    overview.rst
    modules.rst
-   messaging.rst
    extensions.rst
 
 
