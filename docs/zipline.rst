@@ -1,18 +1,23 @@
-zipline Package
-===============
-
 :mod:`zipline` Package
-----------------------
+=======================
 
 .. automodule:: zipline.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`protocol` Module
+:mod:`algorithm` Module
+-------------------------
+
+.. automodule:: zipline.algorithm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`sources` Module
 ----------------------
 
-.. automodule:: zipline.protocol
+.. automodule:: zipline.sources
     :members:
     :undoc-members:
     :show-inheritance:
@@ -38,10 +43,9 @@ Subpackages
 
 .. toctree::
 
-    zipline.core
     zipline.data
     zipline.finance
     zipline.gens
-    zipline.optimize
+    zipline.transforms
     zipline.utils
 

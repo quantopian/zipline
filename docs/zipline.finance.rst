@@ -1,5 +1,18 @@
-finance Package
-===============
+:mod:`zipline.finance` subpackage
+==================================
+
+.. automodule:: zipline.finance.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`commission` Module
+-------------------------
+
+.. automodule:: zipline.finance.commission
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 :mod:`performance` Module
 -------------------------
@@ -13,6 +26,14 @@ finance Package
 ------------------
 
 .. automodule:: zipline.finance.risk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`slippage` Module
+-------------------------
+
+.. automodule:: zipline.finance.slippage
     :members:
     :undoc-members:
     :show-inheritance:
