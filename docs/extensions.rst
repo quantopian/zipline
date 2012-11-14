@@ -1,3 +1,7 @@
+**********
+Extensions
+**********
+
 .. highlight:: cython
 
 Philosophy

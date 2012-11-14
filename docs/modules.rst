@@ -1,5 +1,6 @@
-zipline
-====
+***********************
+Packages and Modules
+***********************
 
 .. toctree::
    :maxdepth: 4
