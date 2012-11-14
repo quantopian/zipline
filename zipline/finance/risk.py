@@ -49,6 +49,7 @@ Risk Report
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
 
+
 """
 
 import logbook
@@ -231,7 +232,8 @@ class RiskMetricsBase(object):
         """
 
         .. math::
-            \beta_a = \frac {\mathrm{Cov}(r_a,r_p)}{\mathrm{Var}(r_p)}
+
+            \\beta_a = \\frac{\mathrm{Cov}(r_a,r_p)}{\mathrm{Var}(r_p)}
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """

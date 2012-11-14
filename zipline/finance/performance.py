@@ -110,11 +110,11 @@ omitted).
     | returns       | percentage returns for the entire portfolio over the |
     |               | period                                               |
     +---------------+------------------------------------------------------+
-    | cumulative_   | The net capital used (positive is spent) during      |
-    | capital_used  | the period                                           |
+    | cumulative\   | The net capital used (positive is spent) during      |
+    | _capital_used | the period                                           |
     +---------------+------------------------------------------------------+
-    | max_capital_  | The maximum amount of capital deployed during the    |
-    | used          | period.                                              |
+    | max_capital\  | The maximum amount of capital deployed during the    |
+    | _used         | period.                                              |
     +---------------+------------------------------------------------------+
     | max_leverage  | The maximum leverage used during the period.         |
     +---------------+------------------------------------------------------+
