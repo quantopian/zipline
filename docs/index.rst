@@ -23,7 +23,7 @@ matplotlib, scipy, statsmodels, and sklearn support development, analysis and
 visualization of state-of-the-art trading systems.
 
 Zipline is currently used in production as the backtesting engine powering
-<Quantopian.com>_  free, community-centered platform that allows
+`<Quantopian.com>`_, a free, community-centered platform that allows
 development and real-time backtesting of trading algorithms in the web browser.
 Zipline was released at PyData NYC'12.
 
@@ -33,6 +33,7 @@ Contents
 .. toctree::
    :maxdepth: 4
 
+   manifesto.rst
    installation.rst
    overview.rst
    modules.rst
