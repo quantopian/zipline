@@ -1,3 +1,7 @@
+*********
+Messaging
+*********
+
 qbt runs backtests using multiple processes and zeromq messaging for communication and coordination. 
 
 Backtest is the primary process. It maintains both server and client sockets:

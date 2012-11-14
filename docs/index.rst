@@ -37,6 +37,7 @@ Contents
    overview.rst
    modules.rst
    messaging.rst
+   extensions.rst
 
 
 Indices and tables
