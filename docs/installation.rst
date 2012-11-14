@@ -2,23 +2,31 @@
 Installation
 ************
 
-System Setup
-==============
-	
-You need to have zeromq installed - http://www.zeromq.org/intro:get-the-software. 
+Since zipline is pure-python code it should be very easy to install
+and set up with pip:
 
-Running
--------
+::
 
-Initial `virtualenv` setup::
+    pip install zipline
 
-    $ mkvirtualenv zipline
-    $ workon zipline
-	#go get coffee, this will compile a heap of C/C++ code
-    $ ./etc/ordered_pip.sh requirements_sci.txt 
-	$ ./etc/ordered_pip.sh requirements.txt
-	#optionally
-	$ ./etc/ordered_pip.sh requirements_dev.txt
+If there are problems installing the dependencies or zipline we
+recommend installing these packages via some other means. For Windows,
+the `Enthought Python Distribution
+<http://www.enthought.com/products/epd.php>`_
+includes most of the necessary dependencies. On OSX, the `Scipy Superpack
+<http://fonnesbeck.github.com/ScipySuperpack/>`_ works very well.
+
+Dependencies
+------------
+
+* Python (>= 2.7.2)
+* numpy (>= 1.6.0)
+* pandas (>= 0.9.0)
+* pytz
+* msgpack-python
+* iso8601
+* Logbook
+* blist
 
 
 Develop
@@ -55,7 +63,7 @@ For building distributable egg::
 
 Tooling hints
 ================
-QBT relies heavily on scientific python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
+:mod:`zipline` relies heavily on scientific python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 
 
 - some kind of package manager for your platform. package managers generally give you a way to search, install, uninstall, and check currently installed packages. They also do a great job of managing dependencies.
    - linux: yum/apt-get
