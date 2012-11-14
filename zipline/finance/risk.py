@@ -57,6 +57,7 @@ import datetime
 import math
 import numpy as np
 import numpy.linalg as la
+from zipline.utils.date_utils import epoch_now
 
 log = logbook.Logger('Risk')
 
@@ -573,6 +574,7 @@ class RiskReport(object):
 
         self.algorithm_returns = algorithm_returns
         self.trading_environment = trading_environment
+        self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
             start_date = self.trading_environment.period_start
@@ -607,6 +609,7 @@ class RiskReport(object):
             'three_month': [x.to_dict() for x in self.three_month_periods],
             'six_month': [x.to_dict() for x in self.six_month_periods],
             'twelve_month': [x.to_dict() for x in self.year_periods],
+            'created': self.created
         }
 
     def periods_in_range(self, months_per, start, end):
