@@ -1,3 +1,7 @@
+************
+Installation
+************
+
 System Setup
 ==============
 	
@@ -78,11 +82,22 @@ Scientific python on the Mac can be a bit confusing because of the many independ
 
 Data Sources
 =============
-The Backtest can handle multiple concurrent data sources. QBT will start a subprocess to run each datasource, and merge all events from all sources into a single serial feed, ordered by date.
 
-Data sources have events with very different frequencies. For example, liquid stocks will trade many times per minute, while illiquid stocks may trade just once a day. In order to serialize events from all sources into a single feed, qbt loads events from all sources into memory, then sorts. The communication happens like this:
-1. QBT requests the next event from each data source, ignoring date (i.e. just next in sequence for all)
-2. Using the earliest date from all the events from all sources, QBT then asks for "next after <date>" from all sources. 
-3. All datasources send all events in their history from before <date>, moving their internal pointer forward to the next unsent event.
-4. QBT merges all events in memory
-5. goto 1!
+The Backtest can handle multiple concurrent data sources. QBT will start a
+subprocess to run each datasource, and merge all events from all sources into a
+single serial feed, ordered by date.
+
+Data sources have events with very different frequencies. For example, liquid
+stocks will trade many times per minute, while illiquid stocks may trade just
+once a day. In order to serialize events from all sources into a single feed,
+qbt loads events from all sources into memory, then sorts. The communication
+happens like this:
+
+1.  QBT requests the next event from each data source, ignoring date (i.e.
+    just next in sequence for all)
+2.  Using the earliest date from all the events from all sources, QBT then
+    asks for "next after <date>" from all sources. 
+3.  All datasources send all events in their history from before <date>,
+    moving their internal pointer forward to the next unsent event.
+4.  QBT merges all events in memory
+5.  goto 1!

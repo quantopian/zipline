@@ -33,7 +33,7 @@ Contents
 .. toctree::
    :maxdepth: 4
 
-   notes.rst
+   installation.rst
    overview.rst
    modules.rst
    messaging.rst
