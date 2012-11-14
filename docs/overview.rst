@@ -8,9 +8,9 @@ Simulations
 :mod:`zipline` runs backtests using asynchronous components and zeromq messaging for
 communication and coordination. 
 
-Simulator is the heart of :mod:zipline, and the primary access point for creating,
+:class:`.algorithm.TradingAlgorithm` is the heart of :mod:`zipline`, and the primary access point for creating,
 launching, and tracking simulations. You can find it in
-:py:class:`~zipline.core.Simulator`
+:py:class:`~zipline.algorithm.TradingAlgorithm`
 
 Simulator Sub-Components
 ========================
