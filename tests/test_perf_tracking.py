@@ -591,3 +591,7 @@ shares in position"
         cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
         expected_size = txn_count / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
+
+        self.assertEqual(perf_tracker.period_end.
+                         replace(hour=0, minute=0, second=0),
+                         perf_tracker.cumulative_risk_metrics.end_date)

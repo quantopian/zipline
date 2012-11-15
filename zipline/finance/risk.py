@@ -386,7 +386,7 @@ class RiskMetricsIterative(RiskMetricsBase):
                     if x.date >= self.start_date
         ]
 
-    def update(self, returns_in_period, dt):
+    def update(self, returns_in_period):
         if self.trading_environment.is_trading_day(self.end_date):
             self.algorithm_returns.append(returns_in_period)
             self.benchmark_returns.append(
@@ -394,7 +394,11 @@ class RiskMetricsIterative(RiskMetricsBase):
             self.trading_days += 1
             self.update_compounded_log_returns()
 
-        self.end_date += dt
+        self.end_date += datetime.timedelta(hours=24)
+
+        while not self.trading_environment.is_trading_day(self.end_date):
+            self.end_date += datetime.timedelta(hours=24)
+
         self.end_date = self.end_date.replace(hour=0, minute=0, second=0)
 
         self.algorithm_period_returns.append(

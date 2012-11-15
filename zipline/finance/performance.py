@@ -277,7 +277,7 @@ class PerformanceTracker(object):
 
         #update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
-            self.todays_performance.returns, datetime.timedelta(days=1))
+            self.todays_performance.returns)
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

@@ -71,10 +71,15 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
 
             cur_returns.append(todays_return_obj)
 
+            # Move forward day counter to next trading day
+            todays_date += self.oneday
+            while not self.trading_env.is_trading_day(todays_date):
+                todays_date += self.oneday
+
             try:
                 risk_metrics_original = risk.RiskMetricsBatch(
                     start_date=self.start_date,
-                    end_date=todays_date + self.oneday,
+                    end_date=todays_date,
                     returns=cur_returns,
                     trading_environment=self.trading_env
                 )
@@ -82,12 +87,10 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
                 #assert that when original raises exception, same
                 #exception is raised by risk_metrics_refactor
                 np.testing.assert_raises(
-                    type(e), risk_metrics_refactor.update, ret, self.oneday)
+                    type(e), risk_metrics_refactor.update, ret)
                 continue
 
-            risk_metrics_refactor.update(ret, self.oneday)
-
-            todays_date += self.oneday
+            risk_metrics_refactor.update(ret)
 
             self.assertEqual(
                 risk_metrics_original.start_date,
