@@ -417,14 +417,15 @@ class BatchTransform(EventWindow):
             self.updated = False
 
     def get_data(self):
-        # Create a pandas.Panel (i.e. 3d DataFrame) from the
-        # events in the current window.
-        #
-        # The resulting panel looks like this:
-        # index : field_name (e.g. price)
-        # major axis/rows : dt
-        # minor axis/colums : sid
-        #
+        """Create a pandas.Panel (i.e. 3d DataFrame) from the
+        events in the current window.
+
+        Returns:
+        The resulting panel looks like this:
+        index : field_name (e.g. price)
+        major axis/rows : dt
+        minor axis/colums : sid
+        """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
         #
