@@ -327,6 +327,14 @@ class TestBatchTransform(TestCase):
         self.assertEqual(algo.history_return_price_market_aware[:2],
                          [None, None],
                          "First two iterations should return None")
+        self.assertEqual(algo.history_return_more_days_than_refresh[:3],
+                         [None, None, None],
+                         "First five iterations should return None")
+        self.assertTrue(isinstance(
+            algo.history_return_more_days_than_refresh[4],
+            pd.DataFrame),
+            "Sixth iteration should not be None"
+        )
 
         # test overloaded class
         for test_history in [algo.history_return_price_class,
