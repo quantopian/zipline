@@ -389,13 +389,13 @@ class Position(object):
 class PerformancePeriod(object):
 
     def __init__(
-        self,
-        initial_positions,
-        starting_value,
-        starting_cash,
-        period_open=None,
-        period_close=None,
-        keep_transactions=False):
+            self,
+            initial_positions,
+            starting_value,
+            starting_cash,
+            period_open=None,
+            period_close=None,
+            keep_transactions=False):
 
         self.period_open = period_open
         self.period_close = period_close

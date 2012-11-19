@@ -42,11 +42,12 @@ def transact_partial(slippage, commission):
 
 def create_transaction(sid, amount, price, dt):
 
-    txn = {'sid': sid,
-           'amount': int(amount),
-           'dt': dt,
-           'price': price,
-          }
+    txn = {
+        'sid': sid,
+        'amount': int(amount),
+        'dt': dt,
+        'price': price,
+    }
 
     transaction = ndict(txn)
     return transaction

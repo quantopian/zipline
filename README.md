@@ -117,7 +117,7 @@ The maintainers check the code using the flake8 script,
 requirements_dev.txt.
 
 Before submitting patches or pull requests, please ensure that your
-changes pass ```flake8 --ignore=E124,E125,E126 zipline tests```
+changes pass ```flake8 zipline tests```
 
 Discussion and Help
 ===================

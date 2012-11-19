@@ -31,9 +31,9 @@ from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.test_utils import(
-        setup_logger,
-        teardown_logger,
-        assert_single_position
+    setup_logger,
+    teardown_logger,
+    assert_single_position
 )
 
 DEFAULT_TIMEOUT = 15  # seconds

@@ -332,18 +332,18 @@ class TestBatchTransform(TestCase):
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
             np.testing.assert_array_equal(
-                    range(2, 8),
-                    test_history[2].values.flatten()
+                range(2, 8),
+                test_history[2].values.flatten()
             )
 
             np.testing.assert_array_equal(
-                    range(2, 8),
-                    test_history[3].values.flatten()
+                range(2, 8),
+                test_history[3].values.flatten()
             )
 
             np.testing.assert_array_equal(
-                    range(4, 12),
-                    test_history[4].values.flatten()
+                range(4, 12),
+                test_history[4].values.flatten()
             )
 
     def test_passing_of_args(self):

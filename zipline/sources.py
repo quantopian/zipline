@@ -242,9 +242,10 @@ class DataFrameSource(SpecificEquityTrades):
             for dt, series in df.iterrows():
                 if (dt < self.start) or (dt > self.end):
                     continue
-                event = {'dt': dt,
-                         'source_id': self.get_hash(),
-                         'type': DATASOURCE_TYPE.TRADE
+                event = {
+                    'dt': dt,
+                    'source_id': self.get_hash(),
+                    'type': DATASOURCE_TYPE.TRADE
                 }
 
                 for sid, price in series.iterkv():

@@ -763,12 +763,11 @@ class Risk(unittest.TestCase):
                 "mismatch for total months - \
                 expected:{total_months}/actual:{actual}, \
                 period:{period_length}, start:{start_date}, \
-                calculated end:{end}".format(
-                        total_months=total_months,
-                        period_length=period_length,
-                        start_date=start_date,
-                        end=col[-1].end_date,
-                        actual=len(col))
+                calculated end:{end}".format(total_months=total_months,
+                                             period_length=period_length,
+                                             start_date=start_date,
+                                             end=col[-1].end_date,
+                                             actual=len(col))
             )
             self.assert_month(start_date.month, col[-1].end_date.month)
             self.assert_last_day(col[-1].end_date)

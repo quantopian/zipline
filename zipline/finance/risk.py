@@ -107,8 +107,8 @@ class RiskMetricsBase(object):
             self.calculate_period_returns(returns)
 
         benchmark_returns = [
-                    x for x in self.trading_environment.benchmark_returns
-                    if x.date >= returns[0].date and x.date <= returns[-1].date
+            x for x in self.trading_environment.benchmark_returns
+            if x.date >= returns[0].date and x.date <= returns[-1].date
         ]
 
         self.benchmark_period_returns, self.benchmark_returns = \
@@ -382,8 +382,8 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.trading_days = 0
 
         self.all_benchmark_returns = [
-                    x for x in self.trading_environment.benchmark_returns
-                    if x.date >= self.start_date
+            x for x in self.trading_environment.benchmark_returns
+            if x.date >= self.start_date
         ]
 
     def update(self, returns_in_period):

@@ -18,7 +18,7 @@ changes pass
 
 ::
 
-    flake8 --ignore=E124,E125,E126 zipline tests
+    flake8 zipline tests
 
 Discussion and Help
 ===================

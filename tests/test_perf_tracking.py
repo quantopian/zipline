@@ -126,8 +126,8 @@ check treasury and benchmark data in findb, and re-run the test."""
             trades[-1]['price'],
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
-                exp=trades[-1]['price'],
-                act=pp.positions[1].last_sale_price)
+            exp=trades[-1]['price'],
+            act=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(
@@ -565,7 +565,7 @@ shares in position"
             'price',
             'changed']
         perf_tracker = perf.PerformanceTracker(
-                self.trading_environment
+            self.trading_environment
         )
 
         for event in trade_history:

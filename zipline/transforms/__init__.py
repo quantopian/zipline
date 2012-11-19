@@ -19,10 +19,11 @@ from vwap import MovingVWAP
 from returns import Returns
 from utils import BatchTransform, batch_transform
 
-__all__ = ['MovingAverage',
-           'MovingStandardDev',
-           'MovingVWAP',
-           'Returns',
-           'BatchTransform',
-           'batch_transform'
+__all__ = [
+    'MovingAverage',
+    'MovingStandardDev',
+    'MovingVWAP',
+    'Returns',
+    'BatchTransform',
+    'batch_transform'
 ]

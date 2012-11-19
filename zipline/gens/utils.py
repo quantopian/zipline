@@ -37,11 +37,11 @@ def mock_raw_event(sid, dt):
 
 def mock_done(id):
     return ndict({
-            'dt': "DONE",
-            "source_id": id,
-            'tnfm_id': id,
-            'tnfm_value': None,
-            'type': DATASOURCE_TYPE.DONE
+        'dt': "DONE",
+        "source_id": id,
+        'tnfm_id': id,
+        'tnfm_value': None,
+        'type': DATASOURCE_TYPE.DONE
     })
 
 done_message = mock_done

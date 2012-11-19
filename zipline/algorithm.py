@@ -24,9 +24,9 @@ from zipline.sources import DataFrameSource
 from zipline.utils.factory import create_trading_environment
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
-        VolumeShareSlippage,
-        FixedSlippage,
-        transact_partial
+    VolumeShareSlippage,
+    FixedSlippage,
+    transact_partial
 )
 from zipline.finance.commission import PerShare, PerTrade
 
