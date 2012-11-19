@@ -73,16 +73,6 @@ def mock_volumes(count, rand=False):
         return ((i * 50) % 900 + 100 for i in xrange(count))
 
 
-def fuzzy_dates(count=500):
-    """
-    Add +-10 seconds to each event from a date_gen.  Note that this
-    still guarantees sorting, since the default on date_gen is minute
-    separation of events.
-    """
-    for date in date_gen(count=count):
-        yield date + timedelta(seconds=random.randint(-10, 10))
-
-
 class SpecificEquityTrades(object):
     """
     Yields all events in event_list that match the given sid_filter.
