@@ -193,24 +193,24 @@ class EventWindow(object):
     # Mark this as an abstract base class.
     __metaclass__ = ABCMeta
 
-    def __init__(self, market_aware=True, days=None, delta=None):
+    def __init__(self, market_aware=True, window_length=None, delta=None):
 
         self.market_aware = market_aware
-        self.days = days
+        self.window_length = window_length
         self.delta = delta
 
         self.ticks = deque()
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
-            assert self.days and self.delta is None, \
+            assert self.window_length and self.delta is None, \
                 "Market-aware mode only works with full-day windows."
             self.all_holidays = deque(non_trading_days)
             self.cur_holidays = deque()
 
         # Non-market-aware mode requires a timedelta.
         else:
-            assert self.delta and not self.days, \
+            assert self.delta and not self.window_length, \
                 "Non-market-aware mode requires a timedelta."
 
         # Set the behavior for dropping events from the back of the
@@ -285,7 +285,7 @@ class EventWindow(object):
         if oldest.time() > newest.time():
             trading_days_between -= 1
 
-        return trading_days_between >= self.days
+        return trading_days_between >= self.window_length
 
     def out_of_delta(self, oldest, newest):
         return (newest - oldest) >= self.delta
@@ -348,10 +348,11 @@ class BatchTransform(EventWindow):
                  refresh_period=None,
                  market_aware=True,
                  delta=None,
-                 days=None):
+                 window_length=None):
 
         super(BatchTransform, self).__init__(market_aware,
-                                             days=days, delta=delta)
+                                             window_length=window_length,
+                                             delta=delta)
 
         if func is not None:
             self.compute_transform_value = func
@@ -359,7 +360,7 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.refresh_period = refresh_period
-        self.days = days
+        self.window_length = window_length
         self.trading_days_since_update = 0
         self.trading_days_total = 0
 
@@ -405,7 +406,7 @@ class BatchTransform(EventWindow):
             self.trading_days_total += 1
 
         if (
-            self.trading_days_total >= self.days and
+            self.trading_days_total >= self.window_length and
             self.trading_days_since_update >= self.refresh_period
         ):
 

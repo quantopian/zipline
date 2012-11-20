@@ -29,22 +29,23 @@ class MovingAverage(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, fields, market_aware=True, days=None, delta=None):
+    def __init__(self, fields,
+                 market_aware=True, window_length=None, delta=None):
 
         self.fields = fields
         self.market_aware = market_aware
 
         self.delta = delta
-        self.days = days
+        self.window_length = window_length
 
         # Market-aware mode only works with full-day windows.
         if self.market_aware:
-            assert self.days and not self.delta,\
+            assert self.window_length and not self.delta,\
                 "Market-aware mode only works with full-day windows."
 
         # Non-market-aware mode requires a timedelta.
         else:
-            assert self.delta and not self.days, \
+            assert self.delta and not self.window_length, \
                 "Non-market-aware mode requires a timedelta."
 
         # No way to pass arguments to the defaultdict factory, so we
@@ -58,7 +59,7 @@ class MovingAverage(object):
         return MovingAverageEventWindow(
             self.fields,
             self.market_aware,
-            self.days,
+            self.window_length,
             self.delta
         )
 
