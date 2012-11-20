@@ -222,7 +222,7 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.add_transform(MovingAverage, 'mavg', ['price'],
                            market_aware=True,
-                           days=2)
+                           window_length=2)
 
         self.set_slippage(FixedSlippage())
 
@@ -251,7 +251,7 @@ def return_args_batch_decorator(data, *args, **kwargs):
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.refresh_period = kwargs.pop('refresh_period', 2)
-        self.days = kwargs.pop('days', 3)
+        self.window_length = kwargs.pop('window_length', 3)
 
         self.args = args
         self.kwargs = kwargs
@@ -265,31 +265,31 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.return_price_class = ReturnPriceBatchTransform(
             market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.days)
+            delta=timedelta(days=self.window_length)
         )
 
         self.return_price_decorator = return_price_batch_decorator(
             market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.days)
+            delta=timedelta(days=self.window_length)
         )
 
         self.return_args_batch = return_args_batch_decorator(
             market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.days)
+            delta=timedelta(days=self.window_length)
         )
 
         self.return_price_market_aware = ReturnPriceBatchTransform(
             market_aware=True,
             refresh_period=self.refresh_period,
-            days=self.days
+            window_length=self.window_length
         )
 
         self.return_price_more_days_than_refresh = ReturnPriceBatchTransform(
             market_aware=True,
             refresh_period=1,
-            days=3
+            window_length=3
         )
 
         self.set_slippage(FixedSlippage())
