@@ -34,10 +34,10 @@ class DualMovingAverage(TradingAlgorithm):
         # Add 2 mavg transforms, one with a long window, one
         # with a short window.
         self.add_transform(MovingAverage, 'short_mavg', ['price'],
-                           days=short_window)
+                           window_length=short_window)
 
         self.add_transform(MovingAverage, 'long_mavg', ['price'],
-                           days=long_window)
+                           window_length=long_window)
 
         # To keep track of whether we invested in the stock or not
         self.invested = False
