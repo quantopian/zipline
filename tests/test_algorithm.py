@@ -76,5 +76,5 @@ class TestTransformAlgorithm(TestCase):
         assert 'mavg' in algo.registered_transforms
         assert algo.registered_transforms['mavg']['args'] == (['price'],)
         assert algo.registered_transforms['mavg']['kwargs'] == \
-            {'days': 2, 'market_aware': True}
+            {'window_length': 2, 'market_aware': True}
         assert algo.registered_transforms['mavg']['class'] is MovingAverage

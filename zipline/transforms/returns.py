@@ -24,8 +24,8 @@ class Returns(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, days):
-        self.days = days
+    def __init__(self, window_length):
+        self.window_length = window_length
         self.mapping = defaultdict(self._create)
 
     def update(self, event):
@@ -40,7 +40,7 @@ class Returns(object):
         return tracker.returns
 
     def _create(self):
-        return ReturnsFromPriorClose(self.days)
+        return ReturnsFromPriorClose(self.window_length)
 
 
 class ReturnsFromPriorClose(object):
@@ -50,11 +50,11 @@ class ReturnsFromPriorClose(object):
     treat the last event seen  as the close for the previous day.
     """
 
-    def __init__(self, days):
+    def __init__(self, window_length):
         self.closes = deque()
         self.last_event = None
         self.returns = 0.0
-        self.days = days
+        self.window_length = window_length
 
     def update(self, event):
 
@@ -71,7 +71,7 @@ class ReturnsFromPriorClose(object):
                 # if the number of stored events is greater than the
                 # number of days we want to track, the oldest close
                 # is expired and should be discarded.
-                while len(self.closes) > self.days:
+                while len(self.closes) > self.window_length:
                     # Pop the oldest event.
                     self.closes.popleft()
 
@@ -81,7 +81,7 @@ class ReturnsFromPriorClose(object):
         # require giving this transform database creds, which we want
         # to avoid.
 
-        if len(self.closes) == self.days:
+        if len(self.closes) == self.window_length:
             last_close = self.closes[0].price
             change = event.price - last_close
             self.returns = change / last_close
