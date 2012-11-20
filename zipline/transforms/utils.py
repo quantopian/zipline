@@ -404,8 +404,11 @@ class BatchTransform(EventWindow):
             self.trading_days_since_update += 1
             self.trading_days_total += 1
 
-        if self.trading_days_total >= self.days and\
-            self.trading_days_since_update >= self.refresh_period:
+        if (
+            self.trading_days_total >= self.days and
+            self.trading_days_since_update >= self.refresh_period
+        ):
+
             # Create datapanel of running event window.
             self.data = self.get_data()
             # Setting updated to True will cause get_transform_value()

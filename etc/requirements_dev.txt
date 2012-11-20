@@ -8,4 +8,4 @@ requests==0.14.2
 
 # Linting
 
-flake8==1.5
+flake8==1.6
