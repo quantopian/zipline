@@ -18,8 +18,7 @@ def teardown_logger(test):
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
     test.assertTrue(isinstance(b, (list, blist.blist)))
-    i = 0
-    for a_val, b_val in izip(a, b):
+    for i, (a_val, b_val) in enumerate(izip(a, b)):
         check(test, a_val, b_val, label + "[" + str(i) + "]")
 
 
