@@ -105,8 +105,23 @@ results = dma.run(data)
 
 You can find other examples in the zipline/examples directory.
 
+Contributions
+============
+
+If you would like to contribute, please see our "Requests for Contribution" Wiki: https://github.com/quantopian/zipline/wiki/Contribution-Requests
+
+Credits
+--------
+Thank you for all the help so far!
+
+- @snth
+- @yinhm for integrating zipline with @yinhm/datafeed
+- Quantopian Team
+
+(alert us if we've inadvertantly missed listing you here!)
+
 Style Guide
-===========
+------------
 
 To ensure that changes and patches are focused on behavior changes,
 the zipline codebase adheres to PEP-8,
