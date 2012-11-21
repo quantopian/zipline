@@ -89,6 +89,10 @@ Fetching data from data.treasury.gov
 
     fp_tr.close()
 
+    tr_curves = OrderedDict(sorted(
+                            ((dt, c) for dt, c in tr_curves.iteritems()),
+                            key=lambda t: t[0]))
+
     return bm_returns, tr_curves
 
 
