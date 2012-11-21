@@ -454,6 +454,16 @@ class BatchTransform(EventWindow):
                 fields[field_name] = pd.DataFrame.from_dict(values_per_sid)
 
         data = pd.Panel.from_dict(fields, orient='items')
+
+        # Fills in gaps of missing data during transform of multiple
+        # stocks.
+        # e.g. we may be missing minute data because of illiquidity
+        # of one stock
+        data = data.fillna(method='ffill')
+        # Drop any empty rows after the fill.
+        # This will drop a leading row of N/A
+        data = data.dropna()
+
         return data
 
     def handle_remove(self, event):
