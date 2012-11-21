@@ -10,6 +10,16 @@ powering <https://app.quantopian.com> -- a free, community-centered
 platform that allows development and real-time backtesting of trading
 algorithms in the web browser.
 
+Want to contribute? See our [open requests](https://github.com/quantopian/zipline/wiki/Contribution-Requests) 
+and our [general guidelines](https://github.com/quantopian/zipline#contributions) below.
+
+Discussion and Help
+===================
+
+Discussion of the project is held at the Google Group,
+<zipline@googlegroups.com>,
+<https://groups.google.com/forum/#!forum/zipline>.
+
 Features
 ========
 
@@ -108,7 +118,7 @@ You can find other examples in the zipline/examples directory.
 Contributions
 ============
 
-If you would like to contribute, please see our "Requests for Contribution" Wiki: https://github.com/quantopian/zipline/wiki/Contribution-Requests
+If you would like to contribute, please see our Contribution Requests: https://github.com/quantopian/zipline/wiki/Contribution-Requests
 
 Credits
 --------
@@ -134,12 +144,6 @@ requirements_dev.txt.
 Before submitting patches or pull requests, please ensure that your
 changes pass ```flake8 zipline tests```
 
-Discussion and Help
-===================
-
-Discussion of the project is held at the Google Group,
-<zipline@googlegroups.com>,
-<https://groups.google.com/forum/#!forum/zipline>.
 
 Source
 ======
