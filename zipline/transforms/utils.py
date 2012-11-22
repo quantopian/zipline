@@ -450,19 +450,22 @@ class BatchTransform(EventWindow):
                      for tick in self.ticks}
                 )
 
-            # concatenate different sids into one df
-                fields[field_name] = pd.DataFrame.from_dict(values_per_sid)
+                # concatenate different sids into one df
+                df = pd.DataFrame.from_dict(values_per_sid)
+                 # Fills in gaps of missing data during transform of multiple
+                # stocks.
+                # e.g. we may be missing minute data because of illiquidity
+                # of one stock
+                df = df.fillna(method='ffill')
+                # Drop any empty rows after the fill.
+                # This will drop a leading row of N/A
+                df = df.dropna()
+
+                fields[field_name] = df
 
         data = pd.Panel.from_dict(fields, orient='items')
 
-        # Fills in gaps of missing data during transform of multiple
-        # stocks.
-        # e.g. we may be missing minute data because of illiquidity
-        # of one stock
-        data = data.fillna(method='ffill')
-        # Drop any empty rows after the fill.
-        # This will drop a leading row of N/A
-        data = data.dropna()
+       
 
         return data
 
