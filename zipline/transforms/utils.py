@@ -465,8 +465,6 @@ class BatchTransform(EventWindow):
 
         data = pd.Panel.from_dict(fields, orient='items')
 
-       
-
         return data
 
     def handle_remove(self, event):
