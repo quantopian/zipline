@@ -210,16 +210,18 @@ class PerformanceTracker(object):
         """
         Main generator work loop.
         """
-        for event in stream_in:
-            if event.dt == "DONE":
-                event.perf_message = self.handle_simulation_end()
-                del event['TRANSACTION']
-                yield event
-            else:
-                event.perf_message = self.process_event(event)
-                event.portfolio = self.get_portfolio()
-                del event['TRANSACTION']
-                yield event
+        for date, snapshot in stream_in:
+            yield date, [self._transform_event(event) for event in snapshot]
+
+    def _transform_event(self, event):
+        if event.dt == "DONE":
+            event.perf_message = self.handle_simulation_end()
+        else:
+            event.perf_message = self.process_event(event)
+            event.portfolio = self.get_portfolio()
+
+        del event['TRANSACTION']
+        return event
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()

@@ -44,8 +44,8 @@ class TransactionSimulator(object):
         """
         Main generator work loop.
         """
-        for event in stream_in:
-            yield self.update(event)
+        for date, snapshot in stream_in:
+            yield date, [self.update(event) for event in snapshot]
 
     def update(self, event):
         event.TRANSACTION = None
