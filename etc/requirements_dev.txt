@@ -9,3 +9,7 @@ requests==0.14.2
 # Linting
 
 flake8==1.6.2
+
+# Documentation Conversion
+
+pyandoc==0.0.1

@@ -14,7 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pandoc
+pandoc.core.PANDOC_PATH = 'pandoc'
+
 from setuptools import setup, find_packages
+
+
+def readme_as_rest():
+    """
+    Converts the README.md file to ReST, since PyPI uses ReST for formatting,
+    This allows to have one canonical README file, being the README.md
+    """
+    doc = pandoc.Document()
+    with open('README.md').read() as markdown_source:
+        doc.markdown = markdown_source
+    return doc.rst
 
 setup(
     name='zipline',
@@ -23,7 +37,7 @@ setup(
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages(),
-    long_description=open('README.md').read(),
+    long_description=readme_as_rest(),
     license='Apache 2.0',
     classifiers=[
         'Development Status :: 4 - Beta',
