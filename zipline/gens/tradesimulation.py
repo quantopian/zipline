@@ -161,7 +161,8 @@ class AlgorithmSimulator(object):
         # Processor function for injecting the algo_dt into
         # user prints/logs.
         def inject_algo_dt(record):
-            record.extra['algo_dt'] = self.snapshot_dt
+            if not 'algo_dt' in record.extra:
+                record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
     def order(self, sid, amount):
