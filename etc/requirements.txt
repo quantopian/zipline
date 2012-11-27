@@ -13,3 +13,5 @@ numpy==1.6.2
 Cython==0.17.2
 
 pandas==0.9.1
+python-dateutil==2.1
+six==1.2.0
