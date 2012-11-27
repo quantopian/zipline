@@ -98,3 +98,49 @@ def tuple_to_date(date_tuple):
     dt = datetime(year, month, day, hour, minute, second)
     dt = dt.replace(microsecond=micros, tzinfo=pytz.utc)
     return dt
+
+
+# quarter utilities
+# ---------------------
+def get_quarter(dt):
+    """
+    convert the given datetime to an integer representing
+    the number of calendar quarters since 0.
+    """
+    quarters = dt.year * 4
+    month = dt.month
+    if month <= 3:
+        return quarters + 1
+    elif month <= 6:
+        return quarters + 2
+    elif month <= 9:
+        return quarters + 3
+    else:
+        return quarters + 4
+
+
+def dates_of_quarter(quarter_num):
+    year = quarter_num / 4
+    quarter = quarter_num % 4
+    if quarter == 0:
+        quarter = 4
+
+    if quarter == 1:
+        start = datetime.datetime(year, 1, 1, 0, 0, tzinfo=pytz.utc)
+        end = datetime.datetime(year, 3, 31, 23, 59, tzinfo=pytz.utc)
+        return start, end
+
+    elif quarter == 2:
+        start = datetime.datetime(year, 4, 1, 0, 0, tzinfo=pytz.utc)
+        end = datetime.datetime(year, 6, 30, 23, 59, tzinfo=pytz.utc)
+        return start, end
+
+    elif quarter == 3:
+        start = datetime.datetime(year, 7, 1, 0, 0, tzinfo=pytz.utc)
+        end = datetime.datetime(year, 9, 30, 23, 59, tzinfo=pytz.utc)
+        return start, end
+
+    elif quarter == 4:
+        start = datetime.datetime(year, 10, 1, 0, 0, tzinfo=pytz.utc)
+        end = datetime.datetime(year, 12, 31, 23, 59, tzinfo=pytz.utc)
+        return start, end
