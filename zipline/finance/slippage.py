@@ -21,19 +21,27 @@ from functools import partial
 
 from zipline.utils.protocol_utils import ndict
 
+from logbook import Processor
+
 
 def transact_stub(slippage, commission, event, open_orders):
     """
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-    transaction = slippage.simulate(event, open_orders)
-    if transaction and transaction.amount != 0:
-        direction = abs(transaction.amount) / transaction.amount
-        per_share, total_commission = commission.calculate(transaction)
-        transaction.price = transaction.price + (per_share * direction)
-        transaction.commission = total_commission
-    return transaction
+    def inject_algo_dt(record):
+        if not 'algo_dt' in record.extra:
+            record.extra['algo_dt'] = event['dt']
+
+    with Processor(inject_algo_dt).threadbound():
+
+        transaction = slippage.simulate(event, open_orders)
+        if transaction and transaction.amount != 0:
+            direction = abs(transaction.amount) / transaction.amount
+            per_share, total_commission = commission.calculate(transaction)
+            transaction.price = transaction.price + (per_share * direction)
+            transaction.commission = total_commission
+        return transaction
 
 
 def transact_partial(slippage, commission):

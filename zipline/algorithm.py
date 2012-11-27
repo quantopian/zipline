@@ -20,6 +20,9 @@ import numpy as np
 
 from datetime import datetime
 
+from itertools import groupby
+from operator import attrgetter
+
 from zipline.sources import DataFrameSource
 from zipline.utils.factory import create_trading_environment
 from zipline.transforms.utils import StatefulTransform
@@ -95,12 +98,15 @@ class TradingAlgorithm(object):
         self.date_sorted = date_sorted_sources(*self.sources)
         self.with_tnfms = sequential_transforms(self.date_sorted,
                                                 *self.transforms)
+        # Group together events with the same dt field. This depends on the
+        # events already being sorted.
+        self.grouped_by_date = groupby(self.with_tnfms, attrgetter('dt'))
         self.trading_client = tsc(self, environment)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
 
-        return self.trading_client.simulate(self.with_tnfms)
+        return self.trading_client.simulate(self.grouped_by_date)
 
     def get_generator(self, environment):
         """

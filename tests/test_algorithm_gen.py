@@ -1,0 +1,103 @@
+#!/usr/bin/python
+#
+# Copyright 2012 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from unittest import TestCase
+from nose.tools import timed
+
+from datetime import datetime
+import pytz
+
+from zipline.algorithm import TradingAlgorithm
+from zipline.finance import slippage
+from zipline.utils import factory
+from zipline.utils.test_utils import (
+    setup_logger,
+    teardown_logger
+)
+
+DEFAULT_TIMEOUT = 15  # seconds
+EXTENDED_TIMEOUT = 90
+
+
+class RecordDateSlippage(slippage.FixedSlippage):
+    def __init__(self, spread):
+        super(RecordDateSlippage, self).__init__(spread=spread)
+        self.latest_date = None
+
+    def simulate(self, event, open_orders):
+        self.latest_date = event['datetime']
+        result = super(RecordDateSlippage, self).simulate(event, open_orders)
+        return result
+
+
+class TestAlgo(TradingAlgorithm):
+
+    def __init__(self, asserter, *args, **kwargs):
+        super(TestAlgo, self).__init__(*args, **kwargs)
+        self.asserter = asserter
+
+    def initialize(self, window_length=100):
+        self.latest_date = None
+
+        self.set_slippage(RecordDateSlippage(spread=0.05))
+        self.stocks = [8229]
+        self.ordered = False
+
+    def handle_data(self, data):
+        self.latest_date = self.get_datetime()
+
+        if not self.ordered:
+            for stock in self.stocks:
+                self.order(stock, 100)
+
+            self.ordered = True
+
+        self.asserter.assertGreaterEqual(
+            self.latest_date,
+            self.slippage.latest_date
+        )
+
+
+class AlgorithmGeneratorTestCase(TestCase):
+    def setUp(self):
+        setup_logger(self)
+
+    def tearDown(self):
+        teardown_logger(self)
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_generator_dates(self):
+        """
+        Ensure the pipeline of generators are in sync, at least as far as
+        their current dates.
+        """
+        algo = TestAlgo(self)
+        trading_environment = factory.create_trading_environment(
+            start=datetime(2012, 1, 3, tzinfo=pytz.utc),
+            end=datetime(2012, 7, 30, tzinfo=pytz.utc)
+        )
+        trade_source = factory.create_daily_trade_source(
+            [8229],
+            200,
+            trading_environment
+        )
+        algo.set_sources([trade_source])
+
+        gen = algo.get_generator(trading_environment)
+        self.assertTrue(list(gen))
+
+        self.assertTrue(algo.slippage.latest_date)
+        self.assertTrue(algo.latest_date)

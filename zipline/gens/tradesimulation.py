@@ -18,8 +18,6 @@ from logbook import Logger, Processor
 from collections import defaultdict
 
 from datetime import datetime
-from itertools import groupby
-from operator import attrgetter
 
 from zipline import ndict
 
@@ -161,7 +159,8 @@ class AlgorithmSimulator(object):
         # Processor function for injecting the algo_dt into
         # user prints/logs.
         def inject_algo_dt(record):
-            record.extra['algo_dt'] = self.snapshot_dt
+            if not 'algo_dt' in record.extra:
+                record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
     def order(self, sid, amount):
@@ -199,9 +198,8 @@ class AlgorithmSimulator(object):
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
-            # Group together events with the same dt field. This depends on the
-            # events already being sorted.
-            for date, snapshot in groupby(stream_in, attrgetter('dt')):
+
+            for date, snapshot in stream_in:
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
                 if self.simulation_dt is None:
