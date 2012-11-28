@@ -107,23 +107,13 @@ def get_quarter(dt):
     convert the given datetime to an integer representing
     the number of calendar quarters since 0.
     """
-    quarters = dt.year * 4
-    month = dt.month
-    if month <= 3:
-        return quarters + 1
-    elif month <= 6:
-        return quarters + 2
-    elif month <= 9:
-        return quarters + 3
-    else:
-        return quarters + 4
+    return (dt.year - 1) * 4 + (dt.month - 1) / 3 + 1
 
 
 def dates_of_quarter(quarter_num):
-    year = quarter_num / 4
-    quarter = quarter_num % 4
-    if quarter == 0:
-        quarter = 4
+    quarter_num -= 1
+    year = quarter_num / 4 + 1
+    quarter = quarter_num % 4 + 1
 
     if quarter == 1:
         start = datetime(year, 1, 1, 0, 0, tzinfo=pytz.utc)
