@@ -126,6 +126,7 @@ Thank you for all the help so far!
 
 - @snth
 - @yinhm for integrating zipline with @yinhm/datafeed
+- [Jeremiah Lowin](http://www.lowindata.com) for teaching us the nuances of Sharpe and Sortino Ratios
 - Quantopian Team
 
 (alert us if we've inadvertantly missed listing you here!)
