@@ -118,7 +118,6 @@ class StatefulTransform(object):
         # messages should only manipulate copies.
         log.info('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
-
             # allow upstream generators to yield None to avoid
             # blocking.
             if message is None:
@@ -233,7 +232,6 @@ class EventWindow(object):
 
     def update(self, event):
         self.assert_well_formed(event)
-
         # Add new event and increment totals.
         self.ticks.append(deepcopy(event))
 
@@ -370,6 +368,8 @@ class BatchTransform(EventWindow):
         self.updated = False
         self.data = None
 
+        self.field_names = None
+
     def handle_data(self, data, *args, **kwargs):
         """
         New method to handle a data frame as sent to the algorithm's
@@ -398,6 +398,16 @@ class BatchTransform(EventWindow):
         if not self.last_dt:
             self.last_dt = event.dt
             return
+
+        # extract field names from sids (price, volume etc), make sure
+        # every sid has the same fields.
+        sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
+        assert sid_keys[0] == set.union(*sid_keys),\
+            "Each sid must have the same keys."
+        if self.field_names is None:
+            unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
+                                   'datetime'])
+            self.field_names = sid_keys[0] - unwanted_fields
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -436,11 +446,9 @@ class BatchTransform(EventWindow):
         # self.ticks contains ndicts with data, dt keys.
         # event parameter is an ndict with data, dt keys.
         fields = {}
-        for field_name in ['price', 'volume']:
+
+        for field_name in self.field_names:
             sids = self.ticks[0].data.keys()
-            # Skip non-existant fields
-            if field_name not in self.ticks[0].data[sids[0]]:
-                continue
 
             values_per_sid = {}
 
@@ -452,7 +460,7 @@ class BatchTransform(EventWindow):
 
                 # concatenate different sids into one df
                 df = pd.DataFrame.from_dict(values_per_sid)
-                 # Fills in gaps of missing data during transform of multiple
+                # Fills in gaps of missing data during transform of multiple
                 # stocks.
                 # e.g. we may be missing minute data because of illiquidity
                 # of one stock
