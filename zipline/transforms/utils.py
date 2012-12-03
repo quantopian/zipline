@@ -401,13 +401,13 @@ class BatchTransform(EventWindow):
 
         # extract field names from sids (price, volume etc), make sure
         # every sid has the same fields.
-        sid_keys = [sid.keys() for sid in event.data.itervalues()]
-        assert set(sid_keys[0]) == set.union(*map(set, sid_keys)),\
+        sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
+        assert sid_keys[0] == set.union(*sid_keys),\
             "Each sid must have the same keys."
         if self.field_names is None:
             unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
                                    'datetime'])
-            self.field_names = set(sid_keys[0]) - unwanted_fields
+            self.field_names = sid_keys[0] - unwanted_fields
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
