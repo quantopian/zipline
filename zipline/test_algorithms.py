@@ -71,6 +71,8 @@ The algorithm must expose methods:
     and trade events.
 
 """
+from copy import deepcopy
+
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
 
@@ -248,6 +250,11 @@ def return_args_batch_decorator(data, *args, **kwargs):
     return args, kwargs
 
 
+@batch_transform
+def return_data(data, *args, **kwargs):
+    return data
+
+
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.refresh_period = kwargs.pop('refresh_period', 2)
@@ -261,6 +268,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args = []
         self.history_return_price_market_aware = []
         self.history_return_more_days_than_refresh = []
+        self.history_return_arbitrary_fields = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             market_aware=False,
@@ -292,6 +300,12 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             window_length=3
         )
 
+        self.return_arbitrary_fields = return_data(
+            market_aware=True,
+            refresh_period=1,
+            window_length=3
+        )
+
         self.set_slippage(FixedSlippage())
 
     def handle_data(self, data):
@@ -306,6 +320,13 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             self.return_price_market_aware.handle_data(data))
         self.history_return_more_days_than_refresh.append(
             self.return_price_more_days_than_refresh.handle_data(data))
+
+        new_data = deepcopy(data)
+        for sid in new_data:
+            new_data[sid]['arbitrary'] = 'test'
+
+        self.history_return_arbitrary_fields.append(
+            self.return_arbitrary_fields.handle_data(new_data))
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):

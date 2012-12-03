@@ -336,6 +336,18 @@ class TestBatchTransform(TestCase):
             "Sixth iteration should not be None"
         )
 
+        # Test whether arbitrary fields can be added to datapanel
+        field = algo.history_return_arbitrary_fields[-1]
+        self.assertTrue(
+            'arbitrary' in field.items,
+            'datapanel should contain column arbitrary'
+        )
+
+        self.assertTrue(all(
+            field['arbitrary'].values.flatten() == ['test'] * 8),
+            'arbitrary dataframe should contain only "test"'
+        )
+
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
