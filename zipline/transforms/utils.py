@@ -402,7 +402,7 @@ class BatchTransform(EventWindow):
         # extract field names from sids (price, volume etc), make sure
         # every sid has the same fields.
         sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
-        assert sid_keys[0] == set.union(*sid_keys),\
+        assert sid_keys[0] == set.intersection(*sid_keys),\
             "Each sid must have the same keys."
         if self.field_names is None:
             unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
