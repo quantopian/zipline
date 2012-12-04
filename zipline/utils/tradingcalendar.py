@@ -128,3 +128,48 @@ for rule in non_trading_rules:
     non_trading_ruleset.rrule(rule)
 
 non_trading_days = non_trading_ruleset.between(start, end, inc=True)
+
+# Add September 11th closings
+# http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
+# Due to the terrorist attacks, the stock market did not open on 9/11/2001
+# It did not open again until 9/17/2001.
+#
+#    September 2001
+# Su Mo Tu We Th Fr Sa
+#                    1
+#  2  3  4  5  6  7  8
+#  9 10 11 12 13 14 15
+# 16 17 18 19 20 21 22
+# 23 24 25 26 27 28 29
+# 30
+
+for day_num in range(11, 17):
+    non_trading_days.append(
+        datetime(2001, 9, day_num, tzinfo=pytz.utc))
+
+# Add closings due to Hurricane Sandy in 2012
+# http://en.wikipedia.org/wiki/Hurricane_sandy
+#
+# The stock exchange was closed due to Hurricane Sandy's
+# impact on New York.
+# It closed on 10/29 and 10/30, reopening on 10/31
+#     October 2012
+# Su Mo Tu We Th Fr Sa
+#     1  2  3  4  5  6
+#  7  8  9 10 11 12 13
+# 14 15 16 17 18 19 20
+# 21 22 23 24 25 26 27
+# 28 29 30 31
+
+for day_num in range(29, 31):
+    non_trading_days.append(
+        datetime(2012, 10, day_num, tzinfo=pytz.utc))
+
+# Misc closings from NYSE listing.
+# http://www.nyse.com/pdfs/closings.pdf
+#
+# National Days of Mourning
+# - President Ronald W. Reagan - June 11, 2004
+non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
+# - President Gerald R. Ford - Jan 2, 2007
+non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
