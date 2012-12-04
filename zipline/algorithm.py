@@ -41,6 +41,8 @@ from zipline.gens.composites import (
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 from zipline import MESSAGES
 
+DEFAULT_CAPITAL_BASE = float("1.0e5")
+
 
 class TradingAlgorithm(object):
     """Base class for trading algorithms. Inherit and overload
@@ -81,6 +83,9 @@ class TradingAlgorithm(object):
         # default components for transact
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
+
+        # set the capital base
+        self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
         # an algorithm subclass needs to set initialized to True
         # when it is fully initialized.
@@ -175,7 +180,11 @@ class TradingAlgorithm(object):
 
             self.transforms.append(sf)
 
-        environment = create_trading_environment(start=start, end=end)
+        environment = create_trading_environment(
+            start=start,
+            end=end,
+            capital_base=self.capital_base
+        )
 
         # create transforms and zipline
         self.gen = self._create_generator(environment)
