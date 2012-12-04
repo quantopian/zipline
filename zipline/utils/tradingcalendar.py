@@ -164,3 +164,12 @@ for day_num in range(11, 17):
 for day_num in range(29, 31):
     non_trading_days.append(
         datetime(2012, 10, day_num, tzinfo=pytz.utc))
+
+# Misc closings from NYSE listing.
+# http://www.nyse.com/pdfs/closings.pdf
+#
+# National Days of Mourning
+# - President Ronald W. Reagan - June 11, 2004
+non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
+# - President Gerald R. Ford - Jan 2, 2007
+non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
