@@ -92,7 +92,8 @@ Fetching data from data.treasury.gov
     return bm_returns, tr_curves
 
 
-def create_trading_environment(year=2006, start=None, end=None):
+def create_trading_environment(year=2006, start=None, end=None,
+                               capital_base=float("1.0e5")):
     """Construct a complete environment with reasonable defaults"""
     benchmark_returns, treasury_curves = load_market_data()
 
@@ -106,7 +107,7 @@ def create_trading_environment(year=2006, start=None, end=None):
         treasury_curves,
         period_start=start,
         period_end=end,
-        capital_base=100000.0
+        capital_base=capital_base
     )
 
     return trading_environment
