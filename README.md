@@ -49,8 +49,9 @@ and set up with pip:
 If there are problems installing the dependencies or zipline we
 recommend installing these packages via some other means. For Windows,
 the [Enthought Python Distribution](http://www.enthought.com/products/epd.php)
-includes most of the necessary dependencies. On OSX, the [Scipy Superpack]
-(http://fonnesbeck.github.com/ScipySuperpack/) works very well.
+includes most of the necessary dependencies. On OSX, the
+[Scipy Superpack](http://fonnesbeck.github.com/ScipySuperpack/)
+works very well.
 
 Dependencies
 ------------
