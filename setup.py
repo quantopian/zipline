@@ -26,8 +26,8 @@ def readme_as_rest():
     This allows to have one canonical README file, being the README.md
     """
     doc = pandoc.Document()
-    with open('README.md').read() as markdown_source:
-        doc.markdown = markdown_source
+    with open('README.md') as markdown_source:
+        doc.markdown = markdown_source.read()
     return doc.rst
 
 setup(
