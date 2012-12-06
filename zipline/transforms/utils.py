@@ -241,12 +241,7 @@ class EventWindow(object):
 
         # Clear out any expired events. drop_condition changes depending
         # on whether or not we are running in market_aware mode.
-        #
-        #                              oldest               newest
-        #                                |                    |
-        #                                V                    V
-        while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-
+        while self.drop_condition():
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
@@ -254,7 +249,7 @@ class EventWindow(object):
             # behavior for removing ticks.
             self.handle_remove(popped)
 
-    def out_of_market_window(self, oldest, newest):
+    def out_of_market_window(self):
         # Find number of unique days in window
         # Note that this assumes that each day we received an
         # event is a trading day.
@@ -262,8 +257,9 @@ class EventWindow(object):
 
         return len(unique_dts) > self.window_length
 
-    def out_of_delta(self, oldest, newest):
-        return (newest - oldest) >= self.delta
+    def out_of_delta(self):
+        # newest - oldest
+        return (self.ticks[-1].dt - self.ticks[0].dt) >= self.delta
 
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
