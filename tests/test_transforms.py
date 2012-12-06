@@ -341,7 +341,9 @@ class TestBatchTransform(TestCase):
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
-            for i in range(3, 6):
+            # starting at window length, the window should contain
+            # consecutive (of window length) numbers up till the end.
+            for i in range(algo.window_length, len(test_history)):
                 np.testing.assert_array_equal(
                     range(i - algo.window_length + 1, i + 1),
                     test_history[i].values.flatten()
