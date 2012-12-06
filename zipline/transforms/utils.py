@@ -239,17 +239,9 @@ class EventWindow(object):
         # adding new ticks.
         self.handle_add(event)
 
-        if self.market_aware:
-            self.add_new_holidays(event.dt)
-
         # Clear out any expired events. drop_condition changes depending
         # on whether or not we are running in market_aware mode.
-        #
-        #                              oldest               newest
-        #                                |                    |
-        #                                V                    V
-        while self.drop_condition(self.ticks[0].dt, self.ticks[-1].dt):
-
+        while self.drop_condition():
             # popleft removes and returns the oldest tick in self.ticks
             popped = self.ticks.popleft()
 
@@ -257,36 +249,17 @@ class EventWindow(object):
             # behavior for removing ticks.
             self.handle_remove(popped)
 
-    def add_new_holidays(self, newest):
-        # Add to our tracked window any untracked holidays that are
-        # older than our newest event. (newest should always be
-        # self.ticks[-1])
-        while len(self.all_holidays) > 0 and self.all_holidays[0] <= newest:
-            self.cur_holidays.append(self.all_holidays.popleft())
+    def out_of_market_window(self):
+        # Find number of unique days in window
+        # Note that this assumes that each day we received an
+        # event is a trading day.
+        unique_dts = set([event.dt.date() for event in self.ticks])
 
-    def drop_old_holidays(self, oldest):
-        # Drop from our tracked window any holidays that are older
-        # than our oldest tracked event. (oldest should always
-        # be self.ticks[0])
-        while len(self.cur_holidays) > 0 and self.cur_holidays[0] < oldest:
-            self.cur_holidays.popleft()
+        return len(unique_dts) > self.window_length
 
-    def out_of_market_window(self, oldest, newest):
-        self.drop_old_holidays(oldest)
-        calendar_dates_between = (newest.date() - oldest.date()).days
-        holidays_between = len(self.cur_holidays)
-        trading_days_between = calendar_dates_between - holidays_between
-
-        # "Put back" a day if oldest is earlier in its day than newest,
-        # reflecting the fact that we haven't yet completed the last
-        # day in the window.
-        if oldest.time() > newest.time():
-            trading_days_between -= 1
-
-        return trading_days_between >= self.window_length
-
-    def out_of_delta(self, oldest, newest):
-        return (newest - oldest) >= self.delta
+    def out_of_delta(self):
+        # newest - oldest
+        return (self.ticks[-1].dt - self.ticks[0].dt) >= self.delta
 
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
@@ -344,18 +317,18 @@ class BatchTransform(EventWindow):
     def __init__(self,
                  func=None,
                  refresh_period=None,
-                 market_aware=True,
-                 delta=None,
-                 window_length=None):
+                 window_length=None,
+                 fillna=True):
 
-        super(BatchTransform, self).__init__(market_aware,
-                                             window_length=window_length,
-                                             delta=delta)
+        super(BatchTransform, self).__init__(True,
+                                             window_length=window_length)
 
         if func is not None:
             self.compute_transform_value = func
         else:
             self.compute_transform_value = self.get_value
+
+        self.fillna = fillna
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -366,7 +339,7 @@ class BatchTransform(EventWindow):
         self.last_dt = None
 
         self.updated = False
-        self.data = None
+        self.cached = None
 
         self.field_names = None
 
@@ -394,20 +367,22 @@ class BatchTransform(EventWindow):
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
 
-    def handle_add(self, event):
-        if not self.last_dt:
-            self.last_dt = event.dt
-            return
-
+    def _extract_field_names(self, event):
         # extract field names from sids (price, volume etc), make sure
         # every sid has the same fields.
         sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
         assert sid_keys[0] == set.intersection(*sid_keys),\
             "Each sid must have the same keys."
-        if self.field_names is None:
-            unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
-                                   'datetime'])
-            self.field_names = sid_keys[0] - unwanted_fields
+
+        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
+                               'datetime', 'source_id'])
+        return sid_keys[0] - unwanted_fields
+
+    def handle_add(self, event):
+        if not self.last_dt:
+            self.field_names = self._extract_field_names(event)
+            self.last_dt = event.dt
+            return
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -419,13 +394,11 @@ class BatchTransform(EventWindow):
             self.trading_days_total >= self.window_length and
             self.trading_days_since_update >= self.refresh_period
         ):
-
-            # Create datapanel of running event window.
-            self.data = self.get_data()
             # Setting updated to True will cause get_transform_value()
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
+            self.full = True
             self.trading_days_since_update = 0
         else:
             self.updated = False
@@ -442,36 +415,28 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
-        #
-        # self.ticks contains ndicts with data, dt keys.
-        # event parameter is an ndict with data, dt keys.
-        fields = {}
+        sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+        dts = [tick.dt for tick in self.ticks]
 
-        for field_name in self.field_names:
-            sids = self.ticks[0].data.keys()
+        data = pd.Panel(items=self.field_names, major_axis=dts,
+                        minor_axis=sids)
 
-            values_per_sid = {}
+        # Fill data panel
+        for tick in self.ticks:
+            dt = tick.dt
+            for sid, fields in tick.data.iteritems():
+                for field_name in self.field_names:
+                    data[field_name][sid].ix[dt] = fields[field_name]
 
-            for sid in sids:
-                values_per_sid[sid] = pd.Series(
-                    {tick.data[sid].dt: tick.data[sid][field_name]
-                     for tick in self.ticks}
-                )
+        if self.fillna:
+            # Fills in gaps of missing data during transform
+            # of multiple stocks. E.g. we may be missing
+            # minute data because of illiquidity of one stock
+            data = data.fillna(method='ffill')
 
-                # concatenate different sids into one df
-                df = pd.DataFrame.from_dict(values_per_sid)
-                # Fills in gaps of missing data during transform of multiple
-                # stocks.
-                # e.g. we may be missing minute data because of illiquidity
-                # of one stock
-                df = df.fillna(method='ffill')
-                # Drop any empty rows after the fill.
-                # This will drop a leading row of N/A
-                df = df.dropna()
-
-                fields[field_name] = df
-
-        data = pd.Panel.from_dict(fields, orient='items')
+            # Drop any empty rows after the fill.
+            # This will drop a leading row of N/A
+            data = data.dropna(axis=1)
 
         return data
 
@@ -491,11 +456,11 @@ class BatchTransform(EventWindow):
         has actually been updated. Otherwise, the previously, cached
         value will be returned.
         """
-        if self.data is None:
+        if not self.full:
             return None
 
         if self.updated:
-            self.cached = self.compute_transform_value(self.data,
+            self.cached = self.compute_transform_value(self.get_data(),
                                                        *args, **kwargs)
 
         return self.cached
