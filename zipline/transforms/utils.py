@@ -433,15 +433,10 @@ class BatchTransform(EventWindow):
             # of multiple stocks. E.g. we may be missing
             # minute data because of illiquidity of one stock
             data = data.fillna(method='ffill')
-            # Since we already forward filled, this can only
-            # fill the first value if it was missing.
-            # It's not wise to drop a complete column via dropna())
-            # because of one missing value.
-            data = data.fillna(method='bfill')
 
             # Drop any empty rows after the fill.
             # This will drop a leading row of N/A
-            data = data.dropna()
+            data = data.dropna(axis=1)
 
         return data
 
