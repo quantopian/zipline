@@ -123,11 +123,7 @@ class TestEventWindow(TestCase):
             # Record the length of the window after each event.
             lengths.append(len(window.ticks))
 
-        # The window stretches out during the weekend because we wait
-        # to drop events until the weekend ends. The last window is
-        # briefly longer because it doesn't complete a full day.  The
-        # window then shrinks once the day completes
-        assert lengths == [1, 2, 3, 3, 3, 4, 5, 5, 5, 3, 4, 3]
+        assert lengths == [1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
         assert window.added == events
         assert window.removed == events[:-3]
 
@@ -146,7 +142,7 @@ class TestEventWindow(TestCase):
             # Record the length of the window after each event.
             lengths.append(len(window.ticks))
 
-        assert lengths == [1, 2, 3, 3, 2]
+        assert lengths == [1, 2, 2, 2, 2]
         assert window.added == events
         assert window.removed == events[:-2]
 
