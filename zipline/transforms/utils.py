@@ -318,7 +318,7 @@ class BatchTransform(EventWindow):
                  func=None,
                  refresh_period=None,
                  window_length=None,
-                 fillna=True):
+                 clean_nans=True):
 
         super(BatchTransform, self).__init__(True,
                                              window_length=window_length)
@@ -328,7 +328,7 @@ class BatchTransform(EventWindow):
         else:
             self.compute_transform_value = self.get_value
 
-        self.fillna = fillna
+        self.clean_nans = clean_nans
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -428,7 +428,7 @@ class BatchTransform(EventWindow):
                 for field_name in self.field_names:
                     data[field_name][sid].ix[dt] = fields[field_name]
 
-        if self.fillna:
+        if self.clean_nans:
             # Fills in gaps of missing data during transform
             # of multiple stocks. E.g. we may be missing
             # minute data because of illiquidity of one stock

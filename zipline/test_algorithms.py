@@ -272,37 +272,37 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=False
+            clean_nans=False
         )
 
         self.return_price_decorator = return_price_batch_decorator(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=False
+            clean_nans=False
         )
 
         self.return_args_batch = return_args_batch_decorator(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=False
+            clean_nans=False
         )
 
         self.return_price_market_aware = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=False
+            clean_nans=False
         )
 
         self.return_arbitrary_fields = return_data(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=False
+            clean_nans=False
         )
 
         self.return_nan = return_price_batch_decorator(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            fillna=True
+            clean_nans=True
         )
 
         self.iter = 0
