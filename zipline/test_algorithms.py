@@ -299,7 +299,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             fillna=False
         )
 
-        self.return_nan = ReturnPriceBatchTransform(
+        self.return_nan = return_price_batch_decorator(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
             fillna=True
