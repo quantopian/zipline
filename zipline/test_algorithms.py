@@ -214,7 +214,6 @@ class TimeoutAlgorithm(TradingAlgorithm):
             time.sleep(100)
         pass
 
-from datetime import timedelta
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import BatchTransform, batch_transform
 from zipline.transforms import MovingAverage
@@ -237,6 +236,7 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
 
 class ReturnPriceBatchTransform(BatchTransform):
     def get_value(self, data):
+        assert data.shape[1] == self.window_length
         return data.price
 
 
@@ -257,7 +257,7 @@ def return_data(data, *args, **kwargs):
 
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.refresh_period = kwargs.pop('refresh_period', 2)
+        self.refresh_period = kwargs.pop('refresh_period', 1)
         self.window_length = kwargs.pop('window_length', 3)
 
         self.args = args

@@ -345,7 +345,7 @@ class BatchTransform(EventWindow):
         self.last_dt = None
 
         self.updated = False
-        self.data = None
+        self.cached = None
 
         self.field_names = None
 
@@ -373,20 +373,22 @@ class BatchTransform(EventWindow):
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
 
-    def handle_add(self, event):
-        if not self.last_dt:
-            self.last_dt = event.dt
-            return
-
+    def _extract_field_names(self, event):
         # extract field names from sids (price, volume etc), make sure
         # every sid has the same fields.
         sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
         assert sid_keys[0] == set.intersection(*sid_keys),\
             "Each sid must have the same keys."
-        if self.field_names is None:
-            unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
-                                   'datetime'])
-            self.field_names = sid_keys[0] - unwanted_fields
+
+        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
+                               'datetime'])
+        return sid_keys[0] - unwanted_fields
+
+    def handle_add(self, event):
+        if not self.last_dt:
+            self.field_names = self._extract_field_names(event)
+            self.last_dt = event.dt
+            return
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -398,13 +400,11 @@ class BatchTransform(EventWindow):
             self.trading_days_total >= self.window_length and
             self.trading_days_since_update >= self.refresh_period
         ):
-
-            # Create datapanel of running event window.
-            self.data = self.get_data()
             # Setting updated to True will cause get_transform_value()
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
+            self.full = True
             self.trading_days_since_update = 0
         else:
             self.updated = False
@@ -427,7 +427,8 @@ class BatchTransform(EventWindow):
         fields = {}
 
         for field_name in self.field_names:
-            sids = self.ticks[0].data.keys()
+            # Extract all used sids
+            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
 
             values_per_sid = {}
 
@@ -471,11 +472,11 @@ class BatchTransform(EventWindow):
         has actually been updated. Otherwise, the previously, cached
         value will be returned.
         """
-        if self.data is None:
+        if not self.full:
             return None
 
         if self.updated:
-            self.cached = self.compute_transform_value(self.data,
+            self.cached = self.compute_transform_value(self.get_data(),
                                                        *args, **kwargs)
 
         return self.cached

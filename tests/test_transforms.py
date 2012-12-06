@@ -340,27 +340,19 @@ class TestBatchTransform(TestCase):
         )
 
         self.assertTrue(all(
-            field['arbitrary'].values.flatten() == ['test'] * 8),
+            field['arbitrary'].values.flatten() ==
+            ['test'] * algo.window_length),
             'arbitrary dataframe should contain only "test"'
         )
 
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
-            np.testing.assert_array_equal(
-                range(2, 8),
-                test_history[2].values.flatten()
-            )
-
-            np.testing.assert_array_equal(
-                range(2, 8),
-                test_history[3].values.flatten()
-            )
-
-            np.testing.assert_array_equal(
-                range(4, 12),
-                test_history[4].values.flatten()
-            )
+            for i in range(3, 6):
+                np.testing.assert_array_equal(
+                    range(i - algo.window_length + 1, i + 1),
+                    test_history[i].values.flatten()
+                )
 
     def test_passing_of_args(self):
         algo = BatchTransformAlgorithm(1, kwarg='str')
@@ -371,8 +363,8 @@ class TestBatchTransform(TestCase):
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(
             algo.history_return_args,
-            [None, None, expected_item, expected_item,
-             expected_item, expected_item])
+            [None, None, None, expected_item, expected_item,
+             expected_item])
 
 
 class TestBatchTransformMarketAware(TestCase):
