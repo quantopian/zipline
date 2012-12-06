@@ -322,8 +322,7 @@ class BatchTransform(EventWindow):
                  func=None,
                  refresh_period=None,
                  window_length=None,
-                 fillna=True,
-                 fill_method='ffill'):
+                 fillna=True):
 
         super(BatchTransform, self).__init__(True,
                                              window_length=window_length)
@@ -334,7 +333,6 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.fillna = fillna
-        self.fill_method = fill_method
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -381,7 +379,7 @@ class BatchTransform(EventWindow):
             "Each sid must have the same keys."
 
         unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
-                               'datetime'])
+                               'datetime', 'source_id'])
         return sid_keys[0] - unwanted_fields
 
     def handle_add(self, event):
@@ -421,38 +419,33 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
-        #
-        # self.ticks contains ndicts with data, dt keys.
-        # event parameter is an ndict with data, dt keys.
-        fields = {}
+        sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+        dts = [tick.dt for tick in self.ticks]
 
-        for field_name in self.field_names:
-            # Extract all used sids
-            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+        data = pd.Panel(items=self.field_names, major_axis=dts,
+                        minor_axis=sids)
 
-            values_per_sid = {}
+        # Fill data panel
+        for tick in self.ticks:
+            dt = tick.dt
+            for sid, fields in tick.data.iteritems():
+                for field_name in self.field_names:
+                    data[field_name][sid].ix[dt] = fields[field_name]
 
-            for sid in sids:
-                values_per_sid[sid] = pd.Series(
-                    {tick.data[sid].dt: tick.data[sid][field_name]
-                     for tick in self.ticks}
-                )
+        if self.fillna:
+            # Fills in gaps of missing data during transform
+            # of multiple stocks. E.g. we may be missing
+            # minute data because of illiquidity of one stock
+            data = data.fillna(method='ffill')
+            # Since we already forward filled, this can only
+            # fill the first value if it was missing.
+            # It's not wise to drop a complete column via dropna())
+            # because of one missing value.
+            data = data.fillna(method='bfill')
 
-                # concatenate different sids into one df
-                df = pd.DataFrame.from_dict(values_per_sid)
-
-                if self.fillna:
-                    # Fills in gaps of missing data during transform
-                    # of multiple stocks. E.g. we may be missing
-                    # minute data because of illiquidity of one stock
-                    df = df.fillna(method=self.fill_method)
-                    # Drop any empty rows after the fill.
-                    # This will drop a leading row of N/A
-                    df = df.dropna()
-
-                fields[field_name] = df
-
-        data = pd.Panel.from_dict(fields, orient='items')
+            # Drop any empty rows after the fill.
+            # This will drop a leading row of N/A
+            data = data.dropna()
 
         return data
 

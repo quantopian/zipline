@@ -313,23 +313,16 @@ class TestBatchTransform(TestCase):
     def test_event_window(self):
         algo = BatchTransformAlgorithm()
         algo.run(self.source)
-
-        self.assertEqual(algo.history_return_price_class[:2],
-                         [None, None],
+        wl = algo.window_length
+        self.assertEqual(algo.history_return_price_class[:wl],
+                         [None] * wl,
                          "First two iterations should return None")
-        self.assertEqual(algo.history_return_price_decorator[:2],
-                         [None, None],
+        self.assertEqual(algo.history_return_price_decorator[:wl],
+                         [None] * wl,
                          "First two iterations should return None")
-        self.assertEqual(algo.history_return_price_market_aware[:2],
-                         [None, None],
-                         "First two iterations should return None")
-        self.assertEqual(algo.history_return_more_days_than_refresh[:3],
-                         [None, None, None],
-                         "First five iterations should return None")
         self.assertTrue(isinstance(
-            algo.history_return_more_days_than_refresh[4],
-            pd.DataFrame),
-            "Sixth iteration should not be None"
+            algo.history_return_price_class[wl + 1],
+            pd.DataFrame)
         )
 
         # Test whether arbitrary fields can be added to datapanel
@@ -341,7 +334,7 @@ class TestBatchTransform(TestCase):
 
         self.assertTrue(all(
             field['arbitrary'].values.flatten() ==
-            ['test'] * algo.window_length),
+            [123] * algo.window_length),
             'arbitrary dataframe should contain only "test"'
         )
 
@@ -365,27 +358,3 @@ class TestBatchTransform(TestCase):
             algo.history_return_args,
             [None, None, None, expected_item, expected_item,
              expected_item])
-
-
-class TestBatchTransformMarketAware(TestCase):
-    def setUp(self):
-        setup_logger(self)
-        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
-        end = pd.datetime(1994, 1, 1, 0, 0, 0, 0, pytz.utc)
-
-        self.data = factory.load_from_yahoo(stocks=['AAPL'],
-                                            indexes={},
-                                            start=start, end=end)
-
-    def test_event_window(self):
-        days = 50
-        algo = BatchTransformAlgorithm(days=days, refresh_period=days)
-        algo.run(self.data)
-
-        self.assertEqual(algo.history_return_price_market_aware[:days],
-                         [None] * days,
-                         "First {days} iterations should return None"
-                         .format(days=days))
-        self.assertFalse(algo.history_return_price_market_aware[days + 1]
-                         is None,
-                         "Window is contains too many Nones.")

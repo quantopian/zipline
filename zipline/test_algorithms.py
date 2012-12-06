@@ -266,9 +266,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_price_class = []
         self.history_return_price_decorator = []
         self.history_return_args = []
-        self.history_return_price_market_aware = []
-        self.history_return_more_days_than_refresh = []
         self.history_return_arbitrary_fields = []
+        self.history_return_nan = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -294,17 +293,19 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             fillna=False
         )
 
-        self.return_price_more_days_than_refresh = ReturnPriceBatchTransform(
-            refresh_period=1,
-            window_length=3,
+        self.return_arbitrary_fields = return_data(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
             fillna=False
         )
 
-        self.return_arbitrary_fields = return_data(
-            refresh_period=1,
-            window_length=3,
-            fillna=False
+        self.return_nan = ReturnPriceBatchTransform(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            fillna=True
         )
+
+        self.iter = 0
 
         self.set_slippage(FixedSlippage())
 
@@ -316,17 +317,27 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args.append(
             self.return_args_batch.handle_data(
                 data, *self.args, **self.kwargs))
-        self.history_return_price_market_aware.append(
-            self.return_price_market_aware.handle_data(data))
-        self.history_return_more_days_than_refresh.append(
-            self.return_price_more_days_than_refresh.handle_data(data))
 
         new_data = deepcopy(data)
         for sid in new_data:
-            new_data[sid]['arbitrary'] = 'test'
+            new_data[sid]['arbitrary'] = 123
 
         self.history_return_arbitrary_fields.append(
             self.return_arbitrary_fields.handle_data(new_data))
+
+        # nan every second event price
+        if self.iter % 2 == 0:
+            self.history_return_nan.append(
+                self.return_nan.handle_data(data))
+        else:
+            nan_data = deepcopy(data)
+            import numpy as np
+            for sid in nan_data.iterkeys():
+                nan_data[sid].price = np.nan
+            self.history_return_nan.append(
+                self.return_nan.handle_data(nan_data))
+
+        self.iter += 1
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):
