@@ -271,39 +271,39 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_arbitrary_fields = []
 
         self.return_price_class = ReturnPriceBatchTransform(
-            market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.window_length)
+            window_length=self.window_length,
+            fillna=False
         )
 
         self.return_price_decorator = return_price_batch_decorator(
-            market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.window_length)
+            window_length=self.window_length,
+            fillna=False
         )
 
         self.return_args_batch = return_args_batch_decorator(
-            market_aware=False,
             refresh_period=self.refresh_period,
-            delta=timedelta(days=self.window_length)
+            window_length=self.window_length,
+            fillna=False
         )
 
         self.return_price_market_aware = ReturnPriceBatchTransform(
-            market_aware=True,
             refresh_period=self.refresh_period,
-            window_length=self.window_length
+            window_length=self.window_length,
+            fillna=False
         )
 
         self.return_price_more_days_than_refresh = ReturnPriceBatchTransform(
-            market_aware=True,
             refresh_period=1,
-            window_length=3
+            window_length=3,
+            fillna=False
         )
 
         self.return_arbitrary_fields = return_data(
-            market_aware=True,
             refresh_period=1,
-            window_length=3
+            window_length=3,
+            fillna=False
         )
 
         self.set_slippage(FixedSlippage())

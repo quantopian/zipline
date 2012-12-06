@@ -321,18 +321,20 @@ class BatchTransform(EventWindow):
     def __init__(self,
                  func=None,
                  refresh_period=None,
-                 market_aware=True,
-                 delta=None,
-                 window_length=None):
+                 window_length=None,
+                 fillna=True,
+                 fill_method='ffill'):
 
-        super(BatchTransform, self).__init__(market_aware,
-                                             window_length=window_length,
-                                             delta=delta)
+        super(BatchTransform, self).__init__(True,
+                                             window_length=window_length)
 
         if func is not None:
             self.compute_transform_value = func
         else:
             self.compute_transform_value = self.get_value
+
+        self.fillna = fillna
+        self.fill_method = fill_method
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -437,14 +439,15 @@ class BatchTransform(EventWindow):
 
                 # concatenate different sids into one df
                 df = pd.DataFrame.from_dict(values_per_sid)
-                # Fills in gaps of missing data during transform of multiple
-                # stocks.
-                # e.g. we may be missing minute data because of illiquidity
-                # of one stock
-                df = df.fillna(method='ffill')
-                # Drop any empty rows after the fill.
-                # This will drop a leading row of N/A
-                df = df.dropna()
+
+                if self.fillna:
+                    # Fills in gaps of missing data during transform
+                    # of multiple stocks. E.g. we may be missing
+                    # minute data because of illiquidity of one stock
+                    df = df.fillna(method=self.fill_method)
+                    # Drop any empty rows after the fill.
+                    # This will drop a leading row of N/A
+                    df = df.dropna()
 
                 fields[field_name] = df
 
