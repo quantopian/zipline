@@ -15,16 +15,7 @@
 
 
 import pytz
-import iso8601
 from datetime import datetime, timedelta
-
-
-# iso8061 utility
-# ---------------------
-def parse_iso8061(date_string):
-    dt = iso8601.parse_date(date_string)
-    dt = dt.replace(tzinfo=pytz.utc)
-    return dt
 
 
 # Epoch utilities
@@ -62,11 +53,6 @@ def UN_EPOCH(ms_since_epoch):
     delta = timedelta(milliseconds=ms_since_epoch)
     dt = UNIX_EPOCH + delta
     return dt
-
-
-def iso8061_to_epoch(datestring):
-    dt = parse_iso8061(datestring)
-    return EPOCH(dt)
 
 
 def epoch_now():
