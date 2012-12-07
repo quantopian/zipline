@@ -370,7 +370,12 @@ class BatchTransform(EventWindow):
     def _extract_field_names(self, event):
         # extract field names from sids (price, volume etc), make sure
         # every sid has the same fields.
-        sid_keys = [set(sid.keys()) for sid in event.data.itervalues()]
+        sid_keys = []
+        for sid in event.data.itervalues():
+            keys = set([name for name, value in sid.items()
+                        if (isinstance(value, (int, float)))])
+            sid_keys.append(keys)
+
         assert sid_keys[0] == set.intersection(*sid_keys),\
             "Each sid must have the same keys."
 
@@ -426,7 +431,7 @@ class BatchTransform(EventWindow):
             dt = tick.dt
             for sid, fields in tick.data.iteritems():
                 for field_name in self.field_names:
-                    data[field_name][sid].ix[dt] = fields[field_name]
+                        data[field_name][sid].ix[dt] = fields[field_name]
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
