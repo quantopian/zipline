@@ -1,0 +1,8 @@
+# Extra modules, goodies for algorithms.
+
+matplotlib==1.2.0
+scipy==0.11.0
+scikits.learn==0.8.1
+scikits.statsmodels==0.3.1
+statsmodels==0.5.0
+patsy==0.1.0
