@@ -62,7 +62,7 @@ check treasury and benchmark data in findb, and re-run the test."""
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
 
-        self.dt = self.trading_environment.trading_days[random_index]
+        self.dt = self.trading_environment.trading_day_map.keys()[random_index]
 
     def tearDown(self):
         pass
