@@ -55,6 +55,7 @@ Risk Report
 import logbook
 import datetime
 import math
+from collections import OrderedDict
 import bisect
 from operator import itemgetter
 import numpy as np
@@ -102,6 +103,9 @@ class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns, trading_environment):
 
         self.treasury_curves = trading_environment.treasury_curves
+        assert isinstance(self.treasury_curves, OrderedDict), \
+            "Treasury curves must be an OrderedDict"
+
         self.start_date = start_date
         self.end_date = end_date
         self.trading_environment = trading_environment
@@ -351,11 +355,15 @@ class RiskMetricsBase(object):
             if search_day:
                 search_dist = search_dist or \
                     self.search_day_distance(search_day)
-                if search_dist is None or search_dist > 1:
+
+                if (search_dist is None or search_dist > 1) and \
+                        search_days[0] <= self.end_date <= search_days[-1]:
                     message = "No rate within 1 trading day of end date = \
-{dt} and term = {term}. Check that date doesn't exceed treasury history range."
+{dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
+treasury history range."
                     message = message.format(dt=self.end_date,
-                                             term=self.treasury_duration)
+                                             term=self.treasury_duration,
+                                             search_day=search_day)
                     log.warn(message)
 
         if search_day:
