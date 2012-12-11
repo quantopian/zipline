@@ -239,6 +239,9 @@ class EventWindow(object):
         # adding new ticks.
         self.handle_add(event)
 
+        if self.market_aware:
+            self.add_new_holidays(event.dt)
+
         # Clear out any expired events. drop_condition changes depending
         # on whether or not we are running in market_aware mode.
         #
@@ -254,13 +257,33 @@ class EventWindow(object):
             # behavior for removing ticks.
             self.handle_remove(popped)
 
-    def out_of_market_window(self, oldest, newest):
-        # Find number of unique days in window
-        # Note that this assumes that each day we received an
-        # event is a trading day.
-        unique_dts = set([event.dt.date() for event in self.ticks])
+    def add_new_holidays(self, newest):
+        # Add to our tracked window any untracked holidays that are
+        # older than our newest event. (newest should always be
+        # self.ticks[-1])
+        while len(self.all_holidays) > 0 and self.all_holidays[0] <= newest:
+            self.cur_holidays.append(self.all_holidays.popleft())
 
-        return len(unique_dts) > self.window_length
+    def drop_old_holidays(self, oldest):
+        # Drop from our tracked window any holidays that are older
+        # than our oldest tracked event. (oldest should always
+        # be self.ticks[0])
+        while len(self.cur_holidays) > 0 and self.cur_holidays[0] < oldest:
+            self.cur_holidays.popleft()
+
+    def out_of_market_window(self, oldest, newest):
+        self.drop_old_holidays(oldest)
+        calendar_dates_between = (newest.date() - oldest.date()).days
+        holidays_between = len(self.cur_holidays)
+        trading_days_between = calendar_dates_between - holidays_between
+
+        # "Put back" a day if oldest is earlier in its day than newest,
+        # reflecting the fact that we haven't yet completed the last
+        # day in the window.
+        if oldest.time() > newest.time():
+            trading_days_between -= 1
+
+        return trading_days_between >= self.window_length
 
     def out_of_delta(self, oldest, newest):
         return (newest - oldest) >= self.delta
