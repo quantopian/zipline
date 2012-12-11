@@ -1,4 +1,4 @@
-msgpack-python==0.2.2
+msgpack-python==0.2.3
 iso8601==0.1.4
 
 # Logging
