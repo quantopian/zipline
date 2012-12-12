@@ -159,11 +159,11 @@ class PerformanceTracker(object):
 
         self.trading_environment = trading_environment
         self.trading_day = datetime.timedelta(hours=6, minutes=30)
-        self.calendar_day = datetime.timedelta(hours=24)
         self.started_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
         self.period_start = self.trading_environment.period_start
         self.period_end = self.trading_environment.period_end
+        self.last_close = self.trading_environment.last_close
         self.market_open = self.trading_environment.first_open
         self.market_close = self.market_open + self.trading_day
         self.progress = 0.0
@@ -211,17 +211,23 @@ class PerformanceTracker(object):
         Main generator work loop.
         """
         for date, snapshot in stream_in:
-            yield date, [self._transform_event(event) for event in snapshot]
+            new_snapshot = []
 
-    def _transform_event(self, event):
-        if event.dt == "DONE":
-            event.perf_message = self.handle_simulation_end()
-        else:
-            event.perf_message = self.process_event(event)
-            event.portfolio = self.get_portfolio()
+            for event in snapshot:
+                if date != "DONE":
+                    event.perf_message = self.process_event(event)
+                    event.portfolio = self.get_portfolio()
+                else:
+                    # the stream will end on the last trading day, but will
+                    # not trigger an end of day, so we trigger the final
+                    # market close here
+                    event.perf_message = self.handle_market_close()
+                    event.risk_message = self.handle_simulation_end()
 
-        del event['TRANSACTION']
-        return event
+                del event['TRANSACTION']
+                new_snapshot.append(event)
+
+            yield date, new_snapshot
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
@@ -249,7 +255,7 @@ class PerformanceTracker(object):
         assert isinstance(event, ndict)
         self.event_count += 1
 
-        if(event.dt >= self.market_close):
+        if(event.dt > self.market_close):
             message = self.handle_market_close()
 
         if event.TRANSACTION:
@@ -279,6 +285,7 @@ class PerformanceTracker(object):
 
         #update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
+            self.market_close,
             self.todays_performance.returns)
 
         # increment the day counter before we move markers forward.
@@ -290,15 +297,23 @@ class PerformanceTracker(object):
         # browser.
         daily_update = self.to_dict()
 
+        # On the last day of the test, don't create tomorrow's performance
+        # period.  We may not be able to find the next trading day if we're
+        # at the end of our historical data
+        if self.market_close >= self.last_close:
+            return daily_update
+
         #move the market day markers forward
-        self.market_open = self.market_open + self.calendar_day
+        next_open = self.trading_environment.next_trading_day(self.market_open)
+        if next_open is None:
+            raise Exception(
+                "Attempt to backtest beyond available history. \
+Last successful date: %s" % self.market_open)
 
-        while not self.trading_environment.is_trading_day(self.market_open):
-            if self.market_open > self.trading_environment.trading_days[-1]:
-                raise Exception(
-                    "Attempt to backtest beyond available history.")
-            self.market_open = self.market_open + self.calendar_day
-
+        # next_open is a midnight date, but we want the time too
+        self.market_open = next_open.replace(hour=self.market_open.hour,
+                                             minute=self.market_open.minute,
+                                             second=self.market_open.second)
         self.market_close = self.market_open + self.trading_day
 
         # Roll over positions to current day.
@@ -323,10 +338,8 @@ class PerformanceTracker(object):
         log.info(log_msg.format(n=self.day_count, m=self.total_days))
         log.info("first open: {d}".format(
             d=self.trading_environment.first_open))
-
-        # the stream will end on the last trading day, but will not trigger
-        # an end of day, so we trigger the final market close here.
-        self.handle_market_close()
+        log.info("last close: {d}".format(
+            d=self.trading_environment.last_close))
 
         self.risk_report = risk.RiskReport(
             self.returns,

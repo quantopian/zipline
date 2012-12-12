@@ -39,7 +39,8 @@ class TestTransformAlgorithm(TestCase):
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
-        self.df_source, self.df = factory.create_test_df_source()
+        self.df_source, self.df = \
+            factory.create_test_df_source(self.trading_environment)
 
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(sids=[133])

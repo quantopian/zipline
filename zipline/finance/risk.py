@@ -423,7 +423,7 @@ class RiskMetricsIterative(RiskMetricsBase):
             if x.date >= self.start_date
         ]
 
-    def update(self, returns_in_period):
+    def update(self, market_close, returns_in_period):
         if self.trading_environment.is_trading_day(self.end_date):
             self.algorithm_returns.append(returns_in_period)
             self.benchmark_returns.append(
@@ -431,18 +431,7 @@ class RiskMetricsIterative(RiskMetricsBase):
             self.trading_days += 1
             self.update_compounded_log_returns()
 
-        next_trading_day = \
-            self.trading_environment.next_trading_day(self.end_date)
-
-        if next_trading_day:
-            self.end_date = next_trading_day
-        else:
-            message = "No trading data on or after {dt}. Check \
-that date doesn't exceed benchmark history range."
-            message = message.format(dt=self.end_date)
-            raise Exception(message)
-
-        self.end_date = self.end_date.replace(hour=0, minute=0, second=0)
+        self.end_date = market_close
 
         self.algorithm_period_returns.append(
             self.calculate_period_returns(self.algorithm_returns))

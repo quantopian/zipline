@@ -209,6 +209,7 @@ class AlgorithmSimulator(object):
                 if date == 'DONE':
                     for event in snapshot:
                         yield event.perf_message
+                        yield event.risk_message
                     raise StopIteration
 
                 # We're still in the warmup period.  Use the event to

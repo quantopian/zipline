@@ -18,10 +18,14 @@ import copy
 import random
 import datetime
 import pytz
+import itertools
+from operator import attrgetter
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.utils.protocol_utils import ndict
+from zipline.gens.sort import date_sort
+from zipline.protocol import DATASOURCE_TYPE
 
 from zipline.finance.trading import TradingEnvironment
 
@@ -539,7 +543,8 @@ shares in position"
             price_list,
             volume,
             trade_time_increment,
-            self.trading_environment
+            self.trading_environment,
+            source_id="factory1"
         )
 
         sid2 = 134
@@ -550,13 +555,18 @@ shares in position"
             price2_list,
             volume,
             trade_time_increment,
-            self.trading_environment
+            self.trading_environment,
+            source_id="factory2"
         )
 
         trade_history.extend(trade_history2)
 
         self.trading_environment.period_start = trade_history[0].dt
         self.trading_environment.period_end = trade_history[-1].dt
+        self.trading_environment.first_open = \
+            self.trading_environment.calculate_first_open()
+        self.trading_environment.last_close = \
+            self.trading_environment.calculate_last_close()
         self.trading_environment.capital_base = 1000.0
         self.trading_environment.frame_index = [
             'sid',
@@ -568,21 +578,26 @@ shares in position"
             self.trading_environment
         )
 
-        for event in trade_history:
-            #create a transaction for all but
-            #first trade in each sid, to simulate None transaction
-            if(event.dt != self.trading_environment.period_start):
-                txn = ndict({
-                    'sid': event.sid,
-                    'amount': -25,
-                    'dt': event.dt,
-                    'price': 10.0,
-                    'commission': 0.50
-                })
-            else:
-                txn = None
-            event['TRANSACTION'] = txn
-            perf_tracker.process_event(event)
+        # date_sort requires 'DONE' messages from each source
+        events = itertools.chain(trade_history,
+                                 [ndict({
+                                        'source_id': 'factory1',
+                                        'dt': 'DONE',
+                                        'type': DATASOURCE_TYPE.TRADE
+                                        }),
+                                  ndict({
+                                        'source_id': 'factory2',
+                                        'dt': 'DONE',
+                                        'type': DATASOURCE_TYPE.TRADE
+                                        })])
+        events = date_sort(events, ('factory1', 'factory2'))
+        events = itertools.chain(events,
+                                 [ndict({'dt': 'DONE'})])
+
+        events = [self.event_with_txn(event) for event in events]
+
+        list(perf_tracker.transform(
+            itertools.groupby(events, attrgetter('dt'))))
 
         #we skip two trades, to test case of None transaction
         txn_count = len(trade_history) - 2
@@ -592,6 +607,23 @@ shares in position"
         expected_size = txn_count / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
 
-        self.assertEqual(perf_tracker.period_end.
-                         replace(hour=0, minute=0, second=0),
+        self.assertEqual(perf_tracker.last_close,
                          perf_tracker.cumulative_risk_metrics.end_date)
+
+    def event_with_txn(self, event):
+        #create a transaction for all but
+        #first trade in each sid, to simulate None transaction
+        if event.dt != self.trading_environment.period_start \
+                and event.dt != 'DONE':
+            txn = ndict({
+                'sid': event.sid,
+                'amount': -25,
+                'dt': event.dt,
+                'price': 10.0,
+                'commission': 0.50
+            })
+        else:
+            txn = None
+        event['TRANSACTION'] = txn
+
+        return event

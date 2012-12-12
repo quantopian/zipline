@@ -127,12 +127,13 @@ def get_next_trading_dt(current, interval, trading_calendar):
     return next
 
 
-def create_trade_history(sid, prices, amounts, interval, trading_calendar):
+def create_trade_history(sid, prices, amounts, interval, trading_calendar,
+                         source_id="test_factory"):
     trades = []
     current = trading_calendar.first_open
 
     for price, amount in zip(prices, amounts):
-        trade = create_trade(sid, price, amount, current)
+        trade = create_trade(sid, price, amount, current, source_id)
         trades.append(trade)
         current = get_next_trading_dt(current, interval, trading_calendar)
 
@@ -272,9 +273,13 @@ def create_trade_source(sids, trade_count,
     return source
 
 
-def create_test_df_source():
-    start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
-    end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+def create_test_df_source(trading_calendar=None):
+    start = trading_calendar.first_open \
+        if trading_calendar else pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+
+    end = trading_calendar.last_close \
+        if trading_calendar else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+
     index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
     x = np.arange(0, len(index))
 
