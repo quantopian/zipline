@@ -67,7 +67,6 @@ class TradingEnvironment(object):
         capital_base=None
     ):
 
-        self.trading_days = []
         self.trading_day_map = OrderedDict()
         self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
@@ -80,12 +79,14 @@ class TradingEnvironment(object):
             "Period start falls after period end."
 
         for bm in benchmark_returns:
-            self.trading_days.append(bm.date)
             self.trading_day_map[bm.date] = bm
 
-        assert self.period_start <= self.trading_days[-1], \
+        self.first_trading_day = next(self.trading_day_map.iterkeys())
+        self.last_trading_day = next(reversed(self.trading_day_map))
+
+        assert self.period_start <= self.last_trading_day, \
             "Period start falls after the last known trading day."
-        assert self.period_end >= self.trading_days[0], \
+        assert self.period_end >= self.first_trading_day, \
             "Period end falls before the first known trading day."
 
         self.first_open = self.calculate_first_open()
@@ -114,7 +115,7 @@ class TradingEnvironment(object):
         one_day = datetime.timedelta(days=1)
         first_open = self.period_start - one_day
 
-        if first_open <= self.trading_days[0]:
+        if first_open <= self.first_trading_day:
             log.warn("Cannot calculate prior day open.")
             return self.period_start
 
@@ -169,7 +170,7 @@ class TradingEnvironment(object):
 
         if self.period_trading_days is None:
             self.period_trading_days = []
-            for date in self.trading_days:
+            for date in self.trading_day_map.iterkeys():
                 if date > self.period_end:
                     break
                 if date >= self.period_start:
@@ -193,10 +194,9 @@ class TradingEnvironment(object):
 
     def next_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
-        last_dt = next(reversed(self.trading_day_map))
         delta = datetime.timedelta(days=1)
 
-        while dt <= last_dt:
+        while dt <= self.last_trading_day:
             dt += delta
             if dt in self.trading_day_map:
                 return dt

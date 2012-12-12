@@ -87,10 +87,10 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
                 #assert that when original raises exception, same
                 #exception is raised by risk_metrics_refactor
                 np.testing.assert_raises(
-                    type(e), risk_metrics_refactor.update, ret)
+                    type(e), risk_metrics_refactor.update, todays_date, ret)
                 continue
 
-            risk_metrics_refactor.update(ret)
+            risk_metrics_refactor.update(todays_date, ret)
 
             self.assertEqual(
                 risk_metrics_original.start_date,
