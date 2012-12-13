@@ -42,33 +42,48 @@ class DualMovingAverage(TradingAlgorithm):
         # To keep track of whether we invested in the stock or not
         self.invested = False
 
-        self.short_mavgs = []
-        self.long_mavgs = []
+        self.record_variable('short_mavg')
+        self.record_variable('long_mavg')
+        self.record_variable('buy')
+        self.record_variable('sell')
 
     def handle_data(self, data):
-        short_mavg = data['AAPL'].short_mavg['price']
-        long_mavg = data['AAPL'].long_mavg['price']
-        if short_mavg > long_mavg and not self.invested:
+        self.short_mavg = data['AAPL'].short_mavg['price']
+        self.long_mavg = data['AAPL'].long_mavg['price']
+        if self.short_mavg > self.long_mavg and not self.invested:
             self.order('AAPL', 100)
             self.invested = True
-        elif short_mavg < long_mavg and self.invested:
+            self.buy = True
+            self.sell = False
+        elif self.short_mavg < self.long_mavg and self.invested:
             self.order('AAPL', -100)
             self.invested = False
-
-        # Save mavgs for later analysis.
-        self.short_mavgs.append(short_mavg)
-        self.long_mavgs.append(long_mavg)
-
+            self.sell = True
+            self.buy = False
+        else:
+            self.buy = False
+            self.sell = False
 
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})
     dma = DualMovingAverage()
     results = dma.run(data)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    results.portfolio_value.plot(ax=ax1)
 
-    results.portfolio_value.plot()
+    # todo: should turn up in the stats automatically
+    data['short'] = dma.record_var_values['short_mavg'][:-1]
+    data['long'] = dma.record_var_values['long_mavg'][:-1]
+    data['buy'] = dma.record_var_values['buy'][:-1]
+    data['sell'] = dma.record_var_values['sell'][:-1]
 
-    data['short'] = dma.short_mavgs
-    data['long'] = dma.long_mavgs
-    data[['AAPL', 'short', 'long']].plot()
+    ax2 = fig.add_subplot(212)
+    data[['AAPL', 'short', 'long']].plot(ax=ax2)
+
+    ax2.plot(data.ix[data.buy].index, data.short[data.buy],
+             '^', markersize=10, color='m')
+    ax2.plot(data.ix[data.sell].index, data.short[data.sell],
+             'v', markersize=10, color='k')
     plt.legend(loc=0)
     plt.show()
