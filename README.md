@@ -61,7 +61,6 @@ Dependencies
 * pandas (>= 0.9.0)
 * pytz
 * msgpack-python
-* iso8601
 * Logbook
 * blist
 
