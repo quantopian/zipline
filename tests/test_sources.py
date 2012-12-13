@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pandas as pd
 
 from unittest import TestCase
 
@@ -20,8 +21,10 @@ from zipline.sources import DataFrameSource
 
 
 class TestDataFrameSource(TestCase):
-    def test_streaming_of_df(self):
+    def test_df_source(self):
         source, df = factory.create_test_df_source()
+        assert isinstance(source.start, pd.lib.Timestamp)
+        assert isinstance(source.end, pd.lib.Timestamp)
 
         for expected_dt, expected_price in df.iterrows():
             sid0 = source.next()
@@ -29,8 +32,23 @@ class TestDataFrameSource(TestCase):
             assert expected_dt == sid0.dt
             assert expected_price[0] == sid0.price
 
-    def test_sid_filtering(self):
+    def test_df_sid_filtering(self):
         _, df = factory.create_test_df_source()
         source = DataFrameSource(df, sids=[0])
         assert 1 not in [event.sid for event in source], \
             "DataFrameSource should only stream selected sid 0, not sid 1."
+
+    def test_panel_source(self):
+        source, panel = factory.create_test_panel_source()
+        assert isinstance(source.start, pd.lib.Timestamp)
+        assert isinstance(source.end, pd.lib.Timestamp)
+        for event in source:
+            assert 'sid' in event
+            assert 'arbitrary' in event
+            assert 'volume' in event
+            assert 'price' in event
+            assert event['arbitrary'] == 1.
+            assert event['volume'] == 1000
+            assert event['sid'] == 0
+            assert isinstance(event['volume'], int)
+            assert isinstance(event['arbitrary'], float)

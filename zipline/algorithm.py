@@ -23,7 +23,7 @@ from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
 
-from zipline.sources import DataFrameSource
+from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_trading_environment
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
@@ -153,9 +153,10 @@ class TradingAlgorithm(object):
                 """When providing a list of sources, \
                 start and end date have to be specified."""
         elif isinstance(source, pd.DataFrame):
-            assert isinstance(source.index, pd.tseries.index.DatetimeIndex)
             # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source)
+        elif isinstance(source, pd.Panel):
+            source = DataPanelSource(source)
 
         # If values not set, try to extract from source.
         if start is None:

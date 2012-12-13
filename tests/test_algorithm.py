@@ -20,7 +20,9 @@ import numpy as np
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
 from zipline.test_algorithms import TestRegisterTransformAlgorithm
-from zipline.sources import SpecificEquityTrades, DataFrameSource
+from zipline.sources import (SpecificEquityTrades,
+                             DataFrameSource,
+                             DataPanelSource)
 from zipline.transforms import MovingAverage
 
 
@@ -41,6 +43,9 @@ class TestTransformAlgorithm(TestCase):
 
         self.df_source, self.df = \
             factory.create_test_df_source(self.trading_environment)
+
+        self.panel_source, self.panel = \
+            factory.create_test_panel_source(self.trading_environment)
 
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(sids=[133])
@@ -63,6 +68,11 @@ class TestTransformAlgorithm(TestCase):
         algo = TestRegisterTransformAlgorithm(sids=[0, 1])
         algo.run(self.df)
         assert isinstance(algo.sources[0], DataFrameSource)
+
+    def test_panel_as_input(self):
+        algo = TestRegisterTransformAlgorithm(sids=[0, 1])
+        algo.run(self.panel)
+        assert isinstance(algo.sources[0], DataPanelSource)
 
     def test_run_twice(self):
         algo = TestRegisterTransformAlgorithm(sids=[0, 1])

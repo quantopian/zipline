@@ -31,7 +31,9 @@ from datetime import datetime, timedelta
 import zipline.finance.risk as risk
 from zipline.utils.date_utils import tuple_to_date
 from zipline.utils.protocol_utils import ndict
-from zipline.sources import SpecificEquityTrades, DataFrameSource
+from zipline.sources import (SpecificEquityTrades,
+                             DataFrameSource,
+                             DataPanelSource)
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import TradingEnvironment
 from zipline.data.loader import (
@@ -286,6 +288,27 @@ def create_test_df_source(trading_calendar=None):
     df = pd.DataFrame(x, index=index, columns=[0])
 
     return DataFrameSource(df), df
+
+
+def create_test_panel_source(trading_calendar=None):
+    start = trading_calendar.first_open \
+        if trading_calendar else pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+
+    end = trading_calendar.last_close \
+        if trading_calendar else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+
+    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    price = np.arange(0, len(index))
+    volume = np.ones(len(index)) * 1000
+    arbitrary = np.ones(len(index))
+
+    df = pd.DataFrame({'price': price,
+                       'volume': volume,
+                       'arbitrary': arbitrary},
+                      index=index)
+    panel = pd.Panel.from_dict({0: df})
+
+    return DataPanelSource(panel), panel
 
 
 def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
