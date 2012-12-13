@@ -86,6 +86,9 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
+        self.registered_vars = []
+        self.record_var_values = {}
+
         self.logger = None
 
         # default components for transact
@@ -209,7 +212,11 @@ class TradingAlgorithm(object):
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict
-        perfs = list(self.gen)
+        perfs = []
+        for perf in self.gen:
+            self.record_vars()
+            perfs.append(perf)
+        #perfs = list(self.gen)
 
         # convert perf ndict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
@@ -249,6 +256,14 @@ class TradingAlgorithm(object):
         self.registered_transforms[tag] = {'class': transform_class,
                                            'args': args,
                                            'kwargs': kwargs}
+
+    def record_variable(self, name):
+        self.registered_vars.append(name)
+        self.record_var_values[name] = []
+
+    def record_vars(self):
+        for name in self.registered_vars:
+            self.record_var_values[name].append(getattr(self, name))
 
     @property
     def portfolio(self):
