@@ -57,7 +57,6 @@ import datetime
 import math
 from collections import OrderedDict
 import bisect
-from operator import itemgetter
 import numpy as np
 import numpy.linalg as la
 from zipline.utils.date_utils import epoch_now
@@ -304,6 +303,12 @@ class RiskMetricsBase(object):
 
         return 1.0 - math.exp(max_drawdown)
 
+    @property
+    def treasury_durations(self):
+        return ['1month', '3month', '6month',
+                '1year', '2year', '3year', '5year',
+                '7year', '10year', '30year']
+
     def choose_treasury(self):
         td = self.end_date - self.start_date
         if td.days <= 31:
@@ -327,37 +332,31 @@ class RiskMetricsBase(object):
         else:
             self.treasury_duration = '30year'
 
-        # in case end date is not a trading day, search for the next or
-        # previous market day for an interest rate.  choose next in a tie.
+        end_day = self.end_date.replace(hour=0, minute=0, second=0)
         search_day = None
 
-        if self.end_date in self.treasury_curves:
-            search_day = self.end_date
-        else:
+        if end_day in self.treasury_curves:
+            rate = self.get_treasury_rate(end_day)
+            if rate is not None:
+                search_day = end_day
+
+        if not search_day:
+            # in case end date is not a trading day or there is no treasury
+            # data, search for the previous day with an interest rate.
             search_days = self.treasury_curves.keys()
-            next_day = prev_day = None
 
-            # Find leftmost item greater than or equal to end_date
-            i = bisect.bisect_left(search_days, self.end_date)
-            if i != len(search_days):
-                next_day = search_days[i]
-            if i:
-                prev_day = search_days[i - 1]
-
-            search_dist = None
-            if next_day and prev_day:
-                search_day, search_dist = \
-                    min(((dt, self.search_day_distance(dt))
-                        for dt in (next_day, prev_day)), key=itemgetter(1))
-            else:
-                search_day = next_day or prev_day
+            # Find rightmost value less than or equal to end_day
+            i = bisect.bisect_right(search_days, end_day)
+            for prev_day in search_days[i - 1::-1]:
+                rate = self.get_treasury_rate(prev_day)
+                if rate is not None:
+                    search_day = prev_day
+                    search_dist = self.search_day_distance(prev_day)
+                    break
 
             if search_day:
-                search_dist = search_dist or \
-                    self.search_day_distance(search_day)
-
                 if (search_dist is None or search_dist > 1) and \
-                        search_days[0] <= self.end_date <= search_days[-1]:
+                        search_days[0] <= end_day <= search_days[-1]:
                     message = "No rate within 1 trading day of end date = \
 {dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
 treasury history range."
@@ -367,16 +366,8 @@ treasury history range."
                     log.warn(message)
 
         if search_day:
-            curve = self.treasury_curves[search_day]
-            self.treasury_curve = curve
-            rate = self.treasury_curve[self.treasury_duration]
-            # 1month note data begins in 8/2001,
-            # so we can use 3month instead.
-            if rate is None and self.treasury_duration == '1month':
-                rate = self.treasury_curve['3month']
-
-            if rate is not None:
-                return rate * (td.days + 1) / 365
+            self.treasury_curve = self.treasury_curves[search_day]
+            return rate * (td.days + 1) / 365
 
         message = "No rate for end date = {dt} and term = {term}. Check \
 that date doesn't exceed treasury history range."
@@ -387,10 +378,25 @@ that date doesn't exceed treasury history range."
         raise Exception(message)
 
     def search_day_distance(self, dt):
-        tdd = self.trading_environment.trading_day_distance(self.end_date, dt)
+        tdd = self.trading_environment.trading_day_distance(dt, self.end_date)
         if tdd is None:
             return None
-        return tdd if tdd >= 0 else -1 * tdd + .5  # prev is 'farther'
+        assert tdd >= 0
+        return tdd
+
+    def get_treasury_rate(self, day):
+        rate = None
+
+        curve = self.treasury_curves[day]
+        # 1month note data begins in 8/2001,
+        # so we can use 3month instead.
+        idx = self.treasury_durations.index(self.treasury_duration)
+        for duration in self.treasury_durations[idx:]:
+            rate = curve[duration]
+            if rate is not None:
+                break
+
+        return rate
 
 
 class RiskMetricsIterative(RiskMetricsBase):
