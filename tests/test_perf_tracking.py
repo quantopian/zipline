@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import unittest
+from nose_parameterized import parameterized
 import copy
 import random
 import datetime
@@ -33,43 +34,48 @@ from zipline.finance.trading import TradingEnvironment
 class PerformanceTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.benchmark_returns, self.treasury_curves = \
-            factory.load_market_data()
-
-        for n in range(100):
-
-            random_index = random.randint(
-                0,
-                len(self.treasury_curves)
-            )
-
-            self.dt = self.treasury_curves.keys()[random_index]
-            self.end_dt = self.dt + datetime.timedelta(days=365)
-
-            now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-
-            if self.end_dt <= now:
-                break
-
-        assert self.end_dt <= now, """
-failed to find a date suitable daterange after 100 attempts. please double
-check treasury and benchmark data in findb, and re-run the test."""
-
-        self.trading_environment = TradingEnvironment(
-            self.benchmark_returns,
-            self.treasury_curves,
-            period_start=self.dt,
-            period_end=self.end_dt
-        )
-
         self.onesec = datetime.timedelta(seconds=1)
         self.oneday = datetime.timedelta(days=1)
         self.tradingday = datetime.timedelta(hours=6, minutes=30)
 
-        self.dt = self.trading_environment.trading_day_map.keys()[random_index]
+        self.trading_environment, self.dt, self.end_dt = self.create_env()
 
-    def tearDown(self):
-        pass
+    def create_env(self, start_dt=None):
+        benchmark_returns, treasury_curves = \
+            factory.load_market_data()
+
+        if not start_dt:
+            for n in range(100):
+
+                random_index = random.randint(
+                    0,
+                    len(treasury_curves)
+                )
+
+                start_dt = treasury_curves.keys()[random_index]
+                end_dt = start_dt + datetime.timedelta(days=365)
+
+                now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+                if end_dt <= now:
+                    break
+        else:
+            end_dt = start_dt + datetime.timedelta(days=365)
+            now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+        assert end_dt <= now, """
+failed to find a date suitable daterange after 100 attempts. please double
+check treasury and benchmark data in findb, and re-run the test."""
+        assert start_dt < end_dt, "start_dt must be less than end_dt"
+
+        trading_environment = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start=start_dt,
+            period_end=end_dt
+        )
+
+        return trading_environment, start_dt, end_dt
 
     def test_long_position(self):
         """
@@ -530,7 +536,18 @@ shares in position"
             "should be -400 for all trades and transactions in period"
         )
 
-    def test_tracker(self):
+    @parameterized.expand([
+                          (datetime.datetime(year=2008,
+                                             month=10,
+                                             day=9,
+                                             tzinfo=pytz.utc),),
+                          (datetime.datetime(year=2010,
+                                             month=10,
+                                             day=9,
+                                             tzinfo=pytz.utc),),
+                          (None,),  # random start_dt
+                          ])
+    def test_tracker(self, start_dt):
 
         trade_count = 100
         sid = 133
@@ -538,12 +555,15 @@ shares in position"
         price_list = [price] * trade_count
         volume = [100] * trade_count
         trade_time_increment = datetime.timedelta(days=1)
+
+        trading_environment, start_dt, end_dt = self.create_env(start_dt)
+
         trade_history = factory.create_trade_history(
             sid,
             price_list,
             volume,
             trade_time_increment,
-            self.trading_environment,
+            trading_environment,
             source_id="factory1"
         )
 
@@ -555,27 +575,27 @@ shares in position"
             price2_list,
             volume,
             trade_time_increment,
-            self.trading_environment,
+            trading_environment,
             source_id="factory2"
         )
 
         trade_history.extend(trade_history2)
 
-        self.trading_environment.period_start = trade_history[0].dt
-        self.trading_environment.period_end = trade_history[-1].dt
-        self.trading_environment.first_open = \
-            self.trading_environment.calculate_first_open()
-        self.trading_environment.last_close = \
-            self.trading_environment.calculate_last_close()
-        self.trading_environment.capital_base = 1000.0
-        self.trading_environment.frame_index = [
+        trading_environment.period_start = trade_history[0].dt
+        trading_environment.period_end = trade_history[-1].dt
+        trading_environment.first_open = \
+            trading_environment.calculate_first_open()
+        trading_environment.last_close = \
+            trading_environment.calculate_last_close()
+        trading_environment.capital_base = 1000.0
+        trading_environment.frame_index = [
             'sid',
             'volume',
             'dt',
             'price',
             'changed']
         perf_tracker = perf.PerformanceTracker(
-            self.trading_environment
+            trading_environment
         )
 
         # date_sort requires 'DONE' messages from each source
@@ -594,7 +614,8 @@ shares in position"
         events = itertools.chain(events,
                                  [ndict({'dt': 'DONE'})])
 
-        events = [self.event_with_txn(event) for event in events]
+        events = [self.event_with_txn(event, trading_environment)
+                  for event in events]
 
         list(perf_tracker.transform(
             itertools.groupby(events, attrgetter('dt'))))
@@ -610,10 +631,10 @@ shares in position"
         self.assertEqual(perf_tracker.last_close,
                          perf_tracker.cumulative_risk_metrics.end_date)
 
-    def event_with_txn(self, event):
+    def event_with_txn(self, event, env):
         #create a transaction for all but
         #first trade in each sid, to simulate None transaction
-        if event.dt != self.trading_environment.period_start \
+        if event.dt != env.period_start \
                 and event.dt != 'DONE':
             txn = ndict({
                 'sid': event.sid,
