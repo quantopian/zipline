@@ -9,7 +9,7 @@ nosexcover==1.0.7
 coverage==3.5.3
 
 # Fetching sample data
-requests==0.14.2
+requests==1.0.0
 
 # Linting
 
