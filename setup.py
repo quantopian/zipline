@@ -32,7 +32,7 @@ def readme_as_rest():
 
 setup(
     name='zipline',
-    version='0.5.4',
+    version='0.5.5',
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
