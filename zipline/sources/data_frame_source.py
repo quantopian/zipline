@@ -81,3 +81,72 @@ class DataFrameSource(DataSource):
         if not self._raw_data:
             self._raw_data = self.raw_data_gen()
         return self._raw_data
+
+
+class DataPanelSource(DataSource):
+    """
+    Yields all events in event_list that match the given sid_filter.
+    If no event_list is specified, generates an internal stream of events
+    to filter.  Returns all events if filter is None.
+
+    Configuration options:
+
+    sids   : list of values representing simulated internal sids
+    start  : start date
+    delta  : timedelta between internal events
+    filter : filter to remove the sids
+    """
+
+    def __init__(self, data, **kwargs):
+        assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
+
+        self.data = data
+        # Unpack config dictionary with default values.
+        self.sids = kwargs.get('sids', data.items)
+        self.start = kwargs.get('start', data.major_axis[0])
+        self.end = kwargs.get('end', data.major_axis[-1])
+
+        # Hash_value for downstream sorting.
+        self.arg_string = hash_args(data, **kwargs)
+
+        self._raw_data = None
+
+    @property
+    def mapping(self):
+        mapping = {
+            'dt': (lambda x: x, 'dt'),
+            'sid': (lambda x: x, 'sid'),
+            'price': (float, 'price'),
+            'volume': (int, 'volume'),
+        }
+
+        # Add additional fields.
+        for field_name in self.data.minor_axis:
+            if field_name in ['price', 'volume', 'dt', 'sid']:
+                continue
+            mapping[field_name] = (lambda x: x, field_name)
+
+        return mapping
+
+    @property
+    def instance_hash(self):
+        return self.arg_string
+
+    def raw_data_gen(self):
+        for sid, dataframe in self.data.iteritems():
+            for dt, series in dataframe.iterrows():
+                if sid in self.sids:
+                    event = {
+                        'dt': dt,
+                        'sid': sid,
+                    }
+                for field_name, value in series.iteritems():
+                    event[field_name] = value
+
+                yield event
+
+    @property
+    def raw_data(self):
+        if not self._raw_data:
+            self._raw_data = self.raw_data_gen()
+        return self._raw_data
