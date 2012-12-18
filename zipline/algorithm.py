@@ -214,7 +214,9 @@ class TradingAlgorithm(object):
         # perf ndict
         perfs = []
         for perf in self.gen:
-            self.record_vars()
+            current_vars = self.record_vars()
+            if 'daily_perf' in perf:
+                perf['daily_perf'].update(current_vars)
             perfs.append(perf)
         #perfs = list(self.gen)
 
@@ -257,13 +259,15 @@ class TradingAlgorithm(object):
                                            'args': args,
                                            'kwargs': kwargs}
 
+    def record_variables(self, names):
+        for name in names:
+            self.record_variable(name)
+
     def record_variable(self, name):
         self.registered_vars.append(name)
-        self.record_var_values[name] = []
 
     def record_vars(self):
-        for name in self.registered_vars:
-            self.record_var_values[name].append(getattr(self, name))
+        return {name: getattr(self, name) for name in self.registered_vars}
 
     @property
     def portfolio(self):
