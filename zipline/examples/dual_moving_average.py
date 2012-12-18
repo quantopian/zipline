@@ -63,6 +63,7 @@ if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})
     dma = DualMovingAverage()
     results = dma.run(data)
+    print results.short_mavg
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
     results.portfolio_value.plot(ax=ax1)
