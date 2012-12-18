@@ -14,3 +14,6 @@ numpy==1.6.2
 pandas==0.10.0
 python-dateutil==2.1
 six==1.2.0
+
+# For fetching remote data
+requests==1.0.3

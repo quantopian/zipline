@@ -8,9 +8,6 @@ nose-parameterized==0.1
 nosexcover==1.0.7
 coverage==3.5.3
 
-# Fetching sample data
-requests==1.0.0
-
 # Linting
 
 flake8==1.6.2
