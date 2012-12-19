@@ -140,10 +140,10 @@ class DataPanelSource(DataSource):
                         'dt': dt,
                         'sid': sid,
                     }
-                for field_name, value in series.iteritems():
-                    event[field_name] = value
+                    for field_name, value in series.iteritems():
+                        event[field_name] = value
 
-                yield event
+                    yield event
 
     @property
     def raw_data(self):
