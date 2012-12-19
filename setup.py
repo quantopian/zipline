@@ -14,30 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pandoc
-pandoc.core.PANDOC_PATH = 'pandoc'
-
 from setuptools import setup, find_packages
 
+LONG_DESCRIPTION = None
+README_MARKDOWN = None
 
-def readme_as_rest():
-    """
-    Converts the README.md file to ReST, since PyPI uses ReST for formatting,
-    This allows to have one canonical README file, being the README.md
-    """
+with open('README.md') as markdown_source:
+    README_MARKDOWN = markdown_source.read()
+
+try:
+    import pandoc
+    pandoc.core.PANDOC_PATH = 'pandoc'
+    # Converts the README.md file to ReST, since PyPI uses ReST for formatting,
+    # This allows to have one canonical README file, being the README.md
     doc = pandoc.Document()
-    with open('README.md') as markdown_source:
-        doc.markdown = markdown_source.read()
-    return doc.rst
+    doc.markdown = README_MARKDOWN
+    LONG_DESCRIPTION = doc.rst
+except ImportError:
+    # If pandoc isn't installed, e.g. when downloading from pip,
+    # just use the regular README.
+    LONG_DESCRIPTION = README_MARKDOWN
 
 setup(
     name='zipline',
-    version='0.5.5',
+    version='0.5.6',
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages(),
-    long_description=readme_as_rest(),
+    long_description=LONG_DESCRIPTION,
     license='Apache 2.0',
     classifiers=[
         'Development Status :: 4 - Beta',
