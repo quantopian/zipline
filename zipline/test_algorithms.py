@@ -268,6 +268,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args = []
         self.history_return_arbitrary_fields = []
         self.history_return_nan = []
+        self.history_return_sid_filter = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -305,6 +306,13 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             clean_nans=True
         )
 
+        self.return_sid_filter = return_price_batch_decorator(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=True,
+            sids=[0]
+        )
+
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
@@ -338,6 +346,13 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 self.return_nan.handle_data(nan_data))
 
         self.iter += 1
+
+        # Add a new sid to check that it does not get included
+        extra_sid_data = deepcopy(data)
+        extra_sid_data[1] = extra_sid_data[0]
+        self.history_return_sid_filter.append(
+            self.return_sid_filter.handle_data(extra_sid_data)
+        )
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):
