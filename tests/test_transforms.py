@@ -342,6 +342,10 @@ class TestBatchTransform(TestCase):
             'arbitrary dataframe should contain only "test"'
         )
 
+        for data in algo.history_return_sid_filter[wl:]:
+            self.assertIn(0, data.columns)
+            self.assertNotIn(1, data.columns)
+
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
