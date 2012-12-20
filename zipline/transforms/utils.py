@@ -346,7 +346,8 @@ class BatchTransform(EventWindow):
                  refresh_period=None,
                  window_length=None,
                  clean_nans=True,
-                 sids=None):
+                 sids=None,
+                 fields=None):
         """Instantiate new batch_transform object.
 
         :Arguments:
@@ -364,7 +365,10 @@ class BatchTransform(EventWindow):
                 Which sids to include in the moving window.  If not
                 supplied sids will be extracted from incoming
                 events.
-
+            fields : list <optional>
+                Which fields to include in the moving window
+                (e.g. 'price'). If not supplied, fields will be
+                extracted from incoming events.
         """
 
         super(BatchTransform, self).__init__(True,
@@ -390,7 +394,7 @@ class BatchTransform(EventWindow):
         self.updated = False
         self.cached = None
 
-        self.field_names = None
+        self.field_names = fields
 
     def handle_data(self, data, *args, **kwargs):
         """
@@ -434,7 +438,8 @@ class BatchTransform(EventWindow):
 
     def handle_add(self, event):
         if not self.last_dt:
-            self.field_names = self._extract_field_names(event)
+            if self.field_names is None:
+                self.field_names = self._extract_field_names(event)
             self.last_dt = event.dt
             return
 
