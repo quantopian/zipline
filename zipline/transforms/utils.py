@@ -382,6 +382,12 @@ class BatchTransform(EventWindow):
         self.clean_nans = clean_nans
 
         self.sids = sids
+        if isinstance(self.sids, (str, int)):
+            self.sids = [self.sids]
+
+        self.field_names = fields
+        if isinstance(self.field_names, str):
+            self.field_names = [self.field_names]
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -393,8 +399,6 @@ class BatchTransform(EventWindow):
 
         self.updated = False
         self.cached = None
-
-        self.field_names = fields
 
     def handle_data(self, data, *args, **kwargs):
         """
