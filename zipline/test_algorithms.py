@@ -269,6 +269,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_arbitrary_fields = []
         self.history_return_nan = []
         self.history_return_sid_filter = []
+        self.history_return_field_filter = []
+        self.history_return_field_no_filter = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -313,6 +315,19 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             sids=[0]
         )
 
+        self.return_field_filter = return_data(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=True,
+            fields=['price']
+        )
+
+        self.return_field_no_filter = return_data(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=True
+        )
+
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
@@ -352,6 +367,16 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         extra_sid_data[1] = extra_sid_data[0]
         self.history_return_sid_filter.append(
             self.return_sid_filter.handle_data(extra_sid_data)
+        )
+
+        # Add a field to check that it does not get included
+        extra_field_data = deepcopy(data)
+        extra_field_data[0]['ignore'] = extra_sid_data[0]['price']
+        self.history_return_field_filter.append(
+            self.return_field_filter.handle_data(extra_field_data)
+        )
+        self.history_return_field_no_filter.append(
+            self.return_field_no_filter.handle_data(extra_field_data)
         )
 
 
