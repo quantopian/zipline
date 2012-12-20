@@ -346,6 +346,14 @@ class TestBatchTransform(TestCase):
             self.assertIn(0, data.columns)
             self.assertNotIn(1, data.columns)
 
+        for data in algo.history_return_field_filter[wl:]:
+            self.assertIn('price', data.items)
+            self.assertNotIn('ignore', data.items)
+
+        for data in algo.history_return_field_no_filter[wl:]:
+            self.assertIn('price', data.items)
+            self.assertIn('ignore', data.items)
+
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:
