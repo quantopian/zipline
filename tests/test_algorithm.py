@@ -89,3 +89,17 @@ class TestTransformAlgorithm(TestCase):
         assert algo.registered_transforms['mavg']['kwargs'] == \
             {'window_length': 2, 'market_aware': True}
         assert algo.registered_transforms['mavg']['class'] is MovingAverage
+
+    def test_granularity_setting(self):
+        algo = TestRegisterTransformAlgorithm(granularity='daily')
+        self.assertEqual(algo.granularity, 'daily')
+        self.assertEqual(algo.annualizer, 250)
+
+        algo = TestRegisterTransformAlgorithm(granularity='minutely')
+        self.assertEqual(algo.granularity, 'minutely')
+        self.assertEqual(algo.annualizer, 250 * 6 * 60)
+
+        algo = TestRegisterTransformAlgorithm(granularity='minutely',
+                                              annualizer=10)
+        self.assertEqual(algo.granularity, 'minutely')
+        self.assertEqual(algo.annualizer, 10)

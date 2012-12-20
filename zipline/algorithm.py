@@ -65,8 +65,16 @@ class TradingAlgorithm(object):
 
     """
     def __init__(self, *args, **kwargs):
-        """
-        Initialize sids and other state variables.
+        """Initialize sids and other state variables.
+
+        :Arguments:
+            granularity : str (daily, hourly or minutely)
+               The duration of the bars.
+            annualizer : int <optional>
+               Which constant to use for annualizing risk metrics.
+               If not provided, will extract from granularity.
+            capital_base : float <default: 1.0e5>
+               How much capital to start with.
         """
         self.done = False
         self.order = None
@@ -84,15 +92,35 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
+        self.granularity = kwargs.get('granularity', 'daily')
+        # annualizer is used for e.g. risk calculations
+        self.annualizer = kwargs.get('annualizer', None)
+
         # set the capital base
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
-        # an algorithm subclass needs to set initialized to True
-        # when it is fully initialized.
+        # an algorithm subclass needs to set initialized to True when
+        # it is fully initialized.
         self.initialized = False
 
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
+
+        # set annualizer according to granularity
+        # this is happening after initialize because granularity
+        # could be set in there.
+        if self.annualizer is None:
+            if self.granularity == 'daily':
+                self.annualizer = 250
+            elif self.granularity == 'hourly':
+                # trading days * hours
+                self.annualizer = 250 * 6
+            elif self.granularity == 'minutely':
+                # trading days * hours * minutes
+                self.annualizer = 250 * 6 * 60
+            else:
+                raise NotImplementedError('{g} is not implemented.\
+                                          '.format(g=self.granularity))
 
     def _create_generator(self, environment):
         """
