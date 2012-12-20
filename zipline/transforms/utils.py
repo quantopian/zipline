@@ -345,7 +345,27 @@ class BatchTransform(EventWindow):
                  func=None,
                  refresh_period=None,
                  window_length=None,
-                 clean_nans=True):
+                 clean_nans=True,
+                 sids=None):
+        """Instantiate new batch_transform object.
+
+        :Arguments:
+            func : python function <optional>
+                If supplied will be called after each refresh_period
+                with the data panel and all args and kwargs supplied
+                to the handle_data() call.
+            refresh_period : int
+                Interval to call batch_transform function.
+            window_length : int
+                How many days the trailing window should have.
+            clean_nans : bool <default=True>
+                Whether to (forward) fill in nans.
+            sids : list <optional>
+                Which sids to include in the moving window.  If not
+                supplied sids will be extracted from incoming
+                events.
+
+        """
 
         super(BatchTransform, self).__init__(True,
                                              window_length=window_length)
@@ -356,6 +376,8 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.clean_nans = clean_nans
+
+        self.sids = sids
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -447,7 +469,13 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
-        sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+
+        # If sids are set, use those. Otherwise extract.
+        if self.sids is not None:
+            sids = self.sids
+        else:
+            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+
         dts = [tick.dt for tick in self.ticks]
 
         data = pd.Panel(items=self.field_names, major_axis=dts,
@@ -456,9 +484,10 @@ class BatchTransform(EventWindow):
         # Fill data panel
         for tick in self.ticks:
             dt = tick.dt
-            for sid, fields in tick.data.iteritems():
+            for sid in sids:
+                fields = tick.data[sid]
                 for field_name in self.field_names:
-                        data[field_name][sid].ix[dt] = fields[field_name]
+                    data[field_name][sid].ix[dt] = fields[field_name]
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
