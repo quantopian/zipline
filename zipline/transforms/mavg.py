@@ -139,8 +139,6 @@ class MovingAverageEventWindow(EventWindow):
         We only allow events with all of our tracked fields.
         """
         for field in self.fields:
-            assert field in event, \
-                "Event missing [%s] in MovingAverageEventWindow" % field
             assert isinstance(event[field], Number), \
                 "Got %s for %s in MovingAverageEventWindow" % (event[field],
                                                                field)

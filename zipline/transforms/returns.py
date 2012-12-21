@@ -32,8 +32,6 @@ class Returns(object):
         """
         Update and return the calculated returns for this event's sid.
         """
-        assert 'dt' in event
-        assert 'price' in event
         tracker = self.mapping[event.sid]
         tracker.update(event)
 

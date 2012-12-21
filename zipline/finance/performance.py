@@ -252,7 +252,6 @@ class PerformanceTracker(object):
 
         message = None
 
-        assert isinstance(event, ndict)
         self.event_count += 1
 
         if(event.dt > self.market_close):
