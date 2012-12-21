@@ -215,14 +215,11 @@ class PerformanceTracker(object):
 
             for event in snapshot:
                 if date != "DONE":
-                    event.perf_message = self.process_event(event)
+                    event.perf_messages = self.process_event(event)
                     event.portfolio = self.get_portfolio()
                 else:
-                    # the stream will end on the last trading day, but will
-                    # not trigger an end of day, so we trigger the final
-                    # market close here
-                    event.perf_message = self.handle_market_close()
-                    event.risk_message = self.handle_simulation_end()
+                    event.perf_messages, event.risk_message = \
+                        self.handle_simulation_end()
 
                 del event['TRANSACTION']
                 new_snapshot.append(event)
@@ -250,12 +247,12 @@ class PerformanceTracker(object):
 
     def process_event(self, event):
 
-        message = None
+        messages = []
 
         self.event_count += 1
 
-        if(event.dt > self.market_close):
-            message = self.handle_market_close()
+        while event.dt > self.market_close:
+            messages.append(self.handle_market_close())
 
         if event.TRANSACTION:
             self.txn_count += 1
@@ -270,7 +267,7 @@ class PerformanceTracker(object):
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
 
-        return message
+        return messages
 
     def handle_market_close(self):
 
@@ -332,9 +329,18 @@ Last successful date: %s" % self.market_open)
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
         """
+        # the stream will end on the last trading day, but will
+        # not trigger an end of day, so we trigger the final
+        # market close(s) here
+        perf_messages = []
+
+        while self.last_close > self.market_close:
+            perf_messages.append(self.handle_market_close())
+
+        perf_messages.append(self.handle_market_close())
 
         log_msg = "Simulated {n} trading days out of {m}."
-        log.info(log_msg.format(n=self.day_count, m=self.total_days))
+        log.info(log_msg.format(n=int(self.day_count), m=self.total_days))
         log.info("first open: {d}".format(
             d=self.trading_environment.first_open))
         log.info("last close: {d}".format(
@@ -346,7 +352,7 @@ Last successful date: %s" % self.market_open)
         )
 
         risk_dict = self.risk_report.to_dict()
-        return risk_dict
+        return perf_messages, risk_dict
 
 
 class Position(object):
