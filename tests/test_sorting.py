@@ -23,9 +23,7 @@ from collections import deque
 from zipline import ndict
 from zipline.gens.sort import (
     date_sort,
-    ready,
     done,
-    queue_is_ready,
     queue_is_done
 )
 from zipline.gens.utils import alternate, done_message
@@ -44,21 +42,17 @@ class HelperTestCase(TestCase):
     def test_individual_queue_logic(self):
         queue = deque()
         # Empty queues are neither done nor ready.
-        assert not queue_is_ready(queue)
         assert not queue_is_done(queue)
 
         queue.append(to_dt('foo'))
-        assert queue_is_ready(queue)
         assert not queue_is_done(queue)
 
         queue.appendleft(to_dt('DONE'))
-        assert queue_is_ready(queue)
 
         # Checking done when we have a message after done will trip an assert.
         self.assertRaises(AssertionError, queue_is_done, queue)
 
         queue.pop()
-        assert queue_is_ready(queue)
         assert queue_is_done(queue)
 
     def test_pop_logic(self):
@@ -67,32 +61,27 @@ class HelperTestCase(TestCase):
         for id in ids:
             sources[id] = deque()
 
-        assert not ready(sources)
         assert not done(sources)
 
         # All sources must have a message to be ready/done
         sources['a'].append(to_dt("datetime"))
-        assert not ready(sources)
         assert not done(sources)
         sources['a'].pop()
 
         for id in ids:
             sources[id].append(to_dt("datetime"))
 
-        assert ready(sources)
         assert not done(sources)
 
         for id in ids:
             sources[id].appendleft(to_dt("DONE"))
 
         # ["DONE", message] will trip an assert in queue_is_done.
-        assert ready(sources)
         self.assertRaises(AssertionError, done, sources)
 
         for id in ids:
             sources[id].pop()
 
-        assert ready(sources)
         assert done(sources)
 
 

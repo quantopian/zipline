@@ -56,7 +56,7 @@ def date_sort(stream_in, source_ids):
         # Only pop messages when we have a pending message from
         # all datasources. Stop if all sources have signalled done.
 
-        while ready(sources) and not done(sources):
+        while all(sources.values()) and not done(sources):
             message = pop_oldest(sources)
             assert_sort_protocol(message)
             yield message
@@ -66,21 +66,6 @@ def date_sort(stream_in, source_ids):
         assert len(queue) == 1, "Bad queue in date_sort on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in date_sort on exit: %s" % queue
-
-
-def ready(sources):
-    """
-    Feed is ready when every internal queue has at least one
-    message. Note that this include DONE messages, so done(sources) is
-    True only if ready(sources).
-    """
-    assert isinstance(sources, dict)
-    return all((queue_is_ready(source) for source in sources.itervalues()))
-
-
-def queue_is_ready(queue):
-    assert isinstance(queue, deque)
-    return len(queue) > 0
 
 
 def done(sources):
