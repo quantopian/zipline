@@ -22,7 +22,10 @@ from hashlib import md5
 from datetime import datetime
 from itertools import izip_longest
 from zipline import ndict
-from zipline.protocol import DATASOURCE_TYPE
+from zipline.protocol import (
+    DATASOURCE_TYPE,
+    Event
+)
 
 
 def mock_raw_event(sid, dt):
@@ -91,25 +94,25 @@ def hash_args(*args, **kwargs):
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
-    row = ndict({
-        'source_id': source_id,
-        'type': DATASOURCE_TYPE.TRADE,
-        'sid': sid,
-        'dt': datetime,
-        'price': price,
-        'close': price,
-        'open': price,
-        'low': price * .95,
-        'high': price * 1.05,
-        'volume': amount
-    })
-    return row
+    trade = Event()
+
+    trade.source_id = source_id
+    trade.type = DATASOURCE_TYPE.TRADE
+    trade.sid = sid
+    trade.dt = datetime
+    trade.price = price
+    trade.close = price
+    trade.open = price
+    trade.low = price * .95
+    trade.high = price * 1.05
+    trade.volume = amount
+
+    return trade
 
 
 def assert_datasource_protocol(event):
     """Assert that an event meets the protocol for datasource outputs."""
 
-    assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
 
@@ -123,7 +126,6 @@ def assert_trade_protocol(event):
     """Assert that an event meets the protocol for datasource TRADE outputs."""
     assert_datasource_protocol(event)
 
-    assert isinstance(event, ndict)
     assert event.type == DATASOURCE_TYPE.TRADE
     assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
@@ -133,35 +135,23 @@ def assert_trade_protocol(event):
 
 def assert_datasource_unframe_protocol(event):
     """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
-    assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert 'dt' in event
 
 
 def assert_sort_protocol(event):
     """Assert that an event is valid input to zp.FEED_FRAME."""
-    assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert 'dt' in event
 
 
 def assert_sort_unframe_protocol(event):
     """Same as above."""
-    assert isinstance(event, ndict)
     assert isinstance(event.source_id, basestring)
     assert event.type in DATASOURCE_TYPE
-    assert 'dt' in event
-
-
-def assert_transform_protocol(event):
-    """Transforms should return an ndict to be merged by merge."""
-    assert isinstance(event, ndict)
 
 
 def assert_merge_protocol(tnfm_ids, message):
     """Merge should output an ndict with a field for each id
     in its transform set."""
-    assert isinstance(message, ndict)
     assert set(tnfm_ids) == set(message.keys())
