@@ -19,7 +19,6 @@ Sorting generator.
 import logbook
 
 from collections import deque
-from zipline import ndict
 from zipline.gens.utils import (
     assert_datasource_unframe_protocol,
     assert_sort_protocol
@@ -127,9 +126,6 @@ def pop_oldest(sources):
 
 # Return the event with the older timestamp.  Break ties by source_id.
 def older(oldest, current):
-    assert isinstance(oldest, ndict)
-    assert isinstance(oldest, ndict)
-
     # Try to compare by dt.
     if oldest.dt < current.dt:
         return oldest
