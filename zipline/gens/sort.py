@@ -20,7 +20,6 @@ import logbook
 
 from collections import deque
 from zipline.gens.utils import (
-    assert_datasource_unframe_protocol,
     assert_sort_protocol
 )
 
@@ -44,10 +43,6 @@ def date_sort(stream_in, source_ids):
 
     # Process incoming streams.
     for message in stream_in:
-        # Incoming messages should be the output of DATASOURCE_UNFRAME.
-        assert_datasource_unframe_protocol(message), \
-            "Bad message in date_sort: %s" % message
-
         # Only allow messages from sources we expect.
         assert message.source_id in sources, "Unexpected source: %s" % message
 
