@@ -19,9 +19,6 @@ Sorting generator.
 import logbook
 
 from collections import deque
-from zipline.gens.utils import (
-    assert_sort_protocol
-)
 
 log = logbook.Logger('Sorting')
 
@@ -53,7 +50,6 @@ def date_sort(stream_in, source_ids):
 
         while all(sources.values()) and not done(sources):
             message = pop_oldest(sources)
-            assert_sort_protocol(message)
             yield message
 
     # We should have only a done message left in each queue.
