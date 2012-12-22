@@ -10,7 +10,7 @@ coverage==3.5.3
 
 # Linting
 
-flake8==1.6.2
+flake8==1.7.0
 
 # Documentation Conversion
 
