@@ -45,7 +45,7 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 ANNUALIZER = {'daily': 250,
               'hourly': 250 * 6,
-              'minutely': 250 * 6 * 60}
+              'minute': 250 * 6 * 60}
 
 
 class TradingAlgorithm(object):
@@ -96,9 +96,14 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        self.granularity = kwargs.get('granularity', 'daily')
-        # annualizer is used for e.g. risk calculations
-        self.annualizer = kwargs.get('annualizer', None)
+        if 'granularity' in kwargs:
+            self.set_granularity(kwargs.pop('granularity'))
+        else:
+            self.granularity = None
+
+        # Override annualizer if set
+        if 'annualizer' in kwargs:
+            self.annualizer = kwargs['annualizer']
 
         # set the capital base
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
@@ -109,12 +114,6 @@ class TradingAlgorithm(object):
 
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
-
-        # set annualizer according to granularity
-        # this is happening after initialize because granularity
-        # could be set in there.
-        if self.annualizer is None:
-            self.annualizer = ANNUALIZER[self.granularity]
 
     def _create_generator(self, environment):
         """
@@ -318,6 +317,7 @@ class TradingAlgorithm(object):
         assert isinstance(transforms, list)
         self.transforms = transforms
 
-    def set_granuliarity(self, granularity):
+    def set_granularity(self, granularity):
         assert granularity in ('daily', 'minute')
         self.granularity = granularity
+        self.annualizer = ANNUALIZER[self.granularity]

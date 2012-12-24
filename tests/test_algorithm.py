@@ -95,11 +95,11 @@ class TestTransformAlgorithm(TestCase):
         self.assertEqual(algo.granularity, 'daily')
         self.assertEqual(algo.annualizer, 250)
 
-        algo = TestRegisterTransformAlgorithm(granularity='minutely')
-        self.assertEqual(algo.granularity, 'minutely')
+        algo = TestRegisterTransformAlgorithm(granularity='minute')
+        self.assertEqual(algo.granularity, 'minute')
         self.assertEqual(algo.annualizer, 250 * 6 * 60)
 
-        algo = TestRegisterTransformAlgorithm(granularity='minutely',
+        algo = TestRegisterTransformAlgorithm(granularity='minute',
                                               annualizer=10)
-        self.assertEqual(algo.granularity, 'minutely')
+        self.assertEqual(algo.granularity, 'minute')
         self.assertEqual(algo.annualizer, 10)
