@@ -6,7 +6,6 @@ pyzmq==2.2.0.1
 nose==1.2.1
 nose-parameterized==0.1
 nosexcover==1.0.7
-coverage==3.5.3
 
 # Linting
 
