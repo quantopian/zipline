@@ -206,6 +206,11 @@ class PerformanceTracker(object):
             keep_transactions=True
         )
 
+    def __repr__(self):
+        return "%s(%r)" % (
+            self.__class__.__name__,
+            {'trading_environment': self.trading_environment})
+
     def transform(self, stream_in):
         """
         Main generator work loop.

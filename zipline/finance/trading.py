@@ -94,6 +94,13 @@ class TradingEnvironment(object):
 
         self.prior_day_open = self.calculate_prior_day_open()
 
+    def __repr__(self):
+        return "%s(%r)" % (
+            self.__class__.__name__,
+            {'first_open': self.first_open,
+             'last_close': self.last_close
+             })
+
     def calculate_first_open(self):
         """
         Finds the first trading day on or after self.period_start.
