@@ -537,25 +537,57 @@ shares in position"
         )
 
     @parameterized.expand([
-                          (datetime.datetime(year=2008,
-                                             month=10,
-                                             day=9,
-                                             tzinfo=pytz.utc),),
-                          (datetime.datetime(year=2010,
-                                             month=10,
-                                             day=9,
-                                             tzinfo=pytz.utc),),
-                          ])
-    def test_tracker(self, start_dt):
-
-        trade_count = 100
+        # This date range covers Columbus day
+        #
+        #     October 2008
+        # Su Mo Tu We Th Fr Sa
+        #           1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        (datetime.datetime(year=2008,
+                           month=10,
+                           day=9,
+                           tzinfo=pytz.utc),
+         datetime.datetime(year=2008,
+                           month=10,
+                           day=14,
+                           tzinfo=pytz.utc)),
+        #    October 2010
+        # Su Mo Tu We Th Fr Sa
+        #                 1  2
+        #  3  4  5  6  7  8  9
+        # 10 11 12 13 14 15 16
+        # 17 18 19 20 21 22 23
+        # 24 25 26 27 28 29 30
+        # 31
+        (datetime.datetime(year=2010,
+                           month=10,
+                           day=9,
+                           tzinfo=pytz.utc),
+         datetime.datetime(year=2010,
+                           month=10,
+                           day=14,
+                           tzinfo=pytz.utc)),
+    ])
+    def test_tracker(self, start_dt, end_dt):
+        trade_count = 5
         sid = 133
         price = 10.1
         price_list = [price] * trade_count
         volume = [100] * trade_count
         trade_time_increment = datetime.timedelta(days=1)
 
-        trading_environment, start_dt, end_dt = self.create_env(start_dt)
+        benchmark_returns, treasury_curves = \
+            factory.load_market_data()
+
+        trading_environment = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start=start_dt,
+            period_end=end_dt
+        )
 
         trade_history = factory.create_trade_history(
             sid,
