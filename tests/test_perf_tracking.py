@@ -545,7 +545,6 @@ shares in position"
                                              month=10,
                                              day=9,
                                              tzinfo=pytz.utc),),
-                          (None,),  # random start_dt
                           ])
     def test_tracker(self, start_dt):
 
