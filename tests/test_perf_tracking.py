@@ -537,7 +537,8 @@ shares in position"
         )
 
     @parameterized.expand([
-        # This date range covers Columbus day
+        # This date range covers Columbus day,
+        # however Columbus day is not a market holiday
         #
         #     October 2008
         # Su Mo Tu We Th Fr Sa
@@ -598,6 +599,10 @@ shares in position"
             source_id="factory1"
         )
 
+        # Removes second day of trading.
+        # To simulate days that don't have events.
+        del trade_history[-1]
+
         sid2 = 134
         price2 = 12.12
         price2_list = [price2] * trade_count
@@ -610,10 +615,15 @@ shares in position"
             source_id="factory2"
         )
 
+        # Removes second day of trading.
+        # To simulate days that don't have events.
+        del trade_history2[-1]
+
         trade_history.extend(trade_history2)
 
-        trading_environment.period_start = trade_history[0].dt
-        trading_environment.period_end = trade_history[-1].dt
+        trading_environment.period_start = \
+            trade_history[0].dt.replace(hour=0, minute=0, second=0)
+        trading_environment.period_end = trade_history2[-1].dt
         trading_environment.first_open = \
             trading_environment.calculate_first_open()
         trading_environment.last_close = \
@@ -645,11 +655,15 @@ shares in position"
         events = itertools.chain(events,
                                  [ndict({'dt': 'DONE'})])
 
-        events = [self.event_with_txn(event, trading_environment)
+        events = [self.event_with_txn(event, trade_history[0].dt)
                   for event in events]
 
-        list(perf_tracker.transform(
-            itertools.groupby(events, attrgetter('dt'))))
+        perf_messages = \
+            [msg for date, snapshot in
+             perf_tracker.transform(
+                 itertools.groupby(events, attrgetter('dt')))
+             for event in snapshot
+             for msg in event.perf_messages]
 
         #we skip two trades, to test case of None transaction
         txn_count = len(trade_history) - 2
@@ -662,11 +676,13 @@ shares in position"
         self.assertEqual(perf_tracker.last_close,
                          perf_tracker.cumulative_risk_metrics.end_date)
 
-    def event_with_txn(self, event, env):
+        self.assertEqual(len(perf_messages),
+                         trading_environment.days_in_period)
+
+    def event_with_txn(self, event, no_txn_dt):
         #create a transaction for all but
         #first trade in each sid, to simulate None transaction
-        if event.dt != env.period_start \
-                and event.dt != 'DONE':
+        if event.dt != no_txn_dt and event.dt != 'DONE':
             txn = ndict({
                 'sid': event.sid,
                 'amount': -25,
