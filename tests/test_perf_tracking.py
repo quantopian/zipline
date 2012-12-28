@@ -31,7 +31,7 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 
 
-class PerformanceTestCase(unittest.TestCase):
+class TestPerformance(unittest.TestCase):
 
     def setUp(self):
         self.onesec = datetime.timedelta(seconds=1)
@@ -535,6 +535,9 @@ shares in position"
             -400,
             "should be -400 for all trades and transactions in period"
         )
+
+
+class TestPerformanceTracker(unittest.TestCase):
 
     @parameterized.expand([
         # This date range covers Columbus day,
