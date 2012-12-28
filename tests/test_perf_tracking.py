@@ -625,6 +625,7 @@ class TestPerformanceTracker(unittest.TestCase):
             source_id="factory2"
         )
 
+        period_start = trade_history[0].dt.replace(hour=0, minute=0, second=0)
         period_end = trade_history2[-1].dt
 
         # 'middle' start of 3 depends on number of days == 7
@@ -647,8 +648,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
         trade_history.extend(trade_history2)
 
-        trading_environment.period_start = \
-            trade_history[0].dt.replace(hour=0, minute=0, second=0)
+        trading_environment.period_start = period_start
         trading_environment.period_end = period_end
         trading_environment.first_open = \
             trading_environment.calculate_first_open()
