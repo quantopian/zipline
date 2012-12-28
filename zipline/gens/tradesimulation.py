@@ -97,8 +97,8 @@ class TradeSimulationClient(object):
         # Pipe the events with transactions to perf. This will remove
         # the TRANSACTION field added by TransactionSimulator and replace it
         # with a portfolio field to be passed to the user's
-        # algorithm. Also adds a perf_message field which is usually
-        # none, but contains an update message once per day.
+        # algorithm. Also adds a perf_messages field which is usually
+        # empty, but contains update messages once per day.
         with_portfolio = self.perf_tracker.transform(with_filled_orders)
 
         # Pass the messages from perf to the user's algorithm for simulation.
@@ -208,7 +208,8 @@ class AlgorithmSimulator(object):
                 # Done message has the risk report, so we yield before exiting.
                 if date == 'DONE':
                     for event in snapshot:
-                        yield event.perf_message
+                        for perf_message in event.perf_messages:
+                            yield perf_message
                         yield event.risk_message
                     raise StopIteration
 
@@ -217,7 +218,7 @@ class AlgorithmSimulator(object):
                 # and don't send a snapshot to handle_data.
                 elif date < self.algo_start:
                     for event in snapshot:
-                        del event['perf_message']
+                        del event['perf_messages']
                         self.update_universe(event)
 
                 # The algo has taken so long to process events that
@@ -226,22 +227,20 @@ class AlgorithmSimulator(object):
                 # encountered, but don't call handle_data.
                 elif date < self.simulation_dt:
                     for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message is not None:
-                            yield event.perf_message
+                        for perf_message in event.perf_messages:
+                            yield perf_message
                         # Delete the message before updating,
                         # so we don't send it to the user.
-                        del event['perf_message']
+                        del event['perf_messages']
                         self.update_universe(event)
 
                 # Regular snapshot.  Update the universe and send a snapshot
                 # to handle data.
                 else:
                     for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message is not None:
-                            yield event.perf_message
-                        del event['perf_message']
+                        for perf_message in event.perf_messages:
+                            yield perf_message
+                        del event['perf_messages']
 
                         self.update_universe(event)
 
