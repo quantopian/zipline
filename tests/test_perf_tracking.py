@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+
 import unittest
 from nose_parameterized import parameterized
 import copy
@@ -539,7 +541,33 @@ shares in position"
 
 class TestPerformanceTracker(unittest.TestCase):
 
+    NumDaysToDelete = collections.namedtuple(
+        'NumDaysToDelete', ('start', 'middle', 'end'))
+
     @parameterized.expand([
+        ("Don't delete any events",
+         NumDaysToDelete(start=0, middle=0, end=0)),
+        ("Delete first day of events",
+         NumDaysToDelete(start=1, middle=0, end=0)),
+        ("Delete first two days of events",
+         NumDaysToDelete(start=2, middle=0, end=0)),
+        ("Delete one day of events from the middle",
+         NumDaysToDelete(start=0, middle=1, end=0)),
+        ("Delete two events from the middle",
+         NumDaysToDelete(start=0, middle=2, end=0)),
+        ("Delete last day of events",
+         NumDaysToDelete(start=0, middle=0, end=1)),
+        ("Delete last two days of events",
+         NumDaysToDelete(start=0, middle=0, end=2)),
+        ("Delete all but one",
+         NumDaysToDelete(start=2, middle=2, end=2)),
+    ])
+    def test_tracker(self, parameter_comment, days_to_delete):
+        """
+        @days_to_delete - configures which days in the data set we should
+        remove, used for ensuring that we still return performance messages
+        even when there is no data.
+        """
         # This date range covers Columbus day,
         # however Columbus day is not a market holiday
         #
@@ -550,33 +578,16 @@ class TestPerformanceTracker(unittest.TestCase):
         # 12 13 14 15 16 17 18
         # 19 20 21 22 23 24 25
         # 26 27 28 29 30 31
-        (datetime.datetime(year=2008,
-                           month=10,
-                           day=9,
-                           tzinfo=pytz.utc),
-         datetime.datetime(year=2008,
-                           month=10,
-                           day=14,
-                           tzinfo=pytz.utc)),
-        #    October 2010
-        # Su Mo Tu We Th Fr Sa
-        #                 1  2
-        #  3  4  5  6  7  8  9
-        # 10 11 12 13 14 15 16
-        # 17 18 19 20 21 22 23
-        # 24 25 26 27 28 29 30
-        # 31
-        (datetime.datetime(year=2010,
-                           month=10,
-                           day=9,
-                           tzinfo=pytz.utc),
-         datetime.datetime(year=2010,
-                           month=10,
-                           day=14,
-                           tzinfo=pytz.utc)),
-    ])
-    def test_tracker(self, start_dt, end_dt):
-        trade_count = 5
+        start_dt = datetime.datetime(year=2008,
+                                     month=10,
+                                     day=9,
+                                     tzinfo=pytz.utc)
+        end_dt = datetime.datetime(year=2008,
+                                   month=10,
+                                   day=16,
+                                   tzinfo=pytz.utc)
+
+        trade_count = 7
         sid = 133
         price = 10.1
         price_list = [price] * trade_count
@@ -602,10 +613,6 @@ class TestPerformanceTracker(unittest.TestCase):
             source_id="factory1"
         )
 
-        # Removes second day of trading.
-        # To simulate days that don't have events.
-        del trade_history[-1]
-
         sid2 = 134
         price2 = 12.12
         price2_list = [price2] * trade_count
@@ -618,9 +625,23 @@ class TestPerformanceTracker(unittest.TestCase):
             source_id="factory2"
         )
 
-        # Removes second day of trading.
-        # To simulate days that don't have events.
-        del trade_history2[-1]
+        # 'middle' start of 3 depends on number of days == 7
+        middle = 3
+
+        # First delete from middle
+        if days_to_delete.middle:
+            del trade_history[middle:(middle + days_to_delete.middle)]
+            del trade_history2[middle:(middle + days_to_delete.middle)]
+
+        # Delete start
+        if days_to_delete.start:
+            del trade_history[:days_to_delete.start]
+            del trade_history2[:days_to_delete.start]
+
+        # Delete from end
+        if days_to_delete.end:
+            del trade_history[-days_to_delete.end:]
+            del trade_history2[-days_to_delete.end:]
 
         trade_history.extend(trade_history2)
 
