@@ -559,8 +559,8 @@ class TestPerformanceTracker(unittest.TestCase):
          NumDaysToDelete(start=0, middle=0, end=1)),
         ("Delete last two days of events",
          NumDaysToDelete(start=0, middle=0, end=2)),
-        ("Delete all but one",
-         NumDaysToDelete(start=2, middle=2, end=2)),
+        ("Delete all but one event.",
+         NumDaysToDelete(start=2, middle=1, end=2)),
     ])
     def test_tracker(self, parameter_comment, days_to_delete):
         """
@@ -587,7 +587,7 @@ class TestPerformanceTracker(unittest.TestCase):
                                    day=16,
                                    tzinfo=pytz.utc)
 
-        trade_count = 7
+        trade_count = 6
         sid = 133
         price = 10.1
         price_list = [price] * trade_count
@@ -624,10 +624,6 @@ class TestPerformanceTracker(unittest.TestCase):
             trading_environment,
             source_id="factory2"
         )
-
-        period_start = trade_history[0].dt.replace(hour=0, minute=0, second=0)
-        period_end = trade_history2[-1].dt
-
         # 'middle' start of 3 depends on number of days == 7
         middle = 3
 
@@ -648,8 +644,6 @@ class TestPerformanceTracker(unittest.TestCase):
 
         trade_history.extend(trade_history2)
 
-        trading_environment.period_start = period_start
-        trading_environment.period_end = period_end
         trading_environment.first_open = \
             trading_environment.calculate_first_open()
         trading_environment.last_close = \
