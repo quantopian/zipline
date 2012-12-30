@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
+
 import pytz
 import numpy as np
 import pandas as pd
@@ -353,6 +355,9 @@ class TestBatchTransform(TestCase):
         for data in algo.history_return_field_no_filter[wl:]:
             self.assertIn('price', data.items)
             self.assertIn('ignore', data.items)
+
+        for data in algo.history_return_ticks[wl:]:
+            self.assertTrue(isinstance(data, deque))
 
         # test overloaded class
         for test_history in [algo.history_return_price_class,
