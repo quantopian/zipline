@@ -32,7 +32,7 @@ from zipline.finance.slippage import (
     transact_partial
 )
 from zipline.finance.commission import PerShare, PerTrade
-
+from zipline.finance.constants import ANNUALIZER
 
 from zipline.gens.composites import (
     date_sorted_sources,
@@ -42,10 +42,6 @@ from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 from zipline import MESSAGES
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
-
-ANNUALIZER = {'daily': 250,
-              'hourly': 250 * 6,
-              'minute': 250 * 6 * 60}
 
 
 class TradingAlgorithm(object):
