@@ -345,7 +345,8 @@ class BatchTransform(EventWindow):
                  window_length=None,
                  clean_nans=True,
                  sids=None,
-                 fields=None):
+                 fields=None,
+                 create_panel=True):
         """Instantiate new batch_transform object.
 
         :Arguments:
@@ -367,6 +368,12 @@ class BatchTransform(EventWindow):
                 Which fields to include in the moving window
                 (e.g. 'price'). If not supplied, fields will be
                 extracted from incoming events.
+            create_panel : bool <default=True>
+                If False, will create a pandas panel every refresh
+                period and pass it to the user-defined function.
+                If True, will pass the underlying deque reference
+                directly to the function which will be significantly
+                faster.
         """
 
         super(BatchTransform, self).__init__(True,
@@ -378,6 +385,7 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.clean_nans = clean_nans
+        self.create_panel = create_panel
 
         self.sids = sids
         if isinstance(self.sids, (str, int)):
@@ -528,8 +536,11 @@ class BatchTransform(EventWindow):
             return None
 
         if self.updated:
-            self.cached = self.compute_transform_value(self.get_data(),
-                                                       *args, **kwargs)
+            # Either create new pandas panel or pass ticks dequeue
+            # directly
+            data = self.get_data() if self.create_panel else self.ticks
+            self.cached = self.compute_transform_value(data, *args,
+                                                       **kwargs)
 
         return self.cached
 

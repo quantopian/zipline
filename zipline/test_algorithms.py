@@ -72,6 +72,7 @@ The algorithm must expose methods:
 
 """
 from copy import deepcopy
+import numpy as np
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
@@ -271,6 +272,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_sid_filter = []
         self.history_return_field_filter = []
         self.history_return_field_no_filter = []
+        self.history_return_ticks = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -328,6 +330,13 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             clean_nans=True
         )
 
+        self.return_ticks = return_data(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=True,
+            create_panel=False
+        )
+
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
@@ -340,6 +349,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args.append(
             self.return_args_batch.handle_data(
                 data, *self.args, **self.kwargs))
+        self.history_return_ticks.append(
+            self.return_ticks.handle_data(data))
 
         new_data = deepcopy(data)
         for sid in new_data:
@@ -354,7 +365,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 self.return_nan.handle_data(data))
         else:
             nan_data = deepcopy(data)
-            import numpy as np
             for sid in nan_data.iterkeys():
                 nan_data[sid].price = np.nan
             self.history_return_nan.append(
