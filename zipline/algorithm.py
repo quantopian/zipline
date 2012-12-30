@@ -72,11 +72,11 @@ class TradingAlgorithm(object):
         """Initialize sids and other state variables.
 
         :Arguments:
-            granularity : str (daily, hourly or minutely)
+            data_frequency : str (daily, hourly or minutely)
                The duration of the bars.
             annualizer : int <optional>
                Which constant to use for annualizing risk metrics.
-               If not provided, will extract from granularity.
+               If not provided, will extract from data_frequency.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
@@ -96,10 +96,10 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        if 'granularity' in kwargs:
-            self.set_granularity(kwargs.pop('granularity'))
+        if 'data_frequency' in kwargs:
+            self.set_data_frequency(kwargs.pop('data_frequency'))
         else:
-            self.granularity = None
+            self.data_frequency = None
 
         # Override annualizer if set
         if 'annualizer' in kwargs:
@@ -317,7 +317,7 @@ class TradingAlgorithm(object):
         assert isinstance(transforms, list)
         self.transforms = transforms
 
-    def set_granularity(self, granularity):
-        assert granularity in ('daily', 'minute')
-        self.granularity = granularity
-        self.annualizer = ANNUALIZER[self.granularity]
+    def set_data_frequency(self, data_frequency):
+        assert data_frequency in ('daily', 'minute')
+        self.data_frequency = data_frequency
+        self.annualizer = ANNUALIZER[self.data_frequency]

@@ -90,16 +90,16 @@ class TestTransformAlgorithm(TestCase):
             {'window_length': 2, 'market_aware': True}
         assert algo.registered_transforms['mavg']['class'] is MovingAverage
 
-    def test_granularity_setting(self):
-        algo = TestRegisterTransformAlgorithm(granularity='daily')
-        self.assertEqual(algo.granularity, 'daily')
+    def test_data_frequency_setting(self):
+        algo = TestRegisterTransformAlgorithm(data_frequency='daily')
+        self.assertEqual(algo.data_frequency, 'daily')
         self.assertEqual(algo.annualizer, 250)
 
-        algo = TestRegisterTransformAlgorithm(granularity='minute')
-        self.assertEqual(algo.granularity, 'minute')
+        algo = TestRegisterTransformAlgorithm(data_frequency='minute')
+        self.assertEqual(algo.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 250 * 6 * 60)
 
-        algo = TestRegisterTransformAlgorithm(granularity='minute',
+        algo = TestRegisterTransformAlgorithm(data_frequency='minute',
                                               annualizer=10)
-        self.assertEqual(algo.granularity, 'minute')
+        self.assertEqual(algo.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 10)
