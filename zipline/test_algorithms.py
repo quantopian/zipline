@@ -273,6 +273,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_field_filter = []
         self.history_return_field_no_filter = []
         self.history_return_ticks = []
+        self.history_return_not_full = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -333,8 +334,13 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.return_ticks = return_data(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
-            clean_nans=True,
             create_panel=False
+        )
+
+        self.return_not_full = return_data(
+            refresh_period=0,
+            window_length=self.window_length,
+            compute_only_full=False
         )
 
         self.iter = 0
@@ -351,6 +357,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 data, *self.args, **self.kwargs))
         self.history_return_ticks.append(
             self.return_ticks.handle_data(data))
+        self.history_return_not_full.append(
+            self.return_not_full.handle_data(data))
 
         new_data = deepcopy(data)
         for sid in new_data:
