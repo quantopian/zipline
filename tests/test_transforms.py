@@ -359,6 +359,9 @@ class TestBatchTransform(TestCase):
         for data in algo.history_return_ticks[wl:]:
             self.assertTrue(isinstance(data, deque))
 
+        for data in algo.history_return_not_full:
+            self.assertIsNot(data, None)
+
         # test overloaded class
         for test_history in [algo.history_return_price_class,
                              algo.history_return_price_decorator]:

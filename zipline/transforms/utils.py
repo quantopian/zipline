@@ -348,7 +348,9 @@ class BatchTransform(EventWindow):
                  clean_nans=True,
                  sids=None,
                  fields=None,
-                 create_panel=True):
+                 create_panel=True,
+                 compute_only_full=True):
+
         """Instantiate new batch_transform object.
 
         :Arguments:
@@ -376,6 +378,9 @@ class BatchTransform(EventWindow):
                 If True, will pass the underlying deque reference
                 directly to the function which will be significantly
                 faster.
+            compute_only_full : bool <default=True>
+                Only call the user-defined function once the window is
+                full. Returns None if window is not full yet.
         """
 
         super(BatchTransform, self).__init__(True,
@@ -388,6 +393,7 @@ class BatchTransform(EventWindow):
 
         self.clean_nans = clean_nans
         self.create_panel = create_panel
+        self.compute_only_full = compute_only_full
 
         self.sids = sids
         if isinstance(self.sids, (str, int)):
@@ -453,7 +459,6 @@ class BatchTransform(EventWindow):
             if self.field_names is None:
                 self.field_names = self._extract_field_names(event)
             self.last_dt = event.dt
-            return
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -461,15 +466,14 @@ class BatchTransform(EventWindow):
             self.trading_days_since_update += 1
             self.trading_days_total += 1
 
-        if (
-            self.trading_days_total >= self.window_length and
-            self.trading_days_since_update >= self.refresh_period
-        ):
+        if self.trading_days_total >= self.window_length:
+            self.full = True
+
+        if self.trading_days_since_update >= self.refresh_period:
             # Setting updated to True will cause get_transform_value()
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
-            self.full = True
             self.trading_days_since_update = 0
         else:
             self.updated = False
@@ -519,8 +523,7 @@ class BatchTransform(EventWindow):
         return data
 
     def handle_remove(self, event):
-        # since an event is expiring, we know the window is full
-        self.full = True
+        pass
 
     def get_value(self, *args, **kwargs):
         raise NotImplementedError(
@@ -534,7 +537,7 @@ class BatchTransform(EventWindow):
         has actually been updated. Otherwise, the previously, cached
         value will be returned.
         """
-        if not self.full:
+        if self.compute_only_full and not self.full:
             return None
 
         if self.updated:
