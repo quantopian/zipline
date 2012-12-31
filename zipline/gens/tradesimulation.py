@@ -17,8 +17,6 @@
 from logbook import Logger, Processor
 from collections import defaultdict
 
-from datetime import datetime
-
 from zipline import ndict
 
 from zipline.finance.trading import TransactionSimulator
@@ -221,19 +219,6 @@ class AlgorithmSimulator(object):
                         del event['perf_messages']
                         self.update_universe(event)
 
-                # The algo has taken so long to process events that
-                # its simulated time is later than the event time.
-                # Update the universe and yield any perf messages
-                # encountered, but don't call handle_data.
-                elif date < self.simulation_dt:
-                    for event in snapshot:
-                        for perf_message in event.perf_messages:
-                            yield perf_message
-                        # Delete the message before updating,
-                        # so we don't send it to the user.
-                        del event['perf_messages']
-                        self.update_universe(event)
-
                 # Regular snapshot.  Update the universe and send a snapshot
                 # to handle data.
                 else:
@@ -268,12 +253,7 @@ class AlgorithmSimulator(object):
         # log/print lines.
         self.snapshot_dt = date
         self.algo.set_datetime(self.snapshot_dt)
-        start_tic = datetime.now()
         self.algo.handle_data(self.universe)
-        stop_tic = datetime.now()
-
-        # How long did you take?
-        delta = stop_tic - start_tic
 
         # Update the simulation time.
-        self.simulation_dt = date + delta
+        self.simulation_dt = date
