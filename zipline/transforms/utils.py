@@ -372,9 +372,9 @@ class BatchTransform(EventWindow):
                 (e.g. 'price'). If not supplied, fields will be
                 extracted from incoming events.
             create_panel : bool <default=True>
-                If False, will create a pandas panel every refresh
+                If True, will create a pandas panel every refresh
                 period and pass it to the user-defined function.
-                If True, will pass the underlying deque reference
+                If False, will pass the underlying deque reference
                 directly to the function which will be significantly
                 faster.
             compute_only_full : bool <default=True>
