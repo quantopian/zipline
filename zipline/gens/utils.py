@@ -17,7 +17,6 @@
 import pytz
 import numbers
 
-from collections import OrderedDict
 from hashlib import md5
 from datetime import datetime
 from itertools import izip_longest
@@ -57,27 +56,6 @@ def alternate(g1, g2):
             yield e1
         if e2 is not None:
             yield e2
-
-
-def roundrobin(sources, namestrings):
-    """
-    Takes N generators, pulling one element off each until all inputs
-    are empty.
-    """
-    assert len(sources) == len(namestrings)
-    mapping = OrderedDict(zip(namestrings, sources))
-
-    # While our generators have not been exhausted, pull elements
-    while mapping.keys() != []:
-        for namestring, source in mapping.iteritems():
-            try:
-                message = source.next()
-                # allow sources to yield None to avoid blocking.
-                if message:
-                    yield message
-            except StopIteration:
-                yield done_message(namestring)
-                del mapping[namestring]
 
 
 def hash_args(*args, **kwargs):

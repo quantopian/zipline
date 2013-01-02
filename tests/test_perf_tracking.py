@@ -27,8 +27,9 @@ from operator import attrgetter
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.utils.protocol_utils import ndict
-from zipline.gens.sort import date_sort
-from zipline.protocol import DATASOURCE_TYPE
+from zipline.protocol import Event
+
+from zipline.gens.composites import date_sorted_sources
 
 from zipline.finance.trading import TradingEnvironment
 
@@ -642,8 +643,6 @@ class TestPerformanceTracker(unittest.TestCase):
             del trade_history[-days_to_delete.end:]
             del trade_history2[-days_to_delete.end:]
 
-        trade_history.extend(trade_history2)
-
         trading_environment.first_open = \
             trading_environment.calculate_first_open()
         trading_environment.last_close = \
@@ -659,24 +658,20 @@ class TestPerformanceTracker(unittest.TestCase):
             trading_environment
         )
 
-        # date_sort requires 'DONE' messages from each source
-        events = itertools.chain(trade_history,
-                                 [ndict({
-                                        'source_id': 'factory1',
-                                        'dt': 'DONE',
-                                        'type': DATASOURCE_TYPE.TRADE
-                                        }),
-                                  ndict({
-                                        'source_id': 'factory2',
-                                        'dt': 'DONE',
-                                        'type': DATASOURCE_TYPE.TRADE
-                                        })])
-        events = date_sort(events, ('factory1', 'factory2'))
-        events = itertools.chain(events,
-                                 [ndict({'dt': 'DONE'})])
+        events = date_sorted_sources(trade_history, trade_history2)
 
         events = [self.event_with_txn(event, trade_history[0].dt)
                   for event in events]
+
+        # Extract events with transactions to use for verification.
+        events_with_txns = [event for event in events if event.TRANSACTION]
+
+        done_message = Event({
+            'dt': 'DONE',
+            'TRANSACTION': None
+        })
+
+        events = itertools.chain(events, [done_message])
 
         perf_messages = \
             [msg for date, snapshot in
@@ -686,11 +681,10 @@ class TestPerformanceTracker(unittest.TestCase):
              for msg in event.perf_messages]
 
         #we skip two trades, to test case of None transaction
-        txn_count = len(trade_history) - 2
-        self.assertEqual(perf_tracker.txn_count, txn_count)
+        self.assertEqual(perf_tracker.txn_count, len(events_with_txns))
 
         cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
-        expected_size = txn_count / 2 * -25
+        expected_size = len(events_with_txns) / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
 
         self.assertEqual(perf_tracker.last_close,
