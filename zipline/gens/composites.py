@@ -13,10 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import heapq
+
 from itertools import chain
 
-from zipline.gens.utils import roundrobin, done_message
-from zipline.gens.sort import date_sort
+from zipline.gens.utils import done_message
+
+
+def decorate_source(source):
+    for message in source:
+        yield ((message.dt, message.source_id), message)
 
 
 def date_sorted_sources(*sources):
@@ -24,23 +30,11 @@ def date_sorted_sources(*sources):
     Takes an iterable of sources, generating namestrings and
     piping their output into date_sort.
     """
+    sorted_stream = heapq.merge(*(decorate_source(s) for s in sources))
 
-    for source in sources:
-        assert iter(source), "Source %s not iterable" % source
-        assert hasattr(source, 'get_hash'), "No get_hash"
-
-    # Get name hashes to pass to date_sort.
-    names = [source.get_hash() for source in sources]
-
-    # Convert the list of generators into a flat stream by pulling
-    # one element at a time from each.
-    stream_in = roundrobin(sources, names)
-
-    # Guarantee the flat stream will be sorted by date, using
-    # source_id as tie-breaker, which is fully deterministic (given
-    # deterministic string representation for all args/kwargs)
-
-    return date_sort(stream_in, names)
+    # Strip out key decoration
+    for _, message in sorted_stream:
+        yield message
 
 
 def sequential_transforms(stream_in, *transforms):
