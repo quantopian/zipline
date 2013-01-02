@@ -219,12 +219,8 @@ class PerformanceTracker(object):
             new_snapshot = []
 
             for event in snapshot:
-                if date != "DONE":
-                    event.perf_messages = self.process_event(event)
-                    event.portfolio = self.get_portfolio()
-                else:
-                    event.perf_messages, event.risk_message = \
-                        self.handle_simulation_end()
+                event.perf_messages = self.process_event(event)
+                event.portfolio = self.get_portfolio()
 
                 del event['TRANSACTION']
                 new_snapshot.append(event)

@@ -20,7 +20,6 @@ import numbers
 from hashlib import md5
 from datetime import datetime
 from itertools import izip_longest
-from zipline import ndict
 from zipline.protocol import (
     DATASOURCE_TYPE,
     Event
@@ -35,18 +34,6 @@ def mock_raw_event(sid, dt):
         'volume': 1
     }
     return event
-
-
-def mock_done(id):
-    return ndict({
-        'dt': "DONE",
-        "source_id": id,
-        'tnfm_id': id,
-        'tnfm_value': None,
-        'type': DATASOURCE_TYPE.DONE
-    })
-
-done_message = mock_done
 
 
 def alternate(g1, g2):

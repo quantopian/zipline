@@ -15,10 +15,6 @@
 
 import heapq
 
-from itertools import chain
-
-from zipline.gens.utils import done_message
-
 
 def decorate_source(source):
     for message in source:
@@ -55,8 +51,7 @@ def sequential_transforms(stream_in, *transforms):
                         transforms,
                         stream_in)
 
-    dt_aliased = alias_dt(stream_out)
-    return add_done(dt_aliased)
+    return alias_dt(stream_out)
 
 
 def alias_dt(stream_in):
@@ -66,8 +61,3 @@ def alias_dt(stream_in):
     for message in stream_in:
         message['datetime'] = message['dt']
         yield message
-
-
-# Add a done message to a stream.
-def add_done(stream_in):
-    return chain(stream_in, [done_message('Composite')])

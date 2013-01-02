@@ -27,7 +27,6 @@ from operator import attrgetter
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.utils.protocol_utils import ndict
-from zipline.protocol import Event
 
 from zipline.gens.composites import date_sorted_sources
 
@@ -666,19 +665,16 @@ class TestPerformanceTracker(unittest.TestCase):
         # Extract events with transactions to use for verification.
         events_with_txns = [event for event in events if event.TRANSACTION]
 
-        done_message = Event({
-            'dt': 'DONE',
-            'TRANSACTION': None
-        })
-
-        events = itertools.chain(events, [done_message])
-
         perf_messages = \
             [msg for date, snapshot in
              perf_tracker.transform(
                  itertools.groupby(events, attrgetter('dt')))
              for event in snapshot
              for msg in event.perf_messages]
+
+        end_perf_messages, risk_message = perf_tracker.handle_simulation_end()
+
+        perf_messages.extend(end_perf_messages)
 
         #we skip two trades, to test case of None transaction
         self.assertEqual(perf_tracker.txn_count, len(events_with_txns))
@@ -696,7 +692,7 @@ class TestPerformanceTracker(unittest.TestCase):
     def event_with_txn(self, event, no_txn_dt):
         #create a transaction for all but
         #first trade in each sid, to simulate None transaction
-        if event.dt != no_txn_dt and event.dt != 'DONE':
+        if event.dt != no_txn_dt:
             txn = ndict({
                 'sid': event.sid,
                 'amount': -25,
