@@ -31,6 +31,10 @@ DATASOURCE_TYPE = Enum(
 
 class Event(object):
 
+    def __init__(self, initial_values=None):
+        if initial_values:
+            self.__dict__ = initial_values
+
     def __getitem__(self, name):
         return getattr(self, name)
 
