@@ -24,7 +24,7 @@ from copy import deepcopy
 from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
-from number import Integral
+from numbers import Integral
 
 import pandas as pd
 
