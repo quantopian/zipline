@@ -24,6 +24,7 @@ from copy import deepcopy
 from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
+from numbers import Integral
 
 import pandas as pd
 
@@ -394,7 +395,7 @@ class BatchTransform(EventWindow):
         self.compute_only_full = compute_only_full
 
         self.sids = sids
-        if isinstance(self.sids, (str, int)):
+        if isinstance(self.sids, (basestring, Integral)):
             self.sids = [self.sids]
 
         self.field_names = fields
