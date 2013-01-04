@@ -419,8 +419,11 @@ class BatchTransform(EventWindow):
         New method to handle a data frame as sent to the algorithm's
         handle_data method.
         """
+        if len(data) == 0:
+            # Do not record empty events
+            return self.get_transform_value(*args, **kwargs)
+
         # extract dates
-        #dts = [data[sid].datetime for sid in self.sids]
         dts = [event['datetime'] for event in data.itervalues()]
         # we have to provide the event with a dt. This is only for
         # checking if the event is outside the window or not so a
