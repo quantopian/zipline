@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 
 import zipline.finance.risk as risk
 from zipline.utils.date_utils import tuple_to_date
-from zipline.utils.protocol_utils import ndict
+from zipline.protocol import Event
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
@@ -144,7 +144,7 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar,
 
 
 def create_txn(sid, price, amount, datetime):
-    txn = ndict({
+    txn = Event({
         'sid': sid,
         'amount': amount,
         'dt': datetime,

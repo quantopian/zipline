@@ -50,5 +50,8 @@ class Event(object):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    def __contains__(self, name):
+        return name in self.__dict__
+
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
