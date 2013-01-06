@@ -241,8 +241,7 @@ class AlgorithmSimulator(object):
         self.algo.set_portfolio(event.portfolio)
 
         # Update our knowledge of this event's sid
-        for field in event.keys():
-            self.universe[event.sid][field] = event[field]
+        self.universe[event.sid].update(event.__dict__)
 
     def simulate_snapshot(self, date):
         """
