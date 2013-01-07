@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
+
 import pytz
 import numpy as np
 import pandas as pd
@@ -341,6 +343,24 @@ class TestBatchTransform(TestCase):
             [123] * algo.window_length),
             'arbitrary dataframe should contain only "test"'
         )
+
+        for data in algo.history_return_sid_filter[wl:]:
+            self.assertIn(0, data.columns)
+            self.assertNotIn(1, data.columns)
+
+        for data in algo.history_return_field_filter[wl:]:
+            self.assertIn('price', data.items)
+            self.assertNotIn('ignore', data.items)
+
+        for data in algo.history_return_field_no_filter[wl:]:
+            self.assertIn('price', data.items)
+            self.assertIn('ignore', data.items)
+
+        for data in algo.history_return_ticks[wl:]:
+            self.assertTrue(isinstance(data, deque))
+
+        for data in algo.history_return_not_full:
+            self.assertIsNot(data, None)
 
         # test overloaded class
         for test_history in [algo.history_return_price_class,
