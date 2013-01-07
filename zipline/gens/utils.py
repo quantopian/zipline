@@ -17,11 +17,9 @@
 import pytz
 import numbers
 
-from collections import OrderedDict
 from hashlib import md5
 from datetime import datetime
 from itertools import izip_longest
-from zipline import ndict
 from zipline.protocol import (
     DATASOURCE_TYPE,
     Event
@@ -38,18 +36,6 @@ def mock_raw_event(sid, dt):
     return event
 
 
-def mock_done(id):
-    return ndict({
-        'dt': "DONE",
-        "source_id": id,
-        'tnfm_id': id,
-        'tnfm_value': None,
-        'type': DATASOURCE_TYPE.DONE
-    })
-
-done_message = mock_done
-
-
 def alternate(g1, g2):
     """Specialized version of roundrobin for just 2 generators."""
     for e1, e2 in izip_longest(g1, g2):
@@ -57,27 +43,6 @@ def alternate(g1, g2):
             yield e1
         if e2 is not None:
             yield e2
-
-
-def roundrobin(sources, namestrings):
-    """
-    Takes N generators, pulling one element off each until all inputs
-    are empty.
-    """
-    assert len(sources) == len(namestrings)
-    mapping = OrderedDict(zip(namestrings, sources))
-
-    # While our generators have not been exhausted, pull elements
-    while mapping.keys() != []:
-        for namestring, source in mapping.iteritems():
-            try:
-                message = source.next()
-                # allow sources to yield None to avoid blocking.
-                if message:
-                    yield message
-            except StopIteration:
-                yield done_message(namestring)
-                del mapping[namestring]
 
 
 def hash_args(*args, **kwargs):

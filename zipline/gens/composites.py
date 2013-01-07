@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import chain
+import heapq
 
-from zipline.gens.utils import roundrobin, done_message
-from zipline.gens.sort import date_sort
+
+def _decorate_source(source):
+    for message in source:
+        yield ((message.dt, message.source_id), message)
 
 
 def date_sorted_sources(*sources):
@@ -24,23 +26,11 @@ def date_sorted_sources(*sources):
     Takes an iterable of sources, generating namestrings and
     piping their output into date_sort.
     """
+    sorted_stream = heapq.merge(*(_decorate_source(s) for s in sources))
 
-    for source in sources:
-        assert iter(source), "Source %s not iterable" % source
-        assert hasattr(source, 'get_hash'), "No get_hash"
-
-    # Get name hashes to pass to date_sort.
-    names = [source.get_hash() for source in sources]
-
-    # Convert the list of generators into a flat stream by pulling
-    # one element at a time from each.
-    stream_in = roundrobin(sources, names)
-
-    # Guarantee the flat stream will be sorted by date, using
-    # source_id as tie-breaker, which is fully deterministic (given
-    # deterministic string representation for all args/kwargs)
-
-    return date_sort(stream_in, names)
+    # Strip out key decoration
+    for _, message in sorted_stream:
+        yield message
 
 
 def sequential_transforms(stream_in, *transforms):
@@ -61,8 +51,7 @@ def sequential_transforms(stream_in, *transforms):
                         transforms,
                         stream_in)
 
-    dt_aliased = alias_dt(stream_out)
-    return add_done(dt_aliased)
+    return alias_dt(stream_out)
 
 
 def alias_dt(stream_in):
@@ -72,8 +61,3 @@ def alias_dt(stream_in):
     for message in stream_in:
         message['datetime'] = message['dt']
         yield message
-
-
-# Add a done message to a stream.
-def add_done(stream_in):
-    return chain(stream_in, [done_message('Composite')])

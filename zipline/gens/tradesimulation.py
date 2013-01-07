@@ -71,6 +71,7 @@ class TradeSimulationClient(object):
         self.algo_start = self.environment.first_open
         self.algo_sim = AlgorithmSimulator(
             self.ordering_client,
+            self.perf_tracker,
             self.algo,
             self.algo_start
         )
@@ -116,6 +117,7 @@ class AlgorithmSimulator(object):
 
     def __init__(self,
                  order_book,
+                 perf_tracker,
                  algo,
                  algo_start):
 
@@ -126,6 +128,7 @@ class AlgorithmSimulator(object):
         # We extract the order book from the txn client so that
         # the algo can place new orders.
         self.order_book = order_book
+        self.perf_tracker = perf_tracker
 
         self.algo = algo
         self.algo_start = algo_start.replace(hour=0, minute=0,
@@ -203,18 +206,10 @@ class AlgorithmSimulator(object):
                 if self.simulation_dt is None:
                     self.simulation_dt = date
 
-                # Done message has the risk report, so we yield before exiting.
-                if date == 'DONE':
-                    for event in snapshot:
-                        for perf_message in event.perf_messages:
-                            yield perf_message
-                        yield event.risk_message
-                    raise StopIteration
-
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
-                elif date < self.algo_start:
+                if date < self.algo_start:
                     for event in snapshot:
                         del event['perf_messages']
                         self.update_universe(event)
@@ -232,6 +227,14 @@ class AlgorithmSimulator(object):
                     # Send the current state of the universe
                     # to the user's algo.
                     self.simulate_snapshot(date)
+
+            perf_messages, risk_message = \
+                self.perf_tracker.handle_simulation_end()
+
+            for message in perf_messages:
+                yield message
+
+            yield risk_message
 
     def update_universe(self, event):
         """
