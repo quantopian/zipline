@@ -16,7 +16,7 @@
 import heapq
 
 
-def decorate_source(source):
+def _decorate_source(source):
     for message in source:
         yield ((message.dt, message.source_id), message)
 
@@ -26,7 +26,7 @@ def date_sorted_sources(*sources):
     Takes an iterable of sources, generating namestrings and
     piping their output into date_sort.
     """
-    sorted_stream = heapq.merge(*(decorate_source(s) for s in sources))
+    sorted_stream = heapq.merge(*(_decorate_source(s) for s in sources))
 
     # Strip out key decoration
     for _, message in sorted_stream:
