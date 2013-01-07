@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+
 import unittest
 from nose_parameterized import parameterized
 import copy
@@ -31,7 +33,7 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 
 
-class PerformanceTestCase(unittest.TestCase):
+class TestPerformance(unittest.TestCase):
 
     def setUp(self):
         self.onesec = datetime.timedelta(seconds=1)
@@ -536,27 +538,71 @@ shares in position"
             "should be -400 for all trades and transactions in period"
         )
 
-    @parameterized.expand([
-                          (datetime.datetime(year=2008,
-                                             month=10,
-                                             day=9,
-                                             tzinfo=pytz.utc),),
-                          (datetime.datetime(year=2010,
-                                             month=10,
-                                             day=9,
-                                             tzinfo=pytz.utc),),
-                          (None,),  # random start_dt
-                          ])
-    def test_tracker(self, start_dt):
 
-        trade_count = 100
+class TestPerformanceTracker(unittest.TestCase):
+
+    NumDaysToDelete = collections.namedtuple(
+        'NumDaysToDelete', ('start', 'middle', 'end'))
+
+    @parameterized.expand([
+        ("Don't delete any events",
+         NumDaysToDelete(start=0, middle=0, end=0)),
+        ("Delete first day of events",
+         NumDaysToDelete(start=1, middle=0, end=0)),
+        ("Delete first two days of events",
+         NumDaysToDelete(start=2, middle=0, end=0)),
+        ("Delete one day of events from the middle",
+         NumDaysToDelete(start=0, middle=1, end=0)),
+        ("Delete two events from the middle",
+         NumDaysToDelete(start=0, middle=2, end=0)),
+        ("Delete last day of events",
+         NumDaysToDelete(start=0, middle=0, end=1)),
+        ("Delete last two days of events",
+         NumDaysToDelete(start=0, middle=0, end=2)),
+        ("Delete all but one event.",
+         NumDaysToDelete(start=2, middle=1, end=2)),
+    ])
+    def test_tracker(self, parameter_comment, days_to_delete):
+        """
+        @days_to_delete - configures which days in the data set we should
+        remove, used for ensuring that we still return performance messages
+        even when there is no data.
+        """
+        # This date range covers Columbus day,
+        # however Columbus day is not a market holiday
+        #
+        #     October 2008
+        # Su Mo Tu We Th Fr Sa
+        #           1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        start_dt = datetime.datetime(year=2008,
+                                     month=10,
+                                     day=9,
+                                     tzinfo=pytz.utc)
+        end_dt = datetime.datetime(year=2008,
+                                   month=10,
+                                   day=16,
+                                   tzinfo=pytz.utc)
+
+        trade_count = 6
         sid = 133
         price = 10.1
         price_list = [price] * trade_count
         volume = [100] * trade_count
         trade_time_increment = datetime.timedelta(days=1)
 
-        trading_environment, start_dt, end_dt = self.create_env(start_dt)
+        benchmark_returns, treasury_curves = \
+            factory.load_market_data()
+
+        trading_environment = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start=start_dt,
+            period_end=end_dt
+        )
 
         trade_history = factory.create_trade_history(
             sid,
@@ -578,11 +624,26 @@ shares in position"
             trading_environment,
             source_id="factory2"
         )
+        # 'middle' start of 3 depends on number of days == 7
+        middle = 3
+
+        # First delete from middle
+        if days_to_delete.middle:
+            del trade_history[middle:(middle + days_to_delete.middle)]
+            del trade_history2[middle:(middle + days_to_delete.middle)]
+
+        # Delete start
+        if days_to_delete.start:
+            del trade_history[:days_to_delete.start]
+            del trade_history2[:days_to_delete.start]
+
+        # Delete from end
+        if days_to_delete.end:
+            del trade_history[-days_to_delete.end:]
+            del trade_history2[-days_to_delete.end:]
 
         trade_history.extend(trade_history2)
 
-        trading_environment.period_start = trade_history[0].dt
-        trading_environment.period_end = trade_history[-1].dt
         trading_environment.first_open = \
             trading_environment.calculate_first_open()
         trading_environment.last_close = \
@@ -614,11 +675,15 @@ shares in position"
         events = itertools.chain(events,
                                  [ndict({'dt': 'DONE'})])
 
-        events = [self.event_with_txn(event, trading_environment)
+        events = [self.event_with_txn(event, trade_history[0].dt)
                   for event in events]
 
-        list(perf_tracker.transform(
-            itertools.groupby(events, attrgetter('dt'))))
+        perf_messages = \
+            [msg for date, snapshot in
+             perf_tracker.transform(
+                 itertools.groupby(events, attrgetter('dt')))
+             for event in snapshot
+             for msg in event.perf_messages]
 
         #we skip two trades, to test case of None transaction
         txn_count = len(trade_history) - 2
@@ -631,11 +696,13 @@ shares in position"
         self.assertEqual(perf_tracker.last_close,
                          perf_tracker.cumulative_risk_metrics.end_date)
 
-    def event_with_txn(self, event, env):
+        self.assertEqual(len(perf_messages),
+                         trading_environment.days_in_period)
+
+    def event_with_txn(self, event, no_txn_dt):
         #create a transaction for all but
         #first trade in each sid, to simulate None transaction
-        if event.dt != env.period_start \
-                and event.dt != 'DONE':
+        if event.dt != no_txn_dt and event.dt != 'DONE':
             txn = ndict({
                 'sid': event.sid,
                 'amount': -25,

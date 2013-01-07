@@ -21,6 +21,8 @@ import pytz
 from unittest import TestCase
 from datetime import datetime, timedelta
 
+import numpy as np
+
 from nose.tools import timed
 
 import zipline.utils.factory as factory
@@ -116,6 +118,46 @@ class FinanceTestCase(TestCase):
 
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_trading_environment_days_in_period(self):
+
+        benchmark_returns, treasury_curves = \
+            factory.load_market_data()
+
+        #     January 2008
+        #  Su Mo Tu We Th Fr Sa
+        #         1  2  3  4  5
+        #   6  7  8  9 10 11 12
+        #  13 14 15 16 17 18 19
+        #  20 21 22 23 24 25 26
+        #  27 28 29 30 31
+
+        env = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
+            period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
+            capital_base=100000,
+        )
+
+        expected_trading_days = (
+            datetime(2007, 12, 31, tzinfo=pytz.utc),
+            # Skip new years
+            #holidays taken from: http://www.nyse.com/press/1191407641943.html
+            datetime(2008, 1, 2, tzinfo=pytz.utc),
+            datetime(2008, 1, 3, tzinfo=pytz.utc),
+            datetime(2008, 1, 4, tzinfo=pytz.utc),
+            # Skip Saturday
+            # Skip Sunday
+            datetime(2008, 1, 7, tzinfo=pytz.utc)
+        )
+
+        num_expected_trading_days = 5
+
+        self.assertEquals(num_expected_trading_days, env.days_in_period)
+        np.testing.assert_array_equal(expected_trading_days,
+                                      env.period_trading_days)
 
     @timed(EXTENDED_TIMEOUT)
     def test_full_zipline(self):

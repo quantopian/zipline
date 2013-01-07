@@ -17,8 +17,6 @@
 from logbook import Logger, Processor
 from collections import defaultdict
 
-from datetime import datetime
-
 from zipline import ndict
 
 from zipline.finance.trading import TransactionSimulator
@@ -97,8 +95,8 @@ class TradeSimulationClient(object):
         # Pipe the events with transactions to perf. This will remove
         # the TRANSACTION field added by TransactionSimulator and replace it
         # with a portfolio field to be passed to the user's
-        # algorithm. Also adds a perf_message field which is usually
-        # none, but contains an update message once per day.
+        # algorithm. Also adds a perf_messages field which is usually
+        # empty, but contains update messages once per day.
         with_portfolio = self.perf_tracker.transform(with_filled_orders)
 
         # Pass the messages from perf to the user's algorithm for simulation.
@@ -208,7 +206,8 @@ class AlgorithmSimulator(object):
                 # Done message has the risk report, so we yield before exiting.
                 if date == 'DONE':
                     for event in snapshot:
-                        yield event.perf_message
+                        for perf_message in event.perf_messages:
+                            yield perf_message
                         yield event.risk_message
                     raise StopIteration
 
@@ -217,31 +216,16 @@ class AlgorithmSimulator(object):
                 # and don't send a snapshot to handle_data.
                 elif date < self.algo_start:
                     for event in snapshot:
-                        del event['perf_message']
-                        self.update_universe(event)
-
-                # The algo has taken so long to process events that
-                # its simulated time is later than the event time.
-                # Update the universe and yield any perf messages
-                # encountered, but don't call handle_data.
-                elif date < self.simulation_dt:
-                    for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message is not None:
-                            yield event.perf_message
-                        # Delete the message before updating,
-                        # so we don't send it to the user.
-                        del event['perf_message']
+                        del event['perf_messages']
                         self.update_universe(event)
 
                 # Regular snapshot.  Update the universe and send a snapshot
                 # to handle data.
                 else:
                     for event in snapshot:
-                        # Only yield if we have something interesting to say.
-                        if event.perf_message is not None:
-                            yield event.perf_message
-                        del event['perf_message']
+                        for perf_message in event.perf_messages:
+                            yield perf_message
+                        del event['perf_messages']
 
                         self.update_universe(event)
 
@@ -257,8 +241,7 @@ class AlgorithmSimulator(object):
         self.algo.set_portfolio(event.portfolio)
 
         # Update our knowledge of this event's sid
-        for field in event.keys():
-            self.universe[event.sid][field] = event[field]
+        self.universe[event.sid].update(event.__dict__)
 
     def simulate_snapshot(self, date):
         """
@@ -269,12 +252,7 @@ class AlgorithmSimulator(object):
         # log/print lines.
         self.snapshot_dt = date
         self.algo.set_datetime(self.snapshot_dt)
-        start_tic = datetime.now()
         self.algo.handle_data(self.universe)
-        stop_tic = datetime.now()
-
-        # How long did you take?
-        delta = stop_tic - start_tic
 
         # Update the simulation time.
-        self.simulation_dt = date + delta
+        self.simulation_dt = date

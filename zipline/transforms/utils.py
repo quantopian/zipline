@@ -292,8 +292,7 @@ class EventWindow(object):
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
     def assert_well_formed(self, event):
-        assert 'dt' in event, "Missing dt in EventWindow:%s" % event
-        assert isinstance(event['dt'], datetime), \
+        assert isinstance(event.dt, datetime), \
             "Bad dt in EventWindow:%s" % event
         if len(self.ticks) > 0:
             # Something is wrong if new event is older than previous.

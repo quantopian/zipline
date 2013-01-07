@@ -19,11 +19,6 @@ Sorting generator.
 import logbook
 
 from collections import deque
-from zipline import ndict
-from zipline.gens.utils import (
-    assert_datasource_unframe_protocol,
-    assert_sort_protocol
-)
 
 log = logbook.Logger('Sorting')
 
@@ -45,10 +40,6 @@ def date_sort(stream_in, source_ids):
 
     # Process incoming streams.
     for message in stream_in:
-        # Incoming messages should be the output of DATASOURCE_UNFRAME.
-        assert_datasource_unframe_protocol(message), \
-            "Bad message in date_sort: %s" % message
-
         # Only allow messages from sources we expect.
         assert message.source_id in sources, "Unexpected source: %s" % message
 
@@ -57,9 +48,8 @@ def date_sort(stream_in, source_ids):
         # Only pop messages when we have a pending message from
         # all datasources. Stop if all sources have signalled done.
 
-        while ready(sources) and not done(sources):
+        while all(sources.values()) and not done(sources):
             message = pop_oldest(sources)
-            assert_sort_protocol(message)
             yield message
 
     # We should have only a done message left in each queue.
@@ -67,21 +57,6 @@ def date_sort(stream_in, source_ids):
         assert len(queue) == 1, "Bad queue in date_sort on exit: %s" % queue
         assert queue[0].dt == "DONE", \
             "Bad last message in date_sort on exit: %s" % queue
-
-
-def ready(sources):
-    """
-    Feed is ready when every internal queue has at least one
-    message. Note that this include DONE messages, so done(sources) is
-    True only if ready(sources).
-    """
-    assert isinstance(sources, dict)
-    return all((queue_is_ready(source) for source in sources.itervalues()))
-
-
-def queue_is_ready(queue):
-    assert isinstance(queue, deque)
-    return len(queue) > 0
 
 
 def done(sources):
@@ -127,9 +102,6 @@ def pop_oldest(sources):
 
 # Return the event with the older timestamp.  Break ties by source_id.
 def older(oldest, current):
-    assert isinstance(oldest, ndict)
-    assert isinstance(oldest, ndict)
-
     # Try to compare by dt.
     if oldest.dt < current.dt:
         return oldest

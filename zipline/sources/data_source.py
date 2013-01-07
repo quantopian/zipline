@@ -4,7 +4,7 @@ from abc import (
 )
 
 from zipline.protocol import DATASOURCE_TYPE
-from zipline.utils.protocol_utils import ndict
+from zipline.protocol import Event
 
 
 class DataSource(object):
@@ -55,7 +55,7 @@ class DataSource(object):
     @property
     def mapped_data(self):
         for row in self.raw_data:
-            yield ndict(self.apply_mapping(row))
+            yield Event(self.apply_mapping(row))
 
     def __iter__(self):
         return self
