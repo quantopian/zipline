@@ -24,6 +24,7 @@ from copy import deepcopy
 from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
+from numbers import Integral
 
 import pandas as pd
 
@@ -343,7 +344,43 @@ class BatchTransform(EventWindow):
                  func=None,
                  refresh_period=None,
                  window_length=None,
-                 clean_nans=True):
+                 clean_nans=True,
+                 sids=None,
+                 fields=None,
+                 create_panel=True,
+                 compute_only_full=True):
+
+        """Instantiate new batch_transform object.
+
+        :Arguments:
+            func : python function <optional>
+                If supplied will be called after each refresh_period
+                with the data panel and all args and kwargs supplied
+                to the handle_data() call.
+            refresh_period : int
+                Interval to call batch_transform function.
+            window_length : int
+                How many days the trailing window should have.
+            clean_nans : bool <default=True>
+                Whether to (forward) fill in nans.
+            sids : list <optional>
+                Which sids to include in the moving window.  If not
+                supplied sids will be extracted from incoming
+                events.
+            fields : list <optional>
+                Which fields to include in the moving window
+                (e.g. 'price'). If not supplied, fields will be
+                extracted from incoming events.
+            create_panel : bool <default=True>
+                If True, will create a pandas panel every refresh
+                period and pass it to the user-defined function.
+                If False, will pass the underlying deque reference
+                directly to the function which will be significantly
+                faster.
+            compute_only_full : bool <default=True>
+                Only call the user-defined function once the window is
+                full. Returns None if window is not full yet.
+        """
 
         super(BatchTransform, self).__init__(True,
                                              window_length=window_length)
@@ -354,6 +391,16 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.clean_nans = clean_nans
+        self.create_panel = create_panel
+        self.compute_only_full = compute_only_full
+
+        self.sids = sids
+        if isinstance(self.sids, (basestring, Integral)):
+            self.sids = [self.sids]
+
+        self.field_names = fields
+        if isinstance(self.field_names, str):
+            self.field_names = [self.field_names]
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -365,8 +412,6 @@ class BatchTransform(EventWindow):
 
         self.updated = False
         self.cached = None
-
-        self.field_names = None
 
     def handle_data(self, data, *args, **kwargs):
         """
@@ -410,9 +455,9 @@ class BatchTransform(EventWindow):
 
     def handle_add(self, event):
         if not self.last_dt:
-            self.field_names = self._extract_field_names(event)
+            if self.field_names is None:
+                self.field_names = self._extract_field_names(event)
             self.last_dt = event.dt
-            return
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -420,15 +465,14 @@ class BatchTransform(EventWindow):
             self.trading_days_since_update += 1
             self.trading_days_total += 1
 
-        if (
-            self.trading_days_total >= self.window_length and
-            self.trading_days_since_update >= self.refresh_period
-        ):
+        if self.trading_days_total >= self.window_length:
+            self.full = True
+
+        if self.trading_days_since_update >= self.refresh_period:
             # Setting updated to True will cause get_transform_value()
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
-            self.full = True
             self.trading_days_since_update = 0
         else:
             self.updated = False
@@ -445,7 +489,13 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
-        sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+
+        # If sids are set, use those. Otherwise extract.
+        if self.sids is not None:
+            sids = self.sids
+        else:
+            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
+
         dts = [tick.dt for tick in self.ticks]
 
         data = pd.Panel(items=self.field_names, major_axis=dts,
@@ -454,9 +504,10 @@ class BatchTransform(EventWindow):
         # Fill data panel
         for tick in self.ticks:
             dt = tick.dt
-            for sid, fields in tick.data.iteritems():
+            for sid in sids:
+                fields = tick.data[sid]
                 for field_name in self.field_names:
-                        data[field_name][sid].ix[dt] = fields[field_name]
+                    data[field_name][sid].ix[dt] = fields[field_name]
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
@@ -471,8 +522,7 @@ class BatchTransform(EventWindow):
         return data
 
     def handle_remove(self, event):
-        # since an event is expiring, we know the window is full
-        self.full = True
+        pass
 
     def get_value(self, *args, **kwargs):
         raise NotImplementedError(
@@ -486,12 +536,15 @@ class BatchTransform(EventWindow):
         has actually been updated. Otherwise, the previously, cached
         value will be returned.
         """
-        if not self.full:
+        if self.compute_only_full and not self.full:
             return None
 
         if self.updated:
-            self.cached = self.compute_transform_value(self.get_data(),
-                                                       *args, **kwargs)
+            # Either create new pandas panel or pass ticks dequeue
+            # directly
+            data = self.get_data() if self.create_panel else self.ticks
+            self.cached = self.compute_transform_value(data, *args,
+                                                       **kwargs)
 
         return self.cached
 
