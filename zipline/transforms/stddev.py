@@ -88,14 +88,12 @@ class MovingStandardDevWindow(EventWindow):
         self.sum_sqr = 0.0
 
     def handle_add(self, event):
-        assert 'price' in event
         assert isinstance(event.price, Number)
 
         self.sum += event.price
         self.sum_sqr += event.price ** 2
 
     def handle_remove(self, event):
-        assert 'price' in event
         assert isinstance(event.price, Number)
 
         self.sum -= event.price

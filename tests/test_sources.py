@@ -43,12 +43,12 @@ class TestDataFrameSource(TestCase):
         assert isinstance(source.start, pd.lib.Timestamp)
         assert isinstance(source.end, pd.lib.Timestamp)
         for event in source:
-            assert 'sid' in event
-            assert 'arbitrary' in event
-            assert 'volume' in event
-            assert 'price' in event
-            assert event['arbitrary'] == 1.
-            assert event['volume'] == 1000
-            assert event['sid'] == 0
-            assert isinstance(event['volume'], int)
-            assert isinstance(event['arbitrary'], float)
+            self.assertTrue('sid' in event)
+            self.assertTrue('arbitrary' in event)
+            self.assertTrue('volume' in event)
+            self.assertTrue('price' in event)
+            self.assertEquals(event['arbitrary'], 1.)
+            self.assertEquals(event['volume'], 1000)
+            self.assertEquals(event['sid'], 0)
+            self.assertTrue(isinstance(event['volume'], int))
+            self.assertTrue(isinstance(event['arbitrary'], float))

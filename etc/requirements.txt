@@ -1,4 +1,4 @@
-msgpack-python==0.2.3
+msgpack-python==0.2.4
 iso8601==0.1.4
 
 # Logging
@@ -8,7 +8,7 @@ blist==1.3.4
 
 # Scientific Libraries
 
-pytz==2012h
+pytz==2012j
 numpy==1.6.2
 
 pandas==0.10.0
@@ -16,4 +16,4 @@ python-dateutil==2.1
 six==1.2.0
 
 # For fetching remote data
-requests==1.0.3
+requests==1.0.4

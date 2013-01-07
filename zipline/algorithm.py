@@ -32,7 +32,7 @@ from zipline.finance.slippage import (
     transact_partial
 )
 from zipline.finance.commission import PerShare, PerTrade
-
+from zipline.finance.constants import ANNUALIZER
 
 from zipline.gens.composites import (
     date_sorted_sources,
@@ -65,8 +65,16 @@ class TradingAlgorithm(object):
 
     """
     def __init__(self, *args, **kwargs):
-        """
-        Initialize sids and other state variables.
+        """Initialize sids and other state variables.
+
+        :Arguments:
+            data_frequency : str (daily, hourly or minutely)
+               The duration of the bars.
+            annualizer : int <optional>
+               Which constant to use for annualizing risk metrics.
+               If not provided, will extract from data_frequency.
+            capital_base : float <default: 1.0e5>
+               How much capital to start with.
         """
         self.done = False
         self.order = None
@@ -84,11 +92,20 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
+        if 'data_frequency' in kwargs:
+            self.set_data_frequency(kwargs.pop('data_frequency'))
+        else:
+            self.data_frequency = None
+
+        # Override annualizer if set
+        if 'annualizer' in kwargs:
+            self.annualizer = kwargs['annualizer']
+
         # set the capital base
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
-        # an algorithm subclass needs to set initialized to True
-        # when it is fully initialized.
+        # an algorithm subclass needs to set initialized to True when
+        # it is fully initialized.
         self.initialized = False
 
         # call to user-defined constructor method
@@ -295,3 +312,8 @@ class TradingAlgorithm(object):
     def set_transforms(self, transforms):
         assert isinstance(transforms, list)
         self.transforms = transforms
+
+    def set_data_frequency(self, data_frequency):
+        assert data_frequency in ('daily', 'minute')
+        self.data_frequency = data_frequency
+        self.annualizer = ANNUALIZER[self.data_frequency]

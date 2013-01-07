@@ -73,7 +73,7 @@ class TradingEnvironment(object):
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
-        self.period_trading_days = None
+        self._period_trading_days = None
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."
@@ -93,6 +93,13 @@ class TradingEnvironment(object):
         self.last_close = self.calculate_last_close()
 
         self.prior_day_open = self.calculate_prior_day_open()
+
+    def __repr__(self):
+        return "%s(%r)" % (
+            self.__class__.__name__,
+            {'first_open': self.first_open,
+             'last_close': self.last_close
+             })
 
     def calculate_first_open(self):
         """
@@ -163,19 +170,19 @@ class TradingEnvironment(object):
         )
 
     @property
-    def days_in_period(self):
-        """return the number of trading days within the period [start, end)"""
-        assert self.period_start is not None
-        assert self.period_end is not None
-
-        if self.period_trading_days is None:
-            self.period_trading_days = []
+    def period_trading_days(self):
+        if self._period_trading_days is None:
+            self._period_trading_days = []
             for date in self.trading_day_map.iterkeys():
                 if date > self.period_end:
                     break
                 if date >= self.period_start:
                     self.period_trading_days.append(date)
+        return self._period_trading_days
 
+    @property
+    def days_in_period(self):
+        """return the number of trading days within the period [start, end)"""
         return len(self.period_trading_days)
 
     def is_market_hours(self, test_date):

@@ -64,6 +64,13 @@ from zipline.utils.date_utils import epoch_now
 log = logbook.Logger('Risk')
 
 
+TREASURY_DURATIONS = [
+    '1month', '3month', '6month',
+    '1year', '2year', '3year', '5year',
+    '7year', '10year', '30year'
+]
+
+
 def advance_by_months(dt, jump_in_months):
     month = dt.month + jump_in_months
     years = month / 12
@@ -303,12 +310,6 @@ class RiskMetricsBase(object):
 
         return 1.0 - math.exp(max_drawdown)
 
-    @property
-    def treasury_durations(self):
-        return ['1month', '3month', '6month',
-                '1year', '2year', '3year', '5year',
-                '7year', '10year', '30year']
-
     def choose_treasury(self):
         td = self.end_date - self.start_date
         if td.days <= 31:
@@ -390,8 +391,8 @@ that date doesn't exceed treasury history range."
         curve = self.treasury_curves[day]
         # 1month note data begins in 8/2001,
         # so we can use 3month instead.
-        idx = self.treasury_durations.index(self.treasury_duration)
-        for duration in self.treasury_durations[idx:]:
+        idx = TREASURY_DURATIONS.index(self.treasury_duration)
+        for duration in TREASURY_DURATIONS[idx:]:
             rate = curve[duration]
             if rate is not None:
                 break
