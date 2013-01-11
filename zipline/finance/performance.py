@@ -139,6 +139,7 @@ import math
 from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 import zipline.finance.risk as risk
+from zipline.protocol import Portfolio
 
 log = logbook.Logger('Performance')
 
@@ -543,30 +544,17 @@ class PerformancePeriod(object):
         PerformancePeriod, and in this method we rename some
         fields for usability and remove extraneous fields.
         """
-        portfolio = self.__core_dict()
-        # rename:
-        # ending_cash -> cash
-        # period_open -> backtest_start
-        #
-        # remove:
-        # period_close, starting_value,
-        # cumulative_capital_used, max_leverage, max_capital_used
-        portfolio['cash'] = portfolio['ending_cash']
-        portfolio['start_date'] = portfolio['period_open']
-        portfolio['positions_value'] = portfolio['ending_value']
-
-        del(portfolio['ending_cash'])
-        del(portfolio['period_open'])
-        del(portfolio['period_close'])
-        del(portfolio['starting_value'])
-        del(portfolio['ending_value'])
-        del(portfolio['cumulative_capital_used'])
-        del(portfolio['max_leverage'])
-        del(portfolio['max_capital_used'])
-
-        portfolio['positions'] = self.get_positions()
-
-        return ndict(portfolio)
+        return Portfolio({
+            'capital_used': self.period_capital_used,
+            'starting_cash': self.starting_cash,
+            'portfolio_value': self.ending_cash + self.ending_value,
+            'pnl': self.pnl,
+            'returns': self.returns,
+            'cash': self.ending_cash,
+            'start_date': self.period_open,
+            'positions': self.get_positions(),
+            'positions_value': self.ending_value
+        })
 
     def get_positions(self):
 

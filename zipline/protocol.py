@@ -55,3 +55,13 @@ class Event(object):
 
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
+
+
+class Portfolio(object):
+
+    def __init__(self, initial_values=None):
+        if initial_values:
+            self.__dict__ = initial_values
+
+    def __repr__(self):
+        return "Portfolio({0})".format(self.__dict__)
