@@ -20,7 +20,8 @@ import numpy as np
 import pandas as pd
 
 from datetime import timedelta, datetime
-from unittest import TestCase
+#from unittest import TestCase, assertAlmostEqual
+import unittest as ut
 
 from zipline import ndict
 
@@ -60,7 +61,7 @@ class NoopEventWindow(EventWindow):
         self.removed.append(event)
 
 
-class TestEventWindow(TestCase):
+class TestEventWindow(ut.TestCase):
     def setUp(self):
         setup_logger(self)
 
@@ -156,7 +157,7 @@ class TestEventWindow(TestCase):
         setup_logger(self)
 
 
-class TestFinanceTransforms(TestCase):
+class TestFinanceTransforms(ut.TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
@@ -273,45 +274,57 @@ class TestFinanceTransforms(TestCase):
         assert tnfm_volumes == expected_volumes
 
     def test_moving_stddev(self):
+
+        stddev = MovingStandardDev(
+            fields=['price', 'volume'],            
+            market_aware=False,
+            delta=timedelta(days=3),
+        )
+
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0],
-            [100, 100, 100, 100],
-            timedelta(hours=1),
+            [100, 200, 100, 200],
+            timedelta(days=1),
             self.trading_environment
         )
 
-        stddev = MovingStandardDev(
-            market_aware=False,
-            delta=timedelta(minutes=150),
-        )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         transformed = list(stddev.transform(self.source))
+        # Output values
+        tnfm_prices = [message.tnfm_value.price for message in transformed]
+        tnfm_volumes = [message.tnfm_value.volume for message in transformed]
 
-        vals = [message.tnfm_value for message in transformed]
-
-        expected = [
+        expected_prices = [
             None,
             np.std([10.0, 15.0], ddof=1),
             np.std([10.0, 15.0, 13.0], ddof=1),
             np.std([15.0, 13.0, 12.0], ddof=1),
         ]
 
-        # np has odd rounding behavior, cf.
-        # http://docs.scipy.org/doc/np/reference/generated/np.std.html
-        for v1, v2 in zip(vals, expected):
+        expected_volumes = [
+            None,
+            np.std([100, 200], ddof=1),
+            np.std([100, 200, 100], ddof=1),
+            np.std([200, 100, 200], ddof=1),
+        ]
 
+        for v1, v2 in zip(tnfm_prices, expected_prices):
             if v1 is None:
                 assert v2 is None
                 continue
-            assert round(v1, 5) == round(v2, 5)
+            self.assertAlmostEqual(v1, v2)            
 
-
+        for v1, v2 in zip(tnfm_volumes, expected_volumes):
+            if v1 is None:
+                assert v2 is None
+                continue
+            self.assertAlmostEqual(v1, v2)
 ############################################################
 # Test BatchTransform
 
-class TestBatchTransform(TestCase):
+class TestBatchTransform(ut.TestCase):
     def setUp(self):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
@@ -384,3 +397,6 @@ class TestBatchTransform(TestCase):
             algo.history_return_args,
             [None, None, None, expected_item, expected_item,
              expected_item])
+             
+if __name__ == "__main__":
+    ut.main()  
