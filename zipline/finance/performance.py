@@ -136,7 +136,6 @@ import datetime
 import pytz
 import math
 
-from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 from zipline.protocol import Portfolio
@@ -572,7 +571,7 @@ class PerformancePeriod(object):
 
         for sid, pos in self.positions.iteritems():
             if sid not in positions:
-                positions[sid] = ndict()
+                positions[sid] = zp.Position()
             position = positions[sid]
             position.sid = pos.sid
             position.amount = pos.amount

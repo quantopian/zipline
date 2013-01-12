@@ -65,3 +65,9 @@ class Portfolio(object):
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
+
+
+class Position(object):
+
+    def __repr__(self):
+        return "Position({0})".format(self.__dict__)
