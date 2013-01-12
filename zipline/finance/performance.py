@@ -443,6 +443,11 @@ class PerformancePeriod(object):
 
         self.calculate_performance()
 
+        # An object to recycle via assigning new values
+        # when returning portfolio information.
+        # So as not to avoid creating a new object for each event
+        self._portfolio_store = Portfolio()
+
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
 
@@ -544,17 +549,21 @@ class PerformancePeriod(object):
         PerformancePeriod, and in this method we rename some
         fields for usability and remove extraneous fields.
         """
-        return Portfolio({
-            'capital_used': self.period_capital_used,
-            'starting_cash': self.starting_cash,
-            'portfolio_value': self.ending_cash + self.ending_value,
-            'pnl': self.pnl,
-            'returns': self.returns,
-            'cash': self.ending_cash,
-            'start_date': self.period_open,
-            'positions': self.get_positions(),
-            'positions_value': self.ending_value
-        })
+        # Recycles containing objects' Portfolio object
+        # which is used for returning values.
+        # as_portfolio is called in an inner loop,
+        # so repeated object creation becomes too expensive
+        portfolio = self._portfolio_store
+        portfolio.capital_used = self.period_capital_used,
+        portfolio.starting_cash = self.starting_cash
+        portfolio.portfolio_value = self.ending_cash + self.ending_value
+        portfolio.pnl = self.pnl
+        portfolio.returns = self.returns
+        portfolio.cash = self.ending_cash
+        portfolio.start_date = self.period_open
+        portfolio.positions = self.get_positions()
+        portfolio.positions_value = self.ending_value
+        return portfolio
 
     def get_positions(self):
 
