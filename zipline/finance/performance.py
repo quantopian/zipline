@@ -136,7 +136,6 @@ import datetime
 import pytz
 import math
 
-from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
@@ -446,6 +445,7 @@ class PerformancePeriod(object):
         # when returning portfolio information.
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
+        self._positions_store = zp.Positions()
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
@@ -566,11 +566,15 @@ class PerformancePeriod(object):
 
     def get_positions(self):
 
-        positions = ndict(internal=position_ndict())
+        positions = self._positions_store
 
         for sid, pos in self.positions.iteritems():
-            cur = pos.to_dict()
-            positions[sid] = ndict(cur)
+            if sid not in positions:
+                positions[sid] = zp.Position(sid)
+            position = positions[sid]
+            position.amount = pos.amount
+            position.cost_basis = pos.cost_basis
+            position.last_sale_price = pos.last_sale_price
 
         return positions
 
@@ -587,12 +591,4 @@ class positiondict(dict):
     def __missing__(self, key):
         pos = Position(key)
         self[key] = pos
-        return pos
-
-
-class position_ndict(dict):
-
-    def __missing__(self, key):
-        pos = Position(key)
-        self[key] = ndict(pos.to_dict())
         return pos
