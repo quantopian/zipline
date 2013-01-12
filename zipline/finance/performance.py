@@ -136,10 +136,8 @@ import datetime
 import pytz
 import math
 
-from zipline.utils.protocol_utils import ndict
 import zipline.protocol as zp
 import zipline.finance.risk as risk
-from zipline.protocol import Portfolio
 
 log = logbook.Logger('Performance')
 
@@ -443,6 +441,12 @@ class PerformancePeriod(object):
 
         self.calculate_performance()
 
+        # An object to recycle via assigning new values
+        # when returning portfolio information.
+        # So as not to avoid creating a new object for each event
+        self._portfolio_store = zp.Portfolio()
+        self._positions_store = zp.Positions()
+
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
 
@@ -544,25 +548,33 @@ class PerformancePeriod(object):
         PerformancePeriod, and in this method we rename some
         fields for usability and remove extraneous fields.
         """
-        return Portfolio({
-            'capital_used': self.period_capital_used,
-            'starting_cash': self.starting_cash,
-            'portfolio_value': self.ending_cash + self.ending_value,
-            'pnl': self.pnl,
-            'returns': self.returns,
-            'cash': self.ending_cash,
-            'start_date': self.period_open,
-            'positions': self.get_positions(),
-            'positions_value': self.ending_value
-        })
+        # Recycles containing objects' Portfolio object
+        # which is used for returning values.
+        # as_portfolio is called in an inner loop,
+        # so repeated object creation becomes too expensive
+        portfolio = self._portfolio_store
+        portfolio.capital_used = self.period_capital_used,
+        portfolio.starting_cash = self.starting_cash
+        portfolio.portfolio_value = self.ending_cash + self.ending_value
+        portfolio.pnl = self.pnl
+        portfolio.returns = self.returns
+        portfolio.cash = self.ending_cash
+        portfolio.start_date = self.period_open
+        portfolio.positions = self.get_positions()
+        portfolio.positions_value = self.ending_value
+        return portfolio
 
     def get_positions(self):
 
-        positions = ndict(internal=position_ndict())
+        positions = self._positions_store
 
         for sid, pos in self.positions.iteritems():
-            cur = pos.to_dict()
-            positions[sid] = ndict(cur)
+            if sid not in positions:
+                positions[sid] = zp.Position(sid)
+            position = positions[sid]
+            position.amount = pos.amount
+            position.cost_basis = pos.cost_basis
+            position.last_sale_price = pos.last_sale_price
 
         return positions
 
@@ -579,12 +591,4 @@ class positiondict(dict):
     def __missing__(self, key):
         pos = Position(key)
         self[key] = pos
-        return pos
-
-
-class position_ndict(dict):
-
-    def __missing__(self, key):
-        pos = Position(key)
-        self[key] = ndict(pos.to_dict())
         return pos

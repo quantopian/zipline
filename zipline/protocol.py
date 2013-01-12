@@ -65,3 +65,23 @@ class Portfolio(object):
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
+
+
+class Position(object):
+
+    def __init__(self, sid):
+        self.sid = sid
+        self.amount = 0
+        self.cost_basis = 0.0  # per share
+        self.last_sale_price = 0.0
+
+    def __repr__(self):
+        return "Position({0})".format(self.__dict__)
+
+
+class Positions(dict):
+
+    def __missing__(self, key):
+        pos = Position(key)
+        self[key] = pos
+        return pos
