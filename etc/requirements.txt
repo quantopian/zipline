@@ -16,4 +16,4 @@ python-dateutil==2.1
 six==1.2.0
 
 # For fetching remote data
-requests==1.0.4
+requests==1.1.0
