@@ -13,15 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import deque
-
 import pytz
 import numpy as np
 import pandas as pd
 
+from collections import deque
 from datetime import timedelta, datetime
-#from unittest import TestCase, assertAlmostEqual
-import unittest as ut
+from unittest import TestCase
 
 from zipline import ndict
 
@@ -61,7 +59,7 @@ class NoopEventWindow(EventWindow):
         self.removed.append(event)
 
 
-class TestEventWindow(ut.TestCase):
+class TestEventWindow(TestCase):
     def setUp(self):
         setup_logger(self)
 
@@ -157,7 +155,7 @@ class TestEventWindow(ut.TestCase):
         setup_logger(self)
 
 
-class TestFinanceTransforms(ut.TestCase):
+class TestFinanceTransforms(TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
@@ -276,7 +274,7 @@ class TestFinanceTransforms(ut.TestCase):
     def test_moving_stddev(self):
 
         stddev = MovingStandardDev(
-            fields=['price', 'volume'],            
+            fields=['price', 'volume'],
             market_aware=False,
             delta=timedelta(days=3),
         )
@@ -314,7 +312,7 @@ class TestFinanceTransforms(ut.TestCase):
             if v1 is None:
                 assert v2 is None
                 continue
-            self.assertAlmostEqual(v1, v2)            
+            self.assertAlmostEqual(v1, v2)
 
         for v1, v2 in zip(tnfm_volumes, expected_volumes):
             if v1 is None:
@@ -324,7 +322,8 @@ class TestFinanceTransforms(ut.TestCase):
 ############################################################
 # Test BatchTransform
 
-class TestBatchTransform(ut.TestCase):
+
+class TestBatchTransform(TestCase):
     def setUp(self):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
@@ -397,6 +396,3 @@ class TestBatchTransform(ut.TestCase):
             algo.history_return_args,
             [None, None, None, expected_item, expected_item,
              expected_item])
-             
-if __name__ == "__main__":
-    ut.main()  
