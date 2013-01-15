@@ -179,10 +179,6 @@ class PerformanceTracker(object):
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
-            # initial positions are empty
-            positiondict(),
-            # initial portfolio positions have zero value
-            0,
             # initial cash is your capital base.
             self.capital_base,
             # the cumulative period will be calculated over the entire test.
@@ -192,10 +188,6 @@ class PerformanceTracker(object):
 
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
-            # initial positions are empty
-            positiondict(),
-            # initial portfolio positions have zero value
-            0,
             # initial cash is your capital base.
             self.capital_base,
             # the daily period will be calculated for the market day
@@ -313,14 +305,9 @@ Last successful date: %s" % self.market_open)
         self.market_close = self.market_open + self.trading_day
 
         # Roll over positions to current day.
-        self.todays_performance = PerformancePeriod(
-            self.todays_performance.positions,
-            self.todays_performance.ending_value,
-            self.todays_performance.ending_cash,
-            self.market_open,
-            self.market_close,
-            keep_transactions=True
-        )
+        self.todays_performance.rollover()
+        self.todays_performance.period_open = self.market_open
+        self.todays_performance.period_close = self.market_close
 
         return daily_update
 
@@ -410,8 +397,6 @@ class PerformancePeriod(object):
 
     def __init__(
             self,
-            initial_positions,
-            starting_value,
             starting_cash,
             period_open=None,
             period_close=None,
@@ -424,12 +409,8 @@ class PerformancePeriod(object):
         self.period_capital_used = 0.0
         self.pnl = 0.0
         #sid => position object
-        if not isinstance(initial_positions, positiondict):
-            self.positions = positiondict()
-            self.positions.update(initial_positions)
-        else:
-            self.positions = initial_positions
-        self.starting_value = starting_value
+        self.positions = positiondict()
+        self.starting_value = 0.0
         #cash balance at start of period
         self.starting_cash = starting_cash
         self.ending_cash = starting_cash
@@ -446,6 +427,16 @@ class PerformancePeriod(object):
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
         self._positions_store = zp.Positions()
+
+    def rollover(self):
+        self.starting_value = self.ending_value
+        self.starting_cash = self.ending_cash
+        self.period_capital_used = 0.0
+        self.pnl = 0.0
+        self.processed_transactions = []
+        self.cumulative_capital_used = 0.0
+        self.max_capital_used = 0.0
+        self.max_leverage = 0.0
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()

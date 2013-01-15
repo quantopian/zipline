@@ -94,7 +94,7 @@ check treasury and benchmark data in findb, and re-run the test."""
         )
 
         txn = factory.create_txn(1, 10.0, 100, self.dt + self.onesec)
-        pp = perf.PerformancePeriod({}, 0.0, 1000.0)
+        pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
         for trade in trades:
@@ -165,7 +165,7 @@ single short-sale transaction"""
         trades_1 = trades[:-2]
 
         txn = factory.create_txn(1, 10.0, -100, self.dt + self.onesec)
-        pp = perf.PerformancePeriod({}, 0.0, 1000.0)
+        pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
         for trade in trades_1:
@@ -223,68 +223,64 @@ single short-sale transaction"""
         trades_2 = trades[-2:]
 
         #simulate a rollover to a new period
-        pp2 = perf.PerformancePeriod(
-            pp.positions,
-            pp.ending_value,
-            pp.ending_cash
-        )
+        pp.rollover()
 
         for trade in trades_2:
-            pp2.update_last_sale(trade)
+            pp.update_last_sale(trade)
 
-        pp2.calculate_performance()
+        pp.calculate_performance()
 
         self.assertEqual(
-            pp2.period_capital_used,
+            pp.period_capital_used,
             0,
             "capital used should be zero, there were no transactions in \
             performance period"
         )
 
         self.assertEqual(
-            len(pp2.positions),
+            len(pp.positions),
             1,
             "should be just one position"
         )
 
         self.assertEqual(
-            pp2.positions[1].sid,
+            pp.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pp2.positions[1].amount,
+            pp.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pp2.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pp2.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
 
         self.assertEqual(
-            pp2.ending_value,
+            pp.ending_value,
             -900,
             "ending value should be price of last trade times number of \
             shares in position")
 
         self.assertEqual(
-            pp2.pnl,
+            pp.pnl,
             200,
             "drop of 2 on -100 shares should be 200"
         )
 
         #now run a performance period encompassing the entire trade sample.
-        ppTotal = perf.PerformancePeriod({}, 0.0, 1000.0)
+        ppTotal = perf.PerformancePeriod(1000.0)
 
         for trade in trades_1:
             ppTotal.update_last_sale(trade)
@@ -364,7 +360,7 @@ trade after cover"""
         )
 
         cover_txn = factory.create_txn(1, 7.0, 100, self.dt + self.onesec * 6)
-        pp = perf.PerformancePeriod({}, 0.0, 1000.0)
+        pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(short_txn)
         pp.execute_transaction(cover_txn)
@@ -443,7 +439,7 @@ shares in position"
             self.trading_environment
         )
 
-        pp = perf.PerformancePeriod({}, 0.0, 1000.0)
+        pp = perf.PerformancePeriod(1000.0)
 
         for txn in transactions:
             pp.execute_transaction(txn)
@@ -483,33 +479,29 @@ shares in position"
             100,
             trades[-1].dt + self.onesec)
 
-        pp2 = perf.PerformancePeriod(
-            copy.deepcopy(pp.positions),
-            pp.ending_value,
-            pp.ending_cash
-        )
+        pp.rollover()
 
-        pp2.execute_transaction(saleTxn)
-        pp2.update_last_sale(down_tick)
+        pp.execute_transaction(saleTxn)
+        pp.update_last_sale(down_tick)
 
-        pp2.calculate_performance()
+        pp.calculate_performance()
         self.assertEqual(
-            pp2.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             10,
             "should have a last sale of 10, was {val}".format(
-                val=pp2.positions[1].last_sale_price)
+                val=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(
-            round(pp2.positions[1].cost_basis, 2),
+            round(pp.positions[1].cost_basis, 2),
             11.33,
             "should have a cost basis of 11.33"
         )
 
         #print "second period pnl is {pnl}".format(pnl=pp2.pnl)
-        self.assertEqual(pp2.pnl, -800, "this period goes from +400 to -400")
+        self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
-        pp3 = perf.PerformancePeriod({}, 0.0, 1000.0)
+        pp3 = perf.PerformancePeriod(1000.0)
 
         transactions.append(saleTxn)
         for txn in transactions:
