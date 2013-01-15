@@ -13,13 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
+
 import pytz
 import numpy as np
 import pandas as pd
 
-from collections import deque
 from datetime import timedelta, datetime
-from unittest import TestCase
+#from unittest import TestCase, assertAlmostEqual
+import unittest as ut
 
 from zipline import ndict
 
@@ -59,7 +61,7 @@ class NoopEventWindow(EventWindow):
         self.removed.append(event)
 
 
-class TestEventWindow(TestCase):
+class TestEventWindow(ut.TestCase):
     def setUp(self):
         setup_logger(self)
 
@@ -155,7 +157,7 @@ class TestEventWindow(TestCase):
         setup_logger(self)
 
 
-class TestFinanceTransforms(TestCase):
+class TestFinanceTransforms(ut.TestCase):
 
     def setUp(self):
         self.trading_environment = factory.create_trading_environment()
@@ -274,7 +276,7 @@ class TestFinanceTransforms(TestCase):
     def test_moving_stddev(self):
 
         stddev = MovingStandardDev(
-            fields=['price', 'volume'],
+            fields=['price', 'volume'],            
             market_aware=False,
             delta=timedelta(days=3),
         )
@@ -312,7 +314,7 @@ class TestFinanceTransforms(TestCase):
             if v1 is None:
                 assert v2 is None
                 continue
-            self.assertAlmostEqual(v1, v2)
+            self.assertAlmostEqual(v1, v2)            
 
         for v1, v2 in zip(tnfm_volumes, expected_volumes):
             if v1 is None:
@@ -322,8 +324,7 @@ class TestFinanceTransforms(TestCase):
 ############################################################
 # Test BatchTransform
 
-
-class TestBatchTransform(TestCase):
+class TestBatchTransform(ut.TestCase):
     def setUp(self):
         setup_logger(self)
         self.source, self.df = factory.create_test_df_source()
