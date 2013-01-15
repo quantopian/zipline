@@ -136,6 +136,8 @@ import datetime
 import pytz
 import math
 
+import numpy as np
+
 import zipline.protocol as zp
 import zipline.finance.risk as risk
 
@@ -420,6 +422,12 @@ class PerformancePeriod(object):
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
 
+        # Maps position to following array indexes
+        self._position_index_map = {}
+        # Arrays for quick calculations of positions value
+        self._position_amounts = np.array([])
+        self._position_last_sale_prices = np.array([])
+
         self.calculate_performance()
 
         # An object to recycle via assigning new values
@@ -438,6 +446,17 @@ class PerformancePeriod(object):
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
 
+    def index_for_position(self, sid):
+        try:
+            index = self._position_index_map[sid]
+        except KeyError:
+            index = len(self._position_index_map)
+            self._position_index_map[sid] = index
+            self._position_amounts = np.append(self._position_amounts, [0])
+            self._position_last_sale_prices = np.append(
+                self._position_last_sale_prices, [0])
+        return index
+
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
 
@@ -454,7 +473,11 @@ class PerformancePeriod(object):
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
-        self.positions[txn.sid].update(txn)
+        position = self.positions[txn.sid]
+        position.update(txn)
+        index = self.index_for_position(txn.sid)
+        self._position_amounts[index] = position.amount
+
         self.period_capital_used += -1 * txn.price * txn.amount
 
         # Max Leverage
@@ -485,15 +508,15 @@ class PerformancePeriod(object):
         return int(base * round(float(x) / base))
 
     def calculate_positions_value(self):
-        mktValue = 0.0
-        for key, pos in self.positions.iteritems():
-            mktValue += pos.currentValue()
-        return mktValue
+        return np.vdot(self._position_amounts, self._position_last_sale_prices)
 
     def update_last_sale(self, event):
         is_trade = event.type == zp.DATASOURCE_TYPE.TRADE
         if event.sid in self.positions and is_trade:
             self.positions[event.sid].last_sale_price = event.price
+            index = self.index_for_position(event.sid)
+            self._position_last_sale_prices[index] = event.price
+
             self.positions[event.sid].last_sale_date = event.dt
 
     def __core_dict(self):
