@@ -17,7 +17,6 @@ import collections
 
 import unittest
 from nose_parameterized import parameterized
-import copy
 import random
 import datetime
 import pytz

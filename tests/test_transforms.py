@@ -19,7 +19,6 @@ import pytz
 import numpy as np
 import pandas as pd
 
-from collections import deque
 from datetime import timedelta, datetime
 from unittest import TestCase
 
