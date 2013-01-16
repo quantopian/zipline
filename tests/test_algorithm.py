@@ -19,11 +19,33 @@ import numpy as np
 
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
-from zipline.test_algorithms import TestRegisterTransformAlgorithm
+from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
+                                     RecordAlgorithm)
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.transforms import MovingAverage
+
+
+class TestRecordAlgorithm(TestCase):
+    def setUp(self):
+        self.trading_environment = factory.create_trading_environment()
+        trade_history = factory.create_trade_history(
+            133,
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
+            self.trading_environment
+        )
+        self.source = SpecificEquityTrades(event_list=trade_history)
+        self.df_source, self.df = \
+            factory.create_test_df_source(self.trading_environment)
+
+    def test_record_incr(self):
+        algo = RecordAlgorithm()
+        output = algo.run(self.source)
+        np.testing.assert_array_equal(output['incr'].values,
+                                      range(1, len(output) + 1))
 
 
 class TestTransformAlgorithm(TestCase):
