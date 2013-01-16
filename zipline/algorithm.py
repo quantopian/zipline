@@ -86,8 +86,7 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
-        self.registered_vars = []
-        self.record_var_values = {}
+        self._registered_vars = []
 
         self.logger = None
 
@@ -280,10 +279,10 @@ class TradingAlgorithm(object):
             names = [names]
 
         for name in names:
-            self.registered_vars.append(name)
+            self._registered_vars.append(name)
 
     def _get_current_record(self):
-        return {name: getattr(self, name) for name in self.registered_vars}
+        return {name: getattr(self, name) for name in self._registered_vars}
 
     @property
     def portfolio(self):
