@@ -508,7 +508,7 @@ class PerformancePeriod(object):
         return int(base * round(float(x) / base))
 
     def calculate_positions_value(self):
-        return np.vdot(self._position_amounts, self._position_last_sale_prices)
+        return np.dot(self._position_amounts, self._position_last_sale_prices)
 
     def update_last_sale(self, event):
         is_trade = event.type == zp.DATASOURCE_TYPE.TRADE
