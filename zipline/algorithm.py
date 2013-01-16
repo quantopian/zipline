@@ -86,7 +86,7 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
-        self._registered_vars = []
+        self._registered_vars = set()
 
         self.logger = None
 
@@ -275,13 +275,13 @@ class TradingAlgorithm(object):
             then set self.mavg to some value and it will be recorded.
 
         """
-        if not isinstance(names, (tuple, list)):
+        if isinstance(names, basestring):
             names = [names]
 
-        for name in names:
-            self._registered_vars.append(name)
+        self._registered_vars.update(set(names))
 
-    def _get_current_record(self):
+    @property
+    def recorded_vars(self):
         return {name: getattr(self, name) for name in self._registered_vars}
 
     @property
