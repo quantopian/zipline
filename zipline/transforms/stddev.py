@@ -34,6 +34,7 @@ class MovingStandardDev(object):
     def __init__(self, fields,
                  market_aware=True, window_length=None, delta=None):
 
+        self.fields = fields
         self.market_aware = market_aware
         self.fields = fields
 
