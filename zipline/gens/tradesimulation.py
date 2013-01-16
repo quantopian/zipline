@@ -219,6 +219,10 @@ class AlgorithmSimulator(object):
                 else:
                     for event in snapshot:
                         for perf_message in event.perf_messages:
+                            # append current values of recorded vars
+                            # to emitted message
+                            perf_message['recorded_vars'] =\
+                                self.algo._get_current_record()
                             yield perf_message
                         del event['perf_messages']
 
@@ -232,6 +236,8 @@ class AlgorithmSimulator(object):
                 self.perf_tracker.handle_simulation_end()
 
             for message in perf_messages:
+                message['recorded_vars'] =\
+                    self.algo._get_current_record()
                 yield message
 
             yield risk_message
@@ -256,6 +262,5 @@ class AlgorithmSimulator(object):
         self.snapshot_dt = date
         self.algo.set_datetime(self.snapshot_dt)
         self.algo.handle_data(self.universe)
-
         # Update the simulation time.
         self.simulation_dt = date

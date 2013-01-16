@@ -214,7 +214,6 @@ class PerformanceTracker(object):
             for event in snapshot:
                 event.perf_messages = self.process_event(event)
                 event.portfolio = self.get_portfolio()
-
                 del event['TRANSACTION']
                 new_snapshot.append(event)
 
