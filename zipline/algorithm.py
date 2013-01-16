@@ -255,6 +255,27 @@ class TradingAlgorithm(object):
                                            'kwargs': kwargs}
 
     def record_variables(self, names):
+        """Track and record local variables (i.e. attributes) each
+        day.
+
+        :Arguments:
+            names : str or list
+                List of variable names (strings) to record.
+
+        :Notes:
+            You are responsible for making sure the attributes
+            exist.
+
+            The corresponding variable name and its values will be
+            appended to the results returned by the .run() method.
+
+        :Example:
+
+            In initialize you would call
+            self.record_variables('mavg'). In handle_data you could
+            then set self.mavg to some value and it will be recorded.
+
+        """
         if not isinstance(names, (tuple, list)):
             names = [names]
 
