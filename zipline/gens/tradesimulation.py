@@ -230,7 +230,7 @@ class AlgorithmSimulator(object):
                             # append current values of recorded vars
                             # to emitted message
                             perf_message['recorded_vars'] =\
-                                self.algo._get_current_record()
+                                self.algo.recorded_vars
                             yield perf_message
                         del event['perf_messages']
 
@@ -245,7 +245,7 @@ class AlgorithmSimulator(object):
 
             for message in perf_messages:
                 message['recorded_vars'] =\
-                    self.algo._get_current_record()
+                    self.algo.recorded_vars
                 yield message
 
             yield risk_message
