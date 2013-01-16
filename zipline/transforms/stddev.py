@@ -24,7 +24,7 @@ from zipline.transforms.utils import EventWindow, TransformMeta
 class MovingStandardDev(object):
     """
     Class that maintains a dictionary from sids to
-    MovingStandardDevWindows.  For each sid, we maintain standard 
+    MovingStandardDevWindows.  For each sid, we maintain standard
     deviations over any number of distinct fields. (For example, we can
     maintain a sid's moving standard deviation of returns as well as its
     moving standard deviation of prices.
@@ -35,6 +35,7 @@ class MovingStandardDev(object):
                  market_aware=True, window_length=None, delta=None):
 
         self.market_aware = market_aware
+        self.fields = fields
 
         self.delta = delta
         self.window_length = window_length
