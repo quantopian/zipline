@@ -212,13 +212,7 @@ class TradingAlgorithm(object):
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict
-        perfs = []
-        for perf in self.gen:
-            current_vars = self._get_current_record()
-            if 'daily_perf' in perf:
-                perf['daily_perf'].update(current_vars)
-            perfs.append(perf)
-        #perfs = list(self.gen)
+        perfs = list(self.gen)
 
         # convert perf ndict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
@@ -231,6 +225,7 @@ class TradingAlgorithm(object):
         cum_perfs = []
         for perf in perfs:
             if 'daily_perf' in perf:
+                perf['daily_perf'].update(perf['recorded_vars'])
                 daily_perfs.append(perf['daily_perf'])
             else:
                 cum_perfs.append(perf)
