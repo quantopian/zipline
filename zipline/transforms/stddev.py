@@ -31,11 +31,13 @@ class MovingStandardDev(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, fields,
-                 market_aware=True, window_length=None, delta=None):
+    def __init__(self, fields='price', market_aware=True, window_length=None,
+                 delta=None):
+        if isinstance(fields, basestring):
+            fields = [fields]
+        self.fields = fields
 
         self.market_aware = market_aware
-        self.fields = fields
 
         self.delta = delta
         self.window_length = window_length
@@ -62,10 +64,10 @@ class MovingStandardDev(object):
         Factory method for self.sid_windows.
         """
         return MovingStandardDevWindow(
-            self.fields,
             self.market_aware,
             self.window_length,
-            self.delta
+            self.delta,
+            fields=self.fields
         )
 
     def update(self, event):
@@ -90,12 +92,14 @@ class MovingStandardDevWindow(EventWindow):
     instantiated inside a MovingStandardDev.
     """
 
-    def __init__(self, fields, market_aware, window_length, delta):
+    def __init__(self, market_aware, window_length, delta, fields='price'):
         # Call the superclass constructor to set up base EventWindow
         # infrastructure.
         EventWindow.__init__(self, market_aware, window_length, delta)
-
+        if isinstance(fields, basestring):
+            fields = [fields]
         self.fields = fields
+
         self.sum = defaultdict(float)
         self.sum_sqr = defaultdict(float)
 
