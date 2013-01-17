@@ -29,10 +29,12 @@ class MovingAverage(object):
     """
     __metaclass__ = TransformMeta
 
-    def __init__(self, fields,
+    def __init__(self, fields='price',
                  market_aware=True, window_length=None, delta=None):
-
+        if isinstance(fields, basestring):
+            fields = [fields]
         self.fields = fields
+
         self.market_aware = market_aware
 
         self.delta = delta
