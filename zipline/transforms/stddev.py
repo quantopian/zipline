@@ -147,7 +147,7 @@ class MovingStandardDevWindow(EventWindow):
         """
         # Sample standard deviation is undefined for a single event or
         # no events.
-        if len(self) <= 1:
+        if len(self.ticks) <= 1:
             return None
 
         else:
