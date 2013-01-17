@@ -139,6 +139,24 @@ class MovingStandardDevWindow(EventWindow):
                     self.sum[field] * _mean) / (len(self.ticks) - 1)
             return sqrt(_var)
 
+    def get_stddev(self):
+        """
+        Returns stddev with 'price' for existing algorithms.
+
+        Could possibly use existing algos.
+        """
+        # Sample standard deviation is undefined for a single event or
+        # no events.
+        if len(self) <= 1:
+            return None
+
+        else:
+            average = self.sum['price'] / len(self.ticks)
+            s_squared = (self.sum_sqr['price'] - self.sum['price'] * average) \
+                / (len(self.ticks) - 1)
+            stddev = sqrt(s_squared)
+        return stddev
+
     def get_stddevs(self):
         """
         Return an ndict of all our tracked standard deviations.
