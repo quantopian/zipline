@@ -273,56 +273,43 @@ class TestFinanceTransforms(TestCase):
         assert tnfm_volumes == expected_volumes
 
     def test_moving_stddev(self):
-
-        stddev = MovingStandardDev(
-            fields=['price', 'volume'],
-            market_aware=False,
-            delta=timedelta(days=3),
-        )
-
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0],
-            [100, 200, 100, 200],
-            timedelta(days=1),
+            [100, 100, 100, 100],
+            timedelta(hours=1),
             self.trading_environment
         )
 
+        stddev = MovingStandardDev(
+            market_aware=False,
+            delta=timedelta(minutes=150),
+        )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         transformed = list(stddev.transform(self.source))
-        # Output values
-        tnfm_prices = [message.tnfm_value.price for message in transformed]
-        tnfm_volumes = [message.tnfm_value.volume for message in transformed]
 
-        expected_prices = [
+        vals = [message.tnfm_value for message in transformed]
+
+        expected = [
             None,
             np.std([10.0, 15.0], ddof=1),
             np.std([10.0, 15.0, 13.0], ddof=1),
             np.std([15.0, 13.0, 12.0], ddof=1),
         ]
 
-        expected_volumes = [
-            None,
-            np.std([100, 200], ddof=1),
-            np.std([100, 200, 100], ddof=1),
-            np.std([200, 100, 200], ddof=1),
-        ]
+        # np has odd rounding behavior, cf.
+        # http://docs.scipy.org/doc/np/reference/generated/np.std.html
+        for v1, v2 in zip(vals, expected):
 
-        for v1, v2 in zip(tnfm_prices, expected_prices):
             if v1 is None:
                 assert v2 is None
                 continue
-            self.assertAlmostEqual(v1, v2)
+            assert round(v1, 5) == round(v2, 5)
 
-        for v1, v2 in zip(tnfm_volumes, expected_volumes):
-            if v1 is None:
-                assert v2 is None
-                continue
-            self.assertAlmostEqual(v1, v2)
+
 ############################################################
 # Test BatchTransform
-
 
 class TestBatchTransform(TestCase):
     def setUp(self):
