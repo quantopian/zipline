@@ -446,7 +446,7 @@ class BatchTransform(EventWindow):
         # every sid has the same fields.
         sid_keys = []
         for sid in event.data.itervalues():
-            keys = set([name for name, value in sid.items()
+            keys = set([name for name, value in sid.__dict__.items()
                         if (isinstance(value, (int, float)))])
             sid_keys.append(keys)
 
@@ -511,7 +511,7 @@ class BatchTransform(EventWindow):
             for sid in sids:
                 fields = tick.data[sid]
                 for field_name in self.field_names:
-                    data[field_name][sid].ix[dt] = fields[field_name]
+                    data[field_name][sid].ix[dt] = fields.__dict__[field_name]
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
