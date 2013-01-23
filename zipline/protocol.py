@@ -102,5 +102,8 @@ class SIDData(object):
     def __len__(self):
         return len(self.__dict__)
 
+    def __contains__(self, name):
+        return name in self.__dict__
+
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
