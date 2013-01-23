@@ -108,9 +108,6 @@ class MovingAverageEventWindow(EventWindow):
         # fields.
         self.fields = fields
         self.totals = defaultdict(float)
-        # Container for averages
-        # So that we don't create a new object on each event.
-        self.averages_container = Averages()
 
     # Subclass customization for adding new events.
     def handle_add(self, event):
@@ -145,7 +142,7 @@ class MovingAverageEventWindow(EventWindow):
         """
         Return an ndict of all our tracked averages.
         """
-        out = self.averages_container
+        out = Averages()
         for field in self.fields:
             out.__dict__[field] = self.average(field)
         return out
