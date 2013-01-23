@@ -85,3 +85,22 @@ class Positions(dict):
         pos = Position(key)
         self[key] = pos
         return pos
+
+
+class SIDData(object):
+
+    def __init__(self, initial_values=None):
+        if initial_values:
+            self.__dict__ = initial_values
+
+    def __getitem__(self, name):
+        return self.__dict__[name]
+
+    def __setitem__(self, name, value):
+        self.__dict__[name] = value
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __repr__(self):
+        return "SIDData({0})".format(self.__dict__)

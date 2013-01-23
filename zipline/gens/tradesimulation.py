@@ -18,6 +18,7 @@ from logbook import Logger, Processor
 from collections import defaultdict
 
 from zipline import ndict
+from zipline.protocol import SIDData
 
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
@@ -151,9 +152,9 @@ class AlgorithmSimulator(object):
         # ==============
 
         # The algorithm's universe as of our most recent event.
-        # We want an ndict that will have empty ndicts as default
+        # We want an ndict that will have empty objects as default
         # values on missing keys.
-        self.universe = ndict(internal=defaultdict(ndict))
+        self.universe = ndict(internal=defaultdict(SIDData))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -251,7 +252,8 @@ class AlgorithmSimulator(object):
         self.algo.set_portfolio(event.portfolio)
 
         # Update our knowledge of this event's sid
-        self.universe[event.sid].update(event.__dict__)
+        sid_data = self.universe[event.sid]
+        sid_data.__dict__.update(event.__dict__)
 
     def simulate_snapshot(self, date):
         """
