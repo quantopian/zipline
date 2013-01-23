@@ -549,7 +549,7 @@ class PerformancePeriod(object):
 
         # we want the key to be absent, not just empty
         if self.keep_transactions:
-            transactions = [x.as_dict() for x in self.processed_transactions]
+            transactions = [x.__dict__ for x in self.processed_transactions]
             rval['transactions'] = transactions
 
         return rval

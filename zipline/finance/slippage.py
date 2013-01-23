@@ -19,8 +19,6 @@ import math
 
 from functools import partial
 
-from zipline.utils.protocol_utils import ndict
-
 from logbook import Processor
 
 
@@ -48,6 +46,16 @@ def transact_partial(slippage, commission):
     return partial(transact_stub, slippage, commission)
 
 
+class Transaction(object):
+
+    def __init__(self, initial_values=None):
+        if initial_values:
+            self.__dict__ = initial_values
+
+    def __getitem__(self, name):
+        return self.__dict__[name]
+
+
 def create_transaction(sid, amount, price, dt):
 
     txn = {
@@ -57,7 +65,7 @@ def create_transaction(sid, amount, price, dt):
         'price': price,
     }
 
-    transaction = ndict(txn)
+    transaction = Transaction(txn)
     return transaction
 
 
