@@ -26,6 +26,13 @@ from zipline.gens.utils import hash_args
 log = Logger('Trade Simulation')
 
 
+class Order(object):
+
+    def __init__(self, initial_values=None):
+        if initial_values:
+            self.__dict__ = initial_values
+
+
 class TradeSimulationClient(object):
     """
     Generator-style class that takes the expected output of a merge, a
@@ -169,7 +176,7 @@ class AlgorithmSimulator(object):
         Closure to pass into the user's algo to allow placing orders
         into the transaction simulator's dict of open orders.
         """
-        order = ndict({
+        order = Order({
             'dt': self.simulation_dt,
             'sid': sid,
             'amount': int(amount),
