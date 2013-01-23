@@ -28,11 +28,15 @@ from numbers import Integral
 
 import pandas as pd
 
-from zipline import ndict
+from zipline.protocol import Event
 from zipline.utils.tradingcalendar import non_trading_days
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
 log = logbook.Logger('Transform')
+
+
+class TransformMessage(object):
+    pass
 
 
 class Passthrough(object):
@@ -149,7 +153,7 @@ class StatefulTransform(object):
             # the calculated tnfm_value. This is the default behavior
             # for a non-passthrough transform being fed into a merge.
             elif self.merged:
-                out_message = ndict()
+                out_message = TransformMessage()
                 out_message.tnfm_id = self.namestring
                 out_message.tnfm_value = tnfm_value
                 out_message.dt = message.dt
@@ -426,7 +430,7 @@ class BatchTransform(EventWindow):
         # couple of seconds shouldn't matter. We don't add it to
         # the data parameter, because it would mix dt with the
         # sid keys.
-        event = ndict()
+        event = Event()
         event.dt = max(dts)
         event.data = data
 
