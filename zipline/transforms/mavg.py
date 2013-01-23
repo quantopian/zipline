@@ -16,7 +16,6 @@
 from numbers import Number
 from collections import defaultdict
 
-from zipline import ndict
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
@@ -77,6 +76,18 @@ class MovingAverage(object):
         return window.get_averages()
 
 
+class Averages(object):
+    """
+    Container for averages.
+    """
+
+    def __getitem__(self, name):
+        """
+        Allow dictionary lookup.
+        """
+        return self.__dict__[name]
+
+
 class MovingAverageEventWindow(EventWindow):
     """
     Iteratively calculates moving averages for a particular sid over a
@@ -97,6 +108,9 @@ class MovingAverageEventWindow(EventWindow):
         # fields.
         self.fields = fields
         self.totals = defaultdict(float)
+        # Container for averages
+        # So that we don't create a new object on each event.
+        self.averages_container = Averages()
 
     # Subclass customization for adding new events.
     def handle_add(self, event):
@@ -131,9 +145,9 @@ class MovingAverageEventWindow(EventWindow):
         """
         Return an ndict of all our tracked averages.
         """
-        out = ndict()
+        out = self.averages_container
         for field in self.fields:
-            out[field] = self.average(field)
+            out.__dict__[field] = self.average(field)
         return out
 
     def assert_required_fields(self, event):
