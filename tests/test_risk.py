@@ -367,7 +367,6 @@ class Risk(unittest.TestCase):
                           for x in self.metrics_06.year_periods],
                          [-0.524])
 
-
     def dtest_algorithm_beta_06(self):
         self.assertEqual([round(x.beta, 3)
                           for x in self.metrics_06.month_periods],
