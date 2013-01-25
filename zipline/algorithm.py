@@ -222,9 +222,15 @@ class TradingAlgorithm(object):
         # create daily and cumulative stats dataframe
         daily_perfs = []
         cum_perfs = []
+        # TODO: the loop here could overwrite expected properties
+        # of daily_perf. Could potentially raise or log a
+        # warning.
         for perf in perfs:
             if 'daily_perf' in perf:
-                perf['daily_perf'].update(perf['recorded_vars'])
+
+                perf['daily_perf'].update(
+                        perf['daily_perf'].pop('recorded_vars')
+                    )
                 daily_perfs.append(perf['daily_perf'])
             else:
                 cum_perfs.append(perf)
