@@ -208,8 +208,6 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
         with self.processor.threadbound():
 
-
-
             for date, snapshot in stream_in:
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.

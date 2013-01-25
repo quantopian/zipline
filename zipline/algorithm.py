@@ -229,8 +229,8 @@ class TradingAlgorithm(object):
             if 'daily_perf' in perf:
 
                 perf['daily_perf'].update(
-                        perf['daily_perf'].pop('recorded_vars')
-                    )
+                    perf['daily_perf'].pop('recorded_vars')
+                )
                 daily_perfs.append(perf['daily_perf'])
             else:
                 cum_perfs.append(perf)
