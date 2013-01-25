@@ -208,6 +208,8 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
         with self.processor.threadbound():
 
+
+
             for date, snapshot in stream_in:
                 # Set the simulation date to be the first event we see.
                 # This should only occur once, at the start of the test.
@@ -229,7 +231,7 @@ class AlgorithmSimulator(object):
                         for perf_message in event.perf_messages:
                             # append current values of recorded vars
                             # to emitted message
-                            perf_message['recorded_vars'] =\
+                            perf_message['daily_perf']['recorded_vars'] =\
                                 self.algo.recorded_vars
                             yield perf_message
                         del event['perf_messages']
@@ -244,7 +246,7 @@ class AlgorithmSimulator(object):
                 self.perf_tracker.handle_simulation_end()
 
             for message in perf_messages:
-                message['recorded_vars'] =\
+                message['daily_perf']['recorded_vars'] =\
                     self.algo.recorded_vars
                 yield message
 
