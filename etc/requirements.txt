@@ -11,7 +11,7 @@ blist==1.3.4
 pytz==2012j
 numpy==1.6.2
 
-pandas==0.10.0
+pandas==0.10.1
 python-dateutil==2.1
 six==1.2.0
 
