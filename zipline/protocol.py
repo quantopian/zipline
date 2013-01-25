@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 from utils.protocol_utils import Enum
 
 # Datasource type should completely determine the other fields of a
