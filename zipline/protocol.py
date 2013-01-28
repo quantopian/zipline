@@ -63,6 +63,9 @@ class Portfolio(object):
         if initial_values:
             self.__dict__ = initial_values
 
+    def __getattr__(self, key):
+        return self.__dict__[key]
+
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
