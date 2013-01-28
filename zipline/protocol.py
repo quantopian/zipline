@@ -75,6 +75,9 @@ class Position(object):
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
 
+    def __getattr__(self, key):
+        return self.__dict__[key]
+
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
 
