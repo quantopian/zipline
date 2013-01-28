@@ -63,7 +63,7 @@ class Portfolio(object):
         if initial_values:
             self.__dict__ = initial_values
 
-    def __getattr__(self, key):
+    def __getitem__(self, key):
         return self.__dict__[key]
 
     def __repr__(self):
@@ -78,7 +78,7 @@ class Position(object):
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
 
-    def __getattr__(self, key):
+    def __getitem__(self, key):
         return self.__dict__[key]
 
     def __repr__(self):
