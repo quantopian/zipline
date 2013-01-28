@@ -258,9 +258,9 @@ class RiskMetricsBase(object):
             (x - mar)**2
             for x in self.algorithm_returns
             if x < mar]
-        dr = math.sqrt(sum(downside) / len(self.algorithm_returns))
+        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
 
-        if dr == 0:
+        if dr < 0.000001:
             return 0.0
 
         return ((self.algorithm_period_returns - mar) / dr)
@@ -640,9 +640,9 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             (x - mar)**2
             for x in self.algorithm_returns
             if x < mar]
-        dr = math.sqrt(sum(downside) / len(self.algorithm_returns))
+        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
 
-        if dr == 0:
+        if dr < 0.000001:
             return 0.0
 
         return ((self.algorithm_period_returns[-1] - mar) /
