@@ -144,6 +144,7 @@ class RiskMetricsBase(object):
             self.algorithm_returns)
         self.treasury_period_return = self.choose_treasury()
         self.sharpe = self.calculate_sharpe()
+        self.sortino = self.calculate_sortino()
         self.beta, self.algorithm_covariance, self.benchmark_variance, \
             self.condition_number, self.eigen_values = self.calculate_beta()
         self.alpha = self.calculate_alpha()
@@ -165,6 +166,7 @@ class RiskMetricsBase(object):
             'algorithm_period_return': self.algorithm_period_returns,
             'benchmark_period_return': self.benchmark_period_returns,
             'sharpe': self.sharpe,
+            'sortino': self.sortino,
             'beta': self.beta,
             'alpha': self.alpha,
             'excess_return': self.excess_return,
@@ -193,6 +195,7 @@ class RiskMetricsBase(object):
             "benchmark_volatility",
             "algorithm_volatility",
             "sharpe",
+            "sortino",
             "algorithm_covariance",
             "benchmark_variance",
             "beta",
@@ -240,6 +243,27 @@ class RiskMetricsBase(object):
 
         return ((self.algorithm_period_returns - self.treasury_period_return) /
                 self.algorithm_volatility)
+
+    def calculate_sortino(self, mar=None):
+        """
+        http://en.wikipedia.org/wiki/Sortino_ratio
+        """
+        if len(self.algorithm_returns) == 0:
+            return 0.0
+
+        if mar is None:
+            mar = self.treasury_period_return
+
+        downside = [
+            (x - mar)**2
+            for x in self.algorithm_returns
+            if x < mar]
+        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
+
+        if dr < 0.000001:
+            return 0.0
+
+        return ((self.algorithm_period_returns - mar) / dr)
 
     def calculate_beta(self):
         """
@@ -425,6 +449,7 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.algorithm_period_returns = []
         self.benchmark_period_returns = []
         self.sharpe = []
+        self.sortino = []
         self.beta = []
         self.alpha = []
         self.max_drawdown = 0
@@ -475,6 +500,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         self.beta.append(self.calculate_beta()[0])
         self.alpha.append(self.calculate_alpha())
         self.sharpe.append(self.calculate_sharpe())
+        self.sortino.append(self.calculate_sortino())
         self.max_drawdown = self.calculate_max_drawdown()
 
     def to_dict(self):
@@ -491,6 +517,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             'algorithm_period_return': self.algorithm_period_returns[-1],
             'benchmark_period_return': self.benchmark_period_returns[-1],
             'sharpe': self.sharpe[-1],
+            'sortino': self.sortino[-1],
             'beta': self.beta[-1],
             'alpha': self.alpha[-1],
             'excess_return': self.excess_returns[-1],
@@ -520,6 +547,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             "benchmark_volatility",
             "algorithm_volatility",
             "sharpe",
+            "sortino",
             "algorithm_covariance",
             "benchmark_variance",
             "beta",
@@ -597,6 +625,28 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
 
         return (self.algorithm_period_returns[-1] -
                 self.treasury_period_return) / self.algorithm_volatility[-1]
+
+    def calculate_sortino(self, mar=None):
+        """
+        http://en.wikipedia.org/wiki/Sortino_ratio
+        """
+        if len(self.algorithm_returns) == 0:
+            return 0.0
+
+        if mar is None:
+            mar = self.treasury_period_return
+
+        downside = [
+            (x - mar)**2
+            for x in self.algorithm_returns
+            if x < mar]
+        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
+
+        if dr < 0.000001:
+            return 0.0
+
+        return ((self.algorithm_period_returns[-1] - mar) /
+                dr)
 
     def calculate_alpha(self):
         """
