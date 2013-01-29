@@ -27,6 +27,7 @@ import numpy as np
 from zipline.gens.utils import hash_args, create_trade
 from zipline.utils.tradingcalendar import non_trading_days
 
+
 def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
              delta=timedelta(minutes=1),
              count=100,
