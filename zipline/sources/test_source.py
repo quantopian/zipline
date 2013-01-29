@@ -17,7 +17,6 @@
 A source to be used in testing.
 """
 
-import random
 import pytz
 
 from itertools import cycle, ifilter, izip
@@ -56,29 +55,20 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
             cur_midnight = cur.replace(hour=0, minute=0, second=0)
 
 
-def mock_prices(count, rand=False):
+def mock_prices(count):
     """
     Utility to generate a stream of mock prices. By default
-    cycles through values from 0.0 to 10.0, n times.  Optional
-    flag to give random values between 0.0 and 10.0
+    cycles through values from 0.0 to 10.0, n times.
     """
-
-    if rand:
-        return (random.uniform(1.0, 10.0) for i in xrange(count))
-    else:
-        return (float(i % 10) + 1.0 for i in xrange(count))
+    return (float(i % 10) + 1.0 for i in xrange(count))
 
 
-def mock_volumes(count, rand=False):
+def mock_volumes(count):
     """
     Utility to generate a set of volumes. By default cycles
-    through values from 100 to 1000, incrementing by 50.  Optional
-    flag to give random values between 100 and 1000.
+    through values from 100 to 1000, incrementing by 50.
     """
-    if rand:
-        return (random.randrange(100, 1000) for i in xrange(count))
-    else:
-        return ((i * 50) % 900 + 100 for i in xrange(count))
+    return ((i * 50) % 900 + 100 for i in xrange(count))
 
 
 class SpecificEquityTrades(object):

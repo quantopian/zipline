@@ -224,10 +224,3 @@ class TradingEnvironment(object):
             return None
 
         return j - i
-
-    def get_benchmark_daily_return(self, test_date):
-        date = self.normalize_date(test_date)
-        if date in self.trading_day_map:
-            return self.trading_day_map[date].returns
-        else:
-            return 0.0
