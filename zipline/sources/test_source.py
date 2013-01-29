@@ -34,7 +34,6 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
     """
     Utility to generate a stream of dates.
     """
-    import nose.tools; nose.tools.set_trace()
     one_day = timedelta(days=1)
     exclusion_set = set(non_trading_days)
     cur = start
