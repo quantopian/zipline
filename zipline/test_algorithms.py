@@ -237,7 +237,9 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
 
 class ReturnPriceBatchTransform(BatchTransform):
     def get_value(self, data):
-        assert data.shape[1] == self.window_length
+        assert data.shape[1] == self.window_length, \
+            "data shape={0} does not equal window_length={1} for data={2}".\
+            format(data.shape[1], self.window_length, data)
         return data.price
 
 
