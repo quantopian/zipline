@@ -20,7 +20,7 @@ from datetime import datetime
 from dateutil import rrule
 from zipline.utils.date_utils import utcnow
 
-start = datetime(2002, 1, 1, tzinfo=pytz.utc)
+start = datetime(1990, 1, 1, tzinfo=pytz.utc)
 end = utcnow()
 
 non_trading_rules = []

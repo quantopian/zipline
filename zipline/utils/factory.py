@@ -282,7 +282,7 @@ def create_test_df_source(trading_calendar=None):
     end = trading_calendar.last_close \
         if trading_calendar else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
 
-    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.BDay())
     x = np.arange(0, len(index))
 
     df = pd.DataFrame(x, index=index, columns=[0])

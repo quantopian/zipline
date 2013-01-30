@@ -389,5 +389,13 @@ class TestBatchTransform(TestCase):
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(
             algo.history_return_args,
-            [None, None, None, expected_item, expected_item,
-             expected_item])
+            [
+                # 1990-01-03 - window not full
+                None,
+                # 1990-01-04 - window not full
+                None,
+                # 1990-01-05 - window not full, 3rd event
+                None,
+                # 1990-01-08 - window now full
+                expected_item
+            ])
