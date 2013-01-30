@@ -37,6 +37,9 @@ Risk Report
     | sharpe          | The sharpe ratio based on the _algorithm_ (rather  |
     |                 | than the static portfolio) returns.                |
     +-----------------+----------------------------------------------------+
+    | information     | The information ratio based on the _algorithm_     |
+    |                 | (rather than the static portfolio) returns.        |
+    +-----------------+----------------------------------------------------+
     | beta            | The _algorithm_ beta to the benchmark.             |
     +-----------------+----------------------------------------------------+
     | alpha           | The _algorithm_ alpha to the benchmark.            |
@@ -55,6 +58,7 @@ Risk Report
 import logbook
 import datetime
 import math
+import itertools
 from collections import OrderedDict
 import bisect
 import numpy as np
@@ -145,6 +149,7 @@ class RiskMetricsBase(object):
         self.treasury_period_return = self.choose_treasury()
         self.sharpe = self.calculate_sharpe()
         self.sortino = self.calculate_sortino()
+        self.information = self.calculate_information()
         self.beta, self.algorithm_covariance, self.benchmark_variance, \
             self.condition_number, self.eigen_values = self.calculate_beta()
         self.alpha = self.calculate_alpha()
@@ -167,6 +172,7 @@ class RiskMetricsBase(object):
             'benchmark_period_return': self.benchmark_period_returns,
             'sharpe': self.sharpe,
             'sortino': self.sortino,
+            'information': self.information,
             'beta': self.beta,
             'alpha': self.alpha,
             'excess_return': self.excess_return,
@@ -196,6 +202,7 @@ class RiskMetricsBase(object):
             "algorithm_volatility",
             "sharpe",
             "sortino",
+            "information",
             "algorithm_covariance",
             "benchmark_variance",
             "beta",
@@ -264,6 +271,23 @@ class RiskMetricsBase(object):
             return 0.0
 
         return ((self.algorithm_period_returns - mar) / dr)
+
+    def calculate_information(self):
+        """
+        http://en.wikipedia.org/wiki/Information_ratio
+        """
+
+        relative_returns = [
+            r - b
+            for r, b
+            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
+
+        relative_deviation = np.std(relative_returns, ddof=1)
+
+        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
+            return 0.0
+
+        return np.mean(relative_returns) / relative_deviation
 
     def calculate_beta(self):
         """
@@ -450,6 +474,7 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.benchmark_period_returns = []
         self.sharpe = []
         self.sortino = []
+        self.information = []
         self.beta = []
         self.alpha = []
         self.max_drawdown = 0
@@ -501,6 +526,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         self.alpha.append(self.calculate_alpha())
         self.sharpe.append(self.calculate_sharpe())
         self.sortino.append(self.calculate_sortino())
+        self.information.append(self.calculate_information())
         self.max_drawdown = self.calculate_max_drawdown()
 
     def to_dict(self):
@@ -518,6 +544,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             'benchmark_period_return': self.benchmark_period_returns[-1],
             'sharpe': self.sharpe[-1],
             'sortino': self.sortino[-1],
+            'information': self.information[-1],
             'beta': self.beta[-1],
             'alpha': self.alpha[-1],
             'excess_return': self.excess_returns[-1],
@@ -548,6 +575,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             "algorithm_volatility",
             "sharpe",
             "sortino",
+            "information",
             "algorithm_covariance",
             "benchmark_variance",
             "beta",
@@ -647,6 +675,23 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
 
         return ((self.algorithm_period_returns[-1] - mar) /
                 dr)
+
+    def calculate_information(self):
+        """
+        http://en.wikipedia.org/wiki/Information_ratio
+        """
+
+        relative_returns = [
+            r - b
+            for r, b
+            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
+
+        relative_deviation = np.std(relative_returns, ddof=1)
+
+        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
+            return 0.0
+
+        return np.mean(relative_returns) / relative_deviation
 
     def calculate_alpha(self):
         """
