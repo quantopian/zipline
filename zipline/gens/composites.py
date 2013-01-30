@@ -39,13 +39,6 @@ def sequential_transforms(stream_in, *transforms):
     Each transform application will add a new entry indexed to the transform's
     hash string.
     """
-
-    assert isinstance(transforms, (list, tuple))
-
-    for tnfm in transforms:
-        tnfm.sequential = True
-        tnfm.merged = False
-
     # Recursively apply all transforms to the stream.
     stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
                         transforms,

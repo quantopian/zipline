@@ -85,12 +85,6 @@ class StatefulTransform(object):
         # behavior if we are being fed to merged_transforms.
         self.passthrough = hasattr(tnfm_class, 'PASSTHROUGH')
 
-        # Flags specifying how to append the calculated value.
-        # Merged is the default for ease of testing, but we use sequential
-        # in production.
-        self.sequential = False
-        self.merged = True
-
         # Create an instance of our transform class.
         if isinstance(tnfm_class, TransformMeta):
             # Classes derived TransformMeta have their __call__
@@ -130,48 +124,11 @@ class StatefulTransform(object):
 
             assert_sort_unframe_protocol(message)
 
-            # This flag is set by by merged_transforms to ensure
-            # isolation of messages.
-            if self.merged:
-                message = deepcopy(message)
-
             tnfm_value = self.state.update(message)
 
-            # PASSTHROUGH flag means we want to keep all original
-            # values, plus append tnfm_id and tnfm_value. Used for
-            # preserving the original event fields when our output
-            # will be fed into a merge. Currently only Passthrough
-            # uses this flag.
-            if self.passthrough and self.merged:
-                out_message = message
-                out_message.tnfm_id = self.namestring
-                out_message.tnfm_value = tnfm_value
-                yield out_message
-
-            # If the merged flag is set, we create a new message
-            # containing just the tnfm_id, the event's datetime, and
-            # the calculated tnfm_value. This is the default behavior
-            # for a non-passthrough transform being fed into a merge.
-            elif self.merged:
-                out_message = TransformMessage()
-                out_message.tnfm_id = self.namestring
-                out_message.tnfm_value = tnfm_value
-                out_message.dt = message.dt
-                yield out_message
-
-            # Sequential flag should be used to add a single new
-            # key-value pair to the event. The new key is this
-            # transform's namestring, and its value is the value
-            # returned by state.update(event). This is almost
-            # identical to the behavior of FORWARDER, except we
-            # compress the two calculated values (tnfm_id, and
-            # tnfm_value) into a single field. This mode is used by
-            # the sequential_transforms composite and is the default
-            # if no behavior is specified by the internal state class.
-            elif self.sequential:
-                out_message = message
-                out_message[self.namestring] = tnfm_value
-                yield out_message
+            out_message = message
+            out_message[self.namestring] = tnfm_value
+            yield out_message
 
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
 
