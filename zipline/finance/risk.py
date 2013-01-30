@@ -678,8 +678,6 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
-        Here we use available data to determine the relative deviation
-        and divide the current relative return by that deviation.
         """
 
         if len(self.algorithm_returns) == 0:
@@ -695,10 +693,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         if relative_deviation < 0.000001:
             return 0.0
 
-        iterative_return = self.algorithm_returns[-1] - \
-            self.treasury_period_return
-
-        return iterative_return / relative_deviation
+        return np.mean(relative_returns) / relative_deviation
 
     def calculate_alpha(self):
         """
