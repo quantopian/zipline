@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+import pandas as pd
 import pytz
 
 from datetime import datetime
@@ -176,6 +177,15 @@ def get_non_trading_days(start, end):
     # - President Gerald R. Ford - Jan 2, 2007
     non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
 
-    return sorted(non_trading_days)
+    return pd.DatetimeIndex(sorted(non_trading_days))
 
-non_trading_days = get_non_trading_days(start, end)
+
+def get_trading_days(start, end):
+    business_days = pd.DatetimeIndex(start=start, end=end,
+                                     freq=pd.datetools.BDay())
+
+    non_trading_days = get_non_trading_days(start, end)
+
+    return business_days - non_trading_days
+
+trading_days = get_trading_days(start, end)
