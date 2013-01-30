@@ -51,7 +51,7 @@ def sequential_transforms(stream_in, *transforms):
                         transforms,
                         stream_in)
 
-    return alias_dt(stream_out)
+    return stream_out
 
 
 def alias_dt(stream_in):
