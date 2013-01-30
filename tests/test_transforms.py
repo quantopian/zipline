@@ -320,14 +320,21 @@ class TestBatchTransform(TestCase):
         algo = BatchTransformAlgorithm()
         algo.run(self.source)
         wl = algo.window_length
+        # The following assertion depend on window length of 3
+        self.assertEqual(wl, 3)
         self.assertEqual(algo.history_return_price_class[:wl],
                          [None] * wl,
-                         "First two iterations should return None")
+                         "First three iterations should return None." + "\n" +
+                         "i.e. no returned values until window is full'" +
+                         "%s" % (algo.history_return_price_class,))
         self.assertEqual(algo.history_return_price_decorator[:wl],
                          [None] * wl,
-                         "First two iterations should return None")
+                         "First three iterations should return None." + "\n" +
+                         "i.e. no returned values until window is full'" +
+                         "%s" % (algo.history_return_price_decorator,))
+        # After three Nones, the next value should be a data frame
         self.assertTrue(isinstance(
-            algo.history_return_price_class[wl + 1],
+            algo.history_return_price_class[wl],
             pd.DataFrame)
         )
 
