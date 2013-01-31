@@ -14,162 +14,178 @@
 # limitations under the License.
 
 
+import pandas as pd
 import pytz
 
 from datetime import datetime
 from dateutil import rrule
 from zipline.utils.date_utils import utcnow
 
-start = datetime(2002, 1, 1, tzinfo=pytz.utc)
+start = datetime(1990, 1, 1, tzinfo=pytz.utc)
 end = utcnow()
 
-non_trading_rules = []
 
-weekends = rrule.rrule(
-    rrule.YEARLY,
-    byweekday=(rrule.SA, rrule.SU),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(weekends)
+def get_non_trading_days(start, end):
+    non_trading_rules = []
 
-new_years = rrule.rrule(
-    rrule.MONTHLY,
-    byyearday=1,
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(new_years)
+    weekends = rrule.rrule(
+        rrule.YEARLY,
+        byweekday=(rrule.SA, rrule.SU),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(weekends)
 
-mlk_day = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=1,
-    byweekday=(rrule.MO(+3)),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(mlk_day)
+    new_years = rrule.rrule(
+        rrule.MONTHLY,
+        byyearday=1,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(new_years)
 
-presidents_day = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=2,
-    byweekday=(rrule.MO(3)),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(presidents_day)
+    mlk_day = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=1,
+        byweekday=(rrule.MO(+3)),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(mlk_day)
 
-good_friday = rrule.rrule(
-    rrule.DAILY,
-    byeaster=-2,
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(good_friday)
+    presidents_day = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=2,
+        byweekday=(rrule.MO(3)),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(presidents_day)
 
-memorial_day = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=5,
-    byweekday=(rrule.MO(-1)),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(memorial_day)
+    good_friday = rrule.rrule(
+        rrule.DAILY,
+        byeaster=-2,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(good_friday)
 
-july_4th = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=7,
-    bymonthday=4,
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(july_4th)
+    memorial_day = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=5,
+        byweekday=(rrule.MO(-1)),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(memorial_day)
 
-labor_day = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=9,
-    byweekday=(rrule.MO(1)),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(labor_day)
+    july_4th = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=7,
+        bymonthday=4,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(july_4th)
 
-thanksgiving = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=11,
-    byweekday=(rrule.TH(-1)),
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(thanksgiving)
+    labor_day = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=9,
+        byweekday=(rrule.MO(1)),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(labor_day)
 
-christmas = rrule.rrule(
-    rrule.MONTHLY,
-    bymonth=12,
-    bymonthday=25,
-    cache=True,
-    dtstart=start,
-    until=end
-)
-non_trading_rules.append(christmas)
+    thanksgiving = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=11,
+        byweekday=(rrule.TH(-1)),
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(thanksgiving)
 
-non_trading_ruleset = rrule.rruleset()
+    christmas = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=12,
+        bymonthday=25,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(christmas)
 
-for rule in non_trading_rules:
-    non_trading_ruleset.rrule(rule)
+    non_trading_ruleset = rrule.rruleset()
 
-non_trading_days = non_trading_ruleset.between(start, end, inc=True)
+    for rule in non_trading_rules:
+        non_trading_ruleset.rrule(rule)
 
-# Add September 11th closings
-# http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
-# Due to the terrorist attacks, the stock market did not open on 9/11/2001
-# It did not open again until 9/17/2001.
-#
-#    September 2001
-# Su Mo Tu We Th Fr Sa
-#                    1
-#  2  3  4  5  6  7  8
-#  9 10 11 12 13 14 15
-# 16 17 18 19 20 21 22
-# 23 24 25 26 27 28 29
-# 30
+    non_trading_days = non_trading_ruleset.between(start, end, inc=True)
 
-for day_num in range(11, 17):
-    non_trading_days.append(
-        datetime(2001, 9, day_num, tzinfo=pytz.utc))
+    # Add September 11th closings
+    # http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
+    # Due to the terrorist attacks, the stock market did not open on 9/11/2001
+    # It did not open again until 9/17/2001.
+    #
+    #    September 2001
+    # Su Mo Tu We Th Fr Sa
+    #                    1
+    #  2  3  4  5  6  7  8
+    #  9 10 11 12 13 14 15
+    # 16 17 18 19 20 21 22
+    # 23 24 25 26 27 28 29
+    # 30
 
-# Add closings due to Hurricane Sandy in 2012
-# http://en.wikipedia.org/wiki/Hurricane_sandy
-#
-# The stock exchange was closed due to Hurricane Sandy's
-# impact on New York.
-# It closed on 10/29 and 10/30, reopening on 10/31
-#     October 2012
-# Su Mo Tu We Th Fr Sa
-#     1  2  3  4  5  6
-#  7  8  9 10 11 12 13
-# 14 15 16 17 18 19 20
-# 21 22 23 24 25 26 27
-# 28 29 30 31
+    for day_num in range(11, 17):
+        non_trading_days.append(
+            datetime(2001, 9, day_num, tzinfo=pytz.utc))
 
-for day_num in range(29, 31):
-    non_trading_days.append(
-        datetime(2012, 10, day_num, tzinfo=pytz.utc))
+    # Add closings due to Hurricane Sandy in 2012
+    # http://en.wikipedia.org/wiki/Hurricane_sandy
+    #
+    # The stock exchange was closed due to Hurricane Sandy's
+    # impact on New York.
+    # It closed on 10/29 and 10/30, reopening on 10/31
+    #     October 2012
+    # Su Mo Tu We Th Fr Sa
+    #     1  2  3  4  5  6
+    #  7  8  9 10 11 12 13
+    # 14 15 16 17 18 19 20
+    # 21 22 23 24 25 26 27
+    # 28 29 30 31
 
-# Misc closings from NYSE listing.
-# http://www.nyse.com/pdfs/closings.pdf
-#
-# National Days of Mourning
-# - President Ronald W. Reagan - June 11, 2004
-non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
-# - President Gerald R. Ford - Jan 2, 2007
-non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
+    for day_num in range(29, 31):
+        non_trading_days.append(
+            datetime(2012, 10, day_num, tzinfo=pytz.utc))
+
+    # Misc closings from NYSE listing.
+    # http://www.nyse.com/pdfs/closings.pdf
+    #
+    # National Days of Mourning
+    # - President Ronald W. Reagan - June 11, 2004
+    non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
+    # - President Gerald R. Ford - Jan 2, 2007
+    non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
+
+    return pd.DatetimeIndex(sorted(non_trading_days))
+
+
+def get_trading_days(start, end):
+    business_days = pd.DatetimeIndex(start=start, end=end,
+                                     freq=pd.datetools.BDay())
+
+    non_trading_days = get_non_trading_days(start, end)
+
+    return business_days - non_trading_days
+
+trading_days = get_trading_days(start, end)

@@ -29,7 +29,7 @@ from numbers import Integral
 import pandas as pd
 
 from zipline.protocol import Event
-from zipline.utils.tradingcalendar import non_trading_days
+from zipline.utils import tradingcalendar
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
 log = logbook.Logger('Transform')
@@ -85,12 +85,6 @@ class StatefulTransform(object):
         # behavior if we are being fed to merged_transforms.
         self.passthrough = hasattr(tnfm_class, 'PASSTHROUGH')
 
-        # Flags specifying how to append the calculated value.
-        # Merged is the default for ease of testing, but we use sequential
-        # in production.
-        self.sequential = False
-        self.merged = True
-
         # Create an instance of our transform class.
         if isinstance(tnfm_class, TransformMeta):
             # Classes derived TransformMeta have their __call__
@@ -130,48 +124,11 @@ class StatefulTransform(object):
 
             assert_sort_unframe_protocol(message)
 
-            # This flag is set by by merged_transforms to ensure
-            # isolation of messages.
-            if self.merged:
-                message = deepcopy(message)
-
             tnfm_value = self.state.update(message)
 
-            # PASSTHROUGH flag means we want to keep all original
-            # values, plus append tnfm_id and tnfm_value. Used for
-            # preserving the original event fields when our output
-            # will be fed into a merge. Currently only Passthrough
-            # uses this flag.
-            if self.passthrough and self.merged:
-                out_message = message
-                out_message.tnfm_id = self.namestring
-                out_message.tnfm_value = tnfm_value
-                yield out_message
-
-            # If the merged flag is set, we create a new message
-            # containing just the tnfm_id, the event's datetime, and
-            # the calculated tnfm_value. This is the default behavior
-            # for a non-passthrough transform being fed into a merge.
-            elif self.merged:
-                out_message = TransformMessage()
-                out_message.tnfm_id = self.namestring
-                out_message.tnfm_value = tnfm_value
-                out_message.dt = message.dt
-                yield out_message
-
-            # Sequential flag should be used to add a single new
-            # key-value pair to the event. The new key is this
-            # transform's namestring, and its value is the value
-            # returned by state.update(event). This is almost
-            # identical to the behavior of FORWARDER, except we
-            # compress the two calculated values (tnfm_id, and
-            # tnfm_value) into a single field. This mode is used by
-            # the sequential_transforms composite and is the default
-            # if no behavior is specified by the internal state class.
-            elif self.sequential:
-                out_message = message
-                out_message[self.namestring] = tnfm_value
-                yield out_message
+            out_message = message
+            out_message[self.namestring] = tnfm_value
+            yield out_message
 
         log.info('Finished StatefulTransform [%s]' % self.get_hash())
 
@@ -209,9 +166,6 @@ class EventWindow(object):
         if self.market_aware:
             assert self.window_length and self.delta is None, \
                 "Market-aware mode only works with full-day windows."
-            self.all_holidays = deque(non_trading_days)
-            self.cur_holidays = deque()
-
         # Non-market-aware mode requires a timedelta.
         else:
             assert self.delta and not self.window_length, \
@@ -244,9 +198,6 @@ class EventWindow(object):
         # adding new ticks.
         self.handle_add(event)
 
-        if self.market_aware:
-            self.add_new_holidays(event.dt)
-
         # Clear out any expired events. drop_condition changes depending
         # on whether or not we are running in market_aware mode.
         #
@@ -262,25 +213,11 @@ class EventWindow(object):
             # behavior for removing ticks.
             self.handle_remove(popped)
 
-    def add_new_holidays(self, newest):
-        # Add to our tracked window any untracked holidays that are
-        # older than our newest event. (newest should always be
-        # self.ticks[-1])
-        while len(self.all_holidays) > 0 and self.all_holidays[0] <= newest:
-            self.cur_holidays.append(self.all_holidays.popleft())
-
-    def drop_old_holidays(self, oldest):
-        # Drop from our tracked window any holidays that are older
-        # than our oldest tracked event. (oldest should always
-        # be self.ticks[0])
-        while len(self.cur_holidays) > 0 and self.cur_holidays[0] < oldest:
-            self.cur_holidays.popleft()
-
     def out_of_market_window(self, oldest, newest):
-        self.drop_old_holidays(oldest)
-        calendar_dates_between = (newest.date() - oldest.date()).days
-        holidays_between = len(self.cur_holidays)
-        trading_days_between = calendar_dates_between - holidays_between
+        oldest_index = tradingcalendar.trading_days.searchsorted(oldest)
+        newest_index = tradingcalendar.trading_days.searchsorted(newest)
+
+        trading_days_between = newest_index - oldest_index
 
         # "Put back" a day if oldest is earlier in its day than newest,
         # reflecting the fact that we haven't yet completed the last

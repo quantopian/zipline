@@ -183,7 +183,7 @@ class TestFinanceTransforms(TestCase):
         transformed = list(vwap.transform(self.source))
 
         # Output values
-        tnfm_vals = [message.tnfm_value for message in transformed]
+        tnfm_vals = [message[vwap.get_hash()] for message in transformed]
         # "Hand calculated" values.
         expected = [
             (10.0 * 100) / 100.0,
@@ -202,7 +202,7 @@ class TestFinanceTransforms(TestCase):
         returns = Returns(1)
 
         transformed = list(returns.transform(self.source))
-        tnfm_vals = [message.tnfm_value for message in transformed]
+        tnfm_vals = [message[returns.get_hash()] for message in transformed]
 
         # No returns for the first event because we don't have a
         # previous close.
@@ -226,7 +226,7 @@ class TestFinanceTransforms(TestCase):
         returns = StatefulTransform(Returns, 2)
 
         transformed = list(returns.transform(self.source))
-        tnfm_vals = [message.tnfm_value for message in transformed]
+        tnfm_vals = [message[returns.get_hash()] for message in transformed]
 
         expected = [
             0.0,
@@ -248,8 +248,10 @@ class TestFinanceTransforms(TestCase):
 
         transformed = list(mavg.transform(self.source))
         # Output values.
-        tnfm_prices = [message.tnfm_value.price for message in transformed]
-        tnfm_volumes = [message.tnfm_value.volume for message in transformed]
+        tnfm_prices = [message[mavg.get_hash()].price
+                       for message in transformed]
+        tnfm_volumes = [message[mavg.get_hash()].volume
+                        for message in transformed]
 
         # "Hand-calculated" values
         expected_prices = [
@@ -289,7 +291,7 @@ class TestFinanceTransforms(TestCase):
 
         transformed = list(stddev.transform(self.source))
 
-        vals = [message.tnfm_value for message in transformed]
+        vals = [message[stddev.get_hash()] for message in transformed]
 
         expected = [
             None,
@@ -320,14 +322,21 @@ class TestBatchTransform(TestCase):
         algo = BatchTransformAlgorithm()
         algo.run(self.source)
         wl = algo.window_length
+        # The following assertion depend on window length of 3
+        self.assertEqual(wl, 3)
         self.assertEqual(algo.history_return_price_class[:wl],
                          [None] * wl,
-                         "First two iterations should return None")
+                         "First three iterations should return None." + "\n" +
+                         "i.e. no returned values until window is full'" +
+                         "%s" % (algo.history_return_price_class,))
         self.assertEqual(algo.history_return_price_decorator[:wl],
                          [None] * wl,
-                         "First two iterations should return None")
+                         "First three iterations should return None." + "\n" +
+                         "i.e. no returned values until window is full'" +
+                         "%s" % (algo.history_return_price_decorator,))
+        # After three Nones, the next value should be a data frame
         self.assertTrue(isinstance(
-            algo.history_return_price_class[wl + 1],
+            algo.history_return_price_class[wl],
             pd.DataFrame)
         )
 
@@ -382,5 +391,13 @@ class TestBatchTransform(TestCase):
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(
             algo.history_return_args,
-            [None, None, None, expected_item, expected_item,
-             expected_item])
+            [
+                # 1990-01-03 - window not full
+                None,
+                # 1990-01-04 - window not full
+                None,
+                # 1990-01-05 - window not full, 3rd event
+                None,
+                # 1990-01-08 - window now full
+                expected_item
+            ])

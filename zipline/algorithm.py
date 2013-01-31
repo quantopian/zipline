@@ -36,7 +36,8 @@ from zipline.finance.constants import ANNUALIZER
 
 from zipline.gens.composites import (
     date_sorted_sources,
-    sequential_transforms
+    sequential_transforms,
+    alias_dt
 )
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
 from zipline import MESSAGES
@@ -120,9 +121,10 @@ class TradingAlgorithm(object):
         self.date_sorted = date_sorted_sources(*self.sources)
         self.with_tnfms = sequential_transforms(self.date_sorted,
                                                 *self.transforms)
+        self.with_alias_dt = alias_dt(self.with_tnfms)
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
-        self.grouped_by_date = groupby(self.with_tnfms, attrgetter('dt'))
+        self.grouped_by_date = groupby(self.with_alias_dt, attrgetter('dt'))
         self.trading_client = tsc(self, environment)
 
         transact_method = transact_partial(self.slippage, self.commission)
