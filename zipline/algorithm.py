@@ -87,6 +87,8 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
+        self._registered_vars = set()
+
         self.logger = None
 
         # default components for transact
@@ -222,8 +224,15 @@ class TradingAlgorithm(object):
         # create daily and cumulative stats dataframe
         daily_perfs = []
         cum_perfs = []
+        # TODO: the loop here could overwrite expected properties
+        # of daily_perf. Could potentially raise or log a
+        # warning.
         for perf in perfs:
             if 'daily_perf' in perf:
+
+                perf['daily_perf'].update(
+                    perf['daily_perf'].pop('recorded_vars')
+                )
                 daily_perfs.append(perf['daily_perf'])
             else:
                 cum_perfs.append(perf)
@@ -251,6 +260,37 @@ class TradingAlgorithm(object):
         self.registered_transforms[tag] = {'class': transform_class,
                                            'args': args,
                                            'kwargs': kwargs}
+
+    def record_variables(self, names):
+        """Track and record local variables (i.e. attributes) each
+        day.
+
+        :Arguments:
+            names : str or list
+                List of variable names (strings) to record.
+
+        :Notes:
+            You are responsible for making sure the attributes
+            exist.
+
+            The corresponding variable name and its values will be
+            appended to the results returned by the .run() method.
+
+        :Example:
+
+            In initialize you would call
+            self.record_variables('mavg'). In handle_data you could
+            then set self.mavg to some value and it will be recorded.
+
+        """
+        if isinstance(names, basestring):
+            names = [names]
+
+        self._registered_vars.update(set(names))
+
+    @property
+    def recorded_vars(self):
+        return {name: getattr(self, name) for name in self._registered_vars}
 
     @property
     def portfolio(self):

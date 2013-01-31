@@ -215,6 +215,15 @@ class TimeoutAlgorithm(TradingAlgorithm):
             time.sleep(100)
         pass
 
+
+class RecordAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.incr = 0
+        self.record_variables(['incr'])
+
+    def handle_data(self, data):
+        self.incr += 1
+
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import BatchTransform, batch_transform
 from zipline.transforms import MovingAverage
