@@ -29,7 +29,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 import zipline.finance.risk as risk
-from zipline.utils.date_utils import tuple_to_date
+from zipline.utils.date_utils import tuple_to_date, utcnow
 from zipline.protocol import Event
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
@@ -43,6 +43,32 @@ from zipline.data.loader import (
 )
 
 
+def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
+             delta=timedelta(minutes=1),
+             count=100,
+             repeats=None):
+    """
+    Utility to generate a stream of dates.
+    """
+    one_minute = timedelta(minutes=1)
+    now = utcnow()
+    env = create_trading_environment(start=start, end=now)
+
+    # yield count trade events, all on trading days, and
+    # during trading hours.
+    for i in xrange(count):
+        cur = start + (i * delta)
+        while not env.is_market_hours(cur):
+            # increment by a minute, to make sure we don't
+            # skip from after market to after market
+            cur = cur + one_minute
+            if repeats:
+                for j in xrange(repeats):
+                    yield cur
+            else:
+                yield cur
+
+
 def load_market_data():
     try:
         fp_bm = get_datafile('benchmark.msgpack', "rb")
@@ -54,7 +80,7 @@ Fetching data from Yahoo Finance.
         dump_benchmarks()
         fp_bm = get_datafile('benchmark.msgpack', "rb")
 
-    bm_list = msgpack.loads(fp_bm.read())
+    bm_list = msgpack.loads(fp_bm.read(), use_list=True)
     bm_returns = []
     for packed_date, returns in bm_list:
         event_dt = tuple_to_date(packed_date)
@@ -82,7 +108,7 @@ Fetching data from data.treasury.gov
         dump_treasury_curves()
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
 
-    tr_list = msgpack.loads(fp_tr.read())
+    tr_list = msgpack.loads(fp_tr.read(), use_list=True)
     tr_curves = {}
     for packed_date, curve in tr_list:
         tr_dt = tuple_to_date(packed_date)

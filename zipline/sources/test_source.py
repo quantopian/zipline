@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from zipline.gens.utils import hash_args, create_trade
+from zipline.utils.tradingcalendar import non_trading_days
 
 
 def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
@@ -33,12 +34,25 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
     """
     Utility to generate a stream of dates.
     """
-    if repeats:
-        return (start + (i * delta)
-                for i in xrange(count)
-                for n in xrange(repeats))
-    else:
-        return (start + (i * delta) for i in xrange(count))
+    one_day = timedelta(days=1)
+    exclusion_set = set(non_trading_days)
+    cur = start
+
+    # yield count trade events, all on trading days, and
+    # during trading hours.
+    for i in xrange(count):
+        if repeats:
+            for j in xrange(repeats):
+                yield cur
+        else:
+            yield cur
+
+        cur = cur + delta
+        cur_midnight = cur.replace(hour=0, minute=0, second=0)
+        # skip over any non-trading days
+        while cur_midnight in exclusion_set:
+            cur = cur + one_day
+            cur_midnight = cur.replace(hour=0, minute=0, second=0)
 
 
 def mock_prices(count):
