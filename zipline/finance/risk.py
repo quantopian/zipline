@@ -283,7 +283,7 @@ class RiskMetricsBase(object):
 
         relative_deviation = np.std(relative_returns, ddof=1)
 
-        if relative_deviation < 0.000001:
+        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
             return 0.0
 
         return np.mean(relative_returns) / relative_deviation
@@ -690,7 +690,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
 
         relative_deviation = np.std(relative_returns, ddof=1)
 
-        if relative_deviation < 0.000001:
+        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
             return 0.0
 
         return np.mean(relative_returns) / relative_deviation
