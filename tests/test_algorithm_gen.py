@@ -86,7 +86,7 @@ class AlgorithmGeneratorTestCase(TestCase):
         """
         algo = TestAlgo(self)
         trading_environment = factory.create_trading_environment(
-            start=datetime(2012, 1, 3, tzinfo=pytz.utc),
+            start=datetime(2011, 7, 30, tzinfo=pytz.utc),
             end=datetime(2012, 7, 30, tzinfo=pytz.utc)
         )
         trade_source = factory.create_daily_trade_source(
