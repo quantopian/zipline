@@ -42,33 +42,39 @@ class DualMovingAverage(TradingAlgorithm):
         # To keep track of whether we invested in the stock or not
         self.invested = False
 
-        self.short_mavgs = []
-        self.long_mavgs = []
+        self.record_variables(['short_mavg', 'long_mavg', 'buy', 'sell'])
 
     def handle_data(self, data):
-        short_mavg = data['AAPL'].short_mavg['price']
-        long_mavg = data['AAPL'].long_mavg['price']
-        if short_mavg > long_mavg and not self.invested:
+        self.short_mavg = data['AAPL'].short_mavg['price']
+        self.long_mavg = data['AAPL'].long_mavg['price']
+        self.buy = False
+        self.sell = False
+
+        if self.short_mavg > self.long_mavg and not self.invested:
             self.order('AAPL', 100)
             self.invested = True
-        elif short_mavg < long_mavg and self.invested:
+            self.buy = True
+        elif self.short_mavg < self.long_mavg and self.invested:
             self.order('AAPL', -100)
             self.invested = False
-
-        # Save mavgs for later analysis.
-        self.short_mavgs.append(short_mavg)
-        self.long_mavgs.append(long_mavg)
-
+            self.sell = True
 
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})
     dma = DualMovingAverage()
     results = dma.run(data)
+    print results.short_mavg
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    results.portfolio_value.plot(ax=ax1)
 
-    results.portfolio_value.plot()
+    ax2 = fig.add_subplot(212)
+    data['AAPL'].plot(ax=ax2)
+    results[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
-    data['short'] = dma.short_mavgs
-    data['long'] = dma.long_mavgs
-    data[['AAPL', 'short', 'long']].plot()
+    ax2.plot(results.ix[results.buy].index, results.short_mavg[results.buy],
+             '^', markersize=10, color='m')
+    ax2.plot(results.ix[results.sell].index, results.short_mavg[results.sell],
+             'v', markersize=10, color='k')
     plt.legend(loc=0)
     plt.show()
