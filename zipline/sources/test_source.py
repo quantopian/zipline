@@ -34,6 +34,7 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
     """
     Utility to generate a stream of dates.
     """
+    one_day = timedelta(days=1)
     cur = start
 
     # yield count trade events, all on trading days, and
@@ -50,9 +51,10 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
         cur = cur + delta
         cur_midnight = cur.replace(hour=0, minute=0, second=0)
         # skip over any non-trading days
-        if cur_midnight not in trading_days:
-            next_day_index = trading_days.searchsorted(cur_midnight)
-            cur_midnight = trading_days[next_day_index]
+        while cur_midnight not in trading_days:
+            cur = cur + one_day
+            cur_midnight = cur.replace(hour=0, minute=0, second=0)
+            cur = cur.replace(day=cur_midnight.day)
 
 
 def mock_prices(count):
