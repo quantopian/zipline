@@ -278,9 +278,9 @@ class TestFinanceTransforms(TestCase):
     def test_exponential_moving_average(self):
 
         emavg = ExponentialMovingAverage(
-            market_aware=False,
+            market_aware=True,
             fields=['price', 'volume'],
-            delta=timedelta(days=10),
+            window_length=10,
         )
 
         trade_history = factory.create_trade_history(
@@ -304,18 +304,18 @@ class TestFinanceTransforms(TestCase):
 
         # "Hand-calculated" values
         expected_prices = [
-            22.27, 22.26, 22.22, 22.21, 22.21, 22.19, 22.20, 22.24, 22.24,
-            22.25, 22.23, 22.26, 22.28, 22.34, 22.53, 22.80, 22.98, 23.13,
+            22.27, 22.26, 22.22, 22.21, 22.21, 22.19, 22.2, 22.24, 22.24,
+            22.25, 22.23, 22.26, 22.28, 22.34, 22.53, 22.8, 22.98, 23.13,
             23.28, 23.34, 23.43, 23.51
         ]
         expected_volumes = [
-            100.00, 118.18, 123.96, 155.97, 150.34, 159.37, 162.21, 169.08,
-            183.79, 200.37, 213.94, 220.5, 221.31, 217.44, 218.81, 217.21,
-            212.26, 209.13, 202.92, 193.3, 184.52, 178.24
+            100.0, 118.18, 123.97, 155.97, 150.34, 159.37, 162.21, 169.08,
+            183.79, 200.38, 213.95, 220.5, 221.32, 217.44, 218.82, 217.21,
+            212.27, 209.13, 202.92, 193.3, 184.52, 178.24
         ]
 
-        assert tnfm_prices == expected_prices
-        assert tnfm_volumes == expected_volumes
+        self.assertEquals(tnfm_prices, expected_prices)
+        self.assertEquals(tnfm_volumes, expected_volumes)
 
     def test_moving_stddev(self):
         trade_history = factory.create_trade_history(

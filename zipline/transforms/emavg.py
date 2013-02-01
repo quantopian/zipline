@@ -97,25 +97,7 @@ class ExponentialMovingAverageEventWindow(EventWindow):
 
         self.fields = fields
         self.emas = defaultdict(list)
-
-        if market_aware is True:
-            # If we are market aware, we only operate with full day windows
-            periods = round((2.0 / (self.window_length + 1)), 4)
-        else:
-            # If we are not market aware, we need to figure out how many
-            # periods we are using to calculate the EMA. This assumes day
-            # long periods or minute long periods, anything else will give
-            # broken results.
-            if delta.days == 0:
-                periods = delta.seconds / 60
-            else:
-                periods = delta.days
-
-        if periods < 0.000001:
-            # If we somehow end up with a near 0 period, use 50 as the default
-            periods = 50
-
-        self.multiplier = round((2.0 / (periods + 1)), 4)
+        self.multiplier = 2.0 / (self.window_length + 1)
 
     def handle_add(self, event):
         # Sanity check on the event.
@@ -137,7 +119,7 @@ class ExponentialMovingAverageEventWindow(EventWindow):
 
     def get_emas(self):
         """
-        Return an ndict of all our tracked averages.
+        Return an Averages object of all our tracked averages.
         """
         out = Averages()
         for field in self.fields:
