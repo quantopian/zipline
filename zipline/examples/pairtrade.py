@@ -109,7 +109,7 @@ class Pairtrade(TradingAlgorithm):
         ko_amount = self.portfolio.positions['KO'].amount
         self.order('KO', -1 * ko_amount)
         pep_amount = self.portfolio.positions['PEP'].amount
-        self.order('KO', -1 * pep_amount)
+        self.order('PEP', -1 * pep_amount)
 
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={})
