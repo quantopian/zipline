@@ -304,12 +304,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             clean_nans=False
         )
 
-        self.return_price_market_aware = ReturnPriceBatchTransform(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
         self.return_arbitrary_fields = return_data(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
