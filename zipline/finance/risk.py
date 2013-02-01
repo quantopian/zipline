@@ -58,6 +58,7 @@ Risk Report
 import logbook
 import datetime
 import math
+import itertools
 from collections import OrderedDict
 import bisect
 import numpy as np
@@ -277,9 +278,9 @@ class RiskMetricsBase(object):
         """
 
         relative_returns = [
-            r - self.treasury_period_return
-            for r
-            in self.algorithm_returns]
+            r - b
+            for r, b
+            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
 
         relative_deviation = np.std(relative_returns, ddof=1)
 
@@ -680,13 +681,10 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         http://en.wikipedia.org/wiki/Information_ratio
         """
 
-        if len(self.algorithm_returns) == 0:
-            return 0.0
-
         relative_returns = [
-            r - self.treasury_period_return
-            for r
-            in self.algorithm_returns]
+            r - b
+            for r, b
+            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
 
         relative_deviation = np.std(relative_returns, ddof=1)
 
