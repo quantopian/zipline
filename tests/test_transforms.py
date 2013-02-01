@@ -30,6 +30,7 @@ from zipline.sources import SpecificEquityTrades
 from zipline.transforms.utils import StatefulTransform, EventWindow
 from zipline.transforms import MovingVWAP
 from zipline.transforms import MovingAverage
+from zipline.transforms import ExponentialMovingAverage
 from zipline.transforms import MovingStandardDev
 from zipline.transforms import Returns
 import zipline.utils.factory as factory
@@ -241,6 +242,47 @@ class TestFinanceTransforms(TestCase):
 
         self.assertEquals(tnfm_prices, expected_prices)
         self.assertEquals(tnfm_volumes, expected_volumes)
+
+    def test_exponential_moving_average(self):
+
+        emavg = ExponentialMovingAverage(
+            fields=['price', 'volume'],
+            window_length=10
+        )
+
+        trade_history = factory.create_trade_history(
+            133,
+            [22.27, 22.19, 22.08, 22.17, 22.18, 22.13, 22.23, 22.43, 22.24,
+             22.29, 22.15, 22.39, 22.38, 22.61, 23.36, 24.05, 23.75, 23.83,
+             23.95, 23.63, 23.82, 23.87],
+            [100, 200, 150, 300, 125, 200, 175, 200, 250, 275, 275, 250, 225,
+             200, 225, 210, 190, 195, 175, 150, 145, 150, 100, 125, 150, 175],
+            timedelta(days=10),
+            self.sim_params
+        )
+        source = SpecificEquityTrades(event_list=trade_history)
+
+        transformed = list(emavg.transform(source))
+        # Output values.
+        tnfm_prices = [message[emavg.get_hash()].price
+                       for message in transformed]
+        tnfm_volumes = [message[emavg.get_hash()].volume
+                        for message in transformed]
+
+        # "Hand-calculated" values
+        expected_prices = [
+            22.27, 22.26, 22.22, 22.21, 22.21, 22.19, 22.2, 22.24, 22.24,
+            22.25, 22.23, 22.26, 22.28, 22.34, 22.53, 22.8, 22.98, 23.13,
+            23.28, 23.34, 23.43, 23.51
+        ]
+        expected_volumes = [
+            100.0, 118.18, 123.97, 155.97, 150.34, 159.37, 162.21, 169.08,
+            183.79, 200.38, 213.95, 220.5, 221.32, 217.44, 218.82, 217.21,
+            212.27, 209.13, 202.92, 193.3, 184.52, 178.24
+        ]
+
+        np.testing.assert_allclose(tnfm_prices, expected_prices)
+        np.testing.assert_allclose(tnfm_volumes, expected_volumes)
 
     def test_moving_stddev(self):
         trade_history = factory.create_trade_history(
