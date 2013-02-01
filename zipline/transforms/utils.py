@@ -35,6 +35,24 @@ from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 log = logbook.Logger('Transform')
 
 
+class UnsupportedEventWindowFlagValue(Exception):
+    """
+    Error state when an EventWindow option is attempted to be set
+    to a value that is no longer supported by the library.
+
+    This is to help enforce deprecation of the market_aware and delta flags,
+    without completely removing it and breaking existing algorithms.
+    """
+    pass
+
+
+class InvalidWindowLength(Exception):
+    """
+    Error raised when the window length is unusable.
+    """
+    pass
+
+
 class TransformMessage(object):
     pass
 
@@ -156,27 +174,32 @@ class EventWindow(object):
 
     def __init__(self, market_aware=True, window_length=None, delta=None):
 
-        self.market_aware = market_aware
         self.window_length = window_length
-        self.delta = delta
 
         self.ticks = deque()
 
-        # Market-aware mode only works with full-day windows.
-        if self.market_aware:
-            assert self.window_length and self.delta is None, \
-                "Market-aware mode only works with full-day windows."
-        # Non-market-aware mode requires a timedelta.
-        else:
-            assert self.delta and not self.window_length, \
-                "Non-market-aware mode requires a timedelta."
+        # Only Market-aware mode is now supported.
+        if not market_aware:
+            raise UnsupportedEventWindowFlagValue(
+                "Non-'market aware' mode is no longer supported."
+            )
+        if delta:
+            raise UnsupportedEventWindowFlagValue(
+                "delta values are no longer supported."
+            )
+        if self.window_length is None:
+            raise InvalidWindowLength("window_length must be provided")
+        if not isinstance(self.window_length, Integral):
+            raise InvalidWindowLength(
+                "window_length must be an integer-like number")
+        if self.window_length == 0:
+            raise InvalidWindowLength("window_length must be non-zero")
+        if self.window_length < 0:
+            raise InvalidWindowLength("window_length must be positive")
 
         # Set the behavior for dropping events from the back of the
         # event window.
-        if self.market_aware:
-            self.drop_condition = self.out_of_market_window
-        else:
-            self.drop_condition = self.out_of_delta
+        self.drop_condition = self.out_of_market_window
 
     @abstractmethod
     def handle_add(self, event):
@@ -198,8 +221,7 @@ class EventWindow(object):
         # adding new ticks.
         self.handle_add(event)
 
-        # Clear out any expired events. drop_condition changes depending
-        # on whether or not we are running in market_aware mode.
+        # Clear out any expired events.
         #
         #                              oldest               newest
         #                                |                    |
@@ -226,9 +248,6 @@ class EventWindow(object):
             trading_days_between -= 1
 
         return trading_days_between >= self.window_length
-
-    def out_of_delta(self, oldest, newest):
-        return (newest - oldest) >= self.delta
 
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
