@@ -54,26 +54,6 @@ Also make sure to code against Python 2.7 and numpy 1.6.1 header
 files. If using Cython have it auto figure out the paths to ensurable
 portability.
 
-Building
-========
-
-In pavement.py ::
-
-    example = Extension(
-        "zipline/example", ["zipline/example.pyx"],
-    )
-
-If you need Numpy::
-
-    example = Extension(
-        "zipline/example", ["zipline/example.pyx"],
-        include_dirs=[np.get_include()],
-    )
-
-To build in development ::
-
-    $ paver build_ext --inplace
-
 Pure C
 ======
 
