@@ -104,7 +104,7 @@ class TestEventWindow(TestCase):
             window.update(message)
 
             # Assert that we've added the correct number of events.
-            self.assertTrue(len(window.added), num)
+            self.assertEquals(len(window.added), num)
 
             # Assert that we removed only events that fall outside (or
             # on the boundary of) the delta.
