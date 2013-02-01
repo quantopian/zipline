@@ -25,7 +25,6 @@ from unittest import TestCase
 from zipline import ndict
 
 from zipline.utils.test_utils import setup_logger
-from zipline.utils.date_utils import utcnow
 
 from zipline.sources import SpecificEquityTrades
 from zipline.transforms.utils import StatefulTransform, EventWindow
@@ -78,39 +77,6 @@ class TestEventWindow(TestCase):
         self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
         self.week_of_jul4 = [self.jul4_monday + i * timedelta(days=1)
                              for i in xrange(5)]
-
-    def test_event_window_with_timedelta(self):
-
-        # Keep all events within a 5 minute window.
-        window = NoopEventWindow(
-            market_aware=False,
-            delta=timedelta(minutes=5),
-            days=None
-        )
-
-        now = utcnow()
-
-        # 15 dates, increasing in 1 minute increments.
-        dates = [now + i * timedelta(minutes=1)
-                 for i in xrange(15)]
-
-        # Turn the dates into the format required by EventWindow.
-        dt_messages = [to_dt(date) for date in dates]
-
-        # Run all messages through the window and assert that we're adding
-        # and removing messages appropriately. We start the enumeration at 1
-        # for convenience.
-        for num, message in enumerate(dt_messages, 1):
-            window.update(message)
-
-            # Assert that we've added the correct number of events.
-            self.assertEquals(len(window.added), num)
-
-            # Assert that we removed only events that fall outside (or
-            # on the boundary of) the delta.
-            for dropped in window.removed:
-                self.assertTrue(
-                    message.dt - dropped.dt >= timedelta(minutes=5))
 
     def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(
@@ -178,8 +144,8 @@ class TestFinanceTransforms(TestCase):
     def test_vwap(self):
 
         vwap = MovingVWAP(
-            market_aware=False,
-            delta=timedelta(days=2)
+            market_aware=True,
+            window_length=2
         )
         transformed = list(vwap.transform(self.source))
 
@@ -242,9 +208,9 @@ class TestFinanceTransforms(TestCase):
     def test_moving_average(self):
 
         mavg = MovingAverage(
-            market_aware=False,
+            market_aware=True,
             fields=['price', 'volume'],
-            delta=timedelta(days=2),
+            window_length=2
         )
 
         transformed = list(mavg.transform(self.source))
@@ -280,14 +246,15 @@ class TestFinanceTransforms(TestCase):
             133,
             [10.0, 15.0, 13.0, 12.0],
             [100, 100, 100, 100],
-            timedelta(hours=1),
+            timedelta(days=1),
             self.trading_environment
         )
 
         stddev = MovingStandardDev(
-            market_aware=False,
-            delta=timedelta(minutes=150),
+            market_aware=True,
+            window_length=3,
         )
+
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         transformed = list(stddev.transform(self.source))
