@@ -22,7 +22,7 @@ from zipline.transforms.utils import EventWindow, TransformMeta
 
 class MovingStandardDev(object):
     """
-    Class that maintains a dicitonary from sids to
+    Class that maintains a dictionary from sids to
     MovingStandardDevWindows.  For each sid, we maintain a the
     standard deviation of all events falling within the specified
     window.
