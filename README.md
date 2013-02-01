@@ -1,9 +1,13 @@
 Zipline
 =======
 
-Zipline is a financial backtester for trading algorithms written in
-Python. The system is fundamentally event-driven and a close
+Zipline is a Pythonic algorithmic trading library.
+The system is fundamentally event-driven and a close
 approximation of how live-trading systems operate.
+Currently, backtesting is well supported, but the intent is
+to develop the library for both paper and live trading,
+so that the same logic used for backtesting can be applied
+to the market.
 
 Zipline is currently used in production as the backtesting engine
 powering Quantopian (https://www.quantopian.com) -- a free, community-centered
