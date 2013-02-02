@@ -71,7 +71,7 @@ class VWAPEventWindow(EventWindow):
     Iteratively maintains a vwap for a single sid over a given
     timedelta.
     """
-    def __init__(self, market_aware, window_length=None, delta=None):
+    def __init__(self, market_aware=True, window_length=None, delta=None):
         EventWindow.__init__(self, market_aware, window_length, delta)
         self.flux = 0.0
         self.totalvolume = 0.0
