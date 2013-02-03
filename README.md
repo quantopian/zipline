@@ -128,6 +128,7 @@ Credits
 --------
 Thank you for all the help so far!
 
+- @rday for sortino ratio, information ratio, and exponential moving average transform
 - @snth
 - @yinhm for integrating zipline with @yinhm/datafeed
 - [Jeremiah Lowin](http://www.lowindata.com) for teaching us the nuances of Sharpe and Sortino Ratios
