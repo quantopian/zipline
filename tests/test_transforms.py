@@ -302,6 +302,7 @@ class TestBatchTransform(TestCase):
                          "First three iterations should return None." + "\n" +
                          "i.e. no returned values until window is full'" +
                          "%s" % (algo.history_return_price_decorator,))
+
         # After three Nones, the next value should be a data frame
         self.assertTrue(isinstance(
             algo.history_return_price_class[wl],
