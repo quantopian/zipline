@@ -71,6 +71,7 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     trade.low = price * .95
     trade.high = price * 1.05
     trade.volume = amount
+    trade.TRANSACTION = None
 
     return trade
 
