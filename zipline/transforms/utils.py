@@ -396,7 +396,12 @@ class BatchTransform(EventWindow):
         # sid keys.
         event = Event()
         event.dt = max(dts)
-        event.data = data
+        event.data = {k: v.__dict__ for k, v in data.iteritems()
+                      # Need to check if data has a 'length' to filter
+                      # out sids without trade data available.
+                      # TODO: expose more of 'no trade available'
+                      # functionality to zipline
+                      if len(v)}
 
         # append data frame to window. update() will call handle_add() and
         # handle_remove() appropriately
@@ -410,7 +415,7 @@ class BatchTransform(EventWindow):
         # every sid has the same fields.
         sid_keys = []
         for sid in event.data.itervalues():
-            keys = set([name for name, value in sid.__dict__.items()
+            keys = set([name for name, value in sid.items()
                         if (isinstance(value, (int, float)))])
             sid_keys.append(keys)
 
@@ -457,25 +462,11 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
+        data_dict = {tick['dt']: tick['data'] for tick in self.ticks}
+        data = pd.Panel(data_dict, major_axis=self.field_names,
+                        minor_axis=self.sids)
 
-        # If sids are set, use those. Otherwise extract.
-        if self.sids is not None:
-            sids = self.sids
-        else:
-            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
-
-        dts = [tick.dt for tick in self.ticks]
-
-        data = pd.Panel(items=self.field_names, major_axis=dts,
-                        minor_axis=sids)
-
-        # Fill data panel
-        for tick in self.ticks:
-            dt = tick.dt
-            for sid in sids:
-                fields = tick.data[sid]
-                for field_name in self.field_names:
-                    data[field_name][sid].ix[dt] = fields.__dict__[field_name]
+        data = data.swapaxes(0, 1)
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
