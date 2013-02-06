@@ -256,6 +256,16 @@ class AlgorithmSimulator(object):
         """
         # Update our portfolio.
         self.algo.set_portfolio(event.portfolio)
+        # the portfolio is modified by each event passed into the
+        # performance tracker (prices and amounts can change).
+        # Performance tracker sends back an up-to-date portfolio
+        # with each event. However, we provide the portfolio to
+        # the algorithm via a setter method, rather than as part
+        # of the event data sent to handle_data. To avoid
+        # confusion, we remove it from the event here. ndict only
+        # support deletion via the dict style, so we can't use
+        # dot notation.
+        del event['portfolio']
 
         # Update our knowledge of this event's sid
         sid_data = self.universe[event.sid]
