@@ -142,7 +142,7 @@ class AlgorithmSimulator(object):
 
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
-        self.algo.set_order(self.order_v2)
+        self.algo.set_order(self.order)
 
         # ==============
         # Snapshot Setup
@@ -169,35 +169,7 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-    def order(self, sid, amount):
-        """
-        Closure to pass into the user's algo to allow placing orders
-        into the transaction simulator's dict of open orders.
-        """
-        order = Order({
-            'dt': self.simulation_dt,
-            'sid': sid,
-            'amount': int(amount),
-            'filled': 0
-        })
-
-        # Tell the user if they try to buy 0 shares of something.
-        if order.amount == 0:
-            zero_message = "Requested to trade zero shares of {sid}".format(
-                sid=order.sid
-            )
-            log.debug(zero_message)
-            # Don't bother placing orders for 0 shares.
-            return
-
-        # Add non-zero orders to the order book.
-        # !!!IMPORTANT SIDE-EFFECT!!!
-        # This modifies the internal state of the transaction
-        # simulator so that it can fill the placed order when it
-        # receives its next message.
-        self.order_book.place_order(order)
-
-    def order_v2(self, sid, amount, *args):
+    def order(self, sid, amount, *args):
         """
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
