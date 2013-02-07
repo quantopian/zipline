@@ -44,12 +44,7 @@ class TransactionSimulator(object):
         self.transact = transact_partial(VolumeShareSlippage(), PerShare())
         self.open_orders = defaultdict(list)
 
-    def place_order(self, order):
-        # initialized filled field.
-        order.filled = 0
-        self.open_orders[order.sid].append(order)
-
-    def place_order_v2(self, dt, sid, amount, *args):
+    def place_order(self, dt, sid, amount, *args):
         
         # parse extra args to determine order type
 
