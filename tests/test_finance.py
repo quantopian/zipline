@@ -309,13 +309,7 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            order = ndict({
-                'sid': sid,
-                'amount': order_amount * alternator ** i,
-                'dt': order_date
-            })
-
-            trade_sim.place_order(order)
+            trade_sim.place_order(order_date, sid, order_amount * alternator ** i)
 
             order_date = order_date + order_interval
             # move after market orders to just after market next

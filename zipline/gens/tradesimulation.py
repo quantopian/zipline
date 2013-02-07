@@ -197,7 +197,7 @@ class AlgorithmSimulator(object):
         # This modifies the internal state of the transaction
         # simulator so that it can fill the placed order when it
         # receives its next message.
-        err_str = self.order_book.place_order_v2(self.simulation_dt, sid, amount, args)
+        err_str = self.order_book.place_order(self.simulation_dt, sid, amount, args)
         if err_str != None and len(err_str) > 0:
             # error, trade was not placed, log it out
             log.debug(err_str)
