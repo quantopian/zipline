@@ -20,7 +20,6 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 
-
 class DualMovingAverage(TradingAlgorithm):
     """Dual Moving Average Crossover algorithm.
 
@@ -63,12 +62,15 @@ class DualMovingAverage(TradingAlgorithm):
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})
     dma = DualMovingAverage()
+
+    print( "Got here")
+
     results = dma.run(data)
 
-    results.portfolio_value.plot()
+    # results.portfolio_value.plot()
 
-    data['short'] = dma.short_mavgs
-    data['long'] = dma.long_mavgs
-    data[['AAPL', 'short', 'long']].plot()
-    plt.legend(loc=0)
-    plt.show()
+    # data['short'] = dma.short_mavgs
+    # data['long'] = dma.long_mavgs
+    # data[['AAPL', 'short', 'long']].plot()
+    # plt.legend(loc=0)
+    # plt.show()

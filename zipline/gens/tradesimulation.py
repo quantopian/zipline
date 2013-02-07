@@ -20,6 +20,7 @@ from collections import defaultdict
 from zipline import ndict
 from zipline.protocol import SIDData
 
+from zipline.finance.orders import Order
 from zipline.finance.trading import TransactionSimulator
 from zipline.finance.performance import PerformanceTracker
 from zipline.gens.utils import hash_args
@@ -27,11 +28,7 @@ from zipline.gens.utils import hash_args
 log = Logger('Trade Simulation')
 
 
-class Order(object):
 
-    def __init__(self, initial_values=None):
-        if initial_values:
-            self.__dict__ = initial_values
 
 
 class TradeSimulationClient(object):
@@ -145,7 +142,7 @@ class AlgorithmSimulator(object):
 
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
-        self.algo.set_order(self.order)
+        self.algo.set_order(self.order_v2)
 
         # ==============
         # Snapshot Setup
@@ -199,6 +196,27 @@ class AlgorithmSimulator(object):
         # simulator so that it can fill the placed order when it
         # receives its next message.
         self.order_book.place_order(order)
+
+    def order_v2(self, sid, amount, *args):
+        # *args is used to preserve the current API so as to not break existing algos
+
+        # just validates amount and passes rest on to TransactionSimulator
+        # Tell the user if they try to buy 0 shares of something.
+        if amount == 0:
+            zero_message = "Requested to trade zero shares of {psid}".format(
+                psid=sid
+            )
+            log.debug(zero_message)
+            # Don't bother placing orders for 0 shares.
+            return
+
+        # Add non-zero orders to the order book.
+        # !!!IMPORTANT SIDE-EFFECT!!!
+        # This modifies the internal state of the transaction
+        # simulator so that it can fill the placed order when it
+        # receives its next message.
+        self.order_book.place_order_v2(self.simulation_dt, sid, amount, args)
+
 
     def transform(self, stream_in):
         """

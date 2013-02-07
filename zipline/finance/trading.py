@@ -27,6 +27,12 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.commission import PerShare
 
+from zipline.finance.orders import (
+    Order,
+    MarketOrder,
+    LimitOrder
+)
+
 log = logbook.Logger('Transaction Simulator')
 
 
@@ -39,6 +45,28 @@ class TransactionSimulator(object):
     def place_order(self, order):
         # initialized filled field.
         order.filled = 0
+        self.open_orders[order.sid].append(order)
+
+    def place_order_v2(self, dt, sid, amount, *args):
+        
+        # parse extra args to determine order type
+        
+        print ("order_v2:")
+        print ("dt: ", dt)
+        print ("sid: ", sid)
+        print ("amount: ", amount)
+        for arg in args:
+            print( "*args: ", arg)
+
+
+
+        order = Order({
+            'dt': dt,
+            'sid': sid,
+            'amount': int(amount),
+            'filled': 0
+        })
+
         self.open_orders[order.sid].append(order)
 
     def transform(self, stream_in):
