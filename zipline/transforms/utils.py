@@ -136,7 +136,8 @@ class StatefulTransform(object):
         log.info('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
             # we only handle TRADE events.
-            if message.type != DATASOURCE_TYPE.TRADE:
+            if (hasattr(message, 'type')
+                    and message.type != DATASOURCE_TYPE.TRADE):
                 continue
             # allow upstream generators to yield None to avoid
             # blocking.
@@ -217,8 +218,8 @@ class EventWindow(object):
 
     def update(self, event):
 
-        if event.type != DATASOURCE_TYPE.TRADE:
-                continue
+        if hasattr(event, 'type') and event.type != DATASOURCE_TYPE.TRADE:
+            return
 
         self.assert_well_formed(event)
         # Add new event and increment totals.
