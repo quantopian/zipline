@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# amount > 0 :: Buy/Cover
+# amount < 0 :: Sell/Short
+# Market order:    order(sid,amount) 
+#           or:    order(sid,amount,"market")    "market" is redundent
+# Limit order:     order(sid,amount, "limit", price)
+# Stop order:      order(sid,amount, "stop", price)
+# StopLimit order: order(sid,amount, "stoplimit", stop_price, limit_price)
+# # *args is used to preserve the current API so as to not break existing algos
+# # all logic is now in the finance directory
 
 class Order(object):
 
@@ -26,8 +35,7 @@ class Order(object):
 class MarketOrder(Order):
 
     def __init__(self, initial_values=None):
-        if initial_values:
-            super.__dict__ = initial_values
+        super(MarketOrder, self).__init__(initial_values)
 
     def __getitem__(self, name):
         return super.__dict__[name]
@@ -35,8 +43,7 @@ class MarketOrder(Order):
 class LimitOrder(Order):
 
     def __init__(self, initial_values=None):
-        if initial_values:
-            super.__dict__ = initial_values
+        super(LimitOrder, self).__init__(initial_values)
 
     def __getitem__(self, name):
         return super.__dict__[name]
@@ -44,8 +51,7 @@ class LimitOrder(Order):
 class StopOrder(Order):
 
     def __init__(self, initial_values=None):
-        if initial_values:
-            super.__dict__ = initial_values
+        super(StopOrder,self).__init__(initial_values)
 
     def __getitem__(self, name):
         return super.__dict__[name]
@@ -53,8 +59,7 @@ class StopOrder(Order):
 class StopLimitOrder(Order):
 
     def __init__(self, initial_values=None):
-        if initial_values:
-            super.__dict__ = initial_values
+        super(StopLimitOrder, self).__init__(initial_values)
 
     def __getitem__(self, name):
         return super.__dict__[name]

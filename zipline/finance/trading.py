@@ -30,7 +30,9 @@ from zipline.finance.commission import PerShare
 from zipline.finance.orders import (
     Order,
     MarketOrder,
-    LimitOrder
+    LimitOrder,
+    StopOrder,
+    StopLimitOrder
 )
 
 log = logbook.Logger('Transaction Simulator')
@@ -50,24 +52,69 @@ class TransactionSimulator(object):
     def place_order_v2(self, dt, sid, amount, *args):
         
         # parse extra args to determine order type
+
+        # something could be done with amount to further divide
+        # between buy by share count OR buy shares up to a dollar amount
+        # int == share count  AND  float == dollar amount
         
-        print ("order_v2:")
-        print ("dt: ", dt)
-        print ("sid: ", sid)
-        print ("amount: ", amount)
-        for arg in args:
-            print( "*args: ", arg)
+        # print ("order_v2:")
+        # print ("dt: ", dt)
+        # print ("sid: ", sid)
+        # print ("amount: ", amount)
+        # print ("len(args)", len(args))
+        # i = 0
+        # for arg in args:
+        #     print( "*args{p}: ".format(p=i), arg)
+        #     i += 1
 
+        o_info = args[0]
 
-
-        order = Order({
-            'dt': dt,
-            'sid': sid,
-            'amount': int(amount),
-            'filled': 0
-        })
+        if len(o_info) == 0 or ( len(o_info) == 1 and o_info[0] == "market"):
+            order = MarketOrder({
+                'dt': dt,
+                'sid': sid,
+                'amount': int(amount),
+                'filled': 0
+            })
+        elif len(o_info) == 2 and o_info[0] == "limit":
+            # TODO validate o_info[1] "limit_price"
+            limit = o_info[1]
+            order = LimitOrder({
+                'dt': dt,
+                'sid': sid,
+                'amount': int(amount),
+                'filled': 0,
+                'limit': limit
+            })
+        elif len(o_info) == 2 and o_info[0] == "stop":
+            # TODO validate o_info[1] "stop_price"
+            stop = o_info[1]
+            order = StopOrder({
+                'dt': dt,
+                'sid': sid,
+                'amount': int(amount),
+                'filled': 0,
+                'stop': stop
+            })
+        elif len(o_info) == 3 and o_info[0] == "stoplimit":
+            # TODO validate o_info[1,2] 
+            stop = o_info[1]
+            limit = o_info[2]
+            order = StopLimitOrder({
+                'dt': dt,
+                'sid': sid,
+                'amount': int(amount),
+                'filled': 0,
+                'stop': stop,
+                'limit': limit 
+            })
+        else:
+            return "error with args to {place_}order_v2"
+            #some error happened
+            # decipher and return error string
 
         self.open_orders[order.sid].append(order)
+        # return ""
 
     def transform(self, stream_in):
         """

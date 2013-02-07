@@ -14,13 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+######################
+#  New order function
+######################
+# amount > 0 :: Buy/Cover
+# amount < 0 :: Sell/Short
+# Market order:    order(sid,amount)                      so we don't break your algos
+#           or:    order(sid,amount, "market")            "market" is redundant
+# Stop order:      order(sid,amount, "stop",      stop_price)
+# Limit order:     order(sid,amount, "limit",     limit_price)
+# StopLimit order: order(sid,amount, "stoplimit", stop_price, limit_price)
+######################
+
+
+
 import matplotlib.pyplot as plt
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 
-class DualMovingAverage(TradingAlgorithm):
+class OrderTypes(TradingAlgorithm):
     """Dual Moving Average Crossover algorithm.
 
     This algorithm buys apple once its short moving average crosses
@@ -48,10 +63,10 @@ class DualMovingAverage(TradingAlgorithm):
         short_mavg = data['AAPL'].short_mavg['price']
         long_mavg = data['AAPL'].long_mavg['price']
         if short_mavg > long_mavg and not self.invested:
-            self.order('AAPL', 100)
+            self.order('AAPL', 100, "limit", 123.45)
             self.invested = True
         elif short_mavg < long_mavg and self.invested:
-            self.order('AAPL', -100)
+            self.order('AAPL', -100, "stop", 123.45)
             self.invested = False
 
         # Save mavgs for later analysis.
@@ -61,16 +76,14 @@ class DualMovingAverage(TradingAlgorithm):
 
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})
-    dma = DualMovingAverage()
-
-    print( "Got here")
+    dma = OrderTypes()
 
     results = dma.run(data)
 
-    # results.portfolio_value.plot()
+    results.portfolio_value.plot()
 
-    # data['short'] = dma.short_mavgs
-    # data['long'] = dma.long_mavgs
-    # data[['AAPL', 'short', 'long']].plot()
-    # plt.legend(loc=0)
-    # plt.show()
+    data['short'] = dma.short_mavgs
+    data['long'] = dma.long_mavgs
+    data[['AAPL', 'short', 'long']].plot()
+    plt.legend(loc=0)
+    plt.show()

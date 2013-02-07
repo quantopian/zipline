@@ -198,7 +198,17 @@ class AlgorithmSimulator(object):
         self.order_book.place_order(order)
 
     def order_v2(self, sid, amount, *args):
+        """
+        amount > 0 :: Buy/Cover
+        amount < 0 :: Sell/Short
+        Market order:    order(sid,amount) 
+                  or:    order(sid,amount,"market")    "market" is redundent
+        Limit order:     order(sid,amount, "limit", price)
+        Stop order:      order(sid,amount, "stop", price)
+        StopLimit order: order(sid,amount, "stoplimit", stop_price, limit_price)
         # *args is used to preserve the current API so as to not break existing algos
+        # all logic is now in the finance directory
+        """
 
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
@@ -215,7 +225,11 @@ class AlgorithmSimulator(object):
         # This modifies the internal state of the transaction
         # simulator so that it can fill the placed order when it
         # receives its next message.
-        self.order_book.place_order_v2(self.simulation_dt, sid, amount, args)
+        err_str = self.order_book.place_order_v2(self.simulation_dt, sid, amount, args)
+        if err_str != None and len(err_str) > 0:
+            # error, trade was not placed, log it out
+            log.debug(err_str)
+
 
 
     def transform(self, stream_in):
