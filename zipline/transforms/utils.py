@@ -28,7 +28,7 @@ from numbers import Integral
 
 import pandas as pd
 
-from zipline.protocol import Event
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.utils import tradingcalendar
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
@@ -135,6 +135,9 @@ class StatefulTransform(object):
         # messages should only manipulate copies.
         log.info('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
+            # we only handle TRADE events.
+            if message.type != DATASOURCE_TYPE.TRADE:
+                continue
             # allow upstream generators to yield None to avoid
             # blocking.
             if message is None:
@@ -213,6 +216,10 @@ class EventWindow(object):
         return len(self.ticks)
 
     def update(self, event):
+
+        if event.type != DATASOURCE_TYPE.TRADE:
+                continue
+
         self.assert_well_formed(event)
         # Add new event and increment totals.
         self.ticks.append(deepcopy(event))
