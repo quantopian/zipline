@@ -298,7 +298,7 @@ class TestDividendPerformance(unittest.TestCase):
             [0, -1000, -1000, -1000, -1000]
         )
 
-    def test_short_position_receives_no_dividend(self):
+    def test_short_position_pays_dividend(self):
         #post some trades in the market
         events = factory.create_trade_history(
             1,
@@ -337,14 +337,14 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(len(results), 5)
         cumulative_returns = \
             [event['cumulative_perf']['returns'] for event in results]
-        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(cumulative_returns, [0.0, 0.0, -0.1, -0.1, -0.1])
         daily_returns = [event['daily_perf']['returns'] for event in results]
-        self.assertEqual(daily_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(daily_returns, [0.0, 0.0, -0.1, 0.0, 0.0])
         cash_flows = [event['daily_perf']['capital_used'] for event in results]
-        self.assertEqual(cash_flows, [0, 1000, 0, 0, 0])
+        self.assertEqual(cash_flows, [0, 1000, -1000, 0, 0])
         cumulative_cash_flows = \
             [event['cumulative_perf']['capital_used'] for event in results]
-        self.assertEqual(cumulative_cash_flows, [0, 1000, 1000, 1000, 1000])
+        self.assertEqual(cumulative_cash_flows, [0, 1000, 0, 0, 0])
 
     def test_no_position_receives_no_dividend(self):
         #post some trades in the market
