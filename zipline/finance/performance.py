@@ -265,8 +265,6 @@ class PerformanceTracker(object):
             del event['TRANSACTION']
 
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
-            # TODO: confirm with @ehebert that positions objects
-            # are shared. (and that it is ok).
             self.cumulative_performance.add_dividend(event)
             self.todays_performance.add_dividend(event)
 
@@ -371,8 +369,6 @@ class Position(object):
         self.dividends = []
 
     def update_dividends(self, dt):
-        # TODO: should I have asserts for the dt to be at
-        # midnight?
         payment = 0.0
         unpaid_dividends = []
         for dividend in self.dividends:
@@ -518,16 +514,18 @@ class PerformancePeriod(object):
         for sid, pos in self.positions.iteritems():
             cash_payments += pos.update_dividends(todays_date)
 
-        if cash_payments > 0.0:
-            # credit our cash balance with the dividend payments
-            self.period_cash_flow += cash_payments
-            # debit our cumulative cash spent with the dividend
-            # payments
-            self.cumulative_capital_used -= cash_payments
+        # credit our cash balance with the dividend payments, or
+        # if we are short, debit our cash balance with the
+        # payments.
+        self.period_cash_flow += cash_payments
+        # debit our cumulative cash spent with the dividend
+        # payments, or credit our cumulative cash spent if we are
+        # short the stock.
+        self.cumulative_capital_used -= cash_payments
 
-            # recalculate performance, including the dividend
-            # paymtents
-            self.calculate_performance()
+        # recalculate performance, including the dividend
+        # paymtents
+        self.calculate_performance()
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
