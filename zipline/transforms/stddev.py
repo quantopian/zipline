@@ -22,7 +22,7 @@ from zipline.transforms.utils import EventWindow, TransformMeta
 
 class MovingStandardDev(object):
     """
-    Class that maintains a dicitonary from sids to
+    Class that maintains a dictionary from sids to
     MovingStandardDevWindows.  For each sid, we maintain a the
     standard deviation of all events falling within the specified
     window.
@@ -79,10 +79,10 @@ class MovingStandardDevWindow(EventWindow):
     class is to be instantiated inside a MovingStandardDev.
     """
 
-    def __init__(self, market_aware, days, delta):
+    def __init__(self, market_aware=True, window_length=None, delta=None):
         # Call the superclass constructor to set up base EventWindow
         # infrastructure.
-        EventWindow.__init__(self, market_aware, days, delta)
+        EventWindow.__init__(self, market_aware, window_length, delta)
 
         self.sum = 0.0
         self.sum_sqr = 0.0

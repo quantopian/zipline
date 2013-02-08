@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 
 import zipline.finance.risk as risk
 from zipline.utils.date_utils import tuple_to_date
-from zipline.protocol import Event
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
@@ -119,6 +119,38 @@ def create_trading_environment(year=2006, start=None, end=None,
     return trading_environment
 
 
+def create_random_trading_environment():
+        benchmark_returns, treasury_curves = load_market_data()
+
+        for n in range(100):
+
+            random_index = random.randint(
+                0,
+                len(treasury_curves)
+            )
+
+            start_dt = treasury_curves.keys()[random_index]
+            end_dt = start_dt + timedelta(days=365)
+
+            now = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+            if end_dt <= now:
+                break
+
+        assert end_dt <= now, """
+failed to find a suitable daterange after 100 attempts. please double
+check treasury and benchmark data in findb, and re-run the test."""
+
+        trading_environment = TradingEnvironment(
+            benchmark_returns,
+            treasury_curves,
+            period_start=start_dt,
+            period_end=end_dt
+        )
+
+        return trading_environment, start_dt, end_dt
+
+
 def get_next_trading_dt(current, interval, trading_calendar):
     next = current
     while True:
@@ -141,6 +173,20 @@ def create_trade_history(sid, prices, amounts, interval, trading_calendar,
 
     assert len(trades) == len(prices)
     return trades
+
+
+def create_dividend(sid, payment, declared_date, ex_date, pay_date):
+    div = Event({
+        'sid': sid,
+        'gross_amount': payment,
+        'net_amount': payment,
+        'dt': declared_date.replace(hour=0, minute=0, second=0),
+        'ex_date': ex_date.replace(hour=0, minute=0, second=0),
+        'pay_date': pay_date.replace(hour=0, minute=0, second=0),
+        'type': DATASOURCE_TYPE.DIVIDEND
+    })
+
+    return div
 
 
 def create_txn(sid, price, amount, datetime):

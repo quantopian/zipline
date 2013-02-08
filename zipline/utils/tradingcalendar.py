@@ -46,6 +46,26 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(new_years)
 
+    new_years_sunday = rrule.rrule(
+        rrule.MONTHLY,
+        byyearday=2,
+        byweekday=rrule.MO,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(new_years_sunday)
+
+    new_years_saturday = rrule.rrule(
+        rrule.MONTHLY,
+        byyearday=3,
+        byweekday=rrule.MO,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(new_years_saturday)
+
     mlk_day = rrule.rrule(
         rrule.MONTHLY,
         bymonth=1,

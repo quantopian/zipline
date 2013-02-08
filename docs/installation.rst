@@ -36,31 +36,6 @@ To run tests::
 
     $ nosetests
 
-To build documentation::
-    
-    $ paver apidocs html
-    # outputs to docs/_build/html
-
-For an interactive shell::
-
-    $ paver ishell
-
-For coverage information::
-
-    $ paver coverage
-    # outputs to cover/index.html
-
-For line count::
-
-    $ paver sloccount
-
-For syntax checking::
-
-    $ paver pyflakes
-
-For building distributable egg::
-	$ paver bdist_egg
-
 Tooling hints
 ================
 :mod:`zipline` relies heavily on scientific python components (numpy, scikit, pandas, matplotlib, ipython, etc). Tooling up can be a pain, and it often involves managing a configuration including your OS, c/c++/fortran compilers, python version, and versions of numerous modules. I've found the following tools absolutely indispensable: 

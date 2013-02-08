@@ -25,7 +25,6 @@ from unittest import TestCase
 from zipline import ndict
 
 from zipline.utils.test_utils import setup_logger
-from zipline.utils.date_utils import utcnow
 
 from zipline.sources import SpecificEquityTrades
 from zipline.transforms.utils import StatefulTransform, EventWindow
@@ -79,38 +78,6 @@ class TestEventWindow(TestCase):
         self.week_of_jul4 = [self.jul4_monday + i * timedelta(days=1)
                              for i in xrange(5)]
 
-    def test_event_window_with_timedelta(self):
-
-        # Keep all events within a 5 minute window.
-        window = NoopEventWindow(
-            market_aware=False,
-            delta=timedelta(minutes=5),
-            days=None
-        )
-
-        now = utcnow()
-
-        # 15 dates, increasing in 1 minute increments.
-        dates = [now + i * timedelta(minutes=1)
-                 for i in xrange(15)]
-
-        # Turn the dates into the format required by EventWindow.
-        dt_messages = [to_dt(date) for date in dates]
-
-        # Run all messages through the window and assert that we're adding
-        # and removing messages appropriately. We start the enumeration at 1
-        # for convenience.
-        for num, message in enumerate(dt_messages, 1):
-            window.update(message)
-
-            # Assert that we've added the correct number of events.
-            assert len(window.added) == num
-
-            # Assert that we removed only events that fall outside (or
-            # on the boundary of) the delta.
-            for dropped in window.removed:
-                assert message.dt - dropped.dt >= timedelta(minutes=5)
-
     def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(
             market_aware=True,
@@ -129,9 +96,9 @@ class TestEventWindow(TestCase):
         # to drop events until the weekend ends. The last window is
         # briefly longer because it doesn't complete a full day.  The
         # window then shrinks once the day completes
-        assert lengths == [1, 2, 3, 3, 3, 4, 5, 5, 5, 3, 4, 3]
-        assert window.added == events
-        assert window.removed == events[:-3]
+        self.assertEquals(lengths, [1, 2, 3, 3, 3, 4, 5, 5, 5, 3, 4, 3])
+        self.assertEquals(window.added, events)
+        self.assertEquals(window.removed, events[:-3])
 
     def test_market_aware_window_holiday(self):
         window = NoopEventWindow(
@@ -148,9 +115,9 @@ class TestEventWindow(TestCase):
             # Record the length of the window after each event.
             lengths.append(len(window.ticks))
 
-        assert lengths == [1, 2, 3, 3, 2]
-        assert window.added == events
-        assert window.removed == events[:-2]
+        self.assertEquals(lengths, [1, 2, 3, 3, 2])
+        self.assertEquals(window.added, events)
+        self.assertEquals(window.removed, events[:-2])
 
     def tearDown(self):
         setup_logger(self)
@@ -177,8 +144,8 @@ class TestFinanceTransforms(TestCase):
     def test_vwap(self):
 
         vwap = MovingVWAP(
-            market_aware=False,
-            delta=timedelta(days=2)
+            market_aware=True,
+            window_length=2
         )
         transformed = list(vwap.transform(self.source))
 
@@ -195,7 +162,7 @@ class TestFinanceTransforms(TestCase):
         ]
 
         # Output should match the expected.
-        assert tnfm_vals == expected
+        self.assertEquals(tnfm_vals, expected)
 
     def test_returns(self):
         # Daily returns.
@@ -208,7 +175,7 @@ class TestFinanceTransforms(TestCase):
         # previous close.
         expected = [0.0, 0.0, 0.1, 0.0]
 
-        assert tnfm_vals == expected
+        self.assertEquals(tnfm_vals, expected)
 
         # Two-day returns.  An extra kink here is that the
         # factory will automatically skip a weekend for the
@@ -236,14 +203,14 @@ class TestFinanceTransforms(TestCase):
             (13.0 - 13.0) / 13.0
         ]
 
-        assert tnfm_vals == expected
+        self.assertEquals(tnfm_vals, expected)
 
     def test_moving_average(self):
 
         mavg = MovingAverage(
-            market_aware=False,
+            market_aware=True,
             fields=['price', 'volume'],
-            delta=timedelta(days=2),
+            window_length=2
         )
 
         transformed = list(mavg.transform(self.source))
@@ -271,22 +238,23 @@ class TestFinanceTransforms(TestCase):
             ((100.0 + 300.0) / 2.0)
         ]
 
-        assert tnfm_prices == expected_prices
-        assert tnfm_volumes == expected_volumes
+        self.assertEquals(tnfm_prices, expected_prices)
+        self.assertEquals(tnfm_volumes, expected_volumes)
 
     def test_moving_stddev(self):
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0],
             [100, 100, 100, 100],
-            timedelta(hours=1),
+            timedelta(days=1),
             self.trading_environment
         )
 
         stddev = MovingStandardDev(
-            market_aware=False,
-            delta=timedelta(minutes=150),
+            market_aware=True,
+            window_length=3,
         )
+
         self.source = SpecificEquityTrades(event_list=trade_history)
 
         transformed = list(stddev.transform(self.source))
@@ -305,9 +273,9 @@ class TestFinanceTransforms(TestCase):
         for v1, v2 in zip(vals, expected):
 
             if v1 is None:
-                assert v2 is None
+                self.assertIsNone(v2)
                 continue
-            assert round(v1, 5) == round(v2, 5)
+            self.assertEquals(round(v1, 5), round(v2, 5))
 
 
 ############################################################
@@ -334,6 +302,7 @@ class TestBatchTransform(TestCase):
                          "First three iterations should return None." + "\n" +
                          "i.e. no returned values until window is full'" +
                          "%s" % (algo.history_return_price_decorator,))
+
         # After three Nones, the next value should be a data frame
         self.assertTrue(isinstance(
             algo.history_return_price_class[wl],

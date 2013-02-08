@@ -28,11 +28,29 @@ from numbers import Integral
 
 import pandas as pd
 
-from zipline.protocol import Event
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.utils import tradingcalendar
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 
 log = logbook.Logger('Transform')
+
+
+class UnsupportedEventWindowFlagValue(Exception):
+    """
+    Error state when an EventWindow option is attempted to be set
+    to a value that is no longer supported by the library.
+
+    This is to help enforce deprecation of the market_aware and delta flags,
+    without completely removing it and breaking existing algorithms.
+    """
+    pass
+
+
+class InvalidWindowLength(Exception):
+    """
+    Error raised when the window length is unusable.
+    """
+    pass
 
 
 class TransformMessage(object):
@@ -117,6 +135,10 @@ class StatefulTransform(object):
         # messages should only manipulate copies.
         log.info('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
+            # we only handle TRADE events.
+            if (hasattr(message, 'type')
+                    and message.type != DATASOURCE_TYPE.TRADE):
+                continue
             # allow upstream generators to yield None to avoid
             # blocking.
             if message is None:
@@ -156,27 +178,32 @@ class EventWindow(object):
 
     def __init__(self, market_aware=True, window_length=None, delta=None):
 
-        self.market_aware = market_aware
         self.window_length = window_length
-        self.delta = delta
 
         self.ticks = deque()
 
-        # Market-aware mode only works with full-day windows.
-        if self.market_aware:
-            assert self.window_length and self.delta is None, \
-                "Market-aware mode only works with full-day windows."
-        # Non-market-aware mode requires a timedelta.
-        else:
-            assert self.delta and not self.window_length, \
-                "Non-market-aware mode requires a timedelta."
+        # Only Market-aware mode is now supported.
+        if not market_aware:
+            raise UnsupportedEventWindowFlagValue(
+                "Non-'market aware' mode is no longer supported."
+            )
+        if delta:
+            raise UnsupportedEventWindowFlagValue(
+                "delta values are no longer supported."
+            )
+        if self.window_length is None:
+            raise InvalidWindowLength("window_length must be provided")
+        if not isinstance(self.window_length, Integral):
+            raise InvalidWindowLength(
+                "window_length must be an integer-like number")
+        if self.window_length == 0:
+            raise InvalidWindowLength("window_length must be non-zero")
+        if self.window_length < 0:
+            raise InvalidWindowLength("window_length must be positive")
 
         # Set the behavior for dropping events from the back of the
         # event window.
-        if self.market_aware:
-            self.drop_condition = self.out_of_market_window
-        else:
-            self.drop_condition = self.out_of_delta
+        self.drop_condition = self.out_of_market_window
 
     @abstractmethod
     def handle_add(self, event):
@@ -190,6 +217,10 @@ class EventWindow(object):
         return len(self.ticks)
 
     def update(self, event):
+
+        if hasattr(event, 'type') and event.type != DATASOURCE_TYPE.TRADE:
+            return
+
         self.assert_well_formed(event)
         # Add new event and increment totals.
         self.ticks.append(deepcopy(event))
@@ -198,8 +229,7 @@ class EventWindow(object):
         # adding new ticks.
         self.handle_add(event)
 
-        # Clear out any expired events. drop_condition changes depending
-        # on whether or not we are running in market_aware mode.
+        # Clear out any expired events.
         #
         #                              oldest               newest
         #                                |                    |
@@ -226,9 +256,6 @@ class EventWindow(object):
             trading_days_between -= 1
 
         return trading_days_between >= self.window_length
-
-    def out_of_delta(self, oldest, newest):
-        return (newest - oldest) >= self.delta
 
     # All event windows expect to receive events with datetime fields
     # that arrive in sorted order.
@@ -369,7 +396,12 @@ class BatchTransform(EventWindow):
         # sid keys.
         event = Event()
         event.dt = max(dts)
-        event.data = data
+        event.data = {k: v.__dict__ for k, v in data.iteritems()
+                      # Need to check if data has a 'length' to filter
+                      # out sids without trade data available.
+                      # TODO: expose more of 'no trade available'
+                      # functionality to zipline
+                      if len(v)}
 
         # append data frame to window. update() will call handle_add() and
         # handle_remove() appropriately
@@ -383,7 +415,7 @@ class BatchTransform(EventWindow):
         # every sid has the same fields.
         sid_keys = []
         for sid in event.data.itervalues():
-            keys = set([name for name, value in sid.__dict__.items()
+            keys = set([name for name, value in sid.items()
                         if (isinstance(value, (int, float)))])
             sid_keys.append(keys)
 
@@ -430,25 +462,11 @@ class BatchTransform(EventWindow):
         """
         # This Panel data structure ultimately gets passed to the
         # user-overloaded get_value() method.
+        data_dict = {tick['dt']: tick['data'] for tick in self.ticks}
+        data = pd.Panel(data_dict, major_axis=self.field_names,
+                        minor_axis=self.sids)
 
-        # If sids are set, use those. Otherwise extract.
-        if self.sids is not None:
-            sids = self.sids
-        else:
-            sids = set.union(*[set(tick.data.keys()) for tick in self.ticks])
-
-        dts = [tick.dt for tick in self.ticks]
-
-        data = pd.Panel(items=self.field_names, major_axis=dts,
-                        minor_axis=sids)
-
-        # Fill data panel
-        for tick in self.ticks:
-            dt = tick.dt
-            for sid in sids:
-                fields = tick.data[sid]
-                for field_name in self.field_names:
-                    data[field_name][sid].ix[dt] = fields.__dict__[field_name]
+        data = data.swapaxes(0, 1)
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform
