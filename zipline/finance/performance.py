@@ -278,10 +278,6 @@ class PerformanceTracker(object):
 
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
-
-        self.cumulative_performance.update_dividends(todays_date)
-        self.todays_performance.update_dividends(todays_date)
-
         todays_return_obj = risk.DailyReturn(
             todays_date,
             self.todays_performance.returns
@@ -326,6 +322,13 @@ Last successful date: %s" % self.market_open)
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
+        # The dividend calculation for the daily needs to be made
+        # after the rollover.
+
+        midnight_utc = self.market_open.replace(hour=0, minute=0, second=0)
+        self.cumulative_performance.update_dividends(midnight_utc)
+        self.todays_performance.update_dividends(midnight_utc)
+
         return daily_update
 
     def handle_simulation_end(self):
@@ -368,17 +371,25 @@ class Position(object):
         self.last_sale_date = 0.0
         self.dividends = []
 
-    def update_dividends(self, dt):
+    def update_dividends(self, midnight_utc):
+        """
+        midnight_utc is the 0 hour for the current (not yet open) trading day.
+        This method will be invoked at the end of the market
+        close handling, before the next market open.
+        """
         payment = 0.0
         unpaid_dividends = []
         for dividend in self.dividends:
-            if dt == dividend.ex_date:
+            if midnight_utc == dividend.ex_date:
                 # if we own shares at midnight of the div_ex date
                 # we are entitled to the dividend.
                 dividend.amount_on_ex_date = self.amount
-                dividend.payment = self.amount * dividend.net_amount
+                if dividend.net_amount:
+                    dividend.payment = self.amount * dividend.net_amount
+                else:
+                    dividend.payment = self.amount * dividend.gross_amount
 
-            if dt == dividend.pay_date:
+            if midnight_utc == dividend.pay_date:
                 # if it is the payment date, include this
                 # dividend's actual payment (calculated on
                 # ex_date)
