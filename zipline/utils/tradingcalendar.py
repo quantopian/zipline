@@ -56,16 +56,6 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(new_years_sunday)
 
-    new_years_saturday = rrule.rrule(
-        rrule.MONTHLY,
-        byyearday=3,
-        byweekday=rrule.MO,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(new_years_saturday)
-
     mlk_day = rrule.rrule(
         rrule.MONTHLY,
         bymonth=1,
@@ -115,6 +105,28 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(july_4th)
 
+    july_4th_sunday = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=7,
+        bymonthday=5,
+        byweekday=rrule.MO,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(july_4th_sunday)
+
+    july_4th_saturday = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=7,
+        bymonthday=3,
+        byweekday=rrule.FR,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(july_4th_saturday)
+
     labor_day = rrule.rrule(
         rrule.MONTHLY,
         bymonth=9,
@@ -144,6 +156,29 @@ def get_non_trading_days(start, end):
         until=end
     )
     non_trading_rules.append(christmas)
+
+    christmas_sunday = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=12,
+        bymonthday=26,
+        byweekday=rrule.MO,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(christmas_sunday)
+
+    # If Christmas is a Saturday then 24th, a Friday is observed.
+    christmas_saturday = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=12,
+        bymonthday=24,
+        byweekday=rrule.FR,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(christmas_saturday)
 
     non_trading_ruleset = rrule.rruleset()
 

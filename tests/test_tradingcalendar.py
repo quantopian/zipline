@@ -53,35 +53,6 @@ If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
 """.strip().format(first_trading_day_after_new_years_sunday)
         )
 
-        #     January 2005
-        # Su Mo Tu We Th Fr Sa
-        #                    1
-        #  2  3  4  5  6  7  8
-        #  9 10 11 12 13 14 15
-        # 16 17 18 19 20 21 22
-        # 23 24 25 26 27 28 29
-        # 30 31
-
-        day_after_new_years_saturday = datetime.datetime(
-            2005, 1, 3, tzinfo=pytz.utc)
-
-        self.assertNotIn(day_after_new_years_saturday,
-                         tradingcalendar.trading_days,
-                         """
-If NYE falls on a weekend, {0} the Monday after is a holiday.
-""".strip().format(day_after_new_years_saturday)
-        )
-
-        first_trading_day_after_new_years_saturday = datetime.datetime(
-            2005, 1, 4, tzinfo=pytz.utc)
-
-        self.assertIn(first_trading_day_after_new_years_saturday,
-                      tradingcalendar.trading_days,
-                      """
-If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
-""".strip().format(first_trading_day_after_new_years_saturday)
-        )
-
         #     January 2013
         # Su Mo Tu We Th Fr Sa
         #        1  2  3  4  5
