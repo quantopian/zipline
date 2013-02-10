@@ -128,7 +128,7 @@ def get_non_trading_days(start, end):
     thanksgiving = rrule.rrule(
         rrule.MONTHLY,
         bymonth=11,
-        byweekday=(rrule.TH(-1)),
+        byweekday=(rrule.TH(4)),
         cache=True,
         dtstart=start,
         until=end

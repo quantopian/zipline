@@ -21,7 +21,7 @@ import datetime
 
 class TestTradingCalendar(TestCase):
 
-    def test_tradingcalendar(self):
+    def test_newyears(self):
         """
         Check whether tradingcalendar contains certain dates.
         """
@@ -109,4 +109,52 @@ If NYE falls during the week, e.g. {0}, it is a holiday.
 If the day after NYE falls during the week, {0} \
 is the first trading day.
 """.strip().format(first_trading_day_after_new_years)
+        )
+
+    def test_thanksgiving(self):
+        """
+        Check tradingcalendar Thanksgiving dates.
+        """
+        #     November 2005
+        # Su Mo Tu We Th Fr Sa
+        #        1  2  3  4  5
+        #  6  7  8  9 10 11 12
+        # 13 14 15 16 17 18 19
+        # 20 21 22 23 24 25 26
+        # 27 28 29 30
+        thanksgiving_with_four_weeks = datetime.datetime(
+            2005, 11, 24, tzinfo=pytz.utc)
+
+        self.assertNotIn(thanksgiving_with_four_weeks,
+                         tradingcalendar.trading_days,
+                         """
+If Nov has 4 Thursdays, {0} Thanksgiving is the last Thursady.
+""".strip().format(thanksgiving_with_four_weeks)
+        )
+
+        #     November 2006
+        # Su Mo Tu We Th Fr Sa
+        #           1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30
+        thanksgiving_with_five_weeks = datetime.datetime(
+            2006, 11, 23, tzinfo=pytz.utc)
+
+        self.assertNotIn(thanksgiving_with_five_weeks,
+                         tradingcalendar.trading_days,
+                         """
+If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
+""".strip().format(thanksgiving_with_five_weeks)
+        )
+
+        first_trading_day_after_new_years_sunday = datetime.datetime(
+            2012, 1, 3, tzinfo=pytz.utc)
+
+        self.assertIn(first_trading_day_after_new_years_sunday,
+                      tradingcalendar.trading_days,
+                      """
+If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
+""".strip().format(first_trading_day_after_new_years_sunday)
         )
