@@ -286,6 +286,9 @@ class TradingAlgorithm(object):
         if isinstance(names, basestring):
             names = [names]
 
+        if self.initialized:
+            raise Exception(MESSAGES.ERRORS.CALL_RECORD_VARIABLES_POST_INIT)
+
         self._registered_vars.update(set(names))
 
     @property
