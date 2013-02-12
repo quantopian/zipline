@@ -24,7 +24,7 @@ from itertools import groupby
 from operator import attrgetter
 
 from zipline.sources import DataFrameSource, DataPanelSource
-from zipline.utils.factory import create_trading_environment
+from zipline.utils.factory import create_simulation_parameters
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -107,6 +107,8 @@ class TradingAlgorithm(object):
         # set the capital base
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
+        self.sim_params = kwargs.pop('sim_params', None)
+
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
         self.initialized = False
@@ -114,7 +116,7 @@ class TradingAlgorithm(object):
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
-    def _create_generator(self, environment):
+    def _create_generator(self, sim_params):
         """
         Create a basic generator setup using the sources and
         transforms attached to this algorithm.
@@ -127,20 +129,20 @@ class TradingAlgorithm(object):
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
         self.grouped_by_date = groupby(self.with_alias_dt, attrgetter('dt'))
-        self.trading_client = tsc(self, environment)
+        self.trading_client = tsc(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
 
         return self.trading_client.simulate(self.grouped_by_date)
 
-    def get_generator(self, environment):
+    def get_generator(self):
         """
         Override this method to add new logic to the construction
         of the generator. Overrides can use the _create_generator
         method to get a standard construction generator.
         """
-        return self._create_generator(environment)
+        return self._create_generator(self.sim_params)
 
     def initialize(self, *args, **kwargs):
         pass
@@ -190,6 +192,13 @@ class TradingAlgorithm(object):
         else:
             self.sources = source
 
+        if not self.sim_params:
+            self.sim_params = create_simulation_parameters(
+                start=start,
+                end=end,
+                capital_base=self.capital_base
+            )
+
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
         for namestring, trans_descr in self.registered_transforms.iteritems():
@@ -202,14 +211,8 @@ class TradingAlgorithm(object):
 
             self.transforms.append(sf)
 
-        environment = create_trading_environment(
-            start=start,
-            end=end,
-            capital_base=self.capital_base
-        )
-
         # create transforms and zipline
-        self.gen = self._create_generator(environment)
+        self.gen = self._create_generator(self.sim_params)
 
         # loop through simulated_trading, each iteration returns a
         # perf ndict

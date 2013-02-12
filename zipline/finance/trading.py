@@ -13,21 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import bisect
 import pytz
 import logbook
 import datetime
 
 from collections import defaultdict, OrderedDict
-import bisect
+from delorean import Delorean
+from pandas import DatetimeIndex
 
 import zipline.protocol as zp
 from zipline.finance.slippage import (
     VolumeShareSlippage,
     transact_partial
 )
+
 from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
+
+environment = None
 
 
 class TransactionSimulator(object):
@@ -60,106 +65,30 @@ class TradingEnvironment(object):
 
     def __init__(
         self,
-        benchmark_returns,
-        treasury_curves,
-        period_start=None,
-        period_end=None,
-        capital_base=None
+        load=None,
+        bm_symbol='^GSPC',
+        exchange_tz="US/Eastern"
     ):
 
         self.trading_day_map = OrderedDict()
-        self.treasury_curves = treasury_curves
-        self.benchmark_returns = benchmark_returns
-        self.period_start = period_start
-        self.period_end = period_end
-        self.capital_base = capital_base
+        self.bm_symbol = bm_symbol
+        if not load:
+            from zipline.data.loader import load_market_data
+            load = load_market_data
+
+        self.benchmark_returns, self.treasury_curves = \
+            load(self.bm_symbol)
+
         self._period_trading_days = None
+        self._trading_days_series = None
+        self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
+        self.exchange_tz = exchange_tz
 
-        assert self.period_start <= self.period_end, \
-            "Period start falls after period end."
-
-        for bm in benchmark_returns:
+        for bm in self.benchmark_returns:
             self.trading_day_map[bm.date] = bm
 
         self.first_trading_day = next(self.trading_day_map.iterkeys())
         self.last_trading_day = next(reversed(self.trading_day_map))
-
-        assert self.period_start <= self.last_trading_day, \
-            "Period start falls after the last known trading day."
-        assert self.period_end >= self.first_trading_day, \
-            "Period end falls before the first known trading day."
-
-        self.first_open = self.calculate_first_open()
-        self.last_close = self.calculate_last_close()
-
-        self.prior_day_open = self.calculate_prior_day_open()
-
-    def __repr__(self):
-        return "%s(%r)" % (
-            self.__class__.__name__,
-            {'first_open': self.first_open,
-             'last_close': self.last_close
-             })
-
-    def calculate_first_open(self):
-        """
-        Finds the first trading day on or after self.period_start.
-        """
-        first_open = self.period_start
-        one_day = datetime.timedelta(days=1)
-
-        while not self.is_trading_day(first_open):
-            first_open = first_open + one_day
-
-        first_open = self.set_NYSE_time(first_open, 9, 30)
-        return first_open
-
-    def calculate_prior_day_open(self):
-        """
-        Finds the first trading day open that falls at least a day
-        before period_start.
-        """
-        one_day = datetime.timedelta(days=1)
-        first_open = self.period_start - one_day
-
-        if first_open <= self.first_trading_day:
-            log.warn("Cannot calculate prior day open.")
-            return self.period_start
-
-        while not self.is_trading_day(first_open):
-            first_open = first_open - one_day
-
-        first_open = self.set_NYSE_time(first_open, 9, 30)
-        return first_open
-
-    def calculate_last_close(self):
-        """
-        Finds the last trading day on or before self.period_end
-        """
-        last_close = self.period_end
-        one_day = datetime.timedelta(days=1)
-
-        while not self.is_trading_day(last_close):
-            last_close = last_close - one_day
-
-        last_close = self.set_NYSE_time(last_close, 16, 00)
-
-        return last_close
-
-    #TODO: add other exchanges and timezones...
-    def set_NYSE_time(self, dt, hour, minute):
-        naive = datetime.datetime(
-            year=dt.year,
-            month=dt.month,
-            day=dt.day
-        )
-        local = pytz.timezone('US/Eastern')
-        local_dt = naive.replace(tzinfo=local)
-        # set the clock to the opening bell in NYC time.
-        local_dt = local_dt.replace(hour=hour, minute=minute)
-        # convert to UTC
-        utc_dt = local_dt.astimezone(pytz.utc)
-        return utc_dt
 
     def normalize_date(self, test_date):
         return datetime.datetime(
@@ -181,18 +110,17 @@ class TradingEnvironment(object):
         return self._period_trading_days
 
     @property
-    def days_in_period(self):
-        """return the number of trading days within the period [start, end)"""
-        return len(self.period_trading_days)
+    def trading_days(self):
+        if self._trading_days_series is None:
+            self._trading_days_series = \
+                DatetimeIndex(self.trading_day_map.iterkeys())
+        return self._trading_days_series
 
     def is_market_hours(self, test_date):
         if not self.is_trading_day(test_date):
             return False
 
-        mkt_open = self.set_NYSE_time(test_date, 9, 30)
-        #TODO: half days?
-        mkt_close = self.set_NYSE_time(test_date, 16, 00)
-
+        mkt_open, mkt_close = self.get_open_and_close(test_date)
         return test_date >= mkt_open and test_date <= mkt_close
 
     def is_trading_day(self, test_date):
@@ -210,6 +138,46 @@ class TradingEnvironment(object):
 
         return None
 
+    def next_open_and_close(self, start_date):
+        """
+        Given the start_date, returns the next open and close of
+        the market.
+        """
+        next_open = self.next_trading_day(start_date)
+
+        if next_open is None:
+            raise Exception(
+                "Attempt to backtest beyond available history. \
+Last successful date: %s" % self.market_open)
+
+        return self.get_open_and_close(next_open)
+
+    def get_open_and_close(self, next_open):
+
+        # creating a naive datetime with the correct hour,
+        # minute, and date. this will allow us to use Delorean to
+        # shift the time between EST and UTC.
+        next_open = next_open.replace(
+            hour=9,
+            minute=30,
+            second=0,
+            tzinfo=None
+        )
+        # create a new Delorean with the next_open naive date and
+        # the correct timezone for the exchange.
+        open_delorean = Delorean(next_open, "US/Eastern")
+        open_utc = open_delorean.shift("UTC").datetime
+
+        market_open = open_utc
+        market_close = market_open + self.get_trading_day_duration(open_utc)
+
+        return market_open, market_close
+
+    def get_trading_day_duration(self, trading_day):
+        # TODO: make a list of half-days and modify the
+        # calculation of market close to reflect them.
+        return self.full_trading_day
+
     def trading_day_distance(self, first_date, second_date):
         first_date = self.normalize_date(first_date)
         second_date = self.normalize_date(second_date)
@@ -224,3 +192,98 @@ class TradingEnvironment(object):
             return None
 
         return j - i
+
+    def get_index(self, dt):
+        ndt = self.normalize_date(dt)
+        return self.trading_days.searchsorted(ndt)
+
+
+class SimulationParameters(object):
+    def __init__(self, period_start, period_end,
+                 capital_base=10e3):
+
+        # raise and exception if the global environment is not
+        # set.
+        global environment
+        if not environment:
+            environment = TradingEnvironment()
+
+        self.period_start = period_start
+        self.period_end = period_end
+        self.capital_base = capital_base
+        self.first_open = self.calculate_first_open()
+        self.last_close = self.calculate_last_close()
+        start_index = \
+            environment.get_index(self.first_open)
+        end_index = environment.get_index(self.last_close)
+
+        # take an inclusive slice of the environment's
+        # trading_days.
+        self.trading_days = \
+            environment.trading_days[start_index:end_index+1]
+
+        self.prior_day_open = self.calculate_prior_day_open()
+
+        assert self.period_start <= self.period_end, \
+            "Period start falls after period end."
+
+        assert self.period_start <= environment.last_trading_day, \
+            "Period start falls after the last known trading day."
+        assert self.period_end >= environment.first_trading_day, \
+            "Period end falls before the first known trading day."
+
+    def calculate_first_open(self):
+        """
+        Finds the first trading day on or after self.period_start.
+        """
+        first_open = self.period_start
+        one_day = datetime.timedelta(days=1)
+
+        while not environment.is_trading_day(first_open):
+            first_open = first_open + one_day
+
+        mkt_open, _ = environment.get_open_and_close(first_open)
+        return mkt_open
+
+    def calculate_prior_day_open(self):
+        """
+        Finds the first trading day open that falls at least a day
+        before period_start.
+        """
+        one_day = datetime.timedelta(days=1)
+        first_open = self.period_start - one_day
+
+        if first_open <= environment.first_trading_day:
+            log.warn("Cannot calculate prior day open.")
+            return self.period_start
+
+        while not environment.is_trading_day(first_open):
+            first_open = first_open - one_day
+
+        mkt_open, _ = environment.get_open_and_close(first_open)
+        return mkt_open
+
+    def calculate_last_close(self):
+        """
+        Finds the last trading day on or before self.period_end
+        """
+        last_close = self.period_end
+        one_day = datetime.timedelta(days=1)
+
+        while not environment.is_trading_day(last_close):
+            last_close = last_close - one_day
+
+        _, mkt_close = environment.get_open_and_close(last_close)
+        return mkt_close
+
+    @property
+    def days_in_period(self):
+        """return the number of trading days within the period [start, end)"""
+        return len(self.trading_days)
+
+    def __repr__(self):
+        return "%s(%r)" % (
+            self.__class__.__name__,
+            {'first_open': self.first_open,
+             'last_close': self.last_close
+             })

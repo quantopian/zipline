@@ -38,7 +38,9 @@ class Returns(object):
         return tracker.returns
 
     def _create(self):
-        return ReturnsFromPriorClose(self.window_length)
+        return ReturnsFromPriorClose(
+            self.window_length
+        )
 
 
 class ReturnsFromPriorClose(object):

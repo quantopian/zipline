@@ -27,9 +27,8 @@ import zipline.finance.performance as perf
 from zipline.utils.protocol_utils import ndict
 
 from zipline.gens.composites import date_sorted_sources
-from zipline.finance.trading import TradingEnvironment
-from zipline.utils.factory import create_random_trading_environment
-
+from zipline.finance.trading import SimulationParameters
+from zipline.utils.factory import create_random_simulation_parameters
 
 onesec = datetime.timedelta(seconds=1)
 oneday = datetime.timedelta(days=1)
@@ -40,10 +39,10 @@ class TestDividendPerformance(unittest.TestCase):
 
     def setUp(self):
 
-        self.trading_environment, self.dt, self.end_dt = \
-            create_random_trading_environment()
+        self.sim_params, self.dt, self.end_dt = \
+            create_random_simulation_parameters()
 
-        self.trading_environment.capital_base = 10e3
+        self.sim_params.capital_base = 10e3
 
     def test_long_position_receives_dividend(self):
         #post some trades in the market
@@ -52,7 +51,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -71,7 +70,7 @@ class TestDividendPerformance(unittest.TestCase):
         txn = factory.create_txn(1, 10.0, 100, events[0].dt)
         events[0].TRANSACTION = txn
         events.insert(1, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -114,7 +113,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -128,7 +127,7 @@ class TestDividendPerformance(unittest.TestCase):
         events.insert(1, dividend)
         txn = factory.create_txn(1, 10.0, 100, events[3].dt)
         events[3].TRANSACTION = txn
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -162,7 +161,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -178,7 +177,7 @@ class TestDividendPerformance(unittest.TestCase):
         sell_txn = factory.create_txn(1, 10.0, -100, events[2].dt)
         events[2].TRANSACTION = sell_txn
         events.insert(1, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -212,7 +211,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -228,7 +227,7 @@ class TestDividendPerformance(unittest.TestCase):
         sell_txn = factory.create_txn(1, 10.0, -100, events[2].dt)
         events[2].TRANSACTION = sell_txn
         events.insert(1, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -262,7 +261,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -276,7 +275,7 @@ class TestDividendPerformance(unittest.TestCase):
         buy_txn = factory.create_txn(1, 10.0, 100, events[1].dt)
         events[1].TRANSACTION = buy_txn
         events.insert(1, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -313,7 +312,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -327,7 +326,7 @@ class TestDividendPerformance(unittest.TestCase):
         txn = factory.create_txn(1, 10.0, -100, self.dt+oneday)
         events[0].TRANSACTION = txn
         events.insert(0, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -361,7 +360,7 @@ class TestDividendPerformance(unittest.TestCase):
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            self.trading_environment
+            self.sim_params
         )
 
         dividend = factory.create_dividend(
@@ -373,7 +372,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         events.insert(1, dividend)
-        perf_tracker = perf.PerformanceTracker(self.trading_environment)
+        perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
         )
@@ -404,8 +403,8 @@ class TestDividendPerformance(unittest.TestCase):
 class TestPositionPerformance(unittest.TestCase):
 
     def setUp(self):
-        self.trading_environment, self.dt, self.end_dt = \
-            create_random_trading_environment()
+        self.sim_params, self.dt, self.end_dt = \
+            create_random_simulation_parameters()
 
     def test_long_position(self):
         """
@@ -418,7 +417,7 @@ class TestPositionPerformance(unittest.TestCase):
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             onesec,
-            self.trading_environment
+            self.sim_params
         )
 
         txn = factory.create_txn(1, 10.0, 100, self.dt + onesec)
@@ -487,7 +486,7 @@ single short-sale transaction"""
             [10, 10, 10, 11, 10, 9],
             [100, 100, 100, 100, 100, 100],
             onesec,
-            self.trading_environment
+            self.sim_params
         )
 
         trades_1 = trades[:-2]
@@ -677,7 +676,7 @@ trade after cover"""
             [10, 10, 10, 11, 9, 8, 7, 8, 9, 10],
             [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
             onesec,
-            self.trading_environment
+            self.sim_params
         )
 
         short_txn = factory.create_txn(
@@ -756,7 +755,7 @@ shares in position"
             [10, 11, 11, 12],
             [100, 100, 100, 100],
             onesec,
-            self.trading_environment
+            self.sim_params
         )
 
         transactions = factory.create_txn_history(
@@ -764,7 +763,7 @@ shares in position"
             [10, 11, 11, 12],
             [100, 100, 100, 100],
             onesec,
-            self.trading_environment
+            self.sim_params
         )
 
         pp = perf.PerformancePeriod(1000.0)
@@ -914,12 +913,7 @@ class TestPerformanceTracker(unittest.TestCase):
         volume = [100] * trade_count
         trade_time_increment = datetime.timedelta(days=1)
 
-        benchmark_returns, treasury_curves = \
-            factory.load_market_data()
-
-        trading_environment = TradingEnvironment(
-            benchmark_returns,
-            treasury_curves,
+        sim_params = SimulationParameters(
             period_start=start_dt,
             period_end=end_dt
         )
@@ -929,7 +923,7 @@ class TestPerformanceTracker(unittest.TestCase):
             price_list,
             volume,
             trade_time_increment,
-            trading_environment,
+            sim_params,
             source_id="factory1"
         )
 
@@ -941,7 +935,7 @@ class TestPerformanceTracker(unittest.TestCase):
             price2_list,
             volume,
             trade_time_increment,
-            trading_environment,
+            sim_params,
             source_id="factory2"
         )
         # 'middle' start of 3 depends on number of days == 7
@@ -962,19 +956,19 @@ class TestPerformanceTracker(unittest.TestCase):
             del trade_history[-days_to_delete.end:]
             del trade_history2[-days_to_delete.end:]
 
-        trading_environment.first_open = \
-            trading_environment.calculate_first_open()
-        trading_environment.last_close = \
-            trading_environment.calculate_last_close()
-        trading_environment.capital_base = 1000.0
-        trading_environment.frame_index = [
+        sim_params.first_open = \
+            sim_params.calculate_first_open()
+        sim_params.last_close = \
+            sim_params.calculate_last_close()
+        sim_params.capital_base = 1000.0
+        sim_params.frame_index = [
             'sid',
             'volume',
             'dt',
             'price',
             'changed']
         perf_tracker = perf.PerformanceTracker(
-            trading_environment
+            sim_params
         )
 
         events = date_sorted_sources(trade_history, trade_history2)
@@ -1007,7 +1001,7 @@ class TestPerformanceTracker(unittest.TestCase):
                          perf_tracker.cumulative_risk_metrics.end_date)
 
         self.assertEqual(len(perf_messages),
-                         trading_environment.days_in_period)
+                         sim_params.days_in_period)
 
     def event_with_txn(self, event, no_txn_dt):
         #create a transaction for all but

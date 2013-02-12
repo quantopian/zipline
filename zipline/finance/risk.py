@@ -63,7 +63,10 @@ from collections import OrderedDict
 import bisect
 import numpy as np
 import numpy.linalg as la
+
+import zipline.finance.trading as trading
 from zipline.utils.date_utils import epoch_now
+
 
 log = logbook.Logger('Risk')
 
@@ -110,20 +113,19 @@ class DailyReturn(object):
 
 
 class RiskMetricsBase(object):
-    def __init__(self, start_date, end_date, returns, trading_environment):
+    def __init__(self, start_date, end_date, returns):
 
-        self.treasury_curves = trading_environment.treasury_curves
+        self.treasury_curves = trading.environment.treasury_curves
         assert isinstance(self.treasury_curves, OrderedDict), \
             "Treasury curves must be an OrderedDict"
 
         self.start_date = start_date
         self.end_date = end_date
-        self.trading_environment = trading_environment
         self.algorithm_period_returns, self.algorithm_returns = \
             self.calculate_period_returns(returns)
 
         benchmark_returns = [
-            x for x in self.trading_environment.benchmark_returns
+            x for x in trading.environment.benchmark_returns
             if x.date >= returns[0].date and x.date <= returns[-1].date
         ]
 
@@ -227,7 +229,7 @@ class RiskMetricsBase(object):
             x.returns for x in daily_returns
             if x.date >= self.start_date and
             x.date <= self.end_date and
-            self.trading_environment.is_trading_day(x.date)
+            trading.environment.is_trading_day(x.date)
         ]
 
         period_returns = 1.0
@@ -427,7 +429,7 @@ that date doesn't exceed treasury history range."
         raise Exception(message)
 
     def search_day_distance(self, dt):
-        tdd = self.trading_environment.trading_day_distance(dt, self.end_date)
+        tdd = trading.environment.trading_day_distance(dt, self.end_date)
         if tdd is None:
             return None
         assert tdd >= 0
@@ -457,11 +459,10 @@ class RiskMetricsIterative(RiskMetricsBase):
         Call update() method on each dt to update the metrics.
     """
 
-    def __init__(self, start_date, trading_environment):
-        self.treasury_curves = trading_environment.treasury_curves
+    def __init__(self, start_date):
+        self.treasury_curves = trading.environment.treasury_curves
         self.start_date = start_date
         self.end_date = start_date
-        self.trading_environment = trading_environment
 
         self.compounded_log_returns = []
         self.moving_avg = []
@@ -484,12 +485,12 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.trading_days = 0
 
         self.all_benchmark_returns = [
-            x for x in self.trading_environment.benchmark_returns
+            x for x in trading.environment.benchmark_returns
             if x.date >= self.start_date
         ]
 
     def update(self, market_close, returns_in_period):
-        if self.trading_environment.is_trading_day(self.end_date):
+        if trading.environment.is_trading_day(self.end_date):
             self.algorithm_returns.append(returns_in_period)
             self.benchmark_returns.append(
                 self.all_benchmark_returns.pop(0).returns)
@@ -711,7 +712,7 @@ class RiskReport(object):
     def __init__(
         self,
         algorithm_returns,
-        trading_environment,
+        sim_params
     ):
         """
         algorithm_returns needs to be a list of daily_return objects
@@ -719,12 +720,12 @@ class RiskReport(object):
         """
 
         self.algorithm_returns = algorithm_returns
-        self.trading_environment = trading_environment
+        self.sim_params = sim_params
         self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
-            start_date = self.trading_environment.period_start
-            end_date = self.trading_environment.period_end
+            start_date = self.sim_params.period_start
+            end_date = self.sim_params.period_end
         else:
             start_date = self.algorithm_returns[0].date
             end_date = self.algorithm_returns[-1].date
@@ -778,8 +779,7 @@ class RiskReport(object):
             cur_period_metrics = RiskMetricsBatch(
                 start_date=cur_start,
                 end_date=cur_end,
-                returns=self.algorithm_returns,
-                trading_environment=self.trading_environment
+                returns=self.algorithm_returns
             )
 
             ends.append(cur_period_metrics)

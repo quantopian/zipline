@@ -26,9 +26,6 @@ def check_dict(test, a, b, label):
     test.assertTrue(isinstance(a, dict))
     test.assertTrue(isinstance(b, dict))
     for key in a.keys():
-        # ignore the extra fields used by dictshield
-        if key in ['progress']:
-            continue
 
         test.assertTrue(key in a, "missing key at: " + label + "." + key)
         test.assertTrue(key in b, "missing key at: " + label + "." + key)

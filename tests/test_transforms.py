@@ -61,6 +61,8 @@ class NoopEventWindow(EventWindow):
 
 class TestEventWindow(TestCase):
     def setUp(self):
+        self.sim_params = factory.create_simulation_parameters()
+
         setup_logger(self)
 
         self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
@@ -126,7 +128,7 @@ class TestEventWindow(TestCase):
 class TestFinanceTransforms(TestCase):
 
     def setUp(self):
-        self.trading_environment = factory.create_trading_environment()
+        self.sim_params = factory.create_simulation_parameters()
         setup_logger(self)
 
         trade_history = factory.create_trade_history(
@@ -134,7 +136,7 @@ class TestFinanceTransforms(TestCase):
             [10.0, 10.0, 11.0, 11.0],
             [100, 100, 100, 300],
             timedelta(days=1),
-            self.trading_environment
+            self.sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
@@ -142,7 +144,6 @@ class TestFinanceTransforms(TestCase):
         self.log_handler.pop_application()
 
     def test_vwap(self):
-
         vwap = MovingVWAP(
             market_aware=True,
             window_length=2
@@ -186,7 +187,7 @@ class TestFinanceTransforms(TestCase):
             [10.0, 15.0, 13.0, 12.0, 13.0],
             [100, 100, 100, 300, 100],
             timedelta(days=1),
-            self.trading_environment
+            self.sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
@@ -247,7 +248,7 @@ class TestFinanceTransforms(TestCase):
             [10.0, 15.0, 13.0, 12.0],
             [100, 100, 100, 100],
             timedelta(days=1),
-            self.trading_environment
+            self.sim_params
         )
 
         stddev = MovingStandardDev(
@@ -283,8 +284,13 @@ class TestFinanceTransforms(TestCase):
 
 class TestBatchTransform(TestCase):
     def setUp(self):
+        self.sim_params = factory.create_simulation_parameters(
+            start=datetime(1990, 1, 1, tzinfo=pytz.utc),
+            end=datetime(1990, 1, 8, tzinfo=pytz.utc)
+        )
         setup_logger(self)
-        self.source, self.df = factory.create_test_df_source()
+        self.source, self.df = \
+            factory.create_test_df_source(self.sim_params)
 
     def test_event_window(self):
         algo = BatchTransformAlgorithm()
@@ -361,12 +367,15 @@ class TestBatchTransform(TestCase):
         self.assertEqual(
             algo.history_return_args,
             [
+                # 1990-01-01 - market holiday, no event
+                # 1990-01-02 - window not full
+                None,
                 # 1990-01-03 - window not full
                 None,
-                # 1990-01-04 - window not full
+                # 1990-01-04 - window not full, 3rd event
                 None,
-                # 1990-01-05 - window not full, 3rd event
-                None,
+                # 1990-01-05 - window now full
+                expected_item,
                 # 1990-01-08 - window now full
                 expected_item
             ])

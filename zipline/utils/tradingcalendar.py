@@ -61,7 +61,7 @@ def get_non_trading_days(start, end):
         bymonth=1,
         byweekday=(rrule.MO(+3)),
         cache=True,
-        dtstart=start,
+        dtstart=datetime(1998, 1, 1, tzinfo=pytz.utc),
         until=end
     )
     non_trading_rules.append(mlk_day)

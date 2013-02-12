@@ -141,6 +141,7 @@ import numpy as np
 
 import zipline.protocol as zp
 import zipline.finance.risk as risk
+import zipline.finance.trading as trading
 
 log = logbook.Logger('Performance')
 
@@ -157,28 +158,28 @@ class PerformanceTracker(object):
 
     """
 
-    def __init__(self, trading_environment):
+    def __init__(self, sim_params):
 
-        self.trading_environment = trading_environment
-        self.trading_day = datetime.timedelta(hours=6, minutes=30)
+        self.sim_params = sim_params
         self.started_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-        self.period_start = self.trading_environment.period_start
-        self.period_end = self.trading_environment.period_end
-        self.last_close = self.trading_environment.last_close
-        self.market_open = self.trading_environment.first_open
-        self.market_close = self.market_open + self.trading_day
+        self.period_start = self.sim_params.period_start
+        self.period_end = self.sim_params.period_end
+        self.last_close = self.sim_params.last_close
+        first_day = self.sim_params.first_open
+        self.market_open, self.market_close = \
+            trading.environment.get_open_and_close(first_day)
         self.progress = 0.0
-        self.total_days = self.trading_environment.days_in_period
+        self.total_days = self.sim_params.days_in_period
         # one indexed so that we reach 100%
         self.day_count = 0.0
-        self.capital_base = self.trading_environment.capital_base
+        self.capital_base = self.sim_params.capital_base
         self.returns = []
         self.txn_count = 0
         self.event_count = 0
         self.last_dict = None
-        self.cumulative_risk_metrics = risk.RiskMetricsIterative(
-            self.period_start, self.trading_environment)
+        self.cumulative_risk_metrics = \
+            risk.RiskMetricsIterative(self.period_start)
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -203,7 +204,7 @@ class PerformanceTracker(object):
     def __repr__(self):
         return "%s(%r)" % (
             self.__class__.__name__,
-            {'trading_environment': self.trading_environment})
+            {'simulation parameters': self.sim_params})
 
     def transform(self, stream_in):
         """
@@ -249,7 +250,7 @@ class PerformanceTracker(object):
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             messages = []
-            while event.dt > self.market_close:
+            while event.dt > self.market_close and event.dt < self.last_close:
                 messages.append(self.handle_market_close())
 
             if event.TRANSACTION:
@@ -275,7 +276,6 @@ class PerformanceTracker(object):
         return messages
 
     def handle_market_close(self):
-
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
         todays_return_obj = risk.DailyReturn(
@@ -305,17 +305,8 @@ class PerformanceTracker(object):
             return daily_update
 
         #move the market day markers forward
-        next_open = self.trading_environment.next_trading_day(self.market_open)
-        if next_open is None:
-            raise Exception(
-                "Attempt to backtest beyond available history. \
-Last successful date: %s" % self.market_open)
-
-        # next_open is a midnight date, but we want the time too
-        self.market_open = next_open.replace(hour=self.market_open.hour,
-                                             minute=self.market_open.minute,
-                                             second=self.market_open.second)
-        self.market_close = self.market_open + self.trading_day
+        self.market_open, self.market_close = \
+            trading.environment.next_open_and_close(self.market_open)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
@@ -350,14 +341,11 @@ Last successful date: %s" % self.market_open)
         log_msg = "Simulated {n} trading days out of {m}."
         log.info(log_msg.format(n=int(self.day_count), m=self.total_days))
         log.info("first open: {d}".format(
-            d=self.trading_environment.first_open))
+            d=self.sim_params.first_open))
         log.info("last close: {d}".format(
-            d=self.trading_environment.last_close))
+            d=self.sim_params.last_close))
 
-        self.risk_report = risk.RiskReport(
-            self.returns,
-            self.trading_environment
-        )
+        self.risk_report = risk.RiskReport(self.returns, self.sim_params)
 
         risk_dict = self.risk_report.to_dict()
         return perf_messages, risk_dict
