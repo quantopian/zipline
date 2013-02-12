@@ -28,7 +28,9 @@ from nose.tools import timed
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
-from zipline.finance.trading import TradingEnvironment
+import zipline.finance.trading as trading
+from zipline.finance.trading import SimulationParameters
+
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
@@ -56,11 +58,11 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_factory_daily(self):
-        trading_environment = factory.create_trading_environment()
+        sim_params = factory.create_simulation_parameters()
         trade_source = factory.create_daily_trade_source(
             [133],
             200,
-            trading_environment
+            sim_params
         )
         prev = None
         for trade in trade_source:
@@ -70,16 +72,6 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_trading_environment(self):
-        benchmark_returns, treasury_curves = \
-            factory.load_market_data()
-
-        env = TradingEnvironment(
-            benchmark_returns,
-            treasury_curves,
-            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
-            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
-            capital_base=100000,
-        )
         #holidays taken from: http://www.nyse.com/press/1191407641943.html
         new_years = datetime(2008, 1, 1, tzinfo=pytz.utc)
         mlk_day = datetime(2008, 1, 21, tzinfo=pytz.utc)
@@ -107,23 +99,27 @@ class FinanceTestCase(TestCase):
         ]
 
         for holiday in holidays:
-            self.assertTrue(not env.is_trading_day(holiday))
+            self.assertTrue(not trading.environment.is_trading_day(holiday))
 
         first_trading_day = datetime(2008, 1, 2, tzinfo=pytz.utc)
         last_trading_day = datetime(2008, 12, 31, tzinfo=pytz.utc)
         workdays = [first_trading_day, last_trading_day]
 
         for workday in workdays:
-            self.assertTrue(env.is_trading_day(workday))
+            self.assertTrue(trading.environment.is_trading_day(workday))
+
+    def test_simulation_parameters(self):
+        env = SimulationParameters(
+            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
+            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
+            capital_base=100000,
+        )
 
         self.assertTrue(env.last_close.month == 12)
         self.assertTrue(env.last_close.day == 31)
 
     @timed(DEFAULT_TIMEOUT)
-    def test_trading_environment_days_in_period(self):
-
-        benchmark_returns, treasury_curves = \
-            factory.load_market_data()
+    def test_sim_params_days_in_period(self):
 
         #     January 2008
         #  Su Mo Tu We Th Fr Sa
@@ -133,9 +129,7 @@ class FinanceTestCase(TestCase):
         #  20 21 22 23 24 25 26
         #  27 28 29 30 31
 
-        env = TradingEnvironment(
-            benchmark_returns,
-            treasury_curves,
+        env = SimulationParameters(
             period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
             period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
             capital_base=100000,
@@ -154,10 +148,9 @@ class FinanceTestCase(TestCase):
         )
 
         num_expected_trading_days = 5
-
         self.assertEquals(num_expected_trading_days, env.days_in_period)
         np.testing.assert_array_equal(expected_trading_days,
-                                      env.period_trading_days)
+                                      env.trading_days.tolist())
 
     @timed(EXTENDED_TIMEOUT)
     def test_full_zipline(self):
@@ -288,18 +281,18 @@ class FinanceTestCase(TestCase):
         complete_fill = params.get('complete_fill')
 
         sid = 1
-        trading_environment = factory.create_trading_environment()
+        sim_params = factory.create_simulation_parameters()
         trade_sim = TransactionSimulator()
         price = [10.1] * trade_count
         volume = [100] * trade_count
-        start_date = trading_environment.first_open
+        start_date = sim_params.first_open
 
         generated_trades = factory.create_trade_history(
             sid,
             price,
             volume,
             trade_interval,
-            trading_environment
+            sim_params
         )
 
         if alternate:
@@ -337,7 +330,7 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator ** i)
 
-        tracker = PerformanceTracker(trading_environment)
+        tracker = PerformanceTracker(sim_params)
 
         # this approximates the loop inside TradingSimulationClient
         transactions = []

@@ -30,6 +30,7 @@ class MovingAverage(object):
 
     def __init__(self, fields='price',
                  market_aware=True, window_length=None, delta=None):
+
         if isinstance(fields, basestring):
             fields = [fields]
         self.fields = fields

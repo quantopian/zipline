@@ -84,20 +84,42 @@ class AlgorithmGeneratorTestCase(TestCase):
         Ensure the pipeline of generators are in sync, at least as far as
         their current dates.
         """
-        algo = TestAlgo(self)
-        trading_environment = factory.create_trading_environment(
+        sim_params = factory.create_simulation_parameters(
             start=datetime(2011, 7, 30, tzinfo=pytz.utc),
             end=datetime(2012, 7, 30, tzinfo=pytz.utc)
         )
+        algo = TestAlgo(self, sim_params=sim_params)
         trade_source = factory.create_daily_trade_source(
             [8229],
             200,
-            trading_environment
+            sim_params
         )
         algo.set_sources([trade_source])
 
-        gen = algo.get_generator(trading_environment)
+        gen = algo.get_generator()
         self.assertTrue(list(gen))
 
         self.assertTrue(algo.slippage.latest_date)
         self.assertTrue(algo.latest_date)
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_progress(self):
+        """
+        Ensure the pipeline of generators are in sync, at least as far as
+        their current dates.
+        """
+        sim_params = factory.create_simulation_parameters(
+            start=datetime(2008, 1, 1, tzinfo=pytz.utc),
+            end=datetime(2008, 1, 5, tzinfo=pytz.utc)
+        )
+        algo = TestAlgo(self, sim_params=sim_params)
+        trade_source = factory.create_daily_trade_source(
+            [8229],
+            3,
+            sim_params
+        )
+        algo.set_sources([trade_source])
+
+        gen = algo.get_generator()
+        results = list(gen)
+        self.assertEqual(results[-2]['progress'], 1.0)

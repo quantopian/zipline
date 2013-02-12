@@ -17,9 +17,29 @@ from unittest import TestCase
 from zipline.utils import tradingcalendar
 import pytz
 import datetime
+from zipline.finance.trading import TradingEnvironment
 
 
 class TestTradingCalendar(TestCase):
+
+    def test_calendar_vs_environment(self):
+        """
+        test_calendar_vs_environment checks whether the
+        historical data from yahoo matches our rule based system.
+        handy, if not canonical, reference:
+        http://www.chronos-st.org/NYSE_Observed_Holidays-1885-Present.html
+        """
+
+        env = TradingEnvironment()
+        env_start_index = \
+            env.trading_days.searchsorted(tradingcalendar.start)
+        env_days = env.trading_days[env_start_index:]
+        diff = env_days - tradingcalendar.trading_days
+        self.assertEqual(
+            len(diff),
+            0,
+            "{diff} should be empty".format(diff=diff)
+        )
 
     def test_newyears(self):
         """

@@ -29,8 +29,8 @@ from numbers import Integral
 import pandas as pd
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.utils import tradingcalendar
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
+import zipline.finance.trading as trading
 
 log = logbook.Logger('Transform')
 
@@ -228,7 +228,8 @@ class EventWindow(object):
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
-
+        #if len(self.ticks) > self.window_length:
+        #    import nose.tools; nose.tools.set_trace()
         # Clear out any expired events.
         #
         #                              oldest               newest
@@ -244,8 +245,10 @@ class EventWindow(object):
             self.handle_remove(popped)
 
     def out_of_market_window(self, oldest, newest):
-        oldest_index = tradingcalendar.trading_days.searchsorted(oldest)
-        newest_index = tradingcalendar.trading_days.searchsorted(newest)
+        oldest_index = \
+            trading.environment.trading_days.searchsorted(oldest)
+        newest_index = \
+            trading.environment.trading_days.searchsorted(newest)
 
         trading_days_between = newest_index - oldest_index
 
@@ -350,8 +353,7 @@ class BatchTransform(EventWindow):
                 full. Returns None if window is not full yet.
         """
 
-        super(BatchTransform, self).__init__(True,
-                                             window_length=window_length)
+        super(BatchTransform, self).__init__(True, window_length=window_length)
 
         if func is not None:
             self.compute_transform_value = func

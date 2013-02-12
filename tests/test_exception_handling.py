@@ -16,6 +16,8 @@
 from unittest import TestCase
 
 import zipline.utils.simfactory as simfactory
+import zipline.utils.factory as factory
+
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
@@ -83,7 +85,8 @@ class ExceptionTestCase(TestCase):
         self.zipline_test_config['algorithm'] = \
             ExceptionAlgorithm(
                 'handle_data',
-                self.zipline_test_config['sid']
+                self.zipline_test_config['sid'],
+                sim_params=factory.create_simulation_parameters()
             )
 
         zipline = simfactory.create_test_zipline(
@@ -102,7 +105,8 @@ class ExceptionTestCase(TestCase):
         # ----------
         self.zipline_test_config['algorithm'] = \
             DivByZeroAlgorithm(
-                self.zipline_test_config['sid']
+                self.zipline_test_config['sid'],
+                sim_params=factory.create_simulation_parameters()
             )
 
         zipline = simfactory.create_test_zipline(
@@ -124,7 +128,8 @@ class ExceptionTestCase(TestCase):
         # ----------
         self.zipline_test_config['algorithm'] = \
             SetPortfolioAlgorithm(
-                self.zipline_test_config['sid']
+                self.zipline_test_config['sid'],
+                sim_params=factory.create_simulation_parameters()
             )
 
         zipline = simfactory.create_test_zipline(

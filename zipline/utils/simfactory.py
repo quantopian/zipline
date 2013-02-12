@@ -7,8 +7,6 @@ def create_test_zipline(**config):
     """
        :param config: A configuration object that is a dict with:
 
-           - environment - a \
-             :py:class:`zipline.finance.trading.TradingEnvironment`
            - sid - an integer, which will be used as the security ID.
            - order_count - the number of orders the test algo will place,
              defaults to 100
@@ -36,14 +34,6 @@ def create_test_zipline(**config):
 
     concurrent_trades = config.get('concurrent_trades', False)
 
-    #--------------------
-    # Trading Environment
-    #--------------------
-    if 'environment' in config:
-        trading_environment = config['environment']
-    else:
-        trading_environment = factory.create_trading_environment()
-
     if 'order_count' in config:
         order_count = config['order_count']
     else:
@@ -70,7 +60,8 @@ def create_test_zipline(**config):
         test_algo = TestAlgorithm(
             sid,
             order_amount,
-            order_count
+            order_count,
+            sim_params=factory.create_simulation_parameters()
         )
 
     #-------------------
@@ -82,7 +73,7 @@ def create_test_zipline(**config):
         trade_source = factory.create_daily_trade_source(
             sid_list,
             trade_count,
-            trading_environment,
+            test_algo.sim_params,
             concurrent=concurrent_trades
         )
 
@@ -105,6 +96,6 @@ def create_test_zipline(**config):
 
     # ------------------
     # generator/simulator
-    sim = test_algo.get_generator(trading_environment)
+    sim = test_algo.get_generator()
 
     return sim
