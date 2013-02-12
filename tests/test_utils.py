@@ -14,7 +14,8 @@
 # limitations under the License.
 
 from unittest import TestCase
-from zipline.utils.factory import load_from_yahoo
+from zipline.utils.factory import (load_from_yahoo,
+                                   load_bars_from_yahoo)
 import pandas as pd
 import pytz
 import numpy as np
@@ -34,5 +35,24 @@ class TestFactory(TestCase):
 
         np.testing.assert_raises(
             AssertionError, load_from_yahoo, stocks=stocks,
+            start=end, end=start
+        )
+
+    def test_load_bars_from_yahoo(self):
+        stocks = ['AAPL', 'GE']
+        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
+        end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+        data = load_bars_from_yahoo(stocks=stocks, start=start, end=end)
+
+        assert data.major_axis[0] == pd.Timestamp('1993-01-04 00:00:00+0000')
+        assert data.major_axis[-1] == pd.Timestamp('2001-12-31 00:00:00+0000')
+        for stock in stocks:
+            assert stock in data.items
+
+        for ohlc in ['open', 'high', 'low', 'close', 'volume', 'price']:
+            assert ohlc in data.minor_axis
+
+        np.testing.assert_raises(
+            AssertionError, load_bars_from_yahoo, stocks=stocks,
             start=end, end=start
         )
