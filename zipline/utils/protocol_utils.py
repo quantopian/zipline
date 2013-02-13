@@ -15,10 +15,9 @@
 
 
 import copy
-import pandas
+import pandas as pd
 from ctypes import Structure, c_ubyte
 from collections import MutableMapping
-
 
 def Enum(*options):
     """
@@ -129,14 +128,14 @@ class ndict(MutableMapping):
         """
         Return the representation as a Pandas dataframe.
         """
-        d = pandas.DataFrame(self.__internal)
+        d = pd.DataFrame(self.__internal)
         return d
 
     def as_series(self):
         """
         Return the representation as a Pandas time series.
         """
-        s = pandas.Series(self.__internal)
+        s = pd.Series(self.__internal)
         s.name = self.sid
         return s
 
