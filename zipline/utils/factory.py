@@ -357,7 +357,7 @@ def create_test_panel_source(trading_calendar=None):
     return DataPanelSource(panel), panel
 
 
-def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
+def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     """Load closing prices from yahoo finance.
 
     :Optional:
@@ -398,8 +398,21 @@ def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
         print name
         stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
         data[name] = stkd
+    return data
 
-    df = pd.DataFrame({key: d['Close'] for key, d in data.iteritems()})
+
+def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
+    data = _load_raw_yahoo_data(indexes, stocks, start, end)
+    df = pd.DataFrame({key: d['Adj Close'] for key, d in data.iteritems()})
     df.index = df.index.tz_localize(pytz.utc)
-
     return df
+
+
+def load_bars_from_yahoo(indexes=None, stocks=None, start=None, end=None):
+    data = _load_raw_yahoo_data(indexes, stocks, start, end)
+    panel = pd.Panel(data)
+    # Rename columns
+    panel.minor_axis = ['open', 'high', 'low', 'close', 'volume', 'price']
+    panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
+
+    return panel
