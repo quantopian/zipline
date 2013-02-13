@@ -14,7 +14,7 @@ powering Quantopian (https://www.quantopian.com) -- a free, community-centered
 platform that allows development and real-time backtesting of trading
 algorithms in the web browser.
 
-Want to contribute? See our [open requests](https://github.com/quantopian/zipline/wiki/Contribution-Requests) 
+Want to contribute? See our [open requests](https://github.com/quantopian/zipline/wiki/Contribution-Requests)
 and our [general guidelines](https://github.com/quantopian/zipline#contributions) below.
 
 Discussion and Help
@@ -132,6 +132,7 @@ Thank you for all the help so far!
 - @snth
 - @yinhm for integrating zipline with @yinhm/datafeed
 - [Jeremiah Lowin](http://www.lowindata.com) for teaching us the nuances of Sharpe and Sortino Ratios
+- Brian Cappello
 - Quantopian Team
 
 (alert us if we've inadvertantly missed listing you here!)
