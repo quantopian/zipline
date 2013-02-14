@@ -28,6 +28,8 @@ from nose.tools import timed
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
+from zipline.gens.tradesimulation import Order
+
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.protocol_utils import ndict
@@ -309,7 +311,14 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            trade_sim.place_order(order_date, sid, order_amount * alternator ** i)
+
+            order = Order({
+                'sid': sid,
+                'amount': order_amount * alternator ** i,
+                'dt': order_date
+            })
+
+            trade_sim.place_order(order)
 
             order_date = order_date + order_interval
             # move after market orders to just after market next
