@@ -105,12 +105,31 @@ class VolumeShareSlippage(object):
 
         for order in current_orders:
 
+
             open_amount = order.amount - order.filled
 
-            if(open_amount != 0):
-                direction = open_amount / math.fabs(open_amount)
-            else:
-                direction = 1
+            if(open_amount == 0):
+                continue
+
+            direction = open_amount / math.fabs(open_amount)
+
+
+
+            # do some order determination
+
+            ######################
+            if ('stop' in dir(order) and order.stop != None): 
+                if ( direction*(event.price - order.stop) < 0 ):
+                    # convert stop -> limit or market
+                    order.stop = None
+
+            if ('limit' in dir(order) and order.limit != None): 
+                # if limit conditions not met, then continue
+                if ( direction*(event.price - order.limit) > 0 ):
+                    continue
+
+            ######################
+
 
             desired_order = total_order + open_amount
 
@@ -145,7 +164,10 @@ class VolumeShareSlippage(object):
             return create_transaction(
                 event.sid,
                 simulated_amount,
+                ######################
+                # need to do something here to deal with limit pricing
                 event.price + simulated_impact,
+                ######################
                 dt.replace(tzinfo=pytz.utc),
             )
 

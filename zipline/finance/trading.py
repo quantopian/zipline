@@ -27,14 +27,6 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.commission import PerShare
 
-from zipline.finance.orders import (
-    Order,
-    MarketOrder,
-    LimitOrder,
-    StopOrder,
-    StopLimitOrder
-)
-
 log = logbook.Logger('Transaction Simulator')
 
 

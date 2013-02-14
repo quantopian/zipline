@@ -44,7 +44,7 @@ class OrderTypes(TradingAlgorithm):
     momentum).
 
     """
-    def initialize(self, short_window=200, long_window=400):
+    def initialize(self, short_window=5, long_window=50):
         # Add 2 mavg transforms, one with a long window, one
         # with a short window.
         self.add_transform(MovingAverage, 'short_mavg', ['price'],
@@ -63,10 +63,10 @@ class OrderTypes(TradingAlgorithm):
         short_mavg = data['AAPL'].short_mavg['price']
         long_mavg = data['AAPL'].long_mavg['price']
         if short_mavg > long_mavg and not self.invested:
-            self.order('AAPL', 100, "limit", 123.45)
+            self.order('AAPL', 100, data['AAPL'].price - 1.00)
             self.invested = True
         elif short_mavg < long_mavg and self.invested:
-            self.order('AAPL', -100, "stop", 123.45)
+            self.order('AAPL', -100)
             self.invested = False
 
         # Save mavgs for later analysis.
