@@ -381,6 +381,12 @@ class BatchTransform(EventWindow):
         self.updated = False
         self.cached = None
 
+        # Data panel that provides bar information to fill in the window,
+        # when no bar ticks are available from the data source generator
+        # Used in universes that 'rollover', e.g. one that has a different
+        # set of stocks per quarter
+        self.supplemental_data = None
+
     def handle_data(self, data, *args, **kwargs):
         """
         New method to handle a data frame as sent to the algorithm's
@@ -466,6 +472,16 @@ class BatchTransform(EventWindow):
         data = pd.Panel(data_dict, major_axis=self.field_names,
                         minor_axis=self.sids)
 
+        if self.supplemental_data:
+            # item will be a date stamp
+            for item in data.items:
+                try:
+                    data[item] = self.supplemental_data[item].combine_first(
+                        data[item])
+                except KeyError:
+                    # Only filling in data available in supplemental data.
+                    pass
+
         data = data.swapaxes(0, 1)
 
         if self.clean_nans:
@@ -477,6 +493,11 @@ class BatchTransform(EventWindow):
             # Drop any empty rows after the fill.
             # This will drop a leading row of N/A
             data = data.dropna(axis=1)
+
+        # Hold on to a reference to the data,
+        # so that it's easier to find the current data when stepping
+        # through with a debugger
+        self.curr_data = data
 
         return data
 

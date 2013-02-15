@@ -283,8 +283,15 @@ class TradingAlgorithm(object):
             then set self.mavg to some value and it will be recorded.
 
         """
-        if isinstance(names, basestring):
+        if not isinstance(names, list):
             names = [names]
+
+        for name in names:
+            if not isinstance(name, basestring):
+                raise TypeError("record_variables expects only strings")
+
+        if self.initialized:
+            raise Exception(MESSAGES.ERRORS.CALL_RECORD_VARIABLES_POST_INIT)
 
         self._registered_vars.update(set(names))
 
