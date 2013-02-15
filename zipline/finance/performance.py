@@ -278,7 +278,10 @@ class PerformanceTracker(object):
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
         todays_date = self.market_close.replace(hour=0, minute=0, second=0)
-        todays_return_obj = risk.DailyReturn(
+        self.cumulative_performance.update_dividends(todays_date)
+        self.todays_performance.update_dividends(todays_date)
+
+        todays_return_obj = trading.DailyReturn(
             todays_date,
             self.todays_performance.returns
         )

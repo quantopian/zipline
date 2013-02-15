@@ -227,6 +227,8 @@ def get_non_trading_days(start, end):
     # http://www.nyse.com/pdfs/closings.pdf
     #
     # National Days of Mourning
+    # - President Richard Nixon
+    non_trading_days.append(datetime(1994, 4, 27, tzinfo=pytz.utc))
     # - President Ronald W. Reagan - June 11, 2004
     non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
     # - President Gerald R. Ford - Jan 2, 2007

@@ -94,24 +94,6 @@ def advance_by_months(dt, jump_in_months):
     return dt.replace(year=dt.year + years, month=month)
 
 
-class DailyReturn(object):
-
-    def __init__(self, date, returns):
-
-        assert isinstance(date, datetime.datetime)
-        self.date = date.replace(hour=0, minute=0, second=0)
-        self.returns = returns
-
-    def to_dict(self):
-        return {
-            'dt': self.date,
-            'returns': self.returns
-        }
-
-    def __repr__(self):
-        return str(self.date) + " - " + str(self.returns)
-
-
 class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
 
