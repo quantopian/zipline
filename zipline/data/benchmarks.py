@@ -30,7 +30,6 @@ from loader_utils import (
 
 from loader_utils import Mapping
 
-from zipline.finance.risk import DailyReturn
 
 _BENCHMARK_MAPPING = {
     # Need to add 'symbol'
@@ -95,6 +94,7 @@ def get_benchmark_data(symbol):
 
 
 def get_benchmark_returns(symbol):
+    from zipline.finance.trading import DailyReturn
 
     benchmark_returns = []
 

@@ -26,13 +26,12 @@ from pandas.io.data import DataReader
 import numpy as np
 from datetime import datetime, timedelta
 
-import zipline.finance.risk as risk
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.gens.utils import create_trade
-from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.finance.trading import SimulationParameters
 import zipline.finance.trading as trading
 
 
@@ -40,7 +39,6 @@ def create_simulation_parameters(year=2006, start=None, end=None,
                                  capital_base=float("1.0e5")
                                  ):
     """Construct a complete environment with reasonable defaults"""
-    trading.environment = TradingEnvironment()
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
     if end is None:
@@ -56,34 +54,33 @@ def create_simulation_parameters(year=2006, start=None, end=None,
 
 
 def create_random_simulation_parameters():
-        trading.environment = TradingEnvironment()
-        treasury_curves = trading.environment.treasury_curves
+    treasury_curves = trading.environment.treasury_curves
 
-        for n in range(100):
+    for n in range(100):
 
-            random_index = random.randint(
-                0,
-                len(treasury_curves)
-            )
+        random_index = random.randint(
+            0,
+            len(treasury_curves)
+        )
 
-            start_dt = treasury_curves.keys()[random_index]
-            end_dt = start_dt + timedelta(days=365)
+        start_dt = treasury_curves.keys()[random_index]
+        end_dt = start_dt + timedelta(days=365)
 
-            now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
-            if end_dt <= now:
-                break
+        if end_dt <= now:
+            break
 
-        assert end_dt <= now, """
+    assert end_dt <= now, """
 failed to find a suitable daterange after 100 attempts. please double
 check treasury and benchmark data in findb, and re-run the test."""
 
-        sim_params = SimulationParameters(
-            period_start=start_dt,
-            period_end=end_dt
-        )
+    sim_params = SimulationParameters(
+        period_start=start_dt,
+        period_end=end_dt
+    )
 
-        return sim_params, start_dt, end_dt
+    return sim_params, start_dt, end_dt
 
 
 def get_next_trading_dt(current, interval):
@@ -158,7 +155,7 @@ def create_returns(daycount, sim_params):
     for day in range(daycount):
         current = current + one_day
         if trading.environment.is_trading_day(current):
-            r = risk.DailyReturn(current, random.random())
+            r = trading.DailyReturn(current, random.random())
             test_range.append(r)
 
     return test_range
@@ -170,7 +167,7 @@ def create_returns_from_range(sim_params):
     one_day = timedelta(days=1)
     test_range = []
     while current <= end:
-        r = risk.DailyReturn(current, random.random())
+        r = trading.DailyReturn(current, random.random())
         test_range.append(r)
         current = get_next_trading_dt(current, one_day)
 
@@ -187,7 +184,7 @@ def create_returns_from_list(returns, sim_params):
         current = get_next_trading_dt(current, one_day)
 
     for return_val in returns:
-        r = risk.DailyReturn(current, return_val)
+        r = trading.DailyReturn(current, return_val)
         test_range.append(r)
         current = get_next_trading_dt(current, one_day)
 

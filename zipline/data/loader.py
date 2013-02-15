@@ -24,7 +24,6 @@ from treasuries import get_treasury_data
 from benchmarks import get_benchmark_returns
 
 from zipline.utils.date_utils import tuple_to_date
-import zipline.finance.risk as risk
 from operator import attrgetter
 
 
@@ -92,6 +91,8 @@ def get_benchmark_filename(symbol):
 
 
 def load_market_data(bm_symbol='^GSPC'):
+    from zipline.finance.trading import DailyReturn
+
     try:
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
     except IOError:
@@ -107,7 +108,7 @@ Fetching data from Yahoo Finance.
     for packed_date, returns in bm_list:
         event_dt = tuple_to_date(packed_date)
 
-        daily_return = risk.DailyReturn(date=event_dt, returns=returns)
+        daily_return = DailyReturn(date=event_dt, returns=returns)
         bm_returns.append(daily_return)
 
     fp_bm.close()

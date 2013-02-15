@@ -32,6 +32,43 @@ from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
 
+
+# The financial simulations in zipline depend on information
+# about the benchmark index and the risk free rates of return.
+# The benchmark index defines the benchmark returns used in
+# the calculation of performance metrics such as alpha/beta. Many
+# components, including risk, performance, transforms, and
+# batch_transforms, need access to a calendar of trading days and
+# market hours. The TradingEnvironment maintains two time keeping
+# facilities:
+#   - a DatetimeIndex of trading days for calendar calculations
+#   - a timezone name, which should be local to the exchange
+#   hosting the benchmark index. All dates are normalized to UTC
+#   for serialization and storage, and the timezone is used to
+#   ensure proper rollover through daylight savings and so on.
+#
+# This module maintains a global variable, environment, which is
+# subsequently referenced directly by zipline financial
+# components. To set the environment, you can set the property on
+# the module directly:
+#       import zipline.finance.trading as trading
+#       trading.environment = TradingEnvironment()
+#
+# or if you want to switch the environment for a limited context
+# you can use a TradingEnvironment in a with clause:
+#       lse = TradingEnvironment(bm_index="^FTSE", exchange_tz="Europe/London")
+#       with lse:
+#           # the code here will have lse as the global trading.environment
+#           algo.run(start, end)
+#
+# User code will not normally need to use TradingEnvironment
+# directly. If you are extending zipline's core financial
+# compponents and need to use the environment, you must import the module
+# NOT the variable. If you import the module, you will get a
+# reference to the environment at import time, which will prevent
+# your code from responding to user code that changes the global
+# state.
+
 environment = None
 
 
@@ -69,7 +106,7 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern"
     ):
-
+        self.prev_environment = self
         self.trading_day_map = OrderedDict()
         self.bm_symbol = bm_symbol
         if not load:
@@ -89,6 +126,21 @@ class TradingEnvironment(object):
 
         self.first_trading_day = next(self.trading_day_map.iterkeys())
         self.last_trading_day = next(reversed(self.trading_day_map))
+
+    def __enter__(self, *args, **kwargs):
+        global environment
+        self.prev_environment = environment
+        environment = self
+        # return value here is associated with "as such_and_such" on the
+        # with clause.
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global environment
+        environment = self.prev_environment
+        # signal that any exceptions need to be propagated up the
+        # stack.
+        return False
 
     def normalize_date(self, test_date):
         return datetime.datetime(
@@ -165,7 +217,7 @@ Last successful date: %s" % self.market_open)
         )
         # create a new Delorean with the next_open naive date and
         # the correct timezone for the exchange.
-        open_delorean = Delorean(next_open, "US/Eastern")
+        open_delorean = Delorean(next_open, self.exchange_tz)
         open_utc = open_delorean.shift("UTC").datetime
 
         market_open = open_utc
@@ -202,10 +254,9 @@ class SimulationParameters(object):
     def __init__(self, period_start, period_end,
                  capital_base=10e3):
 
-        # raise and exception if the global environment is not
-        # set.
         global environment
         if not environment:
+            # This is the global environment for trading simulation.
             environment = TradingEnvironment()
 
         self.period_start = period_start
@@ -287,3 +338,21 @@ class SimulationParameters(object):
             {'first_open': self.first_open,
              'last_close': self.last_close
              })
+
+
+class DailyReturn(object):
+
+    def __init__(self, date, returns):
+
+        assert isinstance(date, datetime.datetime)
+        self.date = date.replace(hour=0, minute=0, second=0)
+        self.returns = returns
+
+    def to_dict(self):
+        return {
+            'dt': self.date,
+            'returns': self.returns
+        }
+
+    def __repr__(self):
+        return str(self.date) + " - " + str(self.returns)

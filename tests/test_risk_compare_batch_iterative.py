@@ -22,7 +22,6 @@ import numpy as np
 
 import zipline.finance.risk as risk
 
-from zipline.finance.trading import TradingEnvironment
 import zipline.finance.trading as trading
 from test_risk import RETURNS
 
@@ -44,8 +43,6 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
         self.end_date = datetime.datetime(
             year=2006, month=12, day=31, tzinfo=pytz.utc)
 
-        # setup the default trading environment
-        trading.environment = TradingEnvironment()
         self.oneday = datetime.timedelta(days=1)
 
     def test_risk_metrics_returns(self):
@@ -55,7 +52,7 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
 
         cur_returns = []
         for i, ret in enumerate(RETURNS):
-            todays_return_obj = risk.DailyReturn(
+            todays_return_obj = trading.DailyReturn(
                 todays_date,
                 ret
             )

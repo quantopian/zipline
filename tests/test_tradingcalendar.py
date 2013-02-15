@@ -15,12 +15,19 @@
 
 from unittest import TestCase
 from zipline.utils import tradingcalendar
+from zipline.utils import tradingcalendar_lse
 import pytz
 import datetime
 from zipline.finance.trading import TradingEnvironment
+from pandas import DatetimeIndex
+from delorean import Delorean
 
 
 class TestTradingCalendar(TestCase):
+
+    def setUp(self):
+        today = Delorean().truncate('day')
+        self.end = DatetimeIndex([today.datetime])
 
     def test_calendar_vs_environment(self):
         """
@@ -39,6 +46,44 @@ class TestTradingCalendar(TestCase):
             len(diff),
             0,
             "{diff} should be empty".format(diff=diff)
+        )
+
+        diff2 = tradingcalendar.trading_days - env_days
+        # depending on the time of day, data for the current day
+        # may not be available from yahoo, so don't include end
+        # of the tradingcalendar
+        diff2 = diff2 - self.end
+        self.assertEqual(
+            len(diff2),
+            0,
+            "{diff} should be empty".format(diff=diff2)
+        )
+
+    def test_lse_calendar_vs_environment(self):
+        env = TradingEnvironment(
+            bm_symbol='^FTSE',
+            exchange_tz='Europe/London'
+        )
+
+        env_start_index = \
+            env.trading_days.searchsorted(tradingcalendar_lse.start)
+        env_days = env.trading_days[env_start_index:]
+        diff = env_days - tradingcalendar_lse.trading_days
+        self.assertEqual(
+            len(diff),
+            0,
+            "{diff} should be empty".format(diff=diff)
+        )
+
+        diff2 = tradingcalendar_lse.trading_days - env_days
+        # depending on the time of day, data for the current day
+        # may not be available from yahoo, so don't include end
+        # of the tradingcalendar
+        diff2 = diff2 - self.end
+        self.assertEqual(
+            len(diff2),
+            0,
+            "{diff} should be empty".format(diff=diff2)
         )
 
     def test_newyears(self):
