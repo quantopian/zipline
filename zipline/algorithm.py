@@ -100,6 +100,9 @@ class TradingAlgorithm(object):
         else:
             self.data_frequency = None
 
+        if 'source' in kwargs:
+            self.set_sources(kwargs['source'])
+
         # Override annualizer if set
         if 'annualizer' in kwargs:
             self.annualizer = kwargs['annualizer']
@@ -153,6 +156,7 @@ class TradingAlgorithm(object):
 
         :Arguments:
             source : can be either:
+                     - pandas.Panel
                      - pandas.DataFrame
                      - zipline source
                      - list of zipline sources
@@ -173,22 +177,13 @@ class TradingAlgorithm(object):
             assert start is not None and end is not None, \
                 """When providing a list of sources, \
                 start and end date have to be specified."""
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, wrap in DataFrameSource
-            source = DataFrameSource(source)
-        elif isinstance(source, pd.Panel):
-            source = DataPanelSource(source)
+        self.set_sources(source)
 
-        # If values not set, try to extract from source.
+        # If start/end not set, try to extract from source.
         if start is None:
-            start = source.start
+            start = self.sources[0].start
         if end is None:
-            end = source.end
-
-        if not isinstance(source, (list, tuple)):
-            self.sources = [source]
-        else:
-            self.sources = source
+            end = self.sources[0].end
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -354,9 +349,22 @@ class TradingAlgorithm(object):
             raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)
         self.commission = commission
 
-    def set_sources(self, sources):
-        assert isinstance(sources, list)
-        self.sources = sources
+    def set_sources(self, source):
+        """
+        Set the data source(s) to use. Accepts an individual DataSource,
+        a list/tuple of them or a pandas DataFrame/Panel.
+        """
+        if isinstance(source, pd.DataFrame):
+            # if DataFrame provided, wrap in DataFrameSource
+            source = DataFrameSource(source)
+        elif isinstance(source, pd.Panel):
+            # if Panel provided, wrap in DataPanelSource
+            source = DataPanelSource(source)
+
+        if isinstance(source, (list, tuple)):
+            self.sources = source
+        else:
+            self.sources = [source]
 
     def set_transforms(self, transforms):
         assert isinstance(transforms, list)

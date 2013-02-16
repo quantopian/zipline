@@ -300,7 +300,7 @@ class BatchTransform(EventWindow):
     self.my_batch_transform = MyBatchTransform()
     ```
 
-    To then use it, inside of the algorithm handle_data(), call the
+    To then use it inside of the algorithm handle_data(), call the
     handle_data() of the BatchTransform and pass it the current event:
     ```
     result = self.my_batch_transform(data)
