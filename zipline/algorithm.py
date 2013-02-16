@@ -101,7 +101,7 @@ class TradingAlgorithm(object):
             self.data_frequency = None
 
         if 'source' in kwargs:
-            self.set_sources(kwargs['source']) # is it better to pop here?
+            self.set_sources(kwargs['source'])
 
         # Override annualizer if set
         if 'annualizer' in kwargs:
