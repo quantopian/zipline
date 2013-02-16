@@ -323,11 +323,13 @@ Last successful date: %s" % self.market_open)
         self.todays_performance.period_close = self.market_close
 
         # The dividend calculation for the daily needs to be made
-        # after the rollover.
-
-        midnight_utc = self.market_open.replace(hour=0, minute=0, second=0)
-        self.cumulative_performance.update_dividends(midnight_utc)
-        self.todays_performance.update_dividends(midnight_utc)
+        # after the rollover. midnight_between is the last midnight
+        # hour between the close of markets and the next open. To
+        # make sure midnight_between matches identically with
+        # dividend data dates, it is in UTC.
+        midnight_between = self.market_open.replace(hour=0, minute=0, second=0)
+        self.cumulative_performance.update_dividends(midnight_between)
+        self.todays_performance.update_dividends(midnight_between)
 
         return daily_update
 
