@@ -86,8 +86,6 @@ class TradingAlgorithm(object):
         self.registered_transforms = {}
         self.transforms = []
         self.sources = []
-        self.start_datetime = None
-        self.end_datetime = None
 
         self._registered_vars = set()
 
@@ -196,11 +194,12 @@ class TradingAlgorithm(object):
                 **trans_descr['kwargs']
             )
             sf.namestring = namestring
+
             self.transforms.append(sf)
 
         environment = create_trading_environment(
-            start=self.start_datetime,
-            end=self.end_datetime,
+            start=start,
+            end=end,
             capital_base=self.capital_base
         )
 
