@@ -19,6 +19,7 @@ import pandas as pd
 from ctypes import Structure, c_ubyte
 from collections import MutableMapping
 
+
 def Enum(*options):
     """
     Fast enums are very important when we want really tight
