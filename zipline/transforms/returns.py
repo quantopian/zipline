@@ -45,7 +45,7 @@ class ReturnsFromPriorClose(object):
     """
     Records the last N closing events for a given security as well as the
     last event for the security.  When we get an event for a new day, we
-    treat the last event seen  as the close for the previous day.
+    treat the last event seen as the close for the previous day.
     """
 
     def __init__(self, window_length):
