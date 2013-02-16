@@ -153,7 +153,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source=None, start=None, end=None):
+    def run(self, source, start=None, end=None):
         """Run the algorithm.
 
         :Arguments:
@@ -175,10 +175,17 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if source is None:
-            assert(self.sources)
-        else:
-            self.set_sources(source, start, end)
+        if isinstance(source, (list, tuple)):
+            assert start is not None and end is not None, \
+                """When providing a list of sources, \
+                start and end date have to be specified."""
+        self.set_sources(source)
+
+        # If start/end not set, try to extract from source.
+        if start is None:
+            start = self.sources[0].start
+        if end is None:
+            end = self.sources[0].end
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -344,35 +351,22 @@ class TradingAlgorithm(object):
             raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)
         self.commission = commission
 
-    def set_sources(self, source, start=None, end=None):
+    def set_sources(self, source):
         """
         Set the data source(s) to use. Accepts an individual DataSource,
-        a list/tuple of them or a pandas DataFrame/Panel. start and end
-        are required when source is not a pandas object.
+        a list/tuple of them or a pandas DataFrame/Panel.
         """
-        if isinstance(source, (list, tuple)):
-            assert start is not None and end is not None, \
-                """When providing a list of sources, \
-                start and end date have to be specified."""
-        elif isinstance(source, pd.DataFrame):
+        if isinstance(source, pd.DataFrame):
             # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source)
         elif isinstance(source, pd.Panel):
             # if Panel provided, wrap in DataPanelSource
             source = DataPanelSource(source)
 
-        # If start/end not set, try to extract from source.
-        if start is None:
-            start = source.start
-        if end is None:
-            end = source.end
-        self.start_datetime = start
-        self.end_datetime = end
-
-        if not isinstance(source, (list, tuple)):
-            self.sources = [source]
-        else:
+        if isinstance(source, (list, tuple)):
             self.sources = source
+        else:
+            self.sources = [source]
 
     def set_transforms(self, transforms):
         assert isinstance(transforms, list)
