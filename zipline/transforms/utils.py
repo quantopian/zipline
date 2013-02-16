@@ -77,7 +77,7 @@ class TransformMeta(type):
     calling Foo(*args, **kwargs) will return StatefulTransform(Foo,
     *args, **kwargs) instead of an instance of Foo. (Note that you can
     still recover an instance of a "raw" Foo by introspecting the
-    resulting StatefulTransform's 'state' field.
+    resulting StatefulTransform's 'state' field.)
     """
 
     def __call__(cls, *args, **kwargs):
