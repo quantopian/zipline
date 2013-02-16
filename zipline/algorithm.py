@@ -86,6 +86,8 @@ class TradingAlgorithm(object):
         self.registered_transforms = {}
         self.transforms = []
         self.sources = []
+        self.start_datetime = None
+        self.end_datetime = None
 
         self._registered_vars = set()
 
@@ -151,7 +153,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, start=None, end=None):
+    def run(self, source=None, start=None, end=None):
         """Run the algorithm.
 
         :Arguments:
@@ -173,7 +175,10 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        self.set_sources(source)
+        if source is None:
+            assert(self.sources)
+        else:
+            self.set_sources(source, start, end)
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -188,8 +193,8 @@ class TradingAlgorithm(object):
             self.transforms.append(sf)
 
         environment = create_trading_environment(
-            start=start,
-            end=end,
+            start=self.start_datetime,
+            end=self.end_datetime,
             capital_base=self.capital_base
         )
 
@@ -339,10 +344,11 @@ class TradingAlgorithm(object):
             raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)
         self.commission = commission
 
-    def set_sources(self, sources):
+    def set_sources(self, source, start=None, end=None):
         """
-        Set the data source(s) to use. Accepts an individual zipline source,
-        a list/tuple of them or a pandas DataFrame/Panel.
+        Set the data source(s) to use. Accepts an individual DataSource,
+        a list/tuple of them or a pandas DataFrame/Panel. start and end
+        are required when source is not a pandas object.
         """
         if isinstance(source, (list, tuple)):
             assert start is not None and end is not None, \
@@ -352,13 +358,16 @@ class TradingAlgorithm(object):
             # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source)
         elif isinstance(source, pd.Panel):
+            # if Panel provided, wrap in DataPanelSource
             source = DataPanelSource(source)
 
-        # If values not set, try to extract from source.
+        # If start/end not set, try to extract from source.
         if start is None:
             start = source.start
         if end is None:
             end = source.end
+        self.start_datetime = start
+        self.end_datetime = end
 
         if not isinstance(source, (list, tuple)):
             self.sources = [source]
