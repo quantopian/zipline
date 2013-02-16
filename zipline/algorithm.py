@@ -196,7 +196,6 @@ class TradingAlgorithm(object):
                 **trans_descr['kwargs']
             )
             sf.namestring = namestring
-
             self.transforms.append(sf)
 
         environment = create_trading_environment(
