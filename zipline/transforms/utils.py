@@ -294,7 +294,7 @@ class BatchTransform(EventWindow):
 
         ```
 
-    In you algorithm you would then have to instantiate
+    In your algorithm you would then have to instantiate
     this in the initialize() method:
     ```
     self.my_batch_transform = MyBatchTransform()
