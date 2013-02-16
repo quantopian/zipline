@@ -100,6 +100,9 @@ class TradingAlgorithm(object):
         else:
             self.data_frequency = None
 
+        if 'source' in kwargs:
+            self.set_sources(kwargs['source']) # is it better to pop here?
+
         # Override annualizer if set
         if 'annualizer' in kwargs:
             self.annualizer = kwargs['annualizer']
@@ -153,6 +156,7 @@ class TradingAlgorithm(object):
 
         :Arguments:
             source : can be either:
+                     - pandas.Panel
                      - pandas.DataFrame
                      - zipline source
                      - list of zipline sources
@@ -169,26 +173,7 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if isinstance(source, (list, tuple)):
-            assert start is not None and end is not None, \
-                """When providing a list of sources, \
-                start and end date have to be specified."""
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, wrap in DataFrameSource
-            source = DataFrameSource(source)
-        elif isinstance(source, pd.Panel):
-            source = DataPanelSource(source)
-
-        # If values not set, try to extract from source.
-        if start is None:
-            start = source.start
-        if end is None:
-            end = source.end
-
-        if not isinstance(source, (list, tuple)):
-            self.sources = [source]
-        else:
-            self.sources = source
+        self.set_sources(source)
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -355,8 +340,30 @@ class TradingAlgorithm(object):
         self.commission = commission
 
     def set_sources(self, sources):
-        assert isinstance(sources, list)
-        self.sources = sources
+        """
+        Set the data source(s) to use. Accepts an individual zipline source,
+        a list/tuple of them or a pandas DataFrame/Panel.
+        """
+        if isinstance(source, (list, tuple)):
+            assert start is not None and end is not None, \
+                """When providing a list of sources, \
+                start and end date have to be specified."""
+        elif isinstance(source, pd.DataFrame):
+            # if DataFrame provided, wrap in DataFrameSource
+            source = DataFrameSource(source)
+        elif isinstance(source, pd.Panel):
+            source = DataPanelSource(source)
+
+        # If values not set, try to extract from source.
+        if start is None:
+            start = source.start
+        if end is None:
+            end = source.end
+
+        if not isinstance(source, (list, tuple)):
+            self.sources = [source]
+        else:
+            self.sources = source
 
     def set_transforms(self, transforms):
         assert isinstance(transforms, list)
