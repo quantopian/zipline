@@ -1,0 +1,218 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen"/>
+  <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="javascripts/script.js"></script>
+
+  <title>Zipline</title>
+  <meta name="description" content="Zipline, a Pythonic Algorithmic Trading Library">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title">Zipline</h1>
+    </header>
+    <div id="container">
+      <p class="tagline">Zipline, a Pythonic Algorithmic Trading Library</p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          <a href="https://github.com/quantopian/zipline/tarball/master" class="download-button tar"><span>Download</span></a>
+          <a href="https://github.com/quantopian/zipline/zipball/master" class="download-button zip"><span>Download</span></a>
+          <a href="https://github.com/quantopian/zipline" class="code">View Zipline on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <h1>Zipline</h1>
+
+<p>Zipline is a Pythonic algorithmic trading library.
+The system is fundamentally event-driven and a close
+approximation of how live-trading systems operate.
+Currently, backtesting is well supported, but the intent is
+to develop the library for both paper and live trading,
+so that the same logic used for backtesting can be applied
+to the market.</p>
+
+<p>Zipline is currently used in production as the backtesting engine
+powering Quantopian (<a href="https://www.quantopian.com">https://www.quantopian.com</a>) -- a free, community-centered
+platform that allows development and real-time backtesting of trading
+algorithms in the web browser.</p>
+
+<p>Want to contribute? See our <a href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">open requests</a>
+and our <a href="https://github.com/quantopian/zipline#contributions">general guidelines</a> below.</p>
+
+<h1>Discussion and Help</h1>
+
+<p>Discussion of the project is held at the Google Group,
+<a href="mailto:zipline@googlegroups.com">zipline@googlegroups.com</a>,
+<a href="https://groups.google.com/forum/#!forum/zipline">https://groups.google.com/forum/#!forum/zipline</a>.</p>
+
+<h1>Features</h1>
+
+<ul>
+<li><p>Ease of use: Zipline tries to get out of your way so that you can
+focus on algorithm development. See below for a code example.</p></li>
+<li><p>Zipline comes "batteries included" as many common statistics like
+moving average and linear regression can be readily accessed from
+within a user-written algorithm.</p></li>
+<li><p>Input of historical data and output of performance statistics is
+based on Pandas DataFrames to integrate nicely into the existing
+Python eco-system.</p></li>
+<li><p>Statistic and machine learning libraries like matplotlib, scipy,
+statsmodels, and sklearn support development, analysis and
+visualization of state-of-the-art trading systems.</p></li>
+</ul><h1>Installation</h1>
+
+<p>Since zipline is pure-python code it should be very easy to install
+and set up with pip:</p>
+
+<p><code>pip install zipline</code></p>
+
+<p>If there are problems installing the dependencies or zipline we
+recommend installing these packages via some other means. For Windows,
+the <a href="http://www.enthought.com/products/epd.php">Enthought Python Distribution</a>
+includes most of the necessary dependencies. On OSX, the
+<a href="http://fonnesbeck.github.com/ScipySuperpack/">Scipy Superpack</a>
+works very well.</p>
+
+<h2>Dependencies</h2>
+
+<ul>
+<li>Python (&gt;= 2.7.2)</li>
+<li>numpy (&gt;= 1.6.0)</li>
+<li>pandas (&gt;= 0.9.0)</li>
+<li>pytz</li>
+<li>msgpack-python</li>
+<li>Logbook</li>
+<li>blist</li>
+</ul><h1>Quickstart</h1>
+
+<p>The following code implements a simple dual moving average algorithm
+and tests it on data extracted from yahoo finance.</p>
+
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.algorithm</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
+<span class="kn">from</span> <span class="nn">zipline.transforms</span> <span class="kn">import</span> <span class="n">MovingAverage</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">load_from_yahoo</span>
+
+<span class="k">class</span> <span class="nc">DualMovingAverage</span><span class="p">(</span><span class="n">TradingAlgorithm</span><span class="p">):</span>
+    <span class="sd">"""Dual Moving Average algorithm.</span>
+<span class="sd">    """</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">short_window</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">long_window</span><span class="o">=</span><span class="mi">400</span><span class="p">):</span>
+        <span class="c"># Add 2 mavg transforms, one with a long window, one</span>
+        <span class="c"># with a short window.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_transform</span><span class="p">(</span><span class="n">MovingAverage</span><span class="p">,</span> <span class="s">'short_mavg'</span><span class="p">,</span> <span class="p">[</span><span class="s">'price'</span><span class="p">],</span>
+                           <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                           <span class="n">window_length</span><span class="o">=</span><span class="n">short_window</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_transform</span><span class="p">(</span><span class="n">MovingAverage</span><span class="p">,</span> <span class="s">'long_mavg'</span><span class="p">,</span> <span class="p">[</span><span class="s">'price'</span><span class="p">],</span>
+                           <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                           <span class="n">window_length</span><span class="o">=</span><span class="n">long_window</span><span class="p">)</span>
+
+        <span class="c"># To keep track of whether we invested in the stock or not</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">short_mavg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">long_mavg</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">invested</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s">'AAPL'</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">invested</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s">'AAPL'</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="c"># Save mavgs for later analysis.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">long_mavg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">load_from_yahoo</span><span class="p">()</span>
+<span class="n">dma</span> <span class="o">=</span> <span class="n">DualMovingAverage</span><span class="p">()</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">dma</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
+<p>You can find other examples in the zipline/examples directory.</p>
+
+<h1>Contributions</h1>
+
+<p>If you would like to contribute, please see our Contribution Requests: <a href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">https://github.com/quantopian/zipline/wiki/Contribution-Requests</a></p>
+
+<h2>Credits</h2>
+
+<p>Thank you for all the help so far!</p>
+
+<ul>
+<li>
+<a href="https://github.com/rday" class="user-mention">@rday</a> for sortino ratio, information ratio, and exponential moving average transform</li>
+<li><a href="https://github.com/snth" class="user-mention">@snth</a></li>
+<li>
+<a href="https://github.com/yinhm" class="user-mention">@yinhm</a> for integrating zipline with @yinhm/datafeed</li>
+<li>
+<a href="http://www.lowindata.com">Jeremiah Lowin</a> for teaching us the nuances of Sharpe and Sortino Ratios</li>
+<li>Brian Cappello</li>
+<li>Quantopian Team</li>
+</ul><p>(alert us if we've inadvertantly missed listing you here!)</p>
+
+<h2>Style Guide</h2>
+
+<p>To ensure that changes and patches are focused on behavior changes,
+the zipline codebase adheres to both PEP-8,
+<a href="http://www.python.org/dev/peps/pep-0008/">http://www.python.org/dev/peps/pep-0008/</a>, and pyflakes,
+<a href="https://launchpad.net/pyflakes/">https://launchpad.net/pyflakes/</a>.</p>
+
+<p>The maintainers check the code using the flake8 script,
+<a href="https://github.com/bmcustodio/flake8">https://github.com/bmcustodio/flake8</a>, which is included in the
+requirements_dev.txt.</p>
+
+<p>Before submitting patches or pull requests, please ensure that your
+changes pass <code>flake8 zipline tests</code></p>
+
+<h1>Source</h1>
+
+<p>The source for Zipline is hosted at
+<a href="https://github.com/quantopian/zipline">https://github.com/quantopian/zipline</a>.</p>
+
+<h1>Build Status</h1>
+
+<p><a href="https://travis-ci.org/quantopian/zipline"><img src="https://travis-ci.org/quantopian/zipline.png" alt="Build Status"></a></p>
+
+<h1>Contact</h1>
+
+<p>For other questions, please contact <a href="mailto:opensource@quantopian.com">opensource@quantopian.com</a>.</p>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      <p><a href="https://github.com/quantopian" class="avatar"><img src="https://secure.gravatar.com/avatar/ec2a0488b1bb9be54a660df4effd6bb6?s=30&amp;d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png" width="48" height="48"/></a> <a href="https://github.com/quantopian">quantopian</a> maintains <a href="https://github.com/quantopian/zipline">Zipline</a></p>
+
+
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br/>theme by <a href="http://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="https://github.com/quantopian/zipline/tarball/master" class="tar">tar</a><a href="https://github.com/quantopian/zipline/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+  
+</body>
+</html>
