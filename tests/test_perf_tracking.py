@@ -28,6 +28,7 @@ from zipline.utils.protocol_utils import ndict
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
+import zipline.finance.trading as trading
 from zipline.utils.factory import create_random_simulation_parameters
 
 onesec = datetime.timedelta(seconds=1)
@@ -43,6 +44,16 @@ class TestDividendPerformance(unittest.TestCase):
             create_random_simulation_parameters()
 
         self.sim_params.capital_base = 10e3
+
+    def test_market_hours_calculations(self):
+        with trading.TradingEnvironment():
+            # DST in US/Eastern began on Sunday March 14, 2010
+            before = datetime.datetime(2010, 3, 12, 14, 30, tzinfo=pytz.utc)
+            after = factory.get_next_trading_dt(
+                before,
+                datetime.timedelta(days=1)
+            )
+            self.assertEqual(after.hour, 13)
 
     def test_long_position_receives_dividend(self):
         #post some trades in the market

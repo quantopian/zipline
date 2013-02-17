@@ -20,6 +20,7 @@ Factory functions to prepare useful data for tests.
 import pytz
 import random
 from collections import OrderedDict
+from delorean import Delorean
 
 import pandas as pd
 from pandas.io.data import DataReader
@@ -54,6 +55,7 @@ def create_simulation_parameters(year=2006, start=None, end=None,
 
 
 def create_random_simulation_parameters():
+    trading.environment = trading.TradingEnvironment()
     treasury_curves = trading.environment.treasury_curves
 
     for n in range(100):
@@ -84,13 +86,19 @@ check treasury and benchmark data in findb, and re-run the test."""
 
 
 def get_next_trading_dt(current, interval):
-    next = current
+    naive = current.replace(tzinfo=None)
+    delo = Delorean(naive, "UTC")
+    ex_tz = trading.environment.exchange_tz
+    next_dt = delo.shift(ex_tz).datetime
+
     while True:
-        next = next + interval
-        if trading.environment.is_market_hours(next):
+        next_dt = next_dt + interval
+        next_delo = Delorean(next_dt.replace(tzinfo=None), ex_tz)
+        next_utc = next_delo.shift("UTC").datetime
+        if trading.environment.is_market_hours(next_utc):
             break
 
-    return next
+    return next_utc
 
 
 def create_trade_history(sid, prices, amounts, interval, sim_params,
