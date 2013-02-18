@@ -25,6 +25,7 @@ from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.transforms import MovingAverage
+from zipline.finance.trading import SimulationParameters
 
 
 class TestRecordAlgorithm(TestCase):
@@ -88,12 +89,15 @@ class TestTransformAlgorithm(TestCase):
             algo.run([self.source, self.df_source])
 
     def test_multi_source_as_input(self):
+        sim_params = SimulationParameters(
+            self.df.index[0],
+            self.df.index[-1]
+        )
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=sim_params,
             sids=[0, 1, 133]
         )
-        algo.run([self.source, self.df_source],
-                 start=self.df.index[0], end=self.df.index[-1])
+        algo.run([self.source, self.df_source])
         self.assertEqual(len(algo.sources), 2)
 
     def test_df_as_input(self):
