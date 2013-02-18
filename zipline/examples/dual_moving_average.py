@@ -42,13 +42,18 @@ class DualMovingAverage(TradingAlgorithm):
         # To keep track of whether we invested in the stock or not
         self.invested = False
 
-        self.record_variables(['short_mavg', 'long_mavg', 'buy', 'sell'])
-
     def handle_data(self, data):
         self.short_mavg = data['AAPL'].short_mavg['price']
+        self.record('short_mavg', self.short_mavg)
+
         self.long_mavg = data['AAPL'].long_mavg['price']
+        self.record('long_mavg', self.long_mavg)
+
         self.buy = False
+        self.record('buy', self.buy)
+
         self.sell = False
+        self.record('sell', self.sell)
 
         if self.short_mavg > self.long_mavg and not self.invested:
             self.order('AAPL', 100)

@@ -38,9 +38,3 @@ You attempted to override commission after the simulation has \
 started. You may only call override_commission in your initialize \
 method.
 """.strip()
-
-    CALL_RECORD_VARIABLES_POST_INIT = """
-You attempted to register recorded variables after the simulation has \
-started. You may only call record_variables in your initialize \
-method.
-""".strip()
