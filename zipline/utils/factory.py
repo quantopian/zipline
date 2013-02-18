@@ -29,6 +29,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 import zipline.finance.risk as risk
+from zipline.utils.tradingcalendar import trading_days
 from zipline.utils.date_utils import tuple_to_date
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
@@ -39,7 +40,9 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.data.loader import (
     get_datafile,
     dump_benchmarks,
-    dump_treasury_curves
+    dump_treasury_curves,
+    update_benchmarks,
+    update_treasury_curves
 )
 
 
@@ -54,7 +57,18 @@ Fetching data from Yahoo Finance.
         dump_benchmarks()
         fp_bm = get_datafile('benchmark.msgpack', "rb")
 
+    # Verify that our benchmark msgpack file is up to date
     bm_list = msgpack.loads(fp_bm.read())
+    bm_date, _ = bm_list[len(bm_list)-1]
+    last_date = datetime(bm_date[0], bm_date[1], bm_date[2])
+    last_date_offset = trading_days.get_loc(last_date.strftime('%Y/%m/%d'))
+    today_offset = len(trading_days)
+    if today_offset - last_date_offset > 1:
+        # More than 1 trading day has elapsed, so update
+        update_benchmarks(last_date)
+        fp_bm = get_datafile('benchmark.msgpack', "rb")
+        bm_list = msgpack.loads(fp_bm.read())
+
     bm_returns = []
     for packed_date, returns in bm_list:
         event_dt = tuple_to_date(packed_date)
@@ -82,7 +96,18 @@ Fetching data from data.treasury.gov
         dump_treasury_curves()
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
 
+    # Verify that our treasury msgpack file is up to date
     tr_list = msgpack.loads(fp_tr.read())
+    tr_date, _ = tr_list[len(tr_list)-1]
+    last_date = datetime(bm_date[0], bm_date[1], bm_date[2])
+    last_date_offset = trading_days.get_loc(last_date.strftime('%Y/%m/%d'))
+    today_offset = len(trading_days)
+    if today_offset - last_date_offset > 1:
+        # More than 1 trading day has elapsed, so update
+        update_treasury_curves(last_date)
+        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
+        tr_list = msgpack.loads(fp_tr.read())
+
     tr_curves = {}
     for packed_date, curve in tr_list:
         tr_dt = tuple_to_date(packed_date)

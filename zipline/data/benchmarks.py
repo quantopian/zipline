@@ -79,12 +79,14 @@ def get_raw_benchmark_data(start_date, end_date):
     return csv.DictReader(StringIO(res.content))
 
 
-def get_benchmark_data():
+def get_benchmark_data(start_date=None, end_date=None):
     """
     Benchmarks from Yahoo's GSPC source.
     """
-    start_date = datetime(year=1950, month=1, day=3)
-    end_date = datetime.utcnow()
+    if start_date is None:
+        start_date = datetime(year=1950, month=1, day=3)
+    if end_date is None:
+        end_date = datetime.utcnow()
 
     raw_benchmark_data = get_raw_benchmark_data(start_date, end_date)
     # Reverse data so we can load it in reverse chron order.
@@ -95,11 +97,15 @@ def get_benchmark_data():
     return source_to_records(mappings, benchmarks_source)
 
 
-def get_benchmark_returns():
+def get_benchmark_returns(start_date=None, end_date=None):
+    if start_date is None:
+        start_date = datetime(year=1950, month=1, day=3)
+    if end_date is None:
+        end_date = datetime.utcnow()
 
     benchmark_returns = []
 
-    for data_point in get_benchmark_data():
+    for data_point in get_benchmark_data(start_date, end_date):
         returns = (data_point['close'] - data_point['open']) / \
             data_point['open']
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
