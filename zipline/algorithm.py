@@ -87,7 +87,7 @@ class TradingAlgorithm(object):
         self.transforms = []
         self.sources = []
 
-        self._registered_vars = set()
+        self._recorded_vars = {}
 
         self.logger = None
 
@@ -267,43 +267,16 @@ class TradingAlgorithm(object):
                                            'args': args,
                                            'kwargs': kwargs}
 
-    def record_variables(self, names):
-        """Track and record local variables (i.e. attributes) each
-        day.
-
-        :Arguments:
-            names : str or list
-                List of variable names (strings) to record.
-
-        :Notes:
-            You are responsible for making sure the attributes
-            exist.
-
-            The corresponding variable name and its values will be
-            appended to the results returned by the .run() method.
-
-        :Example:
-
-            In initialize you would call
-            self.record_variables('mavg'). In handle_data you could
-            then set self.mavg to some value and it will be recorded.
-
+    def record(self, **kwargs):
         """
-        if not isinstance(names, list):
-            names = [names]
-
-        for name in names:
-            if not isinstance(name, basestring):
-                raise TypeError("record_variables expects only strings")
-
-        if self.initialized:
-            raise Exception(MESSAGES.ERRORS.CALL_RECORD_VARIABLES_POST_INIT)
-
-        self._registered_vars.update(set(names))
+        Track and record local variable (i.e. attributes) each day.
+        """
+        for name, value in kwargs.items():
+            self._recorded_vars[name] = value
 
     @property
     def recorded_vars(self):
-        return {name: getattr(self, name) for name in self._registered_vars}
+        return copy(self._recorded_vars)
 
     @property
     def portfolio(self):

@@ -42,8 +42,6 @@ class DualMovingAverage(TradingAlgorithm):
         # To keep track of whether we invested in the stock or not
         self.invested = False
 
-        self.record_variables(['short_mavg', 'long_mavg', 'buy', 'sell'])
-
     def handle_data(self, data):
         self.short_mavg = data['AAPL'].short_mavg['price']
         self.long_mavg = data['AAPL'].long_mavg['price']
@@ -58,6 +56,11 @@ class DualMovingAverage(TradingAlgorithm):
             self.order('AAPL', -100)
             self.invested = False
             self.sell = True
+
+        self.record(short_mavg=self.short_mavg,
+                    long_mavg=self.long_mavg,
+                    buy=self.buy,
+                    sell=self.sell)
 
 if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={})

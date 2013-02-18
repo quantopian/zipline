@@ -219,10 +219,10 @@ class TimeoutAlgorithm(TradingAlgorithm):
 class RecordAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
-        self.record_variables(['incr'])
 
     def handle_data(self, data):
         self.incr += 1
+        self.record(incr=self.incr)
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import BatchTransform, batch_transform
