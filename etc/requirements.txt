@@ -19,4 +19,4 @@ six==1.2.0
 requests==1.1.0
 
 # For remaining sane when coping with dates
-Delorean==0.1.6
+delorean==0.1.6
