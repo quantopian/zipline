@@ -150,7 +150,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, start=None, end=None):
+    def run(self, source, sim_params=None):
         """Run the algorithm.
 
         :Arguments:
@@ -172,9 +172,10 @@ class TradingAlgorithm(object):
 
         """
         if isinstance(source, (list, tuple)):
-            assert start is not None and end is not None, \
+            assert self.sim_params is not None or sim_params is not None, \
                 """When providing a list of sources, \
-                start and end date have to be specified."""
+                sim_params have to be specified as a parameter
+                or in the constructor."""
         elif isinstance(source, pd.DataFrame):
             # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source)
@@ -182,15 +183,17 @@ class TradingAlgorithm(object):
             source = DataPanelSource(source)
 
         # If values not set, try to extract from source.
-        if start is None:
+        if self.sim_params is None and sim_params is None:
             start = source.start
-        if end is None:
             end = source.end
 
         if not isinstance(source, (list, tuple)):
             self.sources = [source]
         else:
             self.sources = source
+
+        if sim_params:
+            self.sim_params = sim_params
 
         if not self.sim_params:
             self.sim_params = create_simulation_parameters(
