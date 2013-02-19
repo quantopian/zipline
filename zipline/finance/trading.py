@@ -18,6 +18,7 @@ import pytz
 import logbook
 import datetime
 
+from functools import wraps
 from collections import defaultdict, OrderedDict
 from delorean import Delorean
 from pandas import DatetimeIndex
@@ -366,6 +367,7 @@ class use_environment(object):
         self.env = environment
 
     def __call__(self, func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             with self.env:
                 return func(*args, **kwargs)
