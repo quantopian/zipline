@@ -34,6 +34,7 @@ from zipline.sources import (SpecificEquityTrades,
 from zipline.gens.utils import create_trade
 from zipline.finance.trading import SimulationParameters
 import zipline.finance.trading as trading
+from zipline.sources.test_source import date_gen
 
 
 def create_simulation_parameters(year=2006, start=None, end=None,
@@ -52,6 +53,36 @@ def create_simulation_parameters(year=2006, start=None, end=None,
     )
 
     return sim_params
+
+
+def create_noop_environment():
+    oneday = timedelta(days=1)
+    start = datetime(2006, 1, 1, tzinfo=pytz.utc)
+
+    bm_returns = []
+    tr_curves = OrderedDict()
+    for day in date_gen(start=start, delta=oneday, count=252):
+        dr = trading.DailyReturn(day, 0.01)
+        bm_returns.append(dr)
+        curve = {
+            '10year': 0.0799,
+            '1month': 0.0799,
+            '1year': 0.0785,
+            '20year': 0.0765,
+            '2year': 0.0794,
+            '30year': 0.0804,
+            '3month': 0.0789,
+            '3year': 0.0796,
+            '5year': 0.0792,
+            '6month': 0.0794,
+            '7year': 0.0804,
+            'tid': 1752
+        }
+        tr_curves[day] = curve
+
+    load_nodata = lambda x: (bm_returns, tr_curves)
+
+    return trading.TradingEnvironment(load=load_nodata)
 
 
 def create_random_simulation_parameters():

@@ -19,10 +19,11 @@ import pytz
 
 from datetime import datetime
 from dateutil import rrule
-from zipline.utils.date_utils import utcnow
+from delorean import Delorean
 
 start = datetime(1990, 1, 1, tzinfo=pytz.utc)
-end = utcnow()
+end_dln = Delorean(datetime.now(), 'US/Eastern').truncate('day').shift('UTC')
+end = end_dln.datetime
 
 
 def get_non_trading_days(start, end):

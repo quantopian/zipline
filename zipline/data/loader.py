@@ -97,7 +97,7 @@ def load_market_data(bm_symbol='^GSPC'):
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
     except IOError:
         print """
-data msgpacks aren't distribute with source.
+data msgpacks aren't distributed with source.
 Fetching data from Yahoo Finance.
 """.strip()
         dump_benchmarks(bm_symbol)
@@ -119,7 +119,7 @@ Fetching data from Yahoo Finance.
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
     except IOError:
         print """
-data msgpacks aren't distribute with source.
+data msgpacks aren't distributed with source.
 Fetching data from data.treasury.gov
 """.strip()
         dump_treasury_curves()
