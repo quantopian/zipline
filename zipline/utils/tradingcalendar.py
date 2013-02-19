@@ -17,13 +17,13 @@
 import pandas as pd
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import rrule
 from delorean import Delorean
 
 start = datetime(1990, 1, 1, tzinfo=pytz.utc)
-end_dln = Delorean(datetime.now() - timedelta(days=1), 'US/Eastern')
-end_dln.truncate('day').shift('UTC')
+end_dln = Delorean(datetime.now(), 'US/Eastern')
+end_dln.shift('UTC').truncate('day')
 end = end_dln.datetime
 
 
