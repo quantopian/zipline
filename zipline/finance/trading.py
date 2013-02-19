@@ -18,6 +18,7 @@ import pytz
 import logbook
 import datetime
 
+from functools import wraps
 from collections import defaultdict, OrderedDict
 from delorean import Delorean
 from pandas import DatetimeIndex
@@ -356,3 +357,18 @@ class DailyReturn(object):
 
     def __repr__(self):
         return str(self.date) + " - " + str(self.returns)
+
+
+class use_environment(object):
+    """A decorator to wrap a method in a particular
+    trading environment."""
+
+    def __init__(self, environment):
+        self.env = environment
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with self.env:
+                return func(*args, **kwargs)
+        return wrapper
