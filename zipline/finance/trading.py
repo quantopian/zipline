@@ -356,3 +356,17 @@ class DailyReturn(object):
 
     def __repr__(self):
         return str(self.date) + " - " + str(self.returns)
+
+
+class use_environment(object):
+    """A decorator to wrap a method in a particular
+    trading environment."""
+
+    def __init__(self, environment):
+        self.env = environment
+
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            with self.env:
+                return func(*args, **kwargs)
+        return wrapper
