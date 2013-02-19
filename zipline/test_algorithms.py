@@ -267,6 +267,12 @@ def return_data(data, *args, **kwargs):
     return data
 
 
+@batch_transform
+def uses_ufunc(data, *args, **kwargs):
+    # ufuncs like np.log should not crash
+    return np.log(data)
+
+
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.refresh_period = kwargs.pop('refresh_period', 1)
@@ -348,6 +354,12 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             compute_only_full=False
         )
 
+        self.uses_ufunc = uses_ufunc(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=False
+        )
+
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
@@ -364,6 +376,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             self.return_ticks.handle_data(data))
         self.history_return_not_full.append(
             self.return_not_full.handle_data(data))
+        self.uses_ufunc.handle_data(data)
 
         new_data = deepcopy(data)
         for sid in new_data:

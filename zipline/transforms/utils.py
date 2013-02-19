@@ -472,7 +472,8 @@ class BatchTransform(EventWindow):
         # user-overloaded get_value() method.
         data_dict = {tick['dt']: tick['data'] for tick in self.ticks}
         data = pd.Panel(data_dict, major_axis=self.field_names,
-                        minor_axis=self.sids)
+                        minor_axis=self.sids,
+                        dtype='float')
 
         if self.supplemental_data:
             # item will be a date stamp
