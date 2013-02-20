@@ -41,24 +41,8 @@ class TestTradingCalendar(TestCase):
         env_start_index = \
             env.trading_days.searchsorted(tradingcalendar.start)
         env_days = env.trading_days[env_start_index:]
-        diff = env_days - tradingcalendar.trading_days
-        self.assertEqual(
-            len(diff),
-            0,
-            "{diff} should be empty".format(diff=diff)
-        )
-
-        diff2 = tradingcalendar.trading_days - env_days
-        # depending on the time of day, data for the current day
-        # may not be available from yahoo, so don't include end
-        # of the tradingcalendar
-        diff2 = diff2 - self.end
-        self.assertEqual(
-            len(diff2),
-            0,
-            "{diff} should be empty".format(diff=diff2)
-        )
-
+        cal_days = tradingcalendar.trading_days
+        self.check_days(env_days, cal_days)
     def test_lse_calendar_vs_environment(self):
         env = TradingEnvironment(
             bm_symbol='^FTSE',
@@ -68,10 +52,10 @@ class TestTradingCalendar(TestCase):
         env_start_index = \
             env.trading_days.searchsorted(tradingcalendar_lse.start)
         env_days = env.trading_days[env_start_index:]
-        end_index = \
-            tradingcalendar_lse.trading_days.searchsorted(env.trading_days[-1])
-        # pandas series slicing is different.
-        cal_days = tradingcalendar_lse.trading_days[:end_index+1]
+        cal_days = tradingcalendar_lse.trading_days
+        self.check_days(env_days, cal_days)
+
+    def check_days(self, env_days, cal_days):
         diff = env_days - cal_days
         self.assertEqual(
             len(diff),
