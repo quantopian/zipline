@@ -43,6 +43,7 @@ class TestTradingCalendar(TestCase):
         env_days = env.trading_days[env_start_index:]
         cal_days = tradingcalendar.trading_days
         self.check_days(env_days, cal_days)
+
     def test_lse_calendar_vs_environment(self):
         env = TradingEnvironment(
             bm_symbol='^FTSE',
