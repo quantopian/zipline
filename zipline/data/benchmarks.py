@@ -77,12 +77,14 @@ def get_raw_benchmark_data(start_date, end_date, symbol):
     return csv.DictReader(StringIO(res.content))
 
 
-def get_benchmark_data(symbol):
+def get_benchmark_data(symbol, start_date=None, end_date=None):
     """
     Benchmarks from Yahoo.
     """
-    start_date = datetime(year=1950, month=1, day=3)
-    end_date = datetime.utcnow()
+    if start_date is None:
+        start_date = datetime(year=1950, month=1, day=3)
+    if end_date is None:
+        end_date = datetime.utcnow()
 
     raw_benchmark_data = get_raw_benchmark_data(start_date, end_date, symbol)
     # Reverse data so we can load it in reverse chron order.
@@ -93,12 +95,17 @@ def get_benchmark_data(symbol):
     return source_to_records(mappings, benchmarks_source)
 
 
-def get_benchmark_returns(symbol):
+def get_benchmark_returns(symbol, start_date=None, end_date=None):
     from zipline.finance.trading import DailyReturn
+
+    if start_date is None:
+        start_date = datetime(year=1950, month=1, day=3)
+    if end_date is None:
+        end_date = datetime.utcnow()
 
     benchmark_returns = []
 
-    for data_point in get_benchmark_data(symbol):
+    for data_point in get_benchmark_data(symbol, start_date, end_date):
         returns = (data_point['close'] - data_point['open']) / \
             data_point['open']
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
