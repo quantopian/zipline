@@ -493,10 +493,6 @@ class BatchTransform(EventWindow):
             # minute data because of illiquidity of one stock
             data = data.fillna(method='ffill')
 
-            # Drop any empty rows after the fill.
-            # This will drop a leading row of N/A
-            data = data.dropna(axis=1)
-
         # Hold on to a reference to the data,
         # so that it's easier to find the current data when stepping
         # through with a debugger
