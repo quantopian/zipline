@@ -23,6 +23,7 @@ from pandas import DatetimeIndex
 from delorean import Delorean
 from nose.tools import nottest
 
+
 class TestTradingCalendar(TestCase):
 
     def setUp(self):
