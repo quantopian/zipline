@@ -21,7 +21,7 @@ import datetime
 from zipline.finance.trading import TradingEnvironment
 from pandas import DatetimeIndex
 from delorean import Delorean
-
+from nose.tools import nottest
 
 class TestTradingCalendar(TestCase):
 
@@ -29,6 +29,7 @@ class TestTradingCalendar(TestCase):
         today = Delorean().truncate('day')
         self.end = DatetimeIndex([today.datetime])
 
+    @nottest
     def test_calendar_vs_environment(self):
         """
         test_calendar_vs_environment checks whether the
@@ -44,6 +45,7 @@ class TestTradingCalendar(TestCase):
         cal_days = tradingcalendar.trading_days
         self.check_days(env_days, cal_days)
 
+    @nottest
     def test_lse_calendar_vs_environment(self):
         env = TradingEnvironment(
             bm_symbol='^FTSE',
