@@ -8,7 +8,7 @@ nose-parameterized==0.2
 
 # Linting
 
-flake8==1.7.0
+flake8==2.0
 
 # Documentation Conversion
 
