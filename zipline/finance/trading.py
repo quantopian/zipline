@@ -23,6 +23,7 @@ from collections import defaultdict, OrderedDict
 from delorean import Delorean
 from pandas import DatetimeIndex
 
+from zipline.data.loader import load_market_data
 import zipline.protocol as zp
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -111,7 +112,6 @@ class TradingEnvironment(object):
         self.trading_day_map = OrderedDict()
         self.bm_symbol = bm_symbol
         if not load:
-            from zipline.data.loader import load_market_data
             load = load_market_data
 
         self.benchmark_returns, self.treasury_curves = \
@@ -319,24 +319,6 @@ class SimulationParameters(object):
             {'first_open': self.first_open,
              'last_close': self.last_close
              })
-
-
-class DailyReturn(object):
-
-    def __init__(self, date, returns):
-
-        assert isinstance(date, datetime.datetime)
-        self.date = date.replace(hour=0, minute=0, second=0)
-        self.returns = returns
-
-    def to_dict(self):
-        return {
-            'dt': self.date,
-            'returns': self.returns
-        }
-
-    def __repr__(self):
-        return str(self.date) + " - " + str(self.returns)
 
 
 class use_environment(object):

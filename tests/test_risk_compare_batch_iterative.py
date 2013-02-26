@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,9 @@ import pytz
 import numpy as np
 
 import zipline.finance.risk as risk
-
 import zipline.finance.trading as trading
+from zipline.protocol import DailyReturn
+
 from test_risk import RETURNS
 
 
@@ -52,7 +53,7 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
 
         cur_returns = []
         for i, ret in enumerate(RETURNS):
-            todays_return_obj = trading.DailyReturn(
+            todays_return_obj = DailyReturn(
                 todays_date,
                 ret
             )
