@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ from collections import OrderedDict
 from treasuries import get_treasury_data
 from benchmarks import get_benchmark_returns
 
+from zipline.protocol import DailyReturn
 from zipline.utils.date_utils import tuple_to_date
 from operator import attrgetter
 
@@ -91,8 +92,6 @@ def get_benchmark_filename(symbol):
 
 
 def load_market_data(bm_symbol='^GSPC'):
-    from zipline.finance.trading import DailyReturn
-
     try:
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
     except IOError:

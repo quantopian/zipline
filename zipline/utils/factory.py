@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ from pandas.io.data import DataReader
 import numpy as np
 from datetime import datetime, timedelta
 
-from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.protocol import DailyReturn, Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
@@ -62,7 +62,7 @@ def create_noop_environment():
     bm_returns = []
     tr_curves = OrderedDict()
     for day in date_gen(start=start, delta=oneday, count=252):
-        dr = trading.DailyReturn(day, 0.01)
+        dr = DailyReturn(day, 0.01)
         bm_returns.append(dr)
         curve = {
             '10year': 0.0799,
@@ -194,7 +194,7 @@ def create_returns(daycount, sim_params):
     for day in range(daycount):
         current = current + one_day
         if trading.environment.is_trading_day(current):
-            r = trading.DailyReturn(current, random.random())
+            r = DailyReturn(current, random.random())
             test_range.append(r)
 
     return test_range
@@ -206,7 +206,7 @@ def create_returns_from_range(sim_params):
     one_day = timedelta(days=1)
     test_range = []
     while current <= end:
-        r = trading.DailyReturn(current, random.random())
+        r = DailyReturn(current, random.random())
         test_range.append(r)
         current = get_next_trading_dt(current, one_day)
 
@@ -223,7 +223,7 @@ def create_returns_from_list(returns, sim_params):
         current = get_next_trading_dt(current, one_day)
 
     for return_val in returns:
-        r = trading.DailyReturn(current, return_val)
+        r = DailyReturn(current, return_val)
         test_range.append(r)
         current = get_next_trading_dt(current, one_day)
 

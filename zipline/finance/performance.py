@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -281,7 +281,7 @@ class PerformanceTracker(object):
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)
 
-        todays_return_obj = trading.DailyReturn(
+        todays_return_obj = zp.DailyReturn(
             todays_date,
             self.todays_performance.returns
         )

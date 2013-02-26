@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import datetime
 
 from utils.protocol_utils import Enum
 
@@ -113,3 +115,21 @@ class SIDData(object):
 
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
+
+
+class DailyReturn(object):
+
+    def __init__(self, date, returns):
+
+        assert isinstance(date, datetime.datetime)
+        self.date = date.replace(hour=0, minute=0, second=0)
+        self.returns = returns
+
+    def to_dict(self):
+        return {
+            'dt': self.date,
+            'returns': self.returns
+        }
+
+    def __repr__(self):
+        return str(self.date) + " - " + str(self.returns)

@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,11 +25,10 @@ import requests
 
 from loader_utils import (
     date_conversion,
-    source_to_records
+    source_to_records,
+    Mapping
 )
-
-from loader_utils import Mapping
-
+from zipline.protocol import DailyReturn
 
 _BENCHMARK_MAPPING = {
     # Need to add 'symbol'
@@ -94,8 +93,6 @@ def get_benchmark_data(symbol):
 
 
 def get_benchmark_returns(symbol):
-    from zipline.finance.trading import DailyReturn
-
     benchmark_returns = []
 
     for data_point in get_benchmark_data(symbol):
