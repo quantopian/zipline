@@ -9,6 +9,9 @@ nose-parameterized==0.2
 # Linting
 
 flake8==2.0
+mccabe==0.2
+pep8==1.4.4
+pyflakes==0.6.1
 
 # Documentation Conversion
 
