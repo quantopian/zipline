@@ -272,9 +272,7 @@ class SimulationParameters(object):
         # take an inclusive slice of the environment's
         # trading_days.
         self.trading_days = \
-            environment.trading_days[start_index:end_index+1]
-
-        self.prior_day_open = self.calculate_prior_day_open()
+            environment.trading_days[start_index:end_index + 1]
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."
@@ -293,24 +291,6 @@ class SimulationParameters(object):
 
         while not environment.is_trading_day(first_open):
             first_open = first_open + one_day
-
-        mkt_open, _ = environment.get_open_and_close(first_open)
-        return mkt_open
-
-    def calculate_prior_day_open(self):
-        """
-        Finds the first trading day open that falls at least a day
-        before period_start.
-        """
-        one_day = datetime.timedelta(days=1)
-        first_open = self.period_start - one_day
-
-        if first_open <= environment.first_trading_day:
-            log.warn("Cannot calculate prior day open.")
-            return self.period_start
-
-        while not environment.is_trading_day(first_open):
-            first_open = first_open - one_day
 
         mkt_open, _ = environment.get_open_and_close(first_open)
         return mkt_open
