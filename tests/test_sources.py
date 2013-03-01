@@ -14,6 +14,7 @@
 # limitations under the License.
 import pandas as pd
 import pytz
+from itertools import cycle
 
 from unittest import TestCase
 
@@ -59,16 +60,16 @@ class TestDataFrameSource(TestCase):
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
         data = factory.load_bars_from_yahoo(stocks=stocks,
+                                            indexes={},
                                             start=start,
                                             end=end)
 
+        check_fields = ['sid', 'open', 'high', 'low', 'close',
+                        'volume', 'price']
         source = DataPanelSource(data)
+        stocks_iter = cycle(stocks)
         for event in source:
-            self.assertTrue('sid' in event)
-            self.assertTrue('open' in event)
-            self.assertTrue('high' in event)
-            self.assertTrue('low' in event)
-            self.assertTrue('close' in event)
-            self.assertTrue('volume' in event)
-            self.assertTrue('price' in event)
+            for check_field in check_fields:
+                self.assertIn(check_field, event)
             self.assertTrue(isinstance(event['volume'], (int, long)))
+            self.assertEqual(stocks_iter.next(), event['sid'])

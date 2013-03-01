@@ -134,8 +134,9 @@ class DataPanelSource(DataSource):
         return self.arg_string
 
     def raw_data_gen(self):
-        for sid, dataframe in self.data.iteritems():
-            for dt, series in dataframe.iterrows():
+        for dt in self.data.major_axis:
+            df = self.data.major_xs(dt)
+            for sid, series in df.iterkv():
                 if sid in self.sids:
                     event = {
                         'dt': dt,
