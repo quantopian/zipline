@@ -17,6 +17,8 @@ from numbers import Number
 from collections import defaultdict
 from math import sqrt
 
+import numpy as np
+
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
@@ -109,5 +111,8 @@ class MovingStandardDevWindow(EventWindow):
             average = self.sum / len(self)
             s_squared = (self.sum_sqr - self.sum * average) \
                 / (len(self) - 1)
+
+            if np.allclose(0, s_squared):
+                return 0.0
             stddev = sqrt(s_squared)
         return stddev
