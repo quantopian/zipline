@@ -390,5 +390,11 @@ def load_bars_from_yahoo(indexes=None, stocks=None, start=None, end=None):
     # Rename columns
     panel.minor_axis = ['open', 'high', 'low', 'close', 'volume', 'price']
     panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
-
+    # Adjust data
+    adj_cols = ['open', 'high', 'low', 'close']
+    for ticker in panel.items:
+        ratio = (panel[ticker]['price'] / panel[ticker]['close']).values
+        for col in adj_cols:
+            panel[ticker][col] *= ratio
     return panel
+
