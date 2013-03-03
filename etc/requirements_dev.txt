@@ -1,6 +1,6 @@
 ipython==0.13.1
 tornado==2.4.1
-pyzmq==2.2.0.1
+pyzmq==13.0.0
 
 # Testing
 nose==1.2.1
