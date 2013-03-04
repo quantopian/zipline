@@ -383,10 +383,10 @@ def load_from_yahoo(indexes=None,
                     end=None, 
                     adjusted=True):
     """
-    Loads price data from Yahoo for each of the indicated securities.
-    By default, 'price' is taken from Yahoo's 'Adjusted Close', which removes
-    the impact of splits and dividends. If the argument 'adjusted' is False,
-    then the non-adjusted 'close' field is used instead.
+    Loads price data from Yahoo into a dataframe for each of the indicated
+    securities.  By default, 'price' is taken from Yahoo's 'Adjusted Close',
+    which removes the impact of splits and dividends. If the argument
+    'adjusted' is False, then the non-adjusted 'close' field is used instead.
 
     :Arguments:
         indexes : dict (Default: {'SPX': '^GSPC'})
@@ -418,7 +418,7 @@ def load_bars_from_yahoo(indexes=None,
                          end=None, 
                          adjusted=True):
     """
-    Loads data from Yahoo into a dataframe with the following 
+    Loads data from Yahoo into a panel with the following 
     column names for each indicated security:
         - open
         - high
