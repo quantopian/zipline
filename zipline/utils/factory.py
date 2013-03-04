@@ -397,4 +397,3 @@ def load_bars_from_yahoo(indexes=None, stocks=None, start=None, end=None):
         for col in adj_cols:
             panel[ticker][col] *= ratio
     return panel
-
