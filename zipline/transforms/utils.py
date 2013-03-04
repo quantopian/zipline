@@ -318,7 +318,6 @@ class BatchTransform(EventWindow):
                  clean_nans=True,
                  sids=None,
                  fields=None,
-                 create_panel=True,
                  compute_only_full=True):
 
         """Instantiate new batch_transform object.
@@ -329,7 +328,7 @@ class BatchTransform(EventWindow):
                 with the data panel and all args and kwargs supplied
                 to the handle_data() call.
             refresh_period : int
-                Interval to call batch_transform function.
+                Interval to wait between advances in the window.
             window_length : int
                 How many days the trailing window should have.
             clean_nans : bool <default=True>
@@ -342,12 +341,6 @@ class BatchTransform(EventWindow):
                 Which fields to include in the moving window
                 (e.g. 'price'). If not supplied, fields will be
                 extracted from incoming events.
-            create_panel : bool <default=True>
-                If True, will create a pandas panel every refresh
-                period and pass it to the user-defined function.
-                If False, will pass the underlying deque reference
-                directly to the function which will be significantly
-                faster.
             compute_only_full : bool <default=True>
                 Only call the user-defined function once the window is
                 full. Returns None if window is not full yet.
@@ -361,7 +354,6 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.clean_nans = clean_nans
-        self.create_panel = create_panel
         self.compute_only_full = compute_only_full
 
         self.sids = sids
@@ -519,11 +511,9 @@ class BatchTransform(EventWindow):
             return None
 
         if self.updated:
-            # Either create new pandas panel or pass ticks dequeue
-            # directly
-            data = self.get_data() if self.create_panel else self.ticks
-            self.cached = self.compute_transform_value(data, *args,
-                                                       **kwargs)
+            # Create new pandas panel
+            data = self.get_data()
+            self.cached = self.compute_transform_value(data, *args, **kwargs)
 
         return self.cached
 
