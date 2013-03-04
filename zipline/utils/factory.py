@@ -382,6 +382,26 @@ def load_from_yahoo(indexes=None,
                     start=None, 
                     end=None, 
                     adjusted=True):
+    """
+    Loads price data from Yahoo for each of the indicated securities.
+    By default, 'price' is taken from Yahoo's 'Adjusted Close', which removes
+    the impact of splits and dividends. If the argument 'adjusted' is False,
+    then the non-adjusted 'close' field is used instead.
+
+    :Arguments:
+        indexes : dict (Default: {'SPX': '^GSPC'})
+            Financial indexes to load.
+        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
+                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
+            Stock closing prices to load.
+        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices from start date on.
+        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices until end date.
+        adjusted : bool (Default: True)
+            Adjust the price for splits and dividends.
+
+    """
     data = _load_raw_yahoo_data(indexes, stocks, start, end)
     if adjusted:
         close_key = 'Adj Close'
@@ -397,6 +417,35 @@ def load_bars_from_yahoo(indexes=None,
                          start=None, 
                          end=None, 
                          adjusted=True):
+    """
+    Loads data from Yahoo into a dataframe with the following 
+    column names for each indicated security:
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - price
+
+    Note that 'price' is Yahoo's 'Adjusted Close', which removes the
+    impact of splits and dividends. If the argument 'adjusted' is True, then
+    the open, high, low, and close values are adjusted as well.
+
+    :Arguments:
+        indexes : dict (Default: {'SPX': '^GSPC'})
+            Financial indexes to load.
+        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
+                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
+            Stock closing prices to load.
+        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices from start date on.
+        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices until end date.
+        adjusted : bool (Default: True)
+            Adjust open/high/low/close for splits and dividends.  The 'price'
+            field is always adjusted.
+
+    """
     data = _load_raw_yahoo_data(indexes, stocks, start, end)
     panel = pd.Panel(data)
     # Rename columns
