@@ -393,7 +393,8 @@ def load_bars_from_yahoo(indexes=None, stocks=None, start=None, end=None):
     # Adjust data
     adj_cols = ['open', 'high', 'low', 'close']
     for ticker in panel.items:
-        ratio = (panel[ticker]['price'] / panel[ticker]['close']).values
+        ratio = (panel[ticker]['price'] / panel[ticker]['close'])
+        ratio_filtered = ratio.fillna(0).values
         for col in adj_cols:
-            panel[ticker][col] *= ratio
+            panel[ticker][col] *= ratio_filtered
     return panel
