@@ -377,9 +377,17 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     return data
 
 
-def load_from_yahoo(indexes=None, stocks=None, start=None, end=None):
+def load_from_yahoo(indexes=None, 
+                    stocks=None, 
+                    start=None, 
+                    end=None, 
+                    adjusted=True):
     data = _load_raw_yahoo_data(indexes, stocks, start, end)
-    df = pd.DataFrame({key: d['Adj Close'] for key, d in data.iteritems()})
+    if adjusted:
+        close_key = 'Adj Close'
+    else:
+        close_key = 'Close'
+    df = pd.DataFrame({key: d[close_key] for key, d in data.iteritems()})
     df.index = df.index.tz_localize(pytz.utc)
     return df
 
