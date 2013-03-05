@@ -342,12 +342,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             clean_nans=True
         )
 
-        self.return_ticks = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            create_panel=False
-        )
-
         self.return_not_full = return_data(
             refresh_period=0,
             window_length=self.window_length,
@@ -372,8 +366,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_args.append(
             self.return_args_batch.handle_data(
                 data, *self.args, **self.kwargs))
-        self.history_return_ticks.append(
-            self.return_ticks.handle_data(data))
         self.history_return_not_full.append(
             self.return_not_full.handle_data(data))
         self.uses_ufunc.handle_data(data)
