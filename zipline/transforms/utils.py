@@ -375,6 +375,8 @@ class BatchTransform(EventWindow):
 
         self.updated = False
         self.cached = None
+        self.last_args = None
+        self.last_kwargs = None
 
         # Data panel that provides bar information to fill in the window,
         # when no bar ticks are available from the data source generator
@@ -515,13 +517,18 @@ class BatchTransform(EventWindow):
             # Create new pandas panel
             self.window = self.get_data()
 
-        if self.window:
+        args_changed = args != self.last_args
+        args_changed = args_changed or kwargs != self.last_kwargs
+
+        if self.updated or args_changed:
             self.cached = self.compute_transform_value(
                 self.window,
                 *args,
                 **kwargs
             )
 
+        self.last_args = args
+        self.last_kwargs = kwargs
         return self.cached
 
     def __call__(self, f):
