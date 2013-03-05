@@ -63,10 +63,7 @@ def APO(fastperiod=12, slowperiod=26, matype=0, refresh_period=1):
     def talib_transform(data, sid):
         data_dict = _data_to_dict(data, sid)
         transform = talib.abstract.APO(data_dict, fastperiod, slowperiod)
-        if isinstance(transform, (list, tuple)):
-            return [tr[-1] for tr in transform]
-        else:
-            return transform[-1]
+        return transform[-1]
     transform = BatchTransform(func=talib_transform,
                                refresh_period=refresh_period,
                                window_length=max(fastperiod, slowperiod))
