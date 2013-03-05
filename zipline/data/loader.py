@@ -160,7 +160,7 @@ Fetching data from Yahoo Finance.
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
     last_bm_date = tuple_to_date(bm_list[-1][0])
-    last_bm_date_offset = trading_days.get_loc(
+    last_bm_date_offset = trading_days.searchsorted(
         last_bm_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
@@ -196,13 +196,13 @@ Fetching data from data.treasury.gov
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
     last_tr_date = tuple_to_date(tr_list[-1][0])
-    last_tr_date_offset = trading_days.get_loc(
+    last_tr_date_offset = trading_days.searchsorted(
         last_tr_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     if len(trading_days) - last_tr_date_offset > 1:
-        update_benchmarks(last_tr_date)
+        update_treasury_curves(last_tr_date)
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
         tr_list = msgpack.loads(fp_tr.read())
 
