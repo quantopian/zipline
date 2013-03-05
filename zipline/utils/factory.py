@@ -377,10 +377,10 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     return data
 
 
-def load_from_yahoo(indexes=None, 
-                    stocks=None, 
-                    start=None, 
-                    end=None, 
+def load_from_yahoo(indexes=None,
+                    stocks=None,
+                    start=None,
+                    end=None,
                     adjusted=True):
     """
     Loads price data from Yahoo into a dataframe for each of the indicated
@@ -412,13 +412,13 @@ def load_from_yahoo(indexes=None,
     return df
 
 
-def load_bars_from_yahoo(indexes=None, 
-                         stocks=None, 
-                         start=None, 
-                         end=None, 
+def load_bars_from_yahoo(indexes=None,
+                         stocks=None,
+                         start=None,
+                         end=None,
                          adjusted=True):
     """
-    Loads data from Yahoo into a panel with the following 
+    Loads data from Yahoo into a panel with the following
     column names for each indicated security:
         - open
         - high
