@@ -313,7 +313,7 @@ class BatchTransform(EventWindow):
 
     def __init__(self,
                  func=None,
-                 refresh_period=None,
+                 refresh_period=0,
                  window_length=None,
                  clean_nans=True,
                  sids=None,
@@ -368,6 +368,7 @@ class BatchTransform(EventWindow):
         self.window_length = window_length
         self.trading_days_since_update = 0
         self.trading_days_total = 0
+        self.window = None
 
         self.full = False
         self.last_dt = None
@@ -512,8 +513,14 @@ class BatchTransform(EventWindow):
 
         if self.updated:
             # Create new pandas panel
-            data = self.get_data()
-            self.cached = self.compute_transform_value(data, *args, **kwargs)
+            self.window = self.get_data()
+
+        if self.window:
+            self.cached = self.compute_transform_value(
+                self.window,
+                *args,
+                **kwargs
+            )
 
         return self.cached
 
