@@ -520,14 +520,18 @@ class BatchTransform(EventWindow):
         if self.compute_only_full and not self.full:
             return None
 
+        recalculate_needed = False
         if self.updated:
             # Create new pandas panel
             self.window = self.get_data()
             # reset our counter for refresh_period
             self.trading_days_since_update = 0
+            recalculate_needed = True
+        else:
+            recalculate_needed = \
+                args != self.last_args or kwargs != self.last_kwargs
 
-        args_changed = args != self.last_args or kwargs != self.last_kwargs
-        if self.updated or args_changed:
+        if recalculate_needed:
             self.cached = self.compute_transform_value(
                 self.window,
                 *args,
