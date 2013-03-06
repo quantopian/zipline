@@ -289,7 +289,7 @@ class SlippageTestCase(TestCase):
         events = self.gen_trades()
         slippage_model = VolumeShareSlippage()
 
-        ''' long, does not trade '''
+        # long, does not trade
 
         open_orders = {133: [
             Order(
@@ -319,7 +319,7 @@ class SlippageTestCase(TestCase):
 
         self.assertIsNone(txn)
 
-        ''' long, does trade '''
+        # long, does trade
 
         open_orders = {133: [
             Order(
