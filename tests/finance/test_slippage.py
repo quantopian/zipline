@@ -86,7 +86,6 @@ class SlippageTestCase(TestCase):
         # long, does not trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
@@ -107,7 +106,6 @@ class SlippageTestCase(TestCase):
         # long, does trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
@@ -137,7 +135,6 @@ class SlippageTestCase(TestCase):
         # short, does not trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
@@ -158,7 +155,6 @@ class SlippageTestCase(TestCase):
         # short, does trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
@@ -193,7 +189,6 @@ class SlippageTestCase(TestCase):
         # long, does not trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
@@ -243,7 +238,6 @@ class SlippageTestCase(TestCase):
         # short, does not trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
@@ -264,7 +258,6 @@ class SlippageTestCase(TestCase):
         # short, does trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
@@ -299,7 +292,6 @@ class SlippageTestCase(TestCase):
         ''' long, does not trade '''
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
@@ -330,7 +322,6 @@ class SlippageTestCase(TestCase):
         ''' long, does trade '''
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
@@ -370,7 +361,6 @@ class SlippageTestCase(TestCase):
         # short, does not trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
@@ -401,7 +391,6 @@ class SlippageTestCase(TestCase):
         # short, does trade
 
         open_orders = {133: [
-            # ndict(  # this causes the nosetest to fail
             Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': -100,
