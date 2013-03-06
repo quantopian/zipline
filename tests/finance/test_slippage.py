@@ -24,14 +24,15 @@ from unittest import TestCase
 
 from zipline.finance.slippage import VolumeShareSlippage
 
-from zipline import ndict
+from zipline.protocol import Event
+from zipline.gens.tradesimulation import Order
 
 
 class SlippageTestCase(TestCase):
 
     def test_volume_share_slippage(self):
 
-        event = ndict(
+        event = Event(
             {'volume': 200,
              'TRANSACTION': None,
              'type': 4,
@@ -51,7 +52,7 @@ class SlippageTestCase(TestCase):
         slippage_model = VolumeShareSlippage()
 
         open_orders = {133: [
-            ndict(
+            Order(
                 {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                  'amount': 100,
                  'filled': 0, 'sid': 133})
@@ -72,5 +73,6 @@ class SlippageTestCase(TestCase):
 
         self.assertIsNotNone(txn)
 
-        for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+        # TODO: Make expected_txn an Transaction object and ensure there
+        # is a __eq__ for that class.
+        self.assertEquals(expected_txn, txn.__dict__)
