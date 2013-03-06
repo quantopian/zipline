@@ -273,6 +273,11 @@ def uses_ufunc(data, *args, **kwargs):
     return np.log(data)
 
 
+@batch_transform
+def price_multiple(data, multiplier, keyarg=1):
+    return data.price * multiplier * keyarg
+
+
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.refresh_period = kwargs.pop('refresh_period', 1)
@@ -354,6 +359,12 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             clean_nans=False
         )
 
+        self.price_multiple = price_multiple(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=False
+        )
+
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
@@ -369,6 +380,29 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_not_full.append(
             self.return_not_full.handle_data(data))
         self.uses_ufunc.handle_data(data)
+
+        # check that calling transforms with the same arguments
+        # is idempotent
+        self.price_multiple.handle_data(data, 1, keyarg=1)
+
+        if self.price_multiple.full:
+            pre = len(self.price_multiple.ticks)
+            result1 = self.price_multiple.handle_data(data, 1, keyarg=1)
+            post = len(self.price_multiple.ticks)
+            assert pre == post, "batch transform is appending redundant events"
+            result2 = self.price_multiple.handle_data(data, 1, keyarg=1)
+            assert result1 is result2, "batch transform is not idempotent"
+
+            # check that calling transform with the same data, but
+            # different supplemental arguments results in new
+            # results.
+            result3 = self.price_multiple.handle_data(data, 2, keyarg=1)
+            assert result1 is not result3, \
+                "batch transform is not updating for new args"
+
+            result4 = self.price_multiple.handle_data(data, 1, keyarg=2)
+            assert result1 is not result4,\
+                "batch transform is not updating for new kwargs"
 
         new_data = deepcopy(data)
         for sid in new_data:
