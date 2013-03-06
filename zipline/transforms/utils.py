@@ -228,8 +228,6 @@ class EventWindow(object):
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
-        #if len(self.ticks) > self.window_length:
-        #    import nose.tools; nose.tools.set_trace()
         # Clear out any expired events.
         #
         #                              oldest               newest
@@ -313,12 +311,11 @@ class BatchTransform(EventWindow):
 
     def __init__(self,
                  func=None,
-                 refresh_period=None,
+                 refresh_period=0,
                  window_length=None,
                  clean_nans=True,
                  sids=None,
                  fields=None,
-                 create_panel=True,
                  compute_only_full=True):
 
         """Instantiate new batch_transform object.
@@ -329,7 +326,7 @@ class BatchTransform(EventWindow):
                 with the data panel and all args and kwargs supplied
                 to the handle_data() call.
             refresh_period : int
-                Interval to call batch_transform function.
+                Interval to wait between advances in the window.
             window_length : int
                 How many days the trailing window should have.
             clean_nans : bool <default=True>
@@ -342,12 +339,6 @@ class BatchTransform(EventWindow):
                 Which fields to include in the moving window
                 (e.g. 'price'). If not supplied, fields will be
                 extracted from incoming events.
-            create_panel : bool <default=True>
-                If True, will create a pandas panel every refresh
-                period and pass it to the user-defined function.
-                If False, will pass the underlying deque reference
-                directly to the function which will be significantly
-                faster.
             compute_only_full : bool <default=True>
                 Only call the user-defined function once the window is
                 full. Returns None if window is not full yet.
@@ -361,7 +352,6 @@ class BatchTransform(EventWindow):
             self.compute_transform_value = self.get_value
 
         self.clean_nans = clean_nans
-        self.create_panel = create_panel
         self.compute_only_full = compute_only_full
 
         self.sids = sids
@@ -376,12 +366,15 @@ class BatchTransform(EventWindow):
         self.window_length = window_length
         self.trading_days_since_update = 0
         self.trading_days_total = 0
+        self.window = None
 
         self.full = False
         self.last_dt = None
 
         self.updated = False
         self.cached = None
+        self.last_args = None
+        self.last_kwargs = None
 
         # Data panel that provides bar information to fill in the window,
         # when no bar ticks are available from the data source generator
@@ -411,9 +404,19 @@ class BatchTransform(EventWindow):
                       # functionality to zipline
                       if len(v)}
 
-        # append data frame to window. update() will call handle_add() and
-        # handle_remove() appropriately
-        self.update(event)
+        # only modify the trailing window if this is
+        # a new event. This is intended to make handle_data
+        # idempotent.
+        if event not in self.ticks:
+            # append data frame to window. update() will call handle_add() and
+            # handle_remove() appropriately, and self.updated
+            # will be modified based on the refresh_period
+            self.update(event)
+        else:
+            # we are recalculating based on an old event, so
+            # there is no change in the contents of the trailing
+            # window
+            self.updated = False
 
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
@@ -454,7 +457,6 @@ class BatchTransform(EventWindow):
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
-            self.trading_days_since_update = 0
         else:
             self.updated = False
 
@@ -518,13 +520,26 @@ class BatchTransform(EventWindow):
         if self.compute_only_full and not self.full:
             return None
 
+        recalculate_needed = False
         if self.updated:
-            # Either create new pandas panel or pass ticks dequeue
-            # directly
-            data = self.get_data() if self.create_panel else self.ticks
-            self.cached = self.compute_transform_value(data, *args,
-                                                       **kwargs)
+            # Create new pandas panel
+            self.window = self.get_data()
+            # reset our counter for refresh_period
+            self.trading_days_since_update = 0
+            recalculate_needed = True
+        else:
+            recalculate_needed = \
+                args != self.last_args or kwargs != self.last_kwargs
 
+        if recalculate_needed:
+            self.cached = self.compute_transform_value(
+                self.window,
+                *args,
+                **kwargs
+            )
+
+        self.last_args = args
+        self.last_kwargs = kwargs
         return self.cached
 
     def __call__(self, f):
