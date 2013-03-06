@@ -33,6 +33,9 @@ class Order(object):
         if initial_values:
             self.__dict__ = initial_values
 
+    def __getitem__(self, name):
+        return self.__dict__[name]
+
 
 class TradeSimulationClient(object):
     """
@@ -172,33 +175,49 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
 
-    def order(self, sid, amount):
-        """
-        Closure to pass into the user's algo to allow placing orders
-        into the transaction simulator's dict of open orders.
-        """
-        order = Order({
-            'dt': self.simulation_dt,
-            'sid': sid,
-            'amount': int(amount),
-            'filled': 0
-        })
+    def order(self, sid, amount, limit_price=None, stop_price=None):
 
+        # something could be done with amount to further divide
+        # between buy by share count OR buy shares up to a dollar amount
+        # numeric == share count  AND  "$dollar.cents" == cost amount
+
+        """
+        amount > 0 :: Buy/Cover
+        amount < 0 :: Sell/Short
+        Market order:    order(sid,amount)
+        Limit order:     order(sid,amount, limit_price)
+        Stop order:      order(sid,amount, None, stop_price)
+        StopLimit order: order(sid,amount, limit_price, stop_price)
+        """
+
+        # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
-        if order.amount == 0:
-            zero_message = "Requested to trade zero shares of {sid}".format(
-                sid=order.sid
+        if amount == 0:
+            zero_message = "Requested to trade zero shares of {psid}".format(
+                psid=sid
             )
             log.debug(zero_message)
             # Don't bother placing orders for 0 shares.
             return
+
+        order = Order({
+            'dt': self.simulation_dt,
+            'sid': sid,
+            'amount': int(amount),
+            'filled': 0,
+            'stop': stop_price,
+            'limit': limit_price
+        })
 
         # Add non-zero orders to the order book.
         # !!!IMPORTANT SIDE-EFFECT!!!
         # This modifies the internal state of the transaction
         # simulator so that it can fill the placed order when it
         # receives its next message.
-        self.order_book.place_order(order)
+        err_str = self.order_book.place_order(order)
+        if err_str is not None and len(err_str) > 0:
+            # error, trade was not placed, log it out
+            log.debug(err_str)
 
     def transform(self, stream_in):
         """
