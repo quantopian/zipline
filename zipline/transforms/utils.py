@@ -228,8 +228,6 @@ class EventWindow(object):
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
         self.handle_add(event)
-        #if len(self.ticks) > self.window_length:
-        #    import nose.tools; nose.tools.set_trace()
         # Clear out any expired events.
         #
         #                              oldest               newest
@@ -406,9 +404,19 @@ class BatchTransform(EventWindow):
                       # functionality to zipline
                       if len(v)}
 
-        # append data frame to window. update() will call handle_add() and
-        # handle_remove() appropriately
-        self.update(event)
+        # only modify the trailing window if this is
+        # a new event. This is intended to make handle_data
+        # idempotent.
+        if event not in self.ticks:
+            # append data frame to window. update() will call handle_add() and
+            # handle_remove() appropriately, and self.updated
+            # will be modified based on the refresh_period
+            self.update(event)
+        else:
+            # we are recalculating based on an old event, so
+            # there is no change in the contents of the trailing
+            # window
+            self.updated = False
 
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
@@ -449,7 +457,6 @@ class BatchTransform(EventWindow):
             # to call the user-defined batch-transform with the most
             # recent datapanel
             self.updated = True
-            self.trading_days_since_update = 0
         else:
             self.updated = False
 
@@ -516,10 +523,10 @@ class BatchTransform(EventWindow):
         if self.updated:
             # Create new pandas panel
             self.window = self.get_data()
+            # reset our counter for refresh_period
+            self.trading_days_since_update = 0
 
-        args_changed = args != self.last_args
-        args_changed = args_changed or kwargs != self.last_kwargs
-
+        args_changed = args != self.last_args or kwargs != self.last_kwargs
         if self.updated or args_changed:
             self.cached = self.compute_transform_value(
                 self.window,
