@@ -28,11 +28,12 @@ from nose.tools import timed
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
+from zipline.gens.tradesimulation import Order
+
 import zipline.finance.trading as trading
 from zipline.finance.trading import SimulationParameters
 
 from zipline.finance.performance import PerformanceTracker
-from zipline.utils.protocol_utils import ndict
 from zipline.finance.trading import TransactionSimulator
 from zipline.utils.test_utils import(
     setup_logger,
@@ -302,7 +303,7 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            order = ndict({
+            order = Order(**{
                 'sid': sid,
                 'amount': order_amount * alternator ** i,
                 'dt': order_date
