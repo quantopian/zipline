@@ -67,6 +67,9 @@ Dependencies
 * msgpack-python
 * Logbook
 * blist
+* requests
+* delorean
+* iso8601
 
 Quickstart
 ==========
