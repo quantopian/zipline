@@ -349,3 +349,18 @@ class TradingAlgorithm(object):
         assert data_frequency in ('daily', 'minute')
         self.data_frequency = data_frequency
         self.annualizer = ANNUALIZER[self.data_frequency]
+
+    def order_percent(self, sid, percent):
+        """
+        Place an order in the specified security corresponding to the given
+        percent of the current portfolio value.
+
+        :Arguments:
+            sid : string
+                The security to trade
+            percent : float
+                The percent of current portfolio value to be transacted.
+                Percents should be expressed as decimals (0.50 means 50\%).
+                """
+        order_value = self.portfolio.portfolio_value * percent
+        self.order_value(sid, order_value)
