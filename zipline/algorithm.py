@@ -364,3 +364,69 @@ class TradingAlgorithm(object):
                 """
         order_value = self.portfolio.portfolio_value * percent
         self.order_value(sid, order_value)
+
+    def target(self, sid, target):
+        """
+        Place an order to adjust a position to a target number of shares. If
+        the position doesn't already exist, this is equivalent to placing a new
+        order. If the position does exist, this is equivalent to placing an
+        order for the difference between the target number of shares and the
+        current number of shares.
+
+        :Arguments:
+            sid : string
+                The security to trade
+            target : int
+                The target number of shares
+        """
+        if sid in self.positions:
+            current_position = self.portfolio.positions[sid].amount
+            self.order(sid, target - current_position)
+        else:
+            self.order(sid, target)
+
+    def target_value(self, sid, target):
+        """
+        Place an order to adjust a position to a target value. If
+        the position doesn't already exist, this is equivalent to placing a new
+        order. If the position does exist, this is equivalent to placing an
+        order for the difference between the target value and the
+        current value.
+
+        :Arguments:
+            sid : string
+                The security to trade
+            target : float
+                The target value
+        """
+        if sid in self.positions:
+            current_position = self.portfolio.positions[sid].amount
+            current_price = self.portfolio.positions[sid].last_sale_price
+            current_value = current_position * current_price
+            self.order_value(sid, target - current_value)
+        else:
+            self.order_value(sid, target)
+
+    def target_percent(self, sid, target):
+        """
+        Place an order to adjust a position to a target percent of the
+        current portfolio value. If the position doesn't already exist, this is
+        equivalent to placing a new order. If the position does exist, this is
+        equivalent to placing an order for the difference between the target
+        percent and the current percent.
+
+        :Arguments:
+            sid : string
+                The security to trade
+            target : float
+                The target percent as a decimal
+        """
+        if sid in self.positions:
+            current_position = self.portfolio.positions[sid].amount
+            current_price = self.portfolio.positions[sid].last_sale_price
+            current_value = current_position * current_price
+        else:
+            current_value = 0
+        portfolio_value = self.portfolio.portfolio_value
+        target_value = portfolio_value * target
+        self.order_value(sid, target_value - current_value)
