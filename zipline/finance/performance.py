@@ -188,7 +188,11 @@ class PerformanceTracker(object):
             # the cumulative period will be calculated over the entire test.
             self.period_start,
             self.period_end,
+            # don't save the transactions for the cumulative
+            # period
             keep_transactions=False,
+            # don't serialize positions for cumualtive period
+            serialize_positions=False
         )
 
         # this performance period will span just the current market day
@@ -198,8 +202,8 @@ class PerformanceTracker(object):
             # the daily period will be calculated for the market day
             self.market_open,
             self.market_close,
-            # save the transactions for the daily periods
-            keep_transactions=True
+            keep_transactions=True,
+            serialize_positions=True
         )
 
     def __repr__(self):
@@ -446,7 +450,8 @@ class PerformancePeriod(object):
             starting_cash,
             period_open=None,
             period_close=None,
-            keep_transactions=True):
+            keep_transactions=True,
+            serialize_positions=True):
 
         self.period_open = period_open
         self.period_close = period_close
@@ -479,6 +484,7 @@ class PerformancePeriod(object):
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
         self._positions_store = zp.Positions()
+        self.serialize_positions = serialize_positions
 
     def rollover(self):
         self.starting_value = self.ending_value
@@ -621,8 +627,10 @@ class PerformancePeriod(object):
         period. See header comments for a detailed description.
         """
         rval = self.__core_dict()
-        positions = self.get_positions_list()
-        rval['positions'] = positions
+
+        if self.serialize_positions:
+            positions = self.get_positions_list()
+            rval['positions'] = positions
 
         # we want the key to be absent, not just empty
         if self.keep_transactions:
