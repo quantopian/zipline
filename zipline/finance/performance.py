@@ -187,7 +187,8 @@ class PerformanceTracker(object):
             self.capital_base,
             # the cumulative period will be calculated over the entire test.
             self.period_start,
-            self.period_end
+            self.period_end,
+            keep_transactions=False,
         )
 
         # this performance period will span just the current market day
@@ -445,7 +446,7 @@ class PerformancePeriod(object):
             starting_cash,
             period_open=None,
             period_close=None,
-            keep_transactions=False):
+            keep_transactions=True):
 
         self.period_open = period_open
         self.period_close = period_close
