@@ -273,6 +273,12 @@ class PerformanceTracker(object):
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
             self.cumulative_performance.add_dividend(event)
             self.todays_performance.add_dividend(event)
+            # this event will not be relayed up
+            messages = None
+        elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
+            # we just want to relay this event unchanged.
+            messages = []
+            return messages
 
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()

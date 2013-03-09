@@ -137,7 +137,12 @@ class StatefulTransform(object):
         for message in stream_in:
             # we only handle TRADE events.
             if (hasattr(message, 'type')
-                    and message.type != DATASOURCE_TYPE.TRADE):
+                    and message.type not in (
+                        DATASOURCE_TYPE.TRADE,
+                        DATASOURCE_TYPE.CUSTOM)):
+                # TODO: this should be yielding the original message
+                # instead of swallowing it. Will be an issue when we
+                # have a transaction source from brokers etc.
                 continue
             # allow upstream generators to yield None to avoid
             # blocking.
@@ -218,7 +223,10 @@ class EventWindow(object):
 
     def update(self, event):
 
-        if hasattr(event, 'type') and event.type != DATASOURCE_TYPE.TRADE:
+        if (hasattr(event, 'type')
+                and event.type not in (
+                    DATASOURCE_TYPE.TRADE,
+                    DATASOURCE_TYPE.CUSTOM)):
             return
 
         self.assert_well_formed(event)
@@ -354,13 +362,25 @@ class BatchTransform(EventWindow):
         self.clean_nans = clean_nans
         self.compute_only_full = compute_only_full
 
-        self.sids = sids
-        if isinstance(self.sids, (basestring, Integral)):
-            self.sids = [self.sids]
+        # The following logic is to allow pre-specified sid filters
+        # to operate on the data, but to also allow new symbols to
+        # enter the batch transform's window IFF a sid filter is not
+        # specified.
+        self.sids = None
+        if sids:
+            self.static_sids = True
+            self.sids = sids
+            if isinstance(sids, (basestring, Integral)):
+                self.sids = set([sids])
+            else:
+                self.sids = set(sids)
+        else:
+            self.static_sids = False
 
-        self.field_names = fields
-        if isinstance(self.field_names, str):
-            self.field_names = [self.field_names]
+        self.initial_field_names = fields
+        if isinstance(self.initial_field_names, basestring):
+            self.initial_field_names = [self.initial_field_names]
+        self.field_names = set()
 
         self.refresh_period = refresh_period
         self.window_length = window_length
@@ -430,18 +450,33 @@ class BatchTransform(EventWindow):
                         if (isinstance(value, (int, float)))])
             sid_keys.append(keys)
 
-        assert sid_keys[0] == set.intersection(*sid_keys),\
-            "Each sid must have the same keys."
-
+        # with CUSTOM data events, there may be different fields
+        # per sid. So the allowable keys are the union of all events.
+        union = set.union(*sid_keys)
         unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
                                'datetime', 'source_id'])
-        return sid_keys[0] - unwanted_fields
+        return union - unwanted_fields
 
     def handle_add(self, event):
         if not self.last_dt:
-            if self.field_names is None:
-                self.field_names = self._extract_field_names(event)
             self.last_dt = event.dt
+
+        if self.initial_field_names is None:
+            self.latest_names = self._extract_field_names(event)
+            if self.field_names:
+                self.field_names = \
+                    set.union(self.field_names, self.latest_names)
+            else:
+                self.field_names = self.latest_names
+        else:
+            self.field_names = self.initial_field_names
+
+        if not self.static_sids:
+            if self.sids:
+                event_sids = set(event.data.keys())
+                self.sids = set.union(self.sids, event_sids)
+            else:
+                self.sids = set(event.data.keys())
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
