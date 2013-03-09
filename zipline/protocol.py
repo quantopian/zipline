@@ -27,7 +27,8 @@ DATASOURCE_TYPE = Enum(
     'DIVIDEND',
     'TRADE',
     'EMPTY',
-    'DONE'
+    'DONE',
+    'CUSTOM'
 )
 
 
