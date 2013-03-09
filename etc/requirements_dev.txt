@@ -10,7 +10,7 @@ nose-parameterized==0.2
 
 flake8==2.0
 mccabe==0.2
-pep8==1.4.4
+pep8==1.4.5
 pyflakes==0.6.1
 
 # Documentation Conversion
