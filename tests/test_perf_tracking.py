@@ -28,7 +28,9 @@ from zipline.finance.slippage import Transaction
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
+from zipline.gens.tradesimulation import Order
 import zipline.finance.trading as trading
+from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
 
 onesec = datetime.timedelta(seconds=1)
@@ -79,7 +81,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         txn = factory.create_txn(1, 10.0, 100, events[0].dt)
-        events[0].TRANSACTION = txn
+        events.insert(0, txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
@@ -137,7 +139,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         events.insert(1, dividend)
         txn = factory.create_txn(1, 10.0, 100, events[3].dt)
-        events[3].TRANSACTION = txn
+        events.insert(4, txn)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
@@ -184,10 +186,10 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         buy_txn = factory.create_txn(1, 10.0, 100, events[0].dt)
-        events[0].TRANSACTION = buy_txn
-        sell_txn = factory.create_txn(1, 10.0, -100, events[2].dt)
-        events[2].TRANSACTION = sell_txn
-        events.insert(1, dividend)
+        events.insert(1, buy_txn)
+        sell_txn = factory.create_txn(1, 10.0, -100, events[3].dt)
+        events.insert(4, sell_txn)
+        events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
             ((event.dt, [event]) for event in events))
@@ -234,9 +236,9 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         buy_txn = factory.create_txn(1, 10.0, 100, events[1].dt)
-        events[1].TRANSACTION = buy_txn
-        sell_txn = factory.create_txn(1, 10.0, -100, events[2].dt)
-        events[2].TRANSACTION = sell_txn
+        events.insert(2, buy_txn)
+        sell_txn = factory.create_txn(1, 10.0, -100, events[3].dt)
+        events.insert(4, sell_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
@@ -280,11 +282,11 @@ class TestDividendPerformance(unittest.TestCase):
             10.00,
             events[0].dt,
             events[1].dt,
-            events[-1].dt + 10*oneday
+            events[-1].dt + 10 * oneday
         )
 
         buy_txn = factory.create_txn(1, 10.0, 100, events[1].dt)
-        events[1].TRANSACTION = buy_txn
+        events.insert(2, buy_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
@@ -334,8 +336,8 @@ class TestDividendPerformance(unittest.TestCase):
             events[2].dt
         )
 
-        txn = factory.create_txn(1, 10.0, -100, self.dt+oneday)
-        events[0].TRANSACTION = txn
+        txn = factory.create_txn(1, 10.0, -100, self.dt + oneday)
+        events.insert(1, txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
@@ -984,11 +986,15 @@ class TestPerformanceTracker(unittest.TestCase):
 
         events = date_sorted_sources(trade_history, trade_history2)
 
-        events = [self.event_with_txn(event, trade_history[0].dt)
-                  for event in events]
+        events = [event for event in
+                  self.trades_with_txns(events, trade_history[0].dt)]
 
         # Extract events with transactions to use for verification.
-        events_with_txns = [event for event in events if event.TRANSACTION]
+        txns = [event for event in
+                events if event.type == DATASOURCE_TYPE.TRANSACTION]
+
+        orders = [event for event in
+                  events if event.type == DATASOURCE_TYPE.ORDER]
 
         perf_messages = \
             [msg for date, snapshot in
@@ -1002,10 +1008,11 @@ class TestPerformanceTracker(unittest.TestCase):
         perf_messages.extend(end_perf_messages)
 
         #we skip two trades, to test case of None transaction
-        self.assertEqual(perf_tracker.txn_count, len(events_with_txns))
+        self.assertEqual(perf_tracker.txn_count, len(txns))
+        self.assertEqual(perf_tracker.txn_count, len(orders))
 
         cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
-        expected_size = len(events_with_txns) / 2 * -25
+        expected_size = len(txns) / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
 
         self.assertEqual(perf_tracker.last_close,
@@ -1014,22 +1021,30 @@ class TestPerformanceTracker(unittest.TestCase):
         self.assertEqual(len(perf_messages),
                          sim_params.days_in_period)
 
-    def event_with_txn(self, event, no_txn_dt):
-        #create a transaction for all but
-        #first trade in each sid, to simulate None transaction
-        if event.dt != no_txn_dt:
-            txn = Transaction(**{
-                'sid': event.sid,
-                'amount': -25,
-                'dt': event.dt,
-                'price': 10.0,
-                'commission': 0.50
-            })
-        else:
-            txn = None
-        event['TRANSACTION'] = txn
+    def trades_with_txns(self, events, no_txn_dt):
+        for event in events:
 
-        return event
+            #create a transaction for all but
+            #first trade in each sid, to simulate None transaction
+            if event.dt != no_txn_dt:
+                order = Order(**{
+                    'sid': event.sid,
+                    'amount': -25,
+                    'dt': event.dt
+                })
+                yield order
+                yield event
+                txn = Transaction(**{
+                    'sid': event.sid,
+                    'amount': -25,
+                    'dt': event.dt,
+                    'price': 10.0,
+                    'commission': 0.50,
+                    'order_id': order.id
+                })
+                yield txn
+            else:
+                yield event
 
     @trading.use_environment(trading.TradingEnvironment())
     def test_minute_tracker(self):

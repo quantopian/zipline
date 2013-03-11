@@ -13,18 +13,101 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
+import math
+import numpy as np
+import uuid
 
 from logbook import Logger, Processor
 from collections import defaultdict
 
 from zipline import ndict
-from zipline.protocol import SIDData
-
-from zipline.finance.trading import TransactionSimulator
+from zipline.protocol import SIDData, DATASOURCE_TYPE
 from zipline.finance.performance import PerformanceTracker
 from zipline.gens.utils import hash_args
 
+from zipline.finance.slippage import (
+    VolumeShareSlippage,
+    transact_partial,
+    check_order_triggers
+)
+from zipline.finance.commission import PerShare
+
 log = Logger('Trade Simulation')
+
+
+class Blotter(object):
+
+    def __init__(self):
+        self.transact = transact_partial(VolumeShareSlippage(), PerShare())
+        # these orders are aggregated by sid
+        self.open_orders = defaultdict(list)
+        # keep a dict of orders by their own id
+        self.orders = {}
+        # track transactions by sid and by order
+        self.txns_by_sid = defaultdict(list)
+        self.txns_by_order = defaultdict(list)
+        # holding orders that have come in since the last
+        # event.
+        self.new_orders = []
+
+    def place_order(self, order):
+        # initialized filled field.
+        order.filled = 0
+        self.open_orders[order.sid].append(order)
+        self.orders[order.id] = order
+        self.new_orders.append(order)
+
+    def transform(self, stream_in):
+        """
+        Main generator work loop.
+        """
+        for date, snapshot in stream_in:
+            # relay any orders placed in prior snapshot
+            # handling and reset the internal holding pen
+            results = self.new_orders
+            self.new_orders = []
+            for event in snapshot:
+                results.append(event)
+                # We only fill transactions on trade events.
+                if event.type == DATASOURCE_TYPE.TRADE:
+                    txns = self.process_trade(event)
+                    results.extend(txns)
+            yield date, results
+
+    def process_trade(self, trade_event):
+        if np.allclose(trade_event.volume, 0):
+            # there are zero volume trade_events bc some stocks trade
+            # less frequently than once per minute.
+            return []
+
+        if trade_event.sid in self.open_orders:
+            orders = self.open_orders[trade_event.sid]
+            orders = sorted(orders, key=lambda o: o.dt)
+            # Only use orders for the current day or before
+            current_orders = filter(
+                lambda o: o.dt <= trade_event.dt,
+                orders)
+        else:
+            return []
+
+        txns = self.transact(trade_event, current_orders)
+        for txn in txns:
+            self.txns_by_order[txn.order_id].append(txn)
+            self.txns_by_sid[txn.sid].append(txn)
+            self.orders[txn.order_id].filled += txn.amount
+
+        # update the open orders for the trade_event's sid
+        self.open_orders[trade_event.sid] = \
+            [order for order in orders if order.open]
+
+        # drop any filled orders.
+        filled = \
+            [order.id for order in orders if not order.open]
+
+        for order_id in filled:
+            del self.orders[order_id]
+
+        return txns
 
 
 class Order(object):
@@ -37,12 +120,47 @@ class Order(object):
                   a negative sign indicates a sell
         @filled - how many shares of the order have been filled so far
         """
+        # get a string representation of the uuid.
+        self.id = uuid.uuid4().get_hex()
         self.dt = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
         self.stop = stop
         self.limit = limit
+        self.stop_reached = False
+        self.limit_reached = False
+        self.direction = math.copysign(1, self.amount)
+        self.type = DATASOURCE_TYPE.ORDER
+
+    def check_triggers(self, event):
+        """
+        Update internal state based on price triggers and the
+        trade event's price.
+        """
+        self.stop_reached, self.limit_reached = \
+            check_order_triggers(self, event)
+
+    @property
+    def open(self):
+        remainder = self.amount - self.filled
+        return remainder != 0
+
+    @property
+    def triggered(self):
+        """
+        For a market order, True.
+        For a stop order, True IFF stop_reached.
+        For a limit order, True IFF limit_reached.
+        For a stop-limit order, True IFF (stp_reached AND limit_reached)
+        """
+        if self.stop and not self.stop_reached:
+            return False
+
+        if self.limit and not self.limit_reached:
+            return False
+
+        return True
 
     def __getitem__(self, name):
         return self.__dict__[name]
@@ -82,17 +200,19 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, sim_params):
+    def __init__(self, algo, sim_params, blotter=None):
 
         self.algo = algo
         self.sim_params = sim_params
 
-        self.ordering_client = TransactionSimulator()
+        if not blotter:
+            self.blotter = Blotter()
+
         self.perf_tracker = PerformanceTracker(self.sim_params)
 
         self.algo_start = self.sim_params.first_open
         self.algo_sim = AlgorithmSimulator(
-            self.ordering_client,
+            self.blotter,
             self.perf_tracker,
             self.algo,
             self.algo_start
@@ -113,7 +233,7 @@ class TradeSimulationClient(object):
         # Simulate filling any open orders made by the previous run of
         # the user's algorithm.  Fills the Transaction field on any
         # event that results in a filled order.
-        with_filled_orders = self.ordering_client.transform(stream_in)
+        with_filled_orders = self.blotter.transform(stream_in)
 
         # Pipe the events with transactions to perf. This will remove
         # the TRANSACTION field added by TransactionSimulator and replace it
@@ -143,7 +263,7 @@ class AlgorithmSimulator(object):
     }
 
     def __init__(self,
-                 order_book,
+                 blotter,
                  perf_tracker,
                  algo,
                  algo_start):
@@ -154,7 +274,7 @@ class AlgorithmSimulator(object):
 
         # We extract the order book from the txn client so that
         # the algo can place new orders.
-        self.order_book = order_book
+        self.blotter = blotter
         self.perf_tracker = perf_tracker
 
         self.perf_key = self.EMISSION_TO_PERF_KEY_MAP[
@@ -230,13 +350,10 @@ class AlgorithmSimulator(object):
 
         # Add non-zero orders to the order book.
         # !!!IMPORTANT SIDE-EFFECT!!!
-        # This modifies the internal state of the transaction
-        # simulator so that it can fill the placed order when it
+        # This modifies the internal state of the blotter
+        # so that it can fill the placed order when it
         # receives its next message.
-        err_str = self.order_book.place_order(order)
-        if err_str is not None and len(err_str) > 0:
-            # error, trade was not placed, log it out
-            log.debug(err_str)
+        self.blotter.place_order(order)
 
     def transform(self, stream_in):
         """

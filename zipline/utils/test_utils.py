@@ -73,7 +73,6 @@ def drain_zipline(test, zipline):
 
 
 def assert_single_position(test, zipline):
-
     output, transaction_count = drain_zipline(test, zipline)
 
     if 'expected_transactions' in test.zipline_test_config:
