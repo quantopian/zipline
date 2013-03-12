@@ -176,7 +176,7 @@ class FixedSlippage(object):
         if np.allclose(amount, 0):
             return
 
-        direction = amount / math.fabs(amount)
+        direction = math.copysign(1, amount)
 
         txn = create_transaction(
             event.sid,
