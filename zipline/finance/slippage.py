@@ -108,7 +108,7 @@ class VolumeShareSlippage(object):
             open_amount = order.amount - order.filled
 
             if(open_amount != 0):
-                direction = open_amount / math.fabs(open_amount)
+                direction = math.copysign(1, open_amount)
             else:
                 direction = 1
 
