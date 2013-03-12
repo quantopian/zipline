@@ -107,10 +107,27 @@ class VolumeShareSlippage(object):
 
             open_amount = order.amount - order.filled
 
-            if(open_amount != 0):
-                direction = open_amount / math.fabs(open_amount)
-            else:
-                direction = 1
+            if open_amount == 0:
+                continue
+
+            direction = open_amount / math.fabs(open_amount)
+
+            # if the stop price is reached, simply set stop to None
+            # othrewise we skip this order with a continue
+            if ('stop' in dir(order) and order.stop is not None):
+                if (direction * (event.price - order.stop) < 0):
+                    # convert stop -> limit or market
+                    order.stop = None
+                else:
+                    continue
+
+            # if the limit price is reached, we execute this order at
+            # (event.price + simulated_impact)
+            # we skip this order with a continue when the limit is not reached
+            if 'limit' in dir(order) and order.limit is not None:
+                # if limit conditions not met, then continue
+                if (direction * (event.price - order.limit) > 0):
+                    continue
 
             desired_order = total_order + open_amount
 
@@ -145,6 +162,8 @@ class VolumeShareSlippage(object):
             return create_transaction(
                 event.sid,
                 simulated_amount,
+                # In the future, we may want to change the next line
+                # for limit pricing
                 event.price + simulated_impact,
                 dt.replace(tzinfo=pytz.utc),
             )
@@ -168,13 +187,33 @@ class FixedSlippage(object):
             return None
 
         amount = 0
+        direction = 1.0
         for order in orders:
+            # what if we have 2 orders, one for 100 shares long,
+            # and one for 100 shares short
+            # such as in a hedging scenario?
             amount += order.amount
+            direction = amount / math.fabs(amount)
+
+            # if the stop price is reached, simply set stop to None
+            # othrewise we skip this order with a continue
+            if ('stop' in dir(order) and order.stop is not None):
+                if (direction * (event.price - order.stop) < 0):
+                    # convert stop -> limit or market
+                    order.stop = None
+                else:
+                    continue
+
+            # if the limit price is reached, we execute this order at
+            # (event.price + simulated_impact)
+            # we skip this order with a continue when the limit is not reached
+            if ('limit' in dir(order) and order.limit is not None):
+                # if limit conditions not met, then continue
+                if (direction * (event.price - order.limit) > 0):
+                    continue
 
         if(amount == 0):
             return
-
-        direction = amount / math.fabs(amount)
 
         txn = create_transaction(
             event.sid,
