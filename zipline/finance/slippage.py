@@ -19,6 +19,8 @@ import math
 
 from functools import partial
 
+import numpy as np
+
 from logbook import Processor
 
 
@@ -82,7 +84,7 @@ class VolumeShareSlippage(object):
 
     def simulate(self, event, open_orders):
 
-        if(event.volume == 0):
+        if np.allclose(event.volume, 0):
             #there are zero volume events bc some stocks trade
             #less frequently than once per minute.
             return None
@@ -107,7 +109,7 @@ class VolumeShareSlippage(object):
 
             open_amount = order.amount - order.filled
 
-            if(open_amount != 0):
+            if not np.allclose(open_amount, 0):
                 direction = math.copysign(1, open_amount)
             else:
                 direction = 1
@@ -117,7 +119,7 @@ class VolumeShareSlippage(object):
             volume_share = min(direction * (desired_order) / event.volume,
                                self.volume_limit)
 
-            if volume_share == self.volume_limit:
+            if np.allclose(volume_share, self.volume_limit):
                 simulated_amount = \
                     int(self.volume_limit * event.volume * direction)
             else:
@@ -132,7 +134,7 @@ class VolumeShareSlippage(object):
             total_order = simulated_amount
 
             # we cap the volume share at configured % of a trade
-            if volume_share == self.volume_limit:
+            if np.allclose(volume_share, self.volume_limit):
                 break
 
         filled_orders = [x for x in orders
@@ -171,7 +173,7 @@ class FixedSlippage(object):
         for order in orders:
             amount += order.amount
 
-        if(amount == 0):
+        if np.allclose(amount, 0):
             return
 
         direction = amount / math.fabs(amount)
