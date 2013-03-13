@@ -103,7 +103,6 @@ class VolumeShareSlippage(object):
         total_order = 0
         simulated_amount = 0
         simulated_impact = 0.0
-        direction = 1.0
 
         for order in current_orders:
 
