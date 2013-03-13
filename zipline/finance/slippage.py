@@ -36,7 +36,7 @@ def transact_stub(slippage, commission, event, open_orders):
     with Processor(inject_algo_dt).threadbound():
 
         transaction = slippage.simulate(event, open_orders)
-        if transaction and transaction.amount != 0:
+        if transaction and np.allclose(transaction.amount, 0):
             direction = abs(transaction.amount) / transaction.amount
             per_share, total_commission = commission.calculate(transaction)
             transaction.price = transaction.price + (per_share * direction)
