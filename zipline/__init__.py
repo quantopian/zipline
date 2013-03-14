@@ -12,10 +12,17 @@ import finance
 import gens
 import utils
 
+from algorithm import TradingAlgorithm
+from utils.factory import (load_from_yahoo,
+                           load_bars_from_yahoo)
+
 __all__ = [
     'ndict',
     'data',
     'finance',
     'gens',
-    'utils'
+    'utils',
+    'TradingAlgorithm',
+    'load_from_yahoo',
+    'load_bars_from_yahoo'
 ]
