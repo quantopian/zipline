@@ -12,10 +12,13 @@ import finance
 import gens
 import utils
 
+from algorithm import TradingAlgorithm
+
 __all__ = [
     'ndict',
     'data',
     'finance',
     'gens',
-    'utils'
+    'utils',
+    'TradingAlgorithm'
 ]
