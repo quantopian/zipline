@@ -8,7 +8,7 @@ blist==1.3.4
 
 # Scientific Libraries
 
-pytz==2012j
+pytz==2013b
 numpy==1.7.0
 
 pandas==0.10.1
