@@ -1,4 +1,4 @@
-#
+    #
 # Copyright 2012 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ from math import sqrt
 
 import numpy as np
 
+from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
@@ -73,6 +74,16 @@ class MovingStandardDev(object):
         window.update(event)
         return window.get_stddev()
 
+    def assert_required_fields(self, event):
+        """
+        We only allow events with a price field to be run through
+        the returns transform.
+        """
+        if 'price' not in event or not isinstance(event['price'], Number):
+                raise WrongDataForTransform(
+                    transform="StdDevEventWindow",
+                    fields='price')
+
 
 class MovingStandardDevWindow(EventWindow):
     """
@@ -90,14 +101,10 @@ class MovingStandardDevWindow(EventWindow):
         self.sum_sqr = 0.0
 
     def handle_add(self, event):
-        assert isinstance(event.price, Number)
-
         self.sum += event.price
         self.sum_sqr += event.price ** 2
 
     def handle_remove(self, event):
-        assert isinstance(event.price, Number)
-
         self.sum -= event.price
         self.sum_sqr -= event.price ** 2
 
