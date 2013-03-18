@@ -23,6 +23,12 @@ from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
 
+from zipline.errors import (
+    UnsupportedSlippageModel,
+    OverrideSlippagePostInit,
+    UnsupportedCommissionModel,
+    OverrideCommissionPostInit
+)
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
 from zipline.transforms.utils import StatefulTransform
@@ -40,7 +46,6 @@ from zipline.gens.composites import (
     alias_dt
 )
 from zipline.gens.tradesimulation import TradeSimulationClient as tsc
-from zipline import MESSAGES
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -319,18 +324,18 @@ class TradingAlgorithm(object):
         self.trading_client.ordering_client.transact = transact
 
     def set_slippage(self, slippage):
-        assert isinstance(slippage, (VolumeShareSlippage, FixedSlippage)), \
-            MESSAGES.ERRORS.UNSUPPORTED_SLIPPAGE_MODEL
+        if not isinstance(slippage, (VolumeShareSlippage, FixedSlippage)):
+            raise UnsupportedSlippageModel()
         if self.initialized:
-            raise Exception(MESSAGES.ERRORS.OVERRIDE_SLIPPAGE_POST_INIT)
+            raise OverrideSlippagePostInit()
         self.slippage = slippage
 
     def set_commission(self, commission):
-        assert isinstance(commission, (PerShare, PerTrade)), \
-            MESSAGES.ERRORS.UNSUPPORTED_COMMISSION_MODEL
+        if not isinstance(commission, (PerShare, PerTrade)):
+            raise UnsupportedCommissionModel()
 
         if self.initialized:
-            raise Exception(MESSAGES.ERRORS.OVERRIDE_COMMISSION_POST_INIT)
+            raise OverrideCommissionPostInit()
         self.commission = commission
 
     def set_sources(self, sources):
