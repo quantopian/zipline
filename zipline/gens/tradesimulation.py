@@ -28,10 +28,19 @@ log = Logger('Trade Simulation')
 
 
 class Order(object):
-
-    def __init__(self, initial_values=None):
-        if initial_values:
-            self.__dict__ = initial_values
+    def __init__(self, dt, sid, amount, filled=0):
+        """
+        @dt - datetime.datetime that the order was placed
+        @sid - stock sid of the order
+        @amount - the number of shares to buy/sell
+                  a positive sign indicates a buy
+                  a negative sign indicates a sell
+        @filled - how many shares of the order have been filled so far
+        """
+        self.dt = dt
+        self.sid = sid
+        self.amount = amount
+        self.filled = filled
 
 
 class TradeSimulationClient(object):
@@ -177,7 +186,7 @@ class AlgorithmSimulator(object):
         Closure to pass into the user's algo to allow placing orders
         into the transaction simulator's dict of open orders.
         """
-        order = Order({
+        order = Order(**{
             'dt': self.simulation_dt,
             'sid': sid,
             'amount': int(amount),

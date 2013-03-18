@@ -52,10 +52,11 @@ class SlippageTestCase(TestCase):
         slippage_model = VolumeShareSlippage()
 
         open_orders = {133: [
-            Order(
-                {'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                 'amount': 100,
-                 'filled': 0, 'sid': 133})
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'filled': 0,
+                'sid': 133})
         ]}
 
         txn = slippage_model.simulate(
