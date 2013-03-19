@@ -82,7 +82,6 @@ class TradingAlgorithm(object):
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
-        self.done = False
         self.order = None
         self.frame_count = 0
         self._portfolio = None
