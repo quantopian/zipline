@@ -1,11 +1,23 @@
+#
+# Copyright 2012 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 class ZiplineError(Exception):
     msg = None
 
     def __init__(self, *args, **kwargs):
-        self.lineno = kwargs.get('lineno', None)
-        self.offset = kwargs.get('offset', None)
-        self.file = kwargs.get('file', None)
-
         self.args = args
         self.kwargs = kwargs
         self.message = str(self)
@@ -49,9 +61,11 @@ method.
 
 
 class UnsupportedCommissionModel(ZiplineError):
-    # Raised if a user script calls the override_commission magic
-    # with a commission object that isn't a PerShare or
-    # PerTrade commission
+    """
+    Raised if a user script calls the override_commission magic
+    with a commission object that isn't a PerShare or
+    PerTrade commission
+    """
     msg = """
 You attempted to override commission with an unsupported class. \
 Please use PerShare or PerTrade.
@@ -59,8 +73,10 @@ Please use PerShare or PerTrade.
 
 
 class OverrideCommissionPostInit(ZiplineError):
-    # Raised if a users script calls override_commission magic
-    # after the initialize method has returned.
+    """
+    Raised if a users script calls override_commission magic
+    after the initialize method has returned.
+    """
     msg = """
 You attempted to override commission after the simulation has \
 started. You may only call override_commission in your initialize \

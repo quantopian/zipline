@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from numbers import Number
 from collections import defaultdict
 
 from zipline.errors import WrongDataForTransform
@@ -101,11 +99,7 @@ class VWAPEventWindow(EventWindow):
 
     # We need numerical price and volume to calculate a vwap.
     def assert_required_fields(self, event):
-        has_fields = 'price' in event and 'volume' in event
-        if not has_fields or \
-            not isinstance(event.price, Number) or \
-                not isinstance(event.volume, Number):
-
+        if 'price' not in event or 'volume' not in event:
             raise WrongDataForTransform(
                 transform="VWAPEventWindow",
                 fields=self.fields)

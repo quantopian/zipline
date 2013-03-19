@@ -1,4 +1,4 @@
-    #
+#
 # Copyright 2012 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numbers import Number
 from collections import defaultdict
 from math import sqrt
 
@@ -79,7 +78,7 @@ class MovingStandardDev(object):
         We only allow events with a price field to be run through
         the returns transform.
         """
-        if 'price' not in event or not isinstance(event['price'], Number):
+        if 'price' not in event:
                 raise WrongDataForTransform(
                     transform="StdDevEventWindow",
                     fields='price')

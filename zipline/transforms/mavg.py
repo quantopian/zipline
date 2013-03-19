@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numbers import Number
 from collections import defaultdict
 
 from zipline.transforms.utils import EventWindow, TransformMeta
@@ -154,7 +153,7 @@ class MovingAverageEventWindow(EventWindow):
         We only allow events with all of our tracked fields.
         """
         for field in self.fields:
-            if field not in event or not isinstance(event[field], Number):
+            if field not in event:
                 raise WrongDataForTransform(
                     transform="MovingAverageEventWindow",
                     fields=self.fields)

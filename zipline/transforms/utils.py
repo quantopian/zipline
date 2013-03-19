@@ -362,25 +362,23 @@ class BatchTransform(EventWindow):
         self.clean_nans = clean_nans
         self.compute_only_full = compute_only_full
 
-        if sids:
-            self.initial_sids = sids
-        else:
-            self.initial_sids = None
-
         # The following logic is to allow pre-specified sid filters
         # to operate on the data, but to also allow new symbols to
         # enter the batch transform's window IFF a sid filter is not
         # specified.
-        if isinstance(self.initial_sids, (basestring, Integral)):
-            self.initial_sids = [self.initial_sids]
-
-        if self.initial_sids:
-            self.initial_sids = set(self.initial_sids)
-
         self.sids = None
+        if sids:
+            self.static_sids = True
+            self.sids = sids
+            if isinstance(sids, (basestring, Integral)):
+                self.sids = set([sids])
+            else:
+                self.sids = set(sids)
+        else:
+            self.static_sids = False
 
         self.initial_field_names = fields
-        if isinstance(self.initial_field_names, str):
+        if isinstance(self.initial_field_names, basestring):
             self.initial_field_names = [self.initial_field_names]
         self.field_names = set()
 
@@ -473,13 +471,12 @@ class BatchTransform(EventWindow):
         else:
             self.field_names = self.initial_field_names
 
-        if self.initial_sids:
-            self.sids = self.initial_sids
-        elif self.sids:
-            event_sids = set(event.data.keys())
-            self.sids = set.union(self.sids, event_sids)
-        else:
-            self.sids = set(event.data.keys())
+        if not self.static_sids:
+            if self.sids:
+                event_sids = set(event.data.keys())
+                self.sids = set.union(self.sids, event_sids)
+            else:
+                self.sids = set(event.data.keys())
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
