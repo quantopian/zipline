@@ -273,7 +273,6 @@ class AlgorithmSimulator(object):
         # of the event data sent to handle_data. To avoid
         # confusion, we remove it from the event here.
         del event.portfolio
-
         # Update our knowledge of this event's sid
         sid_data = self.universe[event.sid]
         sid_data.__dict__.update(event.__dict__)

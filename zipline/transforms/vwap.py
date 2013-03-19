@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from numbers import Number
 from collections import defaultdict
 
+from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
@@ -100,5 +99,7 @@ class VWAPEventWindow(EventWindow):
 
     # We need numerical price and volume to calculate a vwap.
     def assert_required_fields(self, event):
-        assert isinstance(event.price, Number)
-        assert isinstance(event.volume, Number)
+        if 'price' not in event or 'volume' not in event:
+            raise WrongDataForTransform(
+                transform="VWAPEventWindow",
+                fields=self.fields)
