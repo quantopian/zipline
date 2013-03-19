@@ -13,10 +13,10 @@ numpy==1.7.0
 
 pandas==0.10.1
 python-dateutil==2.1
-six==1.2.0
+six==1.3.0
 
 # For fetching remote data
 requests==1.1.0
 
 # For remaining sane when coping with dates
-delorean==0.1.6
+delorean==0.2.0
