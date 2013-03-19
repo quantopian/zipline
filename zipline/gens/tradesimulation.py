@@ -160,6 +160,7 @@ class AlgorithmSimulator(object):
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
         self.algo.set_order(self.order)
+        self.algo.set_order_value(self.order_value)
 
         # ==============
         # Snapshot Setup
@@ -229,6 +230,17 @@ class AlgorithmSimulator(object):
         if err_str is not None and len(err_str) > 0:
             # error, trade was not placed, log it out
             log.debug(err_str)
+
+    def order_value(self, sid, value):
+        """
+        Place an order by desired value rather than desired number of shares.
+        If the requested sid is found in the universe, the requested value is
+        divided by its price to imply the number of shares to transact.
+        """
+        last_price = self.universe[sid].price
+        if last_price != 0:
+            amount = value / last_price
+            self.order(sid, amount)
 
     def transform(self, stream_in):
         """
