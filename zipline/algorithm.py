@@ -185,24 +185,28 @@ class TradingAlgorithm(object):
         elif isinstance(source, pd.Panel):
             source = DataPanelSource(source)
 
-        # If values not set, try to extract from source.
-        if self.sim_params is None and sim_params is None:
-            start = source.start
-            end = source.end
-
         if not isinstance(source, (list, tuple)):
             self.sources = [source]
         else:
             self.sources = source
 
-        if sim_params:
-            self.sim_params = sim_params
-        else:
-            self.sim_params = create_simulation_parameters(
-                start=start,
-                end=end,
-                capital_base=self.capital_base
-            )
+        # Check for override of sim_params.
+        # If it isn't passed to this function,
+        # use the default params set with the algorithm.
+        # Else, we create simulation parameters using the start and end of the
+        # source provided.
+        if not sim_params:
+            if not self.sim_params:
+                start = source.start
+                end = source.end
+
+                sim_params = create_simulation_parameters(
+                    start=start,
+                    end=end,
+                    capital_base=self.capital_base
+                )
+            else:
+                sim_params = self.sim_params
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -217,7 +221,7 @@ class TradingAlgorithm(object):
             self.transforms.append(sf)
 
         # create transforms and zipline
-        self.gen = self._create_generator(self.sim_params)
+        self.gen = self._create_generator(sim_params)
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary
