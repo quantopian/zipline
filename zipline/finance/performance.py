@@ -148,14 +148,7 @@ log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
     """
-    Tracks the performance of the zipline as it is running in
-    the simulator, relays this out to the Deluge broker and then
-    to the client. Visually:
-
-        +--------------------+   Result Stream   +--------+
-        | PerformanceTracker | ----------------> | Deluge |
-        +--------------------+                   +--------+
-
+    Tracks the performance of the algorithm.
     """
 
     def __init__(self, sim_params):
