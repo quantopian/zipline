@@ -13,7 +13,17 @@
 
 set -e
 
+# stash everything that wasn't just staged
+# so that we are only testing the staged code
+git stash -q --keep-index
+
 # Run flake8 linting
 flake8 zipline tests
 # Run unit tests
 nosetests -x
+
+# restore unstaged code
+# N.B. this won't run if linting or unit tests fail
+# But if either fail, it's probably best to have only the offending
+# staged commits 'active', anyway.
+git stash pop -q
