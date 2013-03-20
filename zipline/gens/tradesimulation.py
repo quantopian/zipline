@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import numpy as np
 from logbook import Logger, Processor
 from collections import defaultdict
 
@@ -186,7 +186,7 @@ class AlgorithmSimulator(object):
         })
 
         # Tell the user if they try to buy 0 shares of something.
-        if order.amount == 0:
+        if np.allclose(order.amount, 0):
             zero_message = "Requested to trade zero shares of {sid}".format(
                 sid=order.sid
             )
@@ -208,7 +208,7 @@ class AlgorithmSimulator(object):
         divided by its price to imply the number of shares to transact.
         """
         last_price = self.universe[sid].price
-        if last_price != 0:
+        if not np.allclose(last_price, 0):
             amount = value / last_price
             self.order(sid, amount)
 
