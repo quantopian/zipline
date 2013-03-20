@@ -83,7 +83,6 @@ class TradingAlgorithm(object):
                How much capital to start with.
         """
         self.order = None
-        self.frame_count = 0
         self._portfolio = None
         self.datetime = None
 
