@@ -124,8 +124,7 @@ def BBANDS(timeperiod=5, nbdevup=2, nbdevdn=2, matype=0, refresh_period=1):
         data_dict = _data_to_dict(data, sid)
         transform = talib.abstract.BBANDS(data_dict, timeperiod)
         return tuple([t[-1] for t in transform])
-    transform = BatchTransform(func=talib_transform,
-                               refresh_period=refresh_period,
-                               window_length=timeperiod)
-    return transform
-
+    upper, middle, lower = BatchTransform(func=talib_transform,
+                                          refresh_period=refresh_period,
+                                          window_length=timeperiod)
+    return upper, middle, lower
