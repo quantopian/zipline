@@ -317,10 +317,6 @@ class TradingAlgorithm(object):
             "Algorithm should have a utc datetime"
         return date_copy
 
-    def init(self, *args, **kwargs):
-        """Called from constructor."""
-        pass
-
     def set_transact(self, transact):
         """
         Set the method that will be called to create a
