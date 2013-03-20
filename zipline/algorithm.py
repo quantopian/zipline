@@ -197,8 +197,7 @@ class TradingAlgorithm(object):
 
         if sim_params:
             self.sim_params = sim_params
-
-        if not self.sim_params:
+        else:
             self.sim_params = create_simulation_parameters(
                 start=start,
                 end=end,
