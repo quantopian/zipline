@@ -223,7 +223,7 @@ class TradingAlgorithm(object):
         # perf dictionary
         perfs = list(self.gen)
 
-        # convert perf ndict to pandas dataframe
+        # convert perf dict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
 
         return daily_stats
