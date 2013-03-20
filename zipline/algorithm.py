@@ -84,7 +84,6 @@ class TradingAlgorithm(object):
         """
         self.order = None
         self.order_value = None
-        self.frame_count = 0
         self._portfolio = None
         self.datetime = None
 
