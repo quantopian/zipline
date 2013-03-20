@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -97,7 +97,6 @@ class TestAlgorithm(TradingAlgorithm):
             self.sid_filter = [self.sid]
 
     def handle_data(self, data):
-        self.frame_count += 1
         #place an order for 100 shares of sid
         if self.incr < self.count:
             self.order(self.sid, self.amount)
@@ -117,7 +116,6 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
         self.incr = 0
 
     def handle_data(self, data):
-        self.frame_count += 1
         #place an order for 100 shares of sid
         self.order(self.sid, self.amount)
         self.incr += 1
