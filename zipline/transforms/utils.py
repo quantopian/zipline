@@ -19,6 +19,7 @@ Generator versions of transforms.
 """
 import types
 import logbook
+import numpy
 
 from copy import deepcopy
 from datetime import datetime
@@ -447,7 +448,13 @@ class BatchTransform(EventWindow):
         sid_keys = []
         for sid in event.data.itervalues():
             keys = set([name for name, value in sid.items()
-                        if (isinstance(value, (int, float)))])
+                        if isinstance(value,
+                                      (int,
+                                       float,
+                                       numpy.integer,
+                                       numpy.float,
+                                       numpy.long))
+                        ])
             sid_keys.append(keys)
 
         # with CUSTOM data events, there may be different fields
