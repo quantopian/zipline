@@ -133,8 +133,6 @@ omitted).
 """
 
 import logbook
-import datetime
-import pytz
 import math
 
 import numpy as np
@@ -154,7 +152,6 @@ class PerformanceTracker(object):
     def __init__(self, sim_params):
 
         self.sim_params = sim_params
-        self.started_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
@@ -230,7 +227,6 @@ class PerformanceTracker(object):
         Returns a dict object of the form described in header comments.
         """
         return {
-            'started_at': self.started_at,
             'period_start': self.period_start,
             'period_end': self.period_end,
             'progress': self.progress,
