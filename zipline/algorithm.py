@@ -220,7 +220,7 @@ class TradingAlgorithm(object):
         self.gen = self._create_generator(self.sim_params)
 
         # loop through simulated_trading, each iteration returns a
-        # perf ndict
+        # perf dictionary
         perfs = list(self.gen)
 
         # convert perf ndict to pandas dataframe
