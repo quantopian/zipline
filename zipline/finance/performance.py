@@ -177,7 +177,6 @@ class PerformanceTracker(object):
         self.returns = []
         self.txn_count = 0
         self.event_count = 0
-        self.last_dict = None
         self.cumulative_risk_metrics = \
             risk.RiskMetricsIterative(self.period_start)
 
