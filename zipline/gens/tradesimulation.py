@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import itertools
 
 from logbook import Logger, Processor
 from collections import defaultdict
@@ -234,16 +234,20 @@ class AlgorithmSimulator(object):
         """
         Main generator work loop.
         """
+        # Set the simulation date to be the first event we see.
+        peek_date, peek_snapshot = next(stream_in)
+        self.simulation_dt = peek_date
+
+        # Stitch back together the generator by placing the peeked
+        # event back in front
+        stream = itertools.chain([(peek_date, peek_snapshot)],
+                                 stream_in)
+
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
 
-            for date, snapshot in stream_in:
-                # Set the simulation date to be the first event we see.
-                # This should only occur once, at the start of the test.
-                if self.simulation_dt is None:
-                    self.simulation_dt = date
-
+            for date, snapshot in stream:
                 # We're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
