@@ -131,13 +131,13 @@ class TradingAlgorithm(object):
         self.with_alias_dt = alias_dt(self.with_tnfms)
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
-        self.grouped_by_date = groupby(self.with_alias_dt, attrgetter('dt'))
+        self.grouped_by_dt = groupby(self.with_alias_dt, attrgetter('dt'))
         self.trading_client = tsc(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
 
-        return self.trading_client.simulate(self.grouped_by_date)
+        return self.trading_client.simulate(self.grouped_by_dt)
 
     def get_generator(self):
         """
