@@ -215,7 +215,7 @@ class PerformanceTracker(object):
 
                     new_snapshot.append(event)
 
-            if len(new_snapshot) > 0:
+            if new_snapshot:
                 yield date, new_snapshot
 
     def get_portfolio(self):
