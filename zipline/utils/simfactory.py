@@ -76,8 +76,8 @@ def create_test_zipline(**config):
             test_algo.sim_params,
             concurrent=concurrent_trades
         )
-
-    test_algo.set_sources([trade_source])
+    if trade_source:
+        test_algo.set_sources([trade_source])
 
     #-------------------
     # Transforms
