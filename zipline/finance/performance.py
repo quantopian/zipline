@@ -33,8 +33,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | progress        | percentage of test completed                       |
     +-----------------+----------------------------------------------------+
-    | started_at      | datetime in utc marking the start of this test     |
-    +-----------------+----------------------------------------------------+
     | capital_base    | The initial capital assumed for this tracker.      |
     +-----------------+----------------------------------------------------+
     | cumulative_perf | A dictionary representing the cumulative           |
@@ -133,8 +131,6 @@ omitted).
 """
 
 import logbook
-import datetime
-import pytz
 import math
 
 import numpy as np
@@ -148,20 +144,12 @@ log = logbook.Logger('Performance')
 
 class PerformanceTracker(object):
     """
-    Tracks the performance of the zipline as it is running in
-    the simulator, relays this out to the Deluge broker and then
-    to the client. Visually:
-
-        +--------------------+   Result Stream   +--------+
-        | PerformanceTracker | ----------------> | Deluge |
-        +--------------------+                   +--------+
-
+    Tracks the performance of the algorithm.
     """
 
     def __init__(self, sim_params):
 
         self.sim_params = sim_params
-        self.started_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
@@ -177,7 +165,6 @@ class PerformanceTracker(object):
         self.returns = []
         self.txn_count = 0
         self.event_count = 0
-        self.last_dict = None
         self.cumulative_risk_metrics = \
             risk.RiskMetricsIterative(self.period_start)
 
@@ -226,7 +213,7 @@ class PerformanceTracker(object):
 
                     new_snapshot.append(event)
 
-            if len(new_snapshot) > 0:
+            if new_snapshot:
                 yield date, new_snapshot
 
     def get_portfolio(self):
@@ -238,7 +225,6 @@ class PerformanceTracker(object):
         Returns a dict object of the form described in header comments.
         """
         return {
-            'started_at': self.started_at,
             'period_start': self.period_start,
             'period_end': self.period_end,
             'progress': self.progress,
