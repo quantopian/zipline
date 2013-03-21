@@ -33,8 +33,6 @@ Performance Tracking
     +-----------------+----------------------------------------------------+
     | progress        | percentage of test completed                       |
     +-----------------+----------------------------------------------------+
-    | started_at      | datetime in utc marking the start of this test     |
-    +-----------------+----------------------------------------------------+
     | capital_base    | The initial capital assumed for this tracker.      |
     +-----------------+----------------------------------------------------+
     | cumulative_perf | A dictionary representing the cumulative           |
