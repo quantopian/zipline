@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ except ImportError:
 
 setup(
     name='zipline',
-    version='0.5.6',
+    version='0.5.7',
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
