@@ -44,11 +44,11 @@ class TestRollingPanel(unittest.TestCase):
             tm.assert_panel_equal(result, expected.swapaxes(0, 1))
 
 
-def f(option='clever'):
+def f(option='clever', n=500, copy=False):
     items = range(5)
     minor = range(20)
     window = 100
-    periods = 200
+    periods = n
 
     dates = pd.date_range('2000-01-01', periods=periods, tz='utc')
     frames = {}
@@ -72,6 +72,8 @@ def f(option='clever'):
                 del frames[major_deque.popleft()]
 
             result = rp.get_current()
+            if copy:
+                result = result.copy()
     else:
         major_deque = deque()
         dummy = pd.DataFrame(np.random.randn(len(items), len(minor)),
