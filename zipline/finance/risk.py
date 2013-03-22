@@ -67,6 +67,7 @@ import numpy.linalg as la
 import zipline.finance.trading as trading
 from zipline.utils.date_utils import epoch_now
 
+import pandas as pd
 
 log = logbook.Logger('Risk')
 
@@ -205,21 +206,18 @@ class RiskMetricsBase(object):
         return '\n'.join(statements)
 
     def calculate_period_returns(self, daily_returns):
+        returns = pd.Series([x.returns for x in daily_returns],
+                            index=[x.date for x in daily_returns])
 
-        #TODO: replace this with pandas.
-        returns = [
-            x.returns for x in daily_returns
-            if x.date >= self.start_date and
-            x.date <= self.end_date and
-            trading.environment.is_trading_day(x.date)
-        ]
+        trade_days = trading.environment.trading_days
+        trade_day_mask = returns.index.normalize().isin(trade_days)
 
-        period_returns = 1.0
+        mask = ((returns.index >= self.start_date) &
+                (returns.index <= self.end_date) & trade_day_mask)
 
-        for r in returns:
-            period_returns = period_returns * (1.0 + r)
+        returns = returns[mask]
+        period_returns = (1. + returns).prod() - 1
 
-        period_returns = period_returns - 1.0
         return period_returns, returns
 
     def calculate_volatility(self, daily_returns):
@@ -245,11 +243,9 @@ class RiskMetricsBase(object):
         if mar is None:
             mar = self.treasury_period_return
 
-        downside = [
-            (x - mar)**2
-            for x in self.algorithm_returns
-            if x < mar]
-        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
+        rets = self.algorithm_returns.values
+        downside = (rets[rets < mar] - mar) ** 2
+        dr = np.sqrt(downside.sum() / len(rets))
 
         if dr < 0.000001:
             return 0.0
@@ -260,13 +256,9 @@ class RiskMetricsBase(object):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
+        relative_returns = self.algorithm_returns - self.benchmark_returns
 
-        relative_returns = [
-            r - b
-            for r, b
-            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
-
-        relative_deviation = np.std(relative_returns, ddof=1)
+        relative_deviation = relative_returns.std(ddof=1)
 
         if relative_deviation < 0.000001 or np.isnan(relative_deviation):
             return 0.0
@@ -647,34 +639,28 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         if mar is None:
             mar = self.treasury_period_return
 
-        downside = [
-            (x - mar)**2
-            for x in self.algorithm_returns
-            if x < mar]
-        dr = float(math.sqrt(sum(downside) / len(self.algorithm_returns)))
+        rets = np.array(self.algorithm_returns)
+        downside = (rets[rets < mar] - mar) ** 2
+        dr = np.sqrt(downside.sum() / len(rets))
 
         if dr < 0.000001:
             return 0.0
 
-        return ((self.algorithm_period_returns[-1] - mar) /
-                dr)
+        return ((self.algorithm_period_returns[-1] - mar) / dr)
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
+        A = np.array
+        relative = A(self.algorithm_returns) - A(self.benchmark_returns)
 
-        relative_returns = [
-            r - b
-            for r, b
-            in itertools.izip(self.algorithm_returns, self.benchmark_returns)]
-
-        relative_deviation = np.std(relative_returns, ddof=1)
+        relative_deviation = relative.std(ddof=1)
 
         if relative_deviation < 0.000001 or np.isnan(relative_deviation):
             return 0.0
 
-        return np.mean(relative_returns) / relative_deviation
+        return relative.mean() / relative_deviation
 
     def calculate_alpha(self):
         """
@@ -691,11 +677,7 @@ class RiskMetricsBatch(RiskMetricsBase):
 
 
 class RiskReport(object):
-    def __init__(
-        self,
-        algorithm_returns,
-        sim_params
-    ):
+    def __init__(self, algorithm_returns, sim_params):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
@@ -713,8 +695,8 @@ class RiskReport(object):
             end_date = self.algorithm_returns[-1].date
 
         self.month_periods = self.periods_in_range(1, start_date, end_date)
-        self.three_month_periods = self.periods_in_range(
-            3, start_date, end_date)
+        self.three_month_periods = self.periods_in_range(3, start_date,
+                                                         end_date)
         self.six_month_periods = self.periods_in_range(6, start_date, end_date)
         self.year_periods = self.periods_in_range(12, start_date, end_date)
 
