@@ -48,7 +48,10 @@ Installation
 Since zipline is pure-python code it should be very easy to install
 and set up with pip:
 
-```pip install zipline```
+```
+pip install numpy   # Pre-install numpy to handle dependency chain quirk
+pip install zipline
+```
 
 If there are problems installing the dependencies or zipline we
 recommend installing these packages via some other means. For Windows,
