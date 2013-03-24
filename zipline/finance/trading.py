@@ -219,7 +219,7 @@ Last successful date: %s" % self.market_open)
         # create a new Delorean with the next_open naive date and
         # the correct timezone for the exchange.
         open_delorean = Delorean(next_open, self.exchange_tz)
-        open_utc = open_delorean.shift("UTC").datetime
+        open_utc = open_delorean.shift(pytz.utc.zone).datetime
 
         market_open = open_utc
         market_close = market_open + self.get_trading_day_duration(open_utc)

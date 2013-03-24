@@ -118,14 +118,14 @@ check treasury and benchmark data in findb, and re-run the test."""
 
 def get_next_trading_dt(current, interval):
     naive = current.replace(tzinfo=None)
-    delo = Delorean(naive, "UTC")
+    delo = Delorean(naive, pytz.utc.zone)
     ex_tz = trading.environment.exchange_tz
     next_dt = delo.shift(ex_tz).datetime
 
     while True:
         next_dt = next_dt + interval
         next_delo = Delorean(next_dt.replace(tzinfo=None), ex_tz)
-        next_utc = next_delo.shift("UTC").datetime
+        next_utc = next_delo.shift(pytz.utc.zone).datetime
         if trading.environment.is_market_hours(next_utc):
             break
 
