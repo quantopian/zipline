@@ -22,8 +22,8 @@ from dateutil import rrule
 from delorean import Delorean
 
 start = datetime(1990, 1, 1, tzinfo=pytz.utc)
-end_dln = Delorean(datetime.utcnow(), 'UTC')
-end_dln.shift('US/Eastern').truncate('day').shift('UTC')
+end_dln = Delorean(datetime.utcnow(), pytz.utc.zone)
+end_dln.shift('US/Eastern').truncate('day').shift(pytz.utc.zone)
 end = end_dln.datetime - timedelta(days=1)
 
 
