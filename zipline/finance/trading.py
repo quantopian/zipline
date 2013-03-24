@@ -263,6 +263,15 @@ class SimulationParameters(object):
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
+
+        assert self.period_start <= self.period_end, \
+            "Period start falls after period end."
+
+        assert self.period_start <= environment.last_trading_day, \
+            "Period start falls after the last known trading day."
+        assert self.period_end >= environment.first_trading_day, \
+            "Period end falls before the first known trading day."
+
         self.first_open = self.calculate_first_open()
         self.last_close = self.calculate_last_close()
         start_index = \
@@ -273,14 +282,6 @@ class SimulationParameters(object):
         # trading_days.
         self.trading_days = \
             environment.trading_days[start_index:end_index + 1]
-
-        assert self.period_start <= self.period_end, \
-            "Period start falls after period end."
-
-        assert self.period_start <= environment.last_trading_day, \
-            "Period start falls after the last known trading day."
-        assert self.period_end >= environment.first_trading_day, \
-            "Period end falls before the first known trading day."
 
     def calculate_first_open(self):
         """
