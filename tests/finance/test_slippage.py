@@ -69,7 +69,8 @@ class SlippageTestCase(TestCase):
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': int(50),
-            'sid': int(133)
+            'sid': int(133),
+            'commission': None
         }
 
         self.assertIsNotNone(txn)
