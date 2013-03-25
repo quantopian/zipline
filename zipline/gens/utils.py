@@ -19,10 +19,7 @@ import numbers
 
 from hashlib import md5
 from datetime import datetime
-from zipline.protocol import (
-    DATASOURCE_TYPE,
-    Event
-)
+from zipline.protocol import DATASOURCE_TYPE
 
 
 def hash_args(*args, **kwargs):
@@ -35,25 +32,6 @@ def hash_args(*args, **kwargs):
     hasher = md5()
     hasher.update(combined)
     return hasher.hexdigest()
-
-
-def create_trade(sid, price, amount, datetime, source_id="test_factory"):
-
-    trade = Event()
-
-    trade.source_id = source_id
-    trade.type = DATASOURCE_TYPE.TRADE
-    trade.sid = sid
-    trade.dt = datetime
-    trade.price = price
-    trade.close = price
-    trade.open = price
-    trade.low = price * .95
-    trade.high = price * 1.05
-    trade.volume = amount
-    trade.TRANSACTION = None
-
-    return trade
 
 
 def assert_datasource_protocol(event):
