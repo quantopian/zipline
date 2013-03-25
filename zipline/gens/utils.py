@@ -26,16 +26,6 @@ from zipline.protocol import (
 )
 
 
-def mock_raw_event(sid, dt):
-    event = {
-        'sid': sid,
-        'dt': dt,
-        'price': 1.0,
-        'volume': 1
-    }
-    return event
-
-
 def alternate(g1, g2):
     """Specialized version of roundrobin for just 2 generators."""
     for e1, e2 in izip_longest(g1, g2):
