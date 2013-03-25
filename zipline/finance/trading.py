@@ -74,6 +74,11 @@ log = logbook.Logger('Transaction Simulator')
 environment = None
 
 
+def exchange_dt_in_utc(dt):
+    delorean = Delorean(dt, dt.tzinfo)
+    return delorean.shift(pytz.utc.zone).datetime
+
+
 class TransactionSimulator(object):
 
     def __init__(self):
@@ -253,7 +258,8 @@ Last successful date: %s" % self.market_open)
 
 class SimulationParameters(object):
     def __init__(self, period_start, period_end,
-                 capital_base=10e3):
+                 capital_base=10e3,
+                 emission_rate='daily'):
 
         global environment
         if not environment:
@@ -263,6 +269,8 @@ class SimulationParameters(object):
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
+
+        self.emission_rate = emission_rate
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."
