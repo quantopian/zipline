@@ -24,7 +24,7 @@ from operator import attrgetter
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.utils.protocol_utils import ndict
+from zipline.finance.slippage import Transaction
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -1018,7 +1018,7 @@ class TestPerformanceTracker(unittest.TestCase):
         #create a transaction for all but
         #first trade in each sid, to simulate None transaction
         if event.dt != no_txn_dt:
-            txn = ndict({
+            txn = Transaction(**{
                 'sid': event.sid,
                 'amount': -25,
                 'dt': event.dt,
