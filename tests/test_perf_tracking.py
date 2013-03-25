@@ -1030,3 +1030,43 @@ class TestPerformanceTracker(unittest.TestCase):
         event['TRANSACTION'] = txn
 
         return event
+
+    def test_minute_tracker(self):
+        """ Tests minute performance tracking."""
+        exc_tz = pytz.timezone('US/Eastern')
+        start_dt = trading.exchange_dt_in_utc(
+            datetime.datetime(2013, 3, 1, 9, 30, tzinfo=exc_tz))
+        end_dt = trading.exchange_dt_in_utc(
+            datetime.datetime(2013, 3, 1, 16, 0, tzinfo=exc_tz))
+
+        sim_params = SimulationParameters(
+            period_start=start_dt,
+            period_end=end_dt,
+            emission_rate='minute'
+        )
+        tracker = perf.PerformanceTracker(sim_params)
+
+        foo_event_1 = factory.create_trade('foo', 10.0, 20, start_dt)
+        bar_event_1 = factory.create_trade('bar', 100.0, 200, start_dt)
+        txn = Transaction(sid=foo_event_1.sid,
+                          amount=-25,
+                          dt=foo_event_1.dt,
+                          price=10.0,
+                          commission=0.50)
+        foo_event_1.TRANSACTION = txn
+
+        foo_event_2 = factory.create_trade(
+            'foo', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
+        bar_event_2 = factory.create_trade(
+            'bar', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
+
+        foo_event_3 = factory.create_trade(
+            'foo', 12.0, 30, start_dt + datetime.timedelta(minutes=2))
+
+        tracker.process_event(foo_event_1)
+        tracker.process_event(bar_event_1)
+        messages = tracker.process_event(foo_event_2)
+        tracker.process_event(bar_event_2)
+        messages += tracker.process_event(foo_event_3)
+
+        self.assertEquals(2, len(messages))
