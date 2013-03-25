@@ -31,10 +31,12 @@ from zipline.protocol import DailyReturn, Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
-from zipline.gens.utils import create_trade
 from zipline.finance.trading import SimulationParameters
 import zipline.finance.trading as trading
-from zipline.sources.test_source import date_gen
+from zipline.sources.test_source import (
+    date_gen,
+    create_trade
+)
 
 
 def create_simulation_parameters(year=2006, start=None, end=None,
