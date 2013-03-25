@@ -19,20 +19,10 @@ import numbers
 
 from hashlib import md5
 from datetime import datetime
-from itertools import izip_longest
 from zipline.protocol import (
     DATASOURCE_TYPE,
     Event
 )
-
-
-def alternate(g1, g2):
-    """Specialized version of roundrobin for just 2 generators."""
-    for e1, e2 in izip_longest(g1, g2):
-        if e1 is not None:
-            yield e1
-        if e2 is not None:
-            yield e2
 
 
 def hash_args(*args, **kwargs):
