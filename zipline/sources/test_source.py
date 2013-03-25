@@ -23,8 +23,31 @@ from itertools import cycle, ifilter, izip
 from datetime import datetime, timedelta
 import numpy as np
 
-from zipline.gens.utils import hash_args, create_trade
+from zipline.protocol import (
+    Event,
+    DATASOURCE_TYPE
+)
+from zipline.gens.utils import hash_args
 from zipline.utils.tradingcalendar import trading_days
+
+
+def create_trade(sid, price, amount, datetime, source_id="test_factory"):
+
+    trade = Event()
+
+    trade.source_id = source_id
+    trade.type = DATASOURCE_TYPE.TRADE
+    trade.sid = sid
+    trade.dt = datetime
+    trade.price = price
+    trade.close = price
+    trade.open = price
+    trade.low = price * .95
+    trade.high = price * 1.05
+    trade.volume = amount
+    trade.TRANSACTION = None
+
+    return trade
 
 
 def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
