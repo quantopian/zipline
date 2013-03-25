@@ -50,9 +50,12 @@ def transact_partial(slippage, commission):
 
 class Transaction(object):
 
-    def __init__(self, initial_values=None):
-        if initial_values:
-            self.__dict__ = initial_values
+    def __init__(self, sid, amount, dt, price, commission=None):
+        self.sid = sid
+        self.amount = amount
+        self.dt = dt
+        self.price = price
+        self.commission = commission
 
     def __getitem__(self, name):
         return self.__dict__[name]
@@ -67,7 +70,7 @@ def create_transaction(sid, amount, price, dt):
         'price': price,
     }
 
-    transaction = Transaction(txn)
+    transaction = Transaction(**txn)
     return transaction
 
 
