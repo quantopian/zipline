@@ -157,14 +157,8 @@ class PerformanceTracker(object):
         first_day = self.sim_params.first_open
         self.market_open, self.market_close = \
             trading.environment.get_open_and_close(first_day)
-        self.progress = 0.0
         self.total_days = self.sim_params.days_in_period
-        # one indexed so that we reach 100%
-        self.day_count = 0.0
         self.capital_base = self.sim_params.capital_base
-        self.returns = []
-        self.txn_count = 0
-        self.event_count = 0
         self.cumulative_risk_metrics = \
             risk.RiskMetricsIterative(self.period_start)
 
@@ -192,6 +186,13 @@ class PerformanceTracker(object):
             keep_transactions=True,
             serialize_positions=True
         )
+
+        self.returns = []
+        # one indexed so that we reach 100%
+        self.day_count = 0.0
+        self.txn_count = 0
+        self.event_count = 0
+        self.progress = 0.0
 
     def __repr__(self):
         return "%s(%r)" % (
