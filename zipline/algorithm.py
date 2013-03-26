@@ -20,7 +20,7 @@ import numpy as np
 
 from datetime import datetime
 
-from itertools import groupby
+from itertools import groupby, ifilter
 from operator import attrgetter
 
 from zipline.errors import (
@@ -119,13 +119,20 @@ class TradingAlgorithm(object):
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
-    def _create_generator(self, sim_params):
+    def _create_generator(self, sim_params, source_filter=None):
         """
         Create a basic generator setup using the sources and
         transforms attached to this algorithm.
+
+        ::source_filter:: is a method that receives events in date
+        sorted order, and returns True for those events that should be
+        processed by the zipline, and False for those that should be
+        skipped.
         """
 
         self.date_sorted = date_sorted_sources(*self.sources)
+        if source_filter:
+            self.date_sorted = ifilter(source_filter, self.date_sorted)
         self.with_tnfms = sequential_transforms(self.date_sorted,
                                                 *self.transforms)
         self.with_alias_dt = alias_dt(self.with_tnfms)
