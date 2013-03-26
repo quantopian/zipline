@@ -82,15 +82,15 @@ class TradeSimulationClient(object):
     is sent to the algo.
     """
 
-    def __init__(self, algo, environment):
+    def __init__(self, algo, sim_params):
 
         self.algo = algo
-        self.environment = environment
+        self.sim_params = sim_params
 
         self.ordering_client = TransactionSimulator()
-        self.perf_tracker = PerformanceTracker(self.environment)
+        self.perf_tracker = PerformanceTracker(self.sim_params)
 
-        self.algo_start = self.environment.first_open
+        self.algo_start = self.sim_params.first_open
         self.algo_sim = AlgorithmSimulator(
             self.ordering_client,
             self.perf_tracker,
