@@ -410,9 +410,6 @@ class Position(object):
             self.cost_basis = total_cost / total_shares
             self.amount = self.amount + txn.amount
 
-    def currentValue(self):
-        return self.amount * self.last_sale_price
-
     def __repr__(self):
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
         last_sale_price: {last_sale_price}"
