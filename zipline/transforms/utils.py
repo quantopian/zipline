@@ -17,6 +17,7 @@
 """
 Generator versions of transforms.
 """
+import functools
 import types
 import logbook
 import numpy
@@ -600,3 +601,55 @@ def batch_transform(func):
         return BatchTransform(*args, func=func, **kwargs)
 
     return create_window
+
+
+class iterative_batch_transform(object):
+    """Decorator to wrap a batch transform making it iterative.
+
+    This decorator will add the previous return of the transform as
+    the second argument to the transform function. If this is the
+    first time the iterative batch has been called the value  will
+    be `None`.
+
+    E.g. 89 period EMA of Closes:
+    ```
+    @iterative_batch_transform
+    @batch_transform
+    def ema(d, prev, span=89):
+        if prev is None:
+            return data['close'].ix[-1]
+
+        alpha = 2.0 / (span + 1)
+        return prev + alpha * (data['close'].ix[-1] - prev)
+
+
+    class EmaAlgo(algorithm.TradingAlgorithm):
+        def initialize(self):
+            self.ema = ema(window_length=1)
+
+        def handle_data(self, data):
+            ema = self.ema.handle_data(data)
+            if ema is not None:
+                print ema
+    ```
+
+    **NOTE** When using the iterative batch transform, the window_length
+    should not need to be more than 1 for most applications. This will
+    significantly increase the performance of the iterative batch
+    transform.
+    """
+    def __init__(self, f):
+        functools.update_wrapper(self, f)
+        self.__f = f
+        self.__prev = None
+
+    def __patched(self, data, *args, **kwargs):
+        self.__prev = self.__orig_handle_data(data, self.__prev,
+                                              *args, **kwargs)
+        return self.__prev
+
+    def __call__(self, *args, **kwargs):
+        transform = self.__f(*args, **kwargs)
+        self.__orig_handle_data = transform.handle_data
+        transform.handle_data = self.__patched
+        return transform

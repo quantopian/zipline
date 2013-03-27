@@ -223,7 +223,9 @@ class RecordAlgorithm(TradingAlgorithm):
         self.record(incr=self.incr)
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.transforms import BatchTransform, batch_transform
+from zipline.transforms import (BatchTransform,
+                                batch_transform,
+                                iterative_batch_transform)
 from zipline.transforms import MovingAverage
 
 
@@ -276,6 +278,14 @@ def price_multiple(data, multiplier, extra_arg=1):
     return data.price * multiplier * extra_arg
 
 
+@iterative_batch_transform
+@batch_transform
+def return_iter(data, prev, *args, **kwargs):
+    if prev is None:
+        return 0
+    return prev + 1
+
+
 class BatchTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.refresh_period = kwargs.pop('refresh_period', 1)
@@ -294,6 +304,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_field_no_filter = []
         self.history_return_ticks = []
         self.history_return_not_full = []
+        self.history_return_iter = []
 
         self.return_price_class = ReturnPriceBatchTransform(
             refresh_period=self.refresh_period,
@@ -351,6 +362,10 @@ class BatchTransformAlgorithm(TradingAlgorithm):
             compute_only_full=False
         )
 
+        self.return_iter = return_iter(
+            window_length=1
+        )
+
         self.uses_ufunc = uses_ufunc(
             refresh_period=self.refresh_period,
             window_length=self.window_length,
@@ -377,6 +392,9 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 data, *self.args, **self.kwargs))
         self.history_return_not_full.append(
             self.return_not_full.handle_data(data))
+        self.history_return_iter.append(
+            self.return_iter.handle_data(
+                data, *self.args, **self.kwargs))
         self.uses_ufunc.handle_data(data)
 
         # check that calling transforms with the same arguments
