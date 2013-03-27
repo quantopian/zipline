@@ -44,30 +44,32 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
         self.end_date = datetime.datetime(
             year=2006, month=12, day=31, tzinfo=pytz.utc)
 
-        self.oneday = datetime.timedelta(days=1)
-
     def test_risk_metrics_returns(self):
-        risk_metrics_refactor = risk.RiskMetricsIterative(self.start_date)
+        trading.environment = trading.TradingEnvironment()
+        # Advance start date to first date in the trading calendar
+        if trading.environment.is_trading_day(self.start_date):
+            start_date = self.start_date
+        else:
+            start_date = trading.environment.next_trading_day(self.start_date)
 
-        todays_date = self.start_date
+        risk_metrics_refactor = risk.RiskMetricsIterative(start_date)
+        todays_date = start_date
 
         cur_returns = []
         for i, ret in enumerate(RETURNS):
+
             todays_return_obj = DailyReturn(
                 todays_date,
                 ret
             )
-
             cur_returns.append(todays_return_obj)
 
             # Move forward day counter to next trading day
-            todays_date += self.oneday
-            while not trading.environment.is_trading_day(todays_date):
-                todays_date += self.oneday
+            todays_date = trading.environment.next_trading_day(todays_date)
 
             try:
                 risk_metrics_original = risk.RiskMetricsBatch(
-                    start_date=self.start_date,
+                    start_date=start_date,
                     end_date=todays_date,
                     returns=cur_returns
                 )
