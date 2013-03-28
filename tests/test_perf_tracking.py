@@ -1033,11 +1033,10 @@ class TestPerformanceTracker(unittest.TestCase):
 
     def test_minute_tracker(self):
         """ Tests minute performance tracking."""
-        exc_tz = pytz.timezone('US/Eastern')
-        start_dt = trading.exchange_dt_in_utc(
-            datetime.datetime(2013, 3, 1, 9, 30, tzinfo=exc_tz))
-        end_dt = trading.exchange_dt_in_utc(
-            datetime.datetime(2013, 3, 1, 16, 0, tzinfo=exc_tz))
+        start_dt = trading.environment.exchange_dt_in_utc(
+            datetime.datetime(2013, 3, 1, 9, 30))
+        end_dt = trading.environment.exchange_dt_in_utc(
+            datetime.datetime(2013, 3, 1, 16, 0))
 
         sim_params = SimulationParameters(
             period_start=start_dt,
