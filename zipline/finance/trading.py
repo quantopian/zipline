@@ -74,11 +74,6 @@ log = logbook.Logger('Transaction Simulator')
 environment = None
 
 
-def exchange_dt_in_utc(dt):
-    delorean = Delorean(dt, dt.tzinfo)
-    return delorean.shift(pytz.utc.zone).datetime
-
-
 class TransactionSimulator(object):
 
     def __init__(self):
@@ -156,6 +151,10 @@ class TradingEnvironment(object):
             tzinfo=pytz.utc
         )
 
+    def exchange_dt_in_utc(self, dt):
+        delorean = Delorean(dt, self.exchange_tz)
+        return delorean.shift(pytz.utc.zone).datetime
+
     @property
     def period_trading_days(self):
         if self._period_trading_days is None:
@@ -223,8 +222,7 @@ Last successful date: %s" % self.market_open)
         )
         # create a new Delorean with the next_open naive date and
         # the correct timezone for the exchange.
-        open_delorean = Delorean(next_open, self.exchange_tz)
-        open_utc = open_delorean.shift(pytz.utc.zone).datetime
+        open_utc = self.exchange_dt_in_utc(next_open)
 
         market_open = open_utc
         market_close = market_open + self.get_trading_day_duration(open_utc)
