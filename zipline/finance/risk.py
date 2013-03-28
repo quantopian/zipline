@@ -93,6 +93,101 @@ def advance_by_months(dt, jump_in_months):
 
     return dt.replace(year=dt.year + years, month=month)
 
+############################
+# Risk Metric Calculations #
+############################
+
+
+def sharpe(algorithm_volatility, algorithm_return, treasury_return):
+    """
+    http://en.wikipedia.org/wiki/Sharpe_ratio
+
+    Args:
+        algorithm_volatility (float): Algorithm volatility.
+        algorithm_return (float): Algorithm return percentage.
+        treasury_return (float): Treasury return percentage.
+
+    Returns:
+        float. The Sharpe ratio.
+    """
+    if np.allclose(algorithm_volatility, 0):
+        return 0.0
+
+    return (algorithm_return - treasury_return) / algorithm_volatility
+
+
+def sortino(algorithm_returns, algorithm_period_return, mar):
+    """
+    http://en.wikipedia.org/wiki/Sortino_ratio
+
+    Args:
+        algorithm_returns (np.array-like):
+            Returns from algorithm lifetime.
+        algorithm_period_return (float):
+            Algorithm return percentage from latest period.
+        mar (float): Minimum acceptable return.
+
+    Returns:
+        float. The Sortino ratio.
+    """
+    if len(algorithm_returns) == 0:
+        return 0.0
+
+    rets = algorithm_returns
+    downside = (rets[rets < mar] - mar) ** 2
+    dr = np.sqrt(downside.sum() / len(rets))
+
+    if np.allclose(dr, 0):
+        return 0.0
+
+    return (algorithm_period_return - mar) / dr
+
+
+def information(algorithm_returns, benchmark_returns):
+    """
+    http://en.wikipedia.org/wiki/Information_ratio
+
+    Args:
+        algorithm_returns (np.array-like):
+            All returns during algorithm lifetime.
+        benchmark_returns (np.array-like):
+            All benchmark returns during algo lifetime.
+
+    Returns:
+        float. Information ratio.
+    """
+    relative_returns = algorithm_returns - benchmark_returns
+
+    relative_deviation = relative_returns.std(ddof=1)
+
+    if np.allclose(relative_deviation, 0) or np.isnan(relative_deviation):
+        return 0.0
+
+    return np.mean(relative_returns) / relative_deviation
+
+
+def alpha(algorithm_period_return, treasury_period_return,
+          benchmark_period_returns, beta):
+    """
+    http://en.wikipedia.org/wiki/Alpha_(investment)
+
+    Args:
+        algorithm_period_return (float):
+            Return percentage from algorithm period.
+        treasury_period_return (float):
+            Return percentage for treasury period.
+        benchmark_period_return (float):
+            Return percentage for benchmark period.
+        beat (float):
+            beta value for the same period as all other values
+
+    Returns:
+        float. The alpha of the algorithm.
+    """
+    return algorithm_period_return - \
+        (treasury_period_return + beta *
+         (benchmark_period_returns - treasury_period_return))
+
 
 class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
@@ -226,43 +321,26 @@ class RiskMetricsBase(object):
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        if self.algorithm_volatility == 0:
-            return 0.0
-
-        return ((self.algorithm_period_returns - self.treasury_period_return) /
-                self.algorithm_volatility)
+        return sharpe(self.algorithm_volatility,
+                      self.algorithm_period_returns,
+                      self.treasury_period_return)
 
     def calculate_sortino(self, mar=None):
         """
         http://en.wikipedia.org/wiki/Sortino_ratio
         """
-        if len(self.algorithm_returns) == 0:
-            return 0.0
-
         if mar is None:
             mar = self.treasury_period_return
 
-        rets = self.algorithm_returns.values
-        downside = (rets[rets < mar] - mar) ** 2
-        dr = np.sqrt(downside.sum() / len(rets))
-
-        if dr < 0.000001:
-            return 0.0
-
-        return ((self.algorithm_period_returns - mar) / dr)
+        return sortino(self.algorithm_returns,
+                       self.algorithm_period_returns,
+                       mar)
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
-        relative_returns = self.algorithm_returns - self.benchmark_returns
-
-        relative_deviation = relative_returns.std(ddof=1)
-
-        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
-            return 0.0
-
-        return np.mean(relative_returns) / relative_deviation
+        return information(self.algorithm_returns, self.benchmark_returns)
 
     def calculate_beta(self):
         """
@@ -300,9 +378,10 @@ class RiskMetricsBase(object):
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return self.algorithm_period_returns - \
-            (self.treasury_period_return + self.beta *
-             (self.benchmark_period_returns - self.treasury_period_return))
+        return alpha(self.algorithm_period_returns,
+                     self.treasury_period_return,
+                     self.benchmark_period_returns,
+                     self.beta)
 
     def calculate_max_drawdown(self):
         compounded_returns = []
@@ -617,53 +696,37 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        if self.algorithm_volatility[-1] == 0:
-            return 0.0
-
-        return (self.algorithm_period_returns[-1] -
-                self.treasury_period_return) / self.algorithm_volatility[-1]
+        return sharpe(self.algorithm_volatility[-1],
+                      self.algorithm_period_returns[-1],
+                      self.treasury_period_return)
 
     def calculate_sortino(self, mar=None):
         """
         http://en.wikipedia.org/wiki/Sortino_ratio
         """
-        if len(self.algorithm_returns) == 0:
-            return 0.0
-
         if mar is None:
             mar = self.treasury_period_return
 
-        rets = np.array(self.algorithm_returns)
-        downside = (rets[rets < mar] - mar) ** 2
-        dr = np.sqrt(downside.sum() / len(rets))
-
-        if dr < 0.000001:
-            return 0.0
-
-        return ((self.algorithm_period_returns[-1] - mar) / dr)
+        return sortino(np.array(self.algorithm_returns),
+                       self.algorithm_period_returns[-1],
+                       mar)
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
         A = np.array
-        relative = A(self.algorithm_returns) - A(self.benchmark_returns)
-
-        relative_deviation = relative.std(ddof=1)
-
-        if relative_deviation < 0.000001 or np.isnan(relative_deviation):
-            return 0.0
-
-        return relative.mean() / relative_deviation
+        return information(A(self.algorithm_returns),
+                           A(self.benchmark_returns))
 
     def calculate_alpha(self):
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return (self.algorithm_period_returns[-1] -
-                (self.treasury_period_return + self.beta[-1] *
-                 (self.benchmark_period_returns[-1] -
-                  self.treasury_period_return)))
+        return alpha(self.algorithm_period_returns[-1],
+                     self.treasury_period_return,
+                     self.benchmark_period_returns[-1],
+                     self.beta[-1])
 
 
 class RiskMetricsBatch(RiskMetricsBase):
