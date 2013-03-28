@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from mavg import MovingAverage
+from emavg import ExponentialMovingAverage
 from stddev import MovingStandardDev
 from vwap import MovingVWAP
 from returns import Returns
@@ -21,6 +22,7 @@ from utils import BatchTransform, batch_transform
 
 __all__ = [
     'MovingAverage',
+    'ExponentialMovingAverage',
     'MovingStandardDev',
     'MovingVWAP',
     'Returns',
