@@ -591,13 +591,8 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             )
 
     def calculate_period_returns(self, returns):
-        period_returns = 1.0
-
-        for r in returns:
-            period_returns *= (1.0 + r)
-
-        period_returns -= 1.0
-        return period_returns
+        returns = np.array(returns)
+        return (1. + returns).prod() - 1
 
     def update_current_max(self):
         if len(self.compounded_log_returns) == 0:
