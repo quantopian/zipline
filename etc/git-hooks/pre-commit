@@ -27,7 +27,7 @@ nosetests -x
 # But if either fail, it's probably best to have only the offending
 # staged commits 'active', anyway.
 stash_result=$(git stash --keep-index)
-if [ "$stash_result" != "No local changes to save." ]
+if [ "$stash_result" != "No local changes to save" ]
 then
     git stash pop -q
 fi
