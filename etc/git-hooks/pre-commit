@@ -15,7 +15,7 @@ set -e
 
 # stash everything that wasn't just staged
 # so that we are only testing the staged code
-git stash -q --keep-index
+stash_result=$(git stash --keep-index)
 
 # Run flake8 linting
 flake8 zipline tests
@@ -26,4 +26,8 @@ nosetests -x
 # N.B. this won't run if linting or unit tests fail
 # But if either fail, it's probably best to have only the offending
 # staged commits 'active', anyway.
-git stash pop -q
+stash_result=$(git stash --keep-index)
+if [ "$stash_result" != "No local changes to save." ]
+then
+    git stash pop -q
+fi
