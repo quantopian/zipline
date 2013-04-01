@@ -42,11 +42,6 @@ class TestRisk(unittest.TestCase):
             period_end=end_date
         )
 
-        self.onesec = datetime.timedelta(seconds=1)
-        self.oneday = datetime.timedelta(days=1)
-        self.tradingday = datetime.timedelta(hours=6, minutes=30)
-        self.dt = datetime.datetime.utcnow()
-
         self.algo_returns_06 = factory.create_returns_from_list(
             RETURNS,
             self.sim_params
