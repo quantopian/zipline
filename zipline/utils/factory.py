@@ -184,50 +184,30 @@ def create_txn_history(sid, priceList, amtList, interval, sim_params):
     return txns
 
 
-def create_returns(daycount, sim_params):
-    """
-    For the given number of calendar (not trading) days return all the trading
-    days between start and start + daycount.
-    """
-    test_range = []
-    current = sim_params.first_open
-    one_day = timedelta(days=1)
-
-    for day in range(daycount):
-        current = current + one_day
-        if trading.environment.is_trading_day(current):
-            r = DailyReturn(current, random.random())
-            test_range.append(r)
-
-    return test_range
-
-
 def create_returns_from_range(sim_params):
     current = sim_params.first_open
     end = sim_params.last_close
-    one_day = timedelta(days=1)
     test_range = []
     while current <= end:
         r = DailyReturn(current, random.random())
         test_range.append(r)
-        current = get_next_trading_dt(current, one_day)
+        current = trading.environment.next_trading_day(current)
 
     return test_range
 
 
 def create_returns_from_list(returns, sim_params):
     current = sim_params.first_open
-    one_day = timedelta(days=1)
     test_range = []
 
     #sometimes the range starts with a non-trading day.
     if not trading.environment.is_trading_day(current):
-        current = get_next_trading_dt(current, one_day)
+        current = trading.environment.next_trading_day(current)
 
     for return_val in returns:
         r = DailyReturn(current, return_val)
         test_range.append(r)
-        current = get_next_trading_dt(current, one_day)
+        current = trading.environment.next_trading_day(current)
 
     return test_range
 
