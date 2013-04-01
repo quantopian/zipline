@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from zipline.utils import factory
 from zipline.finance.trading import SimulationParameters
 
 
-class Risk(unittest.TestCase):
+class TestRisk(unittest.TestCase):
 
     def setUp(self):
 
