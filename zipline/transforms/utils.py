@@ -421,7 +421,7 @@ class BatchTransform(object):
                       # out sids without trade data available.
                       # TODO: expose more of 'no trade available'
                       # functionality to zipline
-                      if len(v)}
+                      if len(v.__dict__)}
 
         # only modify the trailing window if this is
         # a new event. This is intended to make handle_data

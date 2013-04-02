@@ -34,7 +34,8 @@ from zipline.transforms import MovingStandardDev
 from zipline.transforms import Returns
 import zipline.utils.factory as factory
 
-from zipline.test_algorithms import BatchTransformAlgorithm
+from zipline.test_algorithms import (BatchTransformAlgorithm,
+                                     ReturnPriceBatchTransform)
 
 
 def to_dt(msg):
@@ -380,3 +381,22 @@ class TestBatchTransform(TestCase):
                 # 1990-01-08 - window now full
                 expected_item
             ])
+
+
+def run_batchtransform(window_length=10):
+    sim_params = factory.create_simulation_parameters(
+        start=datetime(1990, 1, 1, tzinfo=pytz.utc),
+        end=datetime(1995, 1, 8, tzinfo=pytz.utc)
+    )
+    source, df = factory.create_test_df_source(sim_params)
+
+    return_price_class = ReturnPriceBatchTransform(
+        refresh_period=1,
+        window_length=window_length,
+        clean_nans=False
+    )
+
+    for raw_event in source:
+        raw_event['datetime'] = raw_event.dt
+        event = {0: raw_event}
+        return_price_class.handle_data(event)
