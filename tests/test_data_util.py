@@ -9,8 +9,8 @@ import pandas.util.testing as tm
 
 from zipline.utils.data import RollingPanel
 
-class TestRollingPanel(unittest.TestCase):
 
+class TestRollingPanel(unittest.TestCase):
     def test_basics(self):
         items = ['foo', 'bar', 'baz']
         minor = ['A', 'B', 'C', 'D']

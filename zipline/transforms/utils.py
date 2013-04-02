@@ -33,6 +33,7 @@ import pandas as pd
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 import zipline.finance.trading as trading
+from zipline.utils.data import RollingPanel
 
 log = logbook.Logger('Transform')
 
@@ -277,7 +278,7 @@ class EventWindow(object):
                 (event, self.ticks[0])
 
 
-class BatchTransform(EventWindow):
+class BatchTransform(object):
     """Base class for batch transforms with a trailing window of
     variable length. As opposed to pure EventWindows that get a stream
     of events and are bound to a single SID, this class creates stream
@@ -350,9 +351,6 @@ class BatchTransform(EventWindow):
                 Only call the user-defined function once the window is
                 full. Returns None if window is not full yet.
         """
-
-        super(BatchTransform, self).__init__(True, window_length=window_length)
-
         if func is not None:
             self.compute_transform_value = func
         else:
@@ -365,8 +363,8 @@ class BatchTransform(EventWindow):
         # to operate on the data, but to also allow new symbols to
         # enter the batch transform's window IFF a sid filter is not
         # specified.
-        self.sids = None
-        if sids:
+        self.sids = set()
+        if sids is not None:
             self.static_sids = True
             self.sids = sids
             if isinstance(sids, (basestring, Integral)):
@@ -401,6 +399,8 @@ class BatchTransform(EventWindow):
         # set of stocks per quarter
         self.supplemental_data = None
 
+        self.rolling_panel = None
+
     def handle_data(self, data, *args, **kwargs):
         """
         New method to handle a data frame as sent to the algorithm's
@@ -426,15 +426,9 @@ class BatchTransform(EventWindow):
         # only modify the trailing window if this is
         # a new event. This is intended to make handle_data
         # idempotent.
-        if event not in self.ticks:
-            # append data frame to window. update() will call handle_add() and
-            # handle_remove() appropriately, and self.updated
-            # will be modified based on the refresh_period
-            self.update(event)
+        if self.last_dt != event.dt:
+            self.handle_add(event)
         else:
-            # we are recalculating based on an old event, so
-            # there is no change in the contents of the trailing
-            # window
             self.updated = False
 
         # return newly computed or cached value
@@ -462,26 +456,22 @@ class BatchTransform(EventWindow):
                                'datetime', 'source_id'])
         return union - unwanted_fields
 
+    def _get_field_names(self, event):
+        if self.initial_field_names is not None:
+            return self.initial_field_names
+        else:
+            self.latest_names = self._extract_field_names(event)
+            return set.union(self.field_names, self.latest_names)
+
     def handle_add(self, event):
         if not self.last_dt:
             self.last_dt = event.dt
 
-        if self.initial_field_names is None:
-            self.latest_names = self._extract_field_names(event)
-            if self.field_names:
-                self.field_names = \
-                    set.union(self.field_names, self.latest_names)
-            else:
-                self.field_names = self.latest_names
-        else:
-            self.field_names = self.initial_field_names
+        self.field_names = self._get_field_names(event)
 
         if not self.static_sids:
-            if self.sids:
-                event_sids = set(event.data.keys())
-                self.sids = set.union(self.sids, event_sids)
-            else:
-                self.sids = set(event.data.keys())
+            event_sids = set(event.data.keys())
+            self.sids = set.union(self.sids, event_sids)
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
@@ -500,6 +490,17 @@ class BatchTransform(EventWindow):
         else:
             self.updated = False
 
+        # Create rolling panel if not existant
+        if self.rolling_panel is None:
+            self.rolling_panel = RollingPanel(self.window_length,
+                                              self.field_names, self.sids)
+
+        # Store event in rolling frame
+        self.rolling_panel.add_frame(event.dt,
+                                     pd.DataFrame(event.data,
+                                                  index=self.field_names,
+                                                  columns=self.sids))
+
     def get_data(self):
         """Create a pandas.Panel (i.e. 3d DataFrame) from the
         events in the current window.
@@ -510,12 +511,7 @@ class BatchTransform(EventWindow):
         major axis/rows : dt
         minor axis/colums : sid
         """
-        # This Panel data structure ultimately gets passed to the
-        # user-overloaded get_value() method.
-        data_dict = {tick['dt']: tick['data'] for tick in self.ticks}
-        data = pd.Panel(data_dict, major_axis=self.field_names,
-                        minor_axis=self.sids,
-                        dtype='float')
+        data = self.rolling_panel.get_current()
 
         if self.supplemental_data:
             # item will be a date stamp
@@ -526,8 +522,6 @@ class BatchTransform(EventWindow):
                 except KeyError:
                     # Only filling in data available in supplemental data.
                     pass
-
-        data = data.swapaxes(0, 1)
 
         if self.clean_nans:
             # Fills in gaps of missing data during transform

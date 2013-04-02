@@ -1,13 +1,13 @@
-from collections import deque
-
 import numpy as np
 import pandas as pd
+
 
 def _ensure_index(x):
     if not isinstance(x, pd.Index):
         x = pd.Index(x)
 
     return x
+
 
 class RollingPanel(object):
     """
@@ -34,13 +34,11 @@ class RollingPanel(object):
 
     def add_frame(self, tick, frame):
         """
-
-        TODO: this assumes the DataFrame has the right shape
         """
         if self.pos == self.cap:
             self._roll_data()
 
-        self.buffer[:, self.pos, :] = frame.values
+        self.buffer[:, self.pos, :] = frame.ix[self.items].values
         self.index_buf[self.pos] = tick
 
         self.pos += 1
@@ -57,14 +55,9 @@ class RollingPanel(object):
 
     def _roll_data(self):
         """
-        Roll window worth of data up to position zero. Save the effort of having
-        to expensively roll at each iteration
+        Roll window worth of data up to position zero. Save the
+        effort of having to expensively roll at each iteration
         """
         self.buffer[:, :self.window, :] = self.buffer[:, -self.window:]
         self.index_buf[:self.window] = self.index_buf[-self.window:]
         self.pos = self.window
-
-class NaiveRollingPanel(object):
-
-    def __init__(self, window, items, minor_axis, cap_multiple=2):
-        pass

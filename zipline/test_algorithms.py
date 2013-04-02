@@ -384,9 +384,9 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.price_multiple.handle_data(data, 1, extra_arg=1)
 
         if self.price_multiple.full:
-            pre = len(self.price_multiple.ticks)
+            pre = self.price_multiple.rolling_panel.get_current().shape[0]
             result1 = self.price_multiple.handle_data(data, 1, extra_arg=1)
-            post = len(self.price_multiple.ticks)
+            post = self.price_multiple.rolling_panel.get_current().shape[0]
             assert pre == post, "batch transform is appending redundant events"
             result2 = self.price_multiple.handle_data(data, 1, extra_arg=1)
             assert result1 is result2, "batch transform is not idempotent"
