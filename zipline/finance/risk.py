@@ -98,7 +98,7 @@ def advance_by_months(dt, jump_in_months):
 ############################
 
 
-def sharpe(algorithm_volatility, algorithm_return, treasury_return):
+def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
     """
     http://en.wikipedia.org/wiki/Sharpe_ratio
 
@@ -116,7 +116,7 @@ def sharpe(algorithm_volatility, algorithm_return, treasury_return):
     return (algorithm_return - treasury_return) / algorithm_volatility
 
 
-def sortino(algorithm_returns, algorithm_period_return, mar):
+def sortino_ratio(algorithm_returns, algorithm_period_return, mar):
     """
     http://en.wikipedia.org/wiki/Sortino_ratio
 
@@ -143,7 +143,7 @@ def sortino(algorithm_returns, algorithm_period_return, mar):
     return (algorithm_period_return - mar) / dr
 
 
-def information(algorithm_returns, benchmark_returns):
+def information_ratio(algorithm_returns, benchmark_returns):
     """
     http://en.wikipedia.org/wiki/Information_ratio
 
@@ -178,7 +178,7 @@ def alpha(algorithm_period_return, treasury_period_return,
             Return percentage for treasury period.
         benchmark_period_return (float):
             Return percentage for benchmark period.
-        beat (float):
+        beta (float):
             beta value for the same period as all other values
 
     Returns:
@@ -321,9 +321,9 @@ class RiskMetricsBase(object):
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe(self.algorithm_volatility,
-                      self.algorithm_period_returns,
-                      self.treasury_period_return)
+        return sharpe_ratio(self.algorithm_volatility,
+                            self.algorithm_period_returns,
+                            self.treasury_period_return)
 
     def calculate_sortino(self, mar=None):
         """
@@ -332,15 +332,16 @@ class RiskMetricsBase(object):
         if mar is None:
             mar = self.treasury_period_return
 
-        return sortino(self.algorithm_returns,
-                       self.algorithm_period_returns,
-                       mar)
+        return sortino_ratio(self.algorithm_returns,
+                             self.algorithm_period_returns,
+                             mar)
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
-        return information(self.algorithm_returns, self.benchmark_returns)
+        return information_ratio(self.algorithm_returns,
+                                 self.benchmark_returns)
 
     def calculate_beta(self):
         """
@@ -696,9 +697,9 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe(self.algorithm_volatility[-1],
-                      self.algorithm_period_returns[-1],
-                      self.treasury_period_return)
+        return sharpe_ratio(self.algorithm_volatility[-1],
+                            self.algorithm_period_returns[-1],
+                            self.treasury_period_return)
 
     def calculate_sortino(self, mar=None):
         """
@@ -707,17 +708,17 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         if mar is None:
             mar = self.treasury_period_return
 
-        return sortino(np.array(self.algorithm_returns),
-                       self.algorithm_period_returns[-1],
-                       mar)
+        return sortino_ratio(np.array(self.algorithm_returns),
+                             self.algorithm_period_returns[-1],
+                             mar)
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
         A = np.array
-        return information(A(self.algorithm_returns),
-                           A(self.benchmark_returns))
+        return information_ratio(A(self.algorithm_returns),
+                                 A(self.benchmark_returns))
 
     def calculate_alpha(self):
         """
