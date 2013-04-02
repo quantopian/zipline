@@ -20,7 +20,10 @@ import msgpack
 from collections import OrderedDict
 from datetime import timedelta
 
+import logbook
+
 from treasuries import get_treasury_data
+import benchmarks
 from benchmarks import get_benchmark_returns
 
 from zipline.protocol import DailyReturn
@@ -28,6 +31,7 @@ from zipline.utils.date_utils import tuple_to_date
 from zipline.utils.tradingcalendar import trading_days
 from operator import attrgetter
 
+logger = logbook.Logger('Loader')
 
 # TODO: Make this path customizable.
 DATA_PATH = os.path.join(
@@ -128,16 +132,20 @@ def update_benchmarks(symbol, last_date):
         for packed_date, returns in bm_list:
             benchmark_data.append((packed_date, returns))
 
-    start = last_date + timedelta(days=1)
-    for daily_return in get_benchmark_returns(symbol, start_date=start):
-        date_as_tuple = daily_return.date.timetuple()[0:6] + \
-            (daily_return.date.microsecond,)
-        # Not ideal but massaging data into expected format
-        benchmark = (date_as_tuple, daily_return.returns)
-        benchmark_data.append(benchmark)
+    try:
+        start = last_date + timedelta(days=1)
+        for daily_return in get_benchmark_returns(symbol, start_date=start):
+            date_as_tuple = daily_return.date.timetuple()[0:6] + \
+                (daily_return.date.microsecond,)
+            # Not ideal but massaging data into expected format
+            benchmark = (date_as_tuple, daily_return.returns)
+            benchmark_data.append(benchmark)
 
-    with get_datafile(get_benchmark_filename(symbol), mode='wb') as bmark_fp:
-        bmark_fp.write(msgpack.dumps(benchmark_data))
+        with get_datafile(
+                get_benchmark_filename(symbol), mode='wb') as bmark_fp:
+            bmark_fp.write(msgpack.dumps(benchmark_data))
+    except benchmarks.BenchmarkDataNotFoundError as exc:
+        logger.warn(exc)
 
 
 def get_benchmark_filename(symbol):
