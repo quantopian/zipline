@@ -15,6 +15,7 @@
 
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 
 def _ensure_index(x):
@@ -43,19 +44,17 @@ class RollingPanel(object):
         self.cap = cap_multiple * window
 
         self.dtype = dtype
-        self.buffer = np.empty((len(items), self.cap, len(minor_axis)),
-                               dtype=dtype)
         self.index_buf = np.empty(self.cap, dtype='M8[ns]')
+        self.buffer = pd.Panel(items=items, minor_axis=minor_axis,
+                               major_axis=range(self.cap),
+                               dtype=dtype)
 
     def add_frame(self, tick, frame):
         """
-
-        TODO: this assumes the DataFrame has the right shape
         """
         if self.pos == self.cap:
             self._roll_data()
-
-        self.buffer[:, self.pos, :] = frame.values
+        self.buffer.values[:, self.pos, :] = frame.ix[self.items].values
         self.index_buf[self.pos] = tick
 
         self.pos += 1
@@ -66,16 +65,19 @@ class RollingPanel(object):
         these objects because internal data might change
         """
         where = slice(max(self.pos - self.window, 0), self.pos)
-        major_axis = pd.DatetimeIndex(self.index_buf[where], tz='utc')
-        return pd.Panel(self.buffer[:, where, :], self.items, major_axis,
-                        self.minor_axis)
+        major_axis = pd.DatetimeIndex(deepcopy(self.index_buf[where]),
+                                      tz='utc')
+
+        return pd.Panel(self.buffer.values[:, where, :], self.items,
+                        major_axis, self.minor_axis)
 
     def _roll_data(self):
         """
         Roll window worth of data up to position zero.
         Save the effort of having to expensively roll at each iteration
         """
-        self.buffer[:, :self.window, :] = self.buffer[:, -self.window:]
+        self.buffer.values[:, :self.window, :] = \
+            self.buffer.values[:, -self.window:]
         self.index_buf[:self.window] = self.index_buf[-self.window:]
         self.pos = self.window
 
