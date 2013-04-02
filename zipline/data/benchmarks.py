@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import collections
 
 from datetime import datetime
 
@@ -29,6 +29,10 @@ from loader_utils import (
     Mapping
 )
 from zipline.protocol import DailyReturn
+
+
+class BenchmarkDataNotFoundError(Exception):
+    pass
 
 _BENCHMARK_MAPPING = {
     # Need to add 'symbol'
@@ -52,26 +56,34 @@ def get_raw_benchmark_data(start_date, end_date, symbol):
 
     # create benchmark files
     # ^GSPC 19500103
-    params = {
-        's': symbol,
-        # end_date month, zero indexed
-        'd': end_date.month - 1,
-        # end_date day str(int(todate[6:8])) #day
-        'e': end_date.day,
-        # end_date year str(int(todate[0:4]))
-        'f': end_date.year,
-        # daily frequency
-        'g': 'd',
+    params = collections.OrderedDict((
+        ('s', symbol),
         # start_date month, zero indexed
-        'a': start_date.month - 1,
+        ('a', start_date.month - 1),
         # start_date day
-        'b': start_date.day,
+        ('b', start_date.day),
         # start_date year
-        'c': start_date.year
-    }
+        ('c', start_date.year),
+        # end_date month, zero indexed
+        ('d', end_date.month - 1),
+        # end_date day str(int(todate[6:8])) #day
+        ('e', end_date.day),
+        # end_date year str(int(todate[0:4]))
+        ('f', end_date.year),
+        # daily frequency
+        ('g', 'd'),
+    ))
 
     res = requests.get('http://ichart.yahoo.com/table.csv',
                        params=params)
+
+    if not res.ok:
+        raise BenchmarkDataNotFoundError("""
+No benchmark data found for date range.
+start_date={start_date}, end_date={end_date}, url={url}""".strip().
+                                         format(start_date=start_date,
+                                                end_date=end_date,
+                                                url=res.url))
 
     return csv.DictReader(StringIO(res.content))
 
