@@ -201,7 +201,7 @@ def search_day_distance(end_date, dt):
     return tdd
 
 
-def choose_treasury(treasury_curves, start_date, end_date):
+def select_treasury_duration(start_date, end_date):
     td = end_date - start_date
     if td.days <= 31:
         treasury_duration = '1month'
@@ -224,6 +224,11 @@ def choose_treasury(treasury_curves, start_date, end_date):
     else:
         treasury_duration = '30year'
 
+    return treasury_duration
+
+
+def choose_treasury(treasury_curves, start_date, end_date):
+    treasury_duration = select_treasury_duration(start_date, end_date)
     end_day = end_date.replace(hour=0, minute=0, second=0)
     search_day = None
 
@@ -262,7 +267,7 @@ treasury history range."
                 log.warn(message)
 
     if search_day:
-        treasury_curves[search_day]
+        td = end_date - start_date
         return rate * (td.days + 1) / 365
 
     message = "No rate for end date = {dt} and term = {term}. Check \
