@@ -429,32 +429,32 @@ class RiskMetricsBase(object):
     def choose_treasury(self, start_date, end_date):
         td = end_date - start_date
         if td.days <= 31:
-            self.treasury_duration = '1month'
+            treasury_duration = '1month'
         elif td.days <= 93:
-            self.treasury_duration = '3month'
+            treasury_duration = '3month'
         elif td.days <= 186:
-            self.treasury_duration = '6month'
+            treasury_duration = '6month'
         elif td.days <= 366:
-            self.treasury_duration = '1year'
+            treasury_duration = '1year'
         elif td.days <= 365 * 2 + 1:
-            self.treasury_duration = '2year'
+            treasury_duration = '2year'
         elif td.days <= 365 * 3 + 1:
-            self.treasury_duration = '3year'
+            treasury_duration = '3year'
         elif td.days <= 365 * 5 + 2:
-            self.treasury_duration = '5year'
+            treasury_duration = '5year'
         elif td.days <= 365 * 7 + 2:
-            self.treasury_duration = '7year'
+            treasury_duration = '7year'
         elif td.days <= 365 * 10 + 2:
-            self.treasury_duration = '10year'
+            treasury_duration = '10year'
         else:
-            self.treasury_duration = '30year'
+            treasury_duration = '30year'
 
         end_day = end_date.replace(hour=0, minute=0, second=0)
         search_day = None
 
         if end_day in self.treasury_curves:
             rate = get_treasury_rate(self.treasury_curves,
-                                     self.treasury_duration,
+                                     treasury_duration,
                                      end_day)
             if rate is not None:
                 search_day = end_day
@@ -468,7 +468,7 @@ class RiskMetricsBase(object):
             i = bisect.bisect_right(search_days, end_day)
             for prev_day in search_days[i - 1::-1]:
                 rate = get_treasury_rate(self.treasury_curves,
-                                         self.treasury_duration,
+                                         treasury_duration,
                                          prev_day)
                 if rate is not None:
                     search_day = prev_day
@@ -482,7 +482,7 @@ class RiskMetricsBase(object):
 {dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
 treasury history range."
                     message = message.format(dt=end_date,
-                                             term=self.treasury_duration,
+                                             term=treasury_duration,
                                              search_day=search_day)
                     log.warn(message)
 
@@ -494,7 +494,7 @@ treasury history range."
 that date doesn't exceed treasury history range."
         message = message.format(
             dt=end_date,
-            term=self.treasury_duration
+            term=treasury_duration
         )
         raise Exception(message)
 
