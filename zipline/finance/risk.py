@@ -58,7 +58,6 @@ Risk Report
 import logbook
 import datetime
 import math
-import bisect
 import numpy as np
 import numpy.linalg as la
 from dateutil.relativedelta import relativedelta
@@ -242,10 +241,10 @@ def choose_treasury(treasury_curves, start_date, end_date):
     if not search_day:
         # in case end date is not a trading day or there is no treasury
         # data, search for the previous day with an interest rate.
-        search_days = treasury_curves.keys()
+        search_days = treasury_curves.index
 
         # Find rightmost value less than or equal to end_day
-        i = bisect.bisect_right(search_days, end_day)
+        i = search_days.searchsorted(end_day)
         for prev_day in search_days[i - 1::-1]:
             rate = get_treasury_rate(treasury_curves,
                                      treasury_duration,
