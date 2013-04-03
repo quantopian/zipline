@@ -235,7 +235,10 @@ class RiskMetricsBase(object):
             self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(
             self.algorithm_returns)
-        self.treasury_period_return = self.choose_treasury()
+        self.treasury_period_return = self.choose_treasury(
+            self.start_date,
+            self.end_date
+        )
         self.sharpe = self.calculate_sharpe()
         self.sortino = self.calculate_sortino()
         self.information = self.calculate_information()
@@ -423,8 +426,8 @@ class RiskMetricsBase(object):
 
         return 1.0 - math.exp(max_drawdown)
 
-    def choose_treasury(self):
-        td = self.end_date - self.start_date
+    def choose_treasury(self, start_date, end_date):
+        td = end_date - start_date
         if td.days <= 31:
             self.treasury_duration = '1month'
         elif td.days <= 93:
@@ -446,7 +449,7 @@ class RiskMetricsBase(object):
         else:
             self.treasury_duration = '30year'
 
-        end_day = self.end_date.replace(hour=0, minute=0, second=0)
+        end_day = end_date.replace(hour=0, minute=0, second=0)
         search_day = None
 
         if end_day in self.treasury_curves:
@@ -469,7 +472,7 @@ class RiskMetricsBase(object):
                                          prev_day)
                 if rate is not None:
                     search_day = prev_day
-                    search_dist = search_day_distance(self.end_date, prev_day)
+                    search_dist = search_day_distance(end_date, prev_day)
                     break
 
             if search_day:
@@ -478,7 +481,7 @@ class RiskMetricsBase(object):
                     message = "No rate within 1 trading day of end date = \
 {dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
 treasury history range."
-                    message = message.format(dt=self.end_date,
+                    message = message.format(dt=end_date,
                                              term=self.treasury_duration,
                                              search_day=search_day)
                     log.warn(message)
@@ -490,7 +493,7 @@ treasury history range."
         message = "No rate for end date = {dt} and term = {term}. Check \
 that date doesn't exceed treasury history range."
         message = message.format(
-            dt=self.end_date,
+            dt=end_date,
             term=self.treasury_duration
         )
         raise Exception(message)
@@ -566,7 +569,10 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             self.calculate_volatility(self.benchmark_returns))
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
-        self.treasury_period_return = self.choose_treasury()
+        self.treasury_period_return = self.choose_treasury(
+            self.start_date,
+            self.end_date
+        )
         self.excess_returns.append(
             self.algorithm_period_returns[-1] - self.treasury_period_return)
         self.beta.append(self.calculate_beta()[0])
