@@ -201,6 +201,79 @@ def search_day_distance(end_date, dt):
     return tdd
 
 
+def choose_treasury(treasury_curves, start_date, end_date):
+    td = end_date - start_date
+    if td.days <= 31:
+        treasury_duration = '1month'
+    elif td.days <= 93:
+        treasury_duration = '3month'
+    elif td.days <= 186:
+        treasury_duration = '6month'
+    elif td.days <= 366:
+        treasury_duration = '1year'
+    elif td.days <= 365 * 2 + 1:
+        treasury_duration = '2year'
+    elif td.days <= 365 * 3 + 1:
+        treasury_duration = '3year'
+    elif td.days <= 365 * 5 + 2:
+        treasury_duration = '5year'
+    elif td.days <= 365 * 7 + 2:
+        treasury_duration = '7year'
+    elif td.days <= 365 * 10 + 2:
+        treasury_duration = '10year'
+    else:
+        treasury_duration = '30year'
+
+    end_day = end_date.replace(hour=0, minute=0, second=0)
+    search_day = None
+
+    if end_day in treasury_curves:
+        rate = get_treasury_rate(treasury_curves,
+                                 treasury_duration,
+                                 end_day)
+        if rate is not None:
+            search_day = end_day
+
+    if not search_day:
+        # in case end date is not a trading day or there is no treasury
+        # data, search for the previous day with an interest rate.
+        search_days = treasury_curves.keys()
+
+        # Find rightmost value less than or equal to end_day
+        i = bisect.bisect_right(search_days, end_day)
+        for prev_day in search_days[i - 1::-1]:
+            rate = get_treasury_rate(treasury_curves,
+                                     treasury_duration,
+                                     prev_day)
+            if rate is not None:
+                search_day = prev_day
+                search_dist = search_day_distance(end_date, prev_day)
+                break
+
+        if search_day:
+            if (search_dist is None or search_dist > 1) and \
+                    search_days[0] <= end_day <= search_days[-1]:
+                message = "No rate within 1 trading day of end date = \
+{dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
+treasury history range."
+                message = message.format(dt=end_date,
+                                         term=treasury_duration,
+                                         search_day=search_day)
+                log.warn(message)
+
+    if search_day:
+        treasury_curves[search_day]
+        return rate * (td.days + 1) / 365
+
+    message = "No rate for end date = {dt} and term = {term}. Check \
+that date doesn't exceed treasury history range."
+    message = message.format(
+        dt=end_date,
+        term=treasury_duration
+    )
+    raise Exception(message)
+
+
 class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
 
@@ -235,7 +308,7 @@ class RiskMetricsBase(object):
             self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(
             self.algorithm_returns)
-        self.treasury_period_return = self.choose_treasury(
+        self.treasury_period_return = choose_treasury(
             self.treasury_curves,
             self.start_date,
             self.end_date
@@ -427,78 +500,6 @@ class RiskMetricsBase(object):
 
         return 1.0 - math.exp(max_drawdown)
 
-    def choose_treasury(self, treasury_curves, start_date, end_date):
-        td = end_date - start_date
-        if td.days <= 31:
-            treasury_duration = '1month'
-        elif td.days <= 93:
-            treasury_duration = '3month'
-        elif td.days <= 186:
-            treasury_duration = '6month'
-        elif td.days <= 366:
-            treasury_duration = '1year'
-        elif td.days <= 365 * 2 + 1:
-            treasury_duration = '2year'
-        elif td.days <= 365 * 3 + 1:
-            treasury_duration = '3year'
-        elif td.days <= 365 * 5 + 2:
-            treasury_duration = '5year'
-        elif td.days <= 365 * 7 + 2:
-            treasury_duration = '7year'
-        elif td.days <= 365 * 10 + 2:
-            treasury_duration = '10year'
-        else:
-            treasury_duration = '30year'
-
-        end_day = end_date.replace(hour=0, minute=0, second=0)
-        search_day = None
-
-        if end_day in treasury_curves:
-            rate = get_treasury_rate(treasury_curves,
-                                     treasury_duration,
-                                     end_day)
-            if rate is not None:
-                search_day = end_day
-
-        if not search_day:
-            # in case end date is not a trading day or there is no treasury
-            # data, search for the previous day with an interest rate.
-            search_days = self.treasury_curves.keys()
-
-            # Find rightmost value less than or equal to end_day
-            i = bisect.bisect_right(search_days, end_day)
-            for prev_day in search_days[i - 1::-1]:
-                rate = get_treasury_rate(treasury_curves,
-                                         treasury_duration,
-                                         prev_day)
-                if rate is not None:
-                    search_day = prev_day
-                    search_dist = search_day_distance(end_date, prev_day)
-                    break
-
-            if search_day:
-                if (search_dist is None or search_dist > 1) and \
-                        search_days[0] <= end_day <= search_days[-1]:
-                    message = "No rate within 1 trading day of end date = \
-{dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
-treasury history range."
-                    message = message.format(dt=end_date,
-                                             term=treasury_duration,
-                                             search_day=search_day)
-                    log.warn(message)
-
-        if search_day:
-            treasury_curves[search_day]
-            return rate * (td.days + 1) / 365
-
-        message = "No rate for end date = {dt} and term = {term}. Check \
-that date doesn't exceed treasury history range."
-        message = message.format(
-            dt=end_date,
-            term=treasury_duration
-        )
-        raise Exception(message)
-
 
 class RiskMetricsIterative(RiskMetricsBase):
     """Iterative version of RiskMetrics.
@@ -570,7 +571,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             self.calculate_volatility(self.benchmark_returns))
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
-        self.treasury_period_return = self.choose_treasury(
+        self.treasury_period_return = choose_treasury(
             self.treasury_curves,
             self.start_date,
             self.end_date
