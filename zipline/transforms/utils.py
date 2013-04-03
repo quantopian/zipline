@@ -17,6 +17,7 @@
 """
 Generator versions of transforms.
 """
+import functools
 import types
 import logbook
 import numpy
@@ -594,6 +595,7 @@ def batch_transform(func):
     For an example on how to use this, see the doc string of BatchTransform.
     """
 
+    @functools.wraps(func)
     def create_window(*args, **kwargs):
         # passes the user defined function to BatchTransform which it
         # will call instead of self.get_value()
