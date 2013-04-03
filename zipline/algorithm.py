@@ -119,6 +119,28 @@ class TradingAlgorithm(object):
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
+    def _create_data_generator(self, source_filter):
+        """
+        Create a merged data generator using the sources and
+        transforms attached to this algorithm.
+
+        ::source_filter:: is a method that receives events in date
+        sorted order, and returns True for those events that should be
+        processed by the zipline, and False for those that should be
+        skipped.
+        """
+
+        date_sorted = date_sorted_sources(*self.sources)
+        if source_filter:
+            date_sorted = ifilter(source_filter, date_sorted)
+        with_tnfms = sequential_transforms(date_sorted,
+                                           *self.transforms)
+        with_alias_dt = alias_dt(with_tnfms)
+
+        # Group together events with the same dt field. This depends on the
+        # events already being sorted.
+        return groupby(with_alias_dt, attrgetter('dt'))
+
     def _create_generator(self, sim_params, source_filter=None):
         """
         Create a basic generator setup using the sources and
@@ -129,22 +151,14 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        self.data_gen = self._create_data_generator(source_filter)
 
-        self.date_sorted = date_sorted_sources(*self.sources)
-        if source_filter:
-            self.date_sorted = ifilter(source_filter, self.date_sorted)
-        self.with_tnfms = sequential_transforms(self.date_sorted,
-                                                *self.transforms)
-        self.with_alias_dt = alias_dt(self.with_tnfms)
-        # Group together events with the same dt field. This depends on the
-        # events already being sorted.
-        self.grouped_by_dt = groupby(self.with_alias_dt, attrgetter('dt'))
         self.trading_client = tsc(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
 
-        return self.trading_client.simulate(self.grouped_by_dt)
+        return self.trading_client.simulate(self.data_gen)
 
     def get_generator(self):
         """
