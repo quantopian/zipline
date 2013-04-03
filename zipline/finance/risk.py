@@ -282,7 +282,11 @@ that date doesn't exceed treasury history range."
 class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
 
-        self.treasury_curves = trading.environment.treasury_curves
+        treasury_curves = trading.environment.treasury_curves
+        mask = ((treasury_curves.index >= start_date) &
+                (treasury_curves.index <= end_date))
+
+        self.treasury_curves = treasury_curves[mask]
 
         self.start_date = start_date
         self.end_date = end_date
