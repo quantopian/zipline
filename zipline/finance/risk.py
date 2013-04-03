@@ -62,6 +62,7 @@ from collections import OrderedDict
 import bisect
 import numpy as np
 import numpy.linalg as la
+from dateutil.relativedelta import relativedelta
 
 import zipline.finance.trading as trading
 from zipline.utils.date_utils import epoch_now
@@ -77,21 +78,6 @@ TREASURY_DURATIONS = [
     '7year', '10year', '30year'
 ]
 
-
-def advance_by_months(dt, jump_in_months):
-    month = dt.month + jump_in_months
-    years = month / 12
-    month = month % 12
-
-    # no remainder means that we are landing in december.
-    # modulo is, in a way, a zero indexed circular array.
-    # this is a way of converting to 1 indexed months.
-    # (in our modulo index, december is zeroth)
-    if(month == 0):
-        month = 12
-        years = years - 1
-
-    return dt.replace(year=dt.year + years, month=month)
 
 ############################
 # Risk Metric Calculations #
@@ -793,9 +779,9 @@ class RiskReport(object):
 
         #ensure that we have an end at the end of a calendar month, in case
         #the return series ends mid-month...
-        the_end = advance_by_months(end.replace(day=1), 1) - one_day
+        the_end = end.replace(day=1) + relativedelta(months=1) - one_day
         while True:
-            cur_end = advance_by_months(cur_start, months_per) - one_day
+            cur_end = cur_start + relativedelta(months=months_per) - one_day
             if(cur_end > the_end):
                 break
             cur_period_metrics = RiskMetricsBatch(
@@ -805,6 +791,6 @@ class RiskReport(object):
             )
 
             ends.append(cur_period_metrics)
-            cur_start = advance_by_months(cur_start, 1)
+            cur_start = cur_start + relativedelta(months=1)
 
         return ends
