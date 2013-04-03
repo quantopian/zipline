@@ -808,10 +808,3 @@ class RiskReport(object):
             cur_start = advance_by_months(cur_start, 1)
 
         return ends
-
-    def find_metric_by_end(self, end_date, duration, metric):
-        col = getattr(self, duration + "_periods")
-        col = [getattr(x, metric) for x in col if x.end_date == end_date]
-        if len(col) == 1:
-            return col[0]
-        return None
