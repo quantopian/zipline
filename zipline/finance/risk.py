@@ -58,7 +58,6 @@ Risk Report
 import logbook
 import datetime
 import math
-from collections import OrderedDict
 import bisect
 import numpy as np
 import numpy.linalg as la
@@ -179,8 +178,6 @@ class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
 
         self.treasury_curves = trading.environment.treasury_curves
-        assert isinstance(self.treasury_curves, OrderedDict), \
-            "Treasury curves must be an OrderedDict"
 
         self.start_date = start_date
         self.end_date = end_date

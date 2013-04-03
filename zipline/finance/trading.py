@@ -21,6 +21,7 @@ import datetime
 from functools import wraps
 from collections import defaultdict, OrderedDict
 from delorean import Delorean
+import pandas as pd
 from pandas import DatetimeIndex
 
 from zipline.data.loader import load_market_data
@@ -114,8 +115,10 @@ class TradingEnvironment(object):
         if not load:
             load = load_market_data
 
-        self.benchmark_returns, self.treasury_curves = \
+        self.benchmark_returns, treasury_curves_map = \
             load(self.bm_symbol)
+
+        self.treasury_curves = pd.Series(treasury_curves_map)
 
         self._period_trading_days = None
         self._trading_days_series = None
