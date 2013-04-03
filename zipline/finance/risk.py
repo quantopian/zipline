@@ -236,6 +236,7 @@ class RiskMetricsBase(object):
         self.algorithm_volatility = self.calculate_volatility(
             self.algorithm_returns)
         self.treasury_period_return = self.choose_treasury(
+            self.treasury_curves,
             self.start_date,
             self.end_date
         )
@@ -426,7 +427,7 @@ class RiskMetricsBase(object):
 
         return 1.0 - math.exp(max_drawdown)
 
-    def choose_treasury(self, start_date, end_date):
+    def choose_treasury(self, treasury_curves, start_date, end_date):
         td = end_date - start_date
         if td.days <= 31:
             treasury_duration = '1month'
@@ -452,8 +453,8 @@ class RiskMetricsBase(object):
         end_day = end_date.replace(hour=0, minute=0, second=0)
         search_day = None
 
-        if end_day in self.treasury_curves:
-            rate = get_treasury_rate(self.treasury_curves,
+        if end_day in treasury_curves:
+            rate = get_treasury_rate(treasury_curves,
                                      treasury_duration,
                                      end_day)
             if rate is not None:
@@ -467,7 +468,7 @@ class RiskMetricsBase(object):
             # Find rightmost value less than or equal to end_day
             i = bisect.bisect_right(search_days, end_day)
             for prev_day in search_days[i - 1::-1]:
-                rate = get_treasury_rate(self.treasury_curves,
+                rate = get_treasury_rate(treasury_curves,
                                          treasury_duration,
                                          prev_day)
                 if rate is not None:
@@ -487,7 +488,7 @@ treasury history range."
                     log.warn(message)
 
         if search_day:
-            self.treasury_curve = self.treasury_curves[search_day]
+            treasury_curves[search_day]
             return rate * (td.days + 1) / 365
 
         message = "No rate for end date = {dt} and term = {term}. Check \
@@ -570,6 +571,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
         self.treasury_period_return = self.choose_treasury(
+            self.treasury_curves,
             self.start_date,
             self.end_date
         )
