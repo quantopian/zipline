@@ -173,6 +173,18 @@ def alpha(algorithm_period_return, treasury_period_return,
         (treasury_period_return + beta *
          (benchmark_period_returns - treasury_period_return))
 
+###########################
+# End Risk Metric Section #
+###########################
+
+
+def search_day_distance(end_date, dt):
+    tdd = trading.environment.trading_day_distance(dt, end_date)
+    if tdd is None:
+        return None
+    assert tdd >= 0
+    return tdd
+
 
 class RiskMetricsBase(object):
     def __init__(self, start_date, end_date, returns):
@@ -438,7 +450,7 @@ class RiskMetricsBase(object):
                 rate = self.get_treasury_rate(prev_day)
                 if rate is not None:
                     search_day = prev_day
-                    search_dist = self.search_day_distance(prev_day)
+                    search_dist = search_day_distance(self.end_date, prev_day)
                     break
 
             if search_day:
@@ -463,13 +475,6 @@ that date doesn't exceed treasury history range."
             term=self.treasury_duration
         )
         raise Exception(message)
-
-    def search_day_distance(self, dt):
-        tdd = trading.environment.trading_day_distance(dt, self.end_date)
-        if tdd is None:
-            return None
-        assert tdd >= 0
-        return tdd
 
     def get_treasury_rate(self, day):
         rate = None
