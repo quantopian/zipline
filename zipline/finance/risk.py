@@ -311,7 +311,7 @@ class RiskMetricsBase(object):
             )
             raise Exception(message)
 
-        self.trading_days = len(self.benchmark_returns)
+        self.num_trading_days = len(self.benchmark_returns)
         self.benchmark_volatility = self.calculate_volatility(
             self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(
@@ -338,7 +338,7 @@ class RiskMetricsBase(object):
         """
         period_label = self.end_date.strftime("%Y-%m")
         rval = {
-            'trading_days': self.trading_days,
+            'trading_days': self.num_trading_days,
             'benchmark_volatility': self.benchmark_volatility,
             'algo_volatility': self.algorithm_volatility,
             'treasury_period_return': self.treasury_period_return,
@@ -410,7 +410,7 @@ class RiskMetricsBase(object):
         return period_returns, returns
 
     def calculate_volatility(self, daily_returns):
-        return np.std(daily_returns, ddof=1) * math.sqrt(self.trading_days)
+        return np.std(daily_returns, ddof=1) * math.sqrt(self.num_trading_days)
 
     def calculate_sharpe(self):
         """
@@ -447,7 +447,6 @@ class RiskMetricsBase(object):
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-
         #it doesn't make much sense to calculate beta for less than two days,
         #so return none.
         if len(self.algorithm_returns) < 2:
@@ -518,16 +517,28 @@ class RiskMetricsIterative(RiskMetricsBase):
         Call update() method on each dt to update the metrics.
     """
 
-    def __init__(self, start_date):
+    def __init__(self, start_date, end_date):
         self.treasury_curves = trading.environment.treasury_curves
-        self.start_date = start_date
-        self.end_date = start_date
+        self.start_date = start_date.replace(hour=0, minute=0, second=0,
+                                             microsecond=0)
+        self.end_date = end_date.replace(hour=0, minute=0, second=0,
+                                         microsecond=0)
+
+        all_trading_days = trading.environment.trading_days
+        mask = ((all_trading_days >= self.start_date) &
+                (all_trading_days <= self.end_date))
+
+        self.trading_days = all_trading_days[mask]
+
+        self.algorithm_returns_cont = pd.Series(index=self.trading_days)
+        self.benchmark_returns_cont = pd.Series(index=self.trading_days)
+
+        self.algorithm_returns = None
+        self.benchmark_returns = None
 
         self.compounded_log_returns = []
         self.moving_avg = []
 
-        self.algorithm_returns = []
-        self.benchmark_returns = []
         self.algorithm_volatility = []
         self.benchmark_volatility = []
         self.algorithm_period_returns = []
@@ -541,22 +552,21 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.current_max = -np.inf
         self.excess_returns = []
         self.last_dt = start_date
-        self.trading_days = 0
 
-        self.all_benchmark_returns = [
-            x for x in trading.environment.benchmark_returns
-            if x.date >= self.start_date
-        ]
+    @property
+    def last_return_date(self):
+        return self.algorithm_returns.index[-1]
 
-    def update(self, market_close, returns_in_period):
-        if trading.environment.is_trading_day(self.end_date):
-            self.algorithm_returns.append(returns_in_period)
-            self.benchmark_returns.append(
-                self.all_benchmark_returns.pop(0).returns)
-            self.trading_days += 1
-            self.update_compounded_log_returns()
+    def update(self, dt, algorithm_returns, benchmark_returns):
+        self.algorithm_returns_cont[dt] = algorithm_returns
+        self.algorithm_returns = self.algorithm_returns_cont.valid()
 
-        self.end_date = market_close
+        self.benchmark_returns_cont[dt] = benchmark_returns
+        self.benchmark_returns = self.benchmark_returns_cont.valid()
+
+        self.num_trading_days = len(self.algorithm_returns)
+
+        self.update_compounded_log_returns()
 
         self.algorithm_period_returns.append(
             self.calculate_period_returns(self.algorithm_returns))
@@ -582,7 +592,7 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         self.treasury_period_return = choose_treasury(
             self.treasury_curves,
             self.start_date,
-            self.end_date
+            self.algorithm_returns.index[-1]
         )
         self.excess_returns.append(
             self.algorithm_period_returns[-1] - self.treasury_period_return)
@@ -598,9 +608,9 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
         Creates a dictionary representing the state of the risk report.
         Returns a dict object of the form:
         """
-        period_label = self.end_date.strftime("%Y-%m")
+        period_label = self.last_return_date.strftime("%Y-%m")
         rval = {
-            'trading_days': self.trading_days,
+            'trading_days': len(self.algorithm_returns.valid()),
             'benchmark_volatility': self.benchmark_volatility[-1],
             'algo_volatility': self.algorithm_volatility[-1],
             'treasury_period_return': self.treasury_period_return,
@@ -667,7 +677,8 @@ algorithm_returns ({algo_count}) in range {start} : {end}"
             return
 
         try:
-            compound = math.log(1 + self.algorithm_returns[-1])
+            compound = math.log(1 + self.algorithm_returns[
+                self.algorithm_returns.last_valid_index()])
         except ValueError:
             compound = 0.0
             # BUG? Shouldn't this be set to log(1.0 + 0) ?
