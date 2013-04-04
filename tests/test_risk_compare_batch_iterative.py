@@ -89,12 +89,6 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
                 risk_metrics_original.end_date,
                 risk_metrics_refactor.end_date)
             self.assertEqual(
-                risk_metrics_original.treasury_duration,
-                risk_metrics_refactor.treasury_duration)
-            self.assertEqual(
-                risk_metrics_original.treasury_curve,
-                risk_metrics_refactor.treasury_curve)
-            self.assertEqual(
                 risk_metrics_original.treasury_period_return,
                 risk_metrics_refactor.treasury_period_return)
             np.testing.assert_allclose(
