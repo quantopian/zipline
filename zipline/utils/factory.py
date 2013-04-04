@@ -15,7 +15,7 @@
 
 
 """
-Factory functions to prepare useful data for tests.
+Factory functions to prepare useful data.
 """
 import pytz
 import random
@@ -334,28 +334,29 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
         http://wesmckinney.com/files/20111017/notebook_output.pdf
     """
 
-    if indexes is None:
-        indexes = {'SPX': '^GSPC'}
-    if stocks is None:
-        stocks = ['AAPL', 'GE', 'IBM', 'MSFT', 'XOM', 'AA', 'JNJ', 'PEP', 'KO']
-    if start is None:
-        start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
-    if end is None:
-        end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+    assert indexes is not None or stocks is not None, """
+must specify stocks or indexes"""
 
-    assert start < end, "start date is later than end date."
+    if start is None:
+        start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+    if not start is None and not end is None:
+        assert start < end, "start date is later than end date."
 
     data = OrderedDict()
 
-    for stock in stocks:
-        print stock
-        stkd = DataReader(stock, 'yahoo', start, end).sort_index()
-        data[stock] = stkd
+    if stocks is not None:
+        for stock in stocks:
+            print stock
+            stkd = DataReader(stock, 'yahoo', start, end).sort_index()
+            data[stock] = stkd
 
-    for name, ticker in indexes.iteritems():
-        print name
-        stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
-        data[name] = stkd
+    if indexes is not None:
+        for name, ticker in indexes.iteritems():
+            print name
+            stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
+            data[name] = stkd
+
     return data
 
 
