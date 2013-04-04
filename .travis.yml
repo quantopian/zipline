@@ -4,7 +4,7 @@ python:
 before_install:
   - sudo apt-get install gfortran
 install:
-  - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | xargs pip install
+  - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | xargs pip install --use-mirrors
   - etc/ordered_pip.sh etc/requirements.txt
 before_script:
   - "flake8 zipline tests"
