@@ -1019,9 +1019,6 @@ class TestPerformanceTracker(unittest.TestCase):
         expected_size = len(txns) / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
 
-        self.assertEqual(perf_tracker.last_close,
-                         perf_tracker.cumulative_risk_metrics.end_date)
-
         self.assertEqual(len(perf_messages),
                          sim_params.days_in_period)
 

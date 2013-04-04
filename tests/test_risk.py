@@ -135,9 +135,9 @@ class TestRisk(unittest.TestCase):
     def test_trading_days_06(self):
         returns = factory.create_returns_from_range(self.sim_params)
         metrics = risk.RiskReport(returns, self.sim_params)
-        self.assertEqual([x.trading_days for x in metrics.year_periods],
+        self.assertEqual([x.num_trading_days for x in metrics.year_periods],
                          [251])
-        self.assertEqual([x.trading_days for x in metrics.month_periods],
+        self.assertEqual([x.num_trading_days for x in metrics.month_periods],
                          [20, 19, 23, 19, 22, 22, 20, 23, 20, 22, 21, 20])
 
     def test_benchmark_volatility_06(self):
@@ -625,10 +625,10 @@ class TestRisk(unittest.TestCase):
     def test_trading_days_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
         metrics = risk.RiskReport(returns, self.sim_params08)
-        self.assertEqual([x.trading_days for x in metrics.year_periods],
+        self.assertEqual([x.num_trading_days for x in metrics.year_periods],
                          [253])
 
-        self.assertEqual([x.trading_days for x in metrics.month_periods],
+        self.assertEqual([x.num_trading_days for x in metrics.month_periods],
                          [21, 20, 20, 22, 21, 21, 22, 21, 21, 23, 19, 22])
 
     def test_benchmark_volatility_08(self):

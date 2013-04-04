@@ -134,6 +134,7 @@ import logbook
 import math
 
 import numpy as np
+import pandas as pd
 
 import zipline.protocol as zp
 import zipline.finance.risk as risk
@@ -160,8 +161,15 @@ class PerformanceTracker(object):
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.cumulative_risk_metrics = \
-            risk.RiskMetricsIterative(self.period_start)
+            risk.RiskMetricsIterative(self.period_start, self.period_end)
         self.emission_rate = sim_params.emission_rate
+
+        # Temporarily hold these here as we work on streaming benchmarks.
+        self.all_benchmark_returns = pd.Series({
+            x.date: x.returns
+            for x in trading.environment.benchmark_returns
+            if x.date >= self.period_start
+        })
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -337,9 +345,15 @@ class PerformanceTracker(object):
         self.returns.append(todays_return_obj)
 
         #update risk metrics for cumulative performance
-        self.cumulative_risk_metrics.update(
-            self.market_close,
-            self.todays_performance.returns)
+        algorithm_returns = pd.Series({todays_return_obj.date:
+                                       todays_return_obj.returns})
+        benchmark_returns = pd.Series({
+            todays_return_obj.date:
+            self.all_benchmark_returns[todays_return_obj.date]})
+
+        self.cumulative_risk_metrics.update(todays_return_obj.date,
+                                            algorithm_returns,
+                                            benchmark_returns)
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0

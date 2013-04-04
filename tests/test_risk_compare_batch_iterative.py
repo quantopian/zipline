@@ -19,6 +19,7 @@ import datetime
 import pytz
 
 import numpy as np
+import pandas as pd
 
 import zipline.finance.risk as risk
 import zipline.finance.trading as trading
@@ -52,7 +53,17 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
         else:
             start_date = trading.environment.next_trading_day(self.start_date)
 
-        risk_metrics_refactor = risk.RiskMetricsIterative(start_date)
+        self.all_benchmark_returns = pd.Series({
+            x.date: x.returns
+            for x in trading.environment.benchmark_returns
+            if x.date >= self.start_date
+        })
+
+        start_index = trading.environment.trading_days.searchsorted(start_date)
+        end_date = trading.environment.trading_days[
+            start_index + len(RETURNS)]
+
+        risk_metrics_refactor = risk.RiskMetricsIterative(start_date, end_date)
         todays_date = start_date
 
         cur_returns = []
@@ -77,17 +88,24 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
                 #assert that when original raises exception, same
                 #exception is raised by risk_metrics_refactor
                 np.testing.assert_raises(
-                    type(e), risk_metrics_refactor.update, todays_date, ret)
+                    type(e),
+                    risk_metrics_refactor.update,
+                    todays_date,
+                    self.all_benchmark_returns[todays_return_obj.date]
+                )
                 continue
 
-            risk_metrics_refactor.update(todays_date, ret)
+            risk_metrics_refactor.update(
+                todays_date,
+                ret,
+                self.all_benchmark_returns[todays_return_obj.date])
 
             self.assertEqual(
                 risk_metrics_original.start_date,
                 risk_metrics_refactor.start_date)
             self.assertEqual(
                 risk_metrics_original.end_date,
-                risk_metrics_refactor.end_date)
+                risk_metrics_refactor.algorithm_returns.index[-1])
             self.assertEqual(
                 risk_metrics_original.treasury_period_return,
                 risk_metrics_refactor.treasury_period_return)
