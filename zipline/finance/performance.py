@@ -245,7 +245,8 @@ class PerformanceTracker(object):
             # its own configuration down the line.
             # Naming as intraday to make clear that these results are
             # being updated per minute
-            _dict['intraday_perf'] = self.todays_performance.to_dict()
+            _dict['intraday_perf'] = self.todays_performance.to_dict(
+                self.saved_dt)
 
         return _dict
 
@@ -634,10 +635,13 @@ class PerformancePeriod(object):
 
         return rval
 
-    def to_dict(self):
+    def to_dict(self, dt=None):
         """
         Creates a dictionary representing the state of this performance
         period. See header comments for a detailed description.
+
+        Kwargs:
+            dt (datetime): If present, only return transactions for the dt.
         """
         rval = self.__core_dict()
 
@@ -647,7 +651,14 @@ class PerformancePeriod(object):
 
         # we want the key to be absent, not just empty
         if self.keep_transactions:
-            transactions = [x.__dict__ for x in self.processed_transactions]
+            if dt:
+                # Only include transactions for given dt
+                transactions = [x.__dict__
+                                for x in self.processed_transactions
+                                if x.dt == dt]
+            else:
+                transactions = [x.__dict__
+                                for x in self.processed_transactions]
             rval['transactions'] = transactions
 
         return rval
