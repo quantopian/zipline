@@ -21,6 +21,7 @@ import numpy as np
 from datetime import datetime
 
 from itertools import groupby, ifilter
+from numbers import Number
 from operator import attrgetter
 
 from zipline.errors import (
@@ -299,6 +300,9 @@ class TradingAlgorithm(object):
         Track and record local variable (i.e. attributes) each day.
         """
         for name, value in kwargs.items():
+            if not isinstance(value, Number):
+                raise TypeError("Non-numeric value %s specified to 'record'"
+                                % value)
             self._recorded_vars[name] = value
 
     @property
