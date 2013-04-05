@@ -1069,3 +1069,9 @@ class TestPerformanceTracker(unittest.TestCase):
         messages += tracker.process_event(foo_event_3)
 
         self.assertEquals(2, len(messages))
+
+        self.assertEquals(1, len(messages[0]['intraday_perf']['transactions']),
+                          "The first message should contain one transaction.")
+        # Check that transactions aren't emitted for previous events.
+        self.assertEquals(0, len(messages[1]['intraday_perf']['transactions']),
+                          "The second message should have no transactions.")
