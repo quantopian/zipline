@@ -379,3 +379,15 @@ class TestBatchTransform(TestCase):
                 # 1990-01-08 - window now full
                 expected_item
             ])
+
+    def test_iterative_batch(self):
+        algo = BatchTransformAlgorithm()
+        algo.run(self.source)
+
+        self.assertTrue(algo.history_return_iter)
+        self.assertIsNone(algo.history_return_iter[0])
+
+        prev = 0
+        for current in algo.history_return_iter[1:]:
+            self.assertEqual(prev, current)
+            prev = current + 1

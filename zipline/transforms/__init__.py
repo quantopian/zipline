@@ -17,7 +17,7 @@ from mavg import MovingAverage
 from stddev import MovingStandardDev
 from vwap import MovingVWAP
 from returns import Returns
-from utils import BatchTransform, batch_transform
+from utils import BatchTransform, batch_transform, iterative_batch_transform
 
 __all__ = [
     'MovingAverage',
@@ -25,5 +25,6 @@ __all__ = [
     'MovingVWAP',
     'Returns',
     'BatchTransform',
-    'batch_transform'
+    'batch_transform',
+    'iterative_batch_transform',
 ]
