@@ -143,6 +143,20 @@ Thank you for all the help so far!
 
 (alert us if we've inadvertantly missed listing you here!)
 
+Development Environment
+-----------------------
+
+The following guide assumes your system has [virtualenvwrapper](https://bitbucket.org/dhellmann/virtualenvwrapper)
+and [pip](http://www.pip-installer.org/en/latest/) already installed.
+
+Suggested installation of Python library dependencies used for development:
+
+```
+mkvirtualenv zipline
+./etc/ordered_pip.sh ./etc/requirements.txt
+pip install -r ./etc/requirements_dev.txt
+```
+
 Style Guide
 ------------
 
