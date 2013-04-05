@@ -138,7 +138,7 @@ def simplex_projection(v, b=1):
     1.0
 
     Original matlab implementation: John Duchi (jduchi@cs.berkeley.edu)
-    Python-port: Copyright 2012 by Thomas Wiecki (thomas.wiecki@gmail.com).
+    Python-port: Copyright 2013 by Thomas Wiecki (thomas.wiecki@gmail.com).
     """
 
     v = np.asarray(v)
