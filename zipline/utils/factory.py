@@ -337,10 +337,8 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     assert indexes is not None or stocks is not None, """
 must specify stocks or indexes"""
 
-    # TODO: it would be best to fetch all data available
-    # however, uncommenting the lines below causes problems
-    #if start is None:
-    #    start = pd.datetime(1900, 1, 1, 0, 0, 0, 0, pytz.utc)
+    if start is None:
+        start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
 
     if not start is None and not end is None:
         assert start < end, "start date is later than end date."
