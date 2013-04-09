@@ -48,7 +48,9 @@ class PerTrade(object):
         share count. $5.00 per trade is fairly typical of
         discount brokers.
         """
-        self.cost = cost
+        # Cost needs to be floating point so that calculation using division
+        # logic does not floor to an integer.
+        self.cost = float(cost)
 
     def calculate(self, transaction):
         """
