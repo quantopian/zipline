@@ -40,14 +40,20 @@ from zipline.sources.test_source import (
 
 
 def create_simulation_parameters(year=2006, start=None, end=None,
-                                 capital_base=float("1.0e5")
+                                 capital_base=float("1.0e5"),
+                                 num_days=None
                                  ):
     """Construct a complete environment with reasonable defaults"""
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
     if end is None:
-        end = datetime(year, 12, 31, tzinfo=pytz.utc)
-
+        if num_days:
+            trading.environment = trading.TradingEnvironment()
+            start_index = trading.environment.trading_days.searchsorted(
+                start)
+            end = trading.environment.trading_days[start_index + num_days - 1]
+        else:
+            end = datetime(year, 12, 31, tzinfo=pytz.utc)
     sim_params = SimulationParameters(
         period_start=start,
         period_end=end,

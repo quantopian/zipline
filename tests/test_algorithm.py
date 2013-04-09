@@ -30,7 +30,7 @@ from zipline.finance.trading import SimulationParameters
 
 class TestRecordAlgorithm(TestCase):
     def setUp(self):
-        self.sim_params = factory.create_simulation_parameters()
+        self.sim_params = factory.create_simulation_parameters(num_days=4)
         trade_history = factory.create_trade_history(
             133,
             [10.0, 10.0, 11.0, 11.0],
@@ -38,13 +38,15 @@ class TestRecordAlgorithm(TestCase):
             timedelta(days=1),
             self.sim_params
         )
+
         self.source = SpecificEquityTrades(event_list=trade_history)
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
 
     def test_record_incr(self):
-        algo = RecordAlgorithm()
+        algo = RecordAlgorithm(sim_params=self.sim_params)
         output = algo.run(self.source)
+
         np.testing.assert_array_equal(output['incr'].values,
                                       range(1, len(output) + 1))
 
@@ -52,7 +54,7 @@ class TestRecordAlgorithm(TestCase):
 class TestTransformAlgorithm(TestCase):
     def setUp(self):
         setup_logger(self)
-        self.sim_params = factory.create_simulation_parameters()
+        self.sim_params = factory.create_simulation_parameters(num_days=4)
         setup_logger(self)
 
         trade_history = factory.create_trade_history(
@@ -109,7 +111,9 @@ class TestTransformAlgorithm(TestCase):
         assert isinstance(algo.sources[0], DataFrameSource)
 
     def test_panel_as_input(self):
-        algo = TestRegisterTransformAlgorithm(sids=[0, 1])
+        algo = TestRegisterTransformAlgorithm(
+            self.sim_params,
+            sids=[0, 1])
         algo.run(self.panel)
         assert isinstance(algo.sources[0], DataPanelSource)
 
