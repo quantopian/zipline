@@ -74,7 +74,7 @@ class TestTransformAlgorithm(TestCase):
 
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             sids=[133]
         )
         algo.run(self.source)
@@ -103,7 +103,7 @@ class TestTransformAlgorithm(TestCase):
 
     def test_df_as_input(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             sids=[0, 1]
         )
         algo.run(self.df)
@@ -111,14 +111,14 @@ class TestTransformAlgorithm(TestCase):
 
     def test_panel_as_input(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             sids=[0, 1])
         algo.run(self.panel)
         assert isinstance(algo.sources[0], DataPanelSource)
 
     def test_run_twice(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             sids=[0, 1]
         )
 
@@ -129,7 +129,7 @@ class TestTransformAlgorithm(TestCase):
 
     def test_transform_registered(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             sids=[133]
         )
 
@@ -142,21 +142,21 @@ class TestTransformAlgorithm(TestCase):
 
     def test_data_frequency_setting(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             data_frequency='daily'
         )
         self.assertEqual(algo.data_frequency, 'daily')
         self.assertEqual(algo.annualizer, 250)
 
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             data_frequency='minute'
         )
         self.assertEqual(algo.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 250 * 6 * 60)
 
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
+            sim_params=self.sim_params,
             data_frequency='minute',
             annualizer=10
         )
