@@ -83,7 +83,6 @@ class TestTransformAlgorithm(TestCase):
 
     def test_multi_source_as_input_no_start_end(self):
         algo = TestRegisterTransformAlgorithm(
-            self.sim_params,
             sids=[133]
         )
 
