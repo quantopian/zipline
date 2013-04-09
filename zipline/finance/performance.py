@@ -230,7 +230,6 @@ class PerformanceTracker(object):
         _dict = {
             'period_start': self.period_start,
             'period_end': self.period_end,
-            'progress': self.progress,
             'capital_base': self.capital_base,
             'cumulative_perf': self.cumulative_performance.to_dict(),
         }
@@ -238,7 +237,8 @@ class PerformanceTracker(object):
             _dict.update({'cumulative_risk_metrics':
                           self.cumulative_risk_metrics.to_dict(),
                           'daily_perf':
-                          self.todays_performance.to_dict()})
+                          self.todays_performance.to_dict(),
+                         'progress': self.progress})
         if self.emission_rate == 'minute':
             # Currently reusing 'todays_performance' for intraday trading
             # result, should be analogous, but has the potential for needing
