@@ -130,6 +130,7 @@ omitted).
 
 """
 
+import itertools
 import logbook
 import math
 
@@ -205,7 +206,16 @@ class PerformanceTracker(object):
         """
         Main generator work loop.
         """
-        for date, snapshot in stream_in:
+        # Set the simulation date to be the first event we see.
+        peek_date, peek_snapshot = next(stream_in)
+        self.saved_dt = peek_date
+
+        # Stitch back together the generator by placing the peeked
+        # event back in front
+        stream = itertools.chain([(peek_date, peek_snapshot)],
+                                 stream_in)
+
+        for date, snapshot in stream:
             new_snapshot = []
 
             for event in snapshot:

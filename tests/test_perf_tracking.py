@@ -1075,3 +1075,12 @@ class TestPerformanceTracker(unittest.TestCase):
         # Check that transactions aren't emitted for previous events.
         self.assertEquals(0, len(messages[1]['intraday_perf']['transactions']),
                           "The second message should have no transactions.")
+
+        # Ensure that period_close moves through time.
+        # Also, ensure that the period_closes are the expected dts.
+        self.assertEquals(foo_event_1.dt,
+                          messages[0]['intraday_perf']['period_close'],
+                          messages[0])
+        self.assertEquals(foo_event_2.dt,
+                          messages[1]['intraday_perf']['period_close'],
+                          messages[1])
