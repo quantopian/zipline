@@ -232,24 +232,26 @@ class PerformanceTracker(object):
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
 
-    def to_dict(self):
+    def to_dict(self, emission_type=None):
         """
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form described in header comments.
         """
+        if not emission_type:
+            emission_type = self.emission_rate
         _dict = {
             'period_start': self.period_start,
             'period_end': self.period_end,
             'capital_base': self.capital_base,
             'cumulative_perf': self.cumulative_performance.to_dict(),
         }
-        if self.emission_rate == 'daily':
+        if emission_type == 'daily':
             _dict.update({'cumulative_risk_metrics':
                           self.cumulative_risk_metrics.to_dict(),
                           'daily_perf':
                           self.todays_performance.to_dict(),
                          'progress': self.progress})
-        if self.emission_rate == 'minute':
+        if emission_type == 'minute':
             # Currently reusing 'todays_performance' for intraday trading
             # result, should be analogous, but has the potential for needing
             # its own configuration down the line.
