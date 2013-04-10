@@ -142,10 +142,7 @@ class StatefulTransform(object):
                     and message.type not in (
                         DATASOURCE_TYPE.TRADE,
                         DATASOURCE_TYPE.CUSTOM)):
-                # TODO: this should be yielding the original message
-                # instead of swallowing it. Will be an issue when we
-                # have a transaction source from brokers etc.
-                continue
+                yield message
             # allow upstream generators to yield None to avoid
             # blocking.
             if message is None:
