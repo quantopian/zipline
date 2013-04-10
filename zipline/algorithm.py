@@ -39,6 +39,9 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.constants import ANNUALIZER
+import zipline.finance.trading as trading
+import zipline.protocol
+from zipline.protocol import Event
 
 from zipline.gens.composites import (
     date_sorted_sources,
@@ -130,17 +133,31 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        benchmark_return_source = [
+            Event({'dt': ret.date,
+                   'returns': ret.returns,
+                   'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
+                   'source_id': 'benchmarks'})
+            for ret in trading.environment.benchmark_returns
+            if ret.date.date() >= self.sim_params.period_start.date()
+            and ret.date.date() <= self.sim_params.period_end.date()
+        ]
 
         date_sorted = date_sorted_sources(*self.sources)
+
         if source_filter:
             date_sorted = ifilter(source_filter, date_sorted)
+
         with_tnfms = sequential_transforms(date_sorted,
                                            *self.transforms)
         with_alias_dt = alias_dt(with_tnfms)
 
+        with_benchmarks = date_sorted_sources(benchmark_return_source,
+                                              with_alias_dt)
+
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
-        return groupby(with_alias_dt, attrgetter('dt'))
+        return groupby(with_benchmarks, attrgetter('dt'))
 
     def _create_generator(self, sim_params, source_filter=None):
         """
