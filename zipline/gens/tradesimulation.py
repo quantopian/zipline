@@ -303,6 +303,17 @@ class AlgorithmSimulator(object):
                     self.algo.recorded_vars
                 yield message
 
+            # When emitting minutely, it is still useful to have a final
+            # packet with the entire days performance rolled up.
+            if self.perf_tracker.emission_rate == 'minute':
+                daily_rollup = self.perf_tracker.to_dict(
+                    emission_type='daily'
+                )
+                daily_rollup['daily_perf']['recorded_vars'] = \
+                    self.algo.recorded_vars
+                log.info("emitting daily rollup: %s" % daily_rollup)
+                yield daily_rollup
+
             yield risk_message
 
     def update_universe(self, event):
