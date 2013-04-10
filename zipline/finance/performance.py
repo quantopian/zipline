@@ -266,6 +266,7 @@ class PerformanceTracker(object):
                     messages.append(self.handle_market_close())
             elif self.emission_rate == 'minute':
                 if event.dt > self.saved_dt:
+                    self.todays_performance.period_close = self.saved_dt
                     messages.append(self.to_dict())
                     self.saved_dt = event.dt
 
