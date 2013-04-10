@@ -30,7 +30,8 @@ DATASOURCE_TYPE = Enum(
     'ORDER',
     'EMPTY',
     'DONE',
-    'CUSTOM'
+    'CUSTOM',
+    'BENCHMARK'
 )
 
 

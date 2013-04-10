@@ -28,10 +28,14 @@ import numpy as np
 
 from nose.tools import timed
 
+import zipline.protocol
+from zipline.protocol import Event, DATASOURCE_TYPE
+
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
 from zipline.gens.tradesimulation import Order, Blotter
+from zipline.gens.composites import date_sorted_sources
 
 import zipline.finance.trading as trading
 from zipline.finance.trading import SimulationParameters
@@ -165,8 +169,9 @@ class FinanceTestCase(TestCase):
         # No transactions can be filled on the first trade, so
         # we have one extra trade to ensure all orders are filled.
         self.zipline_test_config['trade_count'] = 101
-        zipline = simfactory.create_test_zipline(**self.zipline_test_config)
-        assert_single_position(self, zipline)
+        full_zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+        assert_single_position(self, full_zipline)
 
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
@@ -340,18 +345,34 @@ class FinanceTestCase(TestCase):
 
         tracker = PerformanceTracker(sim_params)
 
+        benchmark_returns = [
+            Event({'dt': ret.date,
+                   'returns': ret.returns,
+                   'type':
+                   zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
+                   'source_id': 'benchmarks'})
+            for ret in trading.environment.benchmark_returns
+            if ret.date.date() >= sim_params.period_start.date()
+            and ret.date.date() <= sim_params.period_end.date()
+        ]
+
+        generated_events = date_sorted_sources(generated_trades,
+                                               benchmark_returns)
+
         # this approximates the loop inside TradingSimulationClient
         transactions = []
-        for dt, trades in itertools.groupby(generated_trades,
+        for dt, events in itertools.groupby(generated_events,
                                             operator.attrgetter('dt')):
-            for trade in trades:
+            for event in events:
+                if event.type == DATASOURCE_TYPE.TRADE:
 
-                txns = blotter.process_trade(trade)
+                    txns = blotter.process_trade(event)
 
-                for txn in txns:
-                    transactions.append(txn)
-                    tracker.process_event(txn)
-                tracker.process_event(trade)
+                    for txn in txns:
+                        transactions.append(txn)
+                        tracker.process_event(txn)
+
+                tracker.process_event(event)
 
         if complete_fill:
             self.assertEqual(len(transactions), len(order_list))

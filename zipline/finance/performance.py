@@ -165,11 +165,8 @@ class PerformanceTracker(object):
         self.emission_rate = sim_params.emission_rate
 
         # Temporarily hold these here as we work on streaming benchmarks.
-        self.all_benchmark_returns = pd.Series({
-            x.date: x.returns
-            for x in trading.environment.benchmark_returns
-            if x.date >= self.period_start
-        })
+        self.all_benchmark_returns = pd.Series(
+            index=trading.environment.trading_days)
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -324,6 +321,8 @@ class PerformanceTracker(object):
             # we just want to relay this event unchanged.
             messages = []
             return messages
+        elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+            self.all_benchmark_returns[event.dt] = event.returns
 
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
