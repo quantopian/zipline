@@ -1060,28 +1060,34 @@ class TestPerformanceTracker(unittest.TestCase):
         bar_event_2 = factory.create_trade(
             'bar', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
 
-        foo_event_3 = factory.create_trade(
-            'foo', 12.0, 30, start_dt + datetime.timedelta(minutes=2))
+        events = [
+            foo_event_1,
+            bar_event_1,
+            foo_event_2,
+            bar_event_2
+        ]
 
-        tracker.process_event(foo_event_1)
-        tracker.process_event(bar_event_1)
-        messages = tracker.process_event(foo_event_2)
-        tracker.process_event(bar_event_2)
-        messages += tracker.process_event(foo_event_3)
+        import operator
+        messages = {date: snapshot[0].perf_messages[0] for date, snapshot in
+                    tracker.transform(
+                        itertools.groupby(
+                            events,
+                            operator.attrgetter('dt')))}
 
         self.assertEquals(2, len(messages))
 
-        self.assertEquals(1, len(messages[0]['intraday_perf']['transactions']),
+        msg_1 = messages[foo_event_1.dt]
+        msg_2 = messages[foo_event_2.dt]
+
+        self.assertEquals(1, len(msg_1['intraday_perf']['transactions']),
                           "The first message should contain one transaction.")
         # Check that transactions aren't emitted for previous events.
-        self.assertEquals(0, len(messages[1]['intraday_perf']['transactions']),
+        self.assertEquals(0, len(msg_2['intraday_perf']['transactions']),
                           "The second message should have no transactions.")
 
         # Ensure that period_close moves through time.
         # Also, ensure that the period_closes are the expected dts.
         self.assertEquals(foo_event_1.dt,
-                          messages[0]['intraday_perf']['period_close'],
-                          messages[0])
+                          msg_1['intraday_perf']['period_close'])
         self.assertEquals(foo_event_2.dt,
-                          messages[1]['intraday_perf']['period_close'],
-                          messages[1])
+                          msg_2['intraday_perf']['period_close'])

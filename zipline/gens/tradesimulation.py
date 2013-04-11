@@ -298,10 +298,11 @@ class AlgorithmSimulator(object):
             perf_messages, risk_message = \
                 self.perf_tracker.handle_simulation_end()
 
-            for message in perf_messages:
-                message[self.perf_key]['recorded_vars'] =\
-                    self.algo.recorded_vars
-                yield message
+            if self.perf_tracker.emission_rate == 'daily':
+                for message in perf_messages:
+                    message[self.perf_key]['recorded_vars'] =\
+                        self.algo.recorded_vars
+                    yield message
 
             # When emitting minutely, it is still useful to have a final
             # packet with the entire days performance rolled up.
@@ -311,7 +312,6 @@ class AlgorithmSimulator(object):
                 )
                 daily_rollup['daily_perf']['recorded_vars'] = \
                     self.algo.recorded_vars
-                log.info("emitting daily rollup: %s" % daily_rollup)
                 yield daily_rollup
 
             yield risk_message
