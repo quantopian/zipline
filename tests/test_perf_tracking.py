@@ -1031,6 +1031,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
         return event
 
+    @trading.use_environment(trading.TradingEnvironment())
     def test_minute_tracker(self):
         """ Tests minute performance tracking."""
         start_dt = trading.environment.exchange_dt_in_utc(
