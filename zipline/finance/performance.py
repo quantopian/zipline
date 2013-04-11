@@ -130,7 +130,6 @@ omitted).
 
 """
 
-import itertools
 import logbook
 import math
 
@@ -206,24 +205,26 @@ class PerformanceTracker(object):
         """
         Main generator work loop.
         """
-        # Set the simulation date to be the first event we see.
-        peek_date, peek_snapshot = next(stream_in)
-        self.saved_dt = peek_date
-
-        # Stitch back together the generator by placing the peeked
-        # event back in front
-        stream = itertools.chain([(peek_date, peek_snapshot)],
-                                 stream_in)
-
-        for date, snapshot in stream:
+        for date, snapshot in stream_in:
             new_snapshot = []
 
-            for event in snapshot:
-                messages = self.process_event(event)
-                if messages is not None:
-                    event.perf_messages = messages
-                    event.portfolio = self.get_portfolio()
+            if self.emission_rate == 'daily':
+                for event in snapshot:
+                    messages = self.process_event(event)
+                    if messages is not None:
+                        event.perf_messages = messages
+                        event.portfolio = self.get_portfolio()
 
+                        new_snapshot.append(event)
+
+            elif self.emission_rate == 'minute':
+                self.saved_dt = date
+                self.todays_performance.period_close = self.saved_dt
+
+                for event in snapshot:
+                    self.process_event(event)
+                    event.perf_messages = [self.to_dict()]
+                    event.portfolio = self.get_portfolio()
                     new_snapshot.append(event)
 
             if new_snapshot:
@@ -277,10 +278,7 @@ class PerformanceTracker(object):
                        event.dt < self.last_close):
                     messages.append(self.handle_market_close())
             elif self.emission_rate == 'minute':
-                if event.dt > self.saved_dt:
-                    self.todays_performance.period_close = self.saved_dt
-                    messages.append(self.to_dict())
-                    self.saved_dt = event.dt
+                messages.append(self.to_dict())
 
             if event.TRANSACTION:
                 self.txn_count += 1
