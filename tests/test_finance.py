@@ -16,6 +16,9 @@
 """
 Tests for the zipline.finance package
 """
+import itertools
+import operator
+
 import pytz
 
 from unittest import TestCase
@@ -334,12 +337,14 @@ class FinanceTestCase(TestCase):
 
         # this approximates the loop inside TradingSimulationClient
         transactions = []
-        for trade in generated_trades:
-            trade_sim.update(trade)
-            if trade.TRANSACTION:
-                transactions.append(trade.TRANSACTION)
+        for dt, trades in itertools.groupby(generated_trades,
+                                            operator.attrgetter('dt')):
+            for trade in trades:
+                trade_sim.update(trade)
+                if trade.TRANSACTION:
+                    transactions.append(trade.TRANSACTION)
 
-            tracker.process_event(trade)
+                tracker.process_event(trade)
 
         if complete_fill:
             self.assertEqual(len(transactions), len(order_list))
