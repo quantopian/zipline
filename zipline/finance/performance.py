@@ -533,7 +533,8 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = []
-        self.placed_orders = []
+        self.placed_orders = \
+            [order for order in self.placed_orders if order.open]
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
@@ -685,22 +686,22 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.__dict__
+                transactions = [x.to_python()
                                 for x in self.processed_transactions
                                 if x.dt == dt]
             else:
-                transactions = [x.__dict__
+                transactions = [x.to_python()
                                 for x in self.processed_transactions]
             rval['transactions'] = transactions
 
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.__dict__
+                orders = [x.to_python()
                           for x in self.placed_orders
                           if x.last_modified == dt]
             else:
-                orders = [x.__dict__ for x in self.placed_orders]
+                orders = [x.to_python() for x in self.placed_orders]
             rval['orders'] = orders
 
         return rval

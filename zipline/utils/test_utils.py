@@ -75,7 +75,6 @@ def drain_zipline(test, zipline):
 
 def assert_single_position(test, zipline):
     output, transaction_count = drain_zipline(test, zipline)
-
     if 'expected_transactions' in test.zipline_test_config:
         test.assertEqual(
             test.zipline_test_config['expected_transactions'],
@@ -101,6 +100,7 @@ def assert_single_position(test, zipline):
             if 'orders' in update['daily_perf']:
                 for order in update['daily_perf']['orders']:
                     orders_by_id[order['id']] = order
+
     for order in orders_by_id.itervalues():
         test.assertEqual(
             order['status'],

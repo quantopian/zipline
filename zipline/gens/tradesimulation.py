@@ -17,6 +17,7 @@ import math
 import numpy as np
 import uuid
 
+from copy import copy
 from logbook import Logger, Processor
 from collections import defaultdict
 
@@ -142,11 +143,18 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = DATASOURCE_TYPE.ORDER
 
+    def to_python(self):
+        py = copy(self.__dict__)
+        for field in ['type', 'direction']:
+            del py[field]
+        return py
+
     def check_triggers(self, event):
         """
         Update internal state based on price triggers and the
         trade event's price.
         """
+        self.last_modified = event.dt
         self.stop_reached, self.limit_reached = \
             check_order_triggers(self, event)
 

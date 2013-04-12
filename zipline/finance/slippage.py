@@ -15,6 +15,7 @@
 import pytz
 import math
 
+from copy import copy
 from functools import partial
 from zipline.protocol import DATASOURCE_TYPE
 
@@ -95,6 +96,11 @@ class Transaction(object):
 
     def __getitem__(self, name):
         return self.__dict__[name]
+
+    def to_python(self):
+        py = copy(self.__dict__)
+        del py['type']
+        return py
 
 
 def create_transaction(sid, amount, price, dt, order_id):
