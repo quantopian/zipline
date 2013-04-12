@@ -293,7 +293,7 @@ class TestBatchTransform(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def test_event_window(self):
-        algo = BatchTransformAlgorithm()
+        algo = BatchTransformAlgorithm(sim_params=self.sim_params)
         algo.run(self.source)
         wl = algo.window_length
         # The following assertion depend on window length of 3
@@ -358,7 +358,8 @@ class TestBatchTransform(TestCase):
                 )
 
     def test_passing_of_args(self):
-        algo = BatchTransformAlgorithm(1, kwarg='str')
+        algo = BatchTransformAlgorithm(1,
+                                       kwarg='str', sim_params=self.sim_params)
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
