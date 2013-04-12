@@ -268,7 +268,6 @@ class FinanceTestCase(TestCase):
 
         trade_count = params['trade_count']
         trade_interval = params['trade_interval']
-        trade_delay = params.get('trade_delay')
         order_count = params['order_count']
         order_amount = params['order_amount']
         order_interval = params['order_interval']
@@ -336,8 +335,6 @@ class FinanceTestCase(TestCase):
         # this approximates the loop inside TradingSimulationClient
         transactions = []
         for trade in generated_trades:
-            if trade_delay:
-                trade.dt = trade.dt + trade_delay
             trade_sim.update(trade)
             if trade.TRANSACTION:
                 transactions.append(trade.TRANSACTION)
