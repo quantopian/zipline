@@ -97,7 +97,7 @@ class Transaction(object):
     def __getitem__(self, name):
         return self.__dict__[name]
 
-    def to_python(self):
+    def to_dict(self):
         py = copy(self.__dict__)
         del py['type']
         return py

@@ -143,7 +143,7 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = DATASOURCE_TYPE.ORDER
 
-    def to_python(self):
+    def to_dict(self):
         py = copy(self.__dict__)
         for field in ['type', 'direction']:
             del py[field]

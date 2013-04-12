@@ -686,22 +686,22 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.to_python()
+                transactions = [x.to_dict()
                                 for x in self.processed_transactions
                                 if x.dt == dt]
             else:
-                transactions = [x.to_python()
+                transactions = [x.to_dict()
                                 for x in self.processed_transactions]
             rval['transactions'] = transactions
 
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.to_python()
+                orders = [x.to_dict()
                           for x in self.placed_orders
                           if x.last_modified == dt]
             else:
-                orders = [x.to_python() for x in self.placed_orders]
+                orders = [x.to_dict() for x in self.placed_orders]
             rval['orders'] = orders
 
         return rval
