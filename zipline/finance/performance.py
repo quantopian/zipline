@@ -306,6 +306,8 @@ class PerformanceTracker(object):
             messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.ORDER:
+            self.cumulative_performance.record_order(event)
+            self.todays_performance.record_order(event)
             messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
@@ -692,7 +694,13 @@ class PerformancePeriod(object):
             rval['transactions'] = transactions
 
         if self.keep_orders:
-            orders = [x.__dict__ for x in self.placed_orders]
+            if dt:
+                # only include orders modified as of the given dt.
+                orders = [x.__dict__
+                          for x in self.placed_orders
+                          if x.last_modified == dt]
+            else:
+                orders = [x.__dict__ for x in self.placed_orders]
             rval['orders'] = orders
 
         return rval

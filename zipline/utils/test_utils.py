@@ -3,6 +3,7 @@ import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
+from zipline.gens.tradesimulation import ORDER_STATUS
 
 
 def setup_logger(test, path='test.log'):
@@ -90,6 +91,21 @@ def assert_single_position(test, zipline):
     # last is the final day's results. Positions is a list of
     # dicts.
     closing_positions = output[-2]['daily_perf']['positions']
+
+    # confirm that all orders were filled.
+    # iterate over the output updates, overwriting
+    # orders when they are updated. Then check the status on all.
+    orders_by_id = {}
+    for update in output:
+        if 'daily_perf' in update:
+            if 'orders' in update['daily_perf']:
+                for order in update['daily_perf']['orders']:
+                    orders_by_id[order['id']] = order
+    for order in orders_by_id.itervalues():
+        test.assertEqual(
+            order['status'],
+            ORDER_STATUS.FILLED,
+            "")
 
     test.assertEqual(
         len(closing_positions),

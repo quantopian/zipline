@@ -171,6 +171,9 @@ class VolumeShareSlippage(object):
                 dt.replace(tzinfo=pytz.utc),
                 order.id
             )
+
+            # mark the last_modified date of the order to match
+            order.last_modified = event.dt
             txns.append(txn)
 
         return txns
@@ -211,5 +214,7 @@ class FixedSlippage(object):
                 order.id
             )
 
+            # mark the last_modified date of the order to match
+            order.last_modified = event.dt
             txns.append(txn)
         return txns

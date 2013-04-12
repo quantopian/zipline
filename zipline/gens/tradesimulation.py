@@ -34,6 +34,13 @@ from zipline.finance.commission import PerShare
 
 log = Logger('Trade Simulation')
 
+from zipline.utils.protocol_utils import Enum
+
+ORDER_STATUS = Enum(
+    'OPEN',
+    'FILLED'
+)
+
 
 class Blotter(object):
 
@@ -123,9 +130,11 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = uuid.uuid4().get_hex()
         self.dt = dt
+        self.last_modified = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
+        self.status = ORDER_STATUS.OPEN
         self.stop = stop
         self.limit = limit
         self.stop_reached = False
@@ -144,7 +153,12 @@ class Order(object):
     @property
     def open(self):
         remainder = self.amount - self.filled
-        return remainder != 0
+        if remainder != 0:
+            self.status = ORDER_STATUS.OPEN
+        else:
+            self.status = ORDER_STATUS.FILLED
+
+        return self.status == ORDER_STATUS.OPEN
 
     @property
     def triggered(self):
