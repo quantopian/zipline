@@ -131,7 +131,7 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = uuid.uuid4().get_hex()
         self.dt = dt
-        self.last_modified = dt
+        self.last_modified_dt = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
@@ -154,7 +154,7 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        self.last_modified = event.dt
+        self.last_modified_dt = event.dt
         self.stop_reached, self.limit_reached = \
             check_order_triggers(self, event)
 

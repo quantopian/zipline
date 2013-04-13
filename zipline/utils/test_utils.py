@@ -24,8 +24,8 @@ def check_list(test, a, b, label):
 
 
 def check_dict(test, a, b, label):
-    test.assertTrue(isinstance(a, dict))
-    test.assertTrue(isinstance(b, dict))
+    test.assertTrue(isinstance(a, dict), "non-dict at {l}".format(l=label))
+    test.assertTrue(isinstance(b, dict), "non-dict at {l}".format(l=label))
     for key in a.keys():
 
         test.assertTrue(key in a, "missing key at: " + label + "." + key)

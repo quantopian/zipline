@@ -24,7 +24,7 @@ from operator import attrgetter
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.slippage import Transaction
+from zipline.finance.slippage import Transaction, create_transaction
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -36,6 +36,10 @@ from zipline.utils.factory import create_random_simulation_parameters
 onesec = datetime.timedelta(seconds=1)
 oneday = datetime.timedelta(days=1)
 tradingday = datetime.timedelta(hours=6, minutes=30)
+
+
+def create_txn(sid, price, amount, dt):
+    return create_transaction(sid, amount, price, dt, "fakeuid")
 
 
 class TestDividendPerformance(unittest.TestCase):
@@ -80,7 +84,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[2].dt
         )
 
-        txn = factory.create_txn(1, 10.0, 100, events[0].dt)
+        txn = create_txn(1, 10.0, 100, events[0].dt)
         events.insert(0, txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
@@ -138,7 +142,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         events.insert(1, dividend)
-        txn = factory.create_txn(1, 10.0, 100, events[3].dt)
+        txn = create_txn(1, 10.0, 100, events[3].dt)
         events.insert(4, txn)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
         transformed_events = list(perf_tracker.transform(
@@ -185,9 +189,9 @@ class TestDividendPerformance(unittest.TestCase):
             events[3].dt
         )
 
-        buy_txn = factory.create_txn(1, 10.0, 100, events[0].dt)
+        buy_txn = create_txn(1, 10.0, 100, events[0].dt)
         events.insert(1, buy_txn)
-        sell_txn = factory.create_txn(1, 10.0, -100, events[3].dt)
+        sell_txn = create_txn(1, 10.0, -100, events[3].dt)
         events.insert(4, sell_txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
@@ -235,9 +239,9 @@ class TestDividendPerformance(unittest.TestCase):
             events[5].dt
         )
 
-        buy_txn = factory.create_txn(1, 10.0, 100, events[1].dt)
+        buy_txn = create_txn(1, 10.0, 100, events[1].dt)
         events.insert(2, buy_txn)
-        sell_txn = factory.create_txn(1, 10.0, -100, events[3].dt)
+        sell_txn = create_txn(1, 10.0, -100, events[3].dt)
         events.insert(4, sell_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
@@ -285,7 +289,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[-1].dt + 10 * oneday
         )
 
-        buy_txn = factory.create_txn(1, 10.0, 100, events[1].dt)
+        buy_txn = create_txn(1, 10.0, 100, events[1].dt)
         events.insert(2, buy_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
@@ -336,7 +340,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[2].dt
         )
 
-        txn = factory.create_txn(1, 10.0, -100, self.dt + oneday)
+        txn = create_txn(1, 10.0, -100, self.dt + oneday)
         events.insert(1, txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
@@ -433,7 +437,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params
         )
 
-        txn = factory.create_txn(1, 10.0, 100, self.dt + onesec)
+        txn = create_txn(1, 10.0, 100, self.dt + onesec)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
@@ -504,7 +508,7 @@ single short-sale transaction"""
 
         trades_1 = trades[:-2]
 
-        txn = factory.create_txn(1, 10.0, -100, self.dt + onesec)
+        txn = create_txn(1, 10.0, -100, self.dt + onesec)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
@@ -692,14 +696,14 @@ trade after cover"""
             self.sim_params
         )
 
-        short_txn = factory.create_txn(
+        short_txn = create_txn(
             1,
             10.0,
             -100,
             self.dt + onesec
         )
 
-        cover_txn = factory.create_txn(1, 7.0, 100, self.dt + onesec * 6)
+        cover_txn = create_txn(1, 7.0, 100, self.dt + onesec * 6)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(short_txn)
@@ -807,7 +811,7 @@ shares in position"
             400
         )
 
-        saleTxn = factory.create_txn(
+        saleTxn = create_txn(
             1,
             10.0,
             -100,

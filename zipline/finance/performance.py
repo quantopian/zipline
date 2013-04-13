@@ -699,7 +699,7 @@ class PerformancePeriod(object):
                 # only include orders modified as of the given dt.
                 orders = [x.to_dict()
                           for x in self.placed_orders
-                          if x.last_modified == dt]
+                          if x.last_modified_dt == dt]
             else:
                 orders = [x.to_dict() for x in self.placed_orders]
             rval['orders'] = orders
