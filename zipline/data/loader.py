@@ -217,7 +217,8 @@ Fetching data from data.treasury.gov
     tr_curves = {}
     for packed_date, curve in tr_list:
         tr_dt = tuple_to_date(packed_date)
-        #tr_dt = tr_dt.replace(hour=0, minute=0, second=0, tzinfo=pytz.utc)
+        # tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,
+        #                       tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve
 
     fp_tr.close()

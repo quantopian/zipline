@@ -228,7 +228,7 @@ def select_treasury_duration(start_date, end_date):
 
 def choose_treasury(treasury_curves, start_date, end_date):
     treasury_duration = select_treasury_duration(start_date, end_date)
-    end_day = end_date.replace(hour=0, minute=0, second=0)
+    end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     search_day = None
 
     if end_day in treasury_curves:
