@@ -189,6 +189,7 @@ Last successful date: %s" % self.market_open)
             hour=9,
             minute=30,
             second=0,
+            microsecond=0,
             tzinfo=None
         )
         # create a new Delorean with the next_open naive date and

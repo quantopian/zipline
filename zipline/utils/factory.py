@@ -159,9 +159,10 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'sid': sid,
         'gross_amount': payment,
         'net_amount': payment,
-        'dt': declared_date.replace(hour=0, minute=0, second=0),
-        'ex_date': ex_date.replace(hour=0, minute=0, second=0),
-        'pay_date': pay_date.replace(hour=0, minute=0, second=0),
+        'dt': declared_date.replace(hour=0, minute=0, second=0, microsecond=0),
+        'ex_date': ex_date.replace(hour=0, minute=0, second=0, microsecond=0),
+        'pay_date': pay_date.replace(hour=0, minute=0, second=0,
+                                     microsecond=0),
         'type': DATASOURCE_TYPE.DIVIDEND
     })
 

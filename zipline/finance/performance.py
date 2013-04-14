@@ -325,7 +325,8 @@ class PerformanceTracker(object):
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
-        todays_date = self.market_close.replace(hour=0, minute=0, second=0)
+        todays_date = self.market_close.replace(hour=0, minute=0, second=0,
+                                                microsecond=0)
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)
 
@@ -369,7 +370,8 @@ class PerformanceTracker(object):
         # hour between the close of markets and the next open. To
         # make sure midnight_between matches identically with
         # dividend data dates, it is in UTC.
-        midnight_between = self.market_open.replace(hour=0, minute=0, second=0)
+        midnight_between = self.market_open.replace(hour=0, minute=0, second=0,
+                                                    microsecond=0)
         self.cumulative_performance.update_dividends(midnight_between)
         self.todays_performance.update_dividends(midnight_between)
 
