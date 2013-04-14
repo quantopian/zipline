@@ -173,6 +173,7 @@ class PerformanceTracker(object):
             # don't save the transactions for the cumulative
             # period
             keep_transactions=False,
+            keep_orders=False,
             # don't serialize positions for cumualtive period
             serialize_positions=False
         )
@@ -185,6 +186,7 @@ class PerformanceTracker(object):
             self.market_open,
             self.market_close,
             keep_transactions=True,
+            keep_orders=True,
             serialize_positions=True
         )
 
@@ -280,23 +282,36 @@ class PerformanceTracker(object):
             elif self.emission_rate == 'minute':
                 messages.append(self.to_dict())
 
-            if event.TRANSACTION:
-                self.txn_count += 1
-                self.cumulative_performance.execute_transaction(
-                    event.TRANSACTION
-                )
-                self.todays_performance.execute_transaction(event.TRANSACTION)
-
             #update last sale
             self.cumulative_performance.update_last_sale(event)
             self.todays_performance.update_last_sale(event)
-            del event['TRANSACTION']
+
+        elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
+
+            # Trade simulation always follows a transaction with the
+            # TRADE event that was used to simulate it, so we don't
+            # check for end of day rollover messages here.
+            self.txn_count += 1
+            self.cumulative_performance.execute_transaction(
+                event
+            )
+            self.todays_performance.execute_transaction(event)
+            # Transactions are consumed by performance, and not
+            # relayed to the next element in the generator chain.
+            messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
             self.cumulative_performance.add_dividend(event)
             self.todays_performance.add_dividend(event)
-            # this event will not be relayed up
+            # Dividends are consumed by performance, and not
+            # relayed to the next element in the generator chain.
             messages = None
+
+        elif event.type == zp.DATASOURCE_TYPE.ORDER:
+            self.cumulative_performance.record_order(event)
+            self.todays_performance.record_order(event)
+            messages = None
+
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
             # we just want to relay this event unchanged.
             messages = []
@@ -476,6 +491,7 @@ class PerformancePeriod(object):
             period_open=None,
             period_close=None,
             keep_transactions=True,
+            keep_orders=False,
             serialize_positions=True):
 
         self.period_open = period_open
@@ -492,6 +508,8 @@ class PerformancePeriod(object):
         self.ending_cash = starting_cash
         self.keep_transactions = keep_transactions
         self.processed_transactions = []
+        self.keep_orders = keep_orders
+        self.placed_orders = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
@@ -517,6 +535,8 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = []
+        self.placed_orders = \
+            [order for order in self.placed_orders if order.open]
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
@@ -575,6 +595,10 @@ class PerformancePeriod(object):
             self.returns = self.pnl / total_at_start
         else:
             self.returns = 0.0
+
+    def record_order(self, order):
+        if self.keep_orders:
+            self.placed_orders.append(order)
 
     def execute_transaction(self, txn):
         # Update Position
@@ -664,13 +688,23 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.__dict__
+                transactions = [x.to_dict()
                                 for x in self.processed_transactions
                                 if x.dt == dt]
             else:
-                transactions = [x.__dict__
+                transactions = [x.to_dict()
                                 for x in self.processed_transactions]
             rval['transactions'] = transactions
+
+        if self.keep_orders:
+            if dt:
+                # only include orders modified as of the given dt.
+                orders = [x.to_dict()
+                          for x in self.placed_orders
+                          if x.last_modified_dt == dt]
+            else:
+                orders = [x.to_dict() for x in self.placed_orders]
+            rval['orders'] = orders
 
         return rval
 

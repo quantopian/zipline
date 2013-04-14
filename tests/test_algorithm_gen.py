@@ -66,10 +66,12 @@ class TestAlgo(TradingAlgorithm):
 
             self.ordered = True
 
-        self.asserter.assertGreaterEqual(
-            self.latest_date,
-            self.slippage.latest_date
-        )
+        else:
+
+            self.asserter.assertGreaterEqual(
+                self.latest_date,
+                self.slippage.latest_date
+            )
 
 
 class AlgorithmGeneratorTestCase(TestCase):

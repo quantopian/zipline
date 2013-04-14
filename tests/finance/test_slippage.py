@@ -24,17 +24,15 @@ from unittest import TestCase
 
 from zipline.finance.slippage import VolumeShareSlippage
 
-from zipline.protocol import Event
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.gens.tradesimulation import Order
 
 
 class SlippageTestCase(TestCase):
 
     def test_volume_share_slippage(self):
-
         event = Event(
             {'volume': 200,
-             'TRANSACTION': None,
              'type': 4,
              'price': 3.0,
              'datetime': datetime.datetime(
@@ -51,18 +49,21 @@ class SlippageTestCase(TestCase):
 
         slippage_model = VolumeShareSlippage()
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             event,
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.01875),
@@ -70,7 +71,9 @@ class SlippageTestCase(TestCase):
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': int(50),
             'sid': int(133),
-            'commission': None
+            'commission': None,
+            'type': DATASOURCE_TYPE.TRANSACTION,
+            'order_id': open_orders[0].id
         }
 
         self.assertIsNotNone(txn)
@@ -87,46 +90,46 @@ class SlippageTestCase(TestCase):
 
         # long, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[2],
             open_orders
         )
-
-        expected_txn = {}
-
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # long, does trade
-
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[3],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.500875),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             'amount': int(100),
-            'sid': int(133)
+            'sid': int(133),
+            'order_id': open_orders[0].id
         }
 
         self.assertIsNotNone(txn)
@@ -136,39 +139,42 @@ class SlippageTestCase(TestCase):
 
         # short, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[0],
             open_orders
         )
 
         expected_txn = {}
 
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # short, does trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[1],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.499125),
@@ -190,88 +196,90 @@ class SlippageTestCase(TestCase):
 
         # long, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
                 'stop': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[2],
             open_orders
         )
 
-        expected_txn = {}
-
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # long, does trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
-                'stop': 3.6})
-        ]}
+                'stop': 3.6
+            })
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[3],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.500875),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             'amount': int(100),
-            'sid': int(133)
+            'sid': int(133),
+            'order_id': open_orders[0].id
         }
-
-        self.assertIsNotNone(txn)
 
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
 
         # short, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
                 'stop': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[0],
             open_orders
         )
 
-        expected_txn = {}
-
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # short, does trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
                 'stop': 3.4})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[1],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.499125),
@@ -280,8 +288,6 @@ class SlippageTestCase(TestCase):
             'amount': int(-100),
             'sid': int(133)
         }
-
-        self.assertIsNotNone(txn)
 
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
@@ -293,7 +299,7 @@ class SlippageTestCase(TestCase):
 
         # long, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
@@ -301,29 +307,25 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 4.0,
                 'limit': 3.0})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[2],
             open_orders
         )
 
-        expected_txn = {}
+        self.assertEquals(len(txns), 0)
 
-        self.assertIsNone(txn)
-
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[3],
             open_orders
         )
 
-        expected_txn = {}
-
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # long, does trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
@@ -331,21 +333,22 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 4.0,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[2],
             open_orders
         )
 
-        expected_txn = {}
+        self.assertEquals(len(txns), 0)
 
-        self.assertIsNone(txn)
-
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[3],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.500875),
@@ -355,14 +358,12 @@ class SlippageTestCase(TestCase):
             'sid': int(133)
         }
 
-        self.assertIsNotNone(txn)
-
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
 
         # short, does not trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
@@ -370,29 +371,25 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 3.0,
                 'limit': 4.0})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[0],
             open_orders
         )
 
-        expected_txn = {}
+        self.assertEquals(len(txns), 0)
 
-        self.assertIsNone(txn)
-
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[1],
             open_orders
         )
 
-        expected_txn = {}
-
-        self.assertIsNone(txn)
+        self.assertEquals(len(txns), 0)
 
         # short, does trade
 
-        open_orders = {133: [
+        open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
@@ -400,21 +397,22 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 3.0,
                 'limit': 3.5})
-        ]}
+        ]
 
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[0],
             open_orders
         )
 
-        expected_txn = {}
+        self.assertEquals(len(txns), 0)
 
-        self.assertIsNone(txn)
-
-        txn = slippage_model.simulate(
+        txns = slippage_model.simulate(
             events[1],
             open_orders
         )
+
+        self.assertEquals(len(txns), 1)
+        txn = txns[0]
 
         expected_txn = {
             'price': float(3.499125),
@@ -424,8 +422,6 @@ class SlippageTestCase(TestCase):
             'sid': int(133)
         }
 
-        self.assertIsNotNone(txn)
-
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
 
@@ -434,7 +430,6 @@ class SlippageTestCase(TestCase):
         events = [
             Event({
                 'volume': 2000,
-                'TRANSACTION': None,
                 'type': 4,
                 'price': 3.0,
                 'datetime': datetime.datetime(
@@ -450,7 +445,6 @@ class SlippageTestCase(TestCase):
             }),
             Event({
                 'volume': 2000,
-                'TRANSACTION': None,
                 'type': 4,
                 'price': 3.5,
                 'datetime': datetime.datetime(
@@ -466,7 +460,6 @@ class SlippageTestCase(TestCase):
             }),
             Event({
                 'volume': 2000,
-                'TRANSACTION': None,
                 'type': 4,
                 'price': 4.0,
                 'datetime': datetime.datetime(
@@ -482,7 +475,6 @@ class SlippageTestCase(TestCase):
             }),
             Event({
                 'volume': 2000,
-                'TRANSACTION': None,
                 'type': 4,
                 'price': 3.5,
                 'datetime': datetime.datetime(
@@ -498,7 +490,6 @@ class SlippageTestCase(TestCase):
             }),
             Event({
                 'volume': 2000,
-                'TRANSACTION': None,
                 'type': 4,
                 'price': 3.0,
                 'datetime': datetime.datetime(
