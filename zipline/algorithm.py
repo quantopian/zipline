@@ -339,7 +339,7 @@ class TradingAlgorithm(object):
         Set the method that will be called to create a
         transaction from open orders and trade events.
         """
-        self.trading_client.ordering_client.transact = transact
+        self.trading_client.blotter.transact = transact
 
     def set_slippage(self, slippage):
         if not isinstance(slippage, (VolumeShareSlippage, FixedSlippage)):

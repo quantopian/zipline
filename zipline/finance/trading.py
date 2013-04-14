@@ -19,19 +19,13 @@ import logbook
 import datetime
 
 from functools import wraps
-from collections import defaultdict, OrderedDict
 from delorean import Delorean
 import pandas as pd
 from pandas import DatetimeIndex
 
+from collections import OrderedDict
 from zipline.data.loader import load_market_data
-import zipline.protocol as zp
-from zipline.finance.slippage import (
-    VolumeShareSlippage,
-    transact_partial
-)
 
-from zipline.finance.commission import PerShare
 
 log = logbook.Logger('Transaction Simulator')
 
@@ -73,32 +67,6 @@ log = logbook.Logger('Transaction Simulator')
 # state.
 
 environment = None
-
-
-class TransactionSimulator(object):
-
-    def __init__(self):
-        self.transact = transact_partial(VolumeShareSlippage(), PerShare())
-        self.open_orders = defaultdict(list)
-
-    def place_order(self, order):
-        # initialized filled field.
-        order.filled = 0
-        self.open_orders[order.sid].append(order)
-
-    def transform(self, stream_in):
-        """
-        Main generator work loop.
-        """
-        for date, snapshot in stream_in:
-            yield date, [self.update(event) for event in snapshot]
-
-    def update(self, event):
-        event.TRANSACTION = None
-        # We only fill transactions on trade events.
-        if event.type == zp.DATASOURCE_TYPE.TRADE:
-            event.TRANSACTION = self.transact(event, self.open_orders)
-        return event
 
 
 class TradingEnvironment(object):
