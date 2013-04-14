@@ -66,10 +66,12 @@ class TestAlgo(TradingAlgorithm):
 
             self.ordered = True
 
-        self.asserter.assertGreaterEqual(
-            self.latest_date,
-            self.slippage.latest_date
-        )
+        else:
+
+            self.asserter.assertGreaterEqual(
+                self.latest_date,
+                self.slippage.latest_date
+            )
 
 
 class AlgorithmGeneratorTestCase(TestCase):
@@ -110,10 +112,8 @@ class AlgorithmGeneratorTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_generator_dates(self):
-        """
-        Ensure the pipeline of generators are in sync, at least as far as
-        their current dates.
-        """
+        # Ensure the pipeline of generators are in sync, at least as far as
+        # their current dates.
         sim_params = factory.create_simulation_parameters(
             start=datetime(2011, 7, 30, tzinfo=pytz.utc),
             end=datetime(2012, 7, 30, tzinfo=pytz.utc)

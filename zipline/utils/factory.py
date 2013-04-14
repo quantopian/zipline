@@ -174,6 +174,7 @@ def create_txn(sid, price, amount, datetime):
         'amount': amount,
         'dt': datetime,
         'price': price,
+        'type': DATASOURCE_TYPE.TRANSACTION
     })
     return txn
 
