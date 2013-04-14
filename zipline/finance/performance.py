@@ -216,6 +216,7 @@ class PerformanceTracker(object):
                     if messages is not None:
                         event.perf_messages = messages
                         event.portfolio = self.get_portfolio()
+                        new_snapshot.append(event)
 
             elif self.emission_rate == 'minute':
                 self.saved_dt = date

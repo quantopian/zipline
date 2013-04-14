@@ -1057,7 +1057,6 @@ class TestPerformanceTracker(unittest.TestCase):
 
     @trading.use_environment(trading.TradingEnvironment())
     def test_minute_tracker(self):
-        """ Tests minute performance tracking."""
         start_dt = trading.environment.exchange_dt_in_utc(
             datetime.datetime(2013, 3, 1, 9, 30))
         end_dt = trading.environment.exchange_dt_in_utc(
@@ -1087,8 +1086,6 @@ class TestPerformanceTracker(unittest.TestCase):
             'foo', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
         bar_event_2 = factory.create_trade(
             'bar', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
-        foo_event_3 = factory.create_trade(
-            'foo', 12.0, 30, start_dt + datetime.timedelta(minutes=2))
 
         events = [
             foo_event_1,
@@ -1096,12 +1093,11 @@ class TestPerformanceTracker(unittest.TestCase):
             txn_event_1,
             bar_event_1,
             foo_event_2,
-            bar_event_2,
-            foo_event_3
+            bar_event_2
         ]
 
         import operator
-        messages = {date: snapshot[0].perf_messages[0] for date, snapshot in
+        messages = {date: snapshot[-1].perf_messages[0] for date, snapshot in
                     tracker.transform(
                         itertools.groupby(
                             events,
@@ -1118,10 +1114,10 @@ class TestPerformanceTracker(unittest.TestCase):
         self.assertEquals(0, len(msg_2['intraday_perf']['transactions']),
                           "The second message should have no transactions.")
 
-        self.assertEquals(1, len(messages[0]['intraday_perf']['orders']),
+        self.assertEquals(1, len(msg_1['intraday_perf']['orders']),
                           "The first message should contain one orders.")
         # Check that orders aren't emitted for previous events.
-        self.assertEquals(0, len(messages[1]['intraday_perf']['orders']),
+        self.assertEquals(0, len(msg_2['intraday_perf']['orders']),
                           "The second message should have no orders.")
 
         # Ensure that period_close moves through time.
