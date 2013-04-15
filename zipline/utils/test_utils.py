@@ -26,10 +26,8 @@ def check_list(test, a, b, label):
 def check_dict(test, a, b, label):
     test.assertTrue(isinstance(a, dict))
     test.assertTrue(isinstance(b, dict))
-    for key in a.keys():
-
-        test.assertTrue(key in a, "missing key at: " + label + "." + key)
-        test.assertTrue(key in b, "missing key at: " + label + "." + key)
+    test.assertEqual(sorted(a), sorted(b), "different keys at: " + label)
+    for key in a:
         a_val = a[key]
         b_val = b[key]
         check(test, a_val, b_val, label + "." + key)
