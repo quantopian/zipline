@@ -101,7 +101,7 @@ def create_random_simulation_parameters():
 
         random_index = random.randint(
             0,
-            len(treasury_curves)
+            len(treasury_curves) - 1
         )
 
         start_dt = treasury_curves.keys()[random_index]
