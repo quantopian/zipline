@@ -877,11 +877,6 @@ shares in position"
 
 class TestPerformanceTracker(unittest.TestCase):
 
-    def setUp(self):
-
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
-
     NumDaysToDelete = collections.namedtuple(
         'NumDaysToDelete', ('start', 'middle', 'end'))
 
