@@ -187,7 +187,7 @@ Last successful date: %s" % self.market_open)
         # shift the time between EST and UTC.
         next_open = next_open.replace(
             hour=9,
-            minute=30,
+            minute=31,
             second=0,
             microsecond=0,
             tzinfo=None
@@ -197,7 +197,9 @@ Last successful date: %s" % self.market_open)
         open_utc = self.exchange_dt_in_utc(next_open)
 
         market_open = open_utc
-        market_close = market_open + self.get_trading_day_duration(open_utc)
+        market_close = (market_open
+                        + self.get_trading_day_duration(open_utc)
+                        - datetime.timedelta(minutes=1))
 
         return market_open, market_close
 
