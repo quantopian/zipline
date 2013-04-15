@@ -8,7 +8,7 @@ Dual-Moving Average Example
 The following code implements a simple dual moving average algorithm
 and tests it on data extracted from yahoo finance.
 
-.. code:: python
+.. code-block:: python
 
     from zipline.algorithm import TradingAlgorithm
     from zipline.transforms import MovingAverage

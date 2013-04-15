@@ -14,14 +14,6 @@
     :undoc-members:
     :show-inheritance:
 
-:mod:`sort` Module
-------------------
-
-.. automodule:: zipline.gens.sort
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`tradesimulation` Module
 ------------------------------
 
