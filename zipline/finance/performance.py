@@ -230,9 +230,10 @@ class PerformanceTracker(object):
 
                 for event in snapshot:
                     self.process_event(event)
-                    event.perf_messages = [self.to_dict()]
-                    event.portfolio = self.get_portfolio()
-                    new_snapshot.append(event)
+                    if event.type == zp.DATASOURCE_TYPE.TRADE:
+                        event.perf_messages = [self.to_dict()]
+                        event.portfolio = self.get_portfolio()
+                        new_snapshot.append(event)
 
             if new_snapshot:
                 yield date, new_snapshot
