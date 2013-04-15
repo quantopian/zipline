@@ -166,9 +166,13 @@ class PerformanceTracker(object):
             risk.RiskMetricsIterative(self.sim_params)
         self.emission_rate = sim_params.emission_rate
 
-        # Temporarily hold these here as we work on streaming benchmarks.
-        self.all_benchmark_returns = pd.Series(
-            index=trading.environment.trading_days)
+        if self.emission_rate == 'daily':
+            self.all_benchmark_returns = pd.Series(
+                index=trading.environment.trading_days)
+        elif self.emission_rate == 'minute':
+            self.all_benchmark_returns = pd.Series(index=pd.date_range(
+                self.sim_params.first_open, self.sim_params.last_close,
+                freq='Min'))
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -243,6 +247,9 @@ class PerformanceTracker(object):
                         event.perf_messages = []
                         event.portfolio = None
                         new_snapshot.append(event)
+
+
+                self.handle_minute_close(date)
 
                 if new_snapshot:
                     new_snapshot[-1].perf_messages = [self.to_dict()]
@@ -341,6 +348,15 @@ class PerformanceTracker(object):
         self.todays_performance.calculate_performance()
 
         return messages
+
+    def handle_minute_close(self, dt):
+        #update risk metrics for cumulative performance
+        algorithm_returns = pd.Series({dt: self.todays_performance.returns})
+        benchmark_returns = pd.Series({dt: self.all_benchmark_returns[dt]})
+
+        self.cumulative_risk_metrics.update(dt,
+                                            algorithm_returns,
+                                            benchmark_returns)
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
