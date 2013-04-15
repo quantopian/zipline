@@ -72,7 +72,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_market_hours_calculations(self):
         with trading.TradingEnvironment():
             # DST in US/Eastern began on Sunday March 14, 2010
-            before = datetime.datetime(2010, 3, 12, 14, 30, tzinfo=pytz.utc)
+            before = datetime.datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
             after = factory.get_next_trading_dt(
                 before,
                 datetime.timedelta(days=1)

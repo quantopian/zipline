@@ -108,7 +108,7 @@ class AlgorithmGeneratorTestCase(TestCase):
             # May 7, 2012 was an LSE holiday, confirm the 4th trading
             # day was May 8.
             self.assertEqual(results[4]['daily_perf']['period_open'],
-                             datetime(2012, 5, 8, 8, 30, tzinfo=pytz.utc))
+                             datetime(2012, 5, 8, 8, 31, tzinfo=pytz.utc))
 
     @timed(DEFAULT_TIMEOUT)
     def test_generator_dates(self):
