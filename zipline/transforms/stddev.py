@@ -16,10 +16,9 @@
 from collections import defaultdict
 from math import sqrt
 
-import numpy as np
-
 from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
+import zipline.utils.math_utils as zp_math
 
 
 class MovingStandardDev(object):
@@ -118,7 +117,7 @@ class MovingStandardDevWindow(EventWindow):
             s_squared = (self.sum_sqr - self.sum * average) \
                 / (len(self) - 1)
 
-            if np.allclose(0, s_squared):
+            if zp_math.tolerant_equals(0, s_squared):
                 return 0.0
             stddev = sqrt(s_squared)
         return stddev

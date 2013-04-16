@@ -64,6 +64,7 @@ from dateutil.relativedelta import relativedelta
 
 import zipline.finance.trading as trading
 from zipline.utils.date_utils import epoch_now
+import zipline.utils.math_utils as zp_math
 
 import pandas as pd
 
@@ -94,7 +95,7 @@ def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
     Returns:
         float. The Sharpe ratio.
     """
-    if np.allclose(algorithm_volatility, 0):
+    if zp_math.tolerant_equals(algorithm_volatility, 0):
         return 0.0
 
     return (algorithm_return - treasury_return) / algorithm_volatility
@@ -121,7 +122,7 @@ def sortino_ratio(algorithm_returns, algorithm_period_return, mar):
     downside = (rets[rets < mar] - mar) ** 2
     dr = np.sqrt(downside.sum() / len(rets))
 
-    if np.allclose(dr, 0):
+    if zp_math.tolerant_equals(dr, 0):
         return 0.0
 
     return (algorithm_period_return - mar) / dr
@@ -144,7 +145,11 @@ def information_ratio(algorithm_returns, benchmark_returns):
 
     relative_deviation = relative_returns.std(ddof=1)
 
-    if np.allclose(relative_deviation, 0) or np.isnan(relative_deviation):
+    if (
+        zp_math.tolerant_equals(relative_deviation, 0)
+        or
+        np.isnan(relative_deviation)
+    ):
         return 0.0
 
     return np.mean(relative_returns) / relative_deviation

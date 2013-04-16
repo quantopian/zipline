@@ -16,7 +16,6 @@
 import numpy as np
 import itertools
 import math
-import numpy as np
 import uuid
 
 from copy import copy
@@ -34,6 +33,7 @@ from zipline.finance.slippage import (
     check_order_triggers
 )
 from zipline.finance.commission import PerShare
+import zipline.utils.math_utils as zp_math
 
 log = Logger('Trade Simulation')
 
@@ -85,7 +85,7 @@ class Blotter(object):
             yield date, results
 
     def process_trade(self, trade_event):
-        if np.allclose(trade_event.volume, 0):
+        if zp_math.tolerant_equals(trade_event.volume, 0):
             # there are zero volume trade_events bc some stocks trade
             # less frequently than once per minute.
             return []
