@@ -543,6 +543,12 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.benchmark_volatility = []
         self.algorithm_period_returns = []
         self.benchmark_period_returns = []
+
+        self.algorithm_covariance = None
+        self.benchmark_variance = None
+        self.condition_number = None
+        self.eigen_values = None
+
         self.sharpe = []
         self.sortino = []
         self.information = []
