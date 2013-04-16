@@ -14,6 +14,8 @@
 # limitations under the License.
 import re
 
+import numpy as np
+import pandas as pd
 import requests
 
 from collections import OrderedDict
@@ -134,3 +136,21 @@ def get_treasury_data():
     mappings = treasury_mappings()
     source = get_treasury_source()
     return source_to_records(mappings, source)
+
+
+def dataconverter(s):
+    try:
+        return float(s) / 100
+    except:
+        return np.nan
+
+
+def get_daily_10yr_treasury_data():
+    """Download daily 10 year treasury rates from the Federal Reserve and
+    return a pandas.Series."""
+    url = "http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15" \
+          "&series=bcb44e57fb57efbe90002369321bfb3f&lastObs=&from=&to=" \
+          "&filetype=csv&label=include&layout=seriescolumn"
+    return pd.read_csv(url, header=5, index_col=0, names=['DATE', 'BC_10YEAR'],
+                       parse_dates=True, converters={1: dataconverter},
+                       squeeze=True)
