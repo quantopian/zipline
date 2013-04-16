@@ -1108,7 +1108,7 @@ class TestPerformanceTracker(unittest.TestCase):
     def test_minute_tracker(self):
         """ Tests minute performance tracking."""
         start_dt = trading.environment.exchange_dt_in_utc(
-            datetime.datetime(2013, 3, 1, 9, 30))
+            datetime.datetime(2013, 3, 1, 9, 31))
         end_dt = trading.environment.exchange_dt_in_utc(
             datetime.datetime(2013, 3, 1, 16, 0))
 
