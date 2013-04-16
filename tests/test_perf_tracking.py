@@ -15,6 +15,7 @@
 
 import collections
 import heapq
+import operator
 
 import unittest
 from nose_parameterized import parameterized
@@ -1145,7 +1146,6 @@ class TestPerformanceTracker(unittest.TestCase):
             bar_event_2
         ]
 
-        import operator
         messages = {date: snapshot[-1].perf_messages[0] for date, snapshot in
                     tracker.transform(
                         itertools.groupby(
