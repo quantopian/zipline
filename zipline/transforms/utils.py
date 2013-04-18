@@ -20,20 +20,24 @@ Generator versions of transforms.
 import functools
 import types
 import logbook
+
 import numpy
+
+from numbers import Integral
+
+import pandas as pd
+
+from zipline.utils.data import RollingPanel
+from zipline.protocol import Event
 
 from copy import deepcopy
 from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
-from numbers import Integral
 
-import pandas as pd
-
-from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.protocol import DATASOURCE_TYPE
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 import zipline.finance.trading as trading
-from zipline.utils.data import RollingPanel
 
 log = logbook.Logger('Transform')
 
@@ -381,12 +385,12 @@ class BatchTransform(object):
 
         self.refresh_period = refresh_period
         self.window_length = window_length
-        self.trading_days_since_update = 0
         self.trading_days_total = 0
         self.window = None
 
         self.full = False
-        self.last_dt = None
+        # Set to -inf essentially to cause update on first attempt.
+        self.last_dt = pd.Timestamp('1900-1-1', tz='UTC')
 
         self.updated = False
         self.cached = None
@@ -403,8 +407,7 @@ class BatchTransform(object):
 
     def handle_data(self, data, *args, **kwargs):
         """
-        New method to handle a data frame as sent to the algorithm's
-        handle_data method.
+        Point of entry. Process an event frame.
         """
         # extract dates
         #dts = [data[sid].datetime for sid in self.sids]
@@ -426,69 +429,21 @@ class BatchTransform(object):
         # only modify the trailing window if this is
         # a new event. This is intended to make handle_data
         # idempotent.
-        if self.last_dt != event.dt:
-            self.handle_add(event)
+        if self.last_dt < event.dt:
+            self.updated = True
+            self._append_to_window(event)
         else:
             self.updated = False
 
         # return newly computed or cached value
         return self.get_transform_value(*args, **kwargs)
 
-    def _extract_field_names(self, event):
-        # extract field names from sids (price, volume etc), make sure
-        # every sid has the same fields.
-        sid_keys = []
-        for sid in event.data.itervalues():
-            keys = set([name for name, value in sid.items()
-                        if isinstance(value,
-                                      (int,
-                                       float,
-                                       numpy.integer,
-                                       numpy.float,
-                                       numpy.long))
-                        ])
-            sid_keys.append(keys)
-
-        # with CUSTOM data events, there may be different fields
-        # per sid. So the allowable keys are the union of all events.
-        union = set.union(*sid_keys)
-        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
-                               'datetime', 'source_id'])
-        return union - unwanted_fields
-
-    def _get_field_names(self, event):
-        if self.initial_field_names is not None:
-            return self.initial_field_names
-        else:
-            self.latest_names = self._extract_field_names(event)
-            return set.union(self.field_names, self.latest_names)
-
-    def handle_add(self, event):
-        if not self.last_dt:
-            self.last_dt = event.dt
-
+    def _append_to_window(self, event):
         self.field_names = self._get_field_names(event)
 
         if not self.static_sids:
             event_sids = set(event.data.keys())
             self.sids = set.union(self.sids, event_sids)
-
-        # update trading day counters
-        if self.last_dt.day != event.dt.day:
-            self.last_dt = event.dt
-            self.trading_days_since_update += 1
-            self.trading_days_total += 1
-
-        if self.trading_days_total >= self.window_length:
-            self.full = True
-
-        if self.trading_days_since_update >= self.refresh_period:
-            # Setting updated to True will cause get_transform_value()
-            # to call the user-defined batch-transform with the most
-            # recent datapanel
-            self.updated = True
-        else:
-            self.updated = False
 
         # Create rolling panel if not existant
         if self.rolling_panel is None:
@@ -500,6 +455,45 @@ class BatchTransform(object):
                                      pd.DataFrame(event.data,
                                                   index=self.field_names,
                                                   columns=self.sids))
+
+        # update trading day counters
+        if self.last_dt.day != event.dt.day:
+            self.last_dt = event.dt
+            self.trading_days_total += 1
+
+        if self.trading_days_total >= self.window_length:
+            self.full = True
+
+    def get_transform_value(self, *args, **kwargs):
+        """Call user-defined batch-transform function passing all
+        arguments.
+
+        Note that this will only call the transform if the datapanel
+        has actually been updated. Otherwise, the previously, cached
+        value will be returned.
+        """
+        if self.compute_only_full and not self.full:
+            return None
+
+        #################################################
+        # Determine whether we should call the transform
+        # 1. Is the refresh period over?
+        period_over = self.trading_days_total % self.refresh_period == 0
+        # 2. Have the args or kwargs been changed since last time?
+        args_updated = args != self.last_args or kwargs != self.last_kwargs
+        recalculate_needed = args_updated or (period_over and
+                                              self.updated)
+
+        if recalculate_needed:
+            self.cached = self.compute_transform_value(
+                self.get_data(),
+                *args,
+                **kwargs
+            )
+
+        self.last_args = args
+        self.last_kwargs = kwargs
+        return self.cached
 
     def get_data(self):
         """Create a pandas.Panel (i.e. 3d DataFrame) from the
@@ -532,53 +526,46 @@ class BatchTransform(object):
         # Hold on to a reference to the data,
         # so that it's easier to find the current data when stepping
         # through with a debugger
-        self.curr_data = data
+        self._curr_data = data
 
         return data
-
-    def handle_remove(self, event):
-        pass
 
     def get_value(self, *args, **kwargs):
         raise NotImplementedError(
             "Either overwrite get_value or provide a func argument.")
 
-    def get_transform_value(self, *args, **kwargs):
-        """Call user-defined batch-transform function passing all
-        arguments.
-
-        Note that this will only call the transform if the datapanel
-        has actually been updated. Otherwise, the previously, cached
-        value will be returned.
-        """
-        if self.compute_only_full and not self.full:
-            return None
-
-        recalculate_needed = False
-        if self.updated:
-            # Create new pandas panel
-            self.window = self.get_data()
-            # reset our counter for refresh_period
-            self.trading_days_since_update = 0
-            recalculate_needed = True
-        else:
-            recalculate_needed = \
-                args != self.last_args or kwargs != self.last_kwargs
-
-        if recalculate_needed:
-            self.cached = self.compute_transform_value(
-                self.window,
-                *args,
-                **kwargs
-            )
-
-        self.last_args = args
-        self.last_kwargs = kwargs
-        return self.cached
-
     def __call__(self, f):
         self.compute_transform_value = f
         return self.handle_data
+
+    def _extract_field_names(self, event):
+        # extract field names from sids (price, volume etc), make sure
+        # every sid has the same fields.
+        sid_keys = []
+        for sid in event.data.itervalues():
+            keys = set([name for name, value in sid.items()
+                        if isinstance(value,
+                                      (int,
+                                       float,
+                                       numpy.integer,
+                                       numpy.float,
+                                       numpy.long))
+                        ])
+            sid_keys.append(keys)
+
+        # with CUSTOM data events, there may be different fields
+        # per sid. So the allowable keys are the union of all events.
+        union = set.union(*sid_keys)
+        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
+                               'datetime', 'source_id'])
+        return union - unwanted_fields
+
+    def _get_field_names(self, event):
+        if self.initial_field_names is not None:
+            return self.initial_field_names
+        else:
+            self.latest_names = self._extract_field_names(event)
+            return set.union(self.field_names, self.latest_names)
 
 
 def batch_transform(func):

@@ -346,7 +346,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         )
 
         self.return_not_full = return_data(
-            refresh_period=0,
+            refresh_period=1,
             window_length=self.window_length,
             compute_only_full=False
         )
@@ -438,24 +438,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.history_return_field_no_filter.append(
             self.return_field_no_filter.handle_data(extra_field_data)
         )
-
-
-class BatchTransformAlgorithmSetSid(TradingAlgorithm):
-    def initialize(self, sids):
-        self.history = []
-
-        self.batch_transform = ReturnPriceBatchTransform(
-            refresh_period=1,
-            window_length=10,
-            clean_nans=False,
-            sids=sids
-        )
-
-        self.set_slippage(FixedSlippage())
-
-    def handle_data(self, data):
-        self.history.append(
-            self.batch_transform.handle_data(data))
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):

@@ -1,5 +1,22 @@
+#
+# Copyright 2013 Quantopian, Inc & Wes McKinney.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 
 def _ensure_index(x):
@@ -39,7 +56,7 @@ class RollingPanel(object):
         if self.pos == self.cap:
             self._roll_data()
         self.buffer.values[:, self.pos, :] = frame.ix[self.items].values
-        print self.buffer.values[:, self.pos, :]
+        #print self.buffer.values[:, self.pos, :]
         self.index_buf[self.pos] = tick
 
         self.pos += 1
@@ -50,7 +67,8 @@ class RollingPanel(object):
         these objects because internal data might change
         """
         where = slice(max(self.pos - self.window, 0), self.pos)
-        major_axis = pd.DatetimeIndex(self.index_buf[where], tz='utc')
+        major_axis = pd.DatetimeIndex(deepcopy(self.index_buf[where]),
+                                      tz='utc')
 
         return pd.Panel(self.buffer.values[:, where, :], self.items,
                         major_axis, self.minor_axis)
