@@ -562,7 +562,6 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.excess_returns = []
-        self.last_dt = start_date
 
     @property
     def last_return_date(self):
