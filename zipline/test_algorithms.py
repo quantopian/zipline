@@ -440,6 +440,24 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         )
 
 
+class BatchTransformAlgorithmSetSid(TradingAlgorithm):
+    def initialize(self, sids):
+        self.history = []
+
+        self.batch_transform = ReturnPriceBatchTransform(
+            refresh_period=1,
+            window_length=10,
+            clean_nans=False,
+            sids=sids
+        )
+
+        self.set_slippage(FixedSlippage())
+
+    def handle_data(self, data):
+        self.history.append(
+            self.batch_transform.handle_data(data))
+
+
 class SetPortfolioAlgorithm(TradingAlgorithm):
     """
     An algorithm that tries to set the portfolio directly.

@@ -27,6 +27,7 @@ from zipline import ndict
 from zipline.utils.test_utils import setup_logger
 
 from zipline.sources import SpecificEquityTrades
+from zipline.sources.data_source import DataSource
 from zipline.transforms.utils import StatefulTransform, EventWindow
 from zipline.transforms import MovingVWAP
 from zipline.transforms import MovingAverage
@@ -35,7 +36,8 @@ from zipline.transforms import Returns
 import zipline.utils.factory as factory
 
 from zipline.test_algorithms import (BatchTransformAlgorithm,
-                                     ReturnPriceBatchTransform)
+                                     ReturnPriceBatchTransform,
+                                     BatchTransformAlgorithmSetSid)
 
 
 def to_dt(msg):
@@ -283,6 +285,44 @@ class TestFinanceTransforms(TestCase):
 ############################################################
 # Test BatchTransform
 
+class DifferentSidSource(DataSource):
+    def __init__(self):
+        self.dates = pd.date_range('2000-01-01', periods=90, tz='utc')
+        self.start = self.dates[0]
+        self.end = self.dates[-1]
+        self._raw_data = None
+        self.sids = range(90)
+
+    @property
+    def instance_hash(self):
+        return '1234'
+
+    @property
+    def raw_data(self):
+        if not self._raw_data:
+            self._raw_data = self.raw_data_gen()
+        return self._raw_data
+
+    @property
+    def mapping(self):
+        return {
+            'dt': (lambda x: x, 'dt'),
+            'sid': (lambda x: x, 'sid'),
+            'price': (float, 'price'),
+            'volume': (int, 'volume'),
+        }
+
+    def raw_data_gen(self):
+        # Create differente sid for each event
+        for sid, date in enumerate(self.dates):
+            event = {'dt': date,
+                     'sid': sid,
+                     'price': sid,
+                     'volume': sid}
+            print event
+            yield event
+
+
 class TestBatchTransform(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(
@@ -292,6 +332,16 @@ class TestBatchTransform(TestCase):
         setup_logger(self)
         self.source, self.df = \
             factory.create_test_df_source(self.sim_params)
+
+    def test_change_of_sids(self):
+        algo = BatchTransformAlgorithmSetSid(range(90))
+        source = DifferentSidSource()
+        algo.run(source)
+
+        algo = BatchTransformAlgorithmSetSid(range(5))
+        algo.batch_transform.sids = range(90)
+        source = DifferentSidSource()
+        algo.run(source)
 
     def test_event_window(self):
         algo = BatchTransformAlgorithm(sim_params=self.sim_params)
@@ -359,8 +409,7 @@ class TestBatchTransform(TestCase):
                 )
 
     def test_passing_of_args(self):
-        algo = BatchTransformAlgorithm(1,
-                                       kwarg='str', sim_params=self.sim_params)
+        algo = BatchTransformAlgorithm(1, kwarg='str')
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
