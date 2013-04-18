@@ -86,6 +86,7 @@ class TradingAlgorithm(object):
                How much capital to start with.
         """
         self.order = None
+        self.order_value = None
         self._portfolio = None
         self.datetime = None
 
@@ -331,6 +332,9 @@ class TradingAlgorithm(object):
 
     def set_order(self, order_callable):
         self.order = order_callable
+
+    def set_order_value(self, order_value_callable):
+        self.order_value = order_value_callable
 
     def set_logger(self, logger):
         self.logger = logger
