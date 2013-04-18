@@ -104,9 +104,14 @@ class DifferentSidSource(DataSource):
 class TestChangeOfSids(TestCase):
     def setUp(self):
         self.sids = range(90)
+        self.sim_params = factory.create_simulation_parameters(
+            start=datetime(1990, 1, 1, tzinfo=pytz.utc),
+            end=datetime(1990, 1, 8, tzinfo=pytz.utc)
+        )
 
     def test_all_sids_passed(self):
-        algo = BatchTransformAlgorithmSetSid(self.sids)
+        algo = BatchTransformAlgorithmSetSid(self.sids,
+                                             sim_params=self.sim_params)
         source = DifferentSidSource()
         algo.run(source)
         for df, date in zip(algo.history, source.trading_days):
@@ -131,7 +136,7 @@ class TestBatchTransform(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def test_core_functionality(self):
-        algo = BatchTransformAlgorithm()
+        algo = BatchTransformAlgorithm(sim_params=self.sim_params)
         algo.run(self.source)
         wl = algo.window_length
         # The following assertion depend on window length of 3
@@ -199,7 +204,8 @@ class TestBatchTransform(TestCase):
                 )
 
     def test_passing_of_args(self):
-        algo = BatchTransformAlgorithm(1, kwarg='str')
+        algo = BatchTransformAlgorithm(1, kwarg='str',
+                                       sim_params=self.sim_params)
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
