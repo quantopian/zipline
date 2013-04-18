@@ -551,8 +551,7 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = []
-        self.placed_orders = \
-            [order for order in self.placed_orders if order.open]
+        self.placed_orders = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
         self.max_leverage = 0.0

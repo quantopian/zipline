@@ -51,9 +51,6 @@ class Blotter(object):
         self.open_orders = defaultdict(list)
         # keep a dict of orders by their own id
         self.orders = {}
-        # track transactions by sid and by order
-        self.txns_by_sid = defaultdict(list)
-        self.txns_by_order = defaultdict(list)
         # holding orders that have come in since the last
         # event.
         self.new_orders = []
@@ -72,14 +69,32 @@ class Blotter(object):
         for date, snapshot in stream_in:
             # relay any orders placed in prior snapshot
             # handling and reset the internal holding pen
-            results = self.new_orders
-            self.new_orders = []
+            if self.new_orders:
+                yield date, self.new_orders
+                self.new_orders = []
+            results = []
+
             for event in snapshot:
                 results.append(event)
                 # We only fill transactions on trade events.
                 if event.type == DATASOURCE_TYPE.TRADE:
                     txns = self.process_trade(event)
                     results.extend(txns)
+
+                modified_orders = [order for order
+                                   in self.open_orders[event.sid]
+                                   if order.last_modified_dt == date]
+                results.extend(modified_orders)
+
+                # update the open orders for the trade_event's sid
+                self.open_orders[event.sid] = [order for order
+                                               in self.open_orders[event.sid]
+                                               if order.open]
+
+                for order in modified_orders:
+                    if not order.open:
+                        del self.orders[order.id]
+
             yield date, results
 
     def process_trade(self, trade_event):
@@ -98,22 +113,15 @@ class Blotter(object):
         else:
             return []
 
+        for order in current_orders:
+            # check price limits, continue if the
+            # order isn't triggered yet
+            order.check_triggers(trade_event)
         txns = self.transact(trade_event, current_orders)
         for txn in txns:
-            self.txns_by_order[txn.order_id].append(txn)
-            self.txns_by_sid[txn.sid].append(txn)
             self.orders[txn.order_id].filled += txn.amount
-
-        # update the open orders for the trade_event's sid
-        self.open_orders[trade_event.sid] = \
-            [order for order in orders if order.open]
-
-        # drop any filled orders.
-        filled = \
-            [order.id for order in orders if not order.open]
-
-        for order_id in filled:
-            del self.orders[order_id]
+            # mark the last_modified date of the order to match
+            self.orders[txn.order_id].last_modified_dt = txn.dt
 
         return txns
 
@@ -129,7 +137,7 @@ class Order(object):
         @filled - how many shares of the order have been filled so far
         """
         # get a string representation of the uuid.
-        self.id = uuid.uuid4().get_hex()
+        self.id = self.make_id()
         self.dt = dt
         self.last_modified_dt = dt
         self.sid = sid
@@ -143,6 +151,9 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = DATASOURCE_TYPE.ORDER
 
+    def make_id(self):
+        return uuid.uuid4().get_hex()
+
     def to_dict(self):
         py = copy(self.__dict__)
         for field in ['type', 'direction']:
@@ -154,9 +165,13 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        self.last_modified_dt = event.dt
-        self.stop_reached, self.limit_reached = \
+        stop_reached, limit_reached = \
             check_order_triggers(self, event)
+        if (stop_reached, limit_reached) \
+                != (self.stop_reached, self.limit_reached):
+            self.last_modified_dt = event.dt
+        self.stop_reached = stop_reached
+        self.limit_reached = limit_reached
 
     @property
     def open(self):
@@ -376,6 +391,8 @@ class AlgorithmSimulator(object):
         # so that it can fill the placed order when it
         # receives its next message.
         self.blotter.place_order(order)
+
+        return order.id
 
     def transform(self, stream_in):
         """
