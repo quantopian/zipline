@@ -17,6 +17,7 @@ import math
 import uuid
 
 from copy import copy
+from itertools import chain
 from logbook import Logger, Processor
 from collections import defaultdict
 
@@ -79,22 +80,8 @@ class Blotter(object):
                 results.append(event)
                 # We only fill transactions on trade events.
                 if event.type == DATASOURCE_TYPE.TRADE:
-                    txns = self.process_trade(event)
-                    results.extend(txns)
-
-                modified_orders = [order for order
-                                   in self.open_orders[event.sid]
-                                   if order.last_modified_dt == date]
-                results.extend(modified_orders)
-
-                # update the open orders for the trade_event's sid
-                self.open_orders[event.sid] = [order for order
-                                               in self.open_orders[event.sid]
-                                               if order.open]
-
-                for order in modified_orders:
-                    if not order.open:
-                        del self.orders[order.id]
+                    txns, modified_orders = self.process_trade(event)
+                    results.extend(chain(txns, modified_orders))
 
             yield date, results
 
@@ -102,7 +89,7 @@ class Blotter(object):
         if zp_math.tolerant_equals(trade_event.volume, 0):
             # there are zero volume trade_events bc some stocks trade
             # less frequently than once per minute.
-            return []
+            return [], []
 
         if trade_event.sid in self.open_orders:
             orders = self.open_orders[trade_event.sid]
@@ -112,19 +99,28 @@ class Blotter(object):
                 lambda o: o.dt <= trade_event.dt,
                 orders)
         else:
-            return []
+            return [], []
 
-        for order in current_orders:
-            # check price limits, continue if the
-            # order isn't triggered yet
-            order.check_triggers(trade_event)
         txns = self.transact(trade_event, current_orders)
         for txn in txns:
             self.orders[txn.order_id].filled += txn.amount
             # mark the last_modified date of the order to match
             self.orders[txn.order_id].last_modified_dt = txn.dt
 
-        return txns
+        modified_orders = [order for order
+                           in self.open_orders[trade_event.sid]
+                           if order.last_modified_dt == trade_event.dt]
+        for order in modified_orders:
+            if not order.open:
+                del self.orders[order.id]
+
+        # update the open orders for the trade_event's sid
+        self.open_orders[trade_event.sid] = \
+            [order for order
+             in self.open_orders[trade_event.sid]
+             if order.open]
+
+        return txns, modified_orders
 
 
 class Order(object):

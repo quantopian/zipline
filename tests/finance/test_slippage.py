@@ -83,7 +83,6 @@ class SlippageTestCase(TestCase):
         self.assertEquals(expected_txn, txn.__dict__)
 
     def test_orders_limit(self):
-
         events = self.gen_trades()
 
         slippage_model = VolumeShareSlippage()
