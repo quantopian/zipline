@@ -353,16 +353,13 @@ class BatchTransform(object):
         # to operate on the data, but to also allow new symbols to
         # enter the batch transform's window IFF a sid filter is not
         # specified.
-        self.sids = set()
         if sids is not None:
-            self.static_sids = True
-            self.sids = sids
             if isinstance(sids, (basestring, Integral)):
-                self.sids = set([sids])
+                self.static_sids = set([sids])
             else:
-                self.sids = set(sids)
+                self.static_sids = set(sids)
         else:
-            self.static_sids = False
+            self.static_sids = None
 
         self.initial_field_names = fields
         if isinstance(self.initial_field_names, basestring):
@@ -396,7 +393,6 @@ class BatchTransform(object):
         Point of entry. Process an event frame.
         """
         # extract dates
-        #dts = [data[sid].datetime for sid in self.sids]
         dts = [event.datetime for event in data.itervalues()]
         # we have to provide the event with a dt. This is only for
         # checking if the event is outside the window or not so a
@@ -427,20 +423,21 @@ class BatchTransform(object):
     def _append_to_window(self, event):
         self.field_names = self._get_field_names(event)
 
-        if not self.static_sids:
-            event_sids = set(event.data.keys())
-            self.sids = set.union(self.sids, event_sids)
+        if self.static_sids is None:
+            sids = set(event.data.keys())
+        else:
+            sids = self.static_sids
 
         # Create rolling panel if not existant
         if self.rolling_panel is None:
             self.rolling_panel = RollingPanel(self.window_length,
-                                              self.field_names, self.sids)
+                                              self.field_names, sids)
 
         # Store event in rolling frame
         self.rolling_panel.add_frame(event.dt,
                                      pd.DataFrame(event.data,
                                                   index=self.field_names,
-                                                  columns=self.sids))
+                                                  columns=sids))
 
         # update trading day counters
         if self.last_dt.day != event.dt.day:
