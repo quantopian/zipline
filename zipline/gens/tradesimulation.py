@@ -366,7 +366,7 @@ class AlgorithmSimulator(object):
 
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
-        if amount == 0:
+        if int(amount) == 0:
             zero_message = "Requested to trade zero shares of {psid}".format(
                 psid=sid
             )
