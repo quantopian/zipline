@@ -144,6 +144,7 @@ class VolumeShareSlippage(object):
             if zp_math.tolerant_equals(open_amount, 0):
                 continue
 
+            order.check_triggers(event)
             if not order.triggered:
                 continue
 
@@ -172,7 +173,7 @@ class VolumeShareSlippage(object):
             simulated_impact = (volume_share) ** 2 \
                 * self.price_impact * order.direction * event.price
 
-            if cur_amount > 0:
+            if order.direction * cur_amount > 0:
                 txn = create_transaction(
                     event.sid,
                     cur_amount,
@@ -206,6 +207,7 @@ class FixedSlippage(object):
             # and one for 100 shares short
             # such as in a hedging scenario?
 
+            order.check_triggers(event)
             if not order.triggered:
                 continue
 
