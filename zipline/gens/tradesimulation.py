@@ -68,6 +68,7 @@ class Blotter(object):
         Main generator work loop.
         """
         for date, snapshot in stream_in:
+            # import nose.tools; nose.tools.set_trace()
             # relay any orders placed in prior snapshot
             # handling and reset the internal holding pen
             if self.new_orders:
