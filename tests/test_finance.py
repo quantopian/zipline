@@ -366,7 +366,7 @@ class FinanceTestCase(TestCase):
             for event in events:
                 if event.type == DATASOURCE_TYPE.TRADE:
 
-                    txns = blotter.process_trade(event)
+                    txns, _ = blotter.process_trade(event)
 
                     for txn in txns:
                         transactions.append(txn)
