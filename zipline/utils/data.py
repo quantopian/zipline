@@ -55,8 +55,9 @@ class RollingPanel(object):
         """
         if self.pos == self.cap:
             self._roll_data()
+
         self.buffer.values[:, self.pos, :] = frame.ix[self.items].values
-        #print self.buffer.values[:, self.pos, :]
+
         self.index_buf[self.pos] = tick
 
         self.pos += 1
