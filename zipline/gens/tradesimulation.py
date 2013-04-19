@@ -15,6 +15,7 @@
 import itertools
 import math
 import uuid
+import numpy as np
 
 from copy import copy
 from itertools import chain
@@ -321,6 +322,7 @@ class AlgorithmSimulator(object):
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.
         self.algo.set_order(self.order)
+        self.algo.set_order_value(self.order_value)
 
         # ==============
         # Snapshot Setup
@@ -356,15 +358,15 @@ class AlgorithmSimulator(object):
         """
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
-        Market order:    order(sid,amount)
-        Limit order:     order(sid,amount, limit_price)
-        Stop order:      order(sid,amount, None, stop_price)
-        StopLimit order: order(sid,amount, limit_price, stop_price)
+        Market order:    order(sid, amount)
+        Limit order:     order(sid, amount, limit_price)
+        Stop order:      order(sid, amount, None, stop_price)
+        StopLimit order: order(sid, amount, limit_price, stop_price)
         """
 
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
-        if amount == 0:
+        if int(amount) == 0:
             zero_message = "Requested to trade zero shares of {psid}".format(
                 psid=sid
             )
@@ -389,6 +391,31 @@ class AlgorithmSimulator(object):
         self.blotter.place_order(order)
 
         return order.id
+
+    def order_value(self, sid, value, limit_price=None, stop_price=None):
+        """
+        Place an order by desired value rather than desired number of shares.
+        If the requested sid is found in the universe, the requested value is
+        divided by its price to imply the number of shares to transact.
+
+        value > 0 :: Buy/Cover
+        value < 0 :: Sell/Short
+        Market order:    order(sid, value)
+        Limit order:     order(sid, value, limit_price)
+        Stop order:      order(sid, value, None, stop_price)
+        StopLimit order: order(sid, value, limit_price, stop_price)
+        """
+        last_price = self.universe[sid].price
+        if np.allclose(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=sid
+            )
+            log.debug(zero_message)
+            # Don't place any order
+            return
+        else:
+            amount = value / last_price
+            return self.order(sid, amount, limit_price, stop_price)
 
     def transform(self, stream_in):
         """
