@@ -18,7 +18,6 @@ from datetime import datetime
 
 import csv
 
-from StringIO import StringIO
 from functools import partial
 
 import requests
@@ -75,7 +74,7 @@ def get_raw_benchmark_data(start_date, end_date, symbol):
     ))
 
     res = requests.get('http://ichart.yahoo.com/table.csv',
-                       params=params)
+                       params=params, stream=True)
 
     if not res.ok:
         raise BenchmarkDataNotFoundError("""
@@ -85,7 +84,7 @@ start_date={start_date}, end_date={end_date}, url={url}""".strip().
                                                 end_date=end_date,
                                                 url=res.url))
 
-    return csv.DictReader(StringIO(res.content))
+    return csv.DictReader(res.iter_lines())
 
 
 def get_benchmark_data(symbol, start_date=None, end_date=None):
@@ -98,12 +97,10 @@ def get_benchmark_data(symbol, start_date=None, end_date=None):
         end_date = datetime.utcnow()
 
     raw_benchmark_data = get_raw_benchmark_data(start_date, end_date, symbol)
-    # Reverse data so we can load it in reverse chron order.
-    benchmarks_source = reversed(list(raw_benchmark_data))
 
     mappings = benchmark_mappings()
 
-    return source_to_records(mappings, benchmarks_source)
+    return source_to_records(mappings, raw_benchmark_data)
 
 
 def get_benchmark_returns(symbol, start_date=None, end_date=None):
@@ -120,4 +117,6 @@ def get_benchmark_returns(symbol, start_date=None, end_date=None):
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
         benchmark_returns.append(daily_return)
 
+    # Reverse data so we can load it in reverse chron order.
+    benchmark_returns.reverse()
     return benchmark_returns
