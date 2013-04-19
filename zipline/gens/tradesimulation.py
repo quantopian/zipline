@@ -406,7 +406,14 @@ class AlgorithmSimulator(object):
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
         last_price = self.universe[sid].price
-        if not np.allclose(last_price, 0):
+        if np.allclose(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=sid
+            )
+            log.debug(zero_message)
+            # Don't place any order
+            return
+        else:
             amount = value / last_price
             return self.order(sid, amount, limit_price, stop_price)
 
