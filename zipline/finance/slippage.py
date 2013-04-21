@@ -18,8 +18,7 @@ import math
 from copy import copy
 from functools import partial
 from zipline.protocol import DATASOURCE_TYPE
-
-import numpy as np
+import zipline.utils.math_utils as zp_math
 
 from logbook import Processor
 
@@ -71,7 +70,11 @@ def transact_stub(slippage, commission, event, open_orders):
         transactions = slippage.simulate(event, open_orders)
 
         for transaction in transactions:
-            if transaction and not np.allclose(transaction.amount, 0):
+            if (
+                transaction
+                and not
+                zp_math.tolerant_equals(transaction.amount, 0)
+            ):
                 direction = math.copysign(1, transaction.amount)
                 per_share, total_commission = commission.calculate(transaction)
                 transaction.price = transaction.price + (per_share * direction)
@@ -138,11 +141,9 @@ class VolumeShareSlippage(object):
 
             open_amount = order.amount - order.filled
 
-            if np.allclose(open_amount, 0):
+            if zp_math.tolerant_equals(open_amount, 0):
                 continue
 
-            # check price limits, continue if the
-            # order isn't triggered yet
             order.check_triggers(event)
             if not order.triggered:
                 continue
@@ -150,7 +151,11 @@ class VolumeShareSlippage(object):
             # price impact accounts for the total volume of transactions
             # created against the current minute bar
             remaining_volume = max_volume - total_volume
-            if remaining_volume <= 0 or np.allclose(remaining_volume, 0):
+            if (
+                remaining_volume <= 0
+                or
+                zp_math.tolerant_equals(remaining_volume, 0)
+            ):
                 # we can't fill any more transactions
                 return txns
 
@@ -168,19 +173,18 @@ class VolumeShareSlippage(object):
             simulated_impact = (volume_share) ** 2 \
                 * self.price_impact * order.direction * event.price
 
-            txn = create_transaction(
-                event.sid,
-                cur_amount,
-                # In the future, we may want to change the next line
-                # for limit pricing
-                event.price + simulated_impact,
-                dt.replace(tzinfo=pytz.utc),
-                order.id
-            )
+            if order.direction * cur_amount > 0:
+                txn = create_transaction(
+                    event.sid,
+                    cur_amount,
+                    # In the future, we may want to change the next line
+                    # for limit pricing
+                    event.price + simulated_impact,
+                    dt.replace(tzinfo=pytz.utc),
+                    order.id
+                )
 
-            # mark the last_modified date of the order to match
-            order.last_modified_dt = event.dt
-            txns.append(txn)
+                txns.append(txn)
 
         return txns
 
@@ -203,13 +207,11 @@ class FixedSlippage(object):
             # and one for 100 shares short
             # such as in a hedging scenario?
 
-            # check price limits, continue if the
-            # order isn't triggered yet
             order.check_triggers(event)
             if not order.triggered:
                 continue
 
-            if np.allclose(order.amount, 0):
+            if zp_math.tolerant_equals(order.amount, 0):
                 return txns
 
             txn = create_transaction(

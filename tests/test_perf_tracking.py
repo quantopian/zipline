@@ -14,6 +14,8 @@
 # limitations under the License.
 
 import collections
+import heapq
+import operator
 
 import unittest
 from nose_parameterized import parameterized
@@ -32,6 +34,8 @@ from zipline.gens.tradesimulation import Order
 import zipline.finance.trading as trading
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
+import zipline.protocol
+from zipline.protocol import Event
 
 onesec = datetime.timedelta(seconds=1)
 oneday = datetime.timedelta(days=1)
@@ -40,6 +44,19 @@ tradingday = datetime.timedelta(hours=6, minutes=30)
 
 def create_txn(sid, price, amount, dt):
     return create_transaction(sid, amount, price, dt, "fakeuid")
+
+
+def benchmark_events_in_range(sim_params):
+    return [
+        Event({'dt': ret.date,
+               'returns': ret.returns,
+               'type':
+               zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
+               'source_id': 'benchmarks'})
+        for ret in trading.environment.benchmark_returns
+        if ret.date.date() >= sim_params.period_start.date()
+        and ret.date.date() <= sim_params.period_end.date()
+    ]
 
 
 class TestDividendPerformance(unittest.TestCase):
@@ -51,10 +68,12 @@ class TestDividendPerformance(unittest.TestCase):
 
         self.sim_params.capital_base = 10e3
 
+        self.benchmark_events = benchmark_events_in_range(self.sim_params)
+
     def test_market_hours_calculations(self):
         with trading.TradingEnvironment():
             # DST in US/Eastern began on Sunday March 14, 2010
-            before = datetime.datetime(2010, 3, 12, 14, 30, tzinfo=pytz.utc)
+            before = datetime.datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
             after = factory.get_next_trading_dt(
                 before,
                 datetime.timedelta(days=1)
@@ -87,10 +106,15 @@ class TestDividendPerformance(unittest.TestCase):
         txn = create_txn(1, 10.0, 100, events[0].dt)
         events.insert(0, txn)
         events.insert(1, dividend)
+
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -145,9 +169,13 @@ class TestDividendPerformance(unittest.TestCase):
         txn = create_txn(1, 10.0, 100, events[3].dt)
         events.insert(4, txn)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -195,9 +223,13 @@ class TestDividendPerformance(unittest.TestCase):
         events.insert(4, sell_txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -245,9 +277,13 @@ class TestDividendPerformance(unittest.TestCase):
         events.insert(4, sell_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            (event[0], [event[1]]) for event in all_events))
 
         #flatten the list of events
         results = []
@@ -293,9 +329,13 @@ class TestDividendPerformance(unittest.TestCase):
         events.insert(2, buy_txn)
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -344,9 +384,13 @@ class TestDividendPerformance(unittest.TestCase):
         events.insert(1, txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -390,9 +434,13 @@ class TestDividendPerformance(unittest.TestCase):
 
         events.insert(1, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
+
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in self.benchmark_events)))
+
         transformed_events = list(perf_tracker.transform(
-            ((event.dt, [event]) for event in events))
-        )
+            itertools.groupby(all_events, attrgetter('dt'))))
 
         #flatten the list of events
         results = []
@@ -422,6 +470,8 @@ class TestPositionPerformance(unittest.TestCase):
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
+
+        self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
     def test_long_position(self):
         """
@@ -877,11 +927,6 @@ shares in position"
 
 class TestPerformanceTracker(unittest.TestCase):
 
-    def setUp(self):
-
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
-
     NumDaysToDelete = collections.namedtuple(
         'NumDaysToDelete', ('start', 'middle', 'end'))
 
@@ -939,6 +984,8 @@ class TestPerformanceTracker(unittest.TestCase):
             period_start=start_dt,
             period_end=end_dt
         )
+
+        benchmark_events = benchmark_events_in_range(sim_params)
 
         trade_history = factory.create_trade_history(
             sid,
@@ -1005,12 +1052,17 @@ class TestPerformanceTracker(unittest.TestCase):
         orders = [event for event in
                   events if event.type == DATASOURCE_TYPE.ORDER]
 
+        all_events = (msg[1] for msg in heapq.merge(
+            ((event.dt, event) for event in events),
+            ((event.dt, event) for event in benchmark_events)))
+
+        # Extract events with transactions to use for verification.
         perf_messages = \
-            [msg for date, snapshot in
+            [m for date, snapshot in
              perf_tracker.transform(
-                 itertools.groupby(events, attrgetter('dt')))
-             for event in snapshot
-             for msg in event.perf_messages]
+                 itertools.groupby(all_events, attrgetter('dt')))
+             for e in snapshot
+             for m in e.perf_messages]
 
         end_perf_messages, risk_message = perf_tracker.handle_simulation_end()
 
@@ -1023,9 +1075,6 @@ class TestPerformanceTracker(unittest.TestCase):
         cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
         expected_size = len(txns) / 2 * -25
         self.assertEqual(cumulative_pos.amount, expected_size)
-
-        self.assertEqual(perf_tracker.last_close,
-                         perf_tracker.cumulative_risk_metrics.end_date)
 
         self.assertEqual(len(perf_messages),
                          sim_params.days_in_period)
@@ -1059,7 +1108,7 @@ class TestPerformanceTracker(unittest.TestCase):
     def test_minute_tracker(self):
         """ Tests minute performance tracking."""
         start_dt = trading.environment.exchange_dt_in_utc(
-            datetime.datetime(2013, 3, 1, 9, 30))
+            datetime.datetime(2013, 3, 1, 9, 31))
         end_dt = trading.environment.exchange_dt_in_utc(
             datetime.datetime(2013, 3, 1, 16, 0))
 
@@ -1097,7 +1146,6 @@ class TestPerformanceTracker(unittest.TestCase):
             bar_event_2
         ]
 
-        import operator
         messages = {date: snapshot[-1].perf_messages[0] for date, snapshot in
                     tracker.transform(
                         itertools.groupby(

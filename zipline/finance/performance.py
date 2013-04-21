@@ -134,6 +134,7 @@ import logbook
 import math
 
 import numpy as np
+import pandas as pd
 
 import zipline.protocol as zp
 import zipline.finance.risk as risk
@@ -160,8 +161,12 @@ class PerformanceTracker(object):
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.cumulative_risk_metrics = \
-            risk.RiskMetricsIterative(self.period_start)
+            risk.RiskMetricsIterative(self.period_start, self.period_end)
         self.emission_rate = sim_params.emission_rate
+
+        # Temporarily hold these here as we work on streaming benchmarks.
+        self.all_benchmark_returns = pd.Series(
+            index=trading.environment.trading_days)
 
         # this performance period will span the entire simulation.
         self.cumulative_performance = PerformancePeriod(
@@ -225,9 +230,10 @@ class PerformanceTracker(object):
 
                 for event in snapshot:
                     self.process_event(event)
-                    event.perf_messages = [self.to_dict()]
-                    event.portfolio = self.get_portfolio()
-                    new_snapshot.append(event)
+                    if event.type == zp.DATASOURCE_TYPE.TRADE:
+                        event.perf_messages = [self.to_dict()]
+                        event.portfolio = self.get_portfolio()
+                        new_snapshot.append(event)
 
             if new_snapshot:
                 yield date, new_snapshot
@@ -316,6 +322,8 @@ class PerformanceTracker(object):
             # we just want to relay this event unchanged.
             messages = []
             return messages
+        elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+            self.all_benchmark_returns[event.dt] = event.returns
 
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
@@ -325,7 +333,8 @@ class PerformanceTracker(object):
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
-        todays_date = self.market_close.replace(hour=0, minute=0, second=0)
+        todays_date = self.market_close.replace(hour=0, minute=0, second=0,
+                                                microsecond=0)
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)
 
@@ -336,9 +345,15 @@ class PerformanceTracker(object):
         self.returns.append(todays_return_obj)
 
         #update risk metrics for cumulative performance
-        self.cumulative_risk_metrics.update(
-            self.market_close,
-            self.todays_performance.returns)
+        algorithm_returns = pd.Series({todays_return_obj.date:
+                                       todays_return_obj.returns})
+        benchmark_returns = pd.Series({
+            todays_return_obj.date:
+            self.all_benchmark_returns[todays_return_obj.date]})
+
+        self.cumulative_risk_metrics.update(todays_return_obj.date,
+                                            algorithm_returns,
+                                            benchmark_returns)
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -369,7 +384,8 @@ class PerformanceTracker(object):
         # hour between the close of markets and the next open. To
         # make sure midnight_between matches identically with
         # dividend data dates, it is in UTC.
-        midnight_between = self.market_open.replace(hour=0, minute=0, second=0)
+        midnight_between = self.market_open.replace(hour=0, minute=0, second=0,
+                                                    microsecond=0)
         self.cumulative_performance.update_dividends(midnight_between)
         self.todays_performance.update_dividends(midnight_between)
 
@@ -535,8 +551,7 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = []
-        self.placed_orders = \
-            [order for order in self.placed_orders if order.open]
+        self.placed_orders = []
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
         self.max_leverage = 0.0

@@ -30,7 +30,8 @@ DATASOURCE_TYPE = Enum(
     'ORDER',
     'EMPTY',
     'DONE',
-    'CUSTOM'
+    'CUSTOM',
+    'BENCHMARK'
 )
 
 
@@ -125,7 +126,7 @@ class DailyReturn(object):
     def __init__(self, date, returns):
 
         assert isinstance(date, datetime.datetime)
-        self.date = date.replace(hour=0, minute=0, second=0)
+        self.date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         self.returns = returns
 
     def to_dict(self):

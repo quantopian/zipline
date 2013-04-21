@@ -72,11 +72,12 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
             yield cur
 
         cur = cur + delta
-        cur_midnight = cur.replace(hour=0, minute=0, second=0)
+        cur_midnight = cur.replace(hour=0, minute=0, second=0, microsecond=0)
         # skip over any non-trading days
         while cur_midnight not in trading_days:
             cur = cur + one_day
-            cur_midnight = cur.replace(hour=0, minute=0, second=0)
+            cur_midnight = cur.replace(hour=0, minute=0, second=0,
+                                       microsecond=0)
             cur = cur.replace(day=cur_midnight.day)
 
 
