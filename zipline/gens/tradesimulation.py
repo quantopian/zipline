@@ -356,10 +356,10 @@ class AlgorithmSimulator(object):
         """
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
-        Market order:    order(sid,amount)
-        Limit order:     order(sid,amount, limit_price)
-        Stop order:      order(sid,amount, None, stop_price)
-        StopLimit order: order(sid,amount, limit_price, stop_price)
+        Market order:    order(sid, amount)
+        Limit order:     order(sid, amount, limit_price)
+        Stop order:      order(sid, amount, None, stop_price)
+        StopLimit order: order(sid, amount, limit_price, stop_price)
         """
 
         # just validates amount and passes rest on to TransactionSimulator
