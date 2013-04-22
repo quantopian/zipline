@@ -408,7 +408,7 @@ class AlgorithmSimulator(object):
         with self.processor.threadbound():
 
             for date, snapshot in stream:
-                # We're still in the warmup period.  Use the event to
+                # We're still in the warmup period. Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
                 if date < self.algo_start:
