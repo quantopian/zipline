@@ -222,7 +222,7 @@ class FixedSlippage(object):
                 order.id
             )
 
-            # mark the last_modified date of the order to match
-            order.last_modified = event.dt
+            # mark the date of the order to match the transaction
+            order.dt = event.dt
             txns.append(txn)
         return txns

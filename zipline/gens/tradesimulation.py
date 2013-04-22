@@ -103,12 +103,12 @@ class Blotter(object):
         txns = self.transact(trade_event, current_orders)
         for txn in txns:
             self.orders[txn.order_id].filled += txn.amount
-            # mark the last_modified date of the order to match
-            self.orders[txn.order_id].last_modified_dt = txn.dt
+            # mark the date of the order to match the txn
+            self.orders[txn.order_id].dt = txn.dt
 
         modified_orders = [order for order
                            in self.open_orders[trade_event.sid]
-                           if order.last_modified_dt == trade_event.dt]
+                           if order.dt == trade_event.dt]
         for order in modified_orders:
             if not order.open:
                 del self.orders[order.id]
@@ -135,7 +135,7 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = self.make_id()
         self.dt = dt
-        self.last_modified_dt = dt
+        self.created = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
@@ -165,7 +165,7 @@ class Order(object):
             check_order_triggers(self, event)
         if (stop_reached, limit_reached) \
                 != (self.stop_reached, self.limit_reached):
-            self.last_modified_dt = event.dt
+            self.dt = event.dt
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
 
