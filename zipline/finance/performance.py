@@ -232,9 +232,13 @@ class PerformanceTracker(object):
                 for event in snapshot:
                     self.process_event(event)
                     if event.type == zp.DATASOURCE_TYPE.TRADE:
-                        event.perf_messages = [self.to_dict()]
-                        event.portfolio = self.get_portfolio()
+                        event.perf_messages = []
+                        event.portfolio = None
                         new_snapshot.append(event)
+
+                if new_snapshot:
+                    new_snapshot[-1].perf_messages = [self.to_dict()]
+                    new_snapshot[-1].portfolio = self.get_portfolio()
 
             if new_snapshot:
                 yield date, new_snapshot
@@ -286,8 +290,6 @@ class PerformanceTracker(object):
                 while (event.dt > self.market_close and
                        event.dt < self.last_close):
                     messages.append(self.handle_market_close())
-            elif self.emission_rate == 'minute':
-                messages.append(self.to_dict())
 
             #update last sale
             self.cumulative_performance.update_last_sale(event)
