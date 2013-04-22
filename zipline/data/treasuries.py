@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import re
 
 import requests
 
@@ -84,6 +84,11 @@ class iter_to_stream(object):
         return result
 
 
+def get_localname(element):
+    qtag = ET.QName(element.tag).text
+    return re.match("(\{.*\})(.*)", qtag).group(2)
+
+
 def get_treasury_source():
     url = """\
 http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
@@ -106,11 +111,11 @@ http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
 
     for event, element in elements:
         if event == 'end':
-            tag = ET.QName(element.tag).localname
+            tag = get_localname(element)
             if tag == "entry":
                 properties = element.find(properties_xpath[0])
-                datum = {ET.QName(node.tag).localname: node.text
-                         for node in properties.iterchildren()
+                datum = {get_localname(node): node.text
+                         for node in properties.getchildren()
                          if ET.iselement(node)}
                 # clear the element after we've dealt with it:
                 element.clear()
