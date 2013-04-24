@@ -202,12 +202,19 @@ class PerformanceTracker(object):
         self.day_count = 0.0
         self.txn_count = 0
         self.event_count = 0
-        self.progress = 0.0
 
     def __repr__(self):
         return "%s(%r)" % (
             self.__class__.__name__,
             {'simulation parameters': self.sim_params})
+
+    @property
+    def progress(self):
+        if self.emission_rate == 'minute':
+            # Fake a value
+            return 1.0
+        elif self.emission_rate == 'daily':
+            return self.day_count / self.total_days
 
     def transform(self, stream_in):
         """
@@ -258,13 +265,13 @@ class PerformanceTracker(object):
             'period_end': self.period_end,
             'capital_base': self.capital_base,
             'cumulative_perf': self.cumulative_performance.to_dict(),
+            'progress': self.progress
         }
         if emission_type == 'daily':
             _dict.update({'cumulative_risk_metrics':
                           self.cumulative_risk_metrics.to_dict(),
                           'daily_perf':
-                          self.todays_performance.to_dict(),
-                         'progress': self.progress})
+                          self.todays_performance.to_dict()})
         if emission_type == 'minute':
             # Currently reusing 'todays_performance' for intraday trading
             # result, should be analogous, but has the potential for needing
@@ -360,8 +367,6 @@ class PerformanceTracker(object):
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
-        # calculate progress of test
-        self.progress = self.day_count / self.total_days
 
         # Take a snapshot of our current peformance to return to the
         # browser.
