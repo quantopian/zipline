@@ -68,11 +68,6 @@ class Blotter(object):
         Main generator work loop.
         """
         for date, snapshot in stream_in:
-            # relay any orders placed in prior snapshot
-            # handling and reset the internal holding pen
-            if self.new_orders:
-                yield date, self.new_orders
-                self.new_orders = []
             results = []
 
             for event in snapshot:
@@ -85,6 +80,9 @@ class Blotter(object):
             yield date, results
 
     def process_trade(self, trade_event):
+        if trade_event.type != DATASOURCE_TYPE.TRADE:
+            return [], []
+
         if zp_math.tolerant_equals(trade_event.volume, 0):
             # there are zero volume trade_events bc some stocks trade
             # less frequently than once per minute.
@@ -103,7 +101,8 @@ class Blotter(object):
         txns = self.transact(trade_event, current_orders)
         for txn in txns:
             self.orders[txn.order_id].filled += txn.amount
-            # mark the date of the order to match the txn
+            # mark the date of the order to match the transaction
+            # that is filling it.
             self.orders[txn.order_id].dt = txn.dt
 
         modified_orders = [order for order
@@ -262,23 +261,10 @@ class TradeSimulationClient(object):
         """
         Main generator work loop.
         """
-
-        # Simulate filling any open orders made by the previous run of
-        # the user's algorithm.  Fills the Transaction field on any
-        # event that results in a filled order.
-        with_filled_orders = self.blotter.transform(stream_in)
-
-        # Pipe the events with transactions to perf. This will remove
-        # the TRANSACTION field added by TransactionSimulator and replace it
-        # with a portfolio field to be passed to the user's
-        # algorithm. Also adds a perf_messages field which is usually
-        # empty, but contains update messages once per day.
-        with_portfolio = self.perf_tracker.transform(with_filled_orders)
-
         # Pass the messages from perf to the user's algorithm for simulation.
         # Events are batched by dt so that the algo handles all events for a
         # given timestamp at one one go.
-        performance_messages = self.algo_sim.transform(with_portfolio)
+        performance_messages = self.algo_sim.transform(stream_in)
 
         # The algorithm will yield a daily_results message (as
         # calculated by the performance tracker) at the end of each
@@ -407,41 +393,57 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
         with self.processor.threadbound():
 
+            updated = False
+            bm_updated = False
             for date, snapshot in stream:
-                # We're still in the warmup period. Use the event to
+                self.perf_tracker.set_date(date)
+                # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
                 if date < self.algo_start:
                     for event in snapshot:
-                        del event['perf_messages']
-                        self.update_universe(event)
+                        if event.type in (DATASOURCE_TYPE.TRADE,
+                                          DATASOURCE_TYPE.CUSTOM):
+                            self.update_universe(event)
+                        self.perf_tracker.process_event(event)
 
-                # Regular snapshot.  Update the universe and send a snapshot
-                # to handle data.
                 else:
-                    for event in snapshot:
-                        for perf_message in event.perf_messages:
-                            # append current values of recorded vars
-                            # to emitted message
-                            perf_message[self.perf_key]['recorded_vars'] =\
-                                self.algo.recorded_vars
-                            yield perf_message
-                        del event['perf_messages']
 
-                        self.update_universe(event)
+                    for event in snapshot:
+                        if event.type in (DATASOURCE_TYPE.TRADE,
+                                          DATASOURCE_TYPE.CUSTOM):
+                            self.update_universe(event)
+                            updated = True
+                        if event.type == DATASOURCE_TYPE.BENCHMARK:
+                            bm_updated = True
+                        txns, orders = self.blotter.process_trade(event)
+                        for data in chain([event], txns, orders):
+                            self.perf_tracker.process_event(data)
+
+                    # Update our portfolio.
+                    self.algo.set_portfolio(self.perf_tracker.get_portfolio())
 
                     # Send the current state of the universe
                     # to the user's algo.
-                    self.simulate_snapshot(date)
+                    if updated:
+                        self.simulate_snapshot(date)
+                        updated = False
 
-            perf_messages, risk_message = \
-                self.perf_tracker.handle_simulation_end()
+                        # run orders placed in the algorithm call
+                        # above through perf tracker before emitting
+                        # the perf packet, so that the perf includes
+                        # placed orders
+                        for order in self.blotter.new_orders:
+                            self.perf_tracker.process_event(order)
+                        self.blotter.new_orders = []
 
-            if self.perf_tracker.emission_rate == 'daily':
-                for message in perf_messages:
-                    message[self.perf_key]['recorded_vars'] =\
-                        self.algo.recorded_vars
-                    yield message
+                    # The benchmark is our internal clock. When it
+                    # updates, we need to emit a performance message.
+                    if bm_updated:
+                        bm_updated = False
+                        yield self.get_message(date)
+
+            risk_message = self.perf_tracker.handle_simulation_end()
 
             # When emitting minutely, it is still useful to have a final
             # packet with the entire days performance rolled up.
@@ -455,20 +457,24 @@ class AlgorithmSimulator(object):
 
             yield risk_message
 
+    def get_message(self, date):
+        rvars = self.algo.recorded_vars
+        if self.perf_tracker.emission_rate == 'daily':
+            perf_message = \
+                self.perf_tracker.handle_market_close()
+            perf_message['daily_perf']['recorded_vars'] = rvars
+            return perf_message
+
+        elif self.perf_tracker.emission_rate == 'minute':
+            self.perf_tracker.handle_minute_close(date)
+            perf_message = self.perf_tracker.to_dict()
+            perf_message['intraday_perf']['recorded_vars'] = rvars
+            return perf_message
+
     def update_universe(self, event):
         """
         Update the universe with new event information.
         """
-        # Update our portfolio.
-        self.algo.set_portfolio(event.portfolio)
-        # the portfolio is modified by each event passed into the
-        # performance tracker (prices and amounts can change).
-        # Performance tracker sends back an up-to-date portfolio
-        # with each event. However, we provide the portfolio to
-        # the algorithm via a setter method, rather than as part
-        # of the event data sent to handle_data. To avoid
-        # confusion, we remove it from the event here.
-        del event.portfolio
         # Update our knowledge of this event's sid
         sid_data = self.universe[event.sid]
         sid_data.__dict__.update(event.__dict__)
@@ -482,7 +488,6 @@ class AlgorithmSimulator(object):
         # log/print lines.
         self.snapshot_dt = date
         self.algo.set_datetime(self.snapshot_dt)
-        self.algo.handle_data(self.universe)
-
         # Update the simulation time.
         self.simulation_dt = date
+        self.algo.handle_data(self.universe)
