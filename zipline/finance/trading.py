@@ -176,7 +176,7 @@ class TradingEnvironment(object):
         if next_open is None:
             raise Exception(
                 "Attempt to backtest beyond available history. \
-Last successful date: %s" % self.market_open)
+Last successful date: %s" % self.last_trading_day)
 
         return self.get_open_and_close(next_open)
 
