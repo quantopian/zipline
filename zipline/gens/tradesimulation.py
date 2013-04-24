@@ -198,57 +198,12 @@ class Order(object):
         return self.__dict__[name]
 
 
-class TradeSimulationClient(object):
-    """
-    Generator-style class that takes the expected output of a merge, a
-    user algorithm, a trading environment, and a simulator slippage as
-    arguments.  Pipes the merge stream through a TransactionSimulator
-    and a PerformanceTracker, which keep track of the current state of
-    our algorithm's simulated universe. Results are fed to the user's
-    algorithm, which directly inserts transactions into the
-    TransactionSimulator's order book.
+class AlgorithmSimulator(object):
 
-    TransactionSimulator maintains a dictionary from sids to the
-    as-yet unfilled orders placed by the user's algorithm.  As trade
-    events arrive, if the algorithm has open orders against the
-    trade's sid, the simulator will fill orders up to 25% of market
-    cap.  Applied transactions are added to a txn field on the event
-    and forwarded to PerformanceTracker. The txn field is set to None
-    on non-trade events and events that do not match any open orders.
-
-    PerformanceTracker receives the updated event messages from
-    TransactionSimulator, maintaining a set of daily and cumulative
-    performance metrics for the algorithm.  The tracker removes the
-    txn field from each event it receives, replacing it with a
-    portfolio field to be fed into the user algo. At the end of each
-    trading day, the PerformanceTracker also generates a daily
-    performance report, which is appended to event's perf_report
-    field.
-
-    Fully processed events are fed to AlgorithmSimulator, which
-    batches together events with the same dt field into a single
-    snapshot to be fed to the algo. The portfolio object is repeatedly
-    overwritten so that only the most recent snapshot of the universe
-    is sent to the algo.
-    """
-
-    def __init__(self, algo, sim_params, blotter=None):
-
-        self.algo = algo
-        self.sim_params = sim_params
-
-        if not blotter:
-            self.blotter = Blotter()
-
-        self.perf_tracker = PerformanceTracker(self.sim_params)
-
-        self.algo_start = self.sim_params.first_open
-        self.algo_sim = AlgorithmSimulator(
-            self.blotter,
-            self.perf_tracker,
-            self.algo,
-            self.algo_start
-        )
+    EMISSION_TO_PERF_KEY_MAP = {
+        'minute': 'intraday_perf',
+        'daily': 'daily_perf'
+    }
 
     def get_hash(self):
         """
@@ -257,52 +212,33 @@ class TradeSimulationClient(object):
         """
         return self.__class__.__name__ + hash_args()
 
-    def simulate(self, stream_in):
-        """
-        Main generator work loop.
-        """
-        # Pass the messages from perf to the user's algorithm for simulation.
-        # Events are batched by dt so that the algo handles all events for a
-        # given timestamp at one one go.
-        performance_messages = self.algo_sim.transform(stream_in)
+    def __init__(self, algo, sim_params, blotter=None):
 
-        # The algorithm will yield a daily_results message (as
-        # calculated by the performance tracker) at the end of each
-        # day.  It will also yield a risk report at the end of the
-        # simulation.
-        for message in performance_messages:
-            yield message
+        # ==============
+        # Simulation
+        # Param Setup
+        # ==============
+        self.sim_params = sim_params
+        if not blotter:
+            self.blotter = Blotter()
 
-
-class AlgorithmSimulator(object):
-
-    EMISSION_TO_PERF_KEY_MAP = {
-        'minute': 'intraday_perf',
-        'daily': 'daily_perf'
-    }
-
-    def __init__(self,
-                 blotter,
-                 perf_tracker,
-                 algo,
-                 algo_start):
-
-        # ==========
-        # Algo Setup
-        # ==========
-
-        # We extract the order book from the txn client so that
-        # the algo can place new orders.
-        self.blotter = blotter
-        self.perf_tracker = perf_tracker
+        # ==============
+        # Perf Tracker
+        # Setup
+        # ==============
+        self.perf_tracker = PerformanceTracker(self.sim_params)
 
         self.perf_key = self.EMISSION_TO_PERF_KEY_MAP[
-            perf_tracker.emission_rate]
+            self.perf_tracker.emission_rate]
 
+        # ==============
+        # Algo Setup
+        # ==============
         self.algo = algo
-        self.algo_start = algo_start.replace(hour=0, minute=0,
-                                             second=0,
-                                             microsecond=0)
+        self.algo_start = self.sim_params.first_open
+        self.algo_start = self.algo_start.replace(hour=0, minute=0,
+                                                  second=0,
+                                                  microsecond=0)
 
         # Monkey patch the user algorithm to place orders in the
         # TransactionSimulator's order book and use our logger.

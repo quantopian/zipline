@@ -48,7 +48,7 @@ from zipline.gens.composites import (
     sequential_transforms,
     alias_dt
 )
-from zipline.gens.tradesimulation import TradeSimulationClient as tsc
+from zipline.gens.tradesimulation import AlgorithmSimulator
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -170,12 +170,12 @@ class TradingAlgorithm(object):
         """
         self.data_gen = self._create_data_generator(source_filter, sim_params)
 
-        self.trading_client = tsc(self, sim_params)
+        self.trading_client = AlgorithmSimulator(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
 
-        return self.trading_client.simulate(self.data_gen)
+        return self.trading_client.transform(self.data_gen)
 
     def get_generator(self):
         """
