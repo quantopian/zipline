@@ -221,42 +221,10 @@ class PerformanceTracker(object):
         elif self.emission_rate == 'daily':
             return self.day_count / self.total_days
 
-    def transform(self, stream_in):
-        """
-        Main generator work loop.
-        """
-        for date, snapshot in stream_in:
-            new_snapshot = []
-
-            if self.emission_rate == 'daily':
-                for event in snapshot:
-                    messages = self.process_event(event)
-                    if messages is not None:
-                        event.perf_messages = messages
-                        event.portfolio = self.get_portfolio()
-
-                        new_snapshot.append(event)
-
-            elif self.emission_rate == 'minute':
-                self.saved_dt = date
-                self.todays_performance.period_close = self.saved_dt
-
-                for event in snapshot:
-                    self.process_event(event)
-                    if event.type == zp.DATASOURCE_TYPE.TRADE:
-                        event.perf_messages = []
-                        event.portfolio = None
-                        new_snapshot.append(event)
-
-
-                self.handle_minute_close(date)
-
-                if new_snapshot:
-                    new_snapshot[-1].perf_messages = [self.to_dict()]
-                    new_snapshot[-1].portfolio = self.get_portfolio()
-
-            if new_snapshot:
-                yield date, new_snapshot
+    def set_date(self, date):
+        if self.emission_rate == 'minute':
+            self.saved_dt = date
+            self.todays_performance.period_close = self.saved_dt
 
     def get_portfolio(self):
         return self.cumulative_performance.as_portfolio()
@@ -286,6 +254,8 @@ class PerformanceTracker(object):
             # its own configuration down the line.
             # Naming as intraday to make clear that these results are
             # being updated per minute
+            _dict['intraday_risk_metrics'] = \
+                self.cumulative_risk_metrics.to_dict()
             _dict['intraday_perf'] = self.todays_performance.to_dict(
                 self.saved_dt)
 
@@ -293,25 +263,14 @@ class PerformanceTracker(object):
 
     def process_event(self, event):
 
-        messages = None
         self.event_count += 1
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            messages = []
-
-            # This switch could also be handled by an inheritance
-            # with a DailyPerformanceTracker and a MinutePerformanceTracker
-            if self.emission_rate == 'daily':
-                while (event.dt > self.market_close and
-                       event.dt < self.last_close):
-                    messages.append(self.handle_market_close())
-
             #update last sale
             self.cumulative_performance.update_last_sale(event)
             self.todays_performance.update_last_sale(event)
 
         elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
-
             # Trade simulation always follows a transaction with the
             # TRADE event that was used to simulate it, so we don't
             # check for end of day rollover messages here.
@@ -320,34 +279,23 @@ class PerformanceTracker(object):
                 event
             )
             self.todays_performance.execute_transaction(event)
-            # Transactions are consumed by performance, and not
-            # relayed to the next element in the generator chain.
-            messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
             self.cumulative_performance.add_dividend(event)
             self.todays_performance.add_dividend(event)
-            # Dividends are consumed by performance, and not
-            # relayed to the next element in the generator chain.
-            messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.ORDER:
             self.cumulative_performance.record_order(event)
             self.todays_performance.record_order(event)
-            messages = None
 
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
-            # we just want to relay this event unchanged.
-            messages = []
-            return messages
+            pass
         elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
             self.all_benchmark_returns[event.dt] = event.returns
 
         #calculate performance as of last trade
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
-
-        return messages
 
     def handle_minute_close(self, dt):
         #update risk metrics for cumulative performance
@@ -421,14 +369,6 @@ class PerformanceTracker(object):
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
         """
-        # the stream will end on the last trading day, but will
-        # not trigger an end of day, so we trigger the final
-        # market close(s) here
-        perf_messages = []
-        while self.last_close > self.market_close:
-            perf_messages.append(self.handle_market_close())
-
-        perf_messages.append(self.handle_market_close())
 
         log_msg = "Simulated {n} trading days out of {m}."
         log.info(log_msg.format(n=int(self.day_count), m=self.total_days))
@@ -440,7 +380,7 @@ class PerformanceTracker(object):
         self.risk_report = risk.RiskReport(self.returns, self.sim_params)
 
         risk_dict = self.risk_report.to_dict()
-        return perf_messages, risk_dict
+        return risk_dict
 
 
 class Position(object):
