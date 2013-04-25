@@ -587,12 +587,13 @@ class RiskMetricsIterative(RiskMetricsBase):
 
         if(len(self.benchmark_returns) != len(self.algorithm_returns)):
             message = "Mismatch between benchmark_returns ({bm_count}) and \
-algorithm_returns ({algo_count}) in range {start} : {end}"
+algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             message = message.format(
                 bm_count=len(self.benchmark_returns),
                 algo_count=len(self.algorithm_returns),
                 start=self.start_date,
-                end=self.end_date
+                end=self.end_date,
+                dt=dt
             )
             raise Exception(message)
 
