@@ -59,6 +59,11 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
     """
     one_day = timedelta(days=1)
     cur = start
+    if delta == one_day:
+        # if we are producing daily timestamps, we
+        # use midnight
+        cur = cur.replace(hour=0, minute=0, second=0,
+                          microsecond=0)
 
     # yield count trade events, all on trading days, and
     # during trading hours.
