@@ -382,7 +382,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[2].dt
         )
 
-        txn = create_txn(1, 10.0, -100, self.dt + oneday)
+        txn = create_txn(1, 10.0, -100, events[1].dt)
         events.insert(1, txn)
         events.insert(0, dividend)
         perf_tracker = perf.PerformanceTracker(self.sim_params)
