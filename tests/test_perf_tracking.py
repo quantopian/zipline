@@ -80,6 +80,7 @@ class TestDividendPerformance(unittest.TestCase):
             )
             self.assertEqual(after.hour, 13)
 
+    @trading.use_environment(trading.TradingEnvironment())
     def test_long_position_receives_dividend(self):
         #post some trades in the market
         events = factory.create_trade_history(
@@ -126,11 +127,12 @@ class TestDividendPerformance(unittest.TestCase):
         perf_messages, risk = perf_tracker.handle_simulation_end()
         results.append(perf_messages[0])
 
-        self.assertEqual(results[0]['daily_perf']['period_open'], events[0].dt)
+        self.assertEqual(
+            results[0]['daily_perf']['period_open'],
+            trading.environment.get_open_and_close(events[0].dt)[0])
         self.assertEqual(
             results[-1]['daily_perf']['period_open'],
-            events[-1].dt
-        )
+            trading.environment.get_open_and_close(events[-1].dt)[0])
 
         self.assertEqual(len(results), 5)
         cumulative_returns = \

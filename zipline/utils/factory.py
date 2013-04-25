@@ -145,8 +145,14 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
     trades = []
     current = sim_params.first_open
 
+    oneday = timedelta(days=1)
+    use_midnight = interval >= oneday
     for price, amount in zip(prices, amounts):
-        trade = create_trade(sid, price, amount, current, source_id)
+        if use_midnight:
+            trade_dt = current.replace(hour=0, minute=0)
+        else:
+            trade_dt = current
+        trade = create_trade(sid, price, amount, trade_dt, source_id)
         trades.append(trade)
         current = get_next_trading_dt(current, interval)
 
