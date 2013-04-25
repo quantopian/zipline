@@ -44,7 +44,9 @@ class TestRecordAlgorithm(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def test_record_incr(self):
-        algo = RecordAlgorithm(sim_params=self.sim_params)
+        algo = RecordAlgorithm(
+            sim_params=self.sim_params,
+            data_frequency='daily')
         output = algo.run(self.source)
 
         np.testing.assert_array_equal(output['incr'].values,
