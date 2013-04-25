@@ -161,8 +161,9 @@ class PerformanceTracker(object):
             trading.environment.get_open_and_close(first_day)
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
+        self.emission_rate = sim_params.emission_rate
         self.cumulative_risk_metrics = \
-            risk.RiskMetricsIterative(self.period_start, self.period_end)
+            risk.RiskMetricsIterative(self.sim_params)
         self.emission_rate = sim_params.emission_rate
 
         # Temporarily hold these here as we work on streaming benchmarks.

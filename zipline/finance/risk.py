@@ -522,12 +522,14 @@ class RiskMetricsIterative(RiskMetricsBase):
         Call update() method on each dt to update the metrics.
     """
 
-    def __init__(self, start_date, end_date):
+    def __init__(self, sim_params):
         self.treasury_curves = trading.environment.treasury_curves
-        self.start_date = start_date.replace(hour=0, minute=0, second=0,
-                                             microsecond=0)
-        self.end_date = end_date.replace(hour=0, minute=0, second=0,
-                                         microsecond=0)
+        self.start_date = sim_params.period_start.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.end_date = sim_params.period_end.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
         all_trading_days = trading.environment.trading_days
         mask = ((all_trading_days >= self.start_date) &
