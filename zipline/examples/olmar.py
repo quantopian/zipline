@@ -1,12 +1,11 @@
 import sys
 import logbook
-import datetime
 import numpy as np
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_bars_from_yahoo
-from zipline.finance import slippage, commission
+from zipline.finance import commission
 
 zipline_logging = logbook.NestedSetup([
     logbook.NullHandler(level=logbook.DEBUG, bubble=True),
@@ -38,11 +37,6 @@ class OLMAR(TradingAlgorithm):
         self.add_transform(MovingAverage, 'mavg', ['price'],
                            window_length=window_length)
 
-        no_delay = datetime.timedelta(minutes=0)
-        slip = slippage.VolumeShareSlippage(volume_limit=0.25,
-                                            price_impact=0,
-                                            delay=no_delay)
-        self.set_slippage(slip)
         self.set_commission(commission.PerShare(cost=0))
 
     def handle_data(self, data):
