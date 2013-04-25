@@ -23,6 +23,7 @@ import pandas as pd
 
 import zipline.finance.risk as risk
 import zipline.finance.trading as trading
+from zipline.finance.trading import SimulationParameters
 from zipline.protocol import DailyReturn
 
 from test_risk import RETURNS
@@ -63,7 +64,9 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
         end_date = trading.environment.trading_days[
             start_index + len(RETURNS)]
 
-        risk_metrics_refactor = risk.RiskMetricsIterative(start_date, end_date)
+        sim_params = SimulationParameters(start_date, end_date)
+
+        risk_metrics_refactor = risk.RiskMetricsIterative(sim_params)
         todays_date = start_date
 
         cur_returns = []
