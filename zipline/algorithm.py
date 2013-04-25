@@ -122,7 +122,7 @@ class TradingAlgorithm(object):
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
-    def _create_data_generator(self, source_filter):
+    def _create_data_generator(self, source_filter, sim_params):
         """
         Create a merged data generator using the sources and
         transforms attached to this algorithm.
@@ -138,8 +138,8 @@ class TradingAlgorithm(object):
                    'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                    'source_id': 'benchmarks'})
             for ret in trading.environment.benchmark_returns
-            if ret.date.date() >= self.sim_params.period_start.date()
-            and ret.date.date() <= self.sim_params.period_end.date()
+            if ret.date.date() >= sim_params.period_start.date()
+            and ret.date.date() <= sim_params.period_end.date()
         ]
 
         date_sorted = date_sorted_sources(*self.sources)
@@ -168,7 +168,7 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-        self.data_gen = self._create_data_generator(source_filter)
+        self.data_gen = self._create_data_generator(source_filter, sim_params)
 
         self.trading_client = tsc(self, sim_params)
 
