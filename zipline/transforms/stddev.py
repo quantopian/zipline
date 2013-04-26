@@ -63,7 +63,7 @@ class MovingStandardDev(object):
 
     def update(self, event):
         """
-        Update the event window for this event's sid.  Return an ndict
+        Update the event window for this event's sid.  Return a dict
         from tracked fields to moving averages.
         """
         # This will create a new EventWindow if this is the first

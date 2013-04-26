@@ -32,8 +32,8 @@ The algorithm must expose methods:
     sids. List must have a length between 1 and 10. If None is returned the
     filter will block all events.
 
-  - handle_data: method that accepts a :py:class:`zipline.protocol_utils.ndict`
-    of the current state of the simulation universe. An example data ndict:
+  - handle_data: method that accepts a :py:class:`zipline.protocol.BarData`
+    of the current state of the simulation universe. An example data object:
 
         ..  This outputs the table as an HTML table but for some reason there
             is no bounding box. Make the previous paragraph ending colon a
