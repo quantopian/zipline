@@ -372,6 +372,23 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(cumulative_cash_flows, [0, 0, 0, 0, 0])
 
 
+class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
+
+    # The holiday tests begins the simulation on the day
+    # before Thanksgiving, so that the next trading day is
+    # two days ahead. Any tests that hard code events
+    # to be start + oneday will fail, since those events will
+    # be skipped by the simulation.
+
+    def setUp(self):
+        self.dt = datetime.datetime(2003, 11, 30, tzinfo=pytz.utc)
+        self.end_dt = datetime.datetime(2004, 11, 25, tzinfo=pytz.utc)
+        self.sim_params = SimulationParameters(
+            self.dt,
+            self.end_dt)
+        self.benchmark_events = benchmark_events_in_range(self.sim_params)
+
+
 class TestPositionPerformance(unittest.TestCase):
 
     def setUp(self):
