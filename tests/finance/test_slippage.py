@@ -25,7 +25,7 @@ from unittest import TestCase
 from zipline.finance.slippage import VolumeShareSlippage
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.gens.tradesimulation import Order
+from zipline.finance.blotter import Order
 
 
 class SlippageTestCase(TestCase):

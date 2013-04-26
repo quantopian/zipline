@@ -38,6 +38,7 @@ from zipline.finance.slippage import (
     transact_partial
 )
 from zipline.finance.commission import PerShare, PerTrade
+from zipline.finance.blotter import Blotter
 from zipline.finance.constants import ANNUALIZER
 import zipline.finance.trading as trading
 import zipline.protocol
@@ -85,7 +86,6 @@ class TradingAlgorithm(object):
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
-        self.order = None
         self._portfolio = None
         self.datetime = None
 
@@ -114,6 +114,8 @@ class TradingAlgorithm(object):
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
         self.sim_params = kwargs.pop('sim_params', None)
+
+        self.blotter = kwargs.pop('blotter', Blotter())
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
@@ -318,6 +320,9 @@ class TradingAlgorithm(object):
         for name, value in kwargs.items():
             self._recorded_vars[name] = value
 
+    def order(self, sid, amount, limit_price=None, stop_price=None):
+        return self.blotter.order(sid, amount, limit_price, stop_price)
+
     @property
     def recorded_vars(self):
         return copy(self._recorded_vars)
@@ -328,9 +333,6 @@ class TradingAlgorithm(object):
 
     def set_portfolio(self, portfolio):
         self._portfolio = portfolio
-
-    def set_order(self, order_callable):
-        self.order = order_callable
 
     def set_logger(self, logger):
         self.logger = logger
@@ -356,7 +358,7 @@ class TradingAlgorithm(object):
         Set the method that will be called to create a
         transaction from open orders and trade events.
         """
-        self.trading_client.blotter.transact = transact
+        self.blotter.transact = transact
 
     def set_slippage(self, slippage):
         if not isinstance(slippage, (VolumeShareSlippage, FixedSlippage)):

@@ -62,6 +62,10 @@ class Event(object):
         return "Event({0})".format(self.__dict__)
 
 
+class Order(Event):
+    pass
+
+
 class Portfolio(object):
 
     def __init__(self, initial_values=None):

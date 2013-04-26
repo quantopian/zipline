@@ -29,7 +29,7 @@ from zipline.finance.slippage import Transaction, create_transaction
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
-from zipline.gens.tradesimulation import Order
+from zipline.finance.blotter import Order
 import zipline.finance.trading as trading
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
