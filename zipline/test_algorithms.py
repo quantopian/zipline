@@ -148,12 +148,6 @@ class ExceptionAlgorithm(TradingAlgorithm):
         else:
             pass
 
-    def set_order(self, order_callable):
-        if self.throw_from == "set_order":
-            raise Exception("Algo exception in set_order")
-        else:
-            pass
-
     def set_portfolio(self, portfolio):
         if self.throw_from == "set_portfolio":
             raise Exception("Algo exception in set_portfolio")
