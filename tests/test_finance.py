@@ -34,7 +34,7 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
-from zipline.gens.tradesimulation import Order, Blotter
+from zipline.finance.blotter import Blotter
 from zipline.gens.composites import date_sorted_sources
 
 import zipline.finance.trading as trading
@@ -315,13 +315,9 @@ class FinanceTestCase(TestCase):
 
         order_date = start_date
         for i in xrange(order_count):
-            order = Order(**{
-                'sid': sid,
-                'amount': order_amount * alternator ** i,
-                'dt': order_date
-            })
 
-            blotter.place_order(order)
+            blotter.set_date(order_date)
+            blotter.order(sid, order_amount * alternator ** i, None, None)
 
             order_date = order_date + order_interval
             # move after market orders to just after market next
