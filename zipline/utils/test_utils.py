@@ -3,7 +3,7 @@ import blist
 from zipline.utils.date_utils import EPOCH
 from itertools import izip
 from logbook import FileHandler
-from zipline.gens.tradesimulation import ORDER_STATUS
+from zipline.finance.blotter import ORDER_STATUS
 
 
 def setup_logger(test, path='test.log'):
