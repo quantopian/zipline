@@ -15,7 +15,6 @@
 import itertools
 from itertools import chain
 from logbook import Logger, Processor
-from collections import defaultdict
 
 from zipline.protocol import BarData, DATASOURCE_TYPE
 from zipline.finance.performance import PerformanceTracker
