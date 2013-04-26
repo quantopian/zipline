@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+from collections import defaultdict
 import datetime
 
 from utils.protocol_utils import Enum
@@ -119,6 +118,54 @@ class SIDData(object):
 
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
+
+
+class BarData(object):
+    """
+    Holds the event data for all sids for a given dt.
+
+    This is what is passed as `data` to the `handle_data` function.
+
+    Note: Many methods are analogues of dictionary because of historical
+    usage of what this replaced as a dictionary subclass.
+    """
+
+    def __init__(self):
+        self._data = defaultdict(SIDData)
+        self._contains_override = None
+
+    def __contains__(self, name):
+        if self._contains_override:
+            return self._contains_override(name)
+        else:
+            return name in self.__dict__
+
+    def __setitem__(self, name, value):
+        self._data[name] = value
+
+    def __getitem__(self, name):
+        return self._data[name]
+
+    def __delitem__(self, name):
+        del self._data[name]
+
+    def __iter__(self):
+        return self._data.iterkeys()
+
+    def keys(self):
+        return self._data.keys()
+
+    def iterkeys(self):
+        return self._data.iterkeys()
+
+    def itervalues(self):
+        return self._data.itervalues()
+
+    def iteritems(self):
+        return self._data.iteritems()
+
+    def items(self):
+        return self._data.items()
 
 
 class DailyReturn(object):

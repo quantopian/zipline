@@ -21,8 +21,7 @@ from itertools import chain
 from logbook import Logger, Processor
 from collections import defaultdict
 
-from zipline import ndict
-from zipline.protocol import SIDData, DATASOURCE_TYPE
+from zipline.protocol import BarData, DATASOURCE_TYPE
 from zipline.finance.performance import PerformanceTracker
 from zipline.gens.utils import hash_args
 
@@ -248,10 +247,10 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
-        # The algorithm's universe as of our most recent event.
-        # We want an ndict that will have empty objects as default
+        # The algorithm's data as of our most recent event.
+        # We want an object that will have empty objects as default
         # values on missing keys.
-        self.universe = ndict(internal=defaultdict(SIDData))
+        self.current_data = BarData()
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -412,7 +411,7 @@ class AlgorithmSimulator(object):
         Update the universe with new event information.
         """
         # Update our knowledge of this event's sid
-        sid_data = self.universe[event.sid]
+        sid_data = self.current_data[event.sid]
         sid_data.__dict__.update(event.__dict__)
 
     def simulate_snapshot(self, date):
@@ -426,4 +425,4 @@ class AlgorithmSimulator(object):
         self.algo.set_datetime(self.snapshot_dt)
         # Update the simulation time.
         self.simulation_dt = date
-        self.algo.handle_data(self.universe)
+        self.algo.handle_data(self.current_data)
