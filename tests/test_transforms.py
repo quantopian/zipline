@@ -22,10 +22,9 @@ import pandas as pd
 from datetime import timedelta, datetime
 from unittest import TestCase
 
-from zipline import ndict
-
 from zipline.utils.test_utils import setup_logger
 
+from zipline.protocol import Event
 from zipline.sources import SpecificEquityTrades
 from zipline.transforms.utils import StatefulTransform, EventWindow
 from zipline.transforms import MovingVWAP
@@ -38,7 +37,7 @@ from zipline.test_algorithms import BatchTransformAlgorithm
 
 
 def to_dt(msg):
-    return ndict({'dt': msg})
+    return Event({'dt': msg})
 
 
 class NoopEventWindow(EventWindow):
