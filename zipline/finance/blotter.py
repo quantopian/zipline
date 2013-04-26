@@ -16,7 +16,6 @@ import math
 import uuid
 
 from copy import copy
-from itertools import chain
 from logbook import Logger
 from collections import defaultdict
 
@@ -52,6 +51,12 @@ class Blotter(object):
         # event.
         self.new_orders = []
         self.current_dt = None
+
+    def cancel_order(self, order_id):
+        order = self.orders[order_id]
+        if order.open:
+            order_list = self.open_orders[order.sid]
+            order_list.remove(order)
 
     def set_date(self, dt):
         self.current_dt = dt
@@ -98,22 +103,6 @@ class Blotter(object):
 
         return order.id
 
-    def transform(self, stream_in):
-        """
-        Main generator work loop.
-        """
-        for date, snapshot in stream_in:
-            results = []
-
-            for event in snapshot:
-                results.append(event)
-                # We only fill transactions on trade events.
-                if event.type == DATASOURCE_TYPE.TRADE:
-                    txns, modified_orders = self.process_trade(event)
-                    results.extend(chain(txns, modified_orders))
-
-            yield date, results
-
     def process_trade(self, trade_event):
         if trade_event.type != DATASOURCE_TYPE.TRADE:
             return [], []
@@ -143,9 +132,13 @@ class Blotter(object):
         modified_orders = [order for order
                            in self.open_orders[trade_event.sid]
                            if order.dt == trade_event.dt]
-        for order in modified_orders:
-            if not order.open:
-                del self.orders[order.id]
+
+        # TODO: without this limit, orders can grow in memory
+        # unchecked. Taking it out so that it is easy to find
+        # orders by id during a running test.
+        # for order in modified_orders:
+        #     if not order.open:
+        #         del self.orders[order.id]
 
         # update the open orders for the trade_event's sid
         self.open_orders[trade_event.sid] = \
