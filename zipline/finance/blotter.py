@@ -20,6 +20,7 @@ from logbook import Logger
 from collections import defaultdict
 
 from zipline.protocol import DATASOURCE_TYPE
+from zipline.protocol import Order as zpOrder
 
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -35,7 +36,8 @@ from zipline.utils.protocol_utils import Enum
 
 ORDER_STATUS = Enum(
     'OPEN',
-    'FILLED'
+    'FILLED',
+    'CANCELLED'
 )
 
 
@@ -51,12 +53,6 @@ class Blotter(object):
         # event.
         self.new_orders = []
         self.current_dt = None
-
-    def cancel_order(self, order_id):
-        order = self.orders[order_id]
-        if order.open:
-            order_list = self.open_orders[order.sid]
-            order_list.remove(order)
 
     def set_date(self, dt):
         self.current_dt = dt
@@ -103,6 +99,21 @@ class Blotter(object):
 
         return order.id
 
+    def cancel(self, order_id):
+        cur_order = self.orders[order_id]
+        if cur_order.open:
+            order_list = self.open_orders[cur_order.sid]
+            if cur_order in order_list:
+                order_list.remove(cur_order)
+
+            if cur_order in self.new_orders:
+                self.new_orders.remove(cur_order)
+            cur_order.status = ORDER_STATUS.CANCELLED
+            cur_order.dt = self.current_dt
+            # we want this order's new status to be relayed out
+            # along with newly placed orders.
+            self.new_orders.append(cur_order)
+
     def process_trade(self, trade_event):
         if trade_event.type != DATASOURCE_TYPE.TRADE:
             return [], []
@@ -132,13 +143,6 @@ class Blotter(object):
         modified_orders = [order for order
                            in self.open_orders[trade_event.sid]
                            if order.dt == trade_event.dt]
-
-        # TODO: without this limit, orders can grow in memory
-        # unchecked. Taking it out so that it is easy to find
-        # orders by id during a running test.
-        # for order in modified_orders:
-        #     if not order.open:
-        #         del self.orders[order.id]
 
         # update the open orders for the trade_event's sid
         self.open_orders[trade_event.sid] = \
@@ -183,6 +187,11 @@ class Order(object):
             del py[field]
         return py
 
+    def to_api_obj(self):
+        pydict = self.to_dict()
+        obj = zpOrder(initial_values=pydict)
+        return obj
+
     def check_triggers(self, event):
         """
         Update internal state based on price triggers and the
@@ -198,6 +207,9 @@ class Order(object):
 
     @property
     def open(self):
+        if self.status == ORDER_STATUS.CANCELLED:
+            return False
+
         remainder = self.amount - self.filled
         if remainder != 0:
             self.status = ORDER_STATUS.OPEN
@@ -212,7 +224,7 @@ class Order(object):
         For a market order, True.
         For a stop order, True IFF stop_reached.
         For a limit order, True IFF limit_reached.
-        For a stop-limit order, True IFF (stp_reached AND limit_reached)
+        For a stop-limit order, True IFF (stop_reached AND limit_reached)
         """
         if self.stop and not self.stop_reached:
             return False
@@ -221,6 +233,3 @@ class Order(object):
             return False
 
         return True
-
-    def __getitem__(self, name):
-        return self.__dict__[name]

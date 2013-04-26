@@ -321,7 +321,7 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     def order(self, sid, amount, limit_price=None, stop_price=None):
-        self.blotter.order(sid, amount, limit_price, stop_price)
+        return self.blotter.order(sid, amount, limit_price, stop_price)
 
     @property
     def recorded_vars(self):
