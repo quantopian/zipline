@@ -337,10 +337,10 @@ def create_test_panel_ohlc_source(sim_params=None):
         if sim_params else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
 
     index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
-    price = np.arange(0, len(index))
-    high = price + 1
-    low = price - 1
-    open_ = price - .5
+    price = np.arange(0, len(index)) + 100
+    high = price * 1.05
+    low = price * 0.95
+    open_ = price + .1 * (price % 2 - .5)
     volume = np.ones(len(index)) * 1000
     arbitrary = np.ones(len(index))
 

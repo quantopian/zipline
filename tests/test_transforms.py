@@ -391,7 +391,7 @@ class TestTALIB(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(
             start=datetime(1990, 1, 1, tzinfo=pytz.utc),
-            end=datetime(1990, 6, 30, tzinfo=pytz.utc)
+            end=datetime(1990, 3, 30, tzinfo=pytz.utc)
         )
         setup_logger(self)
         self.source, self.panel = \
