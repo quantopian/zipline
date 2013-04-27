@@ -33,7 +33,7 @@ from zipline.transforms import MovingStandardDev
 from zipline.transforms import Returns
 import zipline.utils.factory as factory
 
-from zipline.test_algorithms import BatchTransformAlgorithm
+from zipline.test_algorithms import BatchTransformAlgorithm, TALIBAlgorithm
 
 
 def to_dt(msg):
@@ -379,3 +379,22 @@ class TestBatchTransform(TestCase):
                 # 1990-01-08 - window now full
                 expected_item
             ])
+
+
+############################################################
+# Test TALIB
+
+class TestTALIB(TestCase):
+    def setUp(self):
+        self.sim_params = factory.create_simulation_parameters(
+            start=datetime(1990, 1, 1, tzinfo=pytz.utc),
+            end=datetime(1990, 6, 30, tzinfo=pytz.utc)
+        )
+        setup_logger(self)
+        self.source, self.panel = \
+            factory.create_test_panel_ohlc_source(self.sim_params)
+
+    def test_event_window(self):
+        algo = TALIBAlgorithm(sim_params=self.sim_params)
+        algo.run(self.source)
+
