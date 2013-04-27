@@ -451,10 +451,22 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
 
 
 class TALIBAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that applies a TA-Lib transform. The transform object can be
+    passed at initialization with the 'talib' keyword argument. The results are
+    stored in the talib_results array.
+    """
     def initialize(self, *args, **kwargs):
+
+        if 'talib' not in kwargs:
+            raise KeyError('No TA-LIB transform specified '
+                           '(use keyword \'talib\').')
+        else:
+            self.talib_transform = kwargs['talib']
+
         self.talib_results = []
-        self.talib_transform = ta.AVGPRICE(sid=0)
 
     def handle_data(self, data):
         self.talib_results.append(self.talib_transform.handle_data(data))
+
 
