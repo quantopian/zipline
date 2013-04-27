@@ -52,7 +52,7 @@ def make_transform(talib_fn):
             super(TALibTransform, self).__init__(func=zipline_wrapper,
                                                  sids=sid,
                                                  refresh_period=refresh_period,
-                                                 window_length=self.talib_fn.lookback + 1)
+                                                 window_length=max(1, self.talib_fn.lookback + 1))
 
     # bind a class docstring to reveal parameters
     TALibTransform.__doc__ = getattr(talib, talib_fn.info['name']).__doc__
