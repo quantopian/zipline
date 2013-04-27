@@ -453,8 +453,8 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
 class TALIBAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.talib_results = []
-        self.talib_transform = ta.AVGPRICE()
+        self.talib_transform = ta.AVGPRICE(sid=0)
 
     def handle_data(self, data):
-        self.talib_results.append(self.talib_transform.handle_data(data, 0))
+        self.talib_results.append(self.talib_transform.handle_data(data))
 
