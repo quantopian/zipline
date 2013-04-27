@@ -7,7 +7,6 @@ from zipline.transforms import BatchTransform
 
 #======== Batch Transform Template
 
-
 def TALibTransform(talib_fn, *args, **kwargs):
 
     talib_fn.__name__ = talib_fn.info['name']

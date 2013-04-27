@@ -384,6 +384,9 @@ class TestBatchTransform(TestCase):
 ############################################################
 # Test TALIB
 
+import talib
+import zipline.transforms.ta as ta
+
 class TestTALIB(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(
@@ -394,7 +397,21 @@ class TestTALIB(TestCase):
         self.source, self.panel = \
             factory.create_test_panel_ohlc_source(self.sim_params)
 
-    def test_event_window(self):
-        algo = TALIBAlgorithm(sim_params=self.sim_params)
+        sid = 0
+        self.talib_data = {}
+        for key in ['open', 'high', 'low', 'volume']:
+            self.talib_data[key] = self.panel[sid][key].values
+        self.talib_data['close'] = self.panel[sid]['price'].values
+
+    def test_talib_transform(self):
+        algo = TALIBAlgorithm(talib = ta.AVGPRICE(sid=0))
         algo.run(self.source)
+        w = algo.talib_transform.window_length
+
+        # check that transform result is same as calling actual TALIB function
+        # but note that transform result will be None until the window is full
+        talib_result = np.array(algo.talib_results[w:])
+        expected_result = talib.abstract.AVGPRICE(self.talib_data)[w:]
+        import ipdb; ipdb.set_trace()
+        self.assertTrue(np.allclose(talib_result, expected_result))
 
