@@ -23,10 +23,10 @@ def make_transform(talib_fn):
 
             def zipline_wrapper(data):
                 # Set the parameters at each iteration in case the same
-                # abstract talib function is being used in another BatchTransform
-                # with different parameters.
-                # FIXME -- this might not be necessary if the abstract functions
-                # can be copied into separate objects.
+                # abstract talib function is being used in another
+                # BatchTransform with different parameters.
+                # FIXME -- this might not be necessary if the abstract
+                # functions can be copied into separate objects.
                 self.talib_fn.set_parameters(self.talib_parameters)
 
                 # convert zipline dataframe to talib data_dict
@@ -49,10 +49,11 @@ def make_transform(talib_fn):
                 else:
                     return result[-1]
 
-            super(TALibTransform, self).__init__(func=zipline_wrapper,
-                                                 sids=sid,
-                                                 refresh_period=refresh_period,
-                                                 window_length=max(1, self.talib_fn.lookback + 1))
+            super(TALibTransform, self).__init__(
+                func=zipline_wrapper,
+                sids=sid,
+                refresh_period=refresh_period,
+                window_length=max(1, self.talib_fn.lookback + 1))
 
     # bind a class docstring to reveal parameters
     TALibTransform.__doc__ = getattr(talib, talib_fn.info['name']).__doc__
