@@ -329,6 +329,33 @@ def create_test_panel_source(sim_params=None):
     return DataPanelSource(panel), panel
 
 
+def create_test_panel_ohlc_source(sim_params=None):
+    start = sim_params.first_open \
+        if sim_params else pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+
+    end = sim_params.last_close \
+        if sim_params else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+
+    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    price = np.arange(0, len(index))
+    high = price + 1
+    low = price - 1
+    open_ = price - .5
+    volume = np.ones(len(index)) * 1000
+    arbitrary = np.ones(len(index))
+
+    df = pd.DataFrame({'price': price,
+                       'high': high,
+                       'low': low,
+                       'open': open_,
+                       'volume': volume,
+                       'arbitrary': arbitrary},
+                      index=index)
+    panel = pd.Panel.from_dict({0: df})
+
+    return DataPanelSource(panel), panel
+
+
 def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     """Load closing prices from yahoo finance.
 
