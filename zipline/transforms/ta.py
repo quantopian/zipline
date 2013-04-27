@@ -25,7 +25,6 @@ def TALibTransform(talib_fn, *args, **kwargs):
 
         # call the TAlib function
         transform = talib_fn(data_dict, *args, **kwargs)
-
         # return the last result, checking for multiple results
         if isinstance(transform, (list, tuple)):
             return tuple([t[-1] for t in transform])
@@ -57,23 +56,25 @@ def ADOSC(sid, fastperiod=3, slowperiod=10, refresh_period=1):
     return transform
 
 
+# FIXME why do we have to add 7 to window_length to avoid nans?
 def ADX(sid, timeperiod=14, refresh_period=1):
     """Average Directional Movement Index"""
     transform = BatchTransform(
         sids=sid,
         func=TALibTransform(talib.abstract.ADX, timeperiod),
         refresh_period=refresh_period,
-        window_length=timeperiod)
+        window_length=timeperiod + 7)
     return transform
 
 
+# FIXME why do we have to add 17 to window_length to avoid nans?
 def ADXR(sid, timeperiod=14, refresh_period=1):
     """Average Directional Movement Index Rating"""
     transform = BatchTransform(
         sids=sid,
         func=TALibTransform(talib.abstract.ADXR, timeperiod),
         refresh_period=refresh_period,
-        window_length=timeperiod)
+        window_length=timeperiod + 17)
     return transform
 
 
