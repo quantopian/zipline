@@ -403,15 +403,22 @@ class TestTALIB(TestCase):
             self.talib_data[key] = self.panel[sid][key].values
         self.talib_data['close'] = self.panel[sid]['price'].values
 
-    def test_talib_transform(self):
-        algo = TALIBAlgorithm(talib = ta.AVGPRICE(sid=0))
-        algo.run(self.source)
-        w = algo.talib_transform.window_length
+    def test_talib_with_default_params(self):
+        names = ['AROON']
 
-        # check that transform result is same as calling actual TALIB function
-        # but note that transform result will be None until the window is full
-        talib_result = np.array(algo.talib_results[w:])
-        expected_result = talib.abstract.AVGPRICE(self.talib_data)[w:]
-        import ipdb; ipdb.set_trace()
-        self.assertTrue(np.allclose(talib_result, expected_result))
+        for name in names:
+            zipline_fn = getattr(ta, name)(sid=0)
+            talib_fn = getattr(talib.abstract, name)
+
+            algo = TALIBAlgorithm(talib = zipline_fn)
+            algo.run(self.source)
+            w = algo.talib_transform.window_length
+            # check that transform result is same as calling actual TALIB function
+            # but note that transform result will be None until the window is full
+            talib_result = np.array(algo.talib_results[w:])
+            expected_result = talib_fn(self.talib_data)
+            if talib_result.ndim > 1:
+                expected_result = np.vstack(expected_result).T
+            expected_result = expected_result[w:]
+            self.assertTrue(np.allclose(talib_result, expected_result))
 
