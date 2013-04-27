@@ -404,7 +404,9 @@ class TestTALIB(TestCase):
         self.talib_data['close'] = self.panel[sid]['price'].values
 
     def test_talib_with_default_params(self):
-        names = ['AROON']
+        names = [n for n in dir(ta) if n[0].isupper() and n != 'TALibTransform']
+        # names = ['ADX']
+
 
         for name in names:
             zipline_fn = getattr(ta, name)(sid=0)
@@ -412,13 +414,28 @@ class TestTALIB(TestCase):
 
             algo = TALIBAlgorithm(talib = zipline_fn)
             algo.run(self.source)
-            w = algo.talib_transform.window_length
             # check that transform result is same as calling actual TALIB function
             # but note that transform result will be None until the window is full
+            # and also that transforms that return multiple results have to be
+            # handled differently
+            w = algo.talib_transform.window_length
             talib_result = np.array(algo.talib_results[w:])
             expected_result = talib_fn(self.talib_data)
             if talib_result.ndim > 1:
                 expected_result = np.vstack(expected_result).T
+
             expected_result = expected_result[w:]
+            # import ipdb; ipdb.set_trace()
+
+            print name
+            # import ipdb; ipdb.set_trace()
+            # just in case nan's remain
+            talib_result[np.isnan(talib_result)] = -99
+            expected_result[np.isnan(expected_result)] = -99
             self.assertTrue(np.allclose(talib_result, expected_result))
+
+            # reset generator so next iteration has data
+            self.source, self.panel = \
+                factory.create_test_panel_ohlc_source(self.sim_params)
+
 
