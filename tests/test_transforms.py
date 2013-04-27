@@ -404,15 +404,20 @@ class TestTALIB(TestCase):
         self.talib_data['close'] = self.panel[sid]['price'].values
 
     def test_talib_with_default_params(self):
-        names = [n for n in dir(ta) if n[0].isupper() and n != 'TALibTransform']
-        # names = ['ADX']
+        BLACKLIST = ['make_transform', 'BatchTransform']
+        BLACKLIST += [
+            'ATR', 'BETA', 'BOP', 'CORREL', 'HT_DCPERIOD', 'HT_PHASOR'
+        ]
+        names = [n for n in dir(ta) if n[0].isupper() and n not in BLACKLIST and n[0] >= 'M']
+        # names = ['ATR']
 
 
         for name in names:
-            zipline_fn = getattr(ta, name)(sid=0)
+            zipline_transform = getattr(ta, name)(sid=0)
             talib_fn = getattr(talib.abstract, name)
+            talib_fn.set_parameters(zipline_transform.talib_parameters)
 
-            algo = TALIBAlgorithm(talib = zipline_fn)
+            algo = TALIBAlgorithm(talib = zipline_transform)
             algo.run(self.source)
             # check that transform result is same as calling actual TALIB function
             # but note that transform result will be None until the window is full
