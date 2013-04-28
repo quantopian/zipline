@@ -421,23 +421,18 @@ class TestTALIB(TestCase):
             algo = TALIBAlgorithm(talib = zipline_transform)
             algo.run(self.source)
 
-            # check that transform result is same as calling actual TALIB function
-            # but note that transform result will be None until the window is full
-            # and also that transforms that return multiple results have to be
-            # handled differently
-            w = zipline_transform.window_length
-            talib_result = np.array(algo.talib_results[zipline_transform][w:])
+            talib_result = np.array(algo.talib_results[zipline_transform],
+                                    dtype=np.float64)
             expected_result = talib_fn(self.talib_data)
             if talib_result.ndim > 1:
                 expected_result = np.vstack(expected_result).T
 
-            # import ipdb; ipdb.set_trace()
+            # because the window isn't always calculating, set any nans in
+            # talib_result to -99 in both results
+            expected_result[np.isnan(talib_result)] = -99
+            talib_result[np.isnan(talib_result)] = -99
 
             print name
-
-            # just in case nan's remain
-            talib_result[np.isnan(talib_result)] = -99
-            expected_result[np.isnan(expected_result)] = -99
             self.assertTrue(np.allclose(talib_result, expected_result))
 
             # reset generator so next iteration has data
