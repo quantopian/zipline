@@ -461,12 +461,13 @@ class TALIBAlgorithm(TradingAlgorithm):
         if 'talib' not in kwargs:
             raise KeyError('No TA-LIB transform specified '
                            '(use keyword \'talib\').')
+        elif not isinstance(kwargs['talib'], (list, tuple)):
+            self.talib_transforms = (kwargs['talib'],)
         else:
-            self.talib_transform = kwargs['talib']
+            self.talib_transforms = kwargs['talib']
 
-        self.talib_results = []
+        self.talib_results = dict((t, []) for t in self.talib_transforms)
 
     def handle_data(self, data):
-        self.talib_results.append(self.talib_transform.handle_data(data))
-
-
+        for t in self.talib_transforms:
+            self.talib_results[t].append(t.handle_data(data))

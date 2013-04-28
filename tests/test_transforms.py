@@ -406,34 +406,35 @@ class TestTALIB(TestCase):
     def test_talib_with_default_params(self):
         BLACKLIST = ['make_transform', 'BatchTransform']
         BLACKLIST += [
-            'ATR', 'BETA', 'BOP', 'CORREL', 'HT_DCPERIOD', 'HT_PHASOR'
+            'ATR', 'BETA', 'BOP', 'CORREL', 'HT_DCPERIOD', 'HT_PHASOR', 'MAMA', 'MACDFIX', 'MACDEXT', 'MACD',
+            'MAVP', # missing data key 'periods'
+            'MAXINDEX', 'MININDEX', 'MINMAXINDEX', 'NATR', 'OBV', 'PLUS_DI', 'PLUS_DM', 'SAR', 'SAREXT'
         ]
-        names = [n for n in dir(ta) if n[0].isupper() and n not in BLACKLIST and n[0] >= 'M']
-        # names = ['ATR']
+        names = [n for n in dir(ta) if n[0].isupper() and n not in BLACKLIST and n[0] >= 'A']
+        # names = ['MA']
 
 
         for name in names:
             zipline_transform = getattr(ta, name)(sid=0)
             talib_fn = getattr(talib.abstract, name)
-            talib_fn.set_parameters(zipline_transform.talib_parameters)
 
             algo = TALIBAlgorithm(talib = zipline_transform)
             algo.run(self.source)
+
             # check that transform result is same as calling actual TALIB function
             # but note that transform result will be None until the window is full
             # and also that transforms that return multiple results have to be
             # handled differently
-            w = algo.talib_transform.window_length
-            talib_result = np.array(algo.talib_results[w:])
+            w = zipline_transform.window_length
+            talib_result = np.array(algo.talib_results[zipline_transform][w:])
             expected_result = talib_fn(self.talib_data)
             if talib_result.ndim > 1:
                 expected_result = np.vstack(expected_result).T
 
-            expected_result = expected_result[w:]
             # import ipdb; ipdb.set_trace()
 
             print name
-            # import ipdb; ipdb.set_trace()
+
             # just in case nan's remain
             talib_result[np.isnan(talib_result)] = -99
             expected_result[np.isnan(expected_result)] = -99
