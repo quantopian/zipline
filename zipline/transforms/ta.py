@@ -18,7 +18,6 @@ def make_transform(talib_fn):
                 # convert zipline dataframe to talib data_dict
                 data_dict = dict()
 
-
                 #TODO handle missing data
                 for key in ['open', 'high', 'low', 'volume']:
                     if key in data:
@@ -46,7 +45,8 @@ def make_transform(talib_fn):
                 window_length=max(1, self.talib_fn.lookback))
 
         def __repr__(self):
-            return 'Zipline BatchTransform: {0}'.format(self.talib_fn.info['name'])
+            return 'Zipline BatchTransform: {0}'.format(
+                self.talib_fn.info['name'])
 
     # bind a class docstring to reveal parameters
     TALibTransform.__doc__ = getattr(talib, talib_fn.info['name']).__doc__
@@ -60,4 +60,3 @@ for name in talib.abstract.__all__:
     fn = getattr(talib.abstract, name)
     if name != 'Function':
         locals()[name] = make_transform(fn)
-
