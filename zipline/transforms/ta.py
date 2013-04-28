@@ -7,28 +7,16 @@ def make_transform(talib_fn):
     A factory for BatchTransforms based on TALIB abstract functions.
     """
     class TALibTransform(BatchTransform):
-        def __init__(self, sid, refresh_period=0, **kwargs):
+        def __init__(self, sid, *args, **kwargs):
+            refresh_period = kwargs.pop('refresh_period', 0)
 
             self.talib_fn = talib_fn
 
-            # get default talib parameters
-            self.talib_parameters = talib_fn.get_parameters()
-
-            # update new parameters from kwargs
-            for k, v in kwargs.iteritems():
-                if k in self.talib_parameters:
-                    self.talib_parameters[k] = v
-
             def zipline_wrapper(data):
-                # Set the parameters at each iteration in case the same
-                # abstract talib function is being used in another
-                # BatchTransform with different parameters.
-                # FIXME -- this might not be necessary if the abstract
-                # functions can be copied into separate objects.
-                self.talib_fn.set_parameters(self.talib_parameters)
-
                 # convert zipline dataframe to talib data_dict
                 data_dict = dict()
+
+
                 #TODO handle missing data
                 for key in ['open', 'high', 'low', 'volume']:
                     if key in data:
@@ -39,7 +27,7 @@ def make_transform(talib_fn):
                     data_dict['close'] = data['price'].values[:, 0]
 
                 # call talib
-                result = self.talib_fn(data_dict)
+                result = self.talib_fn(data_dict, *args, **kwargs)
 
                 # keep only the most recent result
                 if isinstance(result, (list, tuple)):
@@ -51,7 +39,7 @@ def make_transform(talib_fn):
                 func=zipline_wrapper,
                 sids=sid,
                 refresh_period=refresh_period,
-                window_length=max(1, self.talib_fn.lookback + 1))
+                window_length=max(1, self.talib_fn.lookback))
 
         def __repr__(self):
             return 'Zipline BatchTransform: {0}'.format(self.talib_fn.info['name'])
@@ -68,3 +56,4 @@ for name in talib.abstract.__all__:
     fn = getattr(talib.abstract, name)
     if name != 'Function':
         locals()[name] = make_transform(fn)
+
