@@ -53,6 +53,9 @@ def make_transform(talib_fn):
                 refresh_period=refresh_period,
                 window_length=max(1, self.talib_fn.lookback + 1))
 
+        def __repr__(self):
+            return 'Zipline BatchTransform: {0}'.format(self.talib_fn.info['name'])
+
     # bind a class docstring to reveal parameters
     TALibTransform.__doc__ = getattr(talib, talib_fn.info['name']).__doc__
 
