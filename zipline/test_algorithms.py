@@ -470,4 +470,11 @@ class TALIBAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         for t in self.talib_transforms:
-            self.talib_results[t].append(t.handle_data(data))
+            result = t.handle_data(data)
+            if result is None:
+                if len(t.talib_fn.output_names) == 1:
+                    result = np.nan
+                else:
+                    result = (np.nan,) * len(t.talib_fn.output_names)
+            self.talib_results[t].append(result)
+
