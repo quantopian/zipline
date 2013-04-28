@@ -440,3 +440,14 @@ class TestTALIB(TestCase):
                 factory.create_test_panel_ohlc_source(self.sim_params)
 
 
+    def test_multiple_talib_with_args(self):
+        zipline_transforms = [ta.MA(0, timeperiod=5), ta.MA(0, timeperiod=25)]
+        talib_fn = talib.abstract.MA
+        algo = TALIBAlgorithm(talib = zipline_transforms)
+        algo.run(self.source)
+        for t in zipline_transforms:
+            talib_result = np.array(algo.talib_results[t], dtype=np.float64)
+            expected_result = talib_fn(self.talib_data, **t.call_kwargs)
+            expected_result[np.isnan(talib_result)] = -99
+            talib_result[np.isnan(talib_result)] = -99
+            self.assertTrue(np.allclose(talib_result, expected_result))
