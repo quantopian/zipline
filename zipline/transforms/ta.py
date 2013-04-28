@@ -9,6 +9,8 @@ def make_transform(talib_fn):
     class TALibTransform(BatchTransform):
         def __init__(self, sid, *args, **kwargs):
             refresh_period = kwargs.pop('refresh_period', 0)
+            self.call_args = args
+            self.call_kwargs = kwargs
 
             self.talib_fn = talib_fn
 
@@ -27,7 +29,9 @@ def make_transform(talib_fn):
                     data_dict['close'] = data['price'].values[:, 0]
 
                 # call talib
-                result = self.talib_fn(data_dict, *args, **kwargs)
+                result = self.talib_fn(data_dict,
+                                       self.call_args,
+                                       **self.call_kwargs)
 
                 # keep only the most recent result
                 if isinstance(result, (list, tuple)):
