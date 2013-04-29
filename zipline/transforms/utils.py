@@ -70,18 +70,6 @@ def check_window_length(window_length):
         raise InvalidWindowLength("window_length must be positive")
 
 
-class Passthrough(object):
-    PASSTHROUGH = True
-    """
-    Trivial class for forwarding events.
-    """
-    def __init__(self):
-        pass
-
-    def update(self, event):
-        pass
-
-
 class TransformMeta(type):
     """
     Metaclass that automatically packages a class inside of
@@ -111,10 +99,6 @@ class StatefulTransform(object):
             "Stateful transform requires a class."
         assert hasattr(tnfm_class, 'update'), \
             "Stateful transform requires the class to have an update method"
-
-        # Flag set inside the Passthrough transform class to signify special
-        # behavior if we are being fed to merged_transforms.
-        self.passthrough = hasattr(tnfm_class, 'PASSTHROUGH')
 
         # Create an instance of our transform class.
         if isinstance(tnfm_class, TransformMeta):
