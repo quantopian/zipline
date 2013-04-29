@@ -367,7 +367,10 @@ class BatchTransform(object):
         self.field_names = set()
 
         self.refresh_period = refresh_period
+
+        check_window_length(window_length)
         self.window_length = window_length
+
         self.trading_days_total = 0
         self.window = None
 
