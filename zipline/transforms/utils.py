@@ -55,6 +55,21 @@ class InvalidWindowLength(Exception):
     pass
 
 
+def check_window_length(window_length):
+    """
+    Ensure the window length provided to a transform is valid.
+    """
+    if window_length is None:
+        raise InvalidWindowLength("window_length must be provided")
+    if not isinstance(window_length, Integral):
+        raise InvalidWindowLength(
+            "window_length must be an integer-like number")
+    if window_length == 0:
+        raise InvalidWindowLength("window_length must be non-zero")
+    if window_length < 0:
+        raise InvalidWindowLength("window_length must be positive")
+
+
 class Passthrough(object):
     PASSTHROUGH = True
     """
@@ -178,6 +193,7 @@ class EventWindow(object):
 
     def __init__(self, market_aware=True, window_length=None, delta=None):
 
+        check_window_length(window_length)
         self.window_length = window_length
 
         self.ticks = deque()
@@ -191,16 +207,6 @@ class EventWindow(object):
             raise UnsupportedEventWindowFlagValue(
                 "delta values are no longer supported."
             )
-        if self.window_length is None:
-            raise InvalidWindowLength("window_length must be provided")
-        if not isinstance(self.window_length, Integral):
-            raise InvalidWindowLength(
-                "window_length must be an integer-like number")
-        if self.window_length == 0:
-            raise InvalidWindowLength("window_length must be non-zero")
-        if self.window_length < 0:
-            raise InvalidWindowLength("window_length must be positive")
-
         # Set the behavior for dropping events from the back of the
         # event window.
         self.drop_condition = self.out_of_market_window
