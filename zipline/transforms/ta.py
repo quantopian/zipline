@@ -34,6 +34,9 @@ def make_transform(talib_fn):
         for sid 'XYZ':
             talib.transforms.ta.MA('XYZ', close='Oil', timeperiod=5)
 
+        The user could find the default arguments and mappings by calling:
+            help(zipline.transforms.ta.MA)
+
 
         Arguments
         ---------
@@ -126,12 +129,16 @@ def make_transform(talib_fn):
             return 'Zipline BatchTransform: {0}'.format(
                 self.talib_fn.info['name'])
 
+    # make class docstring
     header = '\n#----------------- TALIB docs\n\n'
     talib_docs = getattr(talib, talib_fn.info['name']).__doc__
-    divider = '\n#----------------- Zipline docs\n'
-    help_str = header + talib_docs + divider + TALibTransform.__doc__
+    divider1 = '\n#----------------- Default Zipline to TALIB mapping\n\n'
+    mappings = '\n'.join('        {0} : {1}'.format(k, v)
+                         for k, v in talib_fn.input_names.items())
+    divider2 = '\n#----------------- Zipline docs\n'
+    help_str = (header + talib_docs + divider1 + mappings
+                + divider2 + TALibTransform.__doc__)
     TALibTransform.__doc__ = help_str
-
 
     #return class
     return TALibTransform
