@@ -9,6 +9,50 @@ def make_transform(talib_fn):
     A factory for BatchTransforms based on TALIB abstract functions.
     """
     class TALibTransform(BatchTransform):
+        """
+        TA-Lib keyword arguments must be passed at initialization. For
+        example, to construct a moving average with timeperiod of 5, pass
+        "timeperiod=5" during initialization.
+
+        All abstract TA-Lib functions accept a data dictionary containing
+        'open', 'high', 'low', 'close', and 'volume' keys, even if they do
+        not require those keys to run. For example, talib.MA (moving
+        average) is always computed using the data under the 'close'
+        key. By default, Zipline constructs this data dictionary with the
+        appropriate sid data, but users may overwrite this by passing
+        mappings as keyword arguments. For example, to compute the moving
+        average of the sid's high, provide "close = 'high'" and Zipline's
+        'high' data will be used as TA-Lib's 'close' data. Similarly, if a
+        user had a data column named 'Oil', they could compute its moving
+        average by passing "close='Oil'".
+
+
+        Example
+        --------
+
+        A moving average of a data column called 'Oil' with timeperiod 5,
+        for sid 'XYZ':
+            talib.transforms.ta.MA('XYZ', close='Oil', timeperiod=5)
+
+
+        Arguments
+        ---------
+
+        sid : zipline sid
+
+        refresh_period : int, default 0
+            The refresh_period of the BatchTransform determines the number
+            of iterations that pass before the BatchTransform updates its
+            internal data.
+
+        open   : string, default 'open'
+        high   : string, default 'high'
+        low    : string, default 'low'
+        close  : string, default 'price'
+        volume : string, default 'volume'
+
+        **kwargs : any arguments to be passed to the TA-Lib function.
+        """
         def __init__(self, sid, **kwargs):
 
             # check for BatchTransform refresh_period
@@ -82,8 +126,12 @@ def make_transform(talib_fn):
             return 'Zipline BatchTransform: {0}'.format(
                 self.talib_fn.info['name'])
 
-    # bind a class docstring to reveal parameters
-    TALibTransform.__doc__ = getattr(talib, talib_fn.info['name']).__doc__
+    header = '\n#----------------- TALIB docs\n\n'
+    talib_docs = getattr(talib, talib_fn.info['name']).__doc__
+    divider = '\n#----------------- Zipline docs\n'
+    help_str = header + talib_docs + divider + TALibTransform.__doc__
+    TALibTransform.__doc__ = help_str
+
 
     #return class
     return TALibTransform
