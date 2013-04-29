@@ -1,3 +1,4 @@
+import numpy as np
 import talib
 import copy
 from zipline.transforms import BatchTransform
@@ -9,8 +10,14 @@ def make_transform(talib_fn):
     """
     class TALibTransform(BatchTransform):
         def __init__(self, sid, **kwargs):
+
             # check for BatchTransform refresh_period
             refresh_period = kwargs.pop('refresh_period', 0)
+            key_map = {'high':   kwargs.pop('high', 'high'),
+                       'low':    kwargs.pop('low', 'low'),
+                       'open':   kwargs.pop('open', 'open'),
+                       'volume': kwargs.pop('volume', 'volume'),
+                       'close':  kwargs.pop('close', 'price')}
 
             # Make deepcopy of talib abstract function.
             # This is necessary because talib abstract functions remember
@@ -25,26 +32,39 @@ def make_transform(talib_fn):
             # set the parameters
             for param in self.talib_fn.get_parameters().keys():
                 if param in kwargs:
-                    self.talib_fn.set_parameters({param : kwargs[param]})
+                    self.talib_fn.set_parameters({param: kwargs[param]})
 
             # get the lookback
             self.lookback = self.talib_fn.lookback
 
             def zipline_wrapper(data):
-                # convert zipline dataframe to talib data_dict
-                data_dict = dict()
-
-                #TODO handle missing data
-                for key in ['open', 'high', 'low', 'volume']:
-                    if key in data:
-                        data_dict[key] = data[key].values[:, 0]
-                if 'close' in data:
-                    data_dict['close'] = data['close'].values[:, 0]
+                # get required TA-Lib input names
+                if 'price' in self.talib_fn.input_names:
+                    req_inputs = [self.talib_fn.input_names['price']]
+                elif 'prices' in self.talib_fn.input_names:
+                    req_inputs = self.talib_fn.input_names['prices']
                 else:
-                    data_dict['close'] = data['price'].values[:, 0]
+                    req_inputs = []
+
+                # build talib_data from zipline data
+                talib_data = dict()
+                for talib_key, zipline_key in key_map.iteritems():
+                    # if zipline_key is found, add it to talib_data
+                    if zipline_key in data:
+                        talib_data[talib_key] = data[zipline_key].values[:, 0]
+                    # if zipline_key is not found and not required, add zeros
+                    elif talib_key not in req_inputs:
+                        talib_data[talib_key] = np.zeros(data.shape[1])
+                    # if zipline key is not found and required, raise error
+                    else:
+                        raise KeyError(
+                            'Tried to set required TA-Lib data with key '
+                            '\'{0}\' but no Zipline data is available under '
+                            'expected key \'{1}\'.'.format(
+                                talib_key, zipline_key))
 
                 # call talib
-                result = self.talib_fn(data_dict)
+                result = self.talib_fn(talib_data)
 
                 # keep only the most recent result
                 if isinstance(result, (list, tuple)):
