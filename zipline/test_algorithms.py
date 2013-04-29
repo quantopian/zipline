@@ -76,7 +76,6 @@ import numpy as np
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
-import zipline.transforms.ta as ta
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -477,4 +476,3 @@ class TALIBAlgorithm(TradingAlgorithm):
                 else:
                     result = (np.nan,) * len(t.talib_fn.output_names)
             self.talib_results[t].append(result)
-

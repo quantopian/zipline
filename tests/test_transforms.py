@@ -33,7 +33,7 @@ from zipline.transforms import MovingStandardDev
 from zipline.transforms import Returns
 import zipline.utils.factory as factory
 
-from zipline.test_algorithms import BatchTransformAlgorithm, TALIBAlgorithm
+from zipline.test_algorithms import TALIBAlgorithm
 
 
 def to_dt(msg):
@@ -283,6 +283,7 @@ class TestFinanceTransforms(TestCase):
 
 import talib
 import zipline.transforms.ta as ta
+
 
 class TestTALIB(TestCase):
     def setUp(self):
