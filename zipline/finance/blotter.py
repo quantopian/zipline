@@ -100,6 +100,9 @@ class Blotter(object):
         return order.id
 
     def cancel(self, order_id):
+        if order_id not in self.orders:
+            return
+
         cur_order = self.orders[order_id]
         if cur_order.open:
             order_list = self.open_orders[cur_order.sid]

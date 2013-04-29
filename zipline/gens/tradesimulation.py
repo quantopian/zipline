@@ -16,8 +16,8 @@ import itertools
 from itertools import chain
 from logbook import Logger, Processor
 
+import zipline.finance.trading as trading
 from zipline.protocol import BarData, DATASOURCE_TYPE
-from zipline.finance.performance import PerformanceTracker
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -46,15 +46,6 @@ class AlgorithmSimulator(object):
         self.sim_params = sim_params
 
         # ==============
-        # Perf Tracker
-        # Setup
-        # ==============
-        self.perf_tracker = PerformanceTracker(self.sim_params)
-
-        self.perf_key = self.EMISSION_TO_PERF_KEY_MAP[
-            self.perf_tracker.emission_rate]
-
-        # ==============
         # Algo Setup
         # ==============
         self.algo = algo
@@ -62,6 +53,9 @@ class AlgorithmSimulator(object):
         self.algo_start = self.algo_start.replace(hour=0, minute=0,
                                                   second=0,
                                                   microsecond=0)
+
+        self.perf_key = self.EMISSION_TO_PERF_KEY_MAP[
+            self.algo.perf_tracker.emission_rate]
 
         # ==============
         # Snapshot Setup
@@ -92,6 +86,8 @@ class AlgorithmSimulator(object):
         """
         Main generator work loop.
         """
+        # Initialize the mkt_close
+        mkt_close = self.algo.perf_tracker.market_close
         # Set the simulation date to be the first event we see.
         peek_date, peek_snapshot = next(stream_in)
         self.simulation_dt = peek_date
@@ -104,11 +100,10 @@ class AlgorithmSimulator(object):
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
-
             updated = False
             bm_updated = False
             for date, snapshot in stream:
-                self.perf_tracker.set_date(date)
+                self.algo.perf_tracker.set_date(date)
                 self.algo.blotter.set_date(date)
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
@@ -118,7 +113,7 @@ class AlgorithmSimulator(object):
                         if event.type in (DATASOURCE_TYPE.TRADE,
                                           DATASOURCE_TYPE.CUSTOM):
                             self.update_universe(event)
-                        self.perf_tracker.process_event(event)
+                        self.algo.perf_tracker.process_event(event)
 
                 else:
 
@@ -131,10 +126,12 @@ class AlgorithmSimulator(object):
                             bm_updated = True
                         txns, orders = self.algo.blotter.process_trade(event)
                         for data in chain([event], txns, orders):
-                            self.perf_tracker.process_event(data)
+                            self.algo.perf_tracker.process_event(data)
 
                     # Update our portfolio.
-                    self.algo.set_portfolio(self.perf_tracker.get_portfolio())
+                    self.algo.set_portfolio(
+                        self.algo.perf_tracker.get_portfolio()
+                    )
 
                     # Send the current state of the universe
                     # to the user's algo.
@@ -147,7 +144,7 @@ class AlgorithmSimulator(object):
                         # the perf packet, so that the perf includes
                         # placed orders
                         for order in self.algo.blotter.new_orders:
-                            self.perf_tracker.process_event(order)
+                            self.algo.perf_tracker.process_event(order)
                         self.algo.blotter.new_orders = []
 
                     # The benchmark is our internal clock. When it
@@ -156,31 +153,43 @@ class AlgorithmSimulator(object):
                         bm_updated = False
                         yield self.get_message(date)
 
-            risk_message = self.perf_tracker.handle_simulation_end()
+                    # When emitting minutely, we re-iterate the day as a
+                    # packet with the entire days performance rolled up.
+                    if self.algo.perf_tracker.emission_rate == 'minute':
+                        if date == mkt_close:
+                            daily_rollup = self.algo.perf_tracker.to_dict(
+                                emission_type='daily'
+                            )
+                            daily_rollup['daily_perf']['recorded_vars'] = \
+                                self.algo.recorded_vars
+                            yield daily_rollup
+                            tp = self.algo.perf_tracker.todays_performance
+                            tp.rollover()
 
-            # When emitting minutely, it is still useful to have a final
-            # packet with the entire days performance rolled up.
-            if self.perf_tracker.emission_rate == 'minute':
-                daily_rollup = self.perf_tracker.to_dict(
-                    emission_type='daily'
-                )
-                daily_rollup['daily_perf']['recorded_vars'] = \
-                    self.algo.recorded_vars
-                yield daily_rollup
+                            if mkt_close < self.algo.perf_tracker.last_close:
+                                env = trading.environment
+                                _, mkt_close = \
+                                    env.next_open_and_close(
+                                        mkt_close
+                                    )
 
+            risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
+
+    def get_daily_message(self):
+        pass
 
     def get_message(self, date):
         rvars = self.algo.recorded_vars
-        if self.perf_tracker.emission_rate == 'daily':
+        if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
-                self.perf_tracker.handle_market_close()
+                self.algo.perf_tracker.handle_market_close()
             perf_message['daily_perf']['recorded_vars'] = rvars
             return perf_message
 
-        elif self.perf_tracker.emission_rate == 'minute':
-            self.perf_tracker.handle_minute_close(date)
-            perf_message = self.perf_tracker.to_dict()
+        elif self.algo.perf_tracker.emission_rate == 'minute':
+            self.algo.perf_tracker.handle_minute_close(date)
+            perf_message = self.algo.perf_tracker.to_dict()
             perf_message['intraday_perf']['recorded_vars'] = rvars
             return perf_message
 

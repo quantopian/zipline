@@ -481,10 +481,10 @@ class PerformancePeriod(object):
         self.ending_value = 0.0
         self.period_cash_flow = 0.0
         self.pnl = 0.0
-        #sid => position object
+        # sid => position object
         self.positions = positiondict()
         self.starting_value = 0.0
-        #cash balance at start of period
+        # cash balance at start of period
         self.starting_cash = starting_cash
         self.ending_cash = starting_cash
         self.keep_transactions = keep_transactions
