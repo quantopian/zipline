@@ -65,6 +65,7 @@ def make_transform(talib_fn):
                        'open':   kwargs.pop('open', 'open'),
                        'volume': kwargs.pop('volume', 'volume'),
                        'close':  kwargs.pop('close', 'price')}
+            self.call_kwargs = kwargs
 
             # Make deepcopy of talib abstract function.
             # This is necessary because talib abstract functions remember
