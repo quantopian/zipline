@@ -43,28 +43,35 @@ def make_transform(talib_fn):
 
         sid : zipline sid
 
-        refresh_period : int, default 0
-            The refresh_period of the BatchTransform determines the number
-            of iterations that pass before the BatchTransform updates its
-            internal data.
-
         open   : string, default 'open'
         high   : string, default 'high'
         low    : string, default 'low'
         close  : string, default 'price'
         volume : string, default 'volume'
 
+        refresh_period : int, default 0
+            The refresh_period of the BatchTransform determines the number
+            of iterations that pass before the BatchTransform updates its
+            internal data.
+
         **kwargs : any arguments to be passed to the TA-Lib function.
         """
-        def __init__(self, sid, **kwargs):
+        def __init__(self,
+                     sid,
+                     close='price',
+                     open='open',
+                     high='high',
+                     low='low',
+                     volume='volume',
+                     refresh_period=0,
+                     **kwargs):
 
-            # check for BatchTransform refresh_period
-            refresh_period = kwargs.pop('refresh_period', 0)
-            key_map = {'high':   kwargs.pop('high', 'high'),
-                       'low':    kwargs.pop('low', 'low'),
-                       'open':   kwargs.pop('open', 'open'),
-                       'volume': kwargs.pop('volume', 'volume'),
-                       'close':  kwargs.pop('close', 'price')}
+            key_map = {'high': high,
+                       'low': low,
+                       'open': open,
+                       'volume': volume,
+                       'close': close}
+
             self.call_kwargs = kwargs
 
             # Make deepcopy of talib abstract function.
