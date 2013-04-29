@@ -55,10 +55,6 @@ class InvalidWindowLength(Exception):
     pass
 
 
-class TransformMessage(object):
-    pass
-
-
 class Passthrough(object):
     PASSTHROUGH = True
     """
