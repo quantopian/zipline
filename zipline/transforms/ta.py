@@ -136,7 +136,7 @@ def make_transform(talib_fn):
     divider1 = '\n#---- Default mapping (TA-Lib : Zipline)\n\n'
     mappings = '\n'.join('        {0} : {1}'.format(k, v)
                          for k, v in talib_fn.input_names.items())
-    divider2 = '\n#---- Zipline docs\n'
+    divider2 = '\n\n#---- Zipline docs\n'
     help_str = (header + talib_docs + divider1 + mappings
                 + divider2 + TALibTransform.__doc__)
     TALibTransform.__doc__ = help_str
