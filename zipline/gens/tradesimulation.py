@@ -16,6 +16,7 @@ import itertools
 from itertools import chain
 from logbook import Logger, Processor
 
+import zipline.finance.trading as trading
 from zipline.protocol import BarData, DATASOURCE_TYPE
 from zipline.gens.utils import hash_args
 
@@ -85,6 +86,8 @@ class AlgorithmSimulator(object):
         """
         Main generator work loop.
         """
+        # Initialize the mkt_close
+        mkt_close = self.algo.perf_tracker.market_close
         # Set the simulation date to be the first event we see.
         peek_date, peek_snapshot = next(stream_in)
         self.simulation_dt = peek_date
@@ -151,18 +154,27 @@ class AlgorithmSimulator(object):
                         bm_updated = False
                         yield self.get_message(date)
 
+                    # When emitting minutely, we re-iterate the day as a
+                    # packet with the entire days performance rolled up.
+                    if self.algo.perf_tracker.emission_rate == 'minute':
+                        if date == mkt_close:
+                            daily_rollup = self.algo.perf_tracker.to_dict(
+                                emission_type='daily'
+                            )
+                            daily_rollup['daily_perf']['recorded_vars'] = \
+                                self.algo.recorded_vars
+                            yield daily_rollup
+                            tp = self.algo.perf_tracker.todays_performance
+                            tp.rollover()
+
+                            if mkt_close < self.algo.perf_tracker.last_close:
+                                env = trading.environment
+                                _, mkt_close = \
+                                    env.next_open_and_close(
+                                        mkt_close
+                                    )
+
             risk_message = self.algo.perf_tracker.handle_simulation_end()
-
-            # When emitting minutely, it is still useful to have a final
-            # packet with the entire days performance rolled up.
-            if self.algo.perf_tracker.emission_rate == 'minute':
-                daily_rollup = self.algo.perf_tracker.to_dict(
-                    emission_type='daily'
-                )
-                daily_rollup['daily_perf']['recorded_vars'] = \
-                    self.algo.recorded_vars
-                yield daily_rollup
-
             yield risk_message
 
     def get_message(self, date):
