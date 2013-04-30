@@ -29,6 +29,7 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     OverrideCommissionPostInit
 )
+from zipline.finance.performance import PerformanceTracker
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
 from zipline.transforms.utils import StatefulTransform
@@ -171,7 +172,7 @@ class TradingAlgorithm(object):
         skipped.
         """
         self.data_gen = self._create_data_generator(source_filter, sim_params)
-
+        self.perf_tracker = PerformanceTracker(sim_params)
         self.trading_client = AlgorithmSimulator(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
