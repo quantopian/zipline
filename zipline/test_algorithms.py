@@ -447,3 +447,32 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         self.portfolio = 3
+
+
+class TALIBAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that applies a TA-Lib transform. The transform object can be
+    passed at initialization with the 'talib' keyword argument. The results are
+    stored in the talib_results array.
+    """
+    def initialize(self, *args, **kwargs):
+
+        if 'talib' not in kwargs:
+            raise KeyError('No TA-LIB transform specified '
+                           '(use keyword \'talib\').')
+        elif not isinstance(kwargs['talib'], (list, tuple)):
+            self.talib_transforms = (kwargs['talib'],)
+        else:
+            self.talib_transforms = kwargs['talib']
+
+        self.talib_results = dict((t, []) for t in self.talib_transforms)
+
+    def handle_data(self, data):
+        for t in self.talib_transforms:
+            result = t.handle_data(data)
+            if result is None:
+                if len(t.talib_fn.output_names) == 1:
+                    result = np.nan
+                else:
+                    result = (np.nan,) * len(t.talib_fn.output_names)
+            self.talib_results[t].append(result)

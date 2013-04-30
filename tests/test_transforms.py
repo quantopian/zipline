@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pytz
 import numpy as np
 
@@ -28,6 +29,8 @@ from zipline.transforms import MovingAverage
 from zipline.transforms import MovingStandardDev
 from zipline.transforms import Returns
 import zipline.utils.factory as factory
+
+from zipline.test_algorithms import TALIBAlgorithm
 
 
 def to_dt(msg):
@@ -270,3 +273,81 @@ class TestFinanceTransforms(TestCase):
                 self.assertIsNone(v2)
                 continue
             self.assertEquals(round(v1, 5), round(v2, 5))
+
+
+############################################################
+# Test TALIB
+
+import talib
+import zipline.transforms.ta as ta
+
+
+class TestTALIB(TestCase):
+    def setUp(self):
+        setup_logger(self)
+        sim_params = factory.create_simulation_parameters(
+            start=datetime(1990, 1, 1, tzinfo=pytz.utc),
+            end=datetime(1990, 3, 30, tzinfo=pytz.utc))
+        self.source, self.panel = \
+            factory.create_test_panel_ohlc_source(sim_params)
+
+    def test_talib_with_default_params(self):
+        BLACKLIST = ['make_transform', 'BatchTransform']
+        names = [n for n in dir(ta) if n[0].isupper()
+                 and n not in BLACKLIST]
+
+        for name in names:
+            print name
+            zipline_transform = getattr(ta, name)(sid=0)
+            talib_fn = getattr(talib.abstract, name)
+
+            start = datetime(1990, 1, 1, tzinfo=pytz.utc)
+            end = start + timedelta(days=zipline_transform.lookback + 10)
+            sim_params = factory.create_simulation_parameters(
+                start=start, end=end)
+            source, panel = \
+                factory.create_test_panel_ohlc_source(sim_params)
+
+            algo = TALIBAlgorithm(talib=zipline_transform)
+            algo.run(source)
+
+            zipline_result = np.array(
+                algo.talib_results[zipline_transform][-1])
+
+            talib_data = dict()
+            data = zipline_transform.window
+            for key in ['open', 'high', 'low', 'volume']:
+                if key in data:
+                    talib_data[key] = data[key][0].values
+            talib_data['close'] = data['price'][0].values
+            expected_result = talib_fn(talib_data)
+
+            if isinstance(expected_result, list):
+                expected_result = np.array([e[-1] for e in expected_result])
+            else:
+                expected_result = np.array(expected_result[-1])
+            if not (np.all(np.isnan(zipline_result))
+                    and np.all(np.isnan(expected_result))):
+                self.assertTrue(np.allclose(zipline_result, expected_result))
+            else:
+                print '--- NAN'
+
+            # reset generator so next iteration has data
+            # self.source, self.panel = \
+                # factory.create_test_panel_ohlc_source(self.sim_params)
+
+    def test_multiple_talib_with_args(self):
+        zipline_transforms = [ta.MA(0, timeperiod=10), ta.MA(0, timeperiod=25)]
+        talib_fn = talib.abstract.MA
+        algo = TALIBAlgorithm(talib=zipline_transforms)
+        algo.run(self.source)
+        for t in zipline_transforms:
+            talib_result = np.array(algo.talib_results[t][-1])
+            talib_data = dict()
+            data = t.window
+            for key in ['open', 'high', 'low', 'volume']:
+                if key in data:
+                    talib_data[key] = data[key][0].values
+            talib_data['close'] = data['price'][0].values
+            expected_result = talib_fn(talib_data, **t.call_kwargs)[-1]
+            self.assertTrue(np.allclose(talib_result, expected_result))

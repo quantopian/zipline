@@ -2,6 +2,9 @@ language: python
 python:
   - "2.7"
 before_install:
+  - wget -O ta-lib-0.4.0-src.tar.gz http://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz/download
+  - tar xvzf ta-lib-0.4.0-src.tar.gz
+  - pushd ta-lib; ./configure; make; sudo make install; popd
   - sudo apt-get install gfortran
 install:
   - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | xargs pip install --use-mirrors
