@@ -100,7 +100,6 @@ class AlgorithmSimulator(object):
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
-
             updated = False
             bm_updated = False
             for date, snapshot in stream:
@@ -176,6 +175,9 @@ class AlgorithmSimulator(object):
 
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
+
+    def get_daily_message(self):
+        pass
 
     def get_message(self, date):
         rvars = self.algo.recorded_vars
