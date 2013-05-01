@@ -1,7 +1,7 @@
 from datetime import datetime
 import blist
 from zipline.utils.date_utils import EPOCH
-from itertools import izip
+from itertools import izip_longest
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
 
@@ -19,7 +19,7 @@ def teardown_logger(test):
 def check_list(test, a, b, label):
     test.assertTrue(isinstance(a, (list, blist.blist)))
     test.assertTrue(isinstance(b, (list, blist.blist)))
-    for i, (a_val, b_val) in enumerate(izip(a, b)):
+    for i, (a_val, b_val) in enumerate(izip_longest(a, b)):
         check(test, a_val, b_val, label + "[" + str(i) + "]")
 
 
