@@ -161,7 +161,8 @@ def make_transform(talib_fn):
     divider2 = '\n\n#---- Zipline docs\n'
     help_str = (header + talib_docs + divider1 + mappings
                 + divider2 + TALibTransform.__doc__)
-    TALibTransform.__doc__ = help_str
+    # TODO: Properly set a __doc__ string.
+    TALibTransform.help_str = help_str
 
     #return class
     return TALibTransform
