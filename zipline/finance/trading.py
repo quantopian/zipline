@@ -122,6 +122,10 @@ class TradingEnvironment(object):
             tzinfo=pytz.utc
         )
 
+    def utc_dt_in_exchange(self, dt):
+        delorean = Delorean(dt, pytz.utc.zone)
+        return delorean.shift(self.exchange_tz).datetime
+
     def exchange_dt_in_utc(self, dt):
         delorean = Delorean(dt, self.exchange_tz)
         return delorean.shift(pytz.utc.zone).datetime
