@@ -299,12 +299,9 @@ class PerformanceTracker(object):
 
     def handle_minute_close(self, dt):
         #update risk metrics for cumulative performance
-        algorithm_returns = pd.Series({dt: self.todays_performance.returns})
-        benchmark_returns = pd.Series({dt: self.all_benchmark_returns[dt]})
-
         self.cumulative_risk_metrics.update(dt,
-                                            algorithm_returns,
-                                            benchmark_returns)
+                                            self.todays_performance.returns,
+                                            self.all_benchmark_returns[dt])
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
@@ -320,15 +317,10 @@ class PerformanceTracker(object):
         self.returns.append(todays_return_obj)
 
         #update risk metrics for cumulative performance
-        algorithm_returns = pd.Series({todays_return_obj.date:
-                                       todays_return_obj.returns})
-        benchmark_returns = pd.Series({
-            todays_return_obj.date:
-            self.all_benchmark_returns[todays_return_obj.date]})
-
-        self.cumulative_risk_metrics.update(todays_return_obj.date,
-                                            algorithm_returns,
-                                            benchmark_returns)
+        self.cumulative_risk_metrics.update(
+            todays_return_obj.date,
+            todays_return_obj.returns,
+            self.all_benchmark_returns[todays_return_obj.date])
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
