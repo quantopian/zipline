@@ -1,10 +1,12 @@
 import sys
 import logbook
 import numpy as np
+from datetime import datetime
+import pytz
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
-from zipline.utils.factory import load_bars_from_yahoo
+from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
 zipline_logging = logbook.NestedSetup([
@@ -151,7 +153,11 @@ def simplex_projection(v, b=1):
 
 if __name__ == '__main__':
     import pylab as pl
-    data = load_bars_from_yahoo(stocks=STOCKS, indexes={})
+    start = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start,
+                           end=end)
+    data = data.dropna()
     olmar = OLMAR()
     results = olmar.run(data)
     results.portfolio_value.plot()

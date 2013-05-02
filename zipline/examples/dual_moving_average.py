@@ -20,6 +20,9 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 
+from datetime import datetime
+import pytz
+
 
 class DualMovingAverage(TradingAlgorithm):
     """Dual Moving Average Crossover algorithm.
@@ -30,7 +33,7 @@ class DualMovingAverage(TradingAlgorithm):
     momentum).
 
     """
-    def initialize(self, short_window=200, long_window=400):
+    def initialize(self, short_window=20, long_window=40):
         # Add 2 mavg transforms, one with a long window, one
         # with a short window.
         self.add_transform(MovingAverage, 'short_mavg', ['price'],
@@ -63,16 +66,20 @@ class DualMovingAverage(TradingAlgorithm):
                     sell=self.sell)
 
 if __name__ == '__main__':
-    data = load_from_yahoo(stocks=['AAPL'], indexes={})
+    start = datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(1991, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
+                           end=end)
+
     dma = DualMovingAverage()
     results = dma.run(data)
-    print results.short_mavg
+
     fig = plt.figure()
-    ax1 = fig.add_subplot(211)
+    ax1 = fig.add_subplot(211, ylabel='portfolio value')
     results.portfolio_value.plot(ax=ax1)
 
     ax2 = fig.add_subplot(212)
-    data['AAPL'].plot(ax=ax2)
+    data['AAPL'].plot(ax=ax2, color='r')
     results[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
     ax2.plot(results.ix[results.buy].index, results.short_mavg[results.buy],
