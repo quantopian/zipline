@@ -121,7 +121,8 @@ class StatefulTransform(object):
         # Normal object instantiation.
         else:
             self.state = tnfm_class(*args, **kwargs)
-
+        # save the window_length of the state for external access.
+        self.window_length = self.state.window_length
         # Create the string associated with this generator's output.
         self.namestring = tnfm_class.__name__ + hash_args(*args, **kwargs)
 
