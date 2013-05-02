@@ -12,3 +12,7 @@ pyflakes==0.6.1
 # Documentation Conversion
 
 pyandoc==0.0.1
+
+# Example scripts that are run during unit tests use the following:
+
+matplotlib==1.2.1

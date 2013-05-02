@@ -17,6 +17,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
+from datetime import datetime
+import pytz
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import batch_transform
@@ -29,7 +31,7 @@ def ols_transform(data, sid1, sid2):
     via Ordinary Least Squares between two SIDs.
     """
     p0 = data.price[sid1]
-    p1 = sm.add_constant(data.price[sid2])
+    p1 = sm.add_constant(data.price[sid2], prepend=True)
     slope, intercept = sm.OLS(p0, p1).fit().params
 
     return slope, intercept
@@ -53,7 +55,6 @@ class Pairtrade(TradingAlgorithm):
 
     def initialize(self, window_length=100):
         self.spreads = []
-        self.zscores = []
         self.invested = 0
         self.window_length = window_length
         self.ols_transform = ols_transform(refresh_period=self.window_length,
@@ -65,12 +66,12 @@ class Pairtrade(TradingAlgorithm):
         params = self.ols_transform.handle_data(data, 'PEP', 'KO')
         if params is None:
             return
-        slope, intercept = params
+        intercept, slope = params
 
         ######################################################
         # 2. Compute spread and zscore
         zscore = self.compute_zscore(data, slope, intercept)
-        self.zscores.append(zscore)
+        self.record(zscores=zscore)
 
         ######################################################
         # 3. Place orders
@@ -112,12 +113,14 @@ class Pairtrade(TradingAlgorithm):
         self.order('PEP', -1 * pep_amount)
 
 if __name__ == '__main__':
-    data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={})
+    start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},
+                           start=start, end=end)
 
     pairtrade = Pairtrade()
     results = pairtrade.run(data)
     data['spreads'] = np.nan
-    data.spreads[pairtrade.window_length:] = pairtrade.spreads
 
     ax1 = plt.subplot(211)
     data[['PEP', 'KO']].plot(ax=ax1)
@@ -125,7 +128,7 @@ if __name__ == '__main__':
     plt.setp(ax1.get_xticklabels(), visible=False)
 
     ax2 = plt.subplot(212, sharex=ax1)
-    data.spreads.plot(ax=ax2, color='r')
-    plt.ylabel('spread')
+    results.zscores.plot(ax=ax2, color='r')
+    plt.ylabel('zscored spread')
 
     plt.show()

@@ -1,12 +1,13 @@
 import sys
 import logbook
-import datetime
 import numpy as np
+from datetime import datetime
+import pytz
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage
-from zipline.utils.factory import load_bars_from_yahoo
-from zipline.finance import slippage, commission
+from zipline.utils.factory import load_from_yahoo
+from zipline.finance import commission
 
 zipline_logging = logbook.NestedSetup([
     logbook.NullHandler(level=logbook.DEBUG, bubble=True),
@@ -38,11 +39,6 @@ class OLMAR(TradingAlgorithm):
         self.add_transform(MovingAverage, 'mavg', ['price'],
                            window_length=window_length)
 
-        no_delay = datetime.timedelta(minutes=0)
-        slip = slippage.VolumeShareSlippage(volume_limit=0.25,
-                                            price_impact=0,
-                                            delay=no_delay)
-        self.set_slippage(slip)
         self.set_commission(commission.PerShare(cost=0))
 
     def handle_data(self, data):
@@ -157,7 +153,11 @@ def simplex_projection(v, b=1):
 
 if __name__ == '__main__':
     import pylab as pl
-    data = load_bars_from_yahoo(stocks=STOCKS, indexes={})
+    start = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start,
+                           end=end)
+    data = data.dropna()
     olmar = OLMAR()
     results = olmar.run(data)
     results.portfolio_value.plot()

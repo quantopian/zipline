@@ -15,6 +15,8 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
+from datetime import datetime
+import pytz
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.utils.factory import load_from_yahoo
@@ -29,8 +31,15 @@ class BuyApple(TradingAlgorithm):  # inherit from TradingAlgorithm
 
 
 if __name__ == '__main__':
-    data = load_from_yahoo(stocks=['AAPL'], indexes={})
+    start = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
+                           end=end)
     simple_algo = BuyApple()
     results = simple_algo.run(data)
-    results.portfolio_value.plot()
+
+    ax1 = plt.subplot(211)
+    results.portfolio_value.plot(ax=ax1)
+    ax2 = plt.subplot(212, sharex=ax1)
+    data.AAPL.plot(ax=ax2)
     plt.show()
