@@ -622,7 +622,9 @@ class PerformancePeriod(object):
 
     def update_last_sale(self, event):
         is_trade = event.type == zp.DATASOURCE_TYPE.TRADE
-        if event.sid in self.positions and is_trade:
+        has_price = not np.isnan(event.price)
+        # isnan check will keep the last price if its not present
+        if (event.sid in self.positions) and is_trade and has_price:
             self.positions[event.sid].last_sale_price = event.price
             index = self.index_for_position(event.sid)
             self._position_last_sale_prices[index] = event.price
