@@ -141,6 +141,7 @@ class ExceptionSource(object):
 class ExceptionTransform(object):
 
     def __init__(self):
+        self.window_length = 1
         pass
 
     def get_hash(self):
