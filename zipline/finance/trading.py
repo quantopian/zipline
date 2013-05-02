@@ -75,7 +75,8 @@ class TradingEnvironment(object):
         self,
         load=None,
         bm_symbol='^GSPC',
-        exchange_tz="US/Eastern"
+        exchange_tz="US/Eastern",
+        max_date=None
     ):
         self.prev_environment = self
         self.trading_day_map = OrderedDict()
@@ -94,6 +95,8 @@ class TradingEnvironment(object):
         self.exchange_tz = exchange_tz
 
         for bm in self.benchmark_returns:
+            if max_date and bm.date > max_date:
+                break
             self.trading_day_map[bm.date] = bm
 
         self.first_trading_day = next(self.trading_day_map.iterkeys())
