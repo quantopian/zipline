@@ -24,3 +24,5 @@ requests==1.2.0
 
 # For remaining sane when coping with dates
 delorean==0.2.0
+
+matplotlib==1.2.1
