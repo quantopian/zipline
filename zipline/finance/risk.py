@@ -284,37 +284,56 @@ that date doesn't exceed treasury history range."
 
 
 class RiskMetricsBase(object):
-    def __init__(self, start_date, end_date, returns):
+    def __init__(self, start_date, end_date, returns,
+                 benchmark_returns=None):
 
         treasury_curves = trading.environment.treasury_curves
-        mask = ((treasury_curves.index >= start_date) &
-                (treasury_curves.index <= end_date))
+        if treasury_curves.index[-1] >= start_date:
+            mask = ((treasury_curves.index >= start_date) &
+                    (treasury_curves.index <= end_date))
 
-        self.treasury_curves = treasury_curves[mask]
+            self.treasury_curves = treasury_curves[mask]
+        else:
+            # our test is beyond the treasury curve history
+            # so we'll use the last available treasury curve
+            self.treasury_curves = treasury_curves[-1:]
 
         self.start_date = start_date
         self.end_date = end_date
-        self.algorithm_period_returns, self.algorithm_returns = \
-            self.calculate_period_returns(returns)
 
-        benchmark_returns = [
-            x for x in trading.environment.benchmark_returns
-            if x.date >= returns[0].date and x.date <= returns[-1].date
-        ]
+        if not benchmark_returns:
+            benchmark_returns = [
+                x for x in trading.environment.benchmark_returns
+                if x.date >= returns[0].date and
+                x.date <= returns[-1].date
+            ]
 
-        self.benchmark_period_returns, self.benchmark_returns = \
-            self.calculate_period_returns(benchmark_returns)
+        self.runonce = True
+        self.algorithm_returns = self.mask_returns_to_period(returns)
+        self.benchmark_returns = self.mask_returns_to_period(benchmark_returns)
+        self.calculate_metrics()
 
-        if(len(self.benchmark_returns) != len(self.algorithm_returns)):
+    def calculate_metrics(self):
+
+        self.benchmark_period_returns = \
+            self.calculate_period_returns(self.benchmark_returns)
+
+        self.algorithm_period_returns = \
+            self.calculate_period_returns(self.algorithm_returns)
+
+        if not self.algorithm_returns.index.equals(
+            self.benchmark_returns.index
+        ):
             message = "Mismatch between benchmark_returns ({bm_count}) and \
             algorithm_returns ({algo_count}) in range {start} : {end}"
             message = message.format(
                 bm_count=len(self.benchmark_returns),
                 algo_count=len(self.algorithm_returns),
-                start=start_date,
-                end=end_date
+                start=self.start_date,
+                end=self.end_date
             )
             raise Exception(message)
+        self.runonce = False
 
         self.num_trading_days = len(self.benchmark_returns)
         self.benchmark_volatility = self.calculate_volatility(
@@ -399,7 +418,7 @@ class RiskMetricsBase(object):
 
         return '\n'.join(statements)
 
-    def calculate_period_returns(self, daily_returns):
+    def mask_returns_to_period(self, daily_returns):
         returns = pd.Series([x.returns for x in daily_returns],
                             index=[x.date for x in daily_returns])
 
@@ -410,9 +429,11 @@ class RiskMetricsBase(object):
                 (returns.index <= self.end_date) & trade_day_mask)
 
         returns = returns[mask]
-        period_returns = (1. + returns).prod() - 1
+        return returns
 
-        return period_returns, returns
+    def calculate_period_returns(self, returns):
+        period_returns = (1. + returns).prod() - 1
+        return period_returns
 
     def calculate_volatility(self, daily_returns):
         return np.std(daily_returns, ddof=1) * math.sqrt(self.num_trading_days)
@@ -536,21 +557,18 @@ class RiskMetricsIterative(RiskMetricsBase):
                 (all_trading_days <= self.end_date))
 
         self.trading_days = all_trading_days[mask]
+        if sim_params.period_end not in self.trading_days:
+            last_day = pd.tseries.index.DatetimeIndex(
+                [sim_params.period_end]
+            )
+            self.trading_days = self.trading_days.append(last_day)
 
         self.sim_params = sim_params
 
         if sim_params.emission_rate == 'daily':
-            self.algorithm_returns_cont = pd.Series(index=self.trading_days)
-            self.benchmark_returns_cont = pd.Series(index=self.trading_days)
-
+            self.initialize_daily_indices()
         elif sim_params.emission_rate == 'minute':
-
-            self.algorithm_returns_cont = pd.Series(index=pd.date_range(
-                sim_params.first_open, sim_params.last_close,
-                freq="Min"))
-            self.benchmark_returns_cont = pd.Series(index=pd.date_range(
-                sim_params.first_open, sim_params.last_close,
-                freq="Min"))
+            self.initialize_minute_indices(sim_params)
 
         self.algorithm_returns = None
         self.benchmark_returns = None
@@ -576,6 +594,19 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.excess_returns = []
+        self.daily_treasury = {}
+
+    def initialize_minute_indices(self, sim_params):
+        self.algorithm_returns_cont = pd.Series(index=pd.date_range(
+            sim_params.first_open, sim_params.last_close,
+            freq="Min"))
+        self.benchmark_returns_cont = pd.Series(index=pd.date_range(
+            sim_params.first_open, sim_params.last_close,
+            freq="Min"))
+
+    def initialize_daily_indices(self):
+        self.algorithm_returns_cont = pd.Series(index=self.trading_days)
+        self.benchmark_returns_cont = pd.Series(index=self.trading_days)
 
     @property
     def last_return_date(self):
@@ -597,7 +628,9 @@ class RiskMetricsIterative(RiskMetricsBase):
         self.benchmark_period_returns.append(
             self.calculate_period_returns(self.benchmark_returns))
 
-        if(len(self.benchmark_returns) != len(self.algorithm_returns)):
+        if not self.algorithm_returns.index.equals(
+            self.benchmark_returns.index
+        ):
             message = "Mismatch between benchmark_returns ({bm_count}) and \
 algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             message = message.format(
@@ -614,11 +647,22 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.calculate_volatility(self.benchmark_returns))
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
-        self.treasury_period_return = choose_treasury(
-            self.treasury_curves,
-            self.start_date,
-            self.algorithm_returns.index[-1]
-        )
+
+        # caching the treasury rates for the live case is a
+        # big speedup, because it avoids searching the treasury
+        # curves on every minute.
+        treasury_end = self.algorithm_returns.index[-1].replace(
+            hour=0, minute=0)
+        if treasury_end not in self.daily_treasury:
+            treasury_period_return = choose_treasury(
+                self.treasury_curves,
+                self.start_date,
+                self.algorithm_returns.index[-1]
+            )
+            self.daily_treasury[treasury_end] =\
+                treasury_period_return
+        self.treasury_period_return = \
+            self.daily_treasury[treasury_end]
         self.excess_returns.append(
             self.algorithm_period_returns[-1] - self.treasury_period_return)
         self.beta.append(self.calculate_beta()[0])
