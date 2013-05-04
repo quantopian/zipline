@@ -88,6 +88,8 @@ class TradingEnvironment(object):
             load(self.bm_symbol)
 
         self.treasury_curves = pd.Series(treasury_curves_map)
+        if max_date:
+            self.treasury_curves = self.treasury_curves[:max_date]
 
         self._period_trading_days = None
         self._trading_days_series = None
