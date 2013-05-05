@@ -40,12 +40,11 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     trade.sid = sid
     trade.dt = datetime
     trade.price = price
-    trade.close = price
-    trade.open = price
+    trade.close_price = price
+    trade.open_price = price
     trade.low = price * .95
     trade.high = price * 1.05
     trade.volume = amount
-    trade.TRANSACTION = None
 
     return trade
 
