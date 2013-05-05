@@ -129,6 +129,15 @@ class VolumeShareSlippage(object):
         self.volume_limit = volume_limit
         self.price_impact = price_impact
 
+    def __repr__(self):
+        return """
+{class_name}(
+    volume_limit={volume_limit},
+    price_impact={price_impact})
+""".strip().format(class_name=self.__class__.__name__,
+                   volume_limit=self.volume_limit,
+                   price_impact=self.price_impact)
+
     def simulate(self, event, current_orders):
 
         dt = event.dt

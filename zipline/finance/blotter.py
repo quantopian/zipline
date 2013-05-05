@@ -54,6 +54,21 @@ class Blotter(object):
         self.new_orders = []
         self.current_dt = None
 
+    def __repr__(self):
+        return """
+{class_name}(
+    transact_partial={transact_partial},
+    open_orders={open_orders},
+    orders={orders},
+    new_orders={new_orders},
+    current_dt={current_dt})
+""".strip().format(class_name=self.__class__.__name__,
+                   transact_partial=self.transact.args,
+                   open_orders=self.open_orders,
+                   orders=self.orders,
+                   new_orders=self.new_orders,
+                   current_dt=self.current_dt)
+
     def set_date(self, dt):
         self.current_dt = dt
 

@@ -125,6 +125,32 @@ class TradingAlgorithm(object):
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
+    def __repr__(self):
+        """
+        N.B. this does not yet represent a string that can be used
+        to instantiate an exact copy of an algorithm.
+
+        However, it is getting close, and provides some value as something
+        that can be inspected interactively.
+        """
+        return """
+{class_name}(
+    captial_base={capital_base}
+    sim_params={sim_params},
+    initialized={initialized},
+    slippage={slippage},
+    commission={commission},
+    blotter={blotter},
+    recorded_vars={recorded_vars})
+""".strip().format(class_name=self.__class__.__name__,
+                   capital_base=self.capital_base,
+                   sim_params=repr(self.sim_params),
+                   initialized=self.initialized,
+                   slippage=repr(self.slippage),
+                   commission=repr(self.commission),
+                   blotter=repr(self.blotter),
+                   recorded_vars=repr(self.recorded_vars))
+
     def _create_data_generator(self, source_filter, sim_params):
         """
         Create a merged data generator using the sources and

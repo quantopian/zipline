@@ -299,11 +299,21 @@ class SimulationParameters(object):
         return len(self.trading_days)
 
     def __repr__(self):
-        return "%s(%r)" % (
-            self.__class__.__name__,
-            {'first_open': self.first_open,
-             'last_close': self.last_close
-             })
+        return """
+{class_name}(
+    period_start={period_start},
+    period_end={period_end},
+    capital_base={capital_base},
+    emission_rate={emission_rate},
+    first_open={first_open},
+    last_close={last_close})\
+""".format(class_name=self.__class__.__name__,
+           period_start=self.period_start,
+           period_end=self.period_end,
+           capital_base=self.capital_base,
+           emission_rate=self.emission_rate,
+           first_open=self.first_open,
+           last_close=self.last_close)
 
 
 class use_environment(object):

@@ -28,6 +28,11 @@ class PerShare(object):
         """
         self.cost = float(cost)
 
+    def __repr__(self):
+        return "{class_name}(cost={cost})".format(
+            class_name=self.__class__.__name__,
+            cost=self.cost)
+
     def calculate(self, transaction):
         """
         returns a tuple of:
