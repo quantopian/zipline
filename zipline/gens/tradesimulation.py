@@ -54,9 +54,6 @@ class AlgorithmSimulator(object):
                                                   second=0,
                                                   microsecond=0)
 
-        self.perf_key = self.EMISSION_TO_PERF_KEY_MAP[
-            self.algo.perf_tracker.emission_rate]
-
         # ==============
         # Snapshot Setup
         # ==============
@@ -81,6 +78,11 @@ class AlgorithmSimulator(object):
             if not 'algo_dt' in record.extra:
                 record.extra['algo_dt'] = self.snapshot_dt
         self.processor = Processor(inject_algo_dt)
+
+    @property
+    def perf_key(self):
+        return self.EMISSION_TO_PERF_KEY_MAP[
+            self.algo.perf_tracker.emission_rate]
 
     def transform(self, stream_in):
         """
