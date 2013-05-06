@@ -128,7 +128,7 @@ class AlgorithmSimulator(object):
                         if event.type == DATASOURCE_TYPE.BENCHMARK:
                             bm_updated = True
                         txns, orders = self.algo.blotter.process_trade(event)
-                        for data in chain([event], txns, orders):
+                        for data in chain(txns, orders, [event]):
                             self.algo.perf_tracker.process_event(data)
 
                     # Update our portfolio.
