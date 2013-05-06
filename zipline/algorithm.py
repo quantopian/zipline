@@ -298,7 +298,9 @@ class TradingAlgorithm(object):
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary
-        perfs = list(self.gen)
+        perfs = []
+        for perf in self.gen:
+            perfs.append(perf)
 
         # convert perf dict to pandas dataframe
         daily_stats = self._create_daily_stats(perfs)
