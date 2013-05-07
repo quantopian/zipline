@@ -78,6 +78,15 @@ TREASURY_DURATIONS = [
 ]
 
 
+# check if a field in rval is nan, and replace it with
+# None.
+def check_entry(key, value):
+    if key != 'period_label':
+        return np.isnan(value) or np.isinf(value)
+    else:
+        return False
+
+
 ############################
 # Risk Metric Calculations #
 ############################
@@ -377,14 +386,6 @@ class RiskMetricsBase(object):
             'max_drawdown': self.max_drawdown,
             'period_label': period_label
         }
-
-        # check if a field in rval is nan, and replace it with
-        # None.
-        def check_entry(key, value):
-            if key != 'period_label':
-                return np.isnan(value)
-            else:
-                return False
 
         return {k: None if check_entry(k, v) else v
                 for k, v in rval.iteritems()}
@@ -695,14 +696,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         rval['sharpe'] = self.sharpe[-1]
         rval['sortino'] = self.sortino[-1]
         rval['information'] = self.information[-1]
-
-        # check if a field in rval is nan, and replace it with
-        # None.
-        def check_entry(key, value):
-            if key != 'period_label':
-                return np.isnan(value)
-            else:
-                return False
 
         return {k: None
                 if check_entry(k, v)
