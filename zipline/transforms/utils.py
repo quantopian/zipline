@@ -136,7 +136,7 @@ class StatefulTransform(object):
         # IMPORTANT: Messages may contain pointers that are shared with
         # other streams.  Transforms that modify their input
         # messages should only manipulate copies.
-        log.info('Running StatefulTransform [%s]' % self.get_hash())
+        log.debug('Running StatefulTransform [%s]' % self.get_hash())
         for message in stream_in:
             # we only handle TRADE events.
             if (hasattr(message, 'type')
@@ -157,7 +157,7 @@ class StatefulTransform(object):
             out_message[self.namestring] = tnfm_value
             yield out_message
 
-        log.info('Finished StatefulTransform [%s]' % self.get_hash())
+        log.debug('Finished StatefulTransform [%s]' % self.get_hash())
 
 
 class EventWindow(object):
