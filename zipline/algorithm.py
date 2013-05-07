@@ -98,6 +98,8 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
+        self.benchmark_return_source = None
+
         # default components for transact
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
@@ -161,15 +163,18 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-        benchmark_return_source = [
-            Event({'dt': ret.date,
-                   'returns': ret.returns,
-                   'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
-                   'source_id': 'benchmarks'})
-            for ret in trading.environment.benchmark_returns
-            if ret.date.date() >= sim_params.period_start.date()
-            and ret.date.date() <= sim_params.period_end.date()
-        ]
+        if self.benchmark_return_source is None:
+            benchmark_return_source = [
+                Event({'dt': ret.date,
+                       'returns': ret.returns,
+                       'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
+                       'source_id': 'benchmarks'})
+                for ret in trading.environment.benchmark_returns
+                if ret.date.date() >= sim_params.period_start.date()
+                and ret.date.date() <= sim_params.period_end.date()
+            ]
+        else:
+            benchmark_return_source = self.benchmark_return_source
 
         date_sorted = date_sorted_sources(*self.sources)
 
@@ -197,7 +202,8 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-        self.data_gen = self._create_data_generator(source_filter, sim_params)
+        self.data_gen = self._create_data_generator(source_filter,
+                                                    sim_params)
         self.perf_tracker = PerformanceTracker(sim_params)
         self.trading_client = AlgorithmSimulator(self, sim_params)
 
@@ -220,7 +226,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, sim_params=None):
+    def run(self, source, sim_params=None, benchmark_return_source=None):
         """Run the algorithm.
 
         :Arguments:
