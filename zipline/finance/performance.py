@@ -163,7 +163,6 @@ class PerformanceTracker(object):
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
         self.emission_rate = sim_params.emission_rate
-
         self.perf_periods = []
 
         if self.emission_rate == 'daily':
@@ -278,14 +277,9 @@ class PerformanceTracker(object):
                           'daily_perf':
                           self.todays_performance.to_dict()})
         if emission_type == 'minute':
-            # Currently reusing 'todays_performance' for intraday trading
-            # result, should be analogous, but has the potential for needing
-            # its own configuration down the line.
-            # Naming as intraday to make clear that these results are
-            # being updated per minute
             _dict['intraday_risk_metrics'] = \
                 self.intraday_risk_metrics.to_dict()
-            _dict['intraday_perf'] = self.todays_performance.to_dict(
+            _dict['minute_perf'] = self.todays_performance.to_dict(
                 self.saved_dt)
             _dict['cumulative_risk_metrics'] = \
                 self.cumulative_risk_metrics.to_dict()
@@ -327,9 +321,7 @@ class PerformanceTracker(object):
             perf_period.calculate_performance()
 
     def handle_minute_close(self, dt):
-
-        todays_date = self.market_close.replace(hour=0, minute=0, second=0,
-                                                microsecond=0)
+        todays_date = dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
         minute_returns = self.minute_performance.returns
         self.minute_performance.rollover()
@@ -340,22 +332,20 @@ class PerformanceTracker(object):
         self.intraday_risk_metrics.update(dt,
                                           algo_minute_returns,
                                           bench_minute_returns)
-        # the intraday risk metrics compound the minutely returns of the
-        # benchmark.
-        bench_since_open = self.intraday_risk_metrics.benchmark_returns[-1]
-        benchmark_returns = pd.Series({dt: bench_since_open})
+
+        bench_since_open = \
+            self.intraday_risk_metrics.benchmark_period_returns[-1]
+
+        benchmark_returns = pd.Series({todays_date: bench_since_open})
 
         # if we've reached market close, check on dividends
         if dt == self.market_close:
             for perf_period in self.perf_periods:
                 perf_period.update_dividends(todays_date)
 
-        algorithm_returns = pd.Series({dt: self.todays_performance.returns})
-
-        self.intraday_risk_metrics.update(dt,
-                                          algorithm_returns,
-                                          benchmark_returns)
-
+        algorithm_returns = pd.Series({
+            todays_date: self.todays_performance.returns
+        })
         self.cumulative_risk_metrics.update(todays_date,
                                             algorithm_returns,
                                             benchmark_returns)
@@ -368,6 +358,15 @@ class PerformanceTracker(object):
                 self.todays_performance.returns
             )
             self.returns.append(todays_return_obj)
+
+    def handle_intraday_close(self):
+        self.intraday_risk_metrics = \
+            risk.RiskMetricsIterative(self.sim_params)
+        # increment the day counter before we move markers forward.
+        self.day_count += 1.0
+        # move the market day markers forward
+        self.market_open, self.market_close = \
+            trading.environment.next_open_and_close(self.market_open)
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.

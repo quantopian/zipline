@@ -1098,21 +1098,21 @@ class TestPerformanceTracker(unittest.TestCase):
         msg_1 = messages[foo_event_1.dt]
         msg_2 = messages[foo_event_2.dt]
 
-        self.assertEquals(1, len(msg_1['intraday_perf']['transactions']),
+        self.assertEquals(1, len(msg_1['minute_perf']['transactions']),
                           "The first message should contain one transaction.")
         # Check that transactions aren't emitted for previous events.
-        self.assertEquals(0, len(msg_2['intraday_perf']['transactions']),
+        self.assertEquals(0, len(msg_2['minute_perf']['transactions']),
                           "The second message should have no transactions.")
 
-        self.assertEquals(1, len(msg_1['intraday_perf']['orders']),
+        self.assertEquals(1, len(msg_1['minute_perf']['orders']),
                           "The first message should contain one orders.")
         # Check that orders aren't emitted for previous events.
-        self.assertEquals(0, len(msg_2['intraday_perf']['orders']),
+        self.assertEquals(0, len(msg_2['minute_perf']['orders']),
                           "The second message should have no orders.")
 
         # Ensure that period_close moves through time.
         # Also, ensure that the period_closes are the expected dts.
         self.assertEquals(foo_event_1.dt,
-                          msg_1['intraday_perf']['period_close'])
+                          msg_1['minute_perf']['period_close'])
         self.assertEquals(foo_event_2.dt,
-                          msg_2['intraday_perf']['period_close'])
+                          msg_2['minute_perf']['period_close'])
