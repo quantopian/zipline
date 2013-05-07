@@ -26,7 +26,7 @@ log = Logger('Trade Simulation')
 class AlgorithmSimulator(object):
 
     EMISSION_TO_PERF_KEY_MAP = {
-        'minute': 'intraday_perf',
+        'minute': 'minute_perf',
         'daily': 'daily_perf'
     }
 
@@ -170,6 +170,7 @@ class AlgorithmSimulator(object):
                             tp.rollover()
                             if mkt_close < self.algo.perf_tracker.last_close:
                                 mkt_close = self.get_next_close(mkt_close)
+                                self.algo.perf_tracker.handle_intraday_close()
 
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
@@ -185,7 +186,7 @@ class AlgorithmSimulator(object):
         elif self.algo.perf_tracker.emission_rate == 'minute':
             self.algo.perf_tracker.handle_minute_close(date)
             perf_message = self.algo.perf_tracker.to_dict()
-            perf_message['intraday_perf']['recorded_vars'] = rvars
+            perf_message['minute_perf']['recorded_vars'] = rvars
             return perf_message
 
     def get_next_close(self, mkt_close):

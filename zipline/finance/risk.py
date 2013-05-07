@@ -649,7 +649,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
 
-        # caching the treasury rates for the live case is a
+        # caching the treasury rates for the minutely case is a
         # big speedup, because it avoids searching the treasury
         # curves on every minute.
         treasury_end = self.algorithm_returns.index[-1].replace(
@@ -693,16 +693,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'period_label': period_label
         }
 
-        if self.sim_params.emission_rate == 'daily':
-            # Some risk metrics only make sense in a context of daily
-            # risk calculations.
-            rval['sharpe'] = self.sharpe[-1]
-            rval['sortino'] = self.sortino[-1]
-            rval['information'] = self.information[-1]
-        elif self.sim_params.emission_rate == 'minute':
-            rval['sharpe'] = 0.0
-            rval['sortino'] = 0.0
-            rval['information'] = 0.0
+        rval['sharpe'] = self.sharpe[-1]
+        rval['sortino'] = self.sortino[-1]
+        rval['information'] = self.information[-1]
 
         return {k: None
                 if check_entry(k, v)
