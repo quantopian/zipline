@@ -649,7 +649,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.algorithm_volatility.append(
             self.calculate_volatility(self.algorithm_returns))
 
-        # caching the treasury rates for the live case is a
+        # caching the treasury rates for the minutely case is a
         # big speedup, because it avoids searching the treasury
         # curves on every minute.
         treasury_end = self.algorithm_returns.index[-1].replace(

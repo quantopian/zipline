@@ -278,14 +278,9 @@ class PerformanceTracker(object):
                           'daily_perf':
                           self.todays_performance.to_dict()})
         if emission_type == 'minute':
-            # Currently reusing 'todays_performance' for intraday trading
-            # result, should be analogous, but has the potential for needing
-            # its own configuration down the line.
-            # Naming as intraday to make clear that these results are
-            # being updated per minute
             _dict['intraday_risk_metrics'] = \
                 self.intraday_risk_metrics.to_dict()
-            _dict['intraday_perf'] = self.todays_performance.to_dict(
+            _dict['minute_perf'] = self.todays_performance.to_dict(
                 self.saved_dt)
             _dict['cumulative_risk_metrics'] = \
                 self.cumulative_risk_metrics.to_dict()
