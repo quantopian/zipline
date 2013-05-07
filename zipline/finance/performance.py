@@ -362,8 +362,11 @@ class PerformanceTracker(object):
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         # move the market day markers forward
-        self.market_open, self.market_close = \
-            trading.environment.next_open_and_close(self.market_open)
+        if self.market_close < trading.environment.last_trading_day:
+            _, self.market_close = \
+                trading.environment.next_open_and_close(self.market_open)
+        else:
+            self.market_close = self.sim_params.last_close
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
