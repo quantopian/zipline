@@ -270,20 +270,16 @@ class PerformanceTracker(object):
             'period_end': self.period_end,
             'capital_base': self.capital_base,
             'cumulative_perf': self.cumulative_performance.to_dict(),
-            'progress': self.progress
+            'progress': self.progress,
+            'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
         if emission_type == 'daily':
-            _dict.update({'cumulative_risk_metrics':
-                          self.cumulative_risk_metrics.to_dict(),
-                          'daily_perf':
-                          self.todays_performance.to_dict()})
-        if emission_type == 'minute':
-            _dict['intraday_risk_metrics'] = \
-                self.intraday_risk_metrics.to_dict()
-            _dict['minute_perf'] = self.todays_performance.to_dict(
-                self.saved_dt)
-            _dict['cumulative_risk_metrics'] = \
-                self.cumulative_risk_metrics.to_dict()
+            _dict.update({'daily_perf': self.todays_performance.to_dict()})
+        elif emission_type == 'minute':
+            _dict.update({
+                'intraday_risk_metrics': self.intraday_risk_metrics.to_dict(),
+                'minute_perf': self.todays_performance.to_dict(self.saved_dt)
+            })
 
         return _dict
 
