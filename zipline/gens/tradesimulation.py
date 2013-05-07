@@ -169,9 +169,10 @@ class AlgorithmSimulator(object):
                             yield daily_rollup
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
-                            self.algo.perf_tracker.handle_intraday_close()
+                            
                             if mkt_close < self.algo.perf_tracker.last_close:
                                 mkt_close = self.get_next_close(mkt_close)
+                                self.algo.perf_tracker.handle_intraday_close()
 
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
