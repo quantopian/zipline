@@ -311,7 +311,24 @@ class PerformanceTracker(object):
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
             pass
         elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-            self.all_benchmark_returns[event.dt] = event.returns
+            if (
+                self.sim_params.data_frequency == 'minute'
+                and
+                self.sim_params.emission_rate == 'daily'
+            ):
+                # Minute data benchmarks should have a timestamp of market
+                # close, so that calculations are triggered at the right time.
+                # However, risk module uses midnight as the 'day'
+                # marker for returns, so adjust back to midgnight.
+                midnight = event.dt.replace(
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    microsecond=0)
+            else:
+                midnight = event.dt
+
+            self.all_benchmark_returns[midnight] = event.returns
 
         #calculate performance as of last trade
         for perf_period in self.perf_periods:
