@@ -240,8 +240,8 @@ Last successful date: %s" % self.last_trading_day)
 class SimulationParameters(object):
     def __init__(self, period_start, period_end,
                  capital_base=10e3,
-                 emission_rate='daily'):
-
+                 emission_rate='daily',
+                 data_frequency='daily'):
         global environment
         if not environment:
             # This is the global environment for trading simulation.
@@ -252,6 +252,7 @@ class SimulationParameters(object):
         self.capital_base = capital_base
 
         self.emission_rate = emission_rate
+        self.data_frequency = data_frequency
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."
