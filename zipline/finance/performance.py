@@ -434,7 +434,12 @@ class PerformanceTracker(object):
         log.info("last close: {d}".format(
             d=self.sim_params.last_close))
 
-        self.risk_report = risk.RiskReport(self.returns, self.sim_params)
+        bms = self.cumulative_risk_metrics.benchmark_returns
+        ars = self.cumulative_risk_metrics.algorithm_returns
+        self.risk_report = risk.RiskReport(
+            ars,
+            self.sim_params,
+            benchmark_returns=bms)
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict

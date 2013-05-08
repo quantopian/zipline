@@ -310,7 +310,7 @@ class RiskMetricsBase(object):
         self.start_date = start_date
         self.end_date = end_date
 
-        if not benchmark_returns:
+        if benchmark_returns is None:
             benchmark_returns = [
                 x for x in trading.environment.benchmark_returns
                 if x.date >= returns[0].date and
@@ -420,8 +420,11 @@ class RiskMetricsBase(object):
         return '\n'.join(statements)
 
     def mask_returns_to_period(self, daily_returns):
-        returns = pd.Series([x.returns for x in daily_returns],
-                            index=[x.date for x in daily_returns])
+        if isinstance(daily_returns, list):
+            returns = pd.Series([x.returns for x in daily_returns],
+                                index=[x.date for x in daily_returns])
+        else:  # otherwise we're receiving an index already
+            returns = daily_returns
 
         trade_days = trading.environment.trading_days
         trade_day_mask = returns.index.normalize().isin(trade_days)
@@ -819,7 +822,7 @@ class RiskMetricsBatch(RiskMetricsBase):
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params):
+    def __init__(self, algorithm_returns, sim_params, benchmark_returns=None):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
@@ -827,14 +830,15 @@ class RiskReport(object):
 
         self.algorithm_returns = algorithm_returns
         self.sim_params = sim_params
+        self.benchmark_returns = benchmark_returns
         self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
             start_date = self.sim_params.period_start
             end_date = self.sim_params.period_end
         else:
-            start_date = self.algorithm_returns[0].date
-            end_date = self.algorithm_returns[-1].date
+            start_date = self.algorithm_returns.index[0]
+            end_date = self.algorithm_returns.index[-1]
 
         self.month_periods = self.periods_in_range(1, start_date, end_date)
         self.three_month_periods = self.periods_in_range(3, start_date,
@@ -885,7 +889,8 @@ class RiskReport(object):
             cur_period_metrics = RiskMetricsBatch(
                 start_date=cur_start,
                 end_date=cur_end,
-                returns=self.algorithm_returns
+                returns=self.algorithm_returns,
+                benchmark_returns=self.benchmark_returns
             )
 
             ends.append(cur_period_metrics)
