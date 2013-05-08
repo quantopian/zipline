@@ -615,10 +615,10 @@ class RiskMetricsIterative(RiskMetricsBase):
 
     def update(self, dt, algorithm_returns, benchmark_returns):
         self.algorithm_returns_cont[dt] = algorithm_returns
-        self.algorithm_returns = self.algorithm_returns_cont.valid()
+        self.algorithm_returns = self.algorithm_returns_cont[:dt]
 
         self.benchmark_returns_cont[dt] = benchmark_returns
-        self.benchmark_returns = self.benchmark_returns_cont.valid()
+        self.benchmark_returns = self.benchmark_returns_cont[:dt]
 
         self.num_trading_days = len(self.algorithm_returns)
 
