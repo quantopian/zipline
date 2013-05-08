@@ -78,9 +78,6 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
             )
             cur_returns.append(todays_return_obj)
 
-            # Move forward day counter to next trading day
-            todays_date = trading.environment.next_trading_day(todays_date)
-
             try:
                 risk_metrics_original = risk.RiskMetricsBatch(
                     start_date=start_date,
@@ -102,6 +99,9 @@ class RiskCompareIterativeToBatch(unittest.TestCase):
                 todays_date,
                 ret,
                 self.all_benchmark_returns[todays_return_obj.date])
+
+            # Move forward day counter to next trading day
+            todays_date = trading.environment.next_trading_day(todays_date)
 
             self.assertEqual(
                 risk_metrics_original.start_date,
