@@ -7,10 +7,9 @@ before_install:
   - pushd ta-lib; ./configure; make; sudo make install; popd
   - sudo apt-get install gfortran
 install:
-  - pip install scipy==0.12.0
-  - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | xargs pip install --use-mirrors
+  - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | grep -v scipy | grep -v matplotlib | grep -v statsmodels | grep -v patsy | xargs pip install --use-mirrors
   - etc/ordered_pip.sh etc/requirements.txt
 before_script:
   - "flake8 zipline tests"
 script:
-  - nosetests
+  - nosetests --exclude=^test_examples
