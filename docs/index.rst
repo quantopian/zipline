@@ -54,9 +54,7 @@ Contents
    installation.rst
    quickstart.rst
    contributing.rst
-   overview.rst
    modules.rst
-   extensions.rst
 
 Indices and tables
 ==================
