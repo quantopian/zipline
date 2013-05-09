@@ -98,6 +98,11 @@ def make_transform(talib_fn, name):
                        'volume': volume,
                        'close': close}
 
+            # Rename window_length to timeperiod to conform with
+            # external batch_transform interface.
+            if 'window_length' in kwargs:
+                kwargs['timeperiod'] = kwargs['window_length']
+
             self.call_kwargs = kwargs
 
             # Make deepcopy of talib abstract function.
@@ -157,7 +162,7 @@ def make_transform(talib_fn, name):
                 func=zipline_wrapper,
                 sids=sid,
                 refresh_period=refresh_period,
-                window_length=max(1, self.lookback))
+                window_length=max(1, self.lookback + 1))
 
         def __repr__(self):
             return 'Zipline BatchTransform: {0}'.format(

@@ -15,6 +15,7 @@
 
 import pytz
 import numpy as np
+import pandas as pd
 
 from datetime import timedelta, datetime
 from unittest import TestCase
@@ -343,10 +344,18 @@ class TestTALIB(TestCase):
                 # factory.create_test_panel_ohlc_source(self.sim_params)
 
     def test_multiple_talib_with_args(self):
-        zipline_transforms = [ta.MA(0, timeperiod=10), ta.MA(0, timeperiod=25)]
+        zipline_transforms = [ta.MA(0, window_length=10),
+                              ta.MA(0, window_length=25)]
         talib_fn = talib.abstract.MA
         algo = TALIBAlgorithm(talib=zipline_transforms)
         algo.run(self.source)
+        # Test if computed values match those computed by pandas rolling mean.
+        np.testing.assert_array_equal(np.array(algo.talib_results.values()[0]),
+                                      pd.rolling_mean(self.panel[0]['price'],
+                                                      10).values)
+        np.testing.assert_array_equal(np.array(algo.talib_results.values()[1]),
+                                      pd.rolling_mean(self.panel[0]['price'],
+                                                      25).values)
         for t in zipline_transforms:
             talib_result = np.array(algo.talib_results[t][-1])
             talib_data = dict()
