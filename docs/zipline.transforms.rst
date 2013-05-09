@@ -45,3 +45,11 @@
     :members:
     :undoc-members:
     :show-inheritance:
+
+:mod:`talib` Module
+-------------------------
+
+.. automodule:: zipline.transforms.ta
+    :members:
+    :undoc-members:
+    :show-inheritance:
