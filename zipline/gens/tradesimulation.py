@@ -126,6 +126,7 @@ class AlgorithmSimulator(object):
                             self.update_universe(event)
                             updated = True
                         if event.type == DATASOURCE_TYPE.BENCHMARK:
+                            self.algo.set_datetime(event.dt)
                             bm_updated = True
                         txns, orders = self.algo.blotter.process_trade(event)
                         for data in chain(txns, orders, [event]):
