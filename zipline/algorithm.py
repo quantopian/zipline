@@ -117,6 +117,8 @@ class TradingAlgorithm(object):
         self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
 
         self.sim_params = kwargs.pop('sim_params', None)
+        if self.sim_params:
+            self.sim_params.data_frequency = self.data_frequency
 
         self.blotter = kwargs.pop('blotter', Blotter())
 
@@ -202,6 +204,8 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        sim_params.data_frequency = self.data_frequency
+
         self.data_gen = self._create_data_generator(source_filter,
                                                     sim_params)
         self.perf_tracker = PerformanceTracker(sim_params)
