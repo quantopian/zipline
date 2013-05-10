@@ -120,7 +120,9 @@ class TradingAlgorithm(object):
         if self.sim_params:
             self.sim_params.data_frequency = self.data_frequency
 
-        self.blotter = kwargs.pop('blotter', Blotter())
+        self.blotter = kwargs.pop('blotter', None)
+        if not self.blotter:
+            self.blotter = Blotter()
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
