@@ -434,6 +434,27 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         )
 
 
+class BatchTransformAlgorithmMinute(TradingAlgorithm):
+    def initialize(self, *args, **kwargs):
+        self.refresh_period = kwargs.pop('refresh_period', 1)
+        self.window_length = kwargs.pop('window_length', 3)
+
+        self.args = args
+        self.kwargs = kwargs
+
+        self.history = []
+
+        self.batch_transform = return_price_batch_decorator(
+            refresh_period=self.refresh_period,
+            window_length=self.window_length,
+            clean_nans=False,
+            bars='minute'
+        )
+
+    def handle_data(self, data):
+        self.history.append(self.batch_transform.handle_data(data))
+
+
 class SetPortfolioAlgorithm(TradingAlgorithm):
     """
     An algorithm that tries to set the portfolio directly.

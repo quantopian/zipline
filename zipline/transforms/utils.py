@@ -315,7 +315,8 @@ class BatchTransform(object):
                  clean_nans=True,
                  sids=None,
                  fields=None,
-                 compute_only_full=True):
+                 compute_only_full=True,
+                 bars='daily'):
 
         """Instantiate new batch_transform object.
 
@@ -349,6 +350,15 @@ class BatchTransform(object):
 
         self.clean_nans = clean_nans
         self.compute_only_full = compute_only_full
+
+        # How many bars are in a day
+        self.bars = bars
+        if self.bars == 'daily':
+            self.bars_in_day = 1
+        elif self.bars == 'minute':
+            self.bars_in_day = int(6.5 * 60)
+        else:
+            raise ValueError('%s bars not understood.' % self.bars)
 
         # The following logic is to allow pre-specified sid filters
         # to operate on the data, but to also allow new symbols to
@@ -434,7 +444,8 @@ class BatchTransform(object):
 
         # Create rolling panel if not existant
         if self.rolling_panel is None:
-            self.rolling_panel = RollingPanel(self.window_length,
+            self.rolling_panel = RollingPanel(self.window_length *
+                                              self.bars_in_day,
                                               self.field_names, sids)
 
         # Store event in rolling frame
