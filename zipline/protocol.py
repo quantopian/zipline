@@ -144,6 +144,13 @@ class BarData(object):
         else:
             return name in self.__dict__
 
+    def has_key(self, name):
+        """
+        DEPRECATED: __contains__ is preferred, but this method is for
+        compatibility with existing algorithms.
+        """
+        return name in self
+
     def __setitem__(self, name, value):
         self._data[name] = value
 
