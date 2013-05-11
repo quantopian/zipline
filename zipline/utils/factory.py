@@ -288,7 +288,13 @@ def create_trade_source(sids, trade_count,
     return source
 
 
-def create_test_df_source(sim_params=None):
+def create_test_df_source(sim_params=None, bars='daily'):
+    if bars == 'daily':
+        freq = pd.datetools.BDay()
+    elif bars == 'minute':
+        freq = pd.datetools.Minute()
+    else:
+        raise ValueError('%s bars not understood.' % freq)
 
     if sim_params:
         index = sim_params.trading_days
@@ -298,9 +304,19 @@ def create_test_df_source(sim_params=None):
         index = pd.DatetimeIndex(
             start=start,
             end=end,
-            freq=pd.datetools.BDay()
+            freq=freq
         )
+        if bars == 'minute':
+            new_index = []
+            for i in index:
+                market_open = i.replace(hour=14,
+                                        minute=31)
+                market_close = i.replace(hour=21,
+                                         minute=0)
 
+                if i >= market_open and i <= market_close:
+                    new_index.append(i)
+            index = new_index
     x = np.arange(0, len(index))
 
     df = pd.DataFrame(x, index=index, columns=[0])

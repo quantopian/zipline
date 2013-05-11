@@ -28,6 +28,7 @@ from zipline.sources.data_source import DataSource
 import zipline.utils.factory as factory
 
 from zipline.test_algorithms import (BatchTransformAlgorithm,
+                                     BatchTransformAlgorithmMinute,
                                      batch_transform,
                                      ReturnPriceBatchTransform)
 
@@ -123,6 +124,28 @@ class TestChangeOfSids(TestCase):
 
             last_elem = len(df) - 1
             self.assertEqual(df[last_elem][last_elem], last_elem)
+
+
+class TestBatchTransformMinutely(TestCase):
+    def setUp(self):
+        start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
+        end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
+        self.sim_params = factory.create_simulation_parameters(
+            start=start,
+            end=end,
+        )
+        self.sim_params.emission_rate = 'daily'
+        self.sim_params.data_frequency = 'minute'
+        setup_logger(self)
+        self.source, self.df = \
+            factory.create_test_df_source(bars='minute')
+
+    def test_core(self):
+        algo = BatchTransformAlgorithmMinute(sim_params=self.sim_params)
+        algo.run(self.source)
+        wl = int(algo.window_length * 6.5 * 60)
+        for bt in algo.history[wl:]:
+            self.assertEqual(len(bt), wl)
 
 
 class TestBatchTransform(TestCase):
