@@ -71,7 +71,7 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, limit_price, stop_price):
+    def order(self, sid, amount, limit_price, stop_price, order_id=None):
 
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
@@ -102,7 +102,8 @@ class Blotter(object):
             'amount': int(amount),
             'filled': 0,
             'stop': stop_price,
-            'limit': limit_price
+            'limit': limit_price,
+            'id': order_id
         })
 
         # initialized filled field.
@@ -171,7 +172,8 @@ class Blotter(object):
 
 
 class Order(object):
-    def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0):
+    def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
+                 id=None):
         """
         @dt - datetime.datetime that the order was placed
         @sid - stock sid of the order
@@ -181,7 +183,7 @@ class Order(object):
         @filled - how many shares of the order have been filled so far
         """
         # get a string representation of the uuid.
-        self.id = self.make_id()
+        self.id = id or self.make_id()
         self.dt = dt
         self.created = dt
         self.sid = sid
