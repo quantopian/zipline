@@ -19,8 +19,7 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
-from zipline.protocol import DATASOURCE_TYPE
-from zipline.protocol import Order as zpOrder
+import zipline.protocol as zp
 
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -133,7 +132,7 @@ class Blotter(object):
             self.new_orders.append(cur_order)
 
     def process_trade(self, trade_event):
-        if trade_event.type != DATASOURCE_TYPE.TRADE:
+        if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
             return [], []
 
         if zp_math.tolerant_equals(trade_event.volume, 0):
@@ -194,7 +193,7 @@ class Order(object):
         self.stop_reached = False
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
-        self.type = DATASOURCE_TYPE.ORDER
+        self.type = zp.DATASOURCE_TYPE.ORDER
 
     def make_id(self):
         return uuid.uuid4().get_hex()
@@ -207,7 +206,7 @@ class Order(object):
 
     def to_api_obj(self):
         pydict = self.to_dict()
-        obj = zpOrder(initial_values=pydict)
+        obj = zp.Order(initial_values=pydict)
         return obj
 
     def check_triggers(self, event):
