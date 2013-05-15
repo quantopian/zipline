@@ -15,6 +15,7 @@
 
 from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import TransformMeta
+from zipline.protocol import DATASOURCE_TYPE
 from collections import defaultdict, deque
 
 
@@ -34,7 +35,13 @@ class Returns(object):
         Update and return the calculated returns for this event's sid.
         """
         tracker = self.mapping[event.sid]
-        tracker.update(event)
+        # only update the value for proper event types.
+        if (hasattr(event, 'type')
+                and event.type in (
+                    DATASOURCE_TYPE.TRADE,
+                    DATASOURCE_TYPE.CUSTOM)):
+
+            tracker.update(event)
 
         return tracker.returns
 
