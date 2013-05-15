@@ -144,6 +144,7 @@ class StatefulTransform(object):
                         DATASOURCE_TYPE.TRADE,
                         DATASOURCE_TYPE.CUSTOM)):
                 yield message
+                continue
             # allow upstream generators to yield None to avoid
             # blocking.
             if message is None:
