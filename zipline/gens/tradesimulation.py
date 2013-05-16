@@ -106,6 +106,7 @@ class AlgorithmSimulator(object):
             updated = False
             bm_updated = False
             for date, snapshot in stream:
+
                 self.algo.perf_tracker.set_date(date)
                 self.algo.blotter.set_date(date)
                 # If we're still in the warmup period.  Use the event to
@@ -169,6 +170,7 @@ class AlgorithmSimulator(object):
                             yield daily_rollup
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
+                            
                             if mkt_close < self.algo.perf_tracker.last_close:
                                 mkt_close = self.get_next_close(mkt_close)
                                 self.algo.perf_tracker.handle_intraday_close()

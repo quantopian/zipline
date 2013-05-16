@@ -163,7 +163,6 @@ class PerformanceTracker(object):
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
         self.emission_rate = sim_params.emission_rate
-
         self.perf_periods = []
 
         if self.emission_rate == 'daily':
