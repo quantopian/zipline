@@ -396,7 +396,7 @@ class RiskMetricsBase(object):
             "algorithm_period_returns",
             "benchmark_period_returns",
             "excess_return",
-            "trading_days",
+            "num_trading_days",
             "benchmark_volatility",
             "algorithm_volatility",
             "sharpe",
