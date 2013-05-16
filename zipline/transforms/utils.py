@@ -456,9 +456,14 @@ class BatchTransform(object):
                                                   columns=sids))
 
         # update trading day counters
-        if self.last_dt.day != event.dt.day:
-            self.last_dt = event.dt
+        _, mkt_close = trading.environment.get_open_and_close(event.dt)
+        if self.bars == 'daily':
+            # Daily bars have their dt set to midnight.
+            mkt_close = mkt_close.replace(hour=0, minute=0, second=0)
+        if event.dt >= mkt_close:
             self.trading_days_total += 1
+
+        self.last_dt = event.dt
 
         if self.trading_days_total >= self.window_length:
             self.full = True

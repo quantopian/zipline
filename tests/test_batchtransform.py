@@ -147,6 +147,16 @@ class TestBatchTransformMinutely(TestCase):
         for bt in algo.history[wl:]:
             self.assertEqual(len(bt), wl)
 
+    def test_window_length(self):
+        algo = BatchTransformAlgorithmMinute(sim_params=self.sim_params,
+                                             window_length=1, refresh_period=0)
+        algo.run(self.source)
+        wl = int(algo.window_length * 6.5 * 60)
+        np.testing.assert_array_equal(algo.history[:(wl - 1)],
+                                      [None] * (wl - 1))
+        for bt in algo.history[wl:]:
+            self.assertEqual(len(bt), wl)
+
 
 class TestBatchTransform(TestCase):
     def setUp(self):
