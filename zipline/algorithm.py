@@ -114,7 +114,7 @@ class TradingAlgorithm(object):
             self.annualizer = kwargs['annualizer']
 
         # set the capital base
-        self.capital_base = kwargs.get('capital_base', DEFAULT_CAPITAL_BASE)
+        self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
 
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params:
