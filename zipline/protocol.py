@@ -140,7 +140,10 @@ class BarData(object):
 
     def __contains__(self, name):
         if self._contains_override:
-            return self._contains_override(name)
+            if self._contains_override(name):
+                return name in self._data
+            else:
+                return False
         else:
             return name in self._data
 
