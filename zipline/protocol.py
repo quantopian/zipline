@@ -142,7 +142,7 @@ class BarData(object):
         if self._contains_override:
             return self._contains_override(name)
         else:
-            return name in self.__dict__
+            return name in self._data
 
     def has_key(self, name):
         """
