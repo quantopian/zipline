@@ -232,6 +232,32 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         pass
 
+###########################################
+# Algorithm using simple custom slippage
+from zipline.finance.slippage import CustomSlippage, create_transaction
+
+
+class CustomSlippageAlgorithm(TradingAlgorithm):
+    def initialize(self, *args, **kwargs):
+        self.set_slippage(CustomSlippage(self.simulate))
+        self.cur_id = 0
+
+    def handle_data(self, data):
+        self.order(133, 100)
+
+    def simulate(self, event, orders):
+        txns = []
+        for order in orders:
+            txn = create_transaction(
+                1,
+                100,
+                1.01,
+                event.dt,
+                order.id)
+            txns.append(txn)
+
+        return txns
+
 
 ##########################################
 # Algorithm using simple batch transforms
