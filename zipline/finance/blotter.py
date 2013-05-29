@@ -86,6 +86,9 @@ class Blotter(object):
         StopLimit order: order(sid, amount, limit_price, stop_price)
         """
 
+        # Fractional shares are not supported.
+        amount = int(amount)
+
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
         if amount == 0:
@@ -99,7 +102,7 @@ class Blotter(object):
         order = Order(**{
             'dt': self.current_dt,
             'sid': sid,
-            'amount': int(amount),
+            'amount': amount,
             'filled': 0,
             'stop': stop_price,
             'limit': limit_price,
