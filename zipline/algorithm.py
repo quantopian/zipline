@@ -56,7 +56,8 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
 class TradingAlgorithm(object):
-    """Base class for trading algorithms. Inherit and overload
+    """
+    Base class for trading algorithms. Inherit and overload
     initialize() and handle_data(data).
 
     A new algorithm could look like this:
@@ -71,8 +72,8 @@ class TradingAlgorithm(object):
     ```
     To then to run this algorithm:
 
-    >>> my_algo = MyAlgo([0], 100) # first argument has to be list of sids
-    >>> stats = my_algo.run(data)
+    my_algo = MyAlgo([0], 100) # first argument has to be list of sids
+    stats = my_algo.run(data)
 
     """
     def __init__(self, *args, **kwargs):
