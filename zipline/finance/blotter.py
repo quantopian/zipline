@@ -52,6 +52,7 @@ class Blotter(object):
         # event.
         self.new_orders = []
         self.current_dt = None
+        self.max_shares = int(1e+11)
 
     def __repr__(self):
         return """
@@ -98,6 +99,11 @@ class Blotter(object):
             log.debug(zero_message)
             # Don't bother placing orders for 0 shares.
             return
+        elif amount > self.max_shares:
+            # Arbitrary limit of 100 billion (US) shares will never be
+            # exceeded except by a buggy algorithm.
+            raise OverflowError('Can\'t order more than %d shares' %
+                                self.max_shares)
 
         order = Order(**{
             'dt': self.current_dt,
