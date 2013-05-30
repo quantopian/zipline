@@ -1,6 +1,6 @@
 # Testing
 nose==1.3.0
-nose-parameterized==0.2
+nose-parameterized==0.3
 nose-ignore-docstring==0.1
 
 # Linting
@@ -8,7 +8,8 @@ nose-ignore-docstring==0.1
 flake8==2.0
 mccabe==0.2.1
 pep8==1.4.5
-pyflakes==0.6.1
+pyflakes==0.7.2
+pip-tools==0.3.4
 
 # Documentation Conversion
 
