@@ -150,6 +150,19 @@ Development Environment
 The following guide assumes your system has [virtualenvwrapper](https://bitbucket.org/dhellmann/virtualenvwrapper)
 and [pip](http://www.pip-installer.org/en/latest/) already installed.
 
+You'll need to install some C library dependencies:
+
+```
+sudo apt-get install libopenblas-dev liblapack-dev gfortran
+
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+tar -xvzf ta-lib-0.4.0-src.tar.gz
+cd ta-lib/
+./configure --prefix=/usr
+make
+sudo make install
+```
+
 Suggested installation of Python library dependencies used for development:
 
 ```
@@ -178,6 +191,16 @@ Source
 
 The source for Zipline is hosted at
 <https://github.com/quantopian/zipline>.
+
+Documentation
+------------
+
+You can compile the documentation using Sphinx:
+
+```
+sudo apt-get install python-sphinx
+make html
+```
 
 Build Status
 ============
