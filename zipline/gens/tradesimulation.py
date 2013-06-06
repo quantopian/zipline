@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 from itertools import chain
 from logbook import Logger, Processor
 
@@ -66,7 +65,6 @@ class AlgorithmSimulator(object):
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
-        self.snapshot_dt = None
 
         # =============
         # Logging Setup
@@ -76,7 +74,7 @@ class AlgorithmSimulator(object):
         # user prints/logs.
         def inject_algo_dt(record):
             if not 'algo_dt' in record.extra:
-                record.extra['algo_dt'] = self.snapshot_dt
+                record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
     @property
@@ -90,14 +88,6 @@ class AlgorithmSimulator(object):
         """
         # Initialize the mkt_close
         mkt_close = self.algo.perf_tracker.market_close
-        # Set the simulation date to be the first event we see.
-        peek_date, peek_snapshot = next(stream_in)
-        self.simulation_dt = peek_date
-
-        # Stitch back together the generator by placing the peeked
-        # event back in front
-        stream = itertools.chain([(peek_date, peek_snapshot)],
-                                 stream_in)
 
         # inject the current algo
         # snapshot time to any log record generated.
@@ -105,7 +95,9 @@ class AlgorithmSimulator(object):
 
             updated = False
             bm_updated = False
-            for date, snapshot in stream:
+            for date, snapshot in stream_in:
+                self.algo.set_datetime(date)
+                self.simulation_dt = date
                 self.algo.perf_tracker.set_date(date)
                 self.algo.blotter.set_date(date)
                 # If we're still in the warmup period.  Use the event to
@@ -140,7 +132,7 @@ class AlgorithmSimulator(object):
                     # Send the current state of the universe
                     # to the user's algo.
                     if updated:
-                        self.simulate_snapshot(date)
+                        self.algo.handle_data(self.current_data)
                         updated = False
 
                         # run orders placed in the algorithm call
@@ -203,16 +195,3 @@ class AlgorithmSimulator(object):
         # Update our knowledge of this event's sid
         sid_data = self.current_data[event.sid]
         sid_data.__dict__.update(event.__dict__)
-
-    def simulate_snapshot(self, date):
-        """
-        Run the user's algo against our current snapshot and update
-        the algo's simulated time.
-        """
-        # Needs to be set so that we inject the proper date into algo
-        # log/print lines.
-        self.snapshot_dt = date
-        self.algo.set_datetime(self.snapshot_dt)
-        # Update the simulation time.
-        self.simulation_dt = date
-        self.algo.handle_data(self.current_data)
