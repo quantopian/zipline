@@ -20,8 +20,6 @@ from functools import partial
 from zipline.protocol import DATASOURCE_TYPE
 import zipline.utils.math_utils as zp_math
 
-from logbook import Processor
-
 
 def check_order_triggers(order, event):
     """
@@ -61,25 +59,19 @@ def transact_stub(slippage, commission, event, open_orders):
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-    def inject_algo_dt(record):
-        if not 'algo_dt' in record.extra:
-            record.extra['algo_dt'] = event['dt']
+    transactions = slippage.simulate(event, open_orders)
 
-    with Processor(inject_algo_dt).threadbound():
-
-        transactions = slippage.simulate(event, open_orders)
-
-        for transaction in transactions:
-            if (
-                transaction
-                and not
-                zp_math.tolerant_equals(transaction.amount, 0)
-            ):
-                direction = math.copysign(1, transaction.amount)
-                per_share, total_commission = commission.calculate(transaction)
-                transaction.price = transaction.price + (per_share * direction)
-                transaction.commission = total_commission
-        return transactions
+    for transaction in transactions:
+        if (
+            transaction
+            and not
+            zp_math.tolerant_equals(transaction.amount, 0)
+        ):
+            direction = math.copysign(1, transaction.amount)
+            per_share, total_commission = commission.calculate(transaction)
+            transaction.price = transaction.price + (per_share * direction)
+            transaction.commission = total_commission
+    return transactions
 
 
 def transact_partial(slippage, commission):
