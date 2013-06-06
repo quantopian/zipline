@@ -64,8 +64,14 @@ class RollingPanel(object):
 
         new_buffer = self._create_buffer()
         # Copy old values we want to keep
+        # .update() is pretty slow. Ideally we would be using
+        # new_buffer.loc[non_nan_items, :, non_nan_cols] =
+        # but this triggers a bug in Pandas 0.11. Update
+        # this when 0.12 is released.
+        # https://github.com/pydata/pandas/issues/3777
         new_buffer.update(
             self.buffer.loc[non_nan_items, :, non_nan_cols])
+
         self.buffer = new_buffer
 
     def add_frame(self, tick, frame):
