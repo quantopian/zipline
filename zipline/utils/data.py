@@ -78,7 +78,8 @@ class RollingPanel(object):
            (set(frame.index) != set(self.items)):
             self._update_buffer(frame)
 
-        self.buffer.values[:, self.pos, :] = frame.ix[self.items].values
+        self.buffer.loc[:, self.pos, :] = frame.ix[self.items]
+
         self.index_buf[self.pos] = tick
 
         self.pos += 1
