@@ -79,7 +79,8 @@ class RollingPanel(object):
            set(frame.index).difference(set(self.items)):
             self._update_buffer(frame)
 
-        self.buffer.values[:, self.pos, :] = frame.ix[self.items].values
+        self.buffer.loc[:, self.pos, :] = frame.ix[self.items].T
+
         self.index_buf[self.pos] = tick
 
         self.pos += 1
