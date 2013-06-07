@@ -131,4 +131,4 @@ if __name__ == '__main__':
     results.zscores.plot(ax=ax2, color='r')
     plt.ylabel('zscored spread')
 
-    plt.show()
+    plt.gcf().set_size_inches(18, 8)

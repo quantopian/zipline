@@ -42,4 +42,4 @@ if __name__ == '__main__':
     results.portfolio_value.plot(ax=ax1)
     ax2 = plt.subplot(212, sharex=ax1)
     data.AAPL.plot(ax=ax2)
-    plt.show()
+    plt.gcf().set_size_inches(18, 8)
