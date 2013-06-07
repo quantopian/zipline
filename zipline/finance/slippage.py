@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import abc
+
 import pytz
 import math
 
@@ -59,7 +61,7 @@ def transact_stub(slippage, commission, event, open_orders):
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-    transactions = slippage.simulate(event, open_orders)
+    transactions = slippage(event, open_orders)
 
     for transaction in transactions:
         if (
@@ -112,7 +114,19 @@ def create_transaction(sid, amount, price, dt, order_id):
     return transaction
 
 
-class VolumeShareSlippage(object):
+class SlippageModel(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def simulate(self, event, current_orders, **kwargs):
+        pass
+
+    def __call__(self, event, current_orders, **kwargs):
+        return self.simulate(event, current_orders, **kwargs)
+
+
+class VolumeShareSlippage(SlippageModel):
 
     def __init__(self,
                  volume_limit=.25,
@@ -190,7 +204,7 @@ class VolumeShareSlippage(object):
         return txns
 
 
-class FixedSlippage(object):
+class FixedSlippage(SlippageModel):
 
     def __init__(self, spread=0.0):
         """
