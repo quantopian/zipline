@@ -15,8 +15,10 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from zipline.algorithm import TradingAlgorithm
+import zipline.finance.trading as trading
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 
@@ -74,9 +76,23 @@ if __name__ == '__main__':
     dma = DualMovingAverage()
     results = dma.run(data)
 
+    bm_returns = np.empty(len(results.index))
+    i = 0
+    for bm in trading.environment.benchmark_returns:
+        if bm.date < start:
+            continue
+        if bm.date > end:
+            break
+        if i == 0:
+            bm_returns[i] = results['portfolio_value'][0]
+        else:
+            bm_returns[i] = bm_returns[i-1] * (1 + bm.returns)
+        i = i + 1
+    results['benchmark_value'] = bm_returns
+
     fig = plt.figure()
     ax1 = fig.add_subplot(211, ylabel='portfolio value')
-    results.portfolio_value.plot(ax=ax1)
+    results[['portfolio_value', 'benchmark_value']].plot(ax=ax1)
 
     ax2 = fig.add_subplot(212)
     data['AAPL'].plot(ax=ax2, color='r')
