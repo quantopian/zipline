@@ -15,8 +15,10 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from zipline.algorithm import TradingAlgorithm
+import zipline.finance.trading as trading
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 
@@ -52,11 +54,11 @@ class DualMovingAverage(TradingAlgorithm):
         self.sell = False
 
         if self.short_mavg > self.long_mavg and not self.invested:
-            self.order('AAPL', 100)
+            self.order('AAPL', 5000)
             self.invested = True
             self.buy = True
         elif self.short_mavg < self.long_mavg and self.invested:
-            self.order('AAPL', -100)
+            self.order('AAPL', -5000)
             self.invested = False
             self.sell = True
 
@@ -74,9 +76,15 @@ if __name__ == '__main__':
     dma = DualMovingAverage()
     results = dma.run(data)
 
+    index = [br.date for br in trading.environment.benchmark_returns]
+    rets = [br.returns for br in trading.environment.benchmark_returns]
+    bm_returns = pd.Series(rets, index=index).ix[start:end]
+    results['benchmark_returns'] = (1 + bm_returns).cumprod().values
+    results['algorithm_returns'] = (1 + results.returns).cumprod()
     fig = plt.figure()
-    ax1 = fig.add_subplot(211, ylabel='portfolio value')
-    results.portfolio_value.plot(ax=ax1)
+    ax1 = fig.add_subplot(211, ylabel='cumulative returns')
+
+    results[['algorithm_returns', 'benchmark_returns']].plot(ax=ax1, sharex=True)
 
     ax2 = fig.add_subplot(212)
     data['AAPL'].plot(ax=ax2, color='r')
