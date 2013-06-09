@@ -241,3 +241,13 @@ class FixedSlippage(SlippageModel):
             order.dt = event.dt
             txns.append(txn)
         return txns
+
+
+class CustomSlippage(object):
+
+    def __init__(self, func, **kwargs):
+        self.__dict__.update(kwargs)
+        self.simulate_func = func
+
+    def simulate(self, event, orders):
+        return self.simulate_func(event, orders)

@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
+import pytz
 
 from unittest import TestCase
 from datetime import timedelta
@@ -20,12 +22,54 @@ import numpy as np
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
 from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
-                                     RecordAlgorithm)
+                                     RecordAlgorithm,
+                                     CustomSlippageAlgorithm)
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.transforms import MovingAverage
 from zipline.finance.trading import SimulationParameters
+
+
+class TestCustomSlippageAlgorithm(TestCase):
+    def setUp(self):
+        self.sim_params = factory.create_simulation_parameters(num_days=4)
+        trade_history = factory.create_trade_history(
+            133,
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
+            self.sim_params
+        )
+
+        self.source = SpecificEquityTrades(event_list=trade_history)
+        self.df_source, self.df = \
+            factory.create_test_df_source(self.sim_params)
+
+    def test_custom_slippage(self):
+        algo = CustomSlippageAlgorithm(
+            sim_params=self.sim_params,
+            data_frequency='daily')
+        output = algo.run(self.source)
+        txns = output['transactions']
+        orders = output['orders']
+        self.assertEqual(len(txns), 4)
+        self.assertEqual(len(orders), 4)
+
+        # first bar should produce no transactions
+        self.assertEqual([], txns[0])
+        # second bar should have a single txn, with order id
+        # of the first order.
+        expected_transaction = {
+            'commission': 3.0,
+            'amount': 100,
+            'sid': 1,
+            'order_id': orders[0][0]['id'],
+            'price': 1.04,
+            'dt': datetime.datetime(2006, 1, 4, 0, 0, tzinfo=pytz.utc)
+        }
+        actual_transaction = txns[1][0]
+        self.assertEqual(expected_transaction, actual_transaction)
 
 
 class TestRecordAlgorithm(TestCase):
