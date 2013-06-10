@@ -35,7 +35,7 @@ from zipline.utils.factory import create_simulation_parameters
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
-    FixedSlippage,
+    SlippageModel,
     transact_partial
 )
 from zipline.finance.commission import PerShare, PerTrade
@@ -403,7 +403,7 @@ class TradingAlgorithm(object):
         self.blotter.transact = transact
 
     def set_slippage(self, slippage):
-        if not isinstance(slippage, (VolumeShareSlippage, FixedSlippage)):
+        if not isinstance(slippage, SlippageModel):
             raise UnsupportedSlippageModel()
         if self.initialized:
             raise OverrideSlippagePostInit()
