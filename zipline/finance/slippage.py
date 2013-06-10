@@ -99,14 +99,14 @@ class Transaction(object):
         return py
 
 
-def create_transaction(event, amount, price, order_id):
+def create_transaction(event, order, price, amount):
 
     txn = {
         'sid': event.sid,
         'amount': int(amount),
         'dt': event.dt,
         'price': price,
-        'order_id': order_id
+        'order_id': order.id
     }
 
     transaction = Transaction(**txn)
@@ -189,11 +189,11 @@ class VolumeShareSlippage(SlippageModel):
             if order.direction * cur_amount > 0:
                 txn = create_transaction(
                     event,
-                    cur_amount,
+                    order,
                     # In the future, we may want to change the next line
                     # for limit pricing
                     event.price + simulated_impact,
-                    order.id
+                    cur_amount
                 )
 
                 txns.append(txn)
@@ -228,9 +228,9 @@ class FixedSlippage(SlippageModel):
 
             txn = create_transaction(
                 event,
-                order.amount,
+                order,
                 event.price + (self.spread / 2.0 * order.direction),
-                order.id
+                order.amount,
             )
 
             # mark the date of the order to match the transaction

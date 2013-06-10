@@ -42,7 +42,8 @@ tradingday = datetime.timedelta(hours=6, minutes=30)
 
 
 def create_txn(event, price, amount):
-    return create_transaction(event, amount, price, "fakeuid")
+    mock_order = Order(None, None, event.sid, id=None)
+    return create_transaction(event, mock_order, price, amount)
 
 
 def benchmark_events_in_range(sim_params):
