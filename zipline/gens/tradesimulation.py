@@ -162,7 +162,10 @@ class AlgorithmSimulator(object):
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
                             if mkt_close < self.algo.perf_tracker.last_close:
-                                mkt_close = self.get_next_close(mkt_close)
+                                _, mkt_close = \
+                                    trading.environment.next_open_and_close(
+                                        mkt_close
+                                    )
                                 self.algo.perf_tracker.handle_intraday_close()
 
             risk_message = self.algo.perf_tracker.handle_simulation_end()
@@ -181,12 +184,6 @@ class AlgorithmSimulator(object):
             perf_message = self.algo.perf_tracker.to_dict()
             perf_message['minute_perf']['recorded_vars'] = rvars
             return perf_message
-
-    def get_next_close(self, mkt_close):
-        if mkt_close >= trading.environment.last_trading_day:
-            return self.sim_params.last_close
-        else:
-            return trading.environment.next_open_and_close(mkt_close)[1]
 
     def update_universe(self, event):
         """

@@ -27,7 +27,7 @@ from collections import OrderedDict
 from zipline.data.loader import load_market_data
 
 
-log = logbook.Logger('Transaction Simulator')
+log = logbook.Logger('Trading')
 
 
 # The financial simulations in zipline depend on information
@@ -76,7 +76,8 @@ class TradingEnvironment(object):
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
-        max_date=None
+        max_date=None,
+        extra_dates=None
     ):
         self.prev_environment = self
         self.trading_day_map = OrderedDict()
@@ -96,10 +97,20 @@ class TradingEnvironment(object):
         self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
         self.exchange_tz = exchange_tz
 
+        bm = None
         for bm in self.benchmark_returns:
             if max_date and bm.date > max_date:
                 break
             self.trading_day_map[bm.date] = bm
+
+        if bm and extra_dates:
+            last_day = next(reversed(self.trading_day_map))
+            for extra_date in extra_dates:
+                extra_date = extra_date.replace(hour=0, minute=0, second=0,
+                                                microsecond=0)
+                if extra_date not in self.trading_day_map:
+                    self.trading_day_map[extra_date] = \
+                        self.trading_day_map[last_day]
 
         self.first_trading_day = next(self.trading_day_map.iterkeys())
         self.last_trading_day = next(reversed(self.trading_day_map))
