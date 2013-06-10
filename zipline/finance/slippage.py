@@ -14,7 +14,6 @@
 # limitations under the License.
 import abc
 
-import pytz
 import math
 
 from copy import copy
@@ -100,12 +99,12 @@ class Transaction(object):
         return py
 
 
-def create_transaction(sid, amount, price, dt, order_id):
+def create_transaction(event, amount, price, order_id):
 
     txn = {
-        'sid': sid,
+        'sid': event.sid,
         'amount': int(amount),
-        'dt': dt,
+        'dt': event.dt,
         'price': price,
         'order_id': order_id
     }
@@ -146,7 +145,6 @@ class VolumeShareSlippage(SlippageModel):
 
     def simulate(self, event, current_orders):
 
-        dt = event.dt
         simulated_impact = 0.0
         max_volume = self.volume_limit * event.volume
         total_volume = 0
@@ -190,12 +188,11 @@ class VolumeShareSlippage(SlippageModel):
 
             if order.direction * cur_amount > 0:
                 txn = create_transaction(
-                    event.sid,
+                    event,
                     cur_amount,
                     # In the future, we may want to change the next line
                     # for limit pricing
                     event.price + simulated_impact,
-                    dt.replace(tzinfo=pytz.utc),
                     order.id
                 )
 
@@ -230,10 +227,9 @@ class FixedSlippage(SlippageModel):
                 return txns
 
             txn = create_transaction(
-                event.sid,
+                event,
                 order.amount,
                 event.price + (self.spread / 2.0 * order.direction),
-                event.dt.replace(tzinfo=pytz.utc),
                 order.id
             )
 

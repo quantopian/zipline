@@ -41,8 +41,8 @@ oneday = datetime.timedelta(days=1)
 tradingday = datetime.timedelta(hours=6, minutes=30)
 
 
-def create_txn(sid, price, amount, dt):
-    return create_transaction(sid, amount, price, dt, "fakeuid")
+def create_txn(event, price, amount):
+    return create_transaction(event, amount, price, "fakeuid")
 
 
 def benchmark_events_in_range(sim_params):
@@ -130,7 +130,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[2].dt
         )
 
-        txn = create_txn(1, 10.0, 100, events[0].dt)
+        txn = create_txn(events[0], 10.0, 100)
         events.insert(0, txn)
         events.insert(1, dividend)
         results = calculate_results(self, events)
@@ -169,7 +169,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         events.insert(1, dividend)
-        txn = create_txn(1, 10.0, 100, events[3].dt)
+        txn = create_txn(events[3], 10.0, 100)
         events.insert(4, txn)
         results = calculate_results(self, events)
 
@@ -203,9 +203,9 @@ class TestDividendPerformance(unittest.TestCase):
             events[3].dt
         )
 
-        buy_txn = create_txn(1, 10.0, 100, events[0].dt)
+        buy_txn = create_txn(events[0], 10.0, 100)
         events.insert(1, buy_txn)
-        sell_txn = create_txn(1, 10.0, -100, events[3].dt)
+        sell_txn = create_txn(events[3], 10.0, -100)
         events.insert(4, sell_txn)
         events.insert(0, dividend)
         results = calculate_results(self, events)
@@ -240,9 +240,9 @@ class TestDividendPerformance(unittest.TestCase):
             events[5].dt
         )
 
-        buy_txn = create_txn(1, 10.0, 100, events[1].dt)
+        buy_txn = create_txn(events[1], 10.0, 100)
         events.insert(1, buy_txn)
-        sell_txn = create_txn(1, 10.0, -100, events[3].dt)
+        sell_txn = create_txn(events[3], 10.0, -100)
         events.insert(3, sell_txn)
         events.insert(1, dividend)
         results = calculate_results(self, events)
@@ -281,7 +281,7 @@ class TestDividendPerformance(unittest.TestCase):
             pay_date
         )
 
-        buy_txn = create_txn(1, 10.0, 100, events[1].dt)
+        buy_txn = create_txn(events[1], 10.0, 100)
         events.insert(2, buy_txn)
         events.insert(1, dividend)
         results = calculate_results(self, events)
@@ -321,7 +321,7 @@ class TestDividendPerformance(unittest.TestCase):
             events[3].dt
         )
 
-        txn = create_txn(1, 10.0, -100, events[1].dt)
+        txn = create_txn(events[1], 10.0, -100)
         events.insert(1, txn)
         events.insert(0, dividend)
         results = calculate_results(self, events)
@@ -411,7 +411,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params
         )
 
-        txn = create_txn(1, 10.0, 100, self.dt + onesec)
+        txn = create_txn(trades[1], 10.0, 100)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
@@ -482,7 +482,7 @@ single short-sale transaction"""
 
         trades_1 = trades[:-2]
 
-        txn = create_txn(1, 10.0, -100, self.dt + onesec)
+        txn = create_txn(trades[1], 10.0, -100)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
@@ -671,13 +671,12 @@ trade after cover"""
         )
 
         short_txn = create_txn(
-            1,
+            trades[1],
             10.0,
             -100,
-            self.dt + onesec
         )
 
-        cover_txn = create_txn(1, 7.0, 100, self.dt + onesec * 6)
+        cover_txn = create_txn(trades[6], 7.0, 100)
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(short_txn)
@@ -785,17 +784,16 @@ shares in position"
             400
         )
 
-        saleTxn = create_txn(
-            1,
-            10.0,
-            -100,
-            self.dt + onesec * 4)
-
         down_tick = factory.create_trade(
             1,
             10.0,
             100,
             trades[-1].dt + onesec)
+
+        saleTxn = create_txn(
+            down_tick,
+            10.0,
+            -100)
 
         pp.rollover()
 
