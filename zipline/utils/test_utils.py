@@ -17,15 +17,15 @@ def teardown_logger(test):
 
 
 def check_list(test, a, b, label):
-    test.assertTrue(isinstance(a, (list, blist.blist)))
-    test.assertTrue(isinstance(b, (list, blist.blist)))
+    test.assertIsInstance(a, (list, blist.blist), "not list at: " + label)
+    test.assertIsInstance(b, (list, blist.blist), "not list at: " + label)
     for i, (a_val, b_val) in enumerate(izip_longest(a, b)):
         check(test, a_val, b_val, label + "[" + str(i) + "]")
 
 
 def check_dict(test, a, b, label):
-    test.assertTrue(isinstance(a, dict))
-    test.assertTrue(isinstance(b, dict))
+    test.assertIsInstance(a, dict, "not dict at: " + label)
+    test.assertIsInstance(b, dict, "not dict at: " + label)
     test.assertEqual(sorted(a), sorted(b), "different keys at: " + label)
     for key in a:
         a_val = a[key]
@@ -34,8 +34,8 @@ def check_dict(test, a, b, label):
 
 
 def check_datetime(test, a, b, label):
-    test.assertTrue(isinstance(a, datetime))
-    test.assertTrue(isinstance(b, datetime))
+    test.assertIsInstance(a, datetime, "not datetime at: " + label)
+    test.assertIsInstance(b, datetime, "not datetime at: " + label)
     test.assertEqual(EPOCH(a), EPOCH(b), "mismatched dates " + label)
 
 
