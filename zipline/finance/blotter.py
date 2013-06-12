@@ -261,3 +261,7 @@ class Order(object):
             return False
 
         return True
+
+    @property
+    def open_amount(self):
+        return self.amount - self.filled
