@@ -224,7 +224,7 @@ class FixedSlippage(SlippageModel):
                 continue
 
             if zp_math.tolerant_equals(order.amount, 0):
-                return txns
+                continue
 
             txn = create_transaction(
                 event,
