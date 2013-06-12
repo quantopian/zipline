@@ -147,17 +147,6 @@ class TradingEnvironment(object):
         return delorean.shift(pytz.utc.zone).datetime
 
     @property
-    def period_trading_days(self):
-        if self._period_trading_days is None:
-            self._period_trading_days = []
-            for date in self.trading_day_map.iterkeys():
-                if date > self.period_end:
-                    break
-                if date >= self.period_start:
-                    self.period_trading_days.append(date)
-        return self._period_trading_days
-
-    @property
     def trading_days(self):
         if self._trading_days_series is None:
             self._trading_days_series = \
