@@ -54,6 +54,7 @@ class RollingPanel(object):
                         dtype=self.dtype)
 
     def _update_buffer(self, frame):
+        # Drop outdated, nan-filled minors (sids) and items (fields)
         non_nan_cols = set(self.buffer.dropna(axis=1).minor_axis)
         new_cols = set(frame.columns)
         self.minor_axis = _ensure_index(new_cols.union(non_nan_cols))
@@ -80,8 +81,8 @@ class RollingPanel(object):
         if self.pos == self.cap:
             self._roll_data()
 
-        if (set(frame.columns) != set(self.minor_axis)) or \
-           (set(frame.index) != set(self.items)):
+        if set(frame.columns).difference(set(self.minor_axis)) or \
+           set(frame.index).difference(set(self.items)):
             self._update_buffer(frame)
 
         self.buffer.loc[:, self.pos, :] = frame.ix[self.items].T
