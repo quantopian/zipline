@@ -520,6 +520,8 @@ class BatchTransform(object):
         if self.supplemental_data:
             for item in data.items:
                 # axes[1] (minor axis) will be a date stamp
+                if item not in self.supplemental_data.major_axis:
+                    continue
                 for dt in data.axes[1]:
                     try:
                         supplemental_for_date = self.supplemental_data[dt]
