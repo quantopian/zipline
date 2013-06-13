@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import division
+
 import abc
 
 import math
@@ -174,17 +176,17 @@ class VolumeShareSlippage(SlippageModel):
 
             # the current order amount will be the min of the
             # volume available in the bar or the open amount.
-            cur_amount = min(remaining_volume, abs(open_amount))
-            cur_amount = cur_amount * order.direction
+            cur_volume = min(remaining_volume, abs(open_amount))
             # tally the current amount into our total amount ordered.
             # total amount will be used to calculate price impact
-            total_volume = total_volume + order.direction * cur_amount
+            total_volume = total_volume + cur_volume
 
-            volume_share = min(order.direction * (total_volume) / event.volume,
+            volume_share = min(total_volume / event.volume,
                                self.volume_limit)
 
             simulated_impact = (volume_share) ** 2 \
-                * self.price_impact * order.direction * event.price
+                * math.copysign(self.price_impact, order.direction) \
+                * event.price
 
             txn = create_transaction(
                 event,
@@ -192,7 +194,7 @@ class VolumeShareSlippage(SlippageModel):
                 # In the future, we may want to change the next line
                 # for limit pricing
                 event.price + simulated_impact,
-                cur_amount
+                math.copysign(cur_volume, order.direction)
             )
 
             txns.append(txn)
