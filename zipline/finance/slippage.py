@@ -145,11 +145,45 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
+    def process_order(self, event, order):
+        # price impact accounts for the total volume of transactions
+        # created against the current minute bar
+        remaining_volume = self.max_volume - self.total_volume
+        if (
+            remaining_volume <= 0
+            or
+            zp_math.tolerant_equals(remaining_volume, 0)
+        ):
+            # we can't fill any more transactions
+            return
+
+        # the current order amount will be the min of the
+        # volume available in the bar or the open amount.
+        cur_volume = min(remaining_volume, abs(order.open_amount))
+        # tally the current amount into our total amount ordered.
+        # total amount will be used to calculate price impact
+        self.total_volume = self.total_volume + cur_volume
+
+        volume_share = min(self.total_volume / event.volume,
+                           self.volume_limit)
+
+        simulated_impact = (volume_share) ** 2 \
+            * math.copysign(self.price_impact, order.direction) \
+            * event.price
+
+        return create_transaction(
+            event,
+            order,
+            # In the future, we may want to change the next line
+            # for limit pricing
+            event.price + simulated_impact,
+            math.copysign(cur_volume, order.direction)
+        )
+
     def simulate(self, event, current_orders):
 
-        simulated_impact = 0.0
-        max_volume = self.volume_limit * event.volume
-        total_volume = 0
+        self.max_volume = self.volume_limit * event.volume
+        self.total_volume = 0
 
         txns = []
         for order in current_orders:
@@ -163,41 +197,10 @@ class VolumeShareSlippage(SlippageModel):
             if not order.triggered:
                 continue
 
-            # price impact accounts for the total volume of transactions
-            # created against the current minute bar
-            remaining_volume = max_volume - total_volume
-            if (
-                remaining_volume <= 0
-                or
-                zp_math.tolerant_equals(remaining_volume, 0)
-            ):
-                # we can't fill any more transactions
-                return txns
+            txn = self.process_order(event, order)
 
-            # the current order amount will be the min of the
-            # volume available in the bar or the open amount.
-            cur_volume = min(remaining_volume, abs(open_amount))
-            # tally the current amount into our total amount ordered.
-            # total amount will be used to calculate price impact
-            total_volume = total_volume + cur_volume
-
-            volume_share = min(total_volume / event.volume,
-                               self.volume_limit)
-
-            simulated_impact = (volume_share) ** 2 \
-                * math.copysign(self.price_impact, order.direction) \
-                * event.price
-
-            txn = create_transaction(
-                event,
-                order,
-                # In the future, we may want to change the next line
-                # for limit pricing
-                event.price + simulated_impact,
-                math.copysign(cur_volume, order.direction)
-            )
-
-            txns.append(txn)
+            if txn:
+                txns.append(txn)
 
         return txns
 
@@ -211,6 +214,14 @@ class FixedSlippage(SlippageModel):
         on sells per share
         """
         self.spread = spread
+
+    def process_order(self, event, order):
+        return create_transaction(
+            event,
+            order,
+            event.price + (self.spread / 2.0 * order.direction),
+            order.amount,
+        )
 
     def simulate(self, event, orders):
 
@@ -227,14 +238,11 @@ class FixedSlippage(SlippageModel):
             if zp_math.tolerant_equals(order.amount, 0):
                 continue
 
-            txn = create_transaction(
-                event,
-                order,
-                event.price + (self.spread / 2.0 * order.direction),
-                order.amount,
-            )
+            txn = self.process_order(event, order)
 
-            # mark the date of the order to match the transaction
-            order.dt = event.dt
-            txns.append(txn)
+            if txn:
+                # mark the date of the order to match the transaction
+                order.dt = event.dt
+                txns.append(txn)
+
         return txns
