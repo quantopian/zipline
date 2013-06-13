@@ -119,9 +119,37 @@ class SlippageModel(object):
 
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
-    def simulate(self, event, current_orders, **kwargs):
+    @property
+    def volume_for_bar(self):
+        return self._volume_for_bar
+
+    @abc.abstractproperty
+    def process_order(self, event, order):
         pass
+
+    def simulate(self, event, current_orders):
+
+        self._volume_for_bar = 0
+
+        txns = []
+        for order in current_orders:
+
+            open_amount = order.amount - order.filled
+
+            if zp_math.tolerant_equals(open_amount, 0):
+                continue
+
+            order.check_triggers(event)
+            if not order.triggered:
+                continue
+
+            txn = self.process_order(event, order)
+
+            if txn:
+                txns.append(txn)
+                self._volume_for_bar += math.copysign(txn.amount, 1)
+
+        return txns
 
     def __call__(self, event, current_orders, **kwargs):
         return self.simulate(event, current_orders, **kwargs)
@@ -146,9 +174,12 @@ class VolumeShareSlippage(SlippageModel):
                    price_impact=self.price_impact)
 
     def process_order(self, event, order):
+
+        max_volume = self.volume_limit * event.volume
+
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
-        remaining_volume = self.max_volume - self.total_volume
+        remaining_volume = max_volume - self.volume_for_bar
         if (
             remaining_volume <= 0
             or
@@ -162,9 +193,9 @@ class VolumeShareSlippage(SlippageModel):
         cur_volume = min(remaining_volume, abs(order.open_amount))
         # tally the current amount into our total amount ordered.
         # total amount will be used to calculate price impact
-        self.total_volume = self.total_volume + cur_volume
+        total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(self.total_volume / event.volume,
+        volume_share = min(total_volume / event.volume,
                            self.volume_limit)
 
         simulated_impact = (volume_share) ** 2 \
@@ -179,30 +210,6 @@ class VolumeShareSlippage(SlippageModel):
             event.price + simulated_impact,
             math.copysign(cur_volume, order.direction)
         )
-
-    def simulate(self, event, current_orders):
-
-        self.max_volume = self.volume_limit * event.volume
-        self.total_volume = 0
-
-        txns = []
-        for order in current_orders:
-
-            open_amount = order.amount - order.filled
-
-            if zp_math.tolerant_equals(open_amount, 0):
-                continue
-
-            order.check_triggers(event)
-            if not order.triggered:
-                continue
-
-            txn = self.process_order(event, order)
-
-            if txn:
-                txns.append(txn)
-
-        return txns
 
 
 class FixedSlippage(SlippageModel):
@@ -222,27 +229,3 @@ class FixedSlippage(SlippageModel):
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
-
-    def simulate(self, event, orders):
-
-        txns = []
-        for order in orders:
-            # TODO: what if we have 2 orders, one for 100 shares long,
-            # and one for 100 shares short
-            # such as in a hedging scenario?
-
-            order.check_triggers(event)
-            if not order.triggered:
-                continue
-
-            if zp_math.tolerant_equals(order.amount, 0):
-                continue
-
-            txn = self.process_order(event, order)
-
-            if txn:
-                # mark the date of the order to match the transaction
-                order.dt = event.dt
-                txns.append(txn)
-
-        return txns
