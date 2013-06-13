@@ -186,17 +186,16 @@ class VolumeShareSlippage(SlippageModel):
             simulated_impact = (volume_share) ** 2 \
                 * self.price_impact * order.direction * event.price
 
-            if order.direction * cur_amount > 0:
-                txn = create_transaction(
-                    event,
-                    order,
-                    # In the future, we may want to change the next line
-                    # for limit pricing
-                    event.price + simulated_impact,
-                    cur_amount
-                )
+            txn = create_transaction(
+                event,
+                order,
+                # In the future, we may want to change the next line
+                # for limit pricing
+                event.price + simulated_impact,
+                cur_amount
+            )
 
-                txns.append(txn)
+            txns.append(txn)
 
         return txns
 
