@@ -63,11 +63,13 @@ class TradingAlgorithm(object):
     A new algorithm could look like this:
     ```
     class MyAlgo(TradingAlgorithm):
-        def initialize(amount):
+        def initialize(self, sids, amount):
+            self.sids = sids
             self.amount = amount
 
-        def handle_data(data):
+        def handle_data(self, data):
             sid = self.sids[0]
+            amount = self.amount
             self.order(sid, amount)
     ```
     To then to run this algorithm:
