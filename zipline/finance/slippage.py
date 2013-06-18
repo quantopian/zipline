@@ -103,6 +103,14 @@ class Transaction(object):
 
 def create_transaction(event, order, price, amount):
 
+    # floor the amount to protect against non-whole number orders
+    # TODO: Investigate whether we can add a robust check in blotter
+    # and/or tradesimulation, as well.
+    amount_magnitude = int(math.copysign(amount, 1))
+
+    if amount_magnitude < 1:
+        raise Exception("Transaction magnitude must be at least 1.")
+
     txn = {
         'sid': event.sid,
         'amount': int(amount),
@@ -180,17 +188,17 @@ class VolumeShareSlippage(SlippageModel):
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
         remaining_volume = max_volume - self.volume_for_bar
-        if (
-            remaining_volume <= 0
-            or
-            zp_math.tolerant_equals(remaining_volume, 0)
-        ):
+        if remaining_volume < 1:
             # we can't fill any more transactions
             return
 
         # the current order amount will be the min of the
         # volume available in the bar or the open amount.
-        cur_volume = min(remaining_volume, abs(order.open_amount))
+        cur_volume = int(min(remaining_volume, abs(order.open_amount)))
+
+        if cur_volume < 1:
+            return
+
         # tally the current amount into our total amount ordered.
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
