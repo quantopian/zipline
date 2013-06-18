@@ -106,7 +106,7 @@ def create_transaction(event, order, price, amount):
     # floor the amount to protect against non-whole number orders
     # TODO: Investigate whether we can add a robust check in blotter
     # and/or tradesimulation, as well.
-    amount_magnitude = int(math.copysign(amount, 1))
+    amount_magnitude = int(abs(amount))
 
     if amount_magnitude < 1:
         raise Exception("Transaction magnitude must be at least 1.")
@@ -155,7 +155,7 @@ class SlippageModel(object):
 
             if txn:
                 txns.append(txn)
-                self._volume_for_bar += math.copysign(txn.amount, 1)
+                self._volume_for_bar += abs(txn.amount)
 
         return txns
 
