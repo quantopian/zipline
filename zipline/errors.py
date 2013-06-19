@@ -82,3 +82,32 @@ You attempted to override commission after the simulation has \
 started. You may only call override_commission in your initialize \
 method.
 """.strip()
+
+
+class TransactionWithNoVolume(ZiplineError):
+    """
+    Raised if a transact call returns a transaction with zero volume.
+    """
+    msg = """
+Transaction {txn} has a volume of zero.
+""".strip()
+
+
+class TransactionWithWrongDirection(ZiplineError):
+    """
+    Raised if a transact call returns a transaction with a direction that
+    does not match the order.
+    """
+    msg = """
+Transaction {txn} not in same direction as corresponding order {order}.
+""".strip()
+
+
+class TransactionWithNoAmount(ZiplineError):
+    """
+    Raised if a transact call returns a transaction with a volume greater than
+the corresponding order.
+    """
+    msg = """
+Transaction volume of {txn} exceeds the order volume of {order}.
+""".strip()

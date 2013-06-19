@@ -19,6 +19,7 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
+import zipline.errors
 import zipline.protocol as zp
 
 from zipline.finance.slippage import (
@@ -161,6 +162,15 @@ class Blotter(object):
             return
 
         for order, txn in self.transact(trade_event, current_orders):
+            if txn.amount == 0:
+                raise zipline.errors.TransactionWithNoAmount(txn=txn)
+            if math.copysign(1, txn.amount) != order.direction:
+                raise zipline.errors.TransactionWithWrongDirection(
+                    txn=txn, order=order)
+            if abs(txn.amount) > abs(self.orders[txn.order_id].amount):
+                raise zipline.errors.TransactionVolumeExceedsOrder(
+                    txn=txn, order=order)
+
             order.filled += txn.amount
             # mark the date of the order to match the transaction
             # that is filling it.
