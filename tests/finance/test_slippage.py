@@ -57,13 +57,13 @@ class SlippageTestCase(TestCase):
                 'sid': 133})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             event,
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.01875),
@@ -99,11 +99,11 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[2],
             open_orders
-        )
-        self.assertEquals(len(txns), 0)
+        ))
+        self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
         open_orders = [
@@ -115,13 +115,13 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[3],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        txn = orders_txns[0][1]
 
         expected_txn = {
             'price': float(3.500875),
@@ -148,14 +148,14 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[0],
             open_orders
-        )
+        ))
 
         expected_txn = {}
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
 
@@ -168,13 +168,13 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[1],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.499125),
@@ -205,12 +205,12 @@ class SlippageTestCase(TestCase):
                 'stop': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[2],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
 
@@ -224,13 +224,13 @@ class SlippageTestCase(TestCase):
             })
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[3],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.500875),
@@ -255,12 +255,12 @@ class SlippageTestCase(TestCase):
                 'stop': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[0],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
 
@@ -273,13 +273,13 @@ class SlippageTestCase(TestCase):
                 'stop': 3.4})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[1],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.499125),
@@ -309,19 +309,19 @@ class SlippageTestCase(TestCase):
                 'limit': 3.0})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[2],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[3],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
 
@@ -335,20 +335,20 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[2],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[3],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.500875),
@@ -373,19 +373,19 @@ class SlippageTestCase(TestCase):
                 'limit': 4.0})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[0],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[1],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
 
@@ -399,20 +399,20 @@ class SlippageTestCase(TestCase):
                 'limit': 3.5})
         ]
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[0],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 0)
+        self.assertEquals(len(orders_txns), 0)
 
-        txns = slippage_model.simulate(
+        orders_txns = list(slippage_model.simulate(
             events[1],
             open_orders
-        )
+        ))
 
-        self.assertEquals(len(txns), 1)
-        txn = txns[0]
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.499125),

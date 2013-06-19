@@ -62,9 +62,7 @@ def transact_stub(slippage, commission, event, open_orders):
     This is intended to be wrapped in a partial, so that the
     slippage and commission models can be enclosed.
     """
-    transactions = slippage(event, open_orders)
-
-    for transaction in transactions:
+    for order, transaction in slippage(event, open_orders):
         if (
             transaction
             and not
@@ -74,7 +72,7 @@ def transact_stub(slippage, commission, event, open_orders):
             per_share, total_commission = commission.calculate(transaction)
             transaction.price = transaction.price + (per_share * direction)
             transaction.commission = total_commission
-    return transactions
+        yield order, transaction
 
 
 def transact_partial(slippage, commission):
@@ -139,7 +137,6 @@ class SlippageModel(object):
 
         self._volume_for_bar = 0
 
-        txns = []
         for order in current_orders:
 
             open_amount = order.amount - order.filled
@@ -154,10 +151,8 @@ class SlippageModel(object):
             txn = self.process_order(event, order)
 
             if txn:
-                txns.append(txn)
                 self._volume_for_bar += abs(txn.amount)
-
-        return txns
+                yield order, txn
 
     def __call__(self, event, current_orders, **kwargs):
         return self.simulate(event, current_orders, **kwargs)

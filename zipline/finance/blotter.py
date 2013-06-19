@@ -160,12 +160,15 @@ class Blotter(object):
         else:
             return [], []
 
-        txns = self.transact(trade_event, current_orders)
-        for txn in txns:
-            self.orders[txn.order_id].filled += txn.amount
+        txns = []
+
+        for order, txn in self.transact(trade_event, current_orders):
+            order.filled += txn.amount
             # mark the date of the order to match the transaction
             # that is filling it.
-            self.orders[txn.order_id].dt = txn.dt
+            order.dt = txn.dt
+
+            txns.append(txn)
 
         modified_orders = [order for order
                            in self.open_orders[trade_event.sid]
