@@ -143,12 +143,12 @@ class Blotter(object):
 
     def process_trade(self, trade_event):
         if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
-            raise StopIteration
+            return
 
         if zp_math.tolerant_equals(trade_event.volume, 0):
             # there are zero volume trade_events bc some stocks trade
             # less frequently than once per minute.
-            raise StopIteration
+            return
 
         if trade_event.sid in self.open_orders:
             orders = self.open_orders[trade_event.sid]
@@ -158,7 +158,7 @@ class Blotter(object):
                 lambda o: o.dt <= trade_event.dt,
                 orders)
         else:
-            raise StopIteration
+            return
 
         for order, txn in self.transact(trade_event, current_orders):
             order.filled += txn.amount
