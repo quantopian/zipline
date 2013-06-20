@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from itertools import chain
 from logbook import Logger, Processor
 
 import zipline.finance.trading as trading
@@ -120,9 +119,12 @@ class AlgorithmSimulator(object):
                         if event.type == DATASOURCE_TYPE.BENCHMARK:
                             self.algo.set_datetime(event.dt)
                             bm_updated = True
-                        txns, orders = self.algo.blotter.process_trade(event)
-                        for data in chain(txns, orders, [event]):
-                            self.algo.perf_tracker.process_event(data)
+
+                        process_trade = self.algo.blotter.process_trade
+                        for txn, order in process_trade(event):
+                            self.algo.perf_tracker.process_event(txn)
+                            self.algo.perf_tracker.process_event(order)
+                        self.algo.perf_tracker.process_event(event)
 
                     # Update our portfolio.
                     self.algo.set_portfolio(

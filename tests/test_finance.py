@@ -362,9 +362,7 @@ class FinanceTestCase(TestCase):
             for event in events:
                 if event.type == DATASOURCE_TYPE.TRADE:
 
-                    txns, _ = blotter.process_trade(event)
-
-                    for txn in txns:
+                    for txn, order in blotter.process_trade(event):
                         transactions.append(txn)
                         tracker.process_event(txn)
 
