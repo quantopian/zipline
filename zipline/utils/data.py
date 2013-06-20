@@ -80,9 +80,3 @@ class RollingPanel(object):
             self.buffer.values[:, -self.window:]
         self.index_buf[:self.window] = self.index_buf[-self.window:]
         self.pos = self.window
-
-
-class NaiveRollingPanel(object):
-
-    def __init__(self, window, items, minor_axis, cap_multiple=2):
-        pass
