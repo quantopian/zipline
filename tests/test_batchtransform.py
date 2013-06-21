@@ -43,7 +43,7 @@ def return_price(data):
 
 
 class BatchTransformAlgorithmSetSid(TradingAlgorithm):
-    def initialize(self, sids):
+    def initialize(self, sids=None):
         self.history = []
 
         self.batch_transform = return_price(
@@ -111,15 +111,14 @@ class TestChangeOfSids(TestCase):
         )
 
     def test_all_sids_passed(self):
-        algo = BatchTransformAlgorithmSetSid(self.sids,
-                                             sim_params=self.sim_params)
+        algo = BatchTransformAlgorithmSetSid(sim_params=self.sim_params)
         source = DifferentSidSource()
         algo.run(source)
-        for df, date in zip(algo.history, source.trading_days):
+        for i, (df, date) in enumerate(zip(algo.history, source.trading_days)):
             self.assertEqual(df.index[-1], date, "Newest event doesn't \
                              match.")
 
-            for sid in self.sids:
+            for sid in self.sids[:i]:
                 self.assertIn(sid, df.columns)
 
             last_elem = len(df) - 1
