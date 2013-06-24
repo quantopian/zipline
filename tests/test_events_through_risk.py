@@ -163,172 +163,177 @@ class TestEventsThroughRisk(unittest.TestCase):
                 crm.sharpe[-1],
                 decimal=6)
 
-    @trading.use_environment(trading.TradingEnvironment())
     def test_minute_buy_and_hold(self):
+        with trading.TradingEnvironment():
+            start_date = datetime.datetime(
+                year=2006,
+                month=1,
+                day=3,
+                hour=0,
+                minute=0,
+                tzinfo=pytz.utc)
+            end_date = datetime.datetime(
+                year=2006,
+                month=1,
+                day=5,
+                hour=0,
+                minute=0,
+                tzinfo=pytz.utc)
 
-        start_date = datetime.datetime(
-            year=2006,
-            month=1,
-            day=3,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
-        end_date = datetime.datetime(
-            year=2006,
-            month=1,
-            day=5,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
+            sim_params = SimulationParameters(
+                period_start=start_date,
+                period_end=end_date,
+                emission_rate='daily',
+                data_frequency='minute')
 
-        sim_params = SimulationParameters(
-            period_start=start_date,
-            period_end=end_date,
-            emission_rate='daily',
-            data_frequency='minute')
+            algo = BuyAndHoldAlgorithm(
+                sim_params=sim_params,
+                data_frequency='minute')
 
-        algo = BuyAndHoldAlgorithm(
-            sim_params=sim_params,
-            data_frequency='minute')
+            first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
+            first_open, first_close = \
+                trading.environment.get_open_and_close(first_date)
 
-        first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
-        first_open, first_close = \
-            trading.environment.get_open_and_close(first_date)
+            second_date = datetime.datetime(2006, 1, 4, tzinfo=pytz.utc)
+            second_open, second_close = \
+                trading.environment.get_open_and_close(second_date)
 
-        second_date = datetime.datetime(2006, 1, 4, tzinfo=pytz.utc)
-        second_open, second_close = \
-            trading.environment.get_open_and_close(second_date)
+            third_date = datetime.datetime(2006, 1, 5, tzinfo=pytz.utc)
+            third_open, third_close = \
+                trading.environment.get_open_and_close(third_date)
 
-        third_date = datetime.datetime(2006, 1, 5, tzinfo=pytz.utc)
-        third_open, third_close = \
-            trading.environment.get_open_and_close(third_date)
+            benchmark_data = [
+                Event({
+                    'returns': 0.1,
+                    'dt': first_close,
+                    'source_id': 'test-benchmark-source',
+                    'type': DATASOURCE_TYPE.BENCHMARK
+                }),
+                Event({
+                    'returns': 0.2,
+                    'dt': second_close,
+                    'source_id': 'test-benchmark-source',
+                    'type': DATASOURCE_TYPE.BENCHMARK
+                }),
+                Event({
+                    'returns': 0.4,
+                    'dt': third_close,
+                    'source_id': 'test-benchmark-source',
+                    'type': DATASOURCE_TYPE.BENCHMARK
+                }),
+            ]
 
-        benchmark_data = [
-            Event({
-                'returns': 0.1,
-                'dt': first_close,
-                'source_id': 'test-benchmark-source',
-                'type': DATASOURCE_TYPE.BENCHMARK
-            }),
-            Event({
-                'returns': 0.2,
-                'dt': second_close,
-                'source_id': 'test-benchmark-source',
-                'type': DATASOURCE_TYPE.BENCHMARK
-            }),
-            Event({
-                'returns': 0.4,
-                'dt': third_close,
-                'source_id': 'test-benchmark-source',
-                'type': DATASOURCE_TYPE.BENCHMARK
-            }),
-        ]
+            trade_bar_data = [
+                Event({
+                    'open_price': 10,
+                    'close_price': 15,
+                    'price': 15,
+                    'volume': 1000,
+                    'sid': 1,
+                    'dt': first_open,
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+                Event({
+                    'open_price': 10,
+                    'close_price': 15,
+                    'price': 15,
+                    'volume': 1000,
+                    'sid': 1,
+                    'dt': first_open + datetime.timedelta(minutes=10),
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+                Event({
+                    'open_price': 15,
+                    'close_price': 20,
+                    'price': 20,
+                    'volume': 2000,
+                    'sid': 1,
+                    'dt': second_open,
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+                Event({
+                    'open_price': 15,
+                    'close_price': 20,
+                    'price': 20,
+                    'volume': 2000,
+                    'sid': 1,
+                    'dt': second_open + datetime.timedelta(minutes=10),
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+                Event({
+                    'open_price': 20,
+                    'close_price': 15,
+                    'price': 15,
+                    'volume': 1000,
+                    'sid': 1,
+                    'dt': third_open,
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+                Event({
+                    'open_price': 20,
+                    'close_price': 15,
+                    'price': 15,
+                    'volume': 1000,
+                    'sid': 1,
+                    'dt': third_open + datetime.timedelta(minutes=10),
+                    'source_id': 'test-trade-source',
+                    'type': DATASOURCE_TYPE.TRADE
+                }),
+            ]
 
-        trade_bar_data = [
-            Event({
-                'open_price': 10,
-                'close_price': 15,
-                'price': 15,
-                'volume': 1000,
-                'sid': 1,
-                'dt': first_open,
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-            Event({
-                'open_price': 10,
-                'close_price': 15,
-                'price': 15,
-                'volume': 1000,
-                'sid': 1,
-                'dt': first_open + datetime.timedelta(minutes=10),
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-            Event({
-                'open_price': 15,
-                'close_price': 20,
-                'price': 20,
-                'volume': 2000,
-                'sid': 1,
-                'dt': second_open,
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-            Event({
-                'open_price': 15,
-                'close_price': 20,
-                'price': 20,
-                'volume': 2000,
-                'sid': 1,
-                'dt': second_open + datetime.timedelta(minutes=10),
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-            Event({
-                'open_price': 20,
-                'close_price': 15,
-                'price': 15,
-                'volume': 1000,
-                'sid': 1,
-                'dt': third_open,
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-            Event({
-                'open_price': 20,
-                'close_price': 15,
-                'price': 15,
-                'volume': 1000,
-                'sid': 1,
-                'dt': third_open + datetime.timedelta(minutes=10),
-                'source_id': 'test-trade-source',
-                'type': DATASOURCE_TYPE.TRADE
-            }),
-        ]
+            algo.benchmark_return_source = benchmark_data
+            algo.sources = list([trade_bar_data])
+            gen = algo._create_generator(sim_params)
 
-        algo.benchmark_return_source = benchmark_data
-        algo.sources = list([trade_bar_data])
-        gen = algo._create_generator(sim_params)
+            crm = algo.perf_tracker.cumulative_risk_metrics
 
-        crm = algo.perf_tracker.cumulative_risk_metrics
+            first_msg = gen.next()
 
-        first_msg = gen.next()
+            self.assertIsNotNone(first_msg,
+                                 "There should be a message emitted.")
 
-        self.assertIsNotNone(first_msg, "There should be a message emitted.")
+            # Protects against bug where the positions appeared to be
+            # a day late, because benchmarks were triggering
+            # calculations before the events for the day were
+            # processed.
+            self.assertEqual(1, len(algo.portfolio.positions), "There should "
+                             "be one position after the first day.")
 
-        # Protects against bug where the positions appeared to be a day late,
-        # because benchmarks were triggering calculations before the events
-        # for the day were processed.
-        self.assertEqual(1, len(algo.portfolio.positions),
-                         "There should be one position after the first day.")
+            self.assertTrue(
+                np.isnan(crm.algorithm_volatility[-1]),
+                "On the first day algorithm volatility does not exist.")
 
-        self.assertTrue(
-            np.isnan(crm.algorithm_volatility[-1]),
-            "On the first day algorithm volatility does not exist.")
+            second_msg = gen.next()
 
-        second_msg = gen.next()
+            self.assertIsNotNone(second_msg, "There should be a message "
+                                 "emitted.")
 
-        self.assertIsNotNone(second_msg, "There should be a message emitted.")
+            self.assertEqual(1, len(algo.portfolio.positions),
+                             "Number of positions should stay the same.")
 
-        self.assertEqual(1, len(algo.portfolio.positions),
-                         "Number of positions should stay the same.")
+            # TODO: Hand derive. Current value is just a canary to
+            # detect changes.
+            np.testing.assert_almost_equal(
+                0.050022510129558301,
+                crm.algorithm_returns[-1],
+                decimal=6)
 
-        # TODO: Hand derive. Current value is just a canary to detect changes.
-        np.testing.assert_almost_equal(
-            0.050022510129558301,
-            crm.algorithm_returns[-1],
-            decimal=6)
+            third_msg = gen.next()
 
-        third_msg = gen.next()
+            self.assertEqual(1, len(algo.portfolio.positions),
+                             "Number of positions should stay the same.")
 
-        self.assertEqual(1, len(algo.portfolio.positions),
-                         "Number of positions should stay the same.")
+            self.assertIsNotNone(third_msg, "There should be a message "
+                                 "emitted.")
 
-        self.assertIsNotNone(third_msg, "There should be a message emitted.")
-
-        # TODO: Hand derive. Current value is just a canary to detect changes.
-        np.testing.assert_almost_equal(
-            -0.047639464532418657,
-            crm.algorithm_returns[-1],
-            decimal=6)
+            # TODO: Hand derive. Current value is just a canary to
+            # detect changes.
+            np.testing.assert_almost_equal(
+                -0.047639464532418657,
+                crm.algorithm_returns[-1],
+                decimal=6)

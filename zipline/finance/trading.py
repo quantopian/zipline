@@ -18,7 +18,6 @@ import pytz
 import logbook
 import datetime
 
-from functools import wraps
 from delorean import Delorean
 import pandas as pd
 from pandas import DatetimeIndex
@@ -319,18 +318,3 @@ class SimulationParameters(object):
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
-
-
-class use_environment(object):
-    """A decorator to wrap a method in a particular
-    trading environment."""
-
-    def __init__(self, environment):
-        self.env = environment
-
-    def __call__(self, func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with self.env:
-                return func(*args, **kwargs)
-        return wrapper
