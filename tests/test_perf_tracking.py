@@ -36,9 +36,6 @@ from zipline.utils.factory import create_random_simulation_parameters
 import zipline.protocol
 from zipline.protocol import Event
 
-# from nose.tools import set_trace
-
-
 onesec = datetime.timedelta(seconds=1)
 oneday = datetime.timedelta(days=1)
 tradingday = datetime.timedelta(hours=6, minutes=30)
@@ -63,7 +60,6 @@ def benchmark_events_in_range(sim_params):
 
 
 def calculate_results(host, events):
-    # set_trace()
     perf_tracker = perf.PerformanceTracker(host.sim_params)
 
     all_events = heapq.merge(
@@ -72,8 +68,6 @@ def calculate_results(host, events):
 
     filtered_events = [(date, filt_event) for (date, filt_event)
                        in all_events if date <= events[-1].dt]
-
-    print("-- break --")
     filtered_events.sort(key=lambda x: x[0])
     grouped_events = itertools.groupby(filtered_events, lambda x: x[0])
     results = []
