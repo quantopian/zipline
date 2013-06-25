@@ -61,6 +61,16 @@ class Event(object):
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
 
+    def __lt__(self, other):
+        if hasattr(other, "dt"):
+            if 'dt' in self:
+                return self['dt'] < other.dt
+
+        if 'dt' in self and 'dt' in other:
+            return self['dt'] < other['dt']
+        else:
+            return False
+
 
 class Order(Event):
     pass

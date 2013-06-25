@@ -93,12 +93,12 @@ def get_quarter(dt):
     convert the given datetime to an integer representing
     the number of calendar quarters since 0.
     """
-    return (dt.year - 1) * 4 + (dt.month - 1) / 3 + 1
+    return int((dt.year - 1) * 4 + (dt.month - 1) / 3 + 1)
 
 
 def dates_of_quarter(quarter_num):
     quarter_num -= 1
-    year = quarter_num / 4 + 1
+    year = int(quarter_num / 4 + 1)
     quarter = quarter_num % 4 + 1
 
     if quarter == 1:

@@ -33,6 +33,7 @@ import zipline.utils.math_utils as zp_math
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
+from zipline.protocol import Event
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -219,6 +220,17 @@ class Order(object):
         for field in ['type', 'direction']:
             del py[field]
         return py
+
+    def __lt__(self, other):
+        # TODO: Fix this.
+        # Doing a hack here. Order() might be compared with Event().
+        if isinstance(other, Event):
+            if 'dt' in other:
+                return self.dt < other['dt']
+            else:
+                return False
+        else:
+            return self.dt < other.dt
 
     def to_api_obj(self):
         pydict = self.to_dict()

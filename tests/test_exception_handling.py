@@ -60,9 +60,8 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(ZeroDivisionError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(
-            ctx.exception.message,
-            'integer division or modulo by zero'
+        self.assertTrue(
+            isinstance(ctx.exception, ZeroDivisionError)
         )
 
     def test_tranform_exception(self):
@@ -76,8 +75,7 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(AssertionError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,
-                         'An assertion message')
+        self.assertTrue(isinstance(ctx.exception, AssertionError))
 
     def test_exception_in_handle_data(self):
         # Simulation
@@ -96,8 +94,7 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(Exception) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,
-                         'Algo exception in handle_data')
+        self.assertTrue(isinstance(ctx.exception, Exception))
 
     def test_zerodivision_exception_in_handle_data(self):
 
@@ -116,8 +113,7 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(ZeroDivisionError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,
-                         'integer division or modulo by zero')
+        self.assertTrue(isinstance(ctx.exception, ZeroDivisionError))
 
     def test_set_portfolio(self):
         """
@@ -139,5 +135,4 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(AttributeError) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(ctx.exception.message,
-                         "can't set attribute")
+        self.assertTrue(isinstance(ctx.exception, AttributeError))

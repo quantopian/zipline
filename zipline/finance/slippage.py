@@ -20,7 +20,7 @@ import math
 
 from copy import copy
 from functools import partial
-from zipline.protocol import DATASOURCE_TYPE
+from zipline.protocol import DATASOURCE_TYPE, Event
 import zipline.utils.math_utils as zp_math
 
 
@@ -97,6 +97,17 @@ class Transaction(object):
         py = copy(self.__dict__)
         del py['type']
         return py
+
+    def __lt__(self, other):
+        # TODO: Fix this.
+        # Doing a hack here. Transaction() might be compared with Event().
+        if isinstance(other, Event):
+            if 'dt' in other:
+                return self.dt < other['dt']
+            else:
+                return False
+        else:
+            return self.dt < other.dt
 
 
 def create_transaction(event, order, price, amount):
