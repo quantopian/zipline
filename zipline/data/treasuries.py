@@ -67,14 +67,14 @@ class iter_to_stream(object):
     Exposes an iterable as an i/o stream
     """
     def __init__(self, iterable):
-        self.buffered = ""
+        self.buffered = b""
         self.iter = iter(iterable)
 
     def read(self, size):
-        result = ""
+        result = b""
         while size > 0:
             data = self.buffered or next(self.iter, None)
-            self.buffered = ""
+            self.buffered = b""
             if data is None:
                 break
             size -= len(data)

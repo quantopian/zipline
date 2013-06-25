@@ -102,7 +102,7 @@ def update_treasury_curves(last_date):
     """
     tr_data = []
     with get_datafile('treasury_curves.msgpack', mode='rb') as tr_fp:
-        tr_list = msgpack.loads(tr_fp.read())
+        tr_list = msgpack.loads(tr_fp.read(), encoding="utf-8")
         for packed_date, curve in tr_list:
             tr_data.append((packed_date, curve))
 
@@ -128,7 +128,7 @@ def update_benchmarks(symbol, last_date):
     """
     benchmark_data = []
     with get_datafile(get_benchmark_filename(symbol), mode='rb') as bmark_fp:
-        bm_list = msgpack.loads(bmark_fp.read())
+        bm_list = msgpack.loads(bmark_fp.read(), encoding="utf-8")
         for packed_date, returns in bm_list:
             benchmark_data.append((packed_date, returns))
 
@@ -163,7 +163,7 @@ Fetching data from Yahoo Finance.
         dump_benchmarks(bm_symbol)
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
 
-    bm_list = msgpack.loads(fp_bm.read())
+    bm_list = msgpack.loads(fp_bm.read(), encoding="utf-8")
 
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
@@ -176,7 +176,7 @@ Fetching data from Yahoo Finance.
     if len(trading_days) - last_bm_date_offset > 1:
         update_benchmarks(bm_symbol, last_bm_date)
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
-        bm_list = msgpack.loads(fp_bm.read())
+        bm_list = msgpack.loads(fp_bm.read(), encoding="utf-8")
 
     bm_returns = []
     for packed_date, returns in bm_list:
@@ -199,7 +199,7 @@ Fetching data from data.treasury.gov
         dump_treasury_curves()
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
 
-    tr_list = msgpack.loads(fp_tr.read())
+    tr_list = msgpack.loads(fp_tr.read(), encoding="utf-8")
 
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
@@ -212,7 +212,7 @@ Fetching data from data.treasury.gov
     if len(trading_days) - last_tr_date_offset > 1:
         update_treasury_curves(last_tr_date)
         fp_tr = get_datafile('treasury_curves.msgpack', "rb")
-        tr_list = msgpack.loads(fp_tr.read())
+        tr_list = msgpack.loads(fp_tr.read(), encoding="utf-8")
 
     tr_curves = {}
     for packed_date, curve in tr_list:
