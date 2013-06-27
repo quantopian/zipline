@@ -56,8 +56,7 @@ def make_transform(talib_fn, name):
         --------
 
         A moving average of a data column called 'Oil' with timeperiod 5,
-        for sid 'XYZ':
-            talib.transforms.ta.MA('XYZ', close='Oil', timeperiod=5)
+            talib.transforms.ta.MA(close='Oil', timeperiod=5)
 
         The user could find the default arguments and mappings by calling:
             help(zipline.transforms.ta.MA)
@@ -65,8 +64,6 @@ def make_transform(talib_fn, name):
 
         Arguments
         ---------
-
-        sid : zipline sid
 
         open   : string, default 'open'
         high   : string, default 'high'
@@ -83,7 +80,6 @@ def make_transform(talib_fn, name):
         """
 
         def __init__(self,
-                     sid,
                      close='price',
                      open='open',
                      high='high',
@@ -160,7 +156,6 @@ def make_transform(talib_fn, name):
 
             super(TALibTransform, self).__init__(
                 func=zipline_wrapper,
-                sids=sid,
                 refresh_period=refresh_period,
                 window_length=max(1, self.lookback + 1))
 
