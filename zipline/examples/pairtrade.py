@@ -95,8 +95,8 @@ class Pairtrade(TradingAlgorithm):
             self.order('KO', -int(100 / data['KO'].price))
             self.invested = True
         elif zscore <= -2.0 and not self.invested:
-            self.order('KO', -int(100 / data['KO'].price))
-            self.order('PEP', int(100 / data['PEP'].price))
+            self.order('PEP', -int(100 / data['PEP'].price))
+            self.order('KO', int(100 / data['KO'].price))
             self.invested = True
         elif abs(zscore) < .5 and self.invested:
             self.sell_spread()
