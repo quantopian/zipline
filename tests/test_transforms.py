@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 
 from datetime import timedelta, datetime
-import unittest
 from unittest import TestCase
 
 from zipline.utils.test_utils import setup_logger
