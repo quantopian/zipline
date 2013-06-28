@@ -38,8 +38,8 @@ class DualEMATaLib(TradingAlgorithm):
     def initialize(self, short_window=20, long_window=40):
         # Add 2 mavg transforms, one with a long window, one
         # with a short window.
-        self.short_ema_trans = EMA('AAPL', window_length=short_window)
-        self.long_ema_trans = EMA('AAPL', window_length=long_window)
+        self.short_ema_trans = EMA(window_length=short_window)
+        self.long_ema_trans = EMA(window_length=long_window)
 
         # To keep track of whether we invested in the stock or not
         self.invested = False
