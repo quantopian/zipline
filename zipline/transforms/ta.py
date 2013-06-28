@@ -169,7 +169,6 @@ def make_transform(talib_fn, name):
 
 
 # add all TA-Lib functions to locals
-for name in talib.abstract.__all__:
+for name in talib.abstract.__FUNCTION_NAMES:
     fn = getattr(talib.abstract, name)
-    if name != 'Function':
-        locals()[name] = make_transform(fn, name)
+    locals()[name] = make_transform(fn, name)
