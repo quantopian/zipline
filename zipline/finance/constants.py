@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import timedelta
+
 TRADING_DAYS_IN_YEAR = 250
 TRADING_HOURS_IN_DAY = 6
 MINUTES_IN_HOUR = 60
@@ -21,3 +23,6 @@ ANNUALIZER = {'daily': TRADING_DAYS_IN_YEAR,
               'hourly': TRADING_DAYS_IN_YEAR * TRADING_HOURS_IN_DAY,
               'minute': TRADING_DAYS_IN_YEAR * TRADING_HOURS_IN_DAY *
               MINUTES_IN_HOUR}
+
+FILL_DELAYS = {'daily': timedelta(days=1),
+               'minute': timedelta(minutes=1)}
