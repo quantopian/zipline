@@ -212,7 +212,7 @@ class Order(object):
         self.type = zp.DATASOURCE_TYPE.ORDER
 
     def make_id(self):
-        return uuid.uuid4().get_hex()
+        return uuid.uuid4().hex
 
     def to_dict(self):
         py = copy(self.__dict__)
