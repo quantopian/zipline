@@ -20,9 +20,7 @@ import datetime
 
 from delorean import Delorean
 import pandas as pd
-from pandas import DatetimeIndex
 
-from collections import OrderedDict
 from zipline.data.loader import load_market_data
 
 
@@ -79,7 +77,6 @@ class TradingEnvironment(object):
         extra_dates=None
     ):
         self.prev_environment = self
-        self.trading_day_map = OrderedDict()
         self.bm_symbol = bm_symbol
         if not load:
             load = load_market_data
@@ -91,27 +88,29 @@ class TradingEnvironment(object):
         if max_date:
             self.treasury_curves = self.treasury_curves[:max_date]
 
-        self._trading_days_series = None
         self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
         self.exchange_tz = exchange_tz
 
         bm = None
+
+        trading_days_list = []
         for bm in self.benchmark_returns:
             if max_date and bm.date > max_date:
                 break
-            self.trading_day_map[bm.date] = bm
+            trading_days_list.append(bm.date)
+
+        self.trading_days = pd.DatetimeIndex(trading_days_list)
 
         if bm and extra_dates:
-            last_day = next(reversed(self.trading_day_map))
             for extra_date in extra_dates:
                 extra_date = extra_date.replace(hour=0, minute=0, second=0,
                                                 microsecond=0)
-                if extra_date not in self.trading_day_map:
-                    self.trading_day_map[extra_date] = \
-                        self.trading_day_map[last_day]
+                if extra_date not in self.trading_days:
+                    self.trading_days = self.trading_days + \
+                        pd.DatetimeIndex([extra_date])
 
-        self.first_trading_day = next(self.trading_day_map.iterkeys())
-        self.last_trading_day = next(reversed(self.trading_day_map))
+        self.first_trading_day = self.trading_days[0]
+        self.last_trading_day = self.trading_days[-1]
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -144,13 +143,6 @@ class TradingEnvironment(object):
         delorean = Delorean(dt, self.exchange_tz)
         return delorean.shift(pytz.utc.zone).datetime
 
-    @property
-    def trading_days(self):
-        if self._trading_days_series is None:
-            self._trading_days_series = \
-                DatetimeIndex(self.trading_day_map.iterkeys())
-        return self._trading_days_series
-
     def is_market_hours(self, test_date):
         if not self.is_trading_day(test_date):
             return False
@@ -160,7 +152,7 @@ class TradingEnvironment(object):
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
-        return (dt in self.trading_day_map)
+        return (dt in self.trading_days)
 
     def next_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
@@ -168,7 +160,7 @@ class TradingEnvironment(object):
 
         while dt <= self.last_trading_day:
             dt += delta
-            if dt in self.trading_day_map:
+            if dt in self.trading_days:
                 return dt
 
         return None
@@ -219,13 +211,13 @@ Last successful date: %s" % self.last_trading_day)
         first_date = self.normalize_date(first_date)
         second_date = self.normalize_date(second_date)
 
-        trading_days = self.trading_day_map.keys()
+        # TODO: May be able to replace the following with searchsorted.
         # Find leftmost item greater than or equal to day
-        i = bisect.bisect_left(trading_days, first_date)
-        if i == len(trading_days):  # nothing found
+        i = bisect.bisect_left(self.trading_days, first_date)
+        if i == len(self.trading_days):  # nothing found
             return None
-        j = bisect.bisect_left(trading_days, second_date)
-        if j == len(trading_days):
+        j = bisect.bisect_left(self.trading_days, second_date)
+        if j == len(self.trading_days):
             return None
 
         return j - i
