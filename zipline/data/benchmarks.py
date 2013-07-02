@@ -22,7 +22,7 @@ from functools import partial
 
 import requests
 
-from loader_utils import (
+from . loader_utils import (
     date_conversion,
     source_to_records,
     Mapping

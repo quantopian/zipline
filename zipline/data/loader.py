@@ -22,7 +22,7 @@ from datetime import timedelta
 
 import logbook
 
-from treasuries import get_treasury_data
+from . treasuries import get_treasury_data
 import benchmarks
 from benchmarks import get_benchmark_returns
 

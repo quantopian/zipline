@@ -19,7 +19,7 @@ import requests
 from collections import OrderedDict
 import xml.etree.ElementTree as ET
 
-from loader_utils import (
+from . loader_utils import (
     guarded_conversion,
     safe_int,
     Mapping,
