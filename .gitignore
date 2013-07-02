@@ -56,3 +56,6 @@ benchmarks.db
 
 # downloaded data
 zipline/data/*.msgpack
+
+# Vagrant temp folder
+.vagrant
