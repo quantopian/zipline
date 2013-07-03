@@ -94,10 +94,10 @@ def make_transform(talib_fn, name):
                        'volume': volume,
                        'close': close}
 
-            # Rename window_length to timeperiod to conform with
-            # external batch_transform interface.
-            if 'window_length' in kwargs:
-                kwargs['timeperiod'] = kwargs['window_length']
+            # Rename timeperiod to window_length to conform with
+            # TALib interface.
+            if 'timeperiod' in kwargs:
+                kwargs['window_length'] = kwargs['timeperiod']
 
             self.call_kwargs = kwargs
 

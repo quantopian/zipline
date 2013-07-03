@@ -344,8 +344,8 @@ class TestTALIB(TestCase):
                 # factory.create_test_panel_ohlc_source(self.sim_params)
 
     def test_multiple_talib_with_args(self):
-        zipline_transforms = [ta.MA(window_length=10),
-                              ta.MA(window_length=25)]
+        zipline_transforms = [ta.MA(timeperiod=10),
+                              ta.MA(timeperiod=25)]
         talib_fn = talib.abstract.MA
         algo = TALIBAlgorithm(talib=zipline_transforms)
         algo.run(self.source)
