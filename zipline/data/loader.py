@@ -23,8 +23,8 @@ from datetime import timedelta
 import logbook
 
 from . treasuries import get_treasury_data
-import benchmarks
-from benchmarks import get_benchmark_returns
+from . import benchmarks
+from . benchmarks import get_benchmark_returns
 
 from zipline.protocol import DailyReturn
 from zipline.utils.date_utils import tuple_to_date

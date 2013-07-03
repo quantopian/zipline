@@ -11,7 +11,7 @@ from . import finance
 from . import gens
 from . import utils
 
-from algorithm import TradingAlgorithm
+from . algorithm import TradingAlgorithm
 
 __all__ = [
     'data',
