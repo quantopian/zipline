@@ -371,4 +371,4 @@ class TestTALIB(TestCase):
                     talib_data[key] = data[key][0].values
             talib_data['close'] = data['price'][0].values
             expected_result = talib_fn(talib_data, **t.call_kwargs)[-1]
-            self.assertTrue(np.allclose(talib_result, expected_result))
+            np.testing.assert_allclose(talib_result, expected_result)
