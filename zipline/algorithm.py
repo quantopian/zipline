@@ -109,10 +109,7 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        if 'data_frequency' in kwargs:
-            self.set_data_frequency(kwargs.pop('data_frequency'))
-        else:
-            self.data_frequency = None
+        self.set_data_frequency(kwargs.pop('data_frequency', 'daily'))
 
         # Override annualizer if set
         if 'annualizer' in kwargs:
