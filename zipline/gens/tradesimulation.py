@@ -123,7 +123,6 @@ class AlgorithmSimulator(object):
                         # Save events to stream through blotter below.
                         events.append(event)
 
-
                     # Update our portfolio.
                     self.algo.set_portfolio(
                         self.algo.perf_tracker.get_portfolio()
@@ -152,7 +151,6 @@ class AlgorithmSimulator(object):
                             self.algo.perf_tracker.process_event(order)
 
                         self.algo.perf_tracker.process_event(event)
-
 
                     # The benchmark is our internal clock. When it
                     # updates, we need to emit a performance message.
