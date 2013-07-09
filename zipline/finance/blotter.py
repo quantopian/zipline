@@ -18,6 +18,7 @@ import uuid
 from copy import copy
 from logbook import Logger
 from collections import defaultdict
+from datetime import timedelta
 
 import zipline.errors
 import zipline.protocol as zp
@@ -43,7 +44,7 @@ ORDER_STATUS = Enum(
 
 class Blotter(object):
 
-    def __init__(self):
+    def __init__(self, fill_delay=timedelta(minutes=1)):
         self.transact = transact_partial(VolumeShareSlippage(), PerShare())
         # these orders are aggregated by sid
         self.open_orders = defaultdict(list)
@@ -54,6 +55,8 @@ class Blotter(object):
         self.new_orders = []
         self.current_dt = None
         self.max_shares = int(1e+11)
+
+        self.fill_delay = fill_delay
 
     def __repr__(self):
         return """
@@ -155,8 +158,10 @@ class Blotter(object):
             orders = self.open_orders[trade_event.sid]
             orders = sorted(orders, key=lambda o: o.dt)
             # Only use orders for the current day or before
+            # Since orders generally do not get filled immediately,
+            # we allow for a delay here.
             current_orders = filter(
-                lambda o: o.dt <= trade_event.dt,
+                lambda o: o.dt + self.fill_delay <= trade_event.dt,
                 orders)
         else:
             return
