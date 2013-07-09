@@ -163,7 +163,9 @@ def make_transform(talib_fn, name):
             super(TALibTransform, self).__init__(
                 func=zipline_wrapper,
                 refresh_period=refresh_period,
-                window_length=window_length)
+                window_length=window_length,
+                compute_only_full=False,
+                bars=bars)
 
         def __repr__(self):
             return 'Zipline BatchTransform: {0}'.format(
