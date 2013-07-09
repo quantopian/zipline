@@ -372,3 +372,24 @@ class TestTALIB(TestCase):
             talib_data['close'] = data['price'][0].values
             expected_result = talib_fn(talib_data, **t.call_kwargs)[-1]
             np.testing.assert_allclose(talib_result, expected_result)
+
+    def test_talib_with_minute_data(self):
+
+        ma_one_day_minutes = ta.MA(timeperiod=10, bars='minute')
+
+        # Assert that the BatchTransform window length is enough to cover
+        # the amount of minutes in the timeperiod.
+
+        # Here, 10 minutes only needs a window length of 1.
+        self.assertEquals(1, ma_one_day_minutes.window_length)
+
+        # With minutes greater than the 390, i.e. one trading day, we should
+        # have a window_length of two days.
+        ma_two_day_minutes = ta.MA(timeperiod=490, bars='minute')
+        self.assertEquals(2, ma_two_day_minutes.window_length)
+
+        # TODO: Ensure that the lookback into the datapanel is returning
+        # expected results.
+        # Requires supplying minute instead of day data to the unit test.
+        # When adding test data, should add more minute events than the
+        # timeperiod to ensure that lookback is behaving properly.

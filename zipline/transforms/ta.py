@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 
 import numpy as np
 import talib
@@ -86,6 +87,7 @@ def make_transform(talib_fn, name):
                      low='low',
                      volume='volume',
                      refresh_period=0,
+                     bars='daily',
                      **kwargs):
 
             key_map = {'high': high,
@@ -93,11 +95,6 @@ def make_transform(talib_fn, name):
                        'open': open,
                        'volume': volume,
                        'close': close}
-
-            # Rename timeperiod to window_length to conform with
-            # TALib interface.
-            if 'timeperiod' in kwargs:
-                kwargs['window_length'] = kwargs['timeperiod']
 
             self.call_kwargs = kwargs
 
@@ -118,6 +115,15 @@ def make_transform(talib_fn, name):
 
             # get the lookback
             self.lookback = self.talib_fn.lookback
+
+            self.bars = bars
+            if bars == 'daily':
+                lookback = self.lookback + 1
+            elif bars == 'minute':
+                lookback = int(math.ceil(self.lookback / (6.5 * 60)))
+
+            # Ensure that window_length is at least 1 day's worth of data.
+            window_length = max(lookback, 1)
 
             def zipline_wrapper(data):
                 # get required TA-Lib input names
@@ -157,7 +163,7 @@ def make_transform(talib_fn, name):
             super(TALibTransform, self).__init__(
                 func=zipline_wrapper,
                 refresh_period=refresh_period,
-                window_length=max(1, self.lookback + 1))
+                window_length=window_length)
 
         def __repr__(self):
             return 'Zipline BatchTransform: {0}'.format(
