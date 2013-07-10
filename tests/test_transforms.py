@@ -350,11 +350,14 @@ class TestTALIB(TestCase):
         algo = TALIBAlgorithm(talib=zipline_transforms)
         algo.run(self.source)
         # Test if computed values match those computed by pandas rolling mean.
-        talib_values = np.array(algo.talib_results[zipline_transforms[0]])
+        sid = 0
+        talib_values = np.array([x[sid] for x in
+                                 algo.talib_results[zipline_transforms[0]]])
         np.testing.assert_array_equal(talib_values,
                                       pd.rolling_mean(self.panel[0]['price'],
                                                       10).values)
-        talib_values = np.array(algo.talib_results[zipline_transforms[1]])
+        talib_values = np.array([x[sid] for x in
+                                 algo.talib_results[zipline_transforms[1]]])
         np.testing.assert_array_equal(talib_values,
                                       pd.rolling_mean(self.panel[0]['price'],
                                                       25).values)

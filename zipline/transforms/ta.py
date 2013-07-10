@@ -30,31 +30,38 @@ def zipline_wrapper(talib_fn, key_map, data):
     else:
         req_inputs = []
 
-    # build talib_data from zipline data
-    talib_data = dict()
-    for talib_key, zipline_key in key_map.iteritems():
-        # if zipline_key is found, add it to talib_data
-        if zipline_key in data:
-            talib_data[talib_key] = data[zipline_key].values[:, 0]
-        # if zipline_key is not found and not required, add zeros
-        elif talib_key not in req_inputs:
-            talib_data[talib_key] = np.zeros(data.shape[1])
-        # if zipline key is not found and required, raise error
+    all_results = {}
+
+    for sid in data.minor_axis:
+        # build talib_data from zipline data
+        talib_data = dict()
+        for talib_key, zipline_key in key_map.iteritems():
+            # if zipline_key is found, add it to talib_data
+            if zipline_key in data:
+                talib_data[talib_key] = data[zipline_key].values[:, 0]
+            # if zipline_key is not found and not required, add zeros
+            elif talib_key not in req_inputs:
+                talib_data[talib_key] = np.zeros(data.shape[1])
+            # if zipline key is not found and required, raise error
+            else:
+                raise KeyError(
+                    'Tried to set required TA-Lib data with key '
+                    '\'{0}\' but no Zipline data is available under '
+                    'expected key \'{1}\'.'.format(
+                        talib_key, zipline_key))
+
+        # call talib
+        talib_result = talib_fn(talib_data)
+
+        # keep only the most recent result
+        if isinstance(talib_result, (list, tuple)):
+            sid_result = tuple([r[-1] for r in talib_result])
         else:
-            raise KeyError(
-                'Tried to set required TA-Lib data with key '
-                '\'{0}\' but no Zipline data is available under '
-                'expected key \'{1}\'.'.format(
-                    talib_key, zipline_key))
+            sid_result = talib_result[-1]
 
-    # call talib
-    result = talib_fn(talib_data)
+        all_results[sid] = sid_result
 
-    # keep only the most recent result
-    if isinstance(result, (list, tuple)):
-        return tuple([r[-1] for r in result])
-    else:
-        return result[-1]
+    return all_results
 
 
 def make_transform(talib_fn, name):
