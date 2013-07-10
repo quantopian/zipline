@@ -63,8 +63,8 @@ class DualEMATaLib(TradingAlgorithm):
             self.sell = True
 
         self.record(AAPL=data['AAPL'].price,
-                    short_ema=self.short_ema,
-                    long_ema=self.long_ema,
+                    short_ema=self.short_ema['AAPL'],
+                    long_ema=self.long_ema['AAPL'],
                     buy=self.buy,
                     sell=self.sell)
 
