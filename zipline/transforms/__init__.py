@@ -17,7 +17,7 @@ from . mavg import MovingAverage
 from . stddev import MovingStandardDev
 from . vwap import MovingVWAP
 from . returns import Returns
-from . utils import BatchTransform, batch_transform
+from . batch_transform import BatchTransform, batch_transform
 
 __all__ = [
     'MovingAverage',
