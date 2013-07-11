@@ -38,7 +38,7 @@ def zipline_wrapper(talib_fn, key_map, data):
         for talib_key, zipline_key in key_map.iteritems():
             # if zipline_key is found, add it to talib_data
             if zipline_key in data:
-                talib_data[talib_key] = data[zipline_key].values[:, 0]
+                talib_data[talib_key] = data[zipline_key][sid].values
             # if zipline_key is not found and not required, add zeros
             elif talib_key not in req_inputs:
                 talib_data[talib_key] = np.zeros(data.shape[1])
