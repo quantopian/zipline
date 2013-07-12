@@ -428,18 +428,16 @@ def load_from_yahoo(indexes=None,
     which removes the impact of splits and dividends. If the argument
     'adjusted' is False, then the non-adjusted 'close' field is used instead.
 
-    :Arguments:
-        indexes : dict (Default: {'SPX': '^GSPC'})
-            Financial indexes to load.
-        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
-                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
-            Stock closing prices to load.
-        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices from start date on.
-        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices until end date.
-        adjusted : bool (Default: True)
-            Adjust the price for splits and dividends.
+    :param indexes: Financial indexes to load.
+    :type indexes: dict
+    :param stocks: Stock closing prices to load.
+    :type stocks: list
+    :param start: Retrieve prices from start date on.
+    :type start: datetime
+    :param end: Retrieve prices until end date.
+    :type end: datetime
+    :param adjusted: Adjust the price for splits and dividends.
+    :type adjusted: bool
 
     """
     data = _load_raw_yahoo_data(indexes, stocks, start, end)
@@ -460,6 +458,7 @@ def load_bars_from_yahoo(indexes=None,
     """
     Loads data from Yahoo into a panel with the following
     column names for each indicated security:
+
         - open
         - high
         - low
@@ -471,19 +470,17 @@ def load_bars_from_yahoo(indexes=None,
     impact of splits and dividends. If the argument 'adjusted' is True, then
     the open, high, low, and close values are adjusted as well.
 
-    :Arguments:
-        indexes : dict (Default: {'SPX': '^GSPC'})
-            Financial indexes to load.
-        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
-                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
-            Stock closing prices to load.
-        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices from start date on.
-        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices until end date.
-        adjusted : bool (Default: True)
-            Adjust open/high/low/close for splits and dividends.  The 'price'
-            field is always adjusted.
+    :param indexes: Financial indexes to load.
+    :type indexes: dict
+    :param stocks: Stock closing prices to load.
+    :type stocks: list
+    :param start: Retrieve prices from start date on.
+    :type start: datetime
+    :param end: Retrieve prices until end date.
+    :type end: datetime
+    :param adjusted: Adjust open/high/low/close for splits and dividends.
+        The 'price' field is always adjusted.
+    :type adjusted: bool
 
     """
     data = _load_raw_yahoo_data(indexes, stocks, start, end)
