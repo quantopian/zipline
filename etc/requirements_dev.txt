@@ -7,8 +7,8 @@ nose-ignore-docstring==0.1
 
 flake8==2.0
 mccabe==0.2.1
-pep8==1.4.5
-pyflakes==0.7.2
+pep8==1.4.6
+pyflakes==0.7.3
 pip-tools==0.3.4
 
 # Documentation Conversion
