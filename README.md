@@ -140,6 +140,7 @@ Thank you for all the help so far!
 - [Jeremiah Lowin](http://www.lowindata.com) for teaching us the nuances of Sharpe and Sortino Ratios
 - Brian Cappello
 - @verdverm (Tony Worm), Order types (stop, limit)
+- @benmccann for benchmarking contributions
 - Quantopian Team
 
 (alert us if we've inadvertantly missed listing you here!)

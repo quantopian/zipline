@@ -96,41 +96,41 @@ class TestRisk(unittest.TestCase):
         self.assertEqual([round(x.benchmark_period_returns, 4)
                           for x in metrics.month_periods],
                          [0.0255,
-                          0.0004,
-                          0.0110,
-                          0.0057,
-                          -0.0290,
-                          0.0021,
-                          0.0061,
-                          0.0221,
-                          0.0247,
-                          0.0324,
-                          0.0189,
-                          0.0139])
+                          0.0005,
+                          0.0111,
+                          0.0122,
+                          -0.0309,
+                          0.0001,
+                          0.0051,
+                          0.0213,
+                          0.0246,
+                          0.0315,
+                          0.0165,
+                          0.0126])
         self.assertEqual([round(x.benchmark_period_returns, 4)
                           for x in metrics.three_month_periods],
-                         [0.0372,
-                          0.0171,
-                          -0.0128,
-                          -0.0214,
-                          -0.0211,
-                          0.0305,
-                          0.0537,
-                          0.0813,
-                          0.0780,
-                          0.0666])
+                         [0.0373,
+                          0.0239,
+                          -0.0083,
+                          -0.0191,
+                          -0.0259,
+                          0.0266,
+                          0.0517,
+                          0.0793,
+                          0.0743,
+                          0.0617])
         self.assertEqual([round(x.benchmark_period_returns, 4)
                           for x in metrics.six_month_periods],
-                         [0.015,
-                          -0.0043,
-                          0.0173,
-                          0.0311,
-                          0.0586,
-                          0.1108,
-                          0.1239])
+                         [0.0176,
+                          -0.0027,
+                          0.0181,
+                          0.0316,
+                          0.0514,
+                          0.1028,
+                          0.1166])
         self.assertEqual([round(x.benchmark_period_returns, 4)
                           for x in metrics.year_periods],
-                         [0.1407])
+                         [0.1362])
 
     def test_trading_days_06(self):
         returns = factory.create_returns_from_range(self.sim_params)
@@ -153,7 +153,7 @@ class TestRisk(unittest.TestCase):
                           0.047,
                           0.039,
                           0.022,
-                          0.022,
+                          0.023,
                           0.021,
                           0.025,
                           0.019])
@@ -161,7 +161,7 @@ class TestRisk(unittest.TestCase):
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.three_month_periods],
                          [0.047,
-                          0.043,
+                          0.042,
                           0.050,
                           0.064,
                           0.070,
@@ -177,7 +177,7 @@ class TestRisk(unittest.TestCase):
                           0.082,
                           0.081,
                           0.081,
-                          0.08,
+                          0.080,
                           0.074,
                           0.061])
 
@@ -360,39 +360,39 @@ class TestRisk(unittest.TestCase):
                          [0.131,
                           -0.11,
                           -0.067,
-                          0.144,
-                          0.298,
-                          -0.391,
-                          0.106,
-                          -0.034,
+                          0.136,
+                          0.301,
+                          -0.387,
+                          0.107,
+                          -0.032,
                           -0.058,
-                          0.068,
-                          0.09,
-                          -0.125])
+                          0.069,
+                          0.095,
+                          -0.123])
         self.assertEqual([round(x.information, 3)
                           for x in self.metrics_06.three_month_periods],
                          [-0.013,
-                          -0.006,
-                          0.113,
-                          -0.012,
-                          -0.02,
-                          -0.11,
-                          0.01,
-                          -0.005,
-                          0.03,
-                          0.009])
+                          -0.009,
+                          0.111,
+                          -0.014,
+                          -0.017,
+                          -0.108,
+                          0.011,
+                          -0.004,
+                          0.032,
+                          0.011])
         self.assertEqual([round(x.information, 3)
                           for x in self.metrics_06.six_month_periods],
                          [-0.013,
-                          -0.013,
+                          -0.014,
                           -0.003,
                           -0.002,
-                          -0.013,
-                          -0.042,
-                          0.009])
+                          -0.011,
+                          -0.041,
+                          0.011])
         self.assertEqual([round(x.information, 3)
                           for x in self.metrics_06.year_periods],
-                         [-0.002])
+                         [-0.001])
 
     def dtest_algorithm_beta_06(self):
         self.assertEqual([round(x.beta, 3)
@@ -578,49 +578,47 @@ class TestRisk(unittest.TestCase):
         returns = factory.create_returns_from_range(self.sim_params08)
         metrics = risk.RiskReport(returns, self.sim_params08)
 
-        monthly = [round(x.benchmark_period_returns, 3)
-                   for x in metrics.month_periods]
-
-        self.assertEqual(monthly,
-                         [-0.051,
-                          -0.039,
-                          0.001,
-                          0.043,
+        self.assertEqual([round(x.benchmark_period_returns, 3)
+                          for x in metrics.month_periods],
+                         [-0.061,
+                          -0.035,
+                          -0.006,
+                          0.048,
                           0.011,
+                          -0.086,
+                          -0.01,
+                          0.012,
+                          -0.091,
+                          -0.169,
                           -0.075,
-                          -0.007,
-                          0.026,
-                          -0.093,
-                          -0.160,
-                          -0.072,
-                          0.009])
+                          0.008])
 
         self.assertEqual([round(x.benchmark_period_returns, 3)
                           for x in metrics.three_month_periods],
-                         [-0.087,
-                          0.003,
-                          0.055,
-                          -0.026,
-                          -0.072,
-                          -0.058,
-                          -0.075,
-                          -0.218,
-                          -0.293,
-                          -0.214])
+                         [-0.099,
+                          0.005,
+                          0.052,
+                          -0.032,
+                          -0.085,
+                          -0.084,
+                          -0.089,
+                          -0.236,
+                          -0.301,
+                          -0.226])
 
         self.assertEqual([round(x.benchmark_period_returns, 3)
                           for x in metrics.six_month_periods],
-                         [-0.110,
-                          -0.069,
-                          -0.006,
-                          -0.099,
-                          -0.274,
-                          -0.334,
-                          -0.273])
+                         [-0.128,
+                          -0.081,
+                          -0.036,
+                          -0.118,
+                          -0.301,
+                          -0.36,
+                          -0.294])
 
         self.assertEqual([round(x.benchmark_period_returns, 3)
                           for x in metrics.year_periods],
-                         [-0.353])
+                         [-0.385])
 
     def test_trading_days_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
@@ -634,49 +632,50 @@ class TestRisk(unittest.TestCase):
     def test_benchmark_volatility_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
         metrics = risk.RiskReport(returns, self.sim_params08)
+
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.month_periods],
-                         [0.069,
-                          0.056,
-                          0.080,
-                          0.049,
-                          0.040,
-                          0.052,
+                         [0.07,
+                          0.058,
+                          0.082,
+                          0.054,
+                          0.041,
+                          0.057,
                           0.068,
-                          0.055,
-                          0.150,
-                          0.230,
-                          0.188,
-                          0.137])
+                          0.06,
+                          0.157,
+                          0.244,
+                          0.195,
+                          0.145])
 
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.three_month_periods],
-                         [0.118,
-                          0.108,
-                          0.101,
-                          0.083,
-                          0.094,
-                          0.102,
-                          0.172,
-                          0.277,
-                          0.328,
-                          0.323])
+                         [0.12,
+                          0.113,
+                          0.105,
+                          0.09,
+                          0.098,
+                          0.107,
+                          0.179,
+                          0.293,
+                          0.344,
+                          0.34])
 
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.six_month_periods],
-                         [0.144,
-                          0.143,
-                          0.143,
-                          0.190,
-                          0.292,
-                          0.342,
-                          0.364])
+                         [0.15,
+                          0.149,
+                          0.15,
+                          0.2,
+                          0.308,
+                          0.36,
+                          0.383])
         # TODO: ugly, but I can't get the rounded float to match.
         # maybe we need a different test that checks the
         # difference between the numbers
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.year_periods],
-                         [0.391])
+                         [0.411])
 
     def test_treasury_returns_06(self):
         returns = factory.create_returns_from_range(self.sim_params)
