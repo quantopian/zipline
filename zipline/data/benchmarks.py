@@ -104,19 +104,27 @@ def get_benchmark_data(symbol, start_date=None, end_date=None):
 
 
 def get_benchmark_returns(symbol, start_date=None, end_date=None):
+    """
+    Returns a list of return percentages in chronological order.
+    """
     if start_date is None:
         start_date = datetime(year=1950, month=1, day=3)
     if end_date is None:
         end_date = datetime.utcnow()
 
-    benchmark_returns = []
+    # Get the benchmark data and convert it to a list in chronological order.
+    data_points = list(get_benchmark_data(symbol, start_date, end_date))
+    data_points.reverse()
 
-    for data_point in get_benchmark_data(symbol, start_date, end_date):
-        returns = (data_point['close'] - data_point['open']) / \
-            data_point['open']
+    # Calculate the return percentages.
+    benchmark_returns = []
+    for i, data_point in enumerate(data_points):
+        if i == 0:
+            returns = 0
+        else:
+            prev_close = data_points[i-1]['close']
+            returns = (data_point['close'] - prev_close) / prev_close
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
         benchmark_returns.append(daily_return)
 
-    # Reverse data so we can load it in reverse chron order.
-    benchmark_returns.reverse()
     return benchmark_returns
