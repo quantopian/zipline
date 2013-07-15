@@ -182,3 +182,63 @@ If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
 If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
 """.strip().format(first_trading_day_after_new_years_sunday)
         )
+
+    def test_day_after_thanksgiving(self):
+        early_closes = tradingcalendar.get_early_closes(
+            tradingcalendar.start,
+            tradingcalendar.end.replace(year=tradingcalendar.end.year + 1)
+        )
+
+        #    November 2012
+        # Su Mo Tu We Th Fr Sa
+        #              1  2  3
+        #  4  5  6  7  8  9 10
+        # 11 12 13 14 15 16 17
+        # 18 19 20 21 22 23 24
+        # 25 26 27 28 29 30
+        fourth_friday = datetime.datetime(2012, 11, 23, tzinfo=pytz.utc)
+        self.assertIn(fourth_friday, early_closes)
+
+        #    November 2013
+        # Su Mo Tu We Th Fr Sa
+        #                 1  2
+        #  3  4  5  6  7  8  9
+        # 10 11 12 13 14 15 16
+        # 17 18 19 20 21 22 23
+        # 24 25 26 27 28 29 30
+        fifth_friday = datetime.datetime(2013, 11, 29, tzinfo=pytz.utc)
+        self.assertIn(fifth_friday, early_closes)
+
+    def test_early_close_independence_day_thursday(self):
+        """
+        Until 2013, the market closed early the Friday after an
+        Independence Day on Thursday.  Since then, the early close is on
+        Wednesday.
+        """
+        early_closes = tradingcalendar.get_early_closes(
+            tradingcalendar.start,
+            tradingcalendar.end.replace(year=tradingcalendar.end.year + 1)
+        )
+        #      July 2002
+        # Su Mo Tu We Th Fr Sa
+        #     1  2  3  4  5  6
+        #  7  8  9 10 11 12 13
+        # 14 15 16 17 18 19 20
+        # 21 22 23 24 25 26 27
+        # 28 29 30 31
+        wednesday_before = datetime.datetime(2002, 7, 3, tzinfo=pytz.utc)
+        friday_after = datetime.datetime(2002, 7, 5, tzinfo=pytz.utc)
+        self.assertNotIn(wednesday_before, early_closes)
+        self.assertIn(friday_after, early_closes)
+
+        #      July 2013
+        # Su Mo Tu We Th Fr Sa
+        #     1  2  3  4  5  6
+        #  7  8  9 10 11 12 13
+        # 14 15 16 17 18 19 20
+        # 21 22 23 24 25 26 27
+        # 28 29 30 31
+        wednesday_before = datetime.datetime(2013, 7, 3, tzinfo=pytz.utc)
+        friday_after = datetime.datetime(2013, 7, 5, tzinfo=pytz.utc)
+        self.assertIn(wednesday_before, early_closes)
+        self.assertNotIn(friday_after, early_closes)
