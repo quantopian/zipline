@@ -22,6 +22,7 @@ from delorean import Delorean
 import pandas as pd
 
 from zipline.data.loader import load_market_data
+from zipline.utils.tradingcalendar import get_early_closes
 
 
 log = logbook.Logger('Trading')
@@ -89,6 +90,7 @@ class TradingEnvironment(object):
             self.treasury_curves = self.treasury_curves[:max_date]
 
         self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
+        self.early_close_trading_day = datetime.timedelta(hours=3, minutes=30)
         self.exchange_tz = exchange_tz
 
         bm = None
@@ -111,6 +113,9 @@ class TradingEnvironment(object):
 
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
+
+        self.early_closes = get_early_closes(self.first_trading_day,
+                                             self.last_trading_day)
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -203,8 +208,10 @@ Last successful date: %s" % self.last_trading_day)
         return market_open, market_close
 
     def get_trading_day_duration(self, trading_day):
-        # TODO: make a list of half-days and modify the
-        # calculation of market close to reflect them.
+        trading_day = self.normalize_date(trading_day)
+        if trading_day in self.early_closes:
+            return self.early_close_trading_day
+
         return self.full_trading_day
 
     def trading_day_distance(self, first_date, second_date):
