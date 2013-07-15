@@ -40,7 +40,7 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.blotter import Blotter
-from zipline.finance.constants import ANNUALIZER, FILL_DELAYS
+from zipline.finance.constants import ANNUALIZER
 import zipline.finance.trading as trading
 import zipline.protocol
 from zipline.protocol import Event
@@ -87,8 +87,6 @@ class TradingAlgorithm(object):
             annualizer : int <optional>
                Which constant to use for annualizing risk metrics.
                If not provided, will extract from data_frequency.
-            fill_delay : datetime.timedelta
-               Delay between placing an order and filling an order.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
@@ -109,13 +107,14 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        self.set_data_frequency(kwargs.pop('data_frequency', 'daily'))
+        if 'data_frequency' in kwargs:
+            self.set_data_frequency(kwargs.pop('data_frequency'))
+        else:
+            self.data_frequency = None
 
         # Override annualizer if set
         if 'annualizer' in kwargs:
             self.annualizer = kwargs['annualizer']
-        if 'fill_delay' in kwargs:
-            self.fill_delay = kwargs['fill_delay']
 
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
@@ -126,7 +125,7 @@ class TradingAlgorithm(object):
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
-            self.blotter = Blotter(fill_delay=self.fill_delay)
+            self.blotter = Blotter()
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
@@ -432,4 +431,3 @@ class TradingAlgorithm(object):
         assert data_frequency in ('daily', 'minute')
         self.data_frequency = data_frequency
         self.annualizer = ANNUALIZER[self.data_frequency]
-        self.fill_delay = FILL_DELAYS[self.data_frequency]

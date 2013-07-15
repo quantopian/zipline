@@ -110,7 +110,7 @@ class AlgorithmSimulator(object):
                         self.algo.perf_tracker.process_event(event)
 
                 else:
-                    events = []
+
                     for event in snapshot:
                         if event.type in (DATASOURCE_TYPE.TRADE,
                                           DATASOURCE_TYPE.CUSTOM):
@@ -120,8 +120,11 @@ class AlgorithmSimulator(object):
                             self.algo.set_datetime(event.dt)
                             bm_updated = True
 
-                        # Save events to stream through blotter below.
-                        events.append(event)
+                        process_trade = self.algo.blotter.process_trade
+                        for txn, order in process_trade(event):
+                            self.algo.perf_tracker.process_event(txn)
+                            self.algo.perf_tracker.process_event(order)
+                        self.algo.perf_tracker.process_event(event)
 
                     # Update our portfolio.
                     self.algo.set_portfolio(
@@ -141,16 +144,6 @@ class AlgorithmSimulator(object):
                         for order in self.algo.blotter.new_orders:
                             self.algo.perf_tracker.process_event(order)
                         self.algo.blotter.new_orders = []
-
-                    # Fill orders
-                    for event in events:
-                        process_trade = self.algo.blotter.process_trade
-                        for txn, order in process_trade(event):
-
-                            self.algo.perf_tracker.process_event(txn)
-                            self.algo.perf_tracker.process_event(order)
-
-                        self.algo.perf_tracker.process_event(event)
 
                     # The benchmark is our internal clock. When it
                     # updates, we need to emit a performance message.
