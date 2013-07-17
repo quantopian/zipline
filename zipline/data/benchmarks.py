@@ -120,7 +120,8 @@ def get_benchmark_returns(symbol, start_date=None, end_date=None):
     benchmark_returns = []
     for i, data_point in enumerate(data_points):
         if i == 0:
-            returns = 0
+            curr_open = data_points[i]['open']
+            returns = (data_points[i]['close'] - curr_open) / curr_open
         else:
             prev_close = data_points[i-1]['close']
             returns = (data_point['close'] - prev_close) / prev_close
