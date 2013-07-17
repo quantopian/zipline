@@ -20,7 +20,8 @@ import numpy as np
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
 from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
-                                     RecordAlgorithm)
+                                     RecordAlgorithm,
+                                     TestOrderAlgorithm)
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
@@ -164,3 +165,10 @@ class TestTransformAlgorithm(TestCase):
         )
         self.assertEqual(algo.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 10)
+
+    def test_orders_executed(self):
+        algo = TestOrderAlgorithm(
+            sim_params=self.sim_params,
+            data_frequency='daily'
+        )
+        algo.run(self.df)

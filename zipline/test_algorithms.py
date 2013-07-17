@@ -216,6 +216,25 @@ class RecordAlgorithm(TradingAlgorithm):
         self.incr += 1
         self.record(incr=self.incr)
 
+
+class TestOrderAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.incr = 0
+        self.sale_price = None
+
+    def handle_data(self, data):
+        print data[0]
+        if self.incr == 0:
+            assert 0 not in self.portfolio.positions
+        else:
+            assert self.portfolio.positions[0]['amount'] == \
+                self.incr, "Orders not filled immediately."
+            assert self.portfolio.positions[0]['last_sale_price'] == \
+                data[0].price, "Orders not filled at current price."
+        self.incr += 1
+        self.order(0, 1)
+
+
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import BatchTransform, batch_transform
 from zipline.transforms import MovingAverage
