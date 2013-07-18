@@ -24,7 +24,10 @@ import requests
 def col_letter_to_index(col_letter):
     # Only supports single letter,
     # but answer key doesn't need multi-letter, yet.
-    return ord(col_letter) - 65
+    index = 0
+    for i, char in enumerate(col_letter):
+        index += ((ord(char) - 65) + (26 * i))
+    return index
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -148,6 +151,27 @@ class AnswerKey(object):
         '3-Month': DataIndex('s_p', 'U', 10, 19),
         '6-month': DataIndex('s_p', 'V', 13, 19),
         'year': DataIndex('s_p', 'W', 19, 19),
+    }
+
+    ALGORITHM_PERIOD_RETURNS = {
+        'Monthly': DataIndex('Sim', 'V', 23, 34),
+        '3-Month': DataIndex('Sim', 'W', 25, 34),
+        '6-month': DataIndex('Sim', 'X', 28, 34),
+        'year': DataIndex('Sim', 'Y', 34, 34),
+    }
+
+    ALGORITHM_PERIOD_VOLATILITY = {
+        'Monthly': DataIndex('Sim', 'Z', 23, 34),
+        '3-Month': DataIndex('Sim', 'AA', 25, 34),
+        '6-month': DataIndex('Sim', 'AB', 28, 34),
+        'year': DataIndex('Sim', 'AC', 34, 34),
+    }
+
+    ALGORITHM_PERIOD_SHARPE = {
+        'Monthly': DataIndex('Sim', 'AD', 23, 34),
+        '3-Month': DataIndex('Sim', 'AE', 25, 34),
+        '6-month': DataIndex('Sim', 'AF', 28, 34),
+        'year': DataIndex('Sim', 'AG', 34, 34),
     }
 
     def __init__(self):

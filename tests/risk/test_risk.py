@@ -161,107 +161,74 @@ class TestRisk(unittest.TestCase):
                          answer_key_year_periods)
 
     def test_algorithm_returns_06(self):
-        self.assertEqual([round(x.algorithm_period_returns, 3)
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_RETURNS['Monthly'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_period_returns, 3)
                           for x in self.metrics_06.month_periods],
-                         [0.101,
-                          -0.062,
-                          -0.041,
-                          0.092,
-                          0.135,
-                          -0.25,
-                          0.076,
-                          -0.003,
-                          -0.024,
-                          0.072,
-                          0.063,
-                          -0.071])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.algorithm_period_returns, 3)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_RETURNS['3-Month'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_period_returns, 3)
                           for x in self.metrics_06.three_month_periods],
-                         [-0.009,
-                          -0.017,
-                          0.188,
-                          -0.071,
-                          -0.085,
-                          -0.196,
-                          0.047,
-                          0.043,
-                          0.112,
-                          0.058])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.algorithm_period_returns, 3)
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_RETURNS['6-month'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_period_returns, 3)
                           for x in self.metrics_06.six_month_periods],
-                         [-0.08,
-                          -0.101,
-                          -0.044,
-                          -0.027,
-                          -0.045,
-                          -0.106,
-                          0.108])
+                         answer_key_six_month_periods)
 
-        self.assertEqual([round(x.algorithm_period_returns, 3)
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_RETURNS['year'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_period_returns, 3)
                           for x in self.metrics_06.year_periods],
-                         [0.02])
+                         answer_key_year_periods)
 
     def test_algorithm_volatility_06(self):
-        self.assertEqual([round(x.algorithm_volatility, 3)
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_VOLATILITY['Monthly'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_volatility, 3)
                           for x in self.metrics_06.month_periods],
-                         [0.137,
-                          0.12,
-                          0.13,
-                          0.142,
-                          0.128,
-                          0.14,
-                          0.141,
-                          0.118,
-                          0.143,
-                          0.144,
-                          0.117,
-                          0.135])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.algorithm_volatility, 3)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_VOLATILITY['3-Month'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_volatility, 3)
                           for x in self.metrics_06.three_month_periods],
-                         [0.222,
-                          0.224,
-                          0.229,
-                          0.243,
-                          0.243,
-                          0.235,
-                          0.23,
-                          0.231,
-                          0.231,
-                          0.227])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.algorithm_volatility, 3)
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_VOLATILITY['6-month'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_volatility, 3)
                           for x in self.metrics_06.six_month_periods],
-                         [0.328,
-                          0.329,
-                          0.329,
-                          0.333,
-                          0.334,
-                          0.329,
-                          0.321])
+                         answer_key_six_month_periods)
 
-        self.assertEqual([round(x.algorithm_volatility, 3)
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_VOLATILITY['year'],
+            decimal=3)
+        self.assertEqual([np.round(x.algorithm_volatility, 3)
                           for x in self.metrics_06.year_periods],
-                         [0.458])
+                         answer_key_year_periods)
 
     def test_algorithm_sharpe_06(self):
-        self.assertEqual([round(x.sharpe, 3)
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+            decimal=3)
+        self.assertEqual([np.round(x.sharpe, 3)
                           for x in self.metrics_06.month_periods],
-                         [0.711,
-                          -0.541,
-                          -0.348,
-                          0.625,
-                          1.017,
-                          -1.809,
-                          0.508,
-                          -0.062,
-                          -0.193,
-                          0.467,
-                          0.502,
-                          -0.557])
+                         answer_key_month_periods)
 
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+            decimal=3)
         self.assertEqual([round(x.sharpe, 3)
                           for x in self.metrics_06.three_month_periods],
                          [-0.094,
@@ -275,6 +242,9 @@ class TestRisk(unittest.TestCase):
                           0.432,
                           0.2])
 
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+            decimal=3)
         self.assertEqual([round(x.sharpe, 3)
                           for x in self.metrics_06.six_month_periods],
                          [-0.322,
@@ -285,6 +255,9 @@ class TestRisk(unittest.TestCase):
                           -0.398,
                           0.257])
 
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+            decimal=3)
         self.assertEqual([round(x.sharpe, 3)
                           for x in self.metrics_06.year_periods],
                          [-0.066])
