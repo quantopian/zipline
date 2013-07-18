@@ -93,6 +93,8 @@ def ensure_latest_answer_key():
             else:
                 # Assume local copy that is being developed on
                 answer_key_dl_checksum = None
+    else:
+        answer_key_dl_checksum = ANSWER_KEY_CHECKSUMS[-1]
 
     if answer_key_dl_checksum:
         res = requests.get(
