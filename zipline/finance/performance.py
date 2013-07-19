@@ -304,6 +304,10 @@ class PerformanceTracker(object):
             for perf_period in self.perf_periods:
                 perf_period.add_dividend(event)
 
+        elif event.type == zp.DATASOURCE_TYPE.SPLIT:
+            for perf_period in self.perf_periods:
+                perf_period.handle_split(event)
+
         elif event.type == zp.DATASOURCE_TYPE.ORDER:
             for perf_period in self.perf_periods:
                 perf_period.record_order(event)
@@ -407,7 +411,7 @@ class PerformanceTracker(object):
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
 
-        # Take a snapshot of our current peformance to return to the
+        # Take a snapshot of our current performance to return to the
         # browser.
         daily_update = self.to_dict()
 
@@ -503,6 +507,43 @@ class Position(object):
 
     def add_dividend(self, dividend):
         self.dividends.append(dividend)
+
+    # Update the position by the split ratio, and return the
+    # resulting fractional share that will be converted into cash.
+
+    # Returns the unused cash.
+    def handle_split(self, split):
+        if (self.sid != split.sid):
+            raise NameError("updating split with the wrong sid!")
+
+        ratio = split.ratio
+
+        # adjust the # of shares by the ratio
+        # (if we had 100 shares, and the ratio is 0.33333,
+        #  we now have 33 shares)
+
+        # ie, 33.333
+        raw_share_count = self.amount * ratio
+
+        # ie, 33
+        full_share_count = math.floor(raw_share_count)
+
+        # ie, 0.333
+        fractional_share_count = raw_share_count - full_share_count
+
+        # adjust the cost basis to the nearest cent, ie, 60.0
+        new_cost_basis = round(self.cost_basis / ratio, 2)
+
+        # adjust the last sale price
+        new_last_sale_price = round(self.last_sale_price / ratio, 2)
+
+        self.cost_basis = new_cost_basis
+        self.last_sale_price = new_last_sale_price
+        self.amount = full_share_count
+
+        # return the leftover cash, which will be converted into cash
+        # (rounded to the nearest cent)
+        return round(float(fractional_share_count * new_cost_basis), 2)
 
     def update(self, txn):
         if(self.sid != txn.sid):
@@ -621,10 +662,18 @@ class PerformancePeriod(object):
         # included in the event.
         self.positions[div.sid].add_dividend(div)
 
+    def handle_split(self, split):
+        # Make the position object handle the split. It returns the
+        # leftover cash from a fractional share, if there is any.
+        leftover_cash = self.positions[split.sid].handle_split(split)
+
+        if leftover_cash > 0:
+            self.handle_cash_payment(leftover_cash)
+
     def update_dividends(self, todays_date):
         """
         Check the payment date and ex date against today's date
-        to detrmine if we are owed a dividend payment or if the
+        to determine if we are owed a dividend payment or if the
         payment has been disbursed.
         """
         cash_payments = 0.0
@@ -634,15 +683,18 @@ class PerformancePeriod(object):
         # credit our cash balance with the dividend payments, or
         # if we are short, debit our cash balance with the
         # payments.
-        self.period_cash_flow += cash_payments
         # debit our cumulative cash spent with the dividend
         # payments, or credit our cumulative cash spent if we are
         # short the stock.
-        self.cumulative_capital_used -= cash_payments
+        self.handle_cash_payment(cash_payments)
 
         # recalculate performance, including the dividend
-        # paymtents
+        # payments
         self.calculate_performance()
+
+    def handle_cash_payment(self, payment_amount):
+        self.period_cash_flow += payment_amount
+        self.cumulative_capital_used -= payment_amount
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()

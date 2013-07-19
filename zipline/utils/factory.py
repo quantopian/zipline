@@ -175,6 +175,15 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
     return div
 
 
+def create_split(sid, ratio, date):
+    return Event({
+        'sid': sid,
+        'ratio': ratio,
+        'dt': date.replace(hour=0, minute=0, second=0, microsecond=0),
+        'type': DATASOURCE_TYPE.SPLIT
+    })
+
+
 def create_txn(sid, price, amount, datetime):
     txn = Event({
         'sid': sid,

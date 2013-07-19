@@ -104,6 +104,9 @@ class AlgorithmSimulator(object):
                 # and don't send a snapshot to handle_data.
                 if date < self.algo_start:
                     for event in snapshot:
+                        if event.type == DATASOURCE_TYPE.SPLIT:
+                            self.algo.blotter.process_split(event)
+
                         if event.type in (DATASOURCE_TYPE.TRADE,
                                           DATASOURCE_TYPE.CUSTOM):
                             self.update_universe(event)
@@ -112,6 +115,9 @@ class AlgorithmSimulator(object):
                 else:
 
                     for event in snapshot:
+                        if event.type == DATASOURCE_TYPE.SPLIT:
+                            self.algo.blotter.process_split(event)
+
                         if event.type in (DATASOURCE_TYPE.TRADE,
                                           DATASOURCE_TYPE.CUSTOM):
                             self.update_universe(event)
