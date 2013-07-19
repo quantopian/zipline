@@ -218,7 +218,7 @@ class TestRisk(unittest.TestCase):
                           for x in self.metrics_06.year_periods],
                          answer_key_year_periods)
 
-    def test_algorithm_sharpe_06(self):
+    def test_algorithm_sharpe_06_monthly(self):
         answer_key_month_periods = ANSWER_KEY.get_values(
             AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
             decimal=3)
@@ -226,41 +226,31 @@ class TestRisk(unittest.TestCase):
                           for x in self.metrics_06.month_periods],
                          answer_key_month_periods)
 
-        answer_key_month_periods = ANSWER_KEY.get_values(
-            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+    def test_algorithm_sharpe_06_three_month(self):
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['3-Month'],
             decimal=3)
-        self.assertEqual([round(x.sharpe, 3)
+        self.assertEqual([np.round(x.sharpe, 3)
                           for x in self.metrics_06.three_month_periods],
-                         [-0.094,
-                          -0.129,
-                          0.769,
-                          -0.342,
-                          -0.402,
-                          -0.888,
-                          0.153,
-                          0.131,
-                          0.432,
-                          0.2])
+                         answer_key_three_month_periods)
 
-        answer_key_month_periods = ANSWER_KEY.get_values(
-            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+    def test_algorithm_sharpe_06_six_month(self):
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['6-month'],
             decimal=3)
-        self.assertEqual([round(x.sharpe, 3)
-                          for x in self.metrics_06.six_month_periods],
-                         [-0.322,
-                          -0.383,
-                          -0.213,
-                          -0.156,
-                          -0.213,
-                          -0.398,
-                          0.257])
+        results_six_month_periods = [
+            np.round(x.sharpe, 3)
+            for x in self.metrics_06.six_month_periods]
+        self.assertEqual(results_six_month_periods,
+                         answer_key_six_month_periods)
 
-        answer_key_month_periods = ANSWER_KEY.get_values(
-            AnswerKey.ALGORITHM_PERIOD_SHARPE['Monthly'],
+    def test_algorithm_sharpe_06_year(self):
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_SHARPE['year'],
             decimal=3)
-        self.assertEqual([round(x.sharpe, 3)
+        self.assertEqual([np.round(x.sharpe, 3)
                           for x in self.metrics_06.year_periods],
-                         [-0.066])
+                         answer_key_year_periods)
 
     def test_algorithm_sortino_06(self):
         self.assertEqual([round(x.sortino, 3)
