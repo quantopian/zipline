@@ -64,7 +64,7 @@ def drain_zipline(test, zipline):
     for update in zipline:
         msg_counter += 1
         output.append(update)
-        if 'daily_perf' in update:
+        if isinstance(update, dict):
             transaction_count += \
                 len(update['daily_perf']['transactions'])
 
@@ -96,7 +96,7 @@ def assert_single_position(test, zipline):
     # orders when they are updated. Then check the status on all.
     orders_by_id = {}
     for update in output:
-        if 'daily_perf' in update:
+        if isinstance(update, dict):
             if 'orders' in update['daily_perf']:
                 for order in update['daily_perf']['orders']:
                     orders_by_id[order['id']] = order

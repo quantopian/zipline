@@ -170,8 +170,7 @@ class AlgorithmSimulator(object):
                                     )
                                 self.algo.perf_tracker.handle_intraday_close()
 
-            risk_message = self.algo.perf_tracker.handle_simulation_end()
-            yield risk_message
+            yield self.algo.perf_tracker.handle_simulation_end()
 
     def get_message(self, date):
         rvars = self.algo.recorded_vars
