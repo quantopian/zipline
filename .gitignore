@@ -18,7 +18,9 @@ pip-log.txt
 .tox
 test.log
 .noseids
+*.xlsx
 
+# Compiled python files
 *.py[co]
 
 # Packages
