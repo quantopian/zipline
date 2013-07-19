@@ -390,3 +390,38 @@ class FinanceTestCase(TestCase):
         self.assertTrue(sid in oo)
         order_list = oo[sid]
         self.assertEqual(0, len(order_list))
+
+    def test_blotter_processes_splits(self):
+        sim_params = factory.create_simulation_parameters()
+        blotter = Blotter()
+        blotter.set_date(sim_params.period_start)
+
+        # set up two open limit orders with very low limit prices,
+        # one for sid 24 and one for sid 17207
+        blotter.order(24, 100, 10, None, None)
+        blotter.order(17207, 100, 10, None, None)
+
+        # send in a split for sid 17207
+        split_event = factory.create_split(17207, 0.33333,
+                                           sim_params.period_start +
+                                           timedelta(days=1))
+
+        blotter.process_split(split_event)
+
+        for sid in [24, 17207]:
+            order_lists = blotter.open_orders[sid]
+            self.assertIsNotNone(order_lists)
+            self.assertEqual(1, len(order_lists))
+
+        aapl_order = blotter.open_orders[24][0].to_dict()
+        fls_order = blotter.open_orders[17207][0].to_dict()
+
+        # make sure the aapl order didn't change
+        self.assertEqual(100, aapl_order['amount'])
+        self.assertEqual(10, aapl_order['limit'])
+        self.assertEqual(24, aapl_order['sid'])
+
+        # make sure the fls order did change
+        self.assertEqual(33, fls_order['amount'])
+        self.assertEqual(30, fls_order['limit'])
+        self.assertEqual(17207, fls_order['sid'])

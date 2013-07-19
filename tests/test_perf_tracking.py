@@ -22,6 +22,7 @@ from nose_parameterized import parameterized
 import datetime
 import pytz
 import itertools
+import math
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
@@ -84,6 +85,59 @@ def calculate_results(host, events):
             results.append(msg)
             bm_updated = False
     return results
+
+
+class TestSplitPerformance(unittest.TestCase):
+    def setUp(self):
+        self.sim_params, self.dt, self.end_dt = \
+            create_random_simulation_parameters()
+
+        # start with $10,000
+        self.sim_params.capital_base = 10e3
+
+        self.benchmark_events = benchmark_events_in_range(self.sim_params)
+
+    def test_split_long_position(self):
+        with trading.TradingEnvironment():
+            events = factory.create_trade_history(
+                1,
+                [20, 20],
+                [100, 100],
+                oneday,
+                self.sim_params
+            )
+
+            # # set up a long position in sid 1
+            # # 100 shares at $20 apiece = $2000 position
+            events.insert(0, create_txn(events[0], 20, 100))
+            events.append(factory.create_split(1, 0.33333,
+                          events[1].dt + datetime.timedelta(days=1)))
+
+            results = calculate_results(self, events)
+
+            # should have 33 shares (at $60 apiece) and $20 in cash
+            self.assertEqual(2, len(results))
+
+            latest_positions = results[1]['daily_perf']['positions']
+            self.assertEqual(1, len(latest_positions))
+
+            # check the last position to make sure it's been updated
+            position = latest_positions[0]
+
+            self.assertEqual(1, position['sid'])
+            self.assertEqual(33, position['amount'])
+            self.assertEqual(60, position['cost_basis'])
+            self.assertEqual(60, position['last_sale_price'])
+
+            # since we started with $10000, and we spent $2000 on the
+            # position, but then got $20 back, we should have $8020
+            # (or close to it) in cash.
+
+            # we won't get exactly 8020 because sometimes a split is
+            # denoted as a ratio like 0.3333, and we lose some digits
+            # of precision.  thus, make sure we're pretty close.
+            daily_perf = results[1]['daily_perf']
+            self.assertTrue((8020 - math.fabs(daily_perf['ending_cash'])) < 1)
 
 
 class TestDividendPerformance(unittest.TestCase):

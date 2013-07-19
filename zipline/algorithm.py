@@ -144,7 +144,7 @@ class TradingAlgorithm(object):
         """
         return """
 {class_name}(
-    captial_base={capital_base}
+    capital_base={capital_base}
     sim_params={sim_params},
     initialized={initialized},
     slippage={slippage},
