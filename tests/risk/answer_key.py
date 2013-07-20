@@ -25,8 +25,8 @@ def col_letter_to_index(col_letter):
     # Only supports single letter,
     # but answer key doesn't need multi-letter, yet.
     index = 0
-    for i, char in enumerate(col_letter):
-        index += ((ord(char) - 65) + (26 * i))
+    for i, char in enumerate(reversed(col_letter)):
+        index += ((ord(char) - 65) + 1) * pow(26, i)
     return index
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -115,7 +115,7 @@ class DataIndex(object):
 
     @property
     def col_index(self):
-        return col_letter_to_index(self.col)
+        return col_letter_to_index(self.col) - 1
 
     @property
     def row_start_index(self):
