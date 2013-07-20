@@ -469,48 +469,36 @@ class TestRisk(unittest.TestCase):
                           for x in self.metrics_06.year_periods],
                          [-8.75273E-06])
 
-    def dtest_benchmark_variance_06(self):
-        self.assertEqual([round(x.benchmark_variance, 7)
+    def test_benchmark_variance_06(self):
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['Monthly'],
+            decimal=7)
+        self.assertEqual([np.round(x.benchmark_variance, 7)
                           for x in self.metrics_06.month_periods],
-                         [0.0000496,
-                          0.000036,
-                          0.0000244,
-                          0.0000332,
-                          0.0000623,
-                          0.0000989,
-                          0.0000765,
-                          0.0000209,
-                          0.0000252,
-                          0.0000194,
-                          0.0000292,
-                          0.0000183])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.benchmark_variance, 7)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['3-Month'],
+            decimal=7)
+        self.assertEqual([np.round(x.benchmark_variance, 7)
                           for x in self.metrics_06.three_month_periods],
-                         [0.0000351,
-                          0.0000298,
-                          0.0000395,
-                          0.0000648,
-                          0.0000773,
-                          0.0000625,
-                          0.0000387,
-                          0.0000211,
-                          0.0000238,
-                          0.0000217])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.benchmark_variance, 7)
-                          for x in self.metrics_06.six_month_periods],
-                         [0.0000499,
-                          0.0000538,
-                          0.0000508,
-                          0.0000517,
-                          0.0000492,
-                          0.0000432,
-                          0.00003])
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['6-month'],
+            decimal=7)
+        results_six_month_periods = [
+            np.round(x.benchmark_variance, 7)
+            for x in self.metrics_06.six_month_periods]
+        self.assertEqual(results_six_month_periods,
+                         answer_key_six_month_periods)
 
-        self.assertEqual([round(x.benchmark_variance, 7)
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['year'],
+            decimal=7)
+        self.assertEqual([np.round(x.benchmark_variance, 7)
                           for x in self.metrics_06.year_periods],
-                         [0.0000399])
+                         answer_key_year_periods)
 
     def test_benchmark_returns_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)

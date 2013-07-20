@@ -166,6 +166,13 @@ class AnswerKey(object):
         'year': DataIndex('Sim', 'AG', 34, 34),
     }
 
+    ALGORITHM_PERIOD_BENCHMARK_VARIANCE = {
+        'Monthly': DataIndex('Sim', 'BB', 23, 34),
+        '3-Month': DataIndex('Sim', 'BC', 25, 34),
+        '6-month': DataIndex('Sim', 'BD', 28, 34),
+        'year': DataIndex('Sim', 'BE', 34, 34),
+    }
+
     def __init__(self):
         self.workbook = xlrd.open_workbook(ANSWER_KEY_PATH)
 
