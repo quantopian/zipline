@@ -173,6 +173,13 @@ class AnswerKey(object):
         'year': DataIndex('Sim', 'AK', 34, 34),
     }
 
+    ALGORITHM_PERIOD_ALPHA = {
+        'Monthly': DataIndex('Sim', 'AL', 23, 34),
+        '3-Month': DataIndex('Sim', 'AM', 25, 34),
+        '6-month': DataIndex('Sim', 'AN', 28, 34),
+        'year': DataIndex('Sim', 'AO', 34, 34),
+    }
+
     ALGORITHM_PERIOD_BENCHMARK_VARIANCE = {
         'Monthly': DataIndex('Sim', 'BB', 23, 34),
         '3-Month': DataIndex('Sim', 'BC', 25, 34),

@@ -363,47 +363,36 @@ class TestRisk(unittest.TestCase):
                           for x in self.metrics_06.year_periods],
                          answer_key_year_periods)
 
-    def dtest_algorithm_alpha_06(self):
-        self.assertEqual([round(x.alpha, 3)
+    def test_algorithm_alpha_06(self):
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_ALPHA['Monthly'],
+            decimal=7)
+        self.assertEqual([np.round(x.alpha, 7)
                           for x in self.metrics_06.month_periods],
-                         [0.085,
-                          -0.063,
-                          -0.03,
-                          0.093,
-                          0.182,
-                          -0.255,
-                          0.073,
-                          -0.032,
-                          0,
-                          0.086,
-                          0.054,
-                          -0.058])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.alpha, 3)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_ALPHA['3-Month'],
+            decimal=7)
+        self.assertEqual([np.round(x.alpha, 7)
                           for x in self.metrics_06.three_month_periods],
-                         [-0.051,
-                          -0.021,
-                          0.179,
-                          -0.077,
-                          -0.106,
-                          -0.202,
-                          0.069,
-                          0.042,
-                          0.13,
-                          0.073])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.alpha, 3)
-                          for x in self.metrics_06.six_month_periods],
-                         [-0.105,
-                          -0.135,
-                          -0.072,
-                          -0.051,
-                          -0.066,
-                          -0.094,
-                          0.152])
-        self.assertEqual([round(x.alpha, 3)
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_ALPHA['6-month'],
+            decimal=7)
+        results_six_month_periods = [
+            np.round(x.alpha, 7)
+            for x in self.metrics_06.six_month_periods]
+        self.assertEqual(results_six_month_periods,
+                         answer_key_six_month_periods)
+
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_ALPHA['year'],
+            decimal=7)
+        self.assertEqual([np.round(x.alpha, 7)
                           for x in self.metrics_06.year_periods],
-                         [-0.011])
+                         answer_key_year_periods)
 
     # FIXME: Covariance is not matching excel precisely enough to run the test.
     # Month 4 seems to be the problem. Variance is disabled
