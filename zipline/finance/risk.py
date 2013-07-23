@@ -487,7 +487,7 @@ class RiskMetricsBase(object):
         condition_number = max(eigen_values) / min(eigen_values)
         algorithm_covariance = C[0][1]
         benchmark_variance = np.var(self.benchmark_returns, ddof=1)
-        beta = C[0][1] / C[1][1]
+        beta = algorithm_covariance / benchmark_variance
 
         return (
             beta,

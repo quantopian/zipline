@@ -332,49 +332,36 @@ class TestRisk(unittest.TestCase):
                           for x in self.metrics_06.year_periods],
                          [-0.001])
 
-    def dtest_algorithm_beta_06(self):
-        self.assertEqual([round(x.beta, 3)
+    def test_algorithm_beta_06(self):
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BETA['Monthly'],
+            decimal=7)
+        self.assertEqual([np.round(x.beta, 7)
                           for x in self.metrics_06.month_periods],
-                         [0.553,
-                          0.583,
-                          -2.168,
-                          -0.548,
-                          1.463,
-                          -0.322,
-                          -1.38,
-                          1.473,
-                          -1.315,
-                          -0.7,
-                          0.352,
-                          -2.002])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.beta, 3)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BETA['3-Month'],
+            decimal=7)
+        self.assertEqual([np.round(x.beta, 7)
                           for x in self.metrics_06.three_month_periods],
-                         [-0.075,
-                          -0.637,
-                          0.124,
-                          0.186,
-                          -0.204,
-                          -0.497,
-                          -0.867,
-                          -0.173,
-                          -0.499,
-                          -0.563])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.beta, 3)
-                          for x in self.metrics_06.six_month_periods],
-                         [-0.075,
-                          -0.637,
-                          0.124,
-                          0.186,
-                          -0.204,
-                          -0.497,
-                          -0.867,
-                          -0.173,
-                          -0.499,
-                          -0.563])
-        self.assertEqual([round(x.beta, 3)
-                          for x in self.metrics_06.year_periods], [-0.219])
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BETA['6-month'],
+            decimal=7)
+        results_six_month_periods = [
+            np.round(x.beta, 7)
+            for x in self.metrics_06.six_month_periods]
+        self.assertEqual(results_six_month_periods,
+                         answer_key_six_month_periods)
+
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_BETA['year'],
+            decimal=7)
+        self.assertEqual([np.round(x.beta, 7)
+                          for x in self.metrics_06.year_periods],
+                         answer_key_year_periods)
 
     def dtest_algorithm_alpha_06(self):
         self.assertEqual([round(x.alpha, 3)
