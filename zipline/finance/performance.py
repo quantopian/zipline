@@ -531,8 +531,7 @@ class Position(object):
         # ie, 0.333
         fractional_share_count = raw_share_count - full_share_count
 
-        # adjust the cost basis to the nearest cent # FIXME check this
-        # ie, 60.0
+        # adjust the cost basis to the nearest cent, ie, 60.0
         new_cost_basis = round(self.cost_basis / ratio, 2)
 
         # adjust the last sale price
