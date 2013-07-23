@@ -22,11 +22,11 @@ from nose_parameterized import parameterized
 import datetime
 import pytz
 import itertools
-import math
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
+import zipline.utils.math_utils as zp_math
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -98,7 +98,7 @@ class TestSplitPerformance(unittest.TestCase):
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
     def test_split_long_position(self):
-        with trading.TradingEnvironment():
+        with trading.TradingEnvironment() as env:
             events = factory.create_trade_history(
                 1,
                 [20, 20],
@@ -107,11 +107,11 @@ class TestSplitPerformance(unittest.TestCase):
                 self.sim_params
             )
 
-            # # set up a long position in sid 1
-            # # 100 shares at $20 apiece = $2000 position
+            # set up a long position in sid 1
+            # 100 shares at $20 apiece = $2000 position
             events.insert(0, create_txn(events[0], 20, 100))
             events.append(factory.create_split(1, 0.33333,
-                          events[1].dt + datetime.timedelta(days=1)))
+                          env.next_trading_day(events[1].dt)))
 
             results = calculate_results(self, events)
 
@@ -137,7 +137,10 @@ class TestSplitPerformance(unittest.TestCase):
             # denoted as a ratio like 0.3333, and we lose some digits
             # of precision.  thus, make sure we're pretty close.
             daily_perf = results[1]['daily_perf']
-            self.assertTrue((8020 - math.fabs(daily_perf['ending_cash'])) < 1)
+
+            self.assertTrue(
+                zp_math.tolerant_equals(8020,
+                                        daily_perf['ending_cash'], 1))
 
 
 class TestDividendPerformance(unittest.TestCase):
