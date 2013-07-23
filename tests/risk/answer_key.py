@@ -173,6 +173,13 @@ class AnswerKey(object):
         'year': DataIndex('Sim', 'BE', 34, 34),
     }
 
+    ALGORITHM_PERIOD_COVARIANCE = {
+        'Monthly': DataIndex('Sim', 'AX', 23, 34),
+        '3-Month': DataIndex('Sim', 'AY', 25, 34),
+        '6-month': DataIndex('Sim', 'AZ', 28, 34),
+        'year': DataIndex('Sim', 'BA', 34, 34),
+    }
+
     def __init__(self):
         self.workbook = xlrd.open_workbook(ANSWER_KEY_PATH)
 

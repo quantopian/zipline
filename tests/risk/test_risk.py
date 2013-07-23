@@ -423,51 +423,36 @@ class TestRisk(unittest.TestCase):
     # just to avoid distraction - it is much closer than covariance
     # and can probably pass with 6 significant digits instead of 7.
     #re-enable variance, alpha, and beta tests once this is resolved
-    def dtest_algorithm_covariance_06(self):
-        metric = self.metrics_06.month_periods[3]
-        print repr(metric)
-        print "----"
-        self.assertEqual([round(x.algorithm_covariance, 7)
+    def test_algorithm_covariance_06(self):
+        answer_key_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_COVARIANCE['Monthly'],
+            decimal=7)
+        self.assertEqual([np.round(x.algorithm_covariance, 7)
                           for x in self.metrics_06.month_periods],
-                         [0.0000289,
-                          0.0000222,
-                          -0.0000554,
-                          -0.0000192,
-                          0.0000954,
-                          -0.0000333,
-                          -0.0001111,
-                          0.0000322,
-                          -0.0000349,
-                          -0.0000143,
-                          0.0000108,
-                          -0.0000386])
+                         answer_key_month_periods)
 
-        self.assertEqual([round(x.algorithm_covariance, 7)
+        answer_key_three_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_COVARIANCE['3-Month'],
+            decimal=7)
+        self.assertEqual([np.round(x.algorithm_covariance, 7)
                           for x in self.metrics_06.three_month_periods],
-                         [-0.0000026,
-                          -0.0000189,
-                          0.0000049,
-                          0.0000121,
-                          -0.0000158,
-                          -0.000031,
-                          -0.0000336,
-                          -0.0000036,
-                          -0.0000119,
-                          -0.0000122])
+                         answer_key_three_month_periods)
 
-        self.assertEqual([round(x.algorithm_covariance, 7)
-                          for x in self.metrics_06.six_month_periods],
-                         [0.000005,
-                          -0.0000172,
-                          -0.0000142,
-                          -0.0000102,
-                          -0.0000089,
-                          -0.0000207,
-                          -0.0000229])
+        answer_key_six_month_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_COVARIANCE['6-month'],
+            decimal=7)
+        results_six_month_periods = [
+            np.round(x.algorithm_covariance, 7)
+            for x in self.metrics_06.six_month_periods]
+        self.assertEqual(results_six_month_periods,
+                         answer_key_six_month_periods)
 
-        self.assertEqual([round(x.algorithm_covariance, 7)
+        answer_key_year_periods = ANSWER_KEY.get_values(
+            AnswerKey.ALGORITHM_PERIOD_COVARIANCE['year'],
+            decimal=7)
+        self.assertEqual([np.round(x.algorithm_covariance, 7)
                           for x in self.metrics_06.year_periods],
-                         [-8.75273E-06])
+                         answer_key_year_periods)
 
     def test_benchmark_variance_06(self):
         answer_key_month_periods = ANSWER_KEY.get_values(
