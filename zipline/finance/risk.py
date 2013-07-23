@@ -482,11 +482,11 @@ class RiskMetricsBase(object):
 
         returns_matrix = np.vstack([self.algorithm_returns,
                                     self.benchmark_returns])
-        C = np.cov(returns_matrix, ddof=0)
+        C = np.cov(returns_matrix, ddof=1)
         eigen_values = la.eigvals(C)
         condition_number = max(eigen_values) / min(eigen_values)
         algorithm_covariance = C[0][1]
-        benchmark_variance = np.var(self.benchmark_returns, ddof=1)
+        benchmark_variance = C[1][1]
         beta = algorithm_covariance / benchmark_variance
 
         return (
