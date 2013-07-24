@@ -346,6 +346,8 @@ def get_early_closes(start, end):
     # http://www.nyse.com/pdfs/closings.pdf
     #
     # New Year's Eve
-    early_closes.append(datetime(1999, 12, 31, tzinfo=pytz.utc))
+    nye_1999 = datetime(1999, 12, 31, tzinfo=pytz.utc)
+    if start <= nye_1999 and nye_1999 <= end:
+        early_closes.append(nye_1999)
 
     return pd.DatetimeIndex(sorted(early_closes))
