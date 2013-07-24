@@ -110,7 +110,9 @@ class TestSplitPerformance(unittest.TestCase):
             # set up a long position in sid 1
             # 100 shares at $20 apiece = $2000 position
             events.insert(0, create_txn(events[0], 20, 100))
-            events.append(factory.create_split(1, 0.33333,
+
+            # set up a split with ratio 3
+            events.append(factory.create_split(1, 3,
                           env.next_trading_day(events[1].dt)))
 
             results = calculate_results(self, events)
