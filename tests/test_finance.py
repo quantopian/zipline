@@ -422,6 +422,7 @@ class FinanceTestCase(TestCase):
         self.assertEqual(1, aapl_order['sid'])
 
         # make sure the fls order did change
-        self.assertEqual(33, fls_order['amount'])
-        self.assertEqual(30, fls_order['limit'])
+        # to 300 shares at 3.33
+        self.assertEqual(300, fls_order['amount'])
+        self.assertEqual(3.33, fls_order['limit'])
         self.assertEqual(2, fls_order['sid'])
