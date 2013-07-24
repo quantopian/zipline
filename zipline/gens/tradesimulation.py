@@ -99,6 +99,7 @@ class AlgorithmSimulator(object):
                 self.simulation_dt = date
                 self.algo.perf_tracker.set_date(date)
                 self.algo.blotter.set_date(date)
+
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
                 # and don't send a snapshot to handle_data.
@@ -110,10 +111,9 @@ class AlgorithmSimulator(object):
                         if event.type in (DATASOURCE_TYPE.TRADE,
                                           DATASOURCE_TYPE.CUSTOM):
                             self.update_universe(event)
+
                         self.algo.perf_tracker.process_event(event)
-
                 else:
-
                     for event in snapshot:
                         if event.type == DATASOURCE_TYPE.SPLIT:
                             self.algo.blotter.process_split(event)
