@@ -236,7 +236,8 @@ def get_non_trading_days(start, end):
     # - President Gerald R. Ford - Jan 2, 2007
     non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
 
-    return pd.DatetimeIndex(sorted(non_trading_days))
+    non_trading_days.sort()
+    return pd.DatetimeIndex(non_trading_days)
 
 
 def get_trading_days(start, end):
@@ -346,6 +347,9 @@ def get_early_closes(start, end):
     # http://www.nyse.com/pdfs/closings.pdf
     #
     # New Year's Eve
-    early_closes.append(datetime(1999, 12, 31, tzinfo=pytz.utc))
+    nye_1999 = datetime(1999, 12, 31, tzinfo=pytz.utc)
+    if start <= nye_1999 and nye_1999 <= end:
+        early_closes.append(nye_1999)
 
-    return pd.DatetimeIndex(sorted(early_closes))
+    early_closes.sort()
+    return pd.DatetimeIndex(early_closes)
