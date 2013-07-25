@@ -255,16 +255,16 @@ class Order(object):
         # info here: http://finra.complinet.com/en/display/display_plain.html?
         # rbid=2403&element_id=8950&record_id=12208&print=1
 
-        # if we have an open order for 100 shares at $20, and we get
-        # a 3:1 split, we now want to have an open order for 33 shares at $60
-        # for the amount, we round down to the nearest whole share
-        self.amount = int(self.amount * ratio)
+        # new_share_amount = old_share_amount / ratio
+        # new_price = old_price * ratio
+
+        self.amount = int(self.amount / ratio)
 
         if self.limit:
-            self.limit = round(self.limit / ratio, 2)
+            self.limit = round(self.limit * ratio, 2)
 
         if self.stop:
-            self.stop = round(self.stop / ratio, 2)
+            self.stop = round(self.stop * ratio, 2)
 
     @property
     def open(self):

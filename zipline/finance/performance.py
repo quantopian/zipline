@@ -518,12 +518,18 @@ class Position(object):
 
         ratio = split.ratio
 
+        log.info("handling split for sid = " + str(split.sid) +
+                 ", ratio = " + str(split.ratio))
+        log.info("before split: " + str(self))
+
         # adjust the # of shares by the ratio
-        # (if we had 100 shares, and the ratio is 0.33333,
+        # (if we had 100 shares, and the ratio is 3,
         #  we now have 33 shares)
+        # (old_share_count / ratio = new_share_count)
+        # (old_price * ratio = new_price)
 
         # ie, 33.333
-        raw_share_count = self.amount * ratio
+        raw_share_count = self.amount / float(ratio)
 
         # ie, 33
         full_share_count = math.floor(raw_share_count)
@@ -532,18 +538,23 @@ class Position(object):
         fractional_share_count = raw_share_count - full_share_count
 
         # adjust the cost basis to the nearest cent, ie, 60.0
-        new_cost_basis = round(self.cost_basis / ratio, 2)
+        new_cost_basis = round(self.cost_basis * ratio, 2)
 
         # adjust the last sale price
-        new_last_sale_price = round(self.last_sale_price / ratio, 2)
+        new_last_sale_price = round(self.last_sale_price * ratio, 2)
 
         self.cost_basis = new_cost_basis
         self.last_sale_price = new_last_sale_price
         self.amount = full_share_count
 
+        return_cash = round(float(fractional_share_count * new_cost_basis), 2)
+
+        log.info("after split: " + str(self))
+        log.info("returning cash: " + str(return_cash))
+
         # return the leftover cash, which will be converted into cash
         # (rounded to the nearest cent)
-        return round(float(fractional_share_count * new_cost_basis), 2)
+        return return_cash
 
     def update(self, txn):
         if(self.sid != txn.sid):
@@ -663,12 +674,13 @@ class PerformancePeriod(object):
         self.positions[div.sid].add_dividend(div)
 
     def handle_split(self, split):
-        # Make the position object handle the split. It returns the
-        # leftover cash from a fractional share, if there is any.
-        leftover_cash = self.positions[split.sid].handle_split(split)
+        if split.sid in self.positions:
+            # Make the position object handle the split. It returns the
+            # leftover cash from a fractional share, if there is any.
+            leftover_cash = self.positions[split.sid].handle_split(split)
 
-        if leftover_cash > 0:
-            self.handle_cash_payment(leftover_cash)
+            if leftover_cash > 0:
+                self.handle_cash_payment(leftover_cash)
 
     def update_dividends(self, todays_date):
         """
