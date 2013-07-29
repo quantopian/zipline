@@ -92,9 +92,9 @@ class TestRisk(unittest.TestCase):
         returns = factory.create_returns_from_list(
             [1.0, -0.5, 0.8, .17, 1.0, -0.1, -0.45], self.sim_params)
         #200, 100, 180, 210.6, 421.2, 379.8, 208.494
-        metrics = risk.RiskMetricsBatch(returns[0].date,
-                                        returns[-1].date,
-                                        returns)
+        metrics = risk.RiskMetricsPeriod(returns[0].date,
+                                         returns[-1].date,
+                                         returns)
         self.assertEqual(metrics.max_drawdown, 0.505)
 
     def test_benchmark_returns_06(self):

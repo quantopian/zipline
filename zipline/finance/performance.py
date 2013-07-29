@@ -171,17 +171,17 @@ class PerformanceTracker(object):
                 index=trading.environment.trading_days)
             self.intraday_risk_metrics = None
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsIterative(self.sim_params)
+                risk.RiskMetricsCumulative(self.sim_params)
 
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
                 freq='Min'))
             self.intraday_risk_metrics = \
-                risk.RiskMetricsIterative(self.sim_params)
+                risk.RiskMetricsCumulative(self.sim_params)
 
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsIterative(self.sim_params)
+                risk.RiskMetricsCumulative(self.sim_params)
             self.cumulative_risk_metrics.initialize_daily_indices()
 
             self.minute_performance = PerformancePeriod(
@@ -379,7 +379,7 @@ class PerformanceTracker(object):
 
     def handle_intraday_close(self):
         self.intraday_risk_metrics = \
-            risk.RiskMetricsIterative(self.sim_params)
+            risk.RiskMetricsCumulative(self.sim_params)
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         # move the market day markers forward

@@ -292,7 +292,7 @@ that date doesn't exceed treasury history range."
     raise Exception(message)
 
 
-class RiskMetricsBase(object):
+class RiskMetricsPeriod(object):
     def __init__(self, start_date, end_date, returns,
                  benchmark_returns=None):
 
@@ -536,12 +536,10 @@ class RiskMetricsBase(object):
         return 1.0 - math.exp(max_drawdown)
 
 
-class RiskMetricsIterative(RiskMetricsBase):
-    """Iterative version of RiskMetrics.
-    Should behave exaclty like RiskMetricsBatch.
-
+class RiskMetricsCumulative(object):
+    """
     :Usage:
-        Instantiate RiskMetricsIterative once.
+        Instantiate RiskMetricsCumulative once.
         Call update() method on each dt to update the metrics.
     """
 
@@ -814,9 +812,39 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                      self.benchmark_period_returns[-1],
                      self.beta[-1])
 
+    def calculate_volatility(self, daily_returns):
+        return np.std(daily_returns, ddof=1) * math.sqrt(self.num_trading_days)
 
-class RiskMetricsBatch(RiskMetricsBase):
-    pass
+    def calculate_beta(self):
+        """
+
+        .. math::
+
+            \\beta_a = \\frac{\mathrm{Cov}(r_a,r_p)}{\mathrm{Var}(r_p)}
+
+        http://en.wikipedia.org/wiki/Beta_(finance)
+        """
+        #it doesn't make much sense to calculate beta for less than two days,
+        #so return none.
+        if len(self.algorithm_returns) < 2:
+            return 0.0, 0.0, 0.0, 0.0, []
+
+        returns_matrix = np.vstack([self.algorithm_returns,
+                                    self.benchmark_returns])
+        C = np.cov(returns_matrix, ddof=1)
+        eigen_values = la.eigvals(C)
+        condition_number = max(eigen_values) / min(eigen_values)
+        algorithm_covariance = C[0][1]
+        benchmark_variance = C[1][1]
+        beta = algorithm_covariance / benchmark_variance
+
+        return (
+            beta,
+            algorithm_covariance,
+            benchmark_variance,
+            condition_number,
+            eigen_values
+        )
 
 
 class RiskReport(object):
@@ -889,7 +917,7 @@ class RiskReport(object):
             cur_end = cur_start + relativedelta(months=months_per) - one_day
             if(cur_end > the_end):
                 break
-            cur_period_metrics = RiskMetricsBatch(
+            cur_period_metrics = RiskMetricsPeriod(
                 start_date=cur_start,
                 end_date=cur_end,
                 returns=self.algorithm_returns,

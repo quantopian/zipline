@@ -43,7 +43,7 @@ class TestMinuteRisk(unittest.TestCase):
 
     def test_minute_risk(self):
 
-        risk_metrics = risk.RiskMetricsIterative(self.sim_params)
+        risk_metrics = risk.RiskMetricsCumulative(self.sim_params)
 
         first_dt = self.sim_params.first_open
         second_dt = self.sim_params.first_open + datetime.timedelta(minutes=1)
