@@ -34,11 +34,26 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 ANSWER_KEY_CHECKSUMS_PATH = os.path.join(DIR, 'risk-answer-key-checksums')
 ANSWER_KEY_CHECKSUMS = open(ANSWER_KEY_CHECKSUMS_PATH, 'r').read().splitlines()
 
-ANSWER_KEY_PATH = os.path.join(DIR, 'risk-answer-key.xlsx')
+ANSWER_KEY_FILENAME = 'risk-answer-key.xlsx'
+
+ANSWER_KEY_PATH = os.path.join(DIR, ANSWER_KEY_FILENAME)
+
+ANSWER_KEY_BUCKET_NAME = 'zipline-test_data'
 
 ANSWER_KEY_DL_TEMPLATE = """
 https://s3.amazonaws.com/zipline-test-data/risk/{md5}/risk-answer-key.xlsx
 """.strip()
+
+
+def answer_key_signature():
+    with open(ANSWER_KEY_PATH, 'r') as f:
+        md5 = hashlib.md5()
+        while True:
+            buf = f.read(1024)
+            if not buf:
+                break
+            md5.update(buf)
+    return md5.hexdigest()
 
 
 def ensure_latest_answer_key():
@@ -70,14 +85,7 @@ def ensure_latest_answer_key():
 
     local_answer_key_exists = os.path.exists(ANSWER_KEY_PATH)
     if local_answer_key_exists:
-        with open(ANSWER_KEY_PATH, 'r') as f:
-            md5 = hashlib.md5()
-            while True:
-                buf = f.read(1024)
-                if not buf:
-                    break
-                md5.update(buf)
-        local_hash = md5.hexdigest()
+        local_hash = answer_key_signature()
 
         if local_hash in ANSWER_KEY_CHECKSUMS:
             # Assume previously downloaded version.
