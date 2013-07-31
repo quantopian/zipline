@@ -23,7 +23,6 @@ import logbook
 
 from numbers import Integral
 
-from copy import deepcopy
 from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
@@ -216,7 +215,7 @@ class EventWindow(object):
 
         self.assert_well_formed(event)
         # Add new event and increment totals.
-        self.ticks.append(deepcopy(event))
+        self.ticks.append(event)
 
         # Subclasses should override handle_add to define behavior for
         # adding new ticks.
