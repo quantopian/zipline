@@ -319,7 +319,6 @@ class TradingAlgorithm(object):
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
         daily_perfs = []
-        cum_perfs = []
         # TODO: the loop here could overwrite expected properties
         # of daily_perf. Could potentially raise or log a
         # warning.
