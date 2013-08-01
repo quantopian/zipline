@@ -331,7 +331,7 @@ class TradingAlgorithm(object):
                 )
                 daily_perfs.append(perf['daily_perf'])
             else:
-                cum_perfs.append(perf)
+                self.risk_report = perf
 
         daily_dts = [np.datetime64(perf['period_close'], utc=True)
                      for perf in daily_perfs]
