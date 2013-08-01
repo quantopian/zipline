@@ -84,7 +84,8 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax1 = fig.add_subplot(211, ylabel='cumulative returns')
 
-    results[['algorithm_returns', 'benchmark_returns']].plot(ax=ax1, sharex=True)
+    results[['algorithm_returns', 'benchmark_returns']].plot(ax=ax1,
+                                                             sharex=True)
 
     ax2 = fig.add_subplot(212)
     data['AAPL'].plot(ax=ax2, color='r')
