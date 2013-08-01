@@ -457,13 +457,10 @@ class PerformanceTracker(object):
 
         bms = self.cumulative_risk_metrics.benchmark_returns
         ars = self.cumulative_risk_metrics.algorithm_returns
-        self.risk_report = risk.RiskReport(
+        return risk.RiskReport(
             ars,
             self.sim_params,
             benchmark_returns=bms)
-
-        risk_dict = self.risk_report.to_dict()
-        return risk_dict
 
 
 class Position(object):
