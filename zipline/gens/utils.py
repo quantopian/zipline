@@ -30,7 +30,7 @@ def hash_args(*args, **kwargs):
     combined = ':'.join([arg_string, kwarg_string])
 
     hasher = md5()
-    hasher.update(combined)
+    hasher.update(combined.encode("utf-8"))
     return hasher.hexdigest()
 
 

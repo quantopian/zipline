@@ -61,7 +61,6 @@ def benchmark_events_in_range(sim_params):
 
 
 def calculate_results(host, events):
-
     perf_tracker = perf.PerformanceTracker(host.sim_params)
 
     all_events = heapq.merge(
@@ -1041,7 +1040,7 @@ class TestPerformanceTracker(unittest.TestCase):
             ((event.dt, event) for event in benchmark_events)))
 
         filtered_events = [filt_event for filt_event
-                           in all_events if event.dt <= end_dt]
+                           in all_events if filt_event.dt <= end_dt]
         filtered_events.sort(key=lambda x: x.dt)
         grouped_events = itertools.groupby(filtered_events, lambda x: x.dt)
         perf_messages = []

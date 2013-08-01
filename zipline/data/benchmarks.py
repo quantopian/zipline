@@ -75,7 +75,7 @@ def get_raw_benchmark_data(start_date, end_date, symbol):
 
     res = requests.get('http://ichart.yahoo.com/table.csv',
                        params=params, stream=True)
-
+    res.encoding = 'utf-8'  # force encoding to utf-8.
     if not res.ok:
         raise BenchmarkDataNotFoundError("""
 No benchmark data found for date range.
@@ -84,7 +84,7 @@ start_date={start_date}, end_date={end_date}, url={url}""".strip().
                                                 end_date=end_date,
                                                 url=res.url))
 
-    return csv.DictReader(res.iter_lines())
+    return csv.DictReader(res.iter_lines(decode_unicode=True))
 
 
 def get_benchmark_data(symbol, start_date=None, end_date=None):

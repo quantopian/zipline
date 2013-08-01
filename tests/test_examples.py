@@ -40,7 +40,7 @@ def all_matching_files(d, pattern):
         fls.extend(nfiles)
 
     files = []
-    path.walk(d, addfiles, files)
+    os.walk(d, addfiles, files)
     return files
 
 
