@@ -15,7 +15,11 @@
 from logbook import Logger, Processor
 
 import zipline.finance.trading as trading
-from zipline.protocol import BarData, DATASOURCE_TYPE
+from zipline.protocol import (
+    BarData,
+    SIDData,
+    DATASOURCE_TYPE
+)
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -198,5 +202,8 @@ class AlgorithmSimulator(object):
         Update the universe with new event information.
         """
         # Update our knowledge of this event's sid
-        sid_data = self.current_data[event.sid]
+        if event.sid in self.current_data:
+            sid_data = self.current_data[event.sid]
+        else:
+            sid_data = self.current_data[event.sid] = SIDData()
         sid_data.__dict__.update(event.__dict__)

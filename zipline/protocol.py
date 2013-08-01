@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import defaultdict
 import datetime
 
 from . utils.protocol_utils import Enum
@@ -135,7 +134,7 @@ class BarData(object):
     """
 
     def __init__(self):
-        self._data = defaultdict(SIDData)
+        self._data = {}
         self._contains_override = None
 
     def __contains__(self, name):
@@ -164,7 +163,9 @@ class BarData(object):
         del self._data[name]
 
     def __iter__(self):
-        return self._data.iterkeys()
+        for sid, data in self._data.iteritems():
+            if len(data):
+                yield sid
 
     def keys(self):
         return self._data.keys()
