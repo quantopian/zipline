@@ -16,6 +16,7 @@ import functools
 import math
 
 import numpy as np
+import pandas as pd
 import talib
 import copy
 from zipline.transforms import BatchTransform
@@ -38,7 +39,13 @@ def zipline_wrapper(talib_fn, key_map, data):
         for talib_key, zipline_key in key_map.iteritems():
             # if zipline_key is found, add it to talib_data
             if zipline_key in data:
-                talib_data[talib_key] = data[zipline_key][sid].values
+                values = data[zipline_key][sid].values
+                # Do not include sids that have only nans, passing only nans
+                # is incompatible with many of the underlying TALib functions.
+                if pd.isnull(values).all():
+                    break
+                else:
+                    talib_data[talib_key] = data[zipline_key][sid].values
             # if zipline_key is not found and not required, add zeros
             elif talib_key not in req_inputs:
                 talib_data[talib_key] = np.zeros(data.shape[1])
@@ -51,15 +58,16 @@ def zipline_wrapper(talib_fn, key_map, data):
                         talib_key, zipline_key))
 
         # call talib
-        talib_result = talib_fn(talib_data)
+        if talib_data:
+            talib_result = talib_fn(talib_data)
 
-        # keep only the most recent result
-        if isinstance(talib_result, (list, tuple)):
-            sid_result = tuple([r[-1] for r in talib_result])
-        else:
-            sid_result = talib_result[-1]
+            # keep only the most recent result
+            if isinstance(talib_result, (list, tuple)):
+                sid_result = tuple([r[-1] for r in talib_result])
+            else:
+                sid_result = talib_result[-1]
 
-        all_results[sid] = sid_result
+            all_results[sid] = sid_result
 
     return all_results
 
