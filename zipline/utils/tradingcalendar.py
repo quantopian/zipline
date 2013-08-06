@@ -27,8 +27,17 @@ end_dln.shift('US/Eastern').truncate('day').shift(pytz.utc.zone)
 end = end_dln.datetime - timedelta(days=1)
 
 
+def canonicalize_datetime(dt):
+    # Strip out any HHMMSS or timezone info in the user's datetime, so that
+    # all the datetimes we return will be 00:00:00 UTC.
+    return datetime(dt.year, dt.month, dt.day, tzinfo=pytz.utc)
+
+
 def get_non_trading_days(start, end):
     non_trading_rules = []
+
+    start = canonicalize_datetime(start)
+    end = canonicalize_datetime(end)
 
     weekends = rrule.rrule(
         rrule.YEARLY,
@@ -241,6 +250,9 @@ def get_non_trading_days(start, end):
 
 
 def get_trading_days(start, end):
+    start = canonicalize_datetime(start)
+    end = canonicalize_datetime(end)
+
     business_days = pd.DatetimeIndex(start=start, end=end,
                                      freq=pd.datetools.BDay())
 
@@ -258,6 +270,10 @@ def get_early_closes(start, end):
     # and verified against http://www.nyse.com/pdfs/closings.pdf
 
     # These rules are valid starting in 1993
+
+    start = canonicalize_datetime(start)
+    end = canonicalize_datetime(end)
+
     start = max(start, datetime(1993, 1, 1, tzinfo=pytz.utc))
     end = max(end, datetime(1993, 1, 1, tzinfo=pytz.utc))
 
