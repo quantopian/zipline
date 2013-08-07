@@ -384,7 +384,7 @@ class PerformanceTracker(object):
         self.day_count += 1.0
         # move the market day markers forward
         if self.market_close < trading.environment.last_trading_day:
-            _, self.market_close = \
+            self.market_open, self.market_close = \
                 trading.environment.next_open_and_close(self.market_open)
         else:
             self.market_close = self.sim_params.last_close
