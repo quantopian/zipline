@@ -105,6 +105,15 @@ Transaction {txn} not in same direction as corresponding order {order}.
 
 class TransactionWithNoAmount(ZiplineError):
     """
+    Raised if a transact call returns a transaction with zero amount.
+    """
+    msg = """
+Transaction {txn} has an amount of zero.
+""".strip()
+
+
+class TransactionVolumeExceedsOrder(ZiplineError):
+    """
     Raised if a transact call returns a transaction with a volume greater than
 the corresponding order.
     """
