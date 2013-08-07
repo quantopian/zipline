@@ -136,7 +136,7 @@ class DataIndex(object):
 
 class AnswerKey(object):
 
-    RETURNS = DataIndex('Sim', 'D', 4, 255)
+    RETURNS = DataIndex('Sim Period', 'D', 4, 255)
 
     # Below matches the inconsistent capitalization in spreadsheet
     BENCHMARK_PERIOD_RETURNS = {
@@ -154,59 +154,59 @@ class AnswerKey(object):
     }
 
     ALGORITHM_PERIOD_RETURNS = {
-        'Monthly': DataIndex('Sim', 'V', 23, 34),
-        '3-Month': DataIndex('Sim', 'W', 25, 34),
-        '6-month': DataIndex('Sim', 'X', 28, 34),
-        'year': DataIndex('Sim', 'Y', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'V', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'W', 25, 34),
+        '6-month': DataIndex('Sim Period', 'X', 28, 34),
+        'year': DataIndex('Sim Period', 'Y', 34, 34),
     }
 
     ALGORITHM_PERIOD_VOLATILITY = {
-        'Monthly': DataIndex('Sim', 'Z', 23, 34),
-        '3-Month': DataIndex('Sim', 'AA', 25, 34),
-        '6-month': DataIndex('Sim', 'AB', 28, 34),
-        'year': DataIndex('Sim', 'AC', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'Z', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'AA', 25, 34),
+        '6-month': DataIndex('Sim Period', 'AB', 28, 34),
+        'year': DataIndex('Sim Period', 'AC', 34, 34),
     }
 
     ALGORITHM_PERIOD_SHARPE = {
-        'Monthly': DataIndex('Sim', 'AD', 23, 34),
-        '3-Month': DataIndex('Sim', 'AE', 25, 34),
-        '6-month': DataIndex('Sim', 'AF', 28, 34),
-        'year': DataIndex('Sim', 'AG', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'AD', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'AE', 25, 34),
+        '6-month': DataIndex('Sim Period', 'AF', 28, 34),
+        'year': DataIndex('Sim Period', 'AG', 34, 34),
     }
 
     ALGORITHM_PERIOD_BETA = {
-        'Monthly': DataIndex('Sim', 'AH', 23, 34),
-        '3-Month': DataIndex('Sim', 'AI', 25, 34),
-        '6-month': DataIndex('Sim', 'AJ', 28, 34),
-        'year': DataIndex('Sim', 'AK', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'AH', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'AI', 25, 34),
+        '6-month': DataIndex('Sim Period', 'AJ', 28, 34),
+        'year': DataIndex('Sim Period', 'AK', 34, 34),
     }
 
     ALGORITHM_PERIOD_ALPHA = {
-        'Monthly': DataIndex('Sim', 'AL', 23, 34),
-        '3-Month': DataIndex('Sim', 'AM', 25, 34),
-        '6-month': DataIndex('Sim', 'AN', 28, 34),
-        'year': DataIndex('Sim', 'AO', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'AL', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'AM', 25, 34),
+        '6-month': DataIndex('Sim Period', 'AN', 28, 34),
+        'year': DataIndex('Sim Period', 'AO', 34, 34),
     }
 
     ALGORITHM_PERIOD_BENCHMARK_VARIANCE = {
-        'Monthly': DataIndex('Sim', 'BB', 23, 34),
-        '3-Month': DataIndex('Sim', 'BC', 25, 34),
-        '6-month': DataIndex('Sim', 'BD', 28, 34),
-        'year': DataIndex('Sim', 'BE', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'BB', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'BC', 25, 34),
+        '6-month': DataIndex('Sim Period', 'BD', 28, 34),
+        'year': DataIndex('Sim Period', 'BE', 34, 34),
     }
 
     ALGORITHM_PERIOD_COVARIANCE = {
-        'Monthly': DataIndex('Sim', 'AX', 23, 34),
-        '3-Month': DataIndex('Sim', 'AY', 25, 34),
-        '6-month': DataIndex('Sim', 'AZ', 28, 34),
-        'year': DataIndex('Sim', 'BA', 34, 34),
+        'Monthly': DataIndex('Sim Period', 'AX', 23, 34),
+        '3-Month': DataIndex('Sim Period', 'AY', 25, 34),
+        '6-month': DataIndex('Sim Period', 'AZ', 28, 34),
+        'year': DataIndex('Sim Period', 'BA', 34, 34),
     }
 
     def __init__(self):
         self.workbook = xlrd.open_workbook(ANSWER_KEY_PATH)
 
         self.sheets = {}
-        self.sheets['Sim'] = self.workbook.sheet_by_name('Sim')
+        self.sheets['Sim Period'] = self.workbook.sheet_by_name('Sim Period')
         self.sheets['s_p'] = self.workbook.sheet_by_name('s_p')
 
     def get_values(self, data_index, decimal=4):
