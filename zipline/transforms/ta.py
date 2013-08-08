@@ -105,8 +105,7 @@ def make_transform(talib_fn, name):
         average by passing "close='Oil'".
 
 
-        Example
-        --------
+        **Example**
 
         A moving average of a data column called 'Oil' with timeperiod 5,
             talib.transforms.ta.MA(close='Oil', timeperiod=5)
@@ -115,8 +114,7 @@ def make_transform(talib_fn, name):
             help(zipline.transforms.ta.MA)
 
 
-        Arguments
-        ---------
+        **Arguments**
 
         open   : string, default 'open'
         high   : string, default 'high'
@@ -129,7 +127,7 @@ def make_transform(talib_fn, name):
             of iterations that pass before the BatchTransform updates its
             internal data.
 
-        **kwargs : any arguments to be passed to the TA-Lib function.
+        \*\*kwargs : any arguments to be passed to the TA-Lib function.
         """
 
         def __init__(self,
