@@ -129,8 +129,8 @@ class RiskReport(object):
         if len(self.algorithm_returns) == 0:
             return ends
 
-        #ensure that we have an end at the end of a calendar month, in case
-        #the return series ends mid-month...
+        # ensure that we have an end at the end of a calendar month, in case
+        # the return series ends mid-month...
         the_end = end.replace(day=1) + relativedelta(months=1) - one_day
         while True:
             cur_end = cur_start + relativedelta(months=months_per) - one_day

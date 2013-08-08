@@ -97,7 +97,7 @@ class TestAlgorithm(TradingAlgorithm):
             self.sid_filter = [self.sid]
 
     def handle_data(self, data):
-        #place an order for 100 shares of sid
+        # place an order for 100 shares of sid
         if self.incr < self.count:
             self.order(self.sid, self.amount)
             self.incr += 1
@@ -116,7 +116,7 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
         self.incr = 0
 
     def handle_data(self, data):
-        #place an order for 100 shares of sid
+        # place an order for 100 shares of sid
         self.order(self.sid, self.amount)
         self.incr += 1
 

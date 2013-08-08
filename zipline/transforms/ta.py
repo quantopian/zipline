@@ -190,7 +190,7 @@ def make_transform(talib_fn, name):
                 self.talib_fn.info['name'])
 
     TALibTransform.__name__ = name
-    #return class
+    # return class
     return TALibTransform
 
 

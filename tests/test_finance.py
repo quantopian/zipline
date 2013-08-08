@@ -79,7 +79,7 @@ class FinanceTestCase(TestCase):
 
     @timed(DEFAULT_TIMEOUT)
     def test_trading_environment(self):
-        #holidays taken from: http://www.nyse.com/press/1191407641943.html
+        # holidays taken from: http://www.nyse.com/press/1191407641943.html
         new_years = datetime(2008, 1, 1, tzinfo=pytz.utc)
         mlk_day = datetime(2008, 1, 21, tzinfo=pytz.utc)
         presidents = datetime(2008, 2, 18, tzinfo=pytz.utc)
@@ -145,7 +145,7 @@ class FinanceTestCase(TestCase):
         expected_trading_days = (
             datetime(2007, 12, 31, tzinfo=pytz.utc),
             # Skip new years
-            #holidays taken from: http://www.nyse.com/press/1191407641943.html
+            # holidays taken from: http://www.nyse.com/press/1191407641943.html
             datetime(2008, 1, 2, tzinfo=pytz.utc),
             datetime(2008, 1, 3, tzinfo=pytz.utc),
             datetime(2008, 1, 4, tzinfo=pytz.utc),
@@ -161,7 +161,7 @@ class FinanceTestCase(TestCase):
 
     @timed(EXTENDED_TIMEOUT)
     def test_full_zipline(self):
-        #provide enough trades to ensure all orders are filled.
+        # provide enough trades to ensure all orders are filled.
         self.zipline_test_config['order_count'] = 100
         # making a small order amount, so that each order is filled
         # in a single transaction, and txn_count == order_count.

@@ -91,7 +91,7 @@ class TestRisk(unittest.TestCase):
     def test_drawdown(self):
         returns = factory.create_returns_from_list(
             [1.0, -0.5, 0.8, .17, 1.0, -0.1, -0.45], self.sim_params)
-        #200, 100, 180, 210.6, 421.2, 379.8, 208.494
+        # 200, 100, 180, 210.6, 421.2, 379.8, 208.494
         metrics = risk.RiskMetricsPeriod(returns[0].date,
                                          returns[-1].date,
                                          returns)
@@ -398,7 +398,7 @@ class TestRisk(unittest.TestCase):
     # Month 4 seems to be the problem. Variance is disabled
     # just to avoid distraction - it is much closer than covariance
     # and can probably pass with 6 significant digits instead of 7.
-    #re-enable variance, alpha, and beta tests once this is resolved
+    # re-enable variance, alpha, and beta tests once this is resolved
     def test_algorithm_covariance_06(self):
         answer_key_month_periods = ANSWER_KEY.get_values(
             AnswerKey.ALGORITHM_PERIOD_COVARIANCE['Monthly'],
@@ -624,7 +624,7 @@ class TestRisk(unittest.TestCase):
             minute=0,
             tzinfo=pytz.utc)
 
-        #1992 and 1996 were leap years
+        # 1992 and 1996 were leap years
         total_days = 365 * 5 + 2
         end = start + datetime.timedelta(days=total_days)
         sim_params90s = SimulationParameters(
@@ -682,10 +682,10 @@ class TestRisk(unittest.TestCase):
         )
 
     def assert_last_day(self, period_end):
-        #30 days has september, april, june and november
+        # 30 days has september, april, june and november
         if period_end.month in [9, 4, 6, 11]:
             self.assertEqual(period_end.day, 30)
-        #all the rest have 31, except for february
+        # all the rest have 31, except for february
         elif(period_end.month != 2):
             self.assertEqual(period_end.day, 31)
         else:

@@ -123,7 +123,7 @@ def get_benchmark_returns(symbol, start_date=None, end_date=None):
             curr_open = data_points[i]['open']
             returns = (data_points[i]['close'] - curr_open) / curr_open
         else:
-            prev_close = data_points[i-1]['close']
+            prev_close = data_points[i - 1]['close']
             returns = (data_point['close'] - prev_close) / prev_close
         daily_return = DailyReturn(date=data_point['date'], returns=returns)
         benchmark_returns.append(daily_return)

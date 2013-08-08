@@ -82,7 +82,7 @@ class RollingPanel(object):
             self._roll_data()
 
         if set(frame.columns).difference(set(self.minor_axis)) or \
-           set(frame.index).difference(set(self.items)):
+                set(frame.index).difference(set(self.items)):
             self._update_buffer(frame)
 
         self.buffer.loc[:, self.pos, :] = frame.ix[self.items].T

@@ -72,15 +72,15 @@ class OLMAR(TradingAlgorithm):
         # Expected return with current portfolio
         exp_return = np.dot(self.b_t, x_tilde)
         weight = self.eps - exp_return
-        variability = (np.linalg.norm(mark_rel_dev))**2
+        variability = (np.linalg.norm(mark_rel_dev)) ** 2
 
         # test for divide-by-zero case
         if variability == 0.0:
             step_size = 0
         else:
-            step_size = max(0, weight/variability)
+            step_size = max(0, weight / variability)
 
-        b = self.b_t + step_size*mark_rel_dev
+        b = self.b_t + step_size * mark_rel_dev
         b_norm = simplex_projection(b)
         np.testing.assert_almost_equal(b_norm.sum(), 1)
 
@@ -90,7 +90,7 @@ class OLMAR(TradingAlgorithm):
         self.b_t = b_norm
 
     def rebalance_portfolio(self, data, desired_port):
-        #rebalance portfolio
+        # rebalance portfolio
         desired_amount = np.zeros_like(desired_port)
         current_amount = np.zeros_like(desired_port)
         prices = np.zeros_like(desired_port)
@@ -145,8 +145,8 @@ def simplex_projection(v, b=1):
     u = np.sort(v)[::-1]
     sv = np.cumsum(u)
 
-    rho = np.where(u > (sv - b) / np.arange(1, p+1))[0][-1]
-    theta = np.max([0, (sv[rho] - b) / (rho+1)])
+    rho = np.where(u > (sv - b) / np.arange(1, p + 1))[0][-1]
+    theta = np.max([0, (sv[rho] - b) / (rho + 1)])
     w = (v - theta)
     w[w < 0] = 0
     return w

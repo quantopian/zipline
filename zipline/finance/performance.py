@@ -288,7 +288,7 @@ class PerformanceTracker(object):
         self.event_count += 1
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            #update last sale
+            # update last sale
             for perf_period in self.perf_periods:
                 perf_period.update_last_sale(event)
 
@@ -334,7 +334,7 @@ class PerformanceTracker(object):
 
             self.all_benchmark_returns[midnight] = event.returns
 
-        #calculate performance as of last trade
+        # calculate performance as of last trade
         for perf_period in self.perf_periods:
             perf_period.calculate_performance()
 
@@ -402,7 +402,7 @@ class PerformanceTracker(object):
         )
         self.returns.append(todays_return_obj)
 
-        #update risk metrics for cumulative performance
+        # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
             todays_return_obj.date,
             todays_return_obj.returns,
@@ -421,7 +421,7 @@ class PerformanceTracker(object):
         if self.market_close >= self.last_close:
             return daily_update
 
-        #move the market day markers forward
+        # move the market day markers forward
         self.market_open, self.market_close = \
             trading.environment.next_open_and_close(self.market_open)
 
@@ -560,7 +560,7 @@ class Position(object):
         if(self.sid != txn.sid):
             raise NameError('updating position with txn for a different sid')
 
-         #we're covering a short or closing a position
+         # we're covering a short or closing a position
         if(self.amount + txn.amount == 0):
             self.cost_basis = 0.0
             self.amount = 0

@@ -323,8 +323,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-        #it doesn't make much sense to calculate beta for less than two days,
-        #so return none.
+        # it doesn't make much sense to calculate beta for less than two days,
+        # so return none.
         if len(self.algorithm_returns) < 2:
             return 0.0, 0.0, 0.0, 0.0, []
 

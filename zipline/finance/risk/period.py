@@ -217,8 +217,8 @@ class RiskMetricsPeriod(object):
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-        #it doesn't make much sense to calculate beta for less than two days,
-        #so return none.
+        # it doesn't make much sense to calculate beta for less than two days,
+        # so return none.
         if len(self.algorithm_returns) < 2:
             return 0.0, 0.0, 0.0, 0.0, []
 
@@ -254,7 +254,7 @@ class RiskMetricsPeriod(object):
         for r in self.algorithm_returns:
             try:
                 cur_return += math.log(1.0 + r)
-            #this is a guard for a single day returning -100%
+            # this is a guard for a single day returning -100%
             except ValueError:
                 log.debug("{cur} return, zeroing the returns".format(
                     cur=cur_return))

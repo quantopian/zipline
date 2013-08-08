@@ -223,7 +223,7 @@ def create_returns_from_list(returns, sim_params):
     current = sim_params.first_open
     test_range = []
 
-    #sometimes the range starts with a non-trading day.
+    # sometimes the range starts with a non-trading day.
     if not trading.environment.is_trading_day(current):
         current = trading.environment.next_trading_day(current)
 
@@ -292,7 +292,7 @@ def create_trade_source(sids, trade_count,
 
     # TODO: do we need to set the trading environment's end to same dt as
     # the last trade in the history?
-    #sim_params.period_end = trade_history[-1].dt
+    # sim_params.period_end = trade_history[-1].dt
 
     return source
 

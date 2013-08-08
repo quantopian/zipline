@@ -168,7 +168,7 @@ class TestDividendPerformance(unittest.TestCase):
 
     def test_long_position_receives_dividend(self):
         with trading.TradingEnvironment():
-            #post some trades in the market
+            # post some trades in the market
             events = factory.create_trade_history(
                 1,
                 [10, 10, 10, 10, 10],
@@ -213,7 +213,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.assertEqual(cash_pos, [9000, 9000, 10000, 10000, 10000])
 
     def test_post_ex_long_position_receives_no_dividend(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
@@ -248,7 +248,7 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(cumulative_cash_flows, [0, 0, -1000, -1000, -1000])
 
     def test_selling_before_dividend_payment_still_gets_paid(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
@@ -285,7 +285,7 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(cumulative_cash_flows, [-1000, -1000, 0, 1000, 1000])
 
     def test_buy_and_sell_before_ex(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10, 10],
@@ -322,7 +322,7 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(cumulative_cash_flows, [0, -1000, 0, 0, 0, 0])
 
     def test_ending_before_pay_date(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
@@ -364,7 +364,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
     def test_short_position_pays_dividend(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
@@ -401,7 +401,7 @@ class TestDividendPerformance(unittest.TestCase):
         self.assertEqual(cumulative_cash_flows, [0, 1000, 1000, 0, 0])
 
     def test_no_position_receives_no_dividend(self):
-        #post some trades in the market
+        # post some trades in the market
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
@@ -464,7 +464,7 @@ class TestPositionPerformance(unittest.TestCase):
             verify that the performance period calculates properly for a
             single buy transaction
         """
-        #post some trades in the market
+        # post some trades in the market
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11],
@@ -602,7 +602,7 @@ single short-sale transaction"""
         # reflects the new price
         trades_2 = trades[-2:]
 
-        #simulate a rollover to a new period
+        # simulate a rollover to a new period
         pp.rollover()
 
         for trade in trades_2:
@@ -659,7 +659,7 @@ single short-sale transaction"""
             "drop of 2 on -100 shares should be 200"
         )
 
-        #now run a performance period encompassing the entire trade sample.
+        # now run a performance period encompassing the entire trade sample.
         ppTotal = perf.PerformancePeriod(1000.0)
 
         for trade in trades_1:
@@ -876,7 +876,7 @@ shares in position"
             "should have a cost basis of 11.33"
         )
 
-        #print "second period pnl is {pnl}".format(pnl=pp2.pnl)
+        # print "second period pnl is {pnl}".format(pnl=pp2.pnl)
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
         pp3 = perf.PerformancePeriod(1000.0)
@@ -1065,8 +1065,8 @@ class TestPerformanceTracker(unittest.TestCase):
     def trades_with_txns(self, events, no_txn_dt):
         for event in events:
 
-            #create a transaction for all but
-            #first trade in each sid, to simulate None transaction
+            # create a transaction for all but
+            # first trade in each sid, to simulate None transaction
             if event.dt != no_txn_dt:
                 order = Order(**{
                     'sid': event.sid,
