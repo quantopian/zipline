@@ -366,6 +366,12 @@ class TradingAlgorithm(object):
     def order(self, sid, amount, limit_price=None, stop_price=None):
         return self.blotter.order(sid, amount, limit_price, stop_price)
 
+    def order_value(self, sid, value, limit_price=None, stop_price=None):
+        last_price = self.trading_client.current_data[sid].price
+        return self.blotter.order_value(sid, value, last_price,
+                                        limit_price=limit_price,
+                                        stop_price=stop_price)
+
     @property
     def recorded_vars(self):
         return copy(self._recorded_vars)
@@ -430,3 +436,66 @@ class TradingAlgorithm(object):
         assert data_frequency in ('daily', 'minute')
         self.data_frequency = data_frequency
         self.annualizer = ANNUALIZER[self.data_frequency]
+
+    def order_percent(self, sid, percent, limit_price=None, stop_price=None):
+        """
+        Place an order in the specified security corresponding to the given
+        percent of the current portfolio value.
+
+        Note that percent must expressed as a decimal (0.50 means 50\%).
+        """
+        value = self.portfolio.portfolio_value * percent
+        return self.order_value(sid, value, limit_price, stop_price)
+
+    def target(self, sid, target, limit_price=None, stop_price=None):
+        """
+        Place an order to adjust a position to a target number of shares. If
+        the position doesn't already exist, this is equivalent to placing a new
+        order. If the position does exist, this is equivalent to placing an
+        order for the difference between the target number of shares and the
+        current number of shares.
+        """
+        if sid in self.portfolio.positions:
+            current_position = self.portfolio.positions[sid].amount
+            req_shares = target - current_position
+            return self.order(sid, req_shares, limit_price, stop_price)
+        else:
+            return self.order(sid, target, limit_price, stop_price)
+
+    def target_value(self, sid, target, limit_price=None, stop_price=None):
+        """
+        Place an order to adjust a position to a target value. If
+        the position doesn't already exist, this is equivalent to placing a new
+        order. If the position does exist, this is equivalent to placing an
+        order for the difference between the target value and the
+        current value.
+        """
+        if sid in self.portfolio.positions:
+            current_position = self.portfolio.positions[sid].amount
+            current_price = self.portfolio.positions[sid].last_sale_price
+            current_value = current_position * current_price
+            req_value = target - current_value
+            return self.order_value(sid, req_value, limit_price, stop_price)
+        else:
+            return self.order_value(sid, target, limit_price, stop_price)
+
+    def target_percent(self, sid, target, limit_price=None, stop_price=None):
+        """
+        Place an order to adjust a position to a target percent of the
+        current portfolio value. If the position doesn't already exist, this is
+        equivalent to placing a new order. If the position does exist, this is
+        equivalent to placing an order for the difference between the target
+        percent and the current percent.
+
+        Note that target must expressed as a decimal (0.50 means 50\%).
+        """
+        if sid in self.portfolio.positions:
+            current_position = self.portfolio.positions[sid].amount
+            current_price = self.portfolio.positions[sid].last_sale_price
+            current_value = current_position * current_price
+        else:
+            current_value = 0
+        target_value = self.portfolio.portfolio_value * target
+
+        req_value = target_value - current_value
+        return self.order_value(sid, req_value, limit_price, stop_price)

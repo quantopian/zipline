@@ -326,7 +326,7 @@ def create_test_df_source(sim_params=None, bars='daily'):
                 if i >= market_open and i <= market_close:
                     new_index.append(i)
             index = new_index
-    x = np.arange(0, len(index))
+    x = np.arange(1, len(index) + 1)
 
     df = pd.DataFrame(x, index=index, columns=[0])
 

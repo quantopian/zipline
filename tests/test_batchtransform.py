@@ -231,7 +231,7 @@ class TestBatchTransform(TestCase):
             # consecutive (of window length) numbers up till the end.
             for i in range(algo.window_length, len(test_history)):
                 np.testing.assert_array_equal(
-                    range(i - algo.window_length + 1, i + 1),
+                    range(i - algo.window_length + 2, i + 2d),
                     test_history[i].values.flatten()
                 )
 
