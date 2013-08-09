@@ -133,6 +133,14 @@ class DataIndex(object):
     def row_end_index(self):
         return self.row_end - 1
 
+    def __str__(self):
+        return "'{sheet_name}'!{col}{row_start}:{col}{row_end}".format(
+            sheet_name=self.sheet_name,
+            col=self.col,
+            row_start=self.row_start,
+            row_end=self.row_end
+        )
+
 
 class AnswerKey(object):
 
