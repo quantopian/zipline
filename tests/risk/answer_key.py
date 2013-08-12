@@ -227,7 +227,7 @@ class AnswerKey(object):
             'Sim Cumulative', 'D', 4, 254),
 
         'ALGORITHM_CUMULATIVE_VOLATILITY': DataIndex(
-            'Sim Cumulative', 'O', 4, 254),
+            'Sim Cumulative', 'P', 4, 254),
 
         'ALGORITHM_CUMULATIVE_SHARPE': DataIndex(
             'Sim Cumulative', 'R', 4, 254)
