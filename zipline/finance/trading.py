@@ -85,9 +85,9 @@ class TradingEnvironment(object):
         self.benchmark_returns, treasury_curves_map = \
             load(self.bm_symbol)
 
-        self.treasury_curves = pd.Series(treasury_curves_map)
+        self.treasury_curves = pd.DataFrame(treasury_curves_map).T
         if max_date:
-            self.treasury_curves = self.treasury_curves[:max_date]
+            self.treasury_curves = self.treasury_curves.ix[:max_date, :]
 
         self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
         self.early_close_trading_day = datetime.timedelta(hours=3, minutes=30)

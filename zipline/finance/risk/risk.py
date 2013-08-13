@@ -187,7 +187,7 @@ def alpha(algorithm_period_return, treasury_period_return,
 def get_treasury_rate(treasury_curves, treasury_duration, day):
     rate = None
 
-    curve = treasury_curves[day]
+    curve = treasury_curves.ix[day]
     # 1month note data begins in 8/2001,
     # so we can use 3month instead.
     idx = TREASURY_DURATIONS.index(treasury_duration)
@@ -238,7 +238,7 @@ def choose_treasury(treasury_curves, start_date, end_date):
     end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     search_day = None
 
-    if end_day in treasury_curves:
+    if end_day in treasury_curves.index:
         rate = get_treasury_rate(treasury_curves,
                                  treasury_duration,
                                  end_day)

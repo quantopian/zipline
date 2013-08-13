@@ -104,7 +104,7 @@ def create_random_simulation_parameters():
             len(treasury_curves) - 1
         )
 
-        start_dt = treasury_curves.keys()[random_index]
+        start_dt = treasury_curves.index[random_index]
         end_dt = start_dt + timedelta(days=365)
 
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
