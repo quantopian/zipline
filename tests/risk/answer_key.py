@@ -44,6 +44,9 @@ ANSWER_KEY_DL_TEMPLATE = """
 https://s3.amazonaws.com/zipline-test-data/risk/{md5}/risk-answer-key.xlsx
 """.strip()
 
+LATEST_ANSWER_KEY_URL = ANSWER_KEY_DL_TEMPLATE.format(
+    md5=ANSWER_KEY_CHECKSUMS[-1])
+
 
 def answer_key_signature():
     with open(ANSWER_KEY_PATH, 'r') as f:
