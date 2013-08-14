@@ -621,7 +621,7 @@ class PerformancePeriod(object):
         self.keep_transactions = keep_transactions
         self.processed_transactions = defaultdict(list)
         self.keep_orders = keep_orders
-        self.orders_by_modified = defaultdict(list)
+        self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
@@ -648,7 +648,7 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = defaultdict(list)
-        self.orders_by_modified = defaultdict(list)
+        self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
         self.cumulative_capital_used = 0.0
         self.max_capital_used = 0.0
@@ -723,7 +723,10 @@ class PerformancePeriod(object):
 
     def record_order(self, order):
         if self.keep_orders:
-            self.orders_by_modified[order.dt].append(order)
+            dt_orders = self.orders_by_modified[order.dt]
+            if order.id in dt_orders:
+                del dt_orders[order.id]
+            dt_orders[order.id] = order
             # to preserve the order of the orders by modified date
             # we delete and add back. (ordered dictionary is sorted by
             # first insertion date).
@@ -833,7 +836,8 @@ class PerformancePeriod(object):
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.to_dict() for x in self.orders_by_modified[dt]]
+                orders = [x.to_dict()
+                          for x in self.orders_by_modified[dt].itervalues()]
             else:
                 orders = [x.to_dict() for x in self.orders_by_id.itervalues()]
             rval['orders'] = orders
