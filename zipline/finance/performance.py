@@ -614,18 +614,11 @@ class PerformancePeriod(object):
         self.pnl = 0.0
         # sid => position object
         self.positions = positiondict()
-        self.starting_value = 0.0
-        # cash balance at start of period
-        self.starting_cash = starting_cash
         self.ending_cash = starting_cash
+        # rollover initializes a number of self's attributes:
+        self.rollover()
         self.keep_transactions = keep_transactions
-        self.processed_transactions = defaultdict(list)
         self.keep_orders = keep_orders
-        self.orders_by_modified = defaultdict(OrderedDict)
-        self.orders_by_id = OrderedDict()
-        self.cumulative_capital_used = 0.0
-        self.max_capital_used = 0.0
-        self.max_leverage = 0.0
 
         # Maps position to following array indexes
         self._position_index_map = {}
