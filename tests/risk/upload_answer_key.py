@@ -53,5 +53,11 @@ def main():
     print("Uploaded to key: {key}".format(key=key.key))
     print("Download link: {download_link}".format(download_link=download_link))
 
+    # Now update checksum file with the recently added answer key.
+    # checksum file update will be then need to be commited via git.
+    with open(answer_key.ANSWER_KEY_CHECKSUMS_PATH, 'a') as checksum_file:
+        checksum_file.write(local_hash)
+        checksum_file.write("\n")
+
 if __name__ == "__main__":
     main()
