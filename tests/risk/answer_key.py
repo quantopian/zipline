@@ -16,7 +16,6 @@
 import hashlib
 import os
 
-import numpy as np
 import xlrd
 import requests
 
@@ -147,70 +146,72 @@ class DataIndex(object):
 
 class AnswerKey(object):
 
-    RETURNS = DataIndex('Sim Period', 'D', 4, 255)
+    INDEXES = {
+        'RETURNS': DataIndex('Sim Period', 'D', 4, 255),
 
-    # Below matches the inconsistent capitalization in spreadsheet
-    BENCHMARK_PERIOD_RETURNS = {
-        'Monthly': DataIndex('s_p', 'P', 8, 19),
-        '3-Month': DataIndex('s_p', 'Q', 10, 19),
-        '6-month': DataIndex('s_p', 'R', 13, 19),
-        'year': DataIndex('s_p', 'S', 19, 19),
-    }
+        # Below matches the inconsistent capitalization in spreadsheet
+        'BENCHMARK_PERIOD_RETURNS': {
+            'Monthly': DataIndex('s_p', 'P', 8, 19),
+            '3-Month': DataIndex('s_p', 'Q', 10, 19),
+            '6-month': DataIndex('s_p', 'R', 13, 19),
+            'year': DataIndex('s_p', 'S', 19, 19),
+        },
 
-    BENCHMARK_PERIOD_VOLATILITY = {
-        'Monthly': DataIndex('s_p', 'T', 8, 19),
-        '3-Month': DataIndex('s_p', 'U', 10, 19),
-        '6-month': DataIndex('s_p', 'V', 13, 19),
-        'year': DataIndex('s_p', 'W', 19, 19),
-    }
+        'BENCHMARK_PERIOD_VOLATILITY': {
+            'Monthly': DataIndex('s_p', 'T', 8, 19),
+            '3-Month': DataIndex('s_p', 'U', 10, 19),
+            '6-month': DataIndex('s_p', 'V', 13, 19),
+            'year': DataIndex('s_p', 'W', 19, 19),
+        },
 
-    ALGORITHM_PERIOD_RETURNS = {
-        'Monthly': DataIndex('Sim Period', 'V', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'W', 25, 34),
-        '6-month': DataIndex('Sim Period', 'X', 28, 34),
-        'year': DataIndex('Sim Period', 'Y', 34, 34),
-    }
+        'ALGORITHM_PERIOD_RETURNS': {
+            'Monthly': DataIndex('Sim Period', 'V', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'W', 25, 34),
+            '6-month': DataIndex('Sim Period', 'X', 28, 34),
+            'year': DataIndex('Sim Period', 'Y', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_VOLATILITY = {
-        'Monthly': DataIndex('Sim Period', 'Z', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'AA', 25, 34),
-        '6-month': DataIndex('Sim Period', 'AB', 28, 34),
-        'year': DataIndex('Sim Period', 'AC', 34, 34),
-    }
+        'ALGORITHM_PERIOD_VOLATILITY': {
+            'Monthly': DataIndex('Sim Period', 'Z', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'AA', 25, 34),
+            '6-month': DataIndex('Sim Period', 'AB', 28, 34),
+            'year': DataIndex('Sim Period', 'AC', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_SHARPE = {
-        'Monthly': DataIndex('Sim Period', 'AD', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'AE', 25, 34),
-        '6-month': DataIndex('Sim Period', 'AF', 28, 34),
-        'year': DataIndex('Sim Period', 'AG', 34, 34),
-    }
+        'ALGORITHM_PERIOD_SHARPE': {
+            'Monthly': DataIndex('Sim Period', 'AD', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'AE', 25, 34),
+            '6-month': DataIndex('Sim Period', 'AF', 28, 34),
+            'year': DataIndex('Sim Period', 'AG', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_BETA = {
-        'Monthly': DataIndex('Sim Period', 'AH', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'AI', 25, 34),
-        '6-month': DataIndex('Sim Period', 'AJ', 28, 34),
-        'year': DataIndex('Sim Period', 'AK', 34, 34),
-    }
+        'ALGORITHM_PERIOD_BETA': {
+            'Monthly': DataIndex('Sim Period', 'AH', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'AI', 25, 34),
+            '6-month': DataIndex('Sim Period', 'AJ', 28, 34),
+            'year': DataIndex('Sim Period', 'AK', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_ALPHA = {
-        'Monthly': DataIndex('Sim Period', 'AL', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'AM', 25, 34),
-        '6-month': DataIndex('Sim Period', 'AN', 28, 34),
-        'year': DataIndex('Sim Period', 'AO', 34, 34),
-    }
+        'ALGORITHM_PERIOD_ALPHA': {
+            'Monthly': DataIndex('Sim Period', 'AL', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'AM', 25, 34),
+            '6-month': DataIndex('Sim Period', 'AN', 28, 34),
+            'year': DataIndex('Sim Period', 'AO', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_BENCHMARK_VARIANCE = {
-        'Monthly': DataIndex('Sim Period', 'BB', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'BC', 25, 34),
-        '6-month': DataIndex('Sim Period', 'BD', 28, 34),
-        'year': DataIndex('Sim Period', 'BE', 34, 34),
-    }
+        'ALGORITHM_PERIOD_BENCHMARK_VARIANCE': {
+            'Monthly': DataIndex('Sim Period', 'BB', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'BC', 25, 34),
+            '6-month': DataIndex('Sim Period', 'BD', 28, 34),
+            'year': DataIndex('Sim Period', 'BE', 34, 34),
+        },
 
-    ALGORITHM_PERIOD_COVARIANCE = {
-        'Monthly': DataIndex('Sim Period', 'AX', 23, 34),
-        '3-Month': DataIndex('Sim Period', 'AY', 25, 34),
-        '6-month': DataIndex('Sim Period', 'AZ', 28, 34),
-        'year': DataIndex('Sim Period', 'BA', 34, 34),
+        'ALGORITHM_PERIOD_COVARIANCE': {
+            'Monthly': DataIndex('Sim Period', 'AX', 23, 34),
+            '3-Month': DataIndex('Sim Period', 'AY', 25, 34),
+            '6-month': DataIndex('Sim Period', 'AZ', 28, 34),
+            'year': DataIndex('Sim Period', 'BA', 34, 34),
+        }
     }
 
     def __init__(self):
@@ -220,9 +221,17 @@ class AnswerKey(object):
         self.sheets['Sim Period'] = self.workbook.sheet_by_name('Sim Period')
         self.sheets['s_p'] = self.workbook.sheet_by_name('s_p')
 
-    def get_values(self, data_index, decimal=4):
-        return [np.round(x, decimal) for x in
-                self.sheets[data_index.sheet_name].col_values(
-                    data_index.col_index,
-                    data_index.row_start_index,
-                    data_index.row_end_index + 1)]
+        for name, index in self.INDEXES.items():
+            if isinstance(index, dict):
+                subvalues = {}
+                for subkey, subindex in index.items():
+                    subvalues[subkey] = self.get_values(subindex)
+                setattr(self, name, subvalues)
+            else:
+                setattr(self, name, self.get_values(index))
+
+    def get_values(self, data_index):
+        return self.sheets[data_index.sheet_name].col_values(
+            data_index.col_index,
+            data_index.row_start_index,
+            data_index.row_end_index + 1)
