@@ -12,10 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
 import hashlib
 import os
 
 import numpy as np
+import pandas as pd
+import pytz
 import xlrd
 import requests
 
@@ -151,6 +154,11 @@ class AnswerKey(object):
     INDEXES = {
         'RETURNS': DataIndex('Sim Period', 'D', 4, 255),
 
+        'BENCHMARK': {
+            'Dates': DataIndex('s_p', 'A', 4, 254, value_type='date'),
+            'Returns': DataIndex('s_p', 'H', 4, 254)
+        },
+
         # Below matches the inconsistent capitalization in spreadsheet
         'BENCHMARK_PERIOD_RETURNS': {
             'Monthly': DataIndex('s_p', 'P', 8, 19),
@@ -213,7 +221,16 @@ class AnswerKey(object):
             '3-Month': DataIndex('Sim Period', 'AY', 25, 34),
             '6-month': DataIndex('Sim Period', 'AZ', 28, 34),
             'year': DataIndex('Sim Period', 'BA', 34, 34),
-        }
+        },
+
+        'ALGORITHM_RETURN_VALUES': DataIndex(
+            'Sim Cumulative', 'D', 4, 254),
+
+        'ALGORITHM_CUMULATIVE_VOLATILITY': DataIndex(
+            'Sim Cumulative', 'N', 4, 254),
+
+        'ALGORITHM_CUMULATIVE_SHARPE': DataIndex(
+            'Sim Cumulative', 'O', 4, 254)
     }
 
     def __init__(self):
@@ -221,6 +238,8 @@ class AnswerKey(object):
 
         self.sheets = {}
         self.sheets['Sim Period'] = self.workbook.sheet_by_name('Sim Period')
+        self.sheets['Sim Cumulative'] = self.workbook.sheet_by_name(
+            'Sim Cumulative')
         self.sheets['s_p'] = self.workbook.sheet_by_name('s_p')
 
         for name, index in self.INDEXES.items():
@@ -254,3 +273,17 @@ class AnswerKey(object):
     def get_values(self, data_index):
         value_parser = self.value_type_to_value_func[data_index.value_type]
         return map(value_parser, self.get_raw_values(data_index))
+
+
+ANSWER_KEY = AnswerKey()
+
+BENCHMARK_DATES = ANSWER_KEY.BENCHMARK['Dates']
+BENCHMARK_RETURNS = ANSWER_KEY.BENCHMARK['Returns']
+BENCHMARK = pd.Series(
+    dict(zip((datetime.datetime(*x, tzinfo=pytz.UTC) for x in BENCHMARK_DATES),
+             BENCHMARK_RETURNS)))
+ALGORITHM_RETURNS = pd.Series(
+    dict(zip((datetime.datetime(*x, tzinfo=pytz.UTC) for x in BENCHMARK_DATES),
+             ANSWER_KEY.ALGORITHM_RETURN_VALUES)))
+RETURNS_DATA = pd.DataFrame({'Benchmark Returns': BENCHMARK,
+                             'Algorithm Returns': ALGORITHM_RETURNS})
