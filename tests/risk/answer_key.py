@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import hashlib
 import os
 
+import numpy as np
 import xlrd
 import requests
 
@@ -117,11 +117,13 @@ class DataIndex(object):
     The python-excel libraries use 0 index, while the spreadsheet in a GUI
     uses a 1 index.
     """
-    def __init__(self, sheet_name, col, row_start, row_end):
+    def __init__(self, sheet_name, col, row_start, row_end,
+                 value_type='float'):
         self.sheet_name = sheet_name
         self.col = col
         self.row_start = row_start
         self.row_end = row_end
+        self.value_type = value_type
 
     @property
     def col_index(self):
@@ -230,8 +232,25 @@ class AnswerKey(object):
             else:
                 setattr(self, name, self.get_values(index))
 
-    def get_values(self, data_index):
+    def parse_date_value(self, value):
+        return xlrd.xldate_as_tuple(value, 0)
+
+    def parse_float_value(self, value):
+        return value if value != '' else np.nan
+
+    def get_raw_values(self, data_index):
         return self.sheets[data_index.sheet_name].col_values(
             data_index.col_index,
             data_index.row_start_index,
             data_index.row_end_index + 1)
+
+    @property
+    def value_type_to_value_func(self):
+        return {
+            'float': self.parse_float_value,
+            'date': self.parse_date_value,
+        }
+
+    def get_values(self, data_index):
+        value_parser = self.value_type_to_value_func[data_index.value_type]
+        return map(value_parser, self.get_raw_values(data_index))
