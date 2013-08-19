@@ -31,7 +31,16 @@ def zipline_wrapper(talib_fn, key_map, data):
     else:
         req_inputs = []
 
-    all_results = {}
+    # If there are multiple output names then the results are named,
+    # if there is only one output name, it usually 'real' is best represented
+    # by a float.
+    # Use a DataFrame to map sid to named values, and a Series map sid
+    # to floats.
+    if len(talib_fn.output_names) > 1:
+        all_results = pd.DataFrame(index=talib_fn.output_names,
+                                   columns=data.minor_axis)
+    else:
+        all_results = pd.Series(index=data.minor_axis)
 
     for sid in data.minor_axis:
         # build talib_data from zipline data
