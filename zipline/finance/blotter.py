@@ -196,6 +196,10 @@ class Blotter(object):
             return
 
         for order, txn in self.transact(trade_event, current_orders):
+            if txn.type == zp.DATASOURCE_TYPE.COMMISSION:
+                yield txn, order
+                continue
+
             if txn.amount == 0:
                 raise zipline.errors.TransactionWithNoAmount(txn=txn)
             if math.copysign(1, txn.amount) != order.direction:

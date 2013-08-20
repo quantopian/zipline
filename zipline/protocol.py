@@ -29,7 +29,8 @@ DATASOURCE_TYPE = Enum(
     'EMPTY',
     'DONE',
     'CUSTOM',
-    'BENCHMARK'
+    'BENCHMARK',
+    'COMMISSION'
 )
 
 
