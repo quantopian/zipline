@@ -230,8 +230,15 @@ Last successful date: %s" % self.last_trading_day)
         return j - i
 
     def get_index(self, dt):
+        """
+        Return the index of the given @dt, or the index of the preceding
+        trading day if the given dt is not in the trading calendar.
+        """
         ndt = self.normalize_date(dt)
-        return self.trading_days.searchsorted(ndt)
+        if ndt in self.trading_days:
+            return self.trading_days.searchsorted(ndt)
+        else:
+            return self.trading_days.searchsorted(ndt) - 1
 
 
 class SimulationParameters(object):
