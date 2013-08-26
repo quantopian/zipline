@@ -130,6 +130,7 @@ omitted).
 
 """
 
+from __future__ import division
 import logbook
 import math
 
@@ -311,6 +312,10 @@ class PerformanceTracker(object):
         elif event.type == zp.DATASOURCE_TYPE.ORDER:
             for perf_period in self.perf_periods:
                 perf_period.record_order(event)
+
+        elif event.type == zp.DATASOURCE_TYPE.COMMISSION:
+            for perf_period in self.perf_periods:
+                perf_period.handle_commission(event)
 
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
             pass
@@ -558,7 +563,8 @@ class Position(object):
 
     def update(self, txn):
         if(self.sid != txn.sid):
-            raise NameError('updating position with txn for a different sid')
+            raise Exception('updating position with txn for a '
+                            'different sid')
 
          # we're covering a short or closing a position
         if(self.amount + txn.amount == 0):
@@ -571,6 +577,26 @@ class Position(object):
             total_shares = self.amount + txn.amount
             self.cost_basis = total_cost / total_shares
             self.amount = self.amount + txn.amount
+
+    def adjust_commission_cost_basis(self, commission):
+        """
+        A note about cost-basis in zipline: all positions are considered
+        to share a cost basis, even if they were executed in different
+        transactions with different commission costs, different prices, etc.
+
+        Due to limitations about how zipline handles positions, zipline will
+        currently spread an externally-delivered commission charge across
+        all shares in a position.
+        """
+
+        if commission.sid != self.sid:
+            raise Exception('Updating a commission for a different sid?')
+        if commission.cost == 0.0:
+            return
+
+        prev_cost = self.cost_basis * self.amount
+        new_cost = prev_cost + commission.cost
+        self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
@@ -700,6 +726,15 @@ class PerformancePeriod(object):
     def handle_cash_payment(self, payment_amount):
         self.period_cash_flow += payment_amount
         self.cumulative_capital_used -= payment_amount
+
+    def handle_commission(self, commission):
+        # Deduct from our total cash pool.
+        negative_commission = math.copysign(commission.cost, -1.0)
+        self.handle_cash_payment(negative_commission)
+        # Adjust the cost basis of the stock if we own it
+        if commission.sid in self.positions:
+            self.positions[commission.sid].\
+                adjust_commission_cost_basis(commission)
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()

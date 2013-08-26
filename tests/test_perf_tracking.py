@@ -145,6 +145,44 @@ class TestSplitPerformance(unittest.TestCase):
                                         daily_perf['ending_cash'], 1))
 
 
+class TestCommissionEvents(unittest.TestCase):
+
+    def setUp(self):
+        self.sim_params, self.dt, self.end_dt = \
+            create_random_simulation_parameters()
+
+        self.sim_params.capital_base = 10e3
+
+        self.benchmark_events = benchmark_events_in_range(self.sim_params)
+
+    def test_commission_event(self):
+        with trading.TradingEnvironment():
+            events = factory.create_trade_history(
+                1,
+                [10, 10, 10, 10, 10],
+                [100, 100, 100, 100, 100],
+                oneday,
+                self.sim_params
+            )
+
+            cash_adj_dt = self.sim_params.period_start \
+                + datetime.timedelta(hours=3)
+            cash_adjustment = factory.create_commission(1, 300.0,
+                                                        cash_adj_dt)
+
+            # Insert a purchase order.
+            events.insert(0, create_txn(events[0], 20, 1))
+
+            events.insert(1, cash_adjustment)
+            results = calculate_results(self, events)
+            # Validate that we lost 320 dollars from our cash pool.
+            self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
+                             9680)
+            # Validate that the cost basis of our position changed.
+            self.assertEqual(results[-1]['daily_perf']['positions']
+                             [0]['cost_basis'], 320.0)
+
+
 class TestDividendPerformance(unittest.TestCase):
 
     def setUp(self):

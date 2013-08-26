@@ -195,6 +195,16 @@ def create_txn(sid, price, amount, datetime):
     return txn
 
 
+def create_commission(sid, value, datetime):
+    txn = Event({
+        'dt': datetime,
+        'type': DATASOURCE_TYPE.COMMISSION,
+        'cost': value,
+        'sid': sid
+    })
+    return txn
+
+
 def create_txn_history(sid, priceList, amtList, interval, sim_params):
     txns = []
     current = sim_params.first_open
