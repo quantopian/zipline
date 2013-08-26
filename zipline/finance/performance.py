@@ -473,13 +473,15 @@ class PerformanceTracker(object):
 
 class Position(object):
 
-    def __init__(self, sid):
+    def __init__(self, sid, amount=0, cost_basis=0.0,
+                 last_sale_price=0.0, last_sale_date=0.0,
+                 dividends=None):
         self.sid = sid
-        self.amount = 0
-        self.cost_basis = 0.0  # per share
-        self.last_sale_price = 0.0
-        self.last_sale_date = 0.0
-        self.dividends = []
+        self.amount = amount
+        self.cost_basis = cost_basis  # per share
+        self.last_sale_price = last_sale_price
+        self.last_sale_date = last_sale_date
+        self.dividends = dividends or []
 
     def update_dividends(self, midnight_utc):
         """
@@ -576,7 +578,7 @@ class Position(object):
             total_cost = prev_cost + txn_cost
             total_shares = self.amount + txn.amount
             self.cost_basis = total_cost / total_shares
-            self.amount = self.amount + txn.amount
+            self.amount = total_shares
 
     def adjust_commission_cost_basis(self, commission):
         """
@@ -600,7 +602,7 @@ class Position(object):
 
     def __repr__(self):
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
-        last_sale_price: {last_sale_price}"
+last_sale_price: {last_sale_price}"
         return template.format(
             sid=self.sid,
             amount=self.amount,
@@ -770,7 +772,7 @@ class PerformancePeriod(object):
         index = self.index_for_position(txn.sid)
         self._position_amounts[index] = position.amount
 
-        self.period_cash_flow += -1 * txn.price * txn.amount
+        self.period_cash_flow -= txn.price * txn.amount
 
         # Max Leverage
         # ---------------
