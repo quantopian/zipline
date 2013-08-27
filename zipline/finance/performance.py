@@ -596,6 +596,11 @@ class Position(object):
         if commission.cost == 0.0:
             return
 
+        # If we no longer hold this position, there is no cost basis to
+        # adjust.
+        if self.amount == 0:
+            return
+
         prev_cost = self.cost_basis * self.amount
         new_cost = prev_cost + commission.cost
         self.cost_basis = new_cost / self.amount
