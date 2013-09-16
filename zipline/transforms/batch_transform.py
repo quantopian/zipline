@@ -285,19 +285,19 @@ class BatchTransform(object):
 
         if self.supplemental_data:
             for item in data.items:
-                # axes[1] (minor axis) will be a date stamp
-                if item not in self.supplemental_data.major_axis:
+                if item not in self.supplemental_data.items:
                     continue
-                for dt in data.axes[1]:
+                for dt in data.major_axis:
                     try:
-                        supplemental_for_date = self.supplemental_data[dt]
+                        supplemental_for_dt = self.supplemental_data.ix[
+                            item, dt, :]
                     except KeyError:
                         # Only filling in data available in supplemental data.
-                        supplemental_for_date = None
+                        supplemental_for_dt = None
 
-                    if supplemental_for_date is not None:
+                    if supplemental_for_dt is not None:
                         data[item].ix[dt] = \
-                            supplemental_for_date.ix[item].combine_first(
+                            supplemental_for_dt.combine_first(
                                 data[item].ix[dt])
 
         if self.clean_nans:
