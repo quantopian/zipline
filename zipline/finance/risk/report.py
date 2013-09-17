@@ -59,8 +59,6 @@ import logbook
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from zipline.utils.date_utils import epoch_now
-
 from . period import RiskMetricsPeriod
 
 log = logbook.Logger('Risk Report')
@@ -76,7 +74,6 @@ class RiskReport(object):
         self.algorithm_returns = algorithm_returns
         self.sim_params = sim_params
         self.benchmark_returns = benchmark_returns
-        self.created = epoch_now()
 
         if len(self.algorithm_returns) == 0:
             start_date = self.sim_params.period_start
@@ -116,7 +113,6 @@ class RiskReport(object):
             'three_month': [x.to_dict() for x in self.three_month_periods],
             'six_month': [x.to_dict() for x in self.six_month_periods],
             'twelve_month': [x.to_dict() for x in self.year_periods],
-            'created': self.created
         }
 
     def periods_in_range(self, months_per, start, end):
