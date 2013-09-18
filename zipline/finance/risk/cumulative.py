@@ -17,7 +17,6 @@
 import logbook
 import math
 import numpy as np
-import numpy.linalg as la
 
 import zipline.finance.trading as trading
 
@@ -78,11 +77,6 @@ class RiskMetricsCumulative(object):
         self.benchmark_volatility = []
         self.algorithm_period_returns = []
         self.benchmark_period_returns = []
-
-        self.algorithm_covariance = None
-        self.benchmark_variance = None
-        self.condition_number = None
-        self.eigen_values = None
 
         self.sharpe = []
         self.sortino = []
@@ -163,7 +157,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.daily_treasury[treasury_end]
         self.excess_returns.append(
             self.algorithm_period_returns[-1] - self.treasury_period_return)
-        self.beta.append(self.calculate_beta()[0])
+        self.beta.append(self.calculate_beta())
         self.alpha.append(self.calculate_alpha())
         self.sharpe.append(self.calculate_sharpe())
         self.sortino.append(self.calculate_sortino())
@@ -210,15 +204,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             "sharpe",
             "sortino",
             "information",
-            "algorithm_covariance",
-            "benchmark_variance",
             "beta",
             "alpha",
             "max_drawdown",
             "algorithm_returns",
             "benchmark_returns",
-            "condition_number",
-            "eigen_values"
         ]
 
         for metric in metrics:
@@ -325,21 +315,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # it doesn't make much sense to calculate beta for less than two days,
         # so return none.
         if len(self.algorithm_returns) < 2:
-            return 0.0, 0.0, 0.0, 0.0, []
+            return 0.0
 
         returns_matrix = np.vstack([self.algorithm_returns,
                                     self.benchmark_returns])
         C = np.cov(returns_matrix, ddof=1)
-        eigen_values = la.eigvals(C)
-        condition_number = max(eigen_values) / min(eigen_values)
         algorithm_covariance = C[0][1]
         benchmark_variance = C[1][1]
         beta = algorithm_covariance / benchmark_variance
 
-        return (
-            beta,
-            algorithm_covariance,
-            benchmark_variance,
-            condition_number,
-            eigen_values
-        )
+        return beta
