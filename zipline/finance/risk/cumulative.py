@@ -73,7 +73,6 @@ class RiskMetricsCumulative(object):
         self.benchmark_returns = None
 
         self.compounded_log_returns = []
-        self.moving_avg = []
 
         self.algorithm_volatility = []
         self.benchmark_volatility = []
