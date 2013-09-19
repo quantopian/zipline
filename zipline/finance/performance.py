@@ -182,8 +182,8 @@ class PerformanceTracker(object):
                 risk.RiskMetricsCumulative(self.sim_params)
 
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params)
-            self.cumulative_risk_metrics.initialize_daily_indices()
+                risk.RiskMetricsCumulative(self.sim_params,
+                                           returns_frequency='daily')
 
             self.minute_performance = PerformancePeriod(
                 # initial cash is your capital base.

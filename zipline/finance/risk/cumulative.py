@@ -41,7 +41,13 @@ class RiskMetricsCumulative(object):
         Call update() method on each dt to update the metrics.
     """
 
-    def __init__(self, sim_params):
+    def __init__(self, sim_params, returns_frequency=None):
+        """
+        - @returns_frequency allows for configuration of the whether
+        the benchmark and algorithm returns are in units of minutes or days,
+        if `None` defaults to the `emission_rate` in `sim_params`.
+        """
+
         self.treasury_curves = trading.environment.treasury_curves
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -63,11 +69,19 @@ class RiskMetricsCumulative(object):
 
         self.sim_params = sim_params
 
-        if sim_params.emission_rate == 'daily':
-            self.initialize_daily_indices()
-        elif sim_params.emission_rate == 'minute':
-            self.initialize_minute_indices(sim_params)
+        if returns_frequency is None:
+            returns_frequency = self.sim_params.emission_rate
 
+        if returns_frequency == 'daily':
+            cont_index = self.get_daily_index()
+        elif returns_frequency == 'minute':
+            cont_index = self.get_minute_index(sim_params)
+
+        self.algorithm_returns_cont = pd.Series(index=cont_index)
+        self.benchmark_returns_cont = pd.Series(index=cont_index)
+
+        # The returns at a given time are read and reset from the respective
+        # returns container.
         self.algorithm_returns = None
         self.benchmark_returns = None
 
@@ -88,17 +102,12 @@ class RiskMetricsCumulative(object):
         self.excess_returns = []
         self.daily_treasury = {}
 
-    def initialize_minute_indices(self, sim_params):
-        self.algorithm_returns_cont = pd.Series(index=pd.date_range(
-            sim_params.first_open, sim_params.last_close,
-            freq="Min"))
-        self.benchmark_returns_cont = pd.Series(index=pd.date_range(
-            sim_params.first_open, sim_params.last_close,
-            freq="Min"))
+    def get_minute_index(self, sim_params):
+        return pd.date_range(sim_params.first_open, sim_params.last_close,
+                             freq="Min")
 
-    def initialize_daily_indices(self):
-        self.algorithm_returns_cont = pd.Series(index=self.trading_days)
-        self.benchmark_returns_cont = pd.Series(index=self.trading_days)
+    def get_daily_index(self):
+        return self.trading_days
 
     @property
     def last_return_date(self):
