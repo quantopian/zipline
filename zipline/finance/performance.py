@@ -731,17 +731,19 @@ class PerformancePeriod(object):
         self.calculate_performance()
 
     def handle_cash_payment(self, payment_amount):
-        self.period_cash_flow += payment_amount
-        self.cumulative_capital_used -= payment_amount
+        self.adjust_cash(payment_amount)
 
     def handle_commission(self, commission):
         # Deduct from our total cash pool.
-        negative_commission = math.copysign(commission.cost, -1.0)
-        self.handle_cash_payment(negative_commission)
+        self.adjust_cash(-commission.cost)
         # Adjust the cost basis of the stock if we own it
         if commission.sid in self.positions:
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
+
+    def adjust_cash(self, amount):
+        self.period_cash_flow += amount
+        self.cumulative_capital_used -= amount
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
