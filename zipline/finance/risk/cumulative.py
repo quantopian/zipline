@@ -92,7 +92,12 @@ class RiskMetricsCumulative(object):
         self.algorithm_period_returns = []
         self.benchmark_period_returns = []
 
-        self.sharpe = []
+        self.latest_dt = cont_index[0]
+
+        metric_names = ('sharpe',)
+
+        self.metrics = pd.DataFrame(index=cont_index, columns=metric_names)
+
         self.sortino = []
         self.information = []
         self.beta = []
@@ -168,10 +173,14 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.algorithm_period_returns[-1] - self.treasury_period_return)
         self.beta.append(self.calculate_beta())
         self.alpha.append(self.calculate_alpha())
-        self.sharpe.append(self.calculate_sharpe())
+        self.metrics.sharpe[dt] = self.calculate_sharpe()
         self.sortino.append(self.calculate_sortino())
         self.information.append(self.calculate_information())
         self.max_drawdown = self.calculate_max_drawdown()
+
+        # Keep track of latest dt for use in to_dict and other methods
+        # that report current state.
+        self.latest_dt = dt
 
     def to_dict(self):
         """
@@ -193,7 +202,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'period_label': period_label
         }
 
-        rval['sharpe'] = self.sharpe[-1]
+        rval['sharpe'] = self.metrics.sharpe[self.latest_dt]
         rval['sortino'] = self.sortino[-1]
         rval['information'] = self.information[-1]
 

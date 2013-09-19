@@ -160,7 +160,7 @@ class TestEventsThroughRisk(unittest.TestCase):
 
             np.testing.assert_almost_equal(
                 expected_sharpe[current_dt],
-                crm.sharpe[-1],
+                crm.metrics.sharpe[current_dt],
                 decimal=6)
 
     def test_minute_buy_and_hold(self):
