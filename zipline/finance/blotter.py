@@ -94,7 +94,7 @@ class Blotter(object):
 
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
-        if int(amount) == 0:
+        if amount == 0:
             zero_message = "Requested to trade zero shares of {psid}".format(
                 psid=sid
             )
@@ -104,18 +104,18 @@ class Blotter(object):
         elif amount > self.max_shares:
             # Arbitrary limit of 100 billion (US) shares will never be
             # exceeded except by a buggy algorithm.
-            raise OverflowError('Can\'t order more than %d shares' %
+            raise OverflowError("Can't order more than %d shares" %
                                 self.max_shares)
 
-        order = Order(**{
-            'dt': self.current_dt,
-            'sid': sid,
-            'amount': amount,
-            'filled': 0,
-            'stop': stop_price,
-            'limit': limit_price,
-            'id': order_id
-        })
+        order = Order(
+            dt=self.current_dt,
+            sid=sid,
+            amount=amount,
+            filled=0,
+            stop=stop_price,
+            limit=limit_price,
+            id=order_id
+        )
 
         # initialized filled field.
         order.filled = 0
