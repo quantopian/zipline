@@ -41,6 +41,12 @@ class RiskMetricsCumulative(object):
         Call update() method on each dt to update the metrics.
     """
 
+    METRIC_NAMES = (
+        'alpha',
+        'beta',
+        'sharpe'
+    )
+
     def __init__(self, sim_params, returns_frequency=None):
         """
         - @returns_frequency allows for configuration of the whether
@@ -94,14 +100,11 @@ class RiskMetricsCumulative(object):
 
         self.latest_dt = cont_index[0]
 
-        metric_names = ('sharpe',)
-
-        self.metrics = pd.DataFrame(index=cont_index, columns=metric_names)
+        self.metrics = pd.DataFrame(index=cont_index,
+                                    columns=self.METRIC_NAMES)
 
         self.sortino = []
         self.information = []
-        self.beta = []
-        self.alpha = []
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.excess_returns = []
@@ -171,8 +174,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.daily_treasury[treasury_end]
         self.excess_returns.append(
             self.algorithm_period_returns[-1] - self.treasury_period_return)
-        self.beta.append(self.calculate_beta())
-        self.alpha.append(self.calculate_alpha())
+        self.metrics.beta[dt] = self.calculate_beta()
+        self.metrics.alpha[dt] = self.calculate_alpha(dt)
         self.metrics.sharpe[dt] = self.calculate_sharpe()
         self.sortino.append(self.calculate_sortino())
         self.information.append(self.calculate_information())
@@ -195,8 +198,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'treasury_period_return': self.treasury_period_return,
             'algorithm_period_return': self.algorithm_period_returns[-1],
             'benchmark_period_return': self.benchmark_period_returns[-1],
-            'beta': self.beta[-1],
-            'alpha': self.alpha[-1],
+            'beta': self.metrics.beta[self.latest_dt],
+            'alpha': self.metrics.alpha[self.latest_dt],
             'excess_return': self.excess_returns[-1],
             'max_drawdown': self.max_drawdown,
             'period_label': period_label
@@ -309,14 +312,14 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return information_ratio(A(self.algorithm_returns),
                                  A(self.benchmark_returns))
 
-    def calculate_alpha(self):
+    def calculate_alpha(self, dt):
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
         return alpha(self.algorithm_period_returns[-1],
                      self.treasury_period_return,
                      self.benchmark_period_returns[-1],
-                     self.beta[-1])
+                     self.metrics.beta[dt])
 
     def calculate_volatility(self, daily_returns):
         return np.std(daily_returns, ddof=1) * math.sqrt(self.num_trading_days)

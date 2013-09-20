@@ -50,8 +50,8 @@ class TestMinuteRisk(unittest.TestCase):
 
         risk_metrics.update(first_dt, 1.0, 2.0)
 
-        self.assertEquals(1, len(risk_metrics.alpha))
+        self.assertEquals(1, len(risk_metrics.metrics.alpha.valid()))
 
         risk_metrics.update(second_dt, 3.0, 4.0)
 
-        self.assertEquals(2, len(risk_metrics.alpha))
+        self.assertEquals(2, len(risk_metrics.metrics.alpha.valid()))
