@@ -47,7 +47,10 @@ ORDER_STATUS = Enum(
 # buy: [.0095, .0195) -> round to .01, sell: (.0005, .0105] -> round to .01
 def round_for_minimum_price_variation(x, is_buy, diff=(0.0095 - .005)):
     # relies on rounding half away from zero, unlike numpy's bankers' rounding
-    return round(x - (diff if is_buy else -diff), 2)
+    rounded = round(x - (diff if is_buy else -diff), 2)
+    if zp_math.tolerant_equals(rounded, 0.0):
+        return 0.0
+    return rounded
 
 
 class Blotter(object):

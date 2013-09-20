@@ -1,3 +1,5 @@
+import math
+
 from nose_parameterized import parameterized
 from unittest import TestCase
 
@@ -16,6 +18,8 @@ class BlotterTestCase(TestCase):
     def test_round_for_minimum_price_variation_buy(self, price, expected):
         result = round_for_minimum_price_variation(price, is_buy=True)
         self.assertEqual(result, expected)
+        self.assertEqual(math.copysign(1.0, result),
+                         math.copysign(1.0, expected))
 
     @parameterized.expand([(0.00, 0.00),
                            (0.01, 0.01),
@@ -27,3 +31,5 @@ class BlotterTestCase(TestCase):
     def test_round_for_minimum_price_variation_sell(self, price, expected):
         result = round_for_minimum_price_variation(price, is_buy=False)
         self.assertEqual(result, expected)
+        self.assertEqual(math.copysign(1.0, result),
+                         math.copysign(1.0, expected))
