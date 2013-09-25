@@ -116,10 +116,6 @@ class RiskMetricsCumulative(object):
     def get_daily_index(self):
         return self.trading_days
 
-    @property
-    def last_return_date(self):
-        return self.algorithm_returns.index[-1]
-
     def update(self, dt, algorithm_returns, benchmark_returns):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
@@ -191,8 +187,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         Creates a dictionary representing the state of the risk report.
         Returns a dict object of the form:
         """
-        period_label = self.last_return_date.strftime("%Y-%m")
         dt = self.latest_dt
+        period_label = dt.strftime("%Y-%m")
         rval = {
             'trading_days': len(self.algorithm_returns.valid()),
             'benchmark_volatility':
