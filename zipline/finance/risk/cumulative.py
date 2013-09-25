@@ -107,7 +107,7 @@ class RiskMetricsCumulative(object):
 
         self.max_drawdown = 0
         self.current_max = -np.inf
-        self.daily_treasury = {}
+        self.daily_treasury = pd.Series(index=self.trading_days)
 
     def get_minute_index(self, sim_params):
         return pd.date_range(sim_params.first_open, sim_params.last_close,
@@ -165,7 +165,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # curves on every minute.
         treasury_end = self.algorithm_returns.index[-1].replace(
             hour=0, minute=0)
-        if treasury_end not in self.daily_treasury:
+        if np.isnan(self.daily_treasury[treasury_end]):
             treasury_period_return = choose_treasury(
                 self.treasury_curves,
                 self.start_date,
