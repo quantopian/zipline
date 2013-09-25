@@ -93,10 +93,10 @@ class RiskMetricsCumulative(object):
         self.algorithm_returns = None
         self.benchmark_returns = None
 
-        self.compounded_log_returns = []
-
-        self.algorithm_period_returns = []
-        self.benchmark_period_returns = []
+        self.compounded_log_returns = pd.Series(index=cont_index)
+        self.algorithm_period_returns = pd.Series(index=cont_index)
+        self.benchmark_period_returns = pd.Series(index=cont_index)
+        self.excess_returns = pd.Series(index=cont_index)
 
         self.latest_dt = cont_index[0]
 
@@ -107,7 +107,6 @@ class RiskMetricsCumulative(object):
         self.information = []
         self.max_drawdown = 0
         self.current_max = -np.inf
-        self.excess_returns = []
         self.daily_treasury = {}
 
     def get_minute_index(self, sim_params):
@@ -136,10 +135,10 @@ class RiskMetricsCumulative(object):
 
         self.update_compounded_log_returns()
 
-        self.algorithm_period_returns.append(
-            self.calculate_period_returns(self.algorithm_returns))
-        self.benchmark_period_returns.append(
-            self.calculate_period_returns(self.benchmark_returns))
+        self.algorithm_period_returns[dt] = \
+            self.calculate_period_returns(self.algorithm_returns)
+        self.benchmark_period_returns[dt] = \
+            self.calculate_period_returns(self.benchmark_returns)
 
         if not self.algorithm_returns.index.equals(
             self.benchmark_returns.index
@@ -176,8 +175,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                 treasury_period_return
         self.treasury_period_return = \
             self.daily_treasury[treasury_end]
-        self.excess_returns.append(
-            self.algorithm_period_returns[-1] - self.treasury_period_return)
+        self.excess_returns[self.latest_dt] = (
+            self.algorithm_period_returns[self.latest_dt]
+            -
+            self.treasury_period_return)
         self.metrics.beta[dt] = self.calculate_beta()
         self.metrics.alpha[dt] = self.calculate_alpha(dt)
         self.metrics.sharpe[dt] = self.calculate_sharpe()
@@ -191,23 +192,24 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         Returns a dict object of the form:
         """
         period_label = self.last_return_date.strftime("%Y-%m")
+        dt = self.latest_dt
         rval = {
             'trading_days': len(self.algorithm_returns.valid()),
             'benchmark_volatility':
-            self.metrics.benchmark_volatility[self.latest_dt],
+            self.metrics.benchmark_volatility[dt],
             'algo_volatility':
-            self.metrics.algorithm_volatility[self.latest_dt],
+            self.metrics.algorithm_volatility[dt],
             'treasury_period_return': self.treasury_period_return,
-            'algorithm_period_return': self.algorithm_period_returns[-1],
-            'benchmark_period_return': self.benchmark_period_returns[-1],
-            'beta': self.metrics.beta[self.latest_dt],
-            'alpha': self.metrics.alpha[self.latest_dt],
-            'excess_return': self.excess_returns[-1],
+            'algorithm_period_return': self.algorithm_period_returns[dt],
+            'benchmark_period_return': self.benchmark_period_returns[dt],
+            'beta': self.metrics.beta[dt],
+            'alpha': self.metrics.alpha[dt],
+            'excess_return': self.excess_returns[dt],
             'max_drawdown': self.max_drawdown,
             'period_label': period_label
         }
 
-        rval['sharpe'] = self.metrics.sharpe[self.latest_dt]
+        rval['sharpe'] = self.metrics.sharpe[dt]
         rval['sortino'] = self.sortino[-1]
         rval['information'] = self.information[-1]
 
@@ -256,30 +258,27 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             compound = 0.0
             # BUG? Shouldn't this be set to log(1.0 + 0) ?
 
-        if len(self.compounded_log_returns) == 0:
-            self.compounded_log_returns.append(compound)
+        if len(self.compounded_log_returns[:self.latest_dt]) == 0:
+            self.compounded_log_returns[self.latest_dt] = compound
         else:
-            self.compounded_log_returns.append(
-                self.compounded_log_returns[-1] +
-                compound
-            )
+            self.compounded_log_returns[self.latest_dt] = \
+                self.compounded_log_returns[self.latest_dt] + compound
 
     def calculate_period_returns(self, returns):
-        returns = np.array(returns)
         return (1. + returns).prod() - 1
 
     def update_current_max(self):
         if len(self.compounded_log_returns) == 0:
             return
-        if self.current_max < self.compounded_log_returns[-1]:
-            self.current_max = self.compounded_log_returns[-1]
+        if self.current_max < self.compounded_log_returns[self.latest_dt]:
+            self.current_max = self.compounded_log_returns[self.latest_dt]
 
     def calculate_max_drawdown(self):
         if len(self.compounded_log_returns) == 0:
             return self.max_drawdown
 
         cur_drawdown = 1.0 - math.exp(
-            self.compounded_log_returns[-1] -
+            self.compounded_log_returns[self.latest_dt] -
             self.current_max)
 
         if self.max_drawdown < cur_drawdown:
@@ -292,7 +291,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
         return sharpe_ratio(self.metrics.algorithm_volatility[self.latest_dt],
-                            self.algorithm_period_returns[-1],
+                            self.algorithm_period_returns[self.latest_dt],
                             self.treasury_period_return)
 
     def calculate_sortino(self, mar=None):
@@ -303,7 +302,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             mar = self.treasury_period_return
 
         return sortino_ratio(np.array(self.algorithm_returns),
-                             self.algorithm_period_returns[-1],
+                             self.algorithm_period_returns[self.latest_dt],
                              mar)
 
     def calculate_information(self):
@@ -318,9 +317,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return alpha(self.algorithm_period_returns[-1],
+        return alpha(self.algorithm_period_returns[self.latest_dt],
                      self.treasury_period_return,
-                     self.benchmark_period_returns[-1],
+                     self.benchmark_period_returns[self.latest_dt],
                      self.metrics.beta[dt])
 
     def calculate_volatility(self, daily_returns):

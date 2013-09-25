@@ -357,7 +357,7 @@ class PerformanceTracker(object):
                                           bench_minute_returns)
 
         bench_since_open = \
-            self.intraday_risk_metrics.benchmark_period_returns[-1]
+            self.intraday_risk_metrics.benchmark_period_returns[dt]
 
         benchmark_returns = pd.Series({todays_date: bench_since_open})
 
