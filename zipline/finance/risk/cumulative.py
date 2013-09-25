@@ -159,13 +159,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # caching the treasury rates for the minutely case is a
         # big speedup, because it avoids searching the treasury
         # curves on every minute.
-        treasury_end = self.algorithm_returns.index[-1].replace(
-            hour=0, minute=0)
+        # In both minutely and daily, the daily curve is always used.
+        treasury_end = dt.replace(hour=0, minute=0)
         if np.isnan(self.daily_treasury[treasury_end]):
             treasury_period_return = choose_treasury(
                 self.treasury_curves,
                 self.start_date,
-                self.algorithm_returns.index[-1]
+                treasury_end
             )
             self.daily_treasury[treasury_end] =\
                 treasury_period_return
