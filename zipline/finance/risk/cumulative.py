@@ -47,6 +47,8 @@ class RiskMetricsCumulative(object):
         'sharpe',
         'algorithm_volatility',
         'benchmark_volatility',
+        'sortino',
+        'information',
     )
 
     def __init__(self, sim_params, returns_frequency=None):
@@ -103,8 +105,6 @@ class RiskMetricsCumulative(object):
         self.metrics = pd.DataFrame(index=cont_index,
                                     columns=self.METRIC_NAMES)
 
-        self.sortino = []
-        self.information = []
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.daily_treasury = {}
@@ -182,8 +182,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.beta[dt] = self.calculate_beta()
         self.metrics.alpha[dt] = self.calculate_alpha(dt)
         self.metrics.sharpe[dt] = self.calculate_sharpe()
-        self.sortino.append(self.calculate_sortino())
-        self.information.append(self.calculate_information())
+        self.metrics.sortino[dt] = self.calculate_sortino()
+        self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
 
     def to_dict(self):
@@ -210,8 +210,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         }
 
         rval['sharpe'] = self.metrics.sharpe[dt]
-        rval['sortino'] = self.sortino[-1]
-        rval['information'] = self.information[-1]
+        rval['sortino'] = self.metrics.sortino[dt]
+        rval['information'] = self.metrics.information[dt]
 
         return {k: None
                 if check_entry(k, v)
