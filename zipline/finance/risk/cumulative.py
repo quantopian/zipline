@@ -44,7 +44,9 @@ class RiskMetricsCumulative(object):
     METRIC_NAMES = (
         'alpha',
         'beta',
-        'sharpe'
+        'sharpe',
+        'algorithm_volatility',
+        'benchmark_volatility',
     )
 
     def __init__(self, sim_params, returns_frequency=None):
@@ -93,8 +95,6 @@ class RiskMetricsCumulative(object):
 
         self.compounded_log_returns = []
 
-        self.algorithm_volatility = []
-        self.benchmark_volatility = []
         self.algorithm_period_returns = []
         self.benchmark_period_returns = []
 
@@ -122,6 +122,10 @@ class RiskMetricsCumulative(object):
         return self.algorithm_returns.index[-1]
 
     def update(self, dt, algorithm_returns, benchmark_returns):
+        # Keep track of latest dt for use in to_dict and other methods
+        # that report current state.
+        self.latest_dt = dt
+
         self.algorithm_returns_cont[dt] = algorithm_returns
         self.algorithm_returns = self.algorithm_returns_cont.valid()
 
@@ -152,10 +156,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             raise Exception(message)
 
         self.update_current_max()
-        self.benchmark_volatility.append(
-            self.calculate_volatility(self.benchmark_returns))
-        self.algorithm_volatility.append(
-            self.calculate_volatility(self.algorithm_returns))
+        self.metrics.benchmark_volatility[dt] = \
+            self.calculate_volatility(self.benchmark_returns)
+        self.metrics.algorithm_volatility[dt] = \
+            self.calculate_volatility(self.algorithm_returns)
 
         # caching the treasury rates for the minutely case is a
         # big speedup, because it avoids searching the treasury
@@ -181,10 +185,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.information.append(self.calculate_information())
         self.max_drawdown = self.calculate_max_drawdown()
 
-        # Keep track of latest dt for use in to_dict and other methods
-        # that report current state.
-        self.latest_dt = dt
-
     def to_dict(self):
         """
         Creates a dictionary representing the state of the risk report.
@@ -193,8 +193,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         period_label = self.last_return_date.strftime("%Y-%m")
         rval = {
             'trading_days': len(self.algorithm_returns.valid()),
-            'benchmark_volatility': self.benchmark_volatility[-1],
-            'algo_volatility': self.algorithm_volatility[-1],
+            'benchmark_volatility':
+            self.metrics.benchmark_volatility[self.latest_dt],
+            'algo_volatility':
+            self.metrics.algorithm_volatility[self.latest_dt],
             'treasury_period_return': self.treasury_period_return,
             'algorithm_period_return': self.algorithm_period_returns[-1],
             'benchmark_period_return': self.benchmark_period_returns[-1],
@@ -289,7 +291,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe_ratio(self.algorithm_volatility[-1],
+        return sharpe_ratio(self.metrics.algorithm_volatility[self.latest_dt],
                             self.algorithm_period_returns[-1],
                             self.treasury_period_return)
 
