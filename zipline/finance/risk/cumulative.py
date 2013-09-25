@@ -110,8 +110,20 @@ class RiskMetricsCumulative(object):
         self.daily_treasury = pd.Series(index=self.trading_days)
 
     def get_minute_index(self, sim_params):
-        return pd.date_range(sim_params.first_open, sim_params.last_close,
-                             freq="Min")
+        """
+        Stitches together multiple days worth of business minutes into
+        one continous index.
+        """
+        trading_minutes = None
+        for day in self.trading_days:
+            mkt_open, mkt_close = trading.environment.get_open_and_close(day)
+            minutes_for_day = pd.date_range(mkt_open, mkt_close, freq='T')
+            if trading_minutes is None:
+                # Create container for all minutes on first iteration
+                trading_minutes = minutes_for_day
+            else:
+                trading_minutes = trading_minutes + minutes_for_day
+        return trading_minutes
 
     def get_daily_index(self):
         return self.trading_days
