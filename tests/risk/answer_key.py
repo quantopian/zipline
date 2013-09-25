@@ -227,10 +227,10 @@ class AnswerKey(object):
             'Sim Cumulative', 'D', 4, 254),
 
         'ALGORITHM_CUMULATIVE_VOLATILITY': DataIndex(
-            'Sim Cumulative', 'N', 4, 254),
+            'Sim Cumulative', 'O', 4, 254),
 
         'ALGORITHM_CUMULATIVE_SHARPE': DataIndex(
-            'Sim Cumulative', 'O', 4, 254)
+            'Sim Cumulative', 'R', 4, 254)
     }
 
     def __init__(self):
@@ -279,11 +279,14 @@ ANSWER_KEY = AnswerKey()
 
 BENCHMARK_DATES = ANSWER_KEY.BENCHMARK['Dates']
 BENCHMARK_RETURNS = ANSWER_KEY.BENCHMARK['Returns']
-BENCHMARK = pd.Series(
-    dict(zip((datetime.datetime(*x, tzinfo=pytz.UTC) for x in BENCHMARK_DATES),
-             BENCHMARK_RETURNS)))
+DATES = [datetime.datetime(*x, tzinfo=pytz.UTC) for x in BENCHMARK_DATES]
+BENCHMARK = pd.Series(dict(zip(DATES, BENCHMARK_RETURNS)))
 ALGORITHM_RETURNS = pd.Series(
-    dict(zip((datetime.datetime(*x, tzinfo=pytz.UTC) for x in BENCHMARK_DATES),
-             ANSWER_KEY.ALGORITHM_RETURN_VALUES)))
+    dict(zip(DATES, ANSWER_KEY.ALGORITHM_RETURN_VALUES)))
 RETURNS_DATA = pd.DataFrame({'Benchmark Returns': BENCHMARK,
                              'Algorithm Returns': ALGORITHM_RETURNS})
+RISK_CUMULATIVE = pd.DataFrame({
+    'volatility': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_VOLATILITY))),
+    'sharpe': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_SHARPE)))})
