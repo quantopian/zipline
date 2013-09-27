@@ -88,7 +88,6 @@ class PerformanceTracker(object):
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
-        self.emission_rate = sim_params.emission_rate
 
         self.perf_periods = []
 
