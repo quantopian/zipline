@@ -92,4 +92,4 @@ class PerDollar(object):
         (per share commission, total transaction commission)
         """
         cost_per_share = transaction.price * self.cost
-        return cost_per_share, transaction.amount * cost_per_share
+        return cost_per_share, abs(transaction.amount) * cost_per_share
