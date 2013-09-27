@@ -38,7 +38,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.finance.commission import PerShare, PerTrade
+from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.blotter import Blotter
 from zipline.finance.constants import ANNUALIZER
 from zipline.finance import trading
@@ -419,7 +419,7 @@ class TradingAlgorithm(object):
         self.slippage = slippage
 
     def set_commission(self, commission):
-        if not isinstance(commission, (PerShare, PerTrade)):
+        if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
             raise UnsupportedCommissionModel()
 
         if self.initialized:

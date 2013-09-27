@@ -66,3 +66,30 @@ class PerTrade(object):
             return 0.0, 0.0
 
         return abs(self.cost / transaction.amount), self.cost
+
+
+class PerDollar(object):
+    """
+    Calculates a commission for a transaction based on a per
+    dollar cost.
+    """
+
+    def __init__(self, cost=0.0015):
+        """
+        Cost parameter is the cost of a trade per-dollar. 0.0015
+        on $1 million means $1,500 commission (=1,000,000 x 0.0015)
+        """
+        self.cost = float(cost)
+
+    def __repr__(self):
+        return "{class_name}(cost={cost})".format(
+            class_name=self.__class__.__name__,
+            cost=self.cost)
+
+    def calculate(self, transaction):
+        """
+        returns a tuple of:
+        (per share commission, total transaction commission)
+        """
+        cost_per_share = transaction.price * self.cost
+        return cost_per_share, abs(transaction.amount) * cost_per_share
