@@ -63,8 +63,8 @@ method.
 class UnsupportedCommissionModel(ZiplineError):
     """
     Raised if a user script calls the override_commission magic
-    with a commission object that isn't a PerShare or
-    PerTrade commission
+    with a commission object that isn't a PerShare, PerTrade or
+    PerDollar commission
     """
     msg = """
 You attempted to override commission with an unsupported class. \
