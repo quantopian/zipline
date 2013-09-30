@@ -16,20 +16,19 @@
 
 import os
 from os.path import expanduser
-import msgpack
 from collections import OrderedDict
 from datetime import timedelta
 
 import logbook
+
+import pandas as pd
 
 from . treasuries import get_treasury_data
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
 from zipline.protocol import DailyReturn
-from zipline.utils.date_utils import tuple_to_date
 from zipline.utils.tradingcalendar import trading_days
-from operator import attrgetter
 
 logger = logbook.Logger('Loader')
 
@@ -60,18 +59,17 @@ def dump_treasury_curves():
 
     Puts source treasury and data into zipline.
     """
-    tr_data = []
+    tr_data = {}
 
     for curve in get_treasury_data():
-        date_as_tuple = curve['date'].timetuple()[0:6] + \
-            (curve['date'].microsecond,)
         # Not ideal but massaging data into expected format
-        del curve['date']
-        tr = (date_as_tuple, curve)
-        tr_data.append(tr)
+        tr_data[curve['date']] = curve
 
-    with get_datafile('treasury_curves.msgpack', mode='wb') as tr_fp:
-        tr_fp.write(msgpack.dumps(tr_data))
+    curves = pd.DataFrame(tr_data).T
+
+    datafile = get_datafile('treasury_curves.csv', mode='wb')
+    curves.to_csv(datafile)
+    datafile.close()
 
 
 def dump_benchmarks(symbol):
@@ -82,14 +80,14 @@ def dump_benchmarks(symbol):
     """
     benchmark_data = []
     for daily_return in get_benchmark_returns(symbol):
-        date_as_tuple = daily_return.date.timetuple()[0:6] + \
-            (daily_return.date.microsecond,)
         # Not ideal but massaging data into expected format
-        benchmark = (date_as_tuple, daily_return.returns)
+        benchmark = (daily_return.date, daily_return.returns)
         benchmark_data.append(benchmark)
 
-    with get_datafile(get_benchmark_filename(symbol), mode='wb') as bmark_fp:
-        bmark_fp.write(msgpack.dumps(benchmark_data))
+    datafile = get_datafile(get_benchmark_filename(symbol), mode='wb')
+    benchmark_returns = pd.Series(dict(benchmark_data))
+    benchmark_returns.to_csv(datafile)
+    datafile.close()
 
 
 def update_treasury_curves(last_date):
@@ -100,22 +98,18 @@ def update_treasury_curves(last_date):
 
     Puts source treasury and data into zipline.
     """
-    tr_data = []
-    with get_datafile('treasury_curves.msgpack', mode='rb') as tr_fp:
-        tr_list = msgpack.loads(tr_fp.read())
-        for packed_date, curve in tr_list:
-            tr_data.append((packed_date, curve))
+    datafile = get_datafile('treasury_curves.csv', mode='rb')
+    curves = pd.DataFrame.from_csv(datafile).T
+    datafile.close()
 
     for curve in get_treasury_data():
-        date_as_tuple = curve['date'].timetuple()[0:6] + \
-            (curve['date'].microsecond,)
-        # Not ideal but massaging data into expected format
-        del curve['date']
-        tr = (date_as_tuple, curve)
-        tr_data.append(tr)
+        curves[curve['date']] = curve
 
-    with get_datafile('treasury_curves.msgpack', mode='wb') as tr_fp:
-        tr_fp.write(msgpack.dumps(tr_data))
+    updated_curves = curves.T
+
+    datafile = get_datafile('treasury_curves.csv', mode='wb')
+    updated_curves.to_csv(datafile)
+    datafile.close()
 
 
 def update_benchmarks(symbol, last_date):
@@ -126,30 +120,27 @@ def update_benchmarks(symbol, last_date):
 
     Puts source benchmark into zipline.
     """
-    benchmark_data = []
-    with get_datafile(get_benchmark_filename(symbol), mode='rb') as bmark_fp:
-        bm_list = msgpack.loads(bmark_fp.read())
-        for packed_date, returns in bm_list:
-            benchmark_data.append((packed_date, returns))
+    datafile = get_datafile(get_benchmark_filename(symbol), mode='rb')
+    saved_benchmarks = pd.Series.from_csv(datafile)
+    datafile.close()
 
     try:
         start = last_date + timedelta(days=1)
         for daily_return in get_benchmark_returns(symbol, start_date=start):
-            date_as_tuple = daily_return.date.timetuple()[0:6] + \
-                (daily_return.date.microsecond,)
             # Not ideal but massaging data into expected format
-            benchmark = (date_as_tuple, daily_return.returns)
-            benchmark_data.append(benchmark)
+            benchmark = pd.Series({daily_return.date: daily_return.returns})
+            saved_benchmarks.append(benchmark)
 
-        with get_datafile(
-                get_benchmark_filename(symbol), mode='wb') as bmark_fp:
-            bmark_fp.write(msgpack.dumps(benchmark_data))
+        datafile = get_datafile(get_benchmark_filename(symbol), mode='wb')
+        saved_benchmarks.to_csv(datafile)
+        datafile.close()
     except benchmarks.BenchmarkDataNotFoundError as exc:
         logger.warn(exc)
+    return saved_benchmarks
 
 
 def get_benchmark_filename(symbol):
-    return "%s_benchmark.msgpack" % symbol
+    return "%s_benchmark.csv" % symbol
 
 
 def load_market_data(bm_symbol='^GSPC'):
@@ -157,69 +148,67 @@ def load_market_data(bm_symbol='^GSPC'):
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
     except IOError:
         print("""
-data msgpacks aren't distributed with source.
+data files aren't distributed with source.
 Fetching data from Yahoo Finance.
 """).strip()
         dump_benchmarks(bm_symbol)
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
 
-    bm_list = msgpack.loads(fp_bm.read())
+    saved_benchmarks = pd.Series.from_csv(fp_bm)
+    fp_bm.close()
 
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
-    last_bm_date = tuple_to_date(bm_list[-1][0])
+    last_bm_date = saved_benchmarks.index[-1]
     last_bm_date_offset = trading_days.searchsorted(
         last_bm_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     if len(trading_days) - last_bm_date_offset > 1:
-        update_benchmarks(bm_symbol, last_bm_date)
-        fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
-        bm_list = msgpack.loads(fp_bm.read())
+        benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
+    else:
+        benchmark_returns = saved_benchmarks
+
+    benchmark_returns = benchmark_returns.tz_localize('UTC')
 
     bm_returns = []
-    for packed_date, returns in bm_list:
-        event_dt = tuple_to_date(packed_date)
-
-        daily_return = DailyReturn(date=event_dt, returns=returns)
+    for dt, returns in benchmark_returns.iterkv():
+        daily_return = DailyReturn(date=dt, returns=returns)
         bm_returns.append(daily_return)
 
-    fp_bm.close()
-
-    bm_returns = sorted(bm_returns, key=attrgetter('date'))
-
     try:
-        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
+        fp_tr = get_datafile('treasury_curves.csv', "rb")
     except IOError:
         print("""
 data msgpacks aren't distributed with source.
 Fetching data from data.treasury.gov
 """).strip()
         dump_treasury_curves()
-        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
+        fp_tr = get_datafile('treasury_curves.csv', "rb")
 
-    tr_list = msgpack.loads(fp_tr.read())
+    saved_curves = pd.DataFrame.from_csv(fp_tr)
 
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
-    last_tr_date = tuple_to_date(tr_list[-1][0])
+    last_tr_date = saved_curves.index[-1]
     last_tr_date_offset = trading_days.searchsorted(
         last_tr_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     if len(trading_days) - last_tr_date_offset > 1:
-        update_treasury_curves(last_tr_date)
-        fp_tr = get_datafile('treasury_curves.msgpack', "rb")
-        tr_list = msgpack.loads(fp_tr.read())
+        treasury_curves = update_treasury_curves(last_tr_date)
+    else:
+        treasury_curves = saved_curves
+
+    treasury_curves = treasury_curves.tz_localize('UTC')
 
     tr_curves = {}
-    for packed_date, curve in tr_list:
-        tr_dt = tuple_to_date(packed_date)
+    for tr_dt, curve in treasury_curves.T.iterkv():
         # tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,
         #                       tzinfo=pytz.utc)
-        tr_curves[tr_dt] = curve
+        tr_curves[tr_dt] = curve.to_dict()
 
     fp_tr.close()
 
