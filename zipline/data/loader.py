@@ -41,6 +41,12 @@ DATA_PATH = os.path.join(
     'data'
 )
 
+CACHE_PATH = os.path.join(
+    expanduser("~"),
+    '.zipline',
+    'cache'
+)
+
 
 def get_datafile(name, mode='r'):
     """
@@ -53,6 +59,13 @@ def get_datafile(name, mode='r'):
         os.makedirs(DATA_PATH)
 
     return open(os.path.join(DATA_PATH, name), mode)
+
+
+def get_cache_filepath(name):
+    if not os.path.exists(CACHE_PATH):
+        os.makedirs(CACHE_PATH)
+
+    return os.path.join(CACHE_PATH, name)
 
 
 def dump_treasury_curves():
@@ -256,7 +269,16 @@ must specify stocks or indexes"""
     if stocks is not None:
         for stock in stocks:
             print stock
-            stkd = DataReader(stock, 'yahoo', start, end).sort_index()
+            cache_filename = "{stock}-{start}-{end}.csv".format(
+                stock=stock,
+                start=start,
+                end=end)
+            cache_filepath = get_cache_filepath(cache_filename)
+            if os.path.exists(cache_filepath):
+                stkd = pd.DataFrame.from_csv(cache_filepath)
+            else:
+                stkd = DataReader(stock, 'yahoo', start, end).sort_index()
+                stkd.to_csv(cache_filepath)
             data[stock] = stkd
 
     if indexes is not None:
