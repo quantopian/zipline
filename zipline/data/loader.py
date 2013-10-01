@@ -108,8 +108,10 @@ def update_treasury_curves(last_date):
     updated_curves = curves.T
 
     datafile = get_datafile('treasury_curves.csv', mode='wb')
-    updated_curves.to_csv(datafile)
+    updated_curves.T.to_csv(datafile)
     datafile.close()
+
+    return updated_curves
 
 
 def update_benchmarks(symbol, last_date):
