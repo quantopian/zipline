@@ -6,14 +6,6 @@
     :undoc-members:
     :show-inheritance:
 
-:mod:`date_utils` Module
---------------------------
-
-.. automodule:: zipline.utils.date_utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`factory` Module
 ---------------------
 
