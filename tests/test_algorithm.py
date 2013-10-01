@@ -22,6 +22,7 @@ import zipline.utils.factory as factory
 from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      RecordAlgorithm,
                                      TestOrderAlgorithm,
+                                     TestOrderInstantAlgorithm,
                                      TestOrderValueAlgorithm,
                                      TestTargetAlgorithm,
                                      TestOrderPercentAlgorithm,
@@ -186,3 +187,10 @@ class TestTransformAlgorithm(TestCase):
                 data_frequency='daily'
             )
             algo.run(self.df)
+
+    def test_order_instant(self):
+        algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
+                                         data_frequency='daily',
+                                         instant_fill=True)
+
+        algo.run(self.df)
