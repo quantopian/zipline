@@ -85,6 +85,13 @@ class AlgorithmSimulator(object):
         return self.EMISSION_TO_PERF_KEY_MAP[
             self.algo.perf_tracker.emission_rate]
 
+    def process_event(self, event):
+        process_trade = self.algo.blotter.process_trade
+        for txn, order in process_trade(event):
+            self.algo.perf_tracker.process_event(txn)
+            self.algo.perf_tracker.process_event(order)
+        self.algo.perf_tracker.process_event(event)
+
     def transform(self, stream_in):
         """
         Main generator work loop.
@@ -117,7 +124,7 @@ class AlgorithmSimulator(object):
                         self.algo.perf_tracker.process_event(event)
 
                 else:
-
+                    events = []
                     for event in snapshot:
                         if event.type == DATASOURCE_TYPE.SPLIT:
                             self.algo.blotter.process_split(event)
@@ -129,12 +136,12 @@ class AlgorithmSimulator(object):
                         if event.type == DATASOURCE_TYPE.BENCHMARK:
                             self.algo.set_datetime(event.dt)
                             bm_updated = True
-
-                        process_trade = self.algo.blotter.process_trade
-                        for txn, order in process_trade(event):
-                            self.algo.perf_tracker.process_event(txn)
-                            self.algo.perf_tracker.process_event(order)
-                        self.algo.perf_tracker.process_event(event)
+                        # If we are instantly filling orders we process
+                        # them after handle_data().
+                        if not self.algo.instant_fill:
+                            self.process_event(event)
+                        else:
+                            events.append(event)
 
                     # Update our portfolio.
                     self.algo.set_portfolio(
@@ -154,6 +161,12 @@ class AlgorithmSimulator(object):
                         for order in self.algo.blotter.new_orders:
                             self.algo.perf_tracker.process_event(order)
                         self.algo.blotter.new_orders = []
+
+                    # If we are instantly filling we execute orders
+                    # in this iteration rather than the next.
+                    if self.algo.instant_fill:
+                        for event in events:
+                            self.process_event(event)
 
                     # The benchmark is our internal clock. When it
                     # updates, we need to emit a performance message.

@@ -112,6 +112,8 @@ class TradingAlgorithm(object):
         else:
             self.data_frequency = None
 
+        self.instant_fill = kwargs.pop('instant_fill', False)
+
         # Override annualizer if set
         if 'annualizer' in kwargs:
             self.annualizer = kwargs['annualizer']
