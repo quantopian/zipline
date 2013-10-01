@@ -142,9 +142,9 @@ class PerformancePeriod(object):
             self._position_last_sale_prices[sid]
         except (KeyError, IndexError):
             self._position_amounts = \
-                self._position_amounts.append(pd.Series({sid: 0}))
+                self._position_amounts.append(pd.Series({sid: 0.0}))
             self._position_last_sale_prices = \
-                self._position_last_sale_prices.append(pd.Series({sid: 0}))
+                self._position_last_sale_prices.append(pd.Series({sid: 0.0}))
 
     def add_dividend(self, div):
         # The dividend is received on midnight of the dividend
