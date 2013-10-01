@@ -77,6 +77,7 @@ import logbook
 import math
 
 import numpy as np
+import pandas as pd
 from collections import OrderedDict, defaultdict
 
 import zipline.protocol as zp
@@ -110,11 +111,9 @@ class PerformancePeriod(object):
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
 
-        # Maps position to following array indexes
-        self._position_index_map = {}
         # Arrays for quick calculations of positions value
-        self._position_amounts = np.array([])
-        self._position_last_sale_prices = np.array([])
+        self._position_amounts = pd.Series()
+        self._position_last_sale_prices = pd.Series()
 
         self.calculate_performance()
 
@@ -137,16 +136,15 @@ class PerformancePeriod(object):
         self.max_capital_used = 0.0
         self.max_leverage = 0.0
 
-    def index_for_position(self, sid):
+    def ensure_position_index(self, sid):
         try:
-            index = self._position_index_map[sid]
-        except KeyError:
-            index = len(self._position_index_map)
-            self._position_index_map[sid] = index
-            self._position_amounts = np.append(self._position_amounts, [0])
-            self._position_last_sale_prices = np.append(
-                self._position_last_sale_prices, [0])
-        return index
+            self._position_amounts[sid]
+            self._position_last_sale_prices[sid]
+        except (KeyError, IndexError):
+            self._position_amounts = \
+                self._position_amounts.append(pd.Series({sid: 0}))
+            self._position_last_sale_prices = \
+                self._position_last_sale_prices.append(pd.Series({sid: 0}))
 
     def add_dividend(self, div):
         # The dividend is received on midnight of the dividend
@@ -233,8 +231,8 @@ class PerformancePeriod(object):
         # ----------------
         position = self.positions[txn.sid]
         position.update(txn)
-        index = self.index_for_position(txn.sid)
-        self._position_amounts[index] = position.amount
+        self.ensure_position_index(txn.sid)
+        self._position_amounts[txn.sid] = position.amount
 
         self.period_cash_flow -= txn.price * txn.amount
 
@@ -274,8 +272,8 @@ class PerformancePeriod(object):
         # isnan check will keep the last price if its not present
         if (event.sid in self.positions) and is_trade and has_price:
             self.positions[event.sid].last_sale_price = event.price
-            index = self.index_for_position(event.sid)
-            self._position_last_sale_prices[index] = event.price
+            self.ensure_position_index(event.sid)
+            self._position_last_sale_prices[event.sid] = event.price
 
             self.positions[event.sid].last_sale_date = event.dt
 
