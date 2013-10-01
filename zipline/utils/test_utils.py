@@ -1,6 +1,5 @@
 from datetime import datetime
 import blist
-from zipline.utils.date_utils import EPOCH
 from itertools import izip_longest
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
@@ -36,7 +35,7 @@ def check_dict(test, a, b, label):
 def check_datetime(test, a, b, label):
     test.assertIsInstance(a, datetime, "not datetime at: " + label)
     test.assertIsInstance(b, datetime, "not datetime at: " + label)
-    test.assertEqual(EPOCH(a), EPOCH(b), "mismatched dates " + label)
+    test.assertEqual(a, b, "mismatched dates " + label)
 
 
 def check(test, a, b, label=None):
