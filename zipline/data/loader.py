@@ -185,7 +185,7 @@ Fetching data from Yahoo Finance.
         fp_tr = get_datafile('treasury_curves.csv', "rb")
     except IOError:
         print("""
-data msgpacks aren't distributed with source.
+data files aren't distributed with source.
 Fetching data from data.treasury.gov
 """).strip()
         dump_treasury_curves()

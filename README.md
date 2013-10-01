@@ -67,7 +67,6 @@ Dependencies
 * numpy (>= 1.6.0)
 * pandas (>= 0.9.0)
 * pytz
-* msgpack-python
 * Logbook
 * blist
 * requests

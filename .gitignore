@@ -56,8 +56,5 @@ docs/_build/*
 # database of vbench
 benchmarks.db
 
-# downloaded data
-zipline/data/*.msgpack
-
 # Vagrant temp folder
 .vagrant
