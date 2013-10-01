@@ -61,6 +61,7 @@ from __future__ import division
 import logbook
 
 import pandas as pd
+from pandas.tseries.tools import normalize_date
 
 import zipline.protocol as zp
 import zipline.finance.risk as risk
@@ -89,11 +90,17 @@ class PerformanceTracker(object):
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
+        all_trading_days = trading.environment.trading_days
+        mask = ((all_trading_days >= normalize_date(self.period_start)) &
+                (all_trading_days <= normalize_date(self.period_end)))
+
+        self.trading_days = all_trading_days[mask]
+
         self.perf_periods = []
 
         if self.emission_rate == 'daily':
             self.all_benchmark_returns = pd.Series(
-                index=trading.environment.trading_days)
+                index=self.trading_days)
             self.intraday_risk_metrics = None
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params)
@@ -156,7 +163,7 @@ class PerformanceTracker(object):
         self.perf_periods.append(self.todays_performance)
 
         self.saved_dt = self.period_start
-        self.returns = []
+        self.returns = pd.Series(index=self.trading_days)
         # one indexed so that we reach 100%
         self.day_count = 0.0
         self.txn_count = 0
@@ -300,11 +307,7 @@ class PerformanceTracker(object):
         # if this is the close, save the returns objects for cumulative
         # risk calculations
         if dt == self.market_close:
-            todays_return_obj = zp.DailyReturn(
-                todays_date,
-                self.todays_performance.returns
-            )
-            self.returns.append(todays_return_obj)
+            self.returns[todays_date] = self.todays_performance.returns
 
     def handle_intraday_close(self):
         self.intraday_risk_metrics = \
@@ -329,7 +332,7 @@ class PerformanceTracker(object):
             todays_date,
             self.todays_performance.returns
         )
-        self.returns.append(todays_return_obj)
+        self.returns[todays_date] = self.todays_performance.returns
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
