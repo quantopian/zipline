@@ -279,30 +279,23 @@ class PerformanceTracker(object):
 
         minute_returns = self.minute_performance.returns
         self.minute_performance.rollover()
-        algo_minute_returns = pd.Series({dt: minute_returns})
-        bench_minute_returns = pd.Series({dt: self.all_benchmark_returns[dt]})
         # the intraday risk is calculated on top of minute performance
         # returns for the bench and the algo
         self.intraday_risk_metrics.update(dt,
-                                          algo_minute_returns,
-                                          bench_minute_returns)
+                                          minute_returns,
+                                          self.all_benchmark_returns[dt])
 
         bench_since_open = \
             self.intraday_risk_metrics.benchmark_period_returns[dt]
-
-        benchmark_returns = pd.Series({todays_date: bench_since_open})
 
         # if we've reached market close, check on dividends
         if dt == self.market_close:
             for perf_period in self.perf_periods:
                 perf_period.update_dividends(todays_date)
 
-        algorithm_returns = pd.Series({
-            todays_date: self.todays_performance.returns
-        })
         self.cumulative_risk_metrics.update(todays_date,
-                                            algorithm_returns,
-                                            benchmark_returns)
+                                            self.todays_performance.returns,
+                                            bench_since_open)
 
         # if this is the close, save the returns objects for cumulative
         # risk calculations
