@@ -86,6 +86,8 @@ def dump_treasury_curves():
     curves.to_csv(datafile)
     datafile.close()
 
+    return curves
+
 
 def dump_benchmarks(symbol):
     """
@@ -103,30 +105,6 @@ def dump_benchmarks(symbol):
     benchmark_returns = pd.Series(dict(benchmark_data))
     benchmark_returns.to_csv(datafile)
     datafile.close()
-
-
-def update_treasury_curves(last_date):
-    """
-    Updates data in the zipline treasury curves message pack
-
-    last_date should be a datetime object of the most recent data
-
-    Puts source treasury and data into zipline.
-    """
-    datafile = get_datafile('treasury_curves.csv', mode='rb')
-    curves = pd.DataFrame.from_csv(datafile).T
-    datafile.close()
-
-    for curve in get_treasury_data():
-        curves[curve['date']] = curve
-
-    updated_curves = curves.T
-
-    datafile = get_datafile('treasury_curves.csv', mode='wb')
-    updated_curves.T.to_csv(datafile)
-    datafile.close()
-
-    return updated_curves
 
 
 def update_benchmarks(symbol, last_date):
@@ -215,11 +193,9 @@ Fetching data from data.treasury.gov
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     if len(trading_days) - last_tr_date_offset > 1:
-        treasury_curves = update_treasury_curves(last_tr_date)
+        treasury_curves = dump_treasury_curves()
     else:
-        treasury_curves = saved_curves
-
-    treasury_curves = treasury_curves.tz_localize('UTC')
+        treasury_curves = saved_curves.tz_localize('UTC')
 
     tr_curves = {}
     for tr_dt, curve in treasury_curves.T.iterkv():
