@@ -320,17 +320,13 @@ class PerformanceTracker(object):
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)
 
-        todays_return_obj = zp.DailyReturn(
-            todays_date,
-            self.todays_performance.returns
-        )
         self.returns[todays_date] = self.todays_performance.returns
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
-            todays_return_obj.date,
-            todays_return_obj.returns,
-            self.all_benchmark_returns[todays_return_obj.date])
+            todays_date,
+            self.todays_performance.returns,
+            self.all_benchmark_returns[todays_date])
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
