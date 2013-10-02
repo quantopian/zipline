@@ -275,7 +275,7 @@ class PerformanceTracker(object):
             perf_period.calculate_performance()
 
     def handle_minute_close(self, dt):
-        todays_date = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        todays_date = normalize_date(dt)
 
         minute_returns = self.minute_performance.returns
         self.minute_performance.rollover()
@@ -316,8 +316,7 @@ class PerformanceTracker(object):
 
     def handle_market_close(self):
         # add the return results from today to the list of DailyReturn objects.
-        todays_date = self.market_close.replace(hour=0, minute=0, second=0,
-                                                microsecond=0)
+        todays_date = normalize_date(self.market_close)
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)
 
