@@ -21,6 +21,8 @@ import numpy as np
 import zipline.finance.trading as trading
 
 import pandas as pd
+from pandas.tseries.tools import normalize_date
+
 
 from . risk import (
     alpha,
@@ -71,9 +73,11 @@ class RiskMetricsCumulative(object):
                 (all_trading_days <= self.end_date))
 
         self.trading_days = all_trading_days[mask]
-        if sim_params.period_end not in self.trading_days:
+
+        last_day = normalize_date(sim_params.period_end)
+        if last_day not in self.trading_days:
             last_day = pd.tseries.index.DatetimeIndex(
-                [sim_params.period_end]
+                [last_day]
             )
             self.trading_days = self.trading_days.append(last_day)
 
