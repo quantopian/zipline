@@ -84,7 +84,9 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params, returns_frequency=None):
+    def __init__(self, sim_params,
+                 returns_frequency=None,
+                 create_first_day_stats=False):
         """
         - @returns_frequency allows for configuration of the whether
         the benchmark and algorithm returns are in units of minutes or days,
@@ -113,6 +115,8 @@ class RiskMetricsCumulative(object):
             self.trading_days = self.trading_days.append(last_day)
 
         self.sim_params = sim_params
+
+        self.create_first_day_stats = create_first_day_stats
 
         if returns_frequency is None:
             returns_frequency = self.sim_params.emission_rate
@@ -175,6 +179,12 @@ class RiskMetricsCumulative(object):
         self.algorithm_returns_cont[dt] = algorithm_returns
         self.algorithm_returns = self.algorithm_returns_cont.valid()
 
+        if self.create_first_day_stats:
+            if len(self.algorithm_returns) == 1:
+                self.algorithm_returns = pd.Series(
+                    {'null return': 0.0}).append(
+                    self.algorithm_returns)
+
         self.mean_returns = pd.rolling_mean(self.algorithm_returns,
                                             window=len(self.algorithm_returns),
                                             min_periods=1)
@@ -183,6 +193,19 @@ class RiskMetricsCumulative(object):
 
         self.benchmark_returns_cont[dt] = benchmark_returns
         self.benchmark_returns = self.benchmark_returns_cont.valid()
+
+        if self.create_first_day_stats:
+            if len(self.benchmark_returns) == 1:
+                self.benchmark_returns = pd.Series(
+                    {'null return': 0.0}).append(
+                    self.benchmark_returns)
+
+        self.mean_benchmark_returns = pd.rolling_mean(
+            self.benchmark_returns,
+            window=len(self.benchmark_returns),
+            min_periods=1)
+
+        self.annualized_benchmark_returns = self.mean_benchmark_returns * 252
 
         self.num_trading_days = len(self.algorithm_returns)
 
@@ -238,6 +261,19 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.sortino[dt] = self.calculate_sortino()
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
+
+        if self.create_first_day_stats:
+            # Remove placeholder 0 return
+            if 'null return' in self.algorithm_returns:
+                self.algorithm_returns = self.algorithm_returns.drop(
+                    'null return')
+                self.algorithm_returns.index = pd.to_datetime(
+                    self.algorithm_returns.index)
+            if 'null return' in self.benchmark_returns:
+                self.benchmark_returns = self.benchmark_returns.drop(
+                    'null return')
+                self.benchmark_returns.index = pd.to_datetime(
+                    self.benchmark_returns.index)
 
     def to_dict(self):
         """
