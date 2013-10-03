@@ -86,10 +86,14 @@ class RiskMetricsCumulative(object):
         if returns_frequency is None:
             returns_frequency = self.sim_params.emission_rate
 
+        self.returns_frequency = returns_frequency
+
         if returns_frequency == 'daily':
             cont_index = self.get_daily_index()
         elif returns_frequency == 'minute':
             cont_index = self.get_minute_index(sim_params)
+
+        self.cont_index = cont_index
 
         self.algorithm_returns_cont = pd.Series(index=cont_index)
         self.benchmark_returns_cont = pd.Series(index=cont_index)
