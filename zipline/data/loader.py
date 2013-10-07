@@ -124,7 +124,7 @@ def update_benchmarks(symbol, last_date):
         for daily_return in get_benchmark_returns(symbol, start_date=start):
             # Not ideal but massaging data into expected format
             benchmark = pd.Series({daily_return.date: daily_return.returns})
-            saved_benchmarks.append(benchmark)
+            saved_benchmarks = saved_benchmarks.append(benchmark)
 
         datafile = get_datafile(get_benchmark_filename(symbol), mode='wb')
         saved_benchmarks.to_csv(datafile)
@@ -164,8 +164,7 @@ Fetching data from Yahoo Finance.
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
     else:
         benchmark_returns = saved_benchmarks
-
-    benchmark_returns = benchmark_returns.tz_localize('UTC')
+        benchmark_returns = benchmark_returns.tz_localize('UTC')
 
     bm_returns = []
     for dt, returns in benchmark_returns.iterkv():
