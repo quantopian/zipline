@@ -317,7 +317,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         if mar is None:
             mar = self.treasury_period_return
 
-        return sortino_ratio(np.array(self.algorithm_returns),
+        return sortino_ratio(self.algorithm_returns,
                              self.algorithm_period_returns[self.latest_dt],
                              mar)
 
@@ -325,9 +325,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
-        A = np.array
-        return information_ratio(A(self.algorithm_returns),
-                                 A(self.benchmark_returns))
+        return information_ratio(self.algorithm_returns,
+                                 self.benchmark_returns)
 
     def calculate_alpha(self, dt):
         """
