@@ -27,7 +27,6 @@ from pandas.tseries.tools import normalize_date
 from . risk import (
     alpha,
     check_entry,
-    information_ratio,
     choose_treasury,
 )
 
@@ -84,6 +83,35 @@ def sortino_ratio(annualized_algorithm_return, treasury_return, downside_risk):
         return 0.0
 
     return (annualized_algorithm_return - treasury_return) / downside_risk
+
+
+def information_ratio(algo_volatility, algorithm_return, benchmark_return):
+    """
+    http://en.wikipedia.org/wiki/Information_ratio
+
+    Args:
+        algorithm_returns (np.array-like):
+            All returns during algorithm lifetime.
+        benchmark_returns (np.array-like):
+            All benchmark returns during algo lifetime.
+
+    Returns:
+        float. Information ratio.
+    """
+    if zp_math.tolerant_equals(algo_volatility, 0):
+        return np.nan
+
+    return (
+        (algorithm_return - benchmark_return)
+        # The square of the annualization factor is in the volatility,
+        # because the volatility is also annualized,
+        # i.e. the sqrt(annual factor) is in the volatility's numerator.
+        # So to have the the correct annualization factor for the
+        # Sharpe value's numerator, which should be the sqrt(annual factor).
+        # The square of the sqrt of the annual factor, i.e. the annual factor
+        # itself, is needed in the numerator to factor out the division by
+        # its square root.
+        / algo_volatility)
 
 
 class RiskMetricsCumulative(object):
@@ -159,6 +187,8 @@ class RiskMetricsCumulative(object):
         self.benchmark_returns = None
         self.mean_returns = None
         self.annualized_mean_returns = None
+        self.mean_benchmark_returns = None
+        self.annualized_benchmark_returns = None
 
         self.compounded_log_returns = pd.Series(index=cont_index)
         self.algorithm_period_returns = pd.Series(index=cont_index)
@@ -214,6 +244,13 @@ class RiskMetricsCumulative(object):
 
         self.benchmark_returns_cont[dt] = benchmark_returns
         self.benchmark_returns = self.benchmark_returns_cont.valid()
+
+        self.mean_benchmark_returns = pd.rolling_mean(
+            self.benchmark_returns,
+            window=len(self.benchmark_returns),
+            min_periods=1)
+
+        self.annualized_benchmark_returns = self.mean_benchmark_returns * 252
 
         if self.create_first_day_stats:
             if len(self.benchmark_returns) == 1:
@@ -417,8 +454,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
-        return information_ratio(self.algorithm_returns,
-                                 self.benchmark_returns)
+        return information_ratio(
+            self.metrics.algorithm_volatility[self.latest_dt],
+            self.annualized_mean_returns[self.latest_dt],
+            self.annualized_benchmark_returns[self.latest_dt])
 
     def calculate_alpha(self, dt):
         """
