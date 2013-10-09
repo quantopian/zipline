@@ -14,11 +14,9 @@
 # limitations under the License.
 
 import bisect
-import pytz
 import logbook
 import datetime
 
-from delorean import Delorean
 import pandas as pd
 
 from zipline.data.loader import load_market_data
@@ -133,20 +131,14 @@ class TradingEnvironment(object):
         return False
 
     def normalize_date(self, test_date):
-        return datetime.datetime(
-            year=test_date.year,
-            month=test_date.month,
-            day=test_date.day,
-            tzinfo=pytz.utc
-        )
+        test_date = pd.Timestamp(test_date, tz='UTC')
+        return pd.tseries.tools.normalize_date(test_date)
 
     def utc_dt_in_exchange(self, dt):
-        delorean = Delorean(dt, pytz.utc.zone)
-        return delorean.shift(self.exchange_tz).datetime
+        return pd.Timestamp(dt).tz_convert(self.exchange_tz)
 
     def exchange_dt_in_utc(self, dt):
-        delorean = Delorean(dt, self.exchange_tz)
-        return delorean.shift(pytz.utc.zone).datetime
+        return pd.Timestamp(dt, tz=self.exchange_tz).tz_convert('UTC')
 
     def is_market_hours(self, test_date):
         if not self.is_trading_day(test_date):
@@ -187,7 +179,7 @@ Last successful date: %s" % self.last_trading_day)
     def get_open_and_close(self, next_open):
 
         # creating a naive datetime with the correct hour,
-        # minute, and date. this will allow us to use Delorean to
+        # minute, and date. this will allow us to use pandas to
         # shift the time between EST and UTC.
         next_open = next_open.replace(
             hour=9,
@@ -196,7 +188,7 @@ Last successful date: %s" % self.last_trading_day)
             microsecond=0,
             tzinfo=None
         )
-        # create a new Delorean with the next_open naive date and
+        # create a new Timestamp with the next_open naive date and
         # the correct timezone for the exchange.
         open_utc = self.exchange_dt_in_utc(next_open)
 
