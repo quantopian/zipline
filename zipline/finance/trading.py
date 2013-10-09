@@ -199,6 +199,10 @@ Last successful date: %s" % self.last_trading_day)
 
         return market_open, market_close
 
+    def market_minutes_for_day(self, midnight):
+        market_open, market_close = self.get_open_and_close(midnight)
+        return pd.date_range(market_open, market_close, freq='T')
+
     def get_trading_day_duration(self, trading_day):
         trading_day = self.normalize_date(trading_day)
         if trading_day in self.early_closes:

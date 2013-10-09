@@ -124,8 +124,7 @@ class RiskMetricsCumulative(object):
         """
         trading_minutes = None
         for day in self.trading_days:
-            mkt_open, mkt_close = trading.environment.get_open_and_close(day)
-            minutes_for_day = pd.date_range(mkt_open, mkt_close, freq='T')
+            minutes_for_day = trading.environment.market_minutes_for_day(day)
             if trading_minutes is None:
                 # Create container for all minutes on first iteration
                 trading_minutes = minutes_for_day
