@@ -230,7 +230,14 @@ class AnswerKey(object):
             'Sim Cumulative', 'P', 4, 254),
 
         'ALGORITHM_CUMULATIVE_SHARPE': DataIndex(
-            'Sim Cumulative', 'R', 4, 254)
+            'Sim Cumulative', 'R', 4, 254),
+
+        'CUMULATIVE_DOWNSIDE_RISK': DataIndex(
+            'Sim Cumulative', 'U', 4, 254),
+
+        'CUMULATIVE_SORTINO': DataIndex(
+            'Sim Cumulative', 'V', 4, 254),
+
     }
 
     def __init__(self):
@@ -289,4 +296,8 @@ RISK_CUMULATIVE = pd.DataFrame({
     'volatility': pd.Series(dict(zip(
         DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_VOLATILITY))),
     'sharpe': pd.Series(dict(zip(
-        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_SHARPE)))})
+        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_SHARPE))),
+    'downside_risk': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_DOWNSIDE_RISK))),
+    'sortino': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_SORTINO)))})

@@ -70,3 +70,19 @@ class TestRisk(unittest.TestCase):
                 self.cumulative_metrics_06.metrics.sharpe[dt],
                 decimal=2,
                 err_msg="Mismatch at %s" % (dt,))
+
+    def test_downside_risk_06(self):
+        for dt, value in answer_key.RISK_CUMULATIVE.downside_risk.iterkv():
+            np.testing.assert_almost_equal(
+                self.cumulative_metrics_06.metrics.downside_risk[dt],
+                value,
+                decimal=2,
+                err_msg="Mismatch at %s" % (dt,))
+
+    def test_sortino_06(self):
+        for dt, value in answer_key.RISK_CUMULATIVE.sortino.iterkv():
+            np.testing.assert_almost_equal(
+                self.cumulative_metrics_06.metrics.sortino[dt],
+                value,
+                decimal=2,
+                err_msg="Mismatch at %s" % (dt,))

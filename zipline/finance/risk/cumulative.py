@@ -29,7 +29,6 @@ from . risk import (
     check_entry,
     information_ratio,
     choose_treasury,
-    sortino_ratio,
 )
 
 log = logbook.Logger('Risk Cumulative')
@@ -67,6 +66,26 @@ def sharpe_ratio(algorithm_volatility, annualized_return, treasury_return):
         / algorithm_volatility)
 
 
+def sortino_ratio(annualized_algorithm_return, treasury_return, downside_risk):
+    """
+    http://en.wikipedia.org/wiki/Sortino_ratio
+
+    Args:
+        algorithm_returns (np.array-like):
+            Returns from algorithm lifetime.
+        algorithm_period_return (float):
+            Algorithm return percentage from latest period.
+        mar (float): Minimum acceptable return.
+
+    Returns:
+        float. The Sortino ratio.
+    """
+    if np.isnan(downside_risk) or zp_math.tolerant_equals(downside_risk, 0):
+        return 0.0
+
+    return (annualized_algorithm_return - treasury_return) / downside_risk
+
+
 class RiskMetricsCumulative(object):
     """
     :Usage:
@@ -80,6 +99,7 @@ class RiskMetricsCumulative(object):
         'sharpe',
         'algorithm_volatility',
         'benchmark_volatility',
+        'downside_risk',
         'sortino',
         'information',
     )
@@ -137,6 +157,7 @@ class RiskMetricsCumulative(object):
         # returns container.
         self.algorithm_returns = None
         self.benchmark_returns = None
+        self.mean_returns = None
         self.annualized_mean_returns = None
 
         self.compounded_log_returns = pd.Series(index=cont_index)
@@ -258,6 +279,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.beta[dt] = self.calculate_beta()
         self.metrics.alpha[dt] = self.calculate_alpha(dt)
         self.metrics.sharpe[dt] = self.calculate_sharpe()
+        self.metrics.downside_risk[dt] = self.calculate_downside_risk()
         self.metrics.sortino[dt] = self.calculate_sortino()
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
@@ -383,16 +405,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                             self.annualized_mean_returns[self.latest_dt],
                             self.daily_treasury[self.latest_dt.date()])
 
-    def calculate_sortino(self, mar=None):
+    def calculate_sortino(self):
         """
         http://en.wikipedia.org/wiki/Sortino_ratio
         """
-        if mar is None:
-            mar = self.treasury_period_return
-
-        return sortino_ratio(self.algorithm_returns,
-                             self.algorithm_period_returns[self.latest_dt],
-                             mar)
+        return sortino_ratio(self.annualized_mean_returns[self.latest_dt],
+                             self.daily_treasury[self.latest_dt.date()],
+                             self.metrics.downside_risk[self.latest_dt])
 
     def calculate_information(self):
         """
@@ -412,6 +431,12 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
     def calculate_volatility(self, daily_returns):
         return np.std(daily_returns) * math.sqrt(252)
+
+    def calculate_downside_risk(self):
+        rets = self.algorithm_returns
+        mar = self.mean_returns
+        downside_diff = (rets[rets < mar] - mar).valid()
+        return np.std(downside_diff) * math.sqrt(252)
 
     def calculate_beta(self):
         """
