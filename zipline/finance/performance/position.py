@@ -42,7 +42,7 @@ log = logbook.Logger('Performance')
 class Position(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
-                 last_sale_price=0.0, last_sale_date=0.0,
+                 last_sale_price=0.0, last_sale_date=None,
                  dividends=None):
         self.sid = sid
         self.amount = amount

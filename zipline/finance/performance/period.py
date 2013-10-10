@@ -226,6 +226,22 @@ class PerformancePeriod(object):
                 del self.orders_by_id[order.id]
             self.orders_by_id[order.id] = order
 
+    def update_position(self, sid, amount=None, last_sale_price=None,
+                        last_sale_date=None, cost_basis=None):
+        pos = self.positions[sid]
+        self.ensure_position_index(sid)
+
+        if amount is not None:
+            pos.amount = amount
+            self._position_amounts[sid] = amount
+        if last_sale_price is not None:
+            pos.last_sale_price = last_sale_price
+            self._position_last_sale_prices[sid] = last_sale_price
+        if last_sale_date is not None:
+            pos.last_sale_date = last_sale_date
+        if cost_basis is not None:
+            pos.cost_basis = cost_basis
+
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
@@ -271,11 +287,8 @@ class PerformancePeriod(object):
         has_price = not np.isnan(event.price)
         # isnan check will keep the last price if its not present
         if (event.sid in self.positions) and is_trade and has_price:
-            self.positions[event.sid].last_sale_price = event.price
-            self.ensure_position_index(event.sid)
-            self._position_last_sale_prices[event.sid] = event.price
-
-            self.positions[event.sid].last_sale_date = event.dt
+            self.update_position(event.sid, last_sale_price=event.price,
+                                 last_sale_date=event.dt)
 
     def __core_dict(self):
         rval = {
