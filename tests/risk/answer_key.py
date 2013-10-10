@@ -241,6 +241,12 @@ class AnswerKey(object):
         'CUMULATIVE_INFORMATION': DataIndex(
             'Sim Cumulative', 'Y', 4, 254),
 
+        'CUMULATIVE_BETA': DataIndex(
+            'Sim Cumulative', 'AB', 4, 254),
+
+        'CUMULATIVE_ALPHA': DataIndex(
+            'Sim Cumulative', 'AC', 4, 254),
+
     }
 
     def __init__(self):
@@ -305,4 +311,9 @@ RISK_CUMULATIVE = pd.DataFrame({
     'sortino': pd.Series(dict(zip(
         DATES, ANSWER_KEY.CUMULATIVE_SORTINO))),
     'information': pd.Series(dict(zip(
-        DATES, ANSWER_KEY.CUMULATIVE_INFORMATION)))})
+        DATES, ANSWER_KEY.CUMULATIVE_INFORMATION))),
+    'alpha': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_ALPHA))),
+    'beta': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_BETA))),
+})
