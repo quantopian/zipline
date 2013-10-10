@@ -463,9 +463,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return alpha(self.algorithm_period_returns[self.latest_dt],
+        return alpha(self.annualized_mean_returns[self.latest_dt],
                      self.treasury_period_return,
-                     self.benchmark_period_returns[self.latest_dt],
+                     self.annualized_benchmark_returns[self.latest_dt],
                      self.metrics.beta[dt])
 
     def calculate_volatility(self, daily_returns):
@@ -488,11 +488,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         # it doesn't make much sense to calculate beta for less than two days,
         # so return none.
-        if len(self.algorithm_returns) < 2:
+        if len(self.annualized_mean_returns) < 2:
             return 0.0
 
-        returns_matrix = np.vstack([self.algorithm_returns,
-                                    self.benchmark_returns])
+        returns_matrix = np.vstack([self.annualized_mean_returns,
+                                    self.annualized_benchmark_returns])
         C = np.cov(returns_matrix, ddof=1)
         algorithm_covariance = C[0][1]
         benchmark_variance = C[1][1]

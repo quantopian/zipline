@@ -94,3 +94,19 @@ class TestRisk(unittest.TestCase):
                 value,
                 decimal=2,
                 err_msg="Mismatch at %s" % (dt,))
+
+    def test_alpha_06(self):
+        for dt, value in answer_key.RISK_CUMULATIVE.alpha.iterkv():
+            np.testing.assert_almost_equal(
+                self.cumulative_metrics_06.metrics.alpha[dt],
+                value,
+                decimal=2,
+                err_msg="Mismatch at %s" % (dt,))
+
+    def test_beta_06(self):
+        for dt, value in answer_key.RISK_CUMULATIVE.beta.iterkv():
+            np.testing.assert_almost_equal(
+                self.cumulative_metrics_06.metrics.beta[dt],
+                value,
+                decimal=2,
+                err_msg="Mismatch at %s" % (dt,))
