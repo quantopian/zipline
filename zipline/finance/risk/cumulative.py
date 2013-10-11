@@ -406,7 +406,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             compound = 0.0
             # BUG? Shouldn't this be set to log(1.0 + 0) ?
 
-        if len(self.compounded_log_returns[:self.latest_dt]) == 0:
+        if np.isnan(self.compounded_log_returns[self.latest_dt]):
             self.compounded_log_returns[self.latest_dt] = compound
         else:
             self.compounded_log_returns[self.latest_dt] = \

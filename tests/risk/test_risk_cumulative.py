@@ -110,3 +110,9 @@ class TestRisk(unittest.TestCase):
                 value,
                 decimal=2,
                 err_msg="Mismatch at %s" % (dt,))
+
+    def test_max_drawdown_calculated(self):
+        # We don't track max_drawdown by day, so it doesn't make sense to
+        # generate a full answer key for it. For now, ensure it's just
+        # "not zero"
+        self.assertNotEqual(self.cumulative_metrics_06.max_drawdown, 0.0)
