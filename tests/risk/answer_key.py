@@ -227,10 +227,26 @@ class AnswerKey(object):
             'Sim Cumulative', 'D', 4, 254),
 
         'ALGORITHM_CUMULATIVE_VOLATILITY': DataIndex(
-            'Sim Cumulative', 'O', 4, 254),
+            'Sim Cumulative', 'P', 4, 254),
 
         'ALGORITHM_CUMULATIVE_SHARPE': DataIndex(
-            'Sim Cumulative', 'R', 4, 254)
+            'Sim Cumulative', 'R', 4, 254),
+
+        'CUMULATIVE_DOWNSIDE_RISK': DataIndex(
+            'Sim Cumulative', 'U', 4, 254),
+
+        'CUMULATIVE_SORTINO': DataIndex(
+            'Sim Cumulative', 'V', 4, 254),
+
+        'CUMULATIVE_INFORMATION': DataIndex(
+            'Sim Cumulative', 'Y', 4, 254),
+
+        'CUMULATIVE_BETA': DataIndex(
+            'Sim Cumulative', 'AB', 4, 254),
+
+        'CUMULATIVE_ALPHA': DataIndex(
+            'Sim Cumulative', 'AC', 4, 254),
+
     }
 
     def __init__(self):
@@ -289,4 +305,15 @@ RISK_CUMULATIVE = pd.DataFrame({
     'volatility': pd.Series(dict(zip(
         DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_VOLATILITY))),
     'sharpe': pd.Series(dict(zip(
-        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_SHARPE)))})
+        DATES, ANSWER_KEY.ALGORITHM_CUMULATIVE_SHARPE))),
+    'downside_risk': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_DOWNSIDE_RISK))),
+    'sortino': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_SORTINO))),
+    'information': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_INFORMATION))),
+    'alpha': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_ALPHA))),
+    'beta': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_BETA))),
+})

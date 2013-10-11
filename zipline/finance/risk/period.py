@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
+
 import logbook
 import math
 import numpy as np
@@ -22,16 +24,19 @@ import zipline.finance.trading as trading
 
 import pandas as pd
 
+import risk
 from . risk import (
     alpha,
     check_entry,
-    choose_treasury,
     information_ratio,
     sharpe_ratio,
     sortino_ratio,
 )
 
 log = logbook.Logger('Risk Period')
+
+choose_treasury = functools.partial(risk.choose_treasury,
+                                    risk.select_treasury_duration)
 
 
 class RiskMetricsPeriod(object):

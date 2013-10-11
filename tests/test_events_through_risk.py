@@ -145,8 +145,8 @@ class TestEventsThroughRisk(unittest.TestCase):
         #       at least be an early warning against changes.
         expected_sharpe = {
             first_date: np.nan,
-            second_date: -1.630920,
-            third_date: -1.016842,
+            second_date: -31.56903265,
+            third_date: -11.459888981,
         }
 
         for bar in gen:
@@ -305,9 +305,9 @@ class TestEventsThroughRisk(unittest.TestCase):
             self.assertEqual(1, len(algo.portfolio.positions), "There should "
                              "be one position after the first day.")
 
-            self.assertTrue(
-                np.isnan(
-                    crm.metrics.algorithm_volatility[algo.datetime.date()]),
+            self.assertEquals(
+                0,
+                crm.metrics.algorithm_volatility[algo.datetime.date()],
                 "On the first day algorithm volatility does not exist.")
 
             second_msg = gen.next()

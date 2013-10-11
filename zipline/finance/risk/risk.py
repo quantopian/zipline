@@ -233,8 +233,9 @@ def select_treasury_duration(start_date, end_date):
     return treasury_duration
 
 
-def choose_treasury(treasury_curves, start_date, end_date):
-    treasury_duration = select_treasury_duration(start_date, end_date)
+def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
+                    compound=True):
+    treasury_duration = select_treasury(start_date, end_date)
     end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     search_day = None
 
@@ -274,7 +275,10 @@ treasury history range."
 
     if search_day:
         td = end_date - start_date
-        return rate * (td.days + 1) / 365
+        if compound:
+            return rate * (td.days + 1) / 365
+        else:
+            return rate
 
     message = "No rate for end date = {dt} and term = {term}. Check \
 that date doesn't exceed treasury history range."

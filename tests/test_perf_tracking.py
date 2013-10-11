@@ -1208,7 +1208,7 @@ class TestPerformanceTracker(unittest.TestCase):
                                       commission=0.50)
             benchmark_event_1 = Event({
                 'dt': start_dt,
-                'returns': 1.0,
+                'returns': 0.01,
                 'type': DATASOURCE_TYPE.BENCHMARK
             })
 
@@ -1218,7 +1218,7 @@ class TestPerformanceTracker(unittest.TestCase):
                 'bar', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
             benchmark_event_2 = Event({
                 'dt': start_dt + datetime.timedelta(minutes=1),
-                'returns': 2.0,
+                'returns': 0.02,
                 'type': DATASOURCE_TYPE.BENCHMARK
             })
 
@@ -1270,3 +1270,8 @@ class TestPerformanceTracker(unittest.TestCase):
                               msg_1['minute_perf']['period_close'])
             self.assertEquals(foo_event_2.dt,
                               msg_2['minute_perf']['period_close'])
+
+            # Ensure that a Sharpe value for cumulative metrics is being
+            # created.
+            self.assertIsNotNone(msg_1['cumulative_risk_metrics']['sharpe'])
+            self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
