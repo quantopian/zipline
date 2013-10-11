@@ -367,7 +367,7 @@ class PerformancePeriod(object):
         positions = self._positions_store
 
         for sid, pos in self.positions.iteritems():
-
+            # TODO: apply filter by amount != 0
             if sid not in positions:
                 positions[sid] = zp.Position(sid)
             position = positions[sid]
