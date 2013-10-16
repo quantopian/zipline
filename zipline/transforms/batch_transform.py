@@ -70,7 +70,7 @@ def downsample_panel(minute_rp, daily_rp, dt):
         for stock in sids:
             day_frame[stock][item] = dframe[stock][dframe.index[-1][0]]
     # store the frame at midnight instead of the close
-    daily_rp.add_frame(dt.replace(hour=0, minute=0), day_frame)
+    daily_rp.add_frame(trading.environment.normalize_date(dt), day_frame)
 
 
 class BatchTransform(object):
@@ -279,7 +279,7 @@ class BatchTransform(object):
         _, mkt_close = trading.environment.get_open_and_close(event.dt)
         if self.bars == 'daily':
             # Daily bars have their dt set to midnight.
-            mkt_close = mkt_close.replace(hour=0, minute=0, second=0)
+            mkt_close = trading.environment.normalize_date(mkt_close)
 
         if event.dt >= mkt_close:
             if self.downsample:
