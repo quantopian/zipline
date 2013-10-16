@@ -15,6 +15,7 @@
 
 import collections
 import heapq
+import logging
 import operator
 
 import unittest
@@ -36,6 +37,8 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
 import zipline.protocol
 from zipline.protocol import Event
+
+logger = logging.getLogger('Test Perf Tracking')
 
 onesec = datetime.timedelta(seconds=1)
 oneday = datetime.timedelta(days=1)
@@ -150,6 +153,9 @@ class TestCommissionEvents(unittest.TestCase):
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
+
+        logger.info("sim_params: %s, dt: %s, end_dt: %s" %
+                    (self.sim_params, self.dt, self.end_dt))
 
         self.sim_params.capital_base = 10e3
 
