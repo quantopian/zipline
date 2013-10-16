@@ -271,7 +271,7 @@ class BatchTransform(object):
         _, mkt_close = trading.environment.get_open_and_close(event.dt)
         if self.bars == 'daily':
             # Daily bars have their dt set to midnight.
-            mkt_close = mkt_close.replace(hour=0, minute=0, second=0)
+            mkt_close = trading.environment.normalize_date(mkt_close)
         if event.dt >= mkt_close:
             if self.downsample:
                 downsample_panel(self.rolling_panel,
