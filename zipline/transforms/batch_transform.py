@@ -69,7 +69,8 @@ def downsample_panel(minute_rp, daily_rp, dt):
         dframe = frame.groupby(lambda d: d.date()).resample('1d', how=func)
         for stock in sids:
             day_frame[stock][item] = dframe[stock][dframe.index[-1][0]]
-    daily_rp.add_frame(dt, day_frame)
+    # store the frame at midnight instead of the close
+    daily_rp.add_frame(trading.environment.normalize_date(dt), day_frame)
 
 
 class BatchTransform(object):
@@ -263,6 +264,14 @@ class BatchTransform(object):
         else:
             sids = self.static_sids
 
+        # the panel sent to the transform code will have
+        # columns masked with this set of sids. This is how
+        # we guarantee that all (and only) the sids sent to the
+        # algorithm's handle_data and passed to the batch
+        # transform. See the get_data method to see it applied.
+        # N.B. that the underlying panel grows monotonically
+        # if the set of sids changes over time.
+        self.latest_sids = sids
         # Create rolling panel if not existant
         if self.rolling_panel is None:
             self._init_panels(sids)
@@ -359,6 +368,8 @@ class BatchTransform(object):
                             supplemental_for_dt.combine_first(
                                 data[item].ix[dt])
 
+        # screen out sids no longer in the multiverse
+        data = data.ix[:, :, self.latest_sids]
         if self.clean_nans:
             # Fills in gaps of missing data during transform
             # of multiple stocks. E.g. we may be missing
