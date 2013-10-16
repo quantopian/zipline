@@ -282,13 +282,16 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        stop_reached, limit_reached = \
+        stop_reached, limit_reached, sl_stop_reached = \
             check_order_triggers(self, event)
         if (stop_reached, limit_reached) \
                 != (self.stop_reached, self.limit_reached):
             self.dt = event.dt
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
+        if sl_stop_reached:
+            # Change the STOP LIMIT order into a LIMIT order
+            self.stop = None
 
     def handle_split(self, split_event):
         ratio = split_event.ratio
@@ -329,7 +332,6 @@ class Order(object):
         For a market order, True.
         For a stop order, True IFF stop_reached.
         For a limit order, True IFF limit_reached.
-        For a stop-limit order, True IFF (stop_reached AND limit_reached)
         """
         if self.stop and not self.stop_reached:
             return False
