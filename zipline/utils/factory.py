@@ -323,24 +323,23 @@ def create_test_df_source(sim_params=None, bars='daily'):
     if sim_params:
         index = sim_params.trading_days
     else:
+        if trading.environment is None:
+            trading.environment = trading.TradingEnvironment()
+
         start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
-        index = pd.DatetimeIndex(
-            start=start,
-            end=end,
-            freq=freq
-        )
-        if bars == 'minute':
-            new_index = []
-            for i in index:
-                market_open = i.replace(hour=14,
-                                        minute=31)
-                market_close = i.replace(hour=21,
-                                         minute=0)
 
-                if i >= market_open and i <= market_close:
-                    new_index.append(i)
-            index = new_index
+        days = trading.environment.days_in_range(start, end)
+
+        if bars == 'daily':
+            index = days
+        if bars == 'minute':
+            index = pd.DatetimeIndex([], freq=freq)
+
+            for day in days:
+                day_index = trading.environment.market_minutes_for_day(day)
+                index = index.append(day_index)
+
     x = np.arange(1, len(index) + 1)
 
     df = pd.DataFrame(x, index=index, columns=[0])
@@ -355,7 +354,11 @@ def create_test_panel_source(sim_params=None):
     end = sim_params.last_close \
         if sim_params else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
 
-    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    if trading.environment is None:
+        trading.environment = trading.TradingEnvironment()
+
+    index = trading.environment.days_in_range(start, end)
+
     price = np.arange(0, len(index))
     volume = np.ones(len(index)) * 1000
     arbitrary = np.ones(len(index))
@@ -376,7 +379,10 @@ def create_test_panel_ohlc_source(sim_params=None):
     end = sim_params.last_close \
         if sim_params else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
 
-    index = pd.DatetimeIndex(start=start, end=end, freq=pd.datetools.day)
+    if trading.environment is None:
+        trading.environment = trading.TradingEnvironment()
+
+    index = trading.environment.days_in_range(start, end)
     price = np.arange(0, len(index)) + 100
     high = price * 1.05
     low = price * 0.95

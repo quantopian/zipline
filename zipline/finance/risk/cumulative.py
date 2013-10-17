@@ -149,11 +149,9 @@ class RiskMetricsCumulative(object):
             hour=0, minute=0, second=0, microsecond=0
         )
 
-        all_trading_days = trading.environment.trading_days
-        mask = ((all_trading_days >= self.start_date) &
-                (all_trading_days <= self.end_date))
-
-        self.trading_days = all_trading_days[mask]
+        self.trading_days = trading.environment.days_in_range(
+            self.start_date,
+            self.end_date)
 
         last_day = normalize_date(sim_params.period_end)
         if last_day not in self.trading_days:

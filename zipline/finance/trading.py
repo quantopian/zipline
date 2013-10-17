@@ -162,6 +162,11 @@ class TradingEnvironment(object):
 
         return None
 
+    def days_in_range(self, start, end):
+        mask = ((self.trading_days >= start) &
+                (self.trading_days <= end))
+        return self.trading_days[mask]
+
     def next_open_and_close(self, start_date):
         """
         Given the start_date, returns the next open and close of
