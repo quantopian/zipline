@@ -115,9 +115,6 @@ class TradingEnvironment(object):
         self.early_closes = get_early_closes(self.first_trading_day,
                                              self.last_trading_day)
 
-        # The market open and close for the exchange.
-        self._times = None
-
     def __enter__(self, *args, **kwargs):
         global environment
         self.prev_environment = environment
@@ -132,39 +129,6 @@ class TradingEnvironment(object):
         # signal that any exceptions need to be propagated up the
         # stack.
         return False
-
-    @property
-    def times(self):
-        if self._times is not None:
-            return self._times
-        else:
-            self._times = pd.DataFrame(index=self.trading_days,
-                                       columns=('market_open', 'market_close'))
-            for day in self.trading_days:
-                self._times['market_open'][day] = pd.Timestamp(
-                    datetime.datetime(
-                        year=day.year,
-                        month=day.month,
-                        day=day.day,
-                        hour=9,
-                        minute=31),
-                    tz=self.exchange_tz).tz_convert('UTC')
-
-                if day in self.early_closes:
-                    close_hour = 13
-                else:
-                    close_hour = 16
-
-                self._times['market_close'][day] = pd.Timestamp(
-                    datetime.datetime(
-                        year=day.year,
-                        month=day.month,
-                        day=day.day,
-                        hour=close_hour,
-                        minute=0),
-                    tz=self.exchange_tz).tz_convert('UTC')
-
-            return self._times
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
@@ -217,18 +181,39 @@ Last successful date: %s" % self.last_trading_day)
 
         return self.get_open_and_close(next_open)
 
-    def get_open_and_close(self, dt):
+    def get_open_and_close(self, next_open):
 
-        day = self.normalize_date(dt)
+        # creating a naive datetime with the correct hour,
+        # minute, and date. this will allow us to use pandas to
+        # shift the time between EST and UTC.
+        next_open = next_open.replace(
+            hour=9,
+            minute=31,
+            second=0,
+            microsecond=0,
+            tzinfo=None
+        )
+        # create a new Timestamp with the next_open naive date and
+        # the correct timezone for the exchange.
+        open_utc = self.exchange_dt_in_utc(next_open)
 
-        times_for_day = self.times.ix[day]
+        market_open = open_utc
+        market_close = (market_open
+                        + self.get_trading_day_duration(open_utc)
+                        - datetime.timedelta(minutes=1))
 
-        return (times_for_day['market_open'],
-                times_for_day['market_close'])
+        return market_open, market_close
 
     def market_minutes_for_day(self, midnight):
         market_open, market_close = self.get_open_and_close(midnight)
         return pd.date_range(market_open, market_close, freq='T')
+
+    def get_trading_day_duration(self, trading_day):
+        trading_day = self.normalize_date(trading_day)
+        if trading_day in self.early_closes:
+            return self.early_close_trading_day
+
+        return self.full_trading_day
 
     def trading_day_distance(self, first_date, second_date):
         first_date = self.normalize_date(first_date)
