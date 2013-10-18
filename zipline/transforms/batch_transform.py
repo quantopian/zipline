@@ -59,7 +59,6 @@ def downsample_panel(minute_rp, daily_rp, mkt_close):
     downsampling. The data from the daily bar is then added to the
     daily rolling panel using add_frame.
     """
-
     cur_panel = minute_rp.get_current()
     sids = minute_rp.minor_axis
     day_frame = pd.DataFrame(columns=sids, index=cur_panel.items)
