@@ -296,17 +296,21 @@ class BatchTransform(object):
                                                   columns=sids))
 
         # update trading day counters
-        _, mkt_close = trading.environment.get_open_and_close(event.dt)
-        if self.bars == 'daily':
-            # Daily bars have their dt set to midnight.
-            mkt_close = trading.environment.normalize_date(mkt_close)
-        if event.dt == mkt_close:
-            if self.downsample:
-                downsample_panel(self.rolling_panel,
-                                 self.daily_rolling_panel,
-                                 mkt_close
-                                 )
-            self.trading_days_total += 1
+        # we may get events from non-trading sources which occurr on
+        # non-trading days. The book-keeping for market close and
+        # trading day counting should only consider trading days.
+        if trading.environment.is_trading_day(event.dt):
+            _, mkt_close = trading.environment.get_open_and_close(event.dt)
+            if self.bars == 'daily':
+                # Daily bars have their dt set to midnight.
+                mkt_close = trading.environment.normalize_date(mkt_close)
+            if event.dt == mkt_close:
+                if self.downsample:
+                    downsample_panel(self.rolling_panel,
+                                     self.daily_rolling_panel,
+                                     mkt_close
+                                     )
+                self.trading_days_total += 1
 
         self.last_dt = event.dt
 
