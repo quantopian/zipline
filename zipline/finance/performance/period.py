@@ -376,7 +376,6 @@ class PerformancePeriod(object):
         return portfolio
 
     def get_positions(self):
-
         positions = self._positions_store
 
         for sid, pos in self.positions.iteritems():
