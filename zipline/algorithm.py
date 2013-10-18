@@ -380,10 +380,7 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        return self._portfolio
-
-    def set_portfolio(self, portfolio):
-        self._portfolio = portfolio
+        return self.perf_tracker.get_portfolio()
 
     def set_logger(self, logger):
         self.logger = logger

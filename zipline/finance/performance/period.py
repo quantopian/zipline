@@ -380,6 +380,13 @@ class PerformancePeriod(object):
         positions = self._positions_store
 
         for sid, pos in self.positions.iteritems():
+            # we'll hold onto empty positions internally but
+            # filter them from the data relayed outward.
+            if pos.amount == 0:
+                if sid in positions:
+                    del positions[sid]
+                continue
+
             if sid not in positions:
                 positions[sid] = zp.Position(sid)
             position = positions[sid]

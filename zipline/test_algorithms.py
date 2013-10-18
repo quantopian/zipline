@@ -234,6 +234,28 @@ class TestOrderAlgorithm(TradingAlgorithm):
         self.order(0, 1)
 
 
+class TestExitPositionAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.sale_price = None
+        self.incr = 0
+
+    def handle_data(self, data):
+        if self.incr == 0:
+            assert 0 not in self.portfolio.positions
+            self.order(0, 1)
+        elif self.incr == 1:
+            assert self.portfolio.positions[0]['amount'] == \
+                self.incr, "Orders not filled immediately."
+            assert self.portfolio.positions[0]['last_sale_price'] == \
+                data[0].price, "Orders not filled at current price."
+        elif self.incr == 2:
+            self.order(0, -1)
+        elif self.incr == 3:
+            assert 0 not in self.portfolio.positions
+
+        self.incr += 1
+
+
 class TestOrderInstantAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
