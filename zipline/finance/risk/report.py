@@ -79,13 +79,8 @@ class RiskReport(object):
             start_date = self.sim_params.period_start
             end_date = self.sim_params.period_end
         else:
-            # FIXME: Papering over multiple algorithm_return types
-            if isinstance(self.algorithm_returns, list):
-                start_date = self.algorithm_returns[0].date
-                end_date = self.algorithm_returns[-1].date
-            else:
-                start_date = self.algorithm_returns.index[0]
-                end_date = self.algorithm_returns.index[-1]
+            start_date = self.algorithm_returns.index[0]
+            end_date = self.algorithm_returns.index[-1]
 
         self.month_periods = self.periods_in_range(1, start_date, end_date)
         self.three_month_periods = self.periods_in_range(3, start_date,

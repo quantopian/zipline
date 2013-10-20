@@ -58,11 +58,9 @@ class RiskMetricsPeriod(object):
         self.end_date = end_date
 
         if benchmark_returns is None:
-            benchmark_returns = [
-                x for x in trading.environment.benchmark_returns
-                if x.date >= returns[0].date and
-                x.date <= returns[-1].date
-            ]
+            br = trading.environment.benchmark_returns
+            benchmark_returns = br[(br.index >= returns.index[0]) &
+                                   (br.index <= returns.index[-1])]
 
         self.algorithm_returns = self.mask_returns_to_period(returns)
         self.benchmark_returns = self.mask_returns_to_period(benchmark_returns)

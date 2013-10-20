@@ -84,7 +84,7 @@ class TestRisk(unittest.TestCase):
     def test_factory(self):
         returns = [0.1] * 100
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
-        self.assertTrue(r_objects[-1].date <=
+        self.assertTrue(r_objects.index[-1] <=
                         datetime.datetime(
                             year=2006, month=12, day=31, tzinfo=pytz.utc))
 
@@ -92,8 +92,8 @@ class TestRisk(unittest.TestCase):
         returns = factory.create_returns_from_list(
             [1.0, -0.5, 0.8, .17, 1.0, -0.1, -0.45], self.sim_params)
         # 200, 100, 180, 210.6, 421.2, 379.8, 208.494
-        metrics = risk.RiskMetricsPeriod(returns[0].date,
-                                         returns[-1].date,
+        metrics = risk.RiskMetricsPeriod(returns.index[0],
+                                         returns.index[-1],
                                          returns)
         self.assertEqual(metrics.max_drawdown, 0.505)
 

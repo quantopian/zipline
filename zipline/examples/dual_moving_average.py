@@ -15,7 +15,6 @@
 # limitations under the License.
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from zipline.algorithm import TradingAlgorithm
 import zipline.finance.trading as trading
@@ -76,9 +75,8 @@ if __name__ == '__main__':
     dma = DualMovingAverage()
     results = dma.run(data)
 
-    index = [br.date for br in trading.environment.benchmark_returns]
-    rets = [br.returns for br in trading.environment.benchmark_returns]
-    bm_returns = pd.Series(rets, index=index).ix[start:end]
+    br = trading.environment.benchmark_returns
+    bm_returns = br[(br.index >= start) & (br.index <= end)]
     results['benchmark_returns'] = (1 + bm_returns).cumprod().values
     results['algorithm_returns'] = (1 + results.returns).cumprod()
     fig = plt.figure()

@@ -316,7 +316,7 @@ class PerformanceTracker(object):
             self.market_close = self.sim_params.last_close
 
     def handle_market_close(self):
-        # add the return results from today to the list of DailyReturn objects.
+        # add the return results from today to the returns series
         todays_date = normalize_date(self.market_close)
         self.cumulative_performance.update_dividends(todays_date)
         self.todays_performance.update_dividends(todays_date)

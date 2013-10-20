@@ -91,17 +91,13 @@ class TradingEnvironment(object):
         self.early_close_trading_day = datetime.timedelta(hours=3, minutes=30)
         self.exchange_tz = exchange_tz
 
-        bm = None
+        bi = self.benchmark_returns.index
+        if max_date:
+            self.trading_days = bi[bi <= max_date].copy()
+        else:
+            self.trading_days = bi.copy()
 
-        trading_days_list = []
-        for bm in self.benchmark_returns:
-            if max_date and bm.date > max_date:
-                break
-            trading_days_list.append(bm.date)
-
-        self.trading_days = pd.DatetimeIndex(trading_days_list)
-
-        if bm and extra_dates:
+        if len(self.benchmark_returns) and extra_dates:
             for extra_date in extra_dates:
                 extra_date = extra_date.replace(hour=0, minute=0, second=0,
                                                 microsecond=0)

@@ -52,14 +52,14 @@ def create_txn(event, price, amount):
 
 def benchmark_events_in_range(sim_params):
     return [
-        Event({'dt': ret.date,
-               'returns': ret.returns,
+        Event({'dt': dt,
+               'returns': ret,
                'type':
                zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                'source_id': 'benchmarks'})
-        for ret in trading.environment.benchmark_returns
-        if ret.date.date() >= sim_params.period_start.date()
-        and ret.date.date() <= sim_params.period_end.date()
+        for dt, ret in trading.environment.benchmark_returns.iterkv()
+        if dt.date() >= sim_params.period_start.date()
+        and dt.date() <= sim_params.period_end.date()
     ]
 
 

@@ -26,7 +26,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-from zipline.protocol import DailyReturn, Event, DATASOURCE_TYPE
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
@@ -72,11 +72,10 @@ def create_noop_environment():
     oneday = timedelta(days=1)
     start = datetime(2006, 1, 1, tzinfo=pytz.utc)
 
-    bm_returns = []
+    days = []
     tr_curves = OrderedDict()
     for day in date_gen(start=start, delta=oneday, count=252):
-        dr = DailyReturn(day, 0.01)
-        bm_returns.append(dr)
+        days.append(day)
         curve = {
             '10year': 0.0799,
             '1month': 0.0799,
@@ -92,6 +91,8 @@ def create_noop_environment():
             'tid': 1752
         }
         tr_curves[day] = curve
+
+    bm_returns = pd.Series(index=days, data=0.1)
 
     load_nodata = lambda x: (bm_returns, tr_curves)
 
@@ -223,31 +224,13 @@ def create_txn_history(sid, priceList, amtList, interval, sim_params):
 
 
 def create_returns_from_range(sim_params):
-    current = sim_params.first_open
-    end = sim_params.last_close
-    test_range = []
-    while current <= end:
-        r = DailyReturn(current, random.random())
-        test_range.append(r)
-        current = trading.environment.next_trading_day(current)
-
-    return test_range
+    return pd.Series(index=sim_params.trading_days,
+                     data=np.random.rand(len(sim_params.trading_days)))
 
 
 def create_returns_from_list(returns, sim_params):
-    current = sim_params.first_open
-    test_range = []
-
-    # sometimes the range starts with a non-trading day.
-    if not trading.environment.is_trading_day(current):
-        current = trading.environment.next_trading_day(current)
-
-    for return_val in returns:
-        r = DailyReturn(current, return_val)
-        test_range.append(r)
-        current = trading.environment.next_trading_day(current)
-
-    return test_range
+    return pd.Series(index=sim_params.trading_days[:len(returns)],
+                     data=returns)
 
 
 def create_daily_trade_source(sids, trade_count, sim_params,

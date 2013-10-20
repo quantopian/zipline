@@ -27,7 +27,8 @@ from . loader_utils import (
     source_to_records,
     Mapping
 )
-from zipline.protocol import DailyReturn
+
+DailyReturn = collections.namedtuple('DailyReturn', ['date', 'returns'])
 
 
 class BenchmarkDataNotFoundError(Exception):

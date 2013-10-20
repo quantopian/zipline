@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
 
 from . utils.protocol_utils import Enum
 
@@ -182,21 +181,3 @@ class BarData(object):
 
     def items(self):
         return self._data.items()
-
-
-class DailyReturn(object):
-
-    def __init__(self, date, returns):
-
-        assert isinstance(date, datetime.datetime)
-        self.date = date.replace(hour=0, minute=0, second=0, microsecond=0)
-        self.returns = returns
-
-    def to_dict(self):
-        return {
-            'dt': self.date,
-            'returns': self.returns
-        }
-
-    def __repr__(self):
-        return str(self.date) + " - " + str(self.returns)

@@ -29,7 +29,6 @@ from . treasuries import get_treasury_data
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.protocol import DailyReturn
 from zipline.utils.tradingcalendar import trading_days
 
 logger = logbook.Logger('Loader')
@@ -166,11 +165,6 @@ Fetching data from Yahoo Finance.
         benchmark_returns = saved_benchmarks
         benchmark_returns = benchmark_returns.tz_localize('UTC')
 
-    bm_returns = []
-    for dt, returns in benchmark_returns.iterkv():
-        daily_return = DailyReturn(date=dt, returns=returns)
-        bm_returns.append(daily_return)
-
     try:
         fp_tr = get_datafile('treasury_curves.csv', "rb")
     except IOError:
@@ -208,7 +202,7 @@ Fetching data from data.treasury.gov
                             ((dt, c) for dt, c in tr_curves.iteritems()),
                             key=lambda t: t[0]))
 
-    return bm_returns, tr_curves
+    return benchmark_returns, tr_curves
 
 
 def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
