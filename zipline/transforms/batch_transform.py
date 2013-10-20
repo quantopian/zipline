@@ -347,6 +347,7 @@ class BatchTransform(object):
 
         recalculate_needed = downsample_ready and \
             (args_updated or (period_signals_update and self.updated))
+        ###################################################
 
         if recalculate_needed:
             self.cached = self.compute_transform_value(
