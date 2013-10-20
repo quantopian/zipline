@@ -311,6 +311,7 @@ class BatchTransform(object):
                                      mkt_close
                                      )
                 self.trading_days_total += 1
+            self.mkt_close = mkt_close
 
         self.last_dt = event.dt
 
@@ -340,8 +341,13 @@ class BatchTransform(object):
                 self.trading_days_total % self.refresh_period == 0)
         # 2. Have the args or kwargs been changed since last time?
         args_updated = args != self.last_args or kwargs != self.last_kwargs
-        recalculate_needed = args_updated or (period_signals_update and
-                                              self.updated)
+        # 3. Is this a downsampled batch, and is the last event mkt close?
+        downsample_ready = not self.downsample or \
+            self.last_dt == self.mkt_close
+
+        recalculate_needed = downsample_ready and \
+            (args_updated or (period_signals_update and self.updated))
+        ###################################################
 
         if recalculate_needed:
             self.cached = self.compute_transform_value(
