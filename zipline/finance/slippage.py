@@ -23,6 +23,11 @@ from functools import partial
 from zipline.protocol import DATASOURCE_TYPE
 import zipline.utils.math_utils as zp_math
 
+SELL = 0
+BUY = 1
+STOP = 1 << 1
+LIMIT = 1 << 2
+
 
 def check_order_triggers(order, event):
     """
@@ -43,38 +48,43 @@ def check_order_triggers(order, event):
     stop_reached = False
     limit_reached = False
     sl_stop_reached = False
-    if order.stop is not None:
-        if order.limit is not None:
-            if order.amount > 0:
-                # This is a BUY STOP LIMIT order
-                if event.price >= order.stop:
-                    sl_stop_reached = True
-                    if event.price <= order.limit:
-                        limit_reached = True
-            else:
-                # This is a SELL STOP LIMIT order
-                if event.price <= order.stop:
-                    sl_stop_reached = True
-                    if event.price >= order.limit:
-                        limit_reached = True
-        else:
-            if order.amount > 0:
-                # This is a BUY STOP order
-                if event.price >= order.stop:
-                    stop_reached = True
-            else:
-                # This is a SELL STOP order
-                if event.price <= order.stop:
-                    stop_reached = True
+
+    order_type = 0
+
+    if order.amount > 0:
+        order_type |= BUY
     else:
-            if order.amount > 0:
-                # This is BUY LIMIT order
-                if event.price <= order.limit:
-                    limit_reached = True
-            else:
-                # This is a SELL LIMIT order
-                if event.price >= order.limit:
-                    limit_reached = True
+        order_type |= SELL
+
+    if order.stop is not None:
+        order_type |= STOP
+
+    if order.limit is not None:
+        order_type |= LIMIT
+
+    if order_type == BUY | STOP | LIMIT:
+        if event.price >= order.stop:
+            sl_stop_reached = True
+            if event.price <= order.limit:
+                limit_reached = True
+    elif order_type == SELL | STOP | LIMIT:
+        if event.price <= order.stop:
+            sl_stop_reached = True
+            if event.price >= order.limit:
+                limit_reached = True
+    elif order_type == BUY | STOP:
+        if event.price >= order.stop:
+            stop_reached = True
+    elif order_type == SELL | STOP:
+        if event.price <= order.stop:
+            stop_reached = True
+    elif order_type == BUY | LIMIT:
+        if event.price <= order.limit:
+            limit_reached = True
+    elif order_type == SELL | LIMIT:
+        # This is a SELL LIMIT order
+        if event.price >= order.limit:
+            limit_reached = True
 
     return (stop_reached, limit_reached, sl_stop_reached)
 
