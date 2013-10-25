@@ -22,6 +22,10 @@ import pytz
 
 from unittest import TestCase
 
+from nose_parameterized import parameterized
+
+import pandas as pd
+
 from zipline.finance.slippage import VolumeShareSlippage
 
 from zipline.protocol import Event, DATASOURCE_TYPE
@@ -189,108 +193,154 @@ class SlippageTestCase(TestCase):
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
 
-    def test_orders_stop(self):
-        events = self.gen_trades()
+    STOP_ORDER_CASES = {
+        # Stop orders can be long/short and have their price greater or
+        # less than the stop.
+        #
+        # A stop being reached is conditional on the order direction.
+        # Long orders reach the stop when the price is greater than the stop.
+        # Short orders reach the stop when the price is less than the stop.
+        #
+        # Which leads to the following 4 cases:
+        #
+        #                    |   long   |   short  |
+        # | price > stop     |          |          |
+        # | price < stop     |          |          |
+        #
+        # Currently the slippage module acts according to the following table,
+        # where 'X' represents triggering a transaction
+        #                    |   long   |   short  |
+        # | price > stop     |          |     X    |
+        # | price < stop     |    X     |          |
+        #
+        # However, the following behavior *should* be followed.
+        #
+        #                    |   long   |   short  |
+        # | price > stop     |    X     |          |
+        # | price < stop     |          |     X    |
 
-        slippage_model = VolumeShareSlippage()
-
-        # long, does not trade
-
-        open_orders = [
-            Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+        'long | price gt stop': {
+            'order': {
+                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
-                'stop': 3.5})
-        ]
-
-        orders_txns = list(slippage_model.simulate(
-            events[2],
-            open_orders
-        ))
-
-        self.assertEquals(len(orders_txns), 0)
-
-        # long, does trade
-
-        open_orders = [
-            Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'stop': 3.5
+            },
+            'event': {
+                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'volume': 2000,
+                'price': 4.0,
+                'high': 3.15,
+                'low': 2.85,
+                'sid': 133,
+                'close': 4.0,
+                'open': 3.5
+            },
+            'expected': {
+                'transaction': None
+            }
+        },
+        'long | price lt stop': {
+            'order': {
+                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': 100,
                 'filled': 0,
                 'sid': 133,
                 'stop': 3.6
-            })
-        ]
-
-        orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
-        ))
-
-        self.assertEquals(len(orders_txns), 1)
-        _, txn = orders_txns[0]
-
-        expected_txn = {
-            'price': float(3.500875),
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-            'amount': int(100),
-            'sid': int(133),
-            'order_id': open_orders[0].id
-        }
-
-        for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
-
-        # short, does not trade
-
-        open_orders = [
-            Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+            },
+            'event': {
+                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'volume': 2000,
+                'price': 3.5,
+                'high': 3.15,
+                'low': 2.85,
+                'sid': 133,
+                'close': 3.5,
+                'open': 4.0
+            },
+            'expected': {
+                'transaction': {
+                    'price': 3.500875,
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'amount': 100,
+                    'sid': 133,
+                }
+            },
+        },
+        'short | price gt stop': {
+            'order': {
+                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
-                'stop': 3.5})
-        ]
-
-        orders_txns = list(slippage_model.simulate(
-            events[0],
-            open_orders
-        ))
-
-        self.assertEquals(len(orders_txns), 0)
-
-        # short, does trade
-
-        open_orders = [
-            Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'stop': 3.4
+            },
+            'event': {
+                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'volume': 2000,
+                'price': 3.5,
+                'high': 3.15,
+                'low': 2.85,
+                'sid': 133,
+                'close': 3.5,
+                'open': 3.0
+            },
+            'expected': {
+                'transaction': {
+                    'price': 3.499125,
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'amount': -100,
+                    'sid': 133,
+                }
+            }
+        },
+        'short | price lt stop': {
+            'order': {
+                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': -100,
                 'filled': 0,
                 'sid': 133,
-                'stop': 3.4})
-        ]
+                'stop': 3.5
+            },
+            'event': {
+                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'volume': 2000,
+                'price': 3.0,
+                'high': 3.15,
+                'low': 2.85,
+                'sid': 133,
+                'close': 3.0,
+                'open': 3.0
+            },
+            'expected': {
+                'transaction': None
+            }
+        },
+    }
 
-        orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
-        ))
+    @parameterized.expand([
+        (name, case['order'], case['event'], case['expected'])
+        for name, case in STOP_ORDER_CASES.items()
+        ])
+    def test_orders_stop(self, name, order_data, event_data, expected):
+        order = Order(**order_data)
+        event = Event(initial_values=event_data)
 
-        self.assertEquals(len(orders_txns), 1)
-        _, txn = orders_txns[0]
+        slippage_model = VolumeShareSlippage()
 
-        expected_txn = {
-            'price': float(3.499125),
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-            'amount': int(-100),
-            'sid': int(133)
-        }
+        try:
+            _, txn = slippage_model.simulate(event, [order]).next()
+        except StopIteration:
+            txn = None
 
-        for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+        if expected['transaction'] is None:
+            self.assertIsNone(txn)
+        else:
+            self.assertIsNotNone(txn)
+
+            for key, value in expected['transaction'].items():
+                self.assertEquals(value, txn[key])
 
     def test_orders_stop_limit(self):
 
