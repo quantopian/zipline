@@ -31,30 +31,52 @@ def check_order_triggers(order, event):
     For market orders, will return (False, False).
     For stop orders, limit_reached will always be False.
     For limit orders, stop_reached will always be False.
+    For stop limit orders a Boolean is returned to flag
+    that the stop has been reached.
 
     Orders that have been triggered already (price targets reached),
     the order's current values are returned.
     """
     if order.triggered:
-        return (order.stop_reached, order.limit_reached)
+        return (order.stop_reached, order.limit_reached, False)
 
     stop_reached = False
     limit_reached = False
-    # if the stop price is reached, simply set stop_reached
+    sl_stop_reached = False
     if order.stop is not None:
-        if (order.direction * (event.price - order.stop) <= 0):
-            # convert stop -> limit or market
-            stop_reached = True
+        if order.limit is not None:
+            if order.amount > 0:
+                # This is a BUY STOP LIMIT order
+                if event.price >= order.stop:
+                    sl_stop_reached = True
+                    if event.price <= order.limit:
+                        limit_reached = True
+            else:
+                # This is a SELL STOP LIMIT order
+                if event.price <= order.stop:
+                    sl_stop_reached = True
+                    if event.price >= order.limit:
+                        limit_reached = True
+        else:
+            if order.amount > 0:
+                # This is a BUY STOP order
+                if event.price >= order.stop:
+                    stop_reached = True
+            else:
+                # This is a SELL STOP order
+                if event.price <= order.stop:
+                    stop_reached = True
+    else:
+            if order.amount > 0:
+                # This is BUY LIMIT order
+                if event.price <= order.limit:
+                    limit_reached = True
+            else:
+                # This is a SELL LIMIT order
+                if event.price >= order.limit:
+                    limit_reached = True
 
-    # if the limit price is reached, we execute this order at
-    # (event.price + simulated_impact)
-    # we skip this order with a continue when the limit is not reached
-    if order.limit is not None:
-        # if limit conditions not met, then continue
-        if (order.direction * (event.price - order.limit) <= 0):
-            limit_reached = True
-
-    return (stop_reached, limit_reached)
+    return (stop_reached, limit_reached, sl_stop_reached)
 
 
 def transact_stub(slippage, commission, event, open_orders):
