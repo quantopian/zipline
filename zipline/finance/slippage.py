@@ -45,7 +45,7 @@ def check_order_triggers(order, event):
     sl_stop_reached = False
     if order.stop is not None:
         if order.limit is not None:
-            if order.amount > 0:        
+            if order.amount > 0:
                 # This is a BUY STOP LIMIT order
                 if event.price >= order.stop:
                     sl_stop_reached = True
@@ -75,7 +75,7 @@ def check_order_triggers(order, event):
                 # This is a SELL LIMIT order
                 if event.price >= order.limit:
                     limit_reached = True
-            
+
     return (stop_reached, limit_reached, sl_stop_reached)
 
 
