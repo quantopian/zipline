@@ -238,7 +238,12 @@ class SlippageTestCase(TestCase):
                 'open': 3.5
             },
             'expected': {
-                'transaction': None
+                'transaction': {
+                    'price': 4.001,
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'amount': 100,
+                    'sid': 133,
+                }
             }
         },
         'long | price lt stop': {
@@ -260,13 +265,8 @@ class SlippageTestCase(TestCase):
                 'open': 4.0
             },
             'expected': {
-                'transaction': {
-                    'price': 3.500875,
-                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': 100,
-                    'sid': 133,
-                }
-            },
+                'transaction': None
+            }
         },
         'short | price gt stop': {
             'order': {
@@ -287,12 +287,7 @@ class SlippageTestCase(TestCase):
                 'open': 3.0
             },
             'expected': {
-                'transaction': {
-                    'price': 3.499125,
-                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': -100,
-                    'sid': 133,
-                }
+                'transaction': None
             }
         },
         'short | price lt stop': {
@@ -314,7 +309,12 @@ class SlippageTestCase(TestCase):
                 'open': 3.0
             },
             'expected': {
-                'transaction': None
+                'transaction': {
+                    'price': 2.99925,
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'amount': -100,
+                    'sid': 133,
+                }
             }
         },
     }
