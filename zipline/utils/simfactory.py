@@ -61,7 +61,8 @@ def create_test_zipline(**config):
             sid,
             order_amount,
             order_count,
-            sim_params=factory.create_simulation_parameters()
+            sim_params=config.get('sim_params',
+                                  factory.create_simulation_parameters())
         )
 
     #-------------------
@@ -79,6 +80,13 @@ def create_test_zipline(**config):
     if trade_source:
         test_algo.set_sources([trade_source])
 
+    
+    #-------------------
+    # Benchmark source
+    #-------------------
+
+    test_algo.benchmark_return_source = config.get('benchmark_source', None)
+    
     #-------------------
     # Transforms
     #-------------------
