@@ -17,7 +17,7 @@
 import matplotlib.pyplot as plt
 
 from zipline.algorithm import TradingAlgorithm
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 

@@ -29,7 +29,7 @@ import pandas as pd
 from zipline.utils.data import RollingPanel
 from zipline.protocol import Event
 
-import zipline.finance.trading as trading
+from zipline.finance import trading
 
 from . utils import check_window_length
 

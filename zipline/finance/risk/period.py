@@ -20,7 +20,7 @@ import math
 import numpy as np
 import numpy.linalg as la
 
-import zipline.finance.trading as trading
+from zipline.finance import trading
 
 import pandas as pd
 

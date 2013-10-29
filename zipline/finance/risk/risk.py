@@ -58,7 +58,7 @@ Risk Report
 import logbook
 import numpy as np
 
-import zipline.finance.trading as trading
+from zipline.finance import trading
 import zipline.utils.math_utils as zp_math
 
 log = logbook.Logger('Risk')
