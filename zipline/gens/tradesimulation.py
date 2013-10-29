@@ -14,7 +14,7 @@
 # limitations under the License.
 from logbook import Logger, Processor
 
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.protocol import (
     BarData,
     SIDData,

@@ -32,7 +32,7 @@ import zipline.utils.math_utils as zp_math
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
 import zipline.protocol

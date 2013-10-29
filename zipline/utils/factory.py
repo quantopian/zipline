@@ -31,7 +31,7 @@ from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.finance.trading import SimulationParameters
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.sources.test_source import (
     date_gen,
     create_trade

@@ -29,7 +29,7 @@ from abc import ABCMeta, abstractmethod
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
-import zipline.finance.trading as trading
+from zipline.finance import trading
 
 log = logbook.Logger('Transform')
 

@@ -37,7 +37,7 @@ import zipline.utils.simfactory as simfactory
 from zipline.finance.blotter import Blotter
 from zipline.gens.composites import date_sorted_sources
 
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.finance.trading import SimulationParameters
 
 from zipline.finance.performance import PerformanceTracker

@@ -20,7 +20,7 @@ from nose.tools import timed
 from datetime import datetime
 
 import pytz
-import zipline.finance.trading as trading
+from zipline.finance import trading
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance import slippage
 from zipline.utils import factory

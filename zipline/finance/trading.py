@@ -44,7 +44,7 @@ log = logbook.Logger('Trading')
 # subsequently referenced directly by zipline financial
 # components. To set the environment, you can set the property on
 # the module directly:
-#       import zipline.finance.trading as trading
+#       from zipline.finance import trading
 #       trading.environment = TradingEnvironment()
 #
 # or if you want to switch the environment for a limited context

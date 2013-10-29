@@ -41,7 +41,7 @@ from zipline.finance.slippage import (
 from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.blotter import Blotter
 from zipline.finance.constants import ANNUALIZER
-import zipline.finance.trading as trading
+from zipline.finance import trading
 import zipline.protocol
 from zipline.protocol import Event
 
