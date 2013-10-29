@@ -46,14 +46,14 @@ __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
 def create_simulation_parameters(year=2006, start=None, end=None,
                                  capital_base=float("1.0e5"),
-                                 num_days=None
+                                 num_days=None, load=None
                                  ):
     """Construct a complete environment with reasonable defaults"""
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
     if end is None:
         if num_days:
-            trading.environment = trading.TradingEnvironment()
+            trading.environment = trading.TradingEnvironment(load=load)
             start_index = trading.environment.trading_days.searchsorted(
                 start)
             end = trading.environment.trading_days[start_index + num_days - 1]
