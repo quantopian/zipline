@@ -80,13 +80,12 @@ def create_test_zipline(**config):
     if trade_source:
         test_algo.set_sources([trade_source])
 
-    
     #-------------------
     # Benchmark source
     #-------------------
 
     test_algo.benchmark_return_source = config.get('benchmark_source', None)
-    
+
     #-------------------
     # Transforms
     #-------------------
