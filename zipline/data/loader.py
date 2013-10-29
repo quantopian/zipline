@@ -149,6 +149,7 @@ Fetching data from Yahoo Finance.
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
 
     saved_benchmarks = pd.Series.from_csv(fp_bm)
+    saved_benchmarks = saved_benchmarks.tz_localize('UTC')
     fp_bm.close()
 
     # Find the offset of the last date for which we have trading data in our
@@ -161,6 +162,7 @@ Fetching data from Yahoo Finance.
     # we have data,then we need to update
     if len(trading_days) - last_bm_date_offset > 1:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
+        benchmark_returns = benchmark_returns.tz_localize('UTC')
     else:
         benchmark_returns = saved_benchmarks
         benchmark_returns = benchmark_returns.tz_localize('UTC')
