@@ -231,8 +231,7 @@ class RiskMetricsCumulative(object):
         if self.create_first_day_stats:
             if len(self.algorithm_returns) == 1:
                 self.algorithm_returns = pd.Series(
-                    {'null return': 0.0}).append(
-                        self.algorithm_returns)
+                    {'null return': 0.0}).append(self.algorithm_returns)
 
         self.mean_returns = pd.rolling_mean(self.algorithm_returns,
                                             window=len(self.algorithm_returns),
@@ -253,8 +252,7 @@ class RiskMetricsCumulative(object):
         if self.create_first_day_stats:
             if len(self.benchmark_returns) == 1:
                 self.benchmark_returns = pd.Series(
-                    {'null return': 0.0}).append(
-                        self.benchmark_returns)
+                    {'null return': 0.0}).append(self.benchmark_returns)
 
         self.mean_benchmark_returns = pd.rolling_mean(
             self.benchmark_returns,
