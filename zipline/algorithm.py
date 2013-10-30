@@ -90,7 +90,6 @@ class TradingAlgorithm(object):
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
-        self._portfolio = None
         self.datetime = None
 
         self.registered_transforms = {}
@@ -102,6 +101,7 @@ class TradingAlgorithm(object):
         self.logger = None
 
         self.benchmark_return_source = None
+        self.perf_tracker = None
 
         # default components for transact
         self.slippage = VolumeShareSlippage()
@@ -124,6 +124,7 @@ class TradingAlgorithm(object):
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params:
             self.sim_params.data_frequency = self.data_frequency
+            self.perf_tracker = PerformanceTracker(self.sim_params)
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -213,9 +214,14 @@ class TradingAlgorithm(object):
         """
         sim_params.data_frequency = self.data_frequency
 
+        # perf_tracker will be instantiated in __init__ if a sim_params
+        # is passed to the constructor. If not, we instantiate here.
+        if self.perf_tracker is None:
+            self.perf_tracker = PerformanceTracker(sim_params)
+
         self.data_gen = self._create_data_generator(source_filter,
                                                     sim_params)
-        self.perf_tracker = PerformanceTracker(sim_params)
+
         self.trading_client = AlgorithmSimulator(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
@@ -380,10 +386,10 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        return self._portfolio
+        return self.perf_tracker.get_portfolio()
 
-    def set_portfolio(self, portfolio):
-        self._portfolio = portfolio
+    def update_portfolio(self):
+        return self.portfolio
 
     def set_logger(self, logger):
         self.logger = logger
