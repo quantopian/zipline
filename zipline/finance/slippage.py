@@ -113,7 +113,7 @@ def transact_partial(slippage, commission):
 
 class Transaction(object):
 
-    def __init__(self, sid, amount, dt, price, order_id=None, commission=None):
+    def __init__(self, sid, amount, dt, price, order_id, commission=None):
         self.sid = sid
         self.amount = amount
         self.dt = dt

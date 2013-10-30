@@ -1209,7 +1209,8 @@ class TestPerformanceTracker(unittest.TestCase):
                                       amount=-25,
                                       dt=foo_event_1.dt,
                                       price=10.0,
-                                      commission=0.50)
+                                      commission=0.50,
+                                      order_id=order_event_1.id)
             benchmark_event_1 = Event({
                 'dt': start_dt,
                 'returns': 0.01,
