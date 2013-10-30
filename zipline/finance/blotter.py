@@ -125,14 +125,11 @@ class Blotter(object):
             dt=self.current_dt,
             sid=sid,
             amount=amount,
-            filled=0,
             stop=stop_price,
             limit=limit_price,
             id=order_id
         )
 
-        # initialized filled field.
-        order.filled = 0
         self.open_orders[order.sid].append(order)
         self.orders[order.id] = order
         self.new_orders.append(order)
@@ -211,19 +208,22 @@ class Blotter(object):
 
         for order, txn in self.transact(trade_event, current_orders):
             if txn.type == zp.DATASOURCE_TYPE.COMMISSION:
-                yield txn, order
-                continue
+                order.commission = (order.commission or 0.0) + txn.cost
+            else:
+                if txn.amount == 0:
+                    raise zipline.errors.TransactionWithNoAmount(txn=txn)
+                if math.copysign(1, txn.amount) != order.direction:
+                    raise zipline.errors.TransactionWithWrongDirection(
+                        txn=txn, order=order)
+                if abs(txn.amount) > abs(self.orders[txn.order_id].amount):
+                    raise zipline.errors.TransactionVolumeExceedsOrder(
+                        txn=txn, order=order)
 
-            if txn.amount == 0:
-                raise zipline.errors.TransactionWithNoAmount(txn=txn)
-            if math.copysign(1, txn.amount) != order.direction:
-                raise zipline.errors.TransactionWithWrongDirection(
-                    txn=txn, order=order)
-            if abs(txn.amount) > abs(self.orders[txn.order_id].amount):
-                raise zipline.errors.TransactionVolumeExceedsOrder(
-                    txn=txn, order=order)
+                order.filled += txn.amount
+                if txn.commission is not None:
+                    order.commission = ((order.commission or 0.0)
+                                        + txn.commission)
 
-            order.filled += txn.amount
             # mark the date of the order to match the transaction
             # that is filling it.
             order.dt = txn.dt
@@ -239,7 +239,7 @@ class Blotter(object):
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
-                 id=None):
+                 commission=None, id=None):
         """
         @dt - datetime.datetime that the order was placed
         @sid - stock sid of the order
@@ -255,6 +255,7 @@ class Order(object):
         self.sid = sid
         self.amount = amount
         self.filled = filled
+        self.commission = commission
         self.status = ORDER_STATUS.OPEN
         self.stop = stop
         self.limit = limit
