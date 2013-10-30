@@ -188,7 +188,13 @@ class PerformanceTracker(object):
             self.saved_dt = date
             self.todays_performance.period_close = self.saved_dt
 
+    def update_performance(self):
+        # calculate performance as of last trade
+        for perf_period in self.perf_periods:
+            perf_period.calculate_performance()
+
     def get_portfolio(self):
+        self.update_performance()
         return self.cumulative_performance.as_portfolio()
 
     def to_dict(self, emission_type=None):
@@ -217,7 +223,6 @@ class PerformanceTracker(object):
         return _dict
 
     def process_event(self, event):
-
         self.event_count += 1
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
@@ -271,11 +276,8 @@ class PerformanceTracker(object):
 
             self.all_benchmark_returns[midnight] = event.returns
 
-        # calculate performance as of last trade
-        for perf_period in self.perf_periods:
-            perf_period.calculate_performance()
-
     def handle_minute_close(self, dt):
+        self.update_performance()
         todays_date = normalize_date(dt)
 
         minute_returns = self.minute_performance.returns
@@ -304,6 +306,8 @@ class PerformanceTracker(object):
             self.returns[todays_date] = self.todays_performance.returns
 
     def handle_intraday_close(self):
+        # update_performance should have been called in handle_minute_close
+        # so it is not repeated here.
         self.intraday_risk_metrics = \
             risk.RiskMetricsCumulative(self.sim_params)
         # increment the day counter before we move markers forward.
@@ -316,6 +320,7 @@ class PerformanceTracker(object):
             self.market_close = self.sim_params.last_close
 
     def handle_market_close(self):
+        self.update_performance()
         # add the return results from today to the returns series
         todays_date = normalize_date(self.market_close)
         self.cumulative_performance.update_dividends(todays_date)
