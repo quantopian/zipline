@@ -141,15 +141,14 @@ def create_transaction(event, order, price, amount):
     if amount_magnitude < 1:
         raise Exception("Transaction magnitude must be at least 1.")
 
-    txn = {
-        'sid': event.sid,
-        'amount': int(amount),
-        'dt': event.dt,
-        'price': price,
-        'order_id': order.id
-    }
+    transaction = Transaction(
+        sid=event.sid,
+        amount=int(amount),
+        dt=event.dt,
+        price=price,
+        order_id=order.id
+    )
 
-    transaction = Transaction(**txn)
     return transaction
 
 
