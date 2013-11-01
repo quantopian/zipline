@@ -23,10 +23,10 @@ from functools import partial
 from zipline.protocol import DATASOURCE_TYPE
 import zipline.utils.math_utils as zp_math
 
-SELL = 0
-BUY = 1
-STOP = 1 << 1
-LIMIT = 1 << 2
+SELL = 1 << 0
+BUY = 1 << 1
+STOP = 1 << 2
+LIMIT = 1 << 3
 
 
 def check_order_triggers(order, event):
