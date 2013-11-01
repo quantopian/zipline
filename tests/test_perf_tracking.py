@@ -1166,21 +1166,21 @@ class TestPerformanceTracker(unittest.TestCase):
             # create a transaction for all but
             # first trade in each sid, to simulate None transaction
             if event.dt != no_txn_dt:
-                order = Order(**{
-                    'sid': event.sid,
-                    'amount': -25,
-                    'dt': event.dt
-                })
+                order = Order(
+                    sid=event.sid,
+                    amount=-25,
+                    dt=event.dt
+                )
                 yield order
                 yield event
-                txn = Transaction(**{
-                    'sid': event.sid,
-                    'amount': -25,
-                    'dt': event.dt,
-                    'price': 10.0,
-                    'commission': 0.50,
-                    'order_id': order.id
-                })
+                txn = Transaction(
+                    sid=event.sid,
+                    amount=-25,
+                    dt=event.dt,
+                    price=10.0,
+                    commission=0.50,
+                    order_id=order.id
+                )
                 yield txn
             else:
                 yield event
@@ -1201,11 +1201,9 @@ class TestPerformanceTracker(unittest.TestCase):
             tracker = perf.PerformanceTracker(sim_params)
 
             foo_event_1 = factory.create_trade('foo', 10.0, 20, start_dt)
-            order_event_1 = Order(**{
-                                  'sid': foo_event_1.sid,
-                                  'amount': -25,
-                                  'dt': foo_event_1.dt
-                                  })
+            order_event_1 = Order(sid=foo_event_1.sid,
+                                  amount=-25,
+                                  dt=foo_event_1.dt)
             bar_event_1 = factory.create_trade('bar', 100.0, 200, start_dt)
             txn_event_1 = Transaction(sid=foo_event_1.sid,
                                       amount=-25,
