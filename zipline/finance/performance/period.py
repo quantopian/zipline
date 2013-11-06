@@ -57,8 +57,6 @@ omitted).
     | max_capital\  | The maximum amount of capital deployed during the    |
     | _used         | period.                                              |
     +---------------+------------------------------------------------------+
-    | max_leverage  | The maximum leverage used during the period.         |
-    +---------------+------------------------------------------------------+
     | period_close  | The last close of the market in period. datetime in  |
     |               | pytz.utc timezone.                                   |
     +---------------+------------------------------------------------------+
@@ -74,7 +72,6 @@ omitted).
 
 from __future__ import division
 import logbook
-import math
 
 import numpy as np
 import pandas as pd
@@ -132,9 +129,6 @@ class PerformancePeriod(object):
         self.processed_transactions = defaultdict(list)
         self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
-        self.cumulative_capital_used = 0.0
-        self.max_capital_used = 0.0
-        self.max_leverage = 0.0
 
     def ensure_position_index(self, sid):
         try:
@@ -198,7 +192,6 @@ class PerformancePeriod(object):
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount
-        self.cumulative_capital_used -= amount
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
@@ -252,27 +245,6 @@ class PerformancePeriod(object):
 
         self.period_cash_flow -= txn.price * txn.amount
 
-        # Max Leverage
-        # ---------------
-        # Calculate the maximum capital used and maximum leverage
-        transaction_cost = txn.price * txn.amount
-        self.cumulative_capital_used += transaction_cost
-
-        if math.fabs(self.cumulative_capital_used) > self.max_capital_used:
-            self.max_capital_used = math.fabs(self.cumulative_capital_used)
-
-            # We want to conveye a level, rather than a precise figure.
-            # round to the nearest 5,000 to keep the number easy on the eyes
-            self.max_capital_used = self.round_to_nearest(
-                self.max_capital_used,
-                base=5000
-            )
-
-            # we're adding a 10% cushion to the capital used.
-            self.max_leverage = 1.1 * \
-                self.max_capital_used / self.starting_cash
-
-        # add transaction to the list of processed transactions
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
@@ -300,9 +272,6 @@ class PerformancePeriod(object):
             'starting_cash': self.starting_cash,
             'ending_cash': self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
-            'cumulative_capital_used': self.cumulative_capital_used,
-            'max_capital_used': self.max_capital_used,
-            'max_leverage': self.max_leverage,
             'pnl': self.pnl,
             'returns': self.returns,
             'period_open': self.period_open,
