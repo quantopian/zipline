@@ -196,16 +196,27 @@ class Blotter(object):
             # less frequently than once per minute.
             return
 
-        if trade_event.sid in self.open_orders:
-            orders = self.open_orders[trade_event.sid]
-            orders = sorted(orders, key=lambda o: o.dt)
-            # Only use orders for the current day or before
-            current_orders = filter(
-                lambda o: o.dt <= trade_event.dt,
-                orders)
-        else:
+        if trade_event.sid not in self.open_orders:
             return
 
+        orders = self.open_orders[trade_event.sid]
+        orders = sorted(orders, key=lambda o: o.dt)
+        # Only use orders for the current day or before
+        current_orders = filter(
+            lambda o: o.dt <= trade_event.dt,
+            orders)
+
+        for order, txn in self.process_transactions(trade_event,
+                                                    current_orders):
+            yield order, txn
+
+        # update the open orders for the trade_event's sid
+        self.open_orders[trade_event.sid] = \
+            [order for order
+             in self.open_orders[trade_event.sid]
+             if order.open]
+
+    def process_transactions(self, trade_event, current_orders):
         for order, txn in self.transact(trade_event, current_orders):
             if txn.type == zp.DATASOURCE_TYPE.COMMISSION:
                 order.commission = (order.commission or 0.0) + txn.cost
@@ -229,12 +240,6 @@ class Blotter(object):
             order.dt = txn.dt
 
             yield txn, order
-
-        # update the open orders for the trade_event's sid
-        self.open_orders[trade_event.sid] = \
-            [order for order
-             in self.open_orders[trade_event.sid]
-             if order.open]
 
 
 class Order(object):
