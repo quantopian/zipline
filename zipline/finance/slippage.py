@@ -170,9 +170,7 @@ class SlippageModel(object):
 
         for order in current_orders:
 
-            open_amount = order.amount - order.filled
-
-            if zp_math.tolerant_equals(open_amount, 0):
+            if zp_math.tolerant_equals(order.open_amount, 0):
                 continue
 
             order.check_triggers(event)
