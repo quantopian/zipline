@@ -173,7 +173,7 @@ class Blotter(object):
 
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
-            cur_order.status = ORDER_STATUS.CANCELLED
+            cur_order.cancel()
             cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
@@ -261,7 +261,7 @@ class Order(object):
         self.amount = amount
         self.filled = filled
         self.commission = commission
-        self.status = ORDER_STATUS.OPEN
+        self._cancelled = False
         self.stop = stop
         self.limit = limit
         self.stop_reached = False
@@ -274,8 +274,9 @@ class Order(object):
 
     def to_dict(self):
         py = copy(self.__dict__)
-        for field in ['type', 'direction']:
+        for field in ['type', 'direction', '_cancelled']:
             del py[field]
+        py['status'] = self.status
         return py
 
     def to_api_obj(self):
@@ -320,16 +321,18 @@ class Order(object):
             self.stop = round(self.stop * ratio, 2)
 
     @property
+    def status(self):
+        if self._cancelled:
+            return ORDER_STATUS.CANCELLED
+
+        return ORDER_STATUS.FILLED \
+            if not self.open_amount else ORDER_STATUS.OPEN
+
+    def cancel(self):
+        self._cancelled = True
+
+    @property
     def open(self):
-        if self.status == ORDER_STATUS.CANCELLED:
-            return False
-
-        remainder = self.amount - self.filled
-        if remainder != 0:
-            self.status = ORDER_STATUS.OPEN
-        else:
-            self.status = ORDER_STATUS.FILLED
-
         return self.status == ORDER_STATUS.OPEN
 
     @property
