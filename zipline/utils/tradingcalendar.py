@@ -371,9 +371,9 @@ early_closes = get_early_closes(start, end)
 
 def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
     open_and_closes = pd.DataFrame(index=trading_days,
-                                   columns=('open_minute', 'close_minute'))
+                                   columns=('market_open', 'market_close'))
     for day in trading_days:
-        open_minute = pd.Timestamp(
+        market_open = pd.Timestamp(
             datetime(
                 year=day.year,
                 month=day.month,
@@ -383,7 +383,7 @@ def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
             tz='US/Eastern').tz_convert('UTC')
             # 1 PM if early close, 4 PM otherwise
         close_hour = 13 if day in early_closes else 16
-        close_minute = pd.Timestamp(
+        market_close = pd.Timestamp(
             datetime(
                 year=day.year,
                 month=day.month,
@@ -391,8 +391,8 @@ def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
                 hour=close_hour),
             tz='US/Eastern').tz_convert('UTC')
 
-        open_and_closes.ix[day]['open_minute'] = open_minute
-        open_and_closes.ix[day]['close_minute'] = close_minute
+        open_and_closes.ix[day]['market_open'] = market_open
+        open_and_closes.ix[day]['market_close'] = market_close
 
     return open_and_closes
 
