@@ -20,6 +20,7 @@ import datetime
 import pandas as pd
 
 from zipline.data.loader import load_market_data
+from zipline.utils import tradingcalendar
 from zipline.utils.tradingcalendar import get_early_closes
 
 
@@ -111,6 +112,9 @@ class TradingEnvironment(object):
         self.early_closes = get_early_closes(self.first_trading_day,
                                              self.last_trading_day)
 
+        self.open_and_closes = tradingcalendar.open_and_closes.ix[
+            self.trading_days]
+
     def __enter__(self, *args, **kwargs):
         global environment
         self.prev_environment = environment
@@ -177,39 +181,14 @@ Last successful date: %s" % self.last_trading_day)
 
         return self.get_open_and_close(next_open)
 
-    def get_open_and_close(self, next_open):
+    def get_open_and_close(self, day):
+        todays_minutes = self.open_and_closes.ix[day.date()]
 
-        # creating a naive datetime with the correct hour,
-        # minute, and date. this will allow us to use pandas to
-        # shift the time between EST and UTC.
-        next_open = next_open.replace(
-            hour=9,
-            minute=31,
-            second=0,
-            microsecond=0,
-            tzinfo=None
-        )
-        # create a new Timestamp with the next_open naive date and
-        # the correct timezone for the exchange.
-        open_utc = self.exchange_dt_in_utc(next_open)
-
-        market_open = open_utc
-        market_close = (market_open
-                        + self.get_trading_day_duration(open_utc)
-                        - datetime.timedelta(minutes=1))
-
-        return market_open, market_close
+        return todays_minutes['market_open'], todays_minutes['market_close']
 
     def market_minutes_for_day(self, midnight):
         market_open, market_close = self.get_open_and_close(midnight)
         return pd.date_range(market_open, market_close, freq='T')
-
-    def get_trading_day_duration(self, trading_day):
-        trading_day = self.normalize_date(trading_day)
-        if trading_day in self.early_closes:
-            return self.early_close_trading_day
-
-        return self.full_trading_day
 
     def trading_day_distance(self, first_date, second_date):
         first_date = self.normalize_date(first_date)
