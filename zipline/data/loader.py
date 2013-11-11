@@ -29,7 +29,10 @@ from . treasuries import get_treasury_data
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.tradingcalendar import (
+    trading_day,
+    trading_days
+)
 
 logger = logbook.Logger('Loader')
 
@@ -152,15 +155,19 @@ Fetching data from Yahoo Finance.
     saved_benchmarks = saved_benchmarks.tz_localize('UTC')
     fp_bm.close()
 
+    most_recent = pd.Timestamp('today', tz='UTC') - trading_day
+    most_recent_index = trading_days.searchsorted(most_recent)
+    days_up_to_now = trading_days[:most_recent_index + 1]
+
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
     last_bm_date = saved_benchmarks.index[-1]
-    last_bm_date_offset = trading_days.searchsorted(
+    last_bm_date_offset = days_up_to_now.searchsorted(
         last_bm_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(trading_days) - last_bm_date_offset > 1:
+    if len(days_up_to_now) - last_bm_date_offset > 1:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
         if (
             benchmark_returns.index.tz is None
@@ -192,12 +199,12 @@ Fetching data from data.treasury.gov
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
     last_tr_date = saved_curves.index[-1]
-    last_tr_date_offset = trading_days.searchsorted(
+    last_tr_date_offset = days_up_to_now.searchsorted(
         last_tr_date.strftime('%Y/%m/%d'))
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(trading_days) - last_tr_date_offset > 1:
+    if len(days_up_to_now) - last_tr_date_offset > 1:
         treasury_curves = dump_treasury_curves()
     else:
         treasury_curves = saved_curves.tz_localize('UTC')

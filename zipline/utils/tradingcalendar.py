@@ -20,9 +20,11 @@ import pytz
 from datetime import datetime, timedelta
 from dateutil import rrule
 
-start = datetime(1990, 1, 1, tzinfo=pytz.utc)
-end_dln = pd.Timestamp('today', tz='UTC')
-end = end_dln - timedelta(days=1)
+start = pd.Timestamp('1990-01-01', tz='UTC')
+end_base = pd.Timestamp('today', tz='UTC')
+# Give an aggressive buffer for logic that needs to use the next trading
+# day or minute.
+end = end_base + timedelta(days=365)
 
 
 def canonicalize_datetime(dt):
@@ -246,18 +248,14 @@ def get_non_trading_days(start, end):
     non_trading_days.sort()
     return pd.DatetimeIndex(non_trading_days)
 
+non_trading_days = get_non_trading_days(start, end)
+trading_day = pd.tseries.offsets.CDay(holidays=non_trading_days)
 
-def get_trading_days(start, end):
-    start = canonicalize_datetime(start)
-    end = canonicalize_datetime(end)
 
-    business_days = pd.DatetimeIndex(start=start, end=end,
-                                     freq=pd.datetools.BDay())
-
-    non_trading_days = get_non_trading_days(start, end)
-
-    return business_days - non_trading_days
-
+def get_trading_days(start, end, trading_day=trading_day):
+    return pd.date_range(start=start.date(),
+                         end=end.date(),
+                         freq=trading_day).tz_localize('UTC')
 
 trading_days = get_trading_days(start, end)
 
