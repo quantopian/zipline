@@ -162,11 +162,19 @@ Fetching data from Yahoo Finance.
     # we have data,then we need to update
     if len(trading_days) - last_bm_date_offset > 1:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
-        if benchmark_returns.index.tz.zone != 'UTC':
+        if (
+            benchmark_returns.index.tz is None
+            or
+            benchmark_returns.index.zone != 'UTC'
+        ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
     else:
         benchmark_returns = saved_benchmarks
-        if benchmark_returns.index.tz.zone != 'UTC':
+        if (
+            benchmark_returns.index.tz is None
+            or
+            benchmark_returns.index.zone != 'UTC'
+        ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
 
     try:
