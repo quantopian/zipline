@@ -19,12 +19,10 @@ import pytz
 
 from datetime import datetime, timedelta
 from dateutil import rrule
-from delorean import Delorean
 
 start = datetime(1990, 1, 1, tzinfo=pytz.utc)
-end_dln = Delorean(datetime.utcnow(), pytz.utc.zone)
-end_dln.shift('US/Eastern').truncate('day').shift(pytz.utc.zone)
-end = end_dln.datetime - timedelta(days=1)
+end_dln = pd.Timestamp('today', tz='UTC')
+end = end_dln - timedelta(days=1)
 
 
 def canonicalize_datetime(dt):
