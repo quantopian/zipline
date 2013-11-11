@@ -165,7 +165,7 @@ Fetching data from Yahoo Finance.
         if (
             benchmark_returns.index.tz is None
             or
-            benchmark_returns.index.zone != 'UTC'
+            benchmark_returns.index.tz.zone != 'UTC'
         ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
     else:
@@ -173,7 +173,7 @@ Fetching data from Yahoo Finance.
         if (
             benchmark_returns.index.tz is None
             or
-            benchmark_returns.index.zone != 'UTC'
+            benchmark_returns.index.tz.zone != 'UTC'
         ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
 
