@@ -19,16 +19,16 @@ from zipline.utils import tradingcalendar_lse
 import pytz
 import datetime
 from zipline.finance.trading import TradingEnvironment
+import pandas as pd
 from pandas import DatetimeIndex
-from delorean import Delorean
 from nose.tools import nottest
 
 
 class TestTradingCalendar(TestCase):
 
     def setUp(self):
-        today = Delorean().truncate('day')
-        self.end = DatetimeIndex([today.datetime])
+        today = pd.Timestamp('today', tz='UTC')
+        self.end = DatetimeIndex([today])
 
     @nottest
     def test_calendar_vs_environment(self):
