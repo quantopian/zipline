@@ -365,3 +365,35 @@ def get_early_closes(start, end):
 
     early_closes.sort()
     return pd.DatetimeIndex(early_closes)
+
+early_closes = get_early_closes(start, end)
+
+
+def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
+    open_and_closes = pd.DataFrame(index=trading_days,
+                                   columns=('open_minute', 'close_minute'))
+    for day in trading_days:
+        open_minute = pd.Timestamp(
+            datetime(
+                year=day.year,
+                month=day.month,
+                day=day.day,
+                hour=9,
+                minute=31),
+            tz='US/Eastern').tz_convert('UTC')
+            # 1 PM if early close, 4 PM otherwise
+        close_hour = 13 if day in early_closes else 16
+        close_minute = pd.Timestamp(
+            datetime(
+                year=day.year,
+                month=day.month,
+                day=day.day,
+                hour=close_hour),
+            tz='US/Eastern').tz_convert('UTC')
+
+        open_and_closes.ix[day]['open_minute'] = open_minute
+        open_and_closes.ix[day]['close_minute'] = close_minute
+
+    return open_and_closes
+
+open_and_closes = get_open_and_closes(trading_days, early_closes)
