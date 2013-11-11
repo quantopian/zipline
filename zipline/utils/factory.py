@@ -20,7 +20,6 @@ Factory functions to prepare useful data.
 import pytz
 import random
 from collections import OrderedDict
-from delorean import Delorean
 
 import pandas as pd
 import numpy as np
@@ -131,19 +130,20 @@ check treasury and benchmark data in findb, and re-run the test."""
 
 
 def get_next_trading_dt(current, interval):
-    naive = current.replace(tzinfo=None)
-    delo = Delorean(naive, pytz.utc.zone)
-    ex_tz = trading.environment.exchange_tz
-    next_dt = delo.shift(ex_tz).datetime
+    next_dt = pd.Timestamp(current).tz_convert(trading.environment.exchange_tz)
 
     while True:
+        # Convert timestamp to naive before adding day, otherwise the when
+        # stepping over EDT an hour is added.
+        next_dt = pd.Timestamp(next_dt.replace(tzinfo=None))
         next_dt = next_dt + interval
-        next_delo = Delorean(next_dt.replace(tzinfo=None), ex_tz)
-        next_utc = next_delo.shift(pytz.utc.zone).datetime
-        if trading.environment.is_market_hours(next_utc):
+        next_dt = pd.Timestamp(next_dt, tz=trading.environment.exchange_tz)
+        next_dt_utc = next_dt.tz_convert('UTC')
+        if trading.environment.is_market_hours(next_dt):
             break
+        next_dt = next_dt_utc.tz_convert(trading.environment.exchange_tz)
 
-    return next_utc
+    return next_dt_utc
 
 
 def create_trade_history(sid, prices, amounts, interval, sim_params,
