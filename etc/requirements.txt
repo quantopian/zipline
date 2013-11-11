@@ -20,6 +20,3 @@ TA-Lib==0.4.7
 
 # For fetching remote data
 requests==1.2.3
-
-# For remaining sane when coping with dates
-delorean==0.2.1

@@ -62,7 +62,6 @@ setup(
         'Topic :: System :: Distributed Computing',
     ],
     install_requires=[
-        'delorean',
         'iso8601',
         'Logbook',
         'blist',

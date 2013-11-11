@@ -70,7 +70,6 @@ Dependencies
 * Logbook
 * blist
 * requests
-* delorean
 * iso8601
 * [python-dateutil](https://pypi.python.org/pypi/python-dateutil) (>= 2.1)
 
