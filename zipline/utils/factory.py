@@ -67,37 +67,6 @@ def create_simulation_parameters(year=2006, start=None, end=None,
     return sim_params
 
 
-def create_noop_environment():
-    oneday = timedelta(days=1)
-    start = datetime(2006, 1, 1, tzinfo=pytz.utc)
-
-    days = []
-    tr_curves = OrderedDict()
-    for day in date_gen(start=start, delta=oneday, count=252):
-        days.append(day)
-        curve = {
-            '10year': 0.0799,
-            '1month': 0.0799,
-            '1year': 0.0785,
-            '20year': 0.0765,
-            '2year': 0.0794,
-            '30year': 0.0804,
-            '3month': 0.0789,
-            '3year': 0.0796,
-            '5year': 0.0792,
-            '6month': 0.0794,
-            '7year': 0.0804,
-            'tid': 1752
-        }
-        tr_curves[day] = curve
-
-    bm_returns = pd.Series(index=days, data=0.1)
-
-    load_nodata = lambda x: (bm_returns, tr_curves)
-
-    return trading.TradingEnvironment(load=load_nodata)
-
-
 def create_random_simulation_parameters():
     trading.environment = trading.TradingEnvironment()
     treasury_curves = trading.environment.treasury_curves
