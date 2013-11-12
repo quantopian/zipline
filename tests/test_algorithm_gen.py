@@ -15,7 +15,10 @@
 # limitations under the License.
 
 from unittest import TestCase
-from nose.tools import timed
+from nose.tools import (
+    timed,
+    nottest
+)
 
 from datetime import datetime
 
@@ -81,6 +84,7 @@ class AlgorithmGeneratorTestCase(TestCase):
     def tearDown(self):
         teardown_logger(self)
 
+    @nottest
     def test_lse_algorithm(self):
 
         lse = trading.TradingEnvironment(
