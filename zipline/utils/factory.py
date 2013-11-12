@@ -19,7 +19,6 @@ Factory functions to prepare useful data.
 """
 import pytz
 import random
-from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
@@ -31,10 +30,8 @@ from zipline.sources import (SpecificEquityTrades,
                              DataPanelSource)
 from zipline.finance.trading import SimulationParameters
 from zipline.finance import trading
-from zipline.sources.test_source import (
-    date_gen,
-    create_trade
-)
+from zipline.sources.test_source import create_trade
+
 
 # For backwards compatibility
 from zipline.data.loader import (load_from_yahoo,
