@@ -139,7 +139,7 @@ def get_next_trading_dt(current, interval):
         next_dt = next_dt + interval
         next_dt = pd.Timestamp(next_dt, tz=trading.environment.exchange_tz)
         next_dt_utc = next_dt.tz_convert('UTC')
-        if trading.environment.is_market_hours(next_dt):
+        if trading.environment.is_market_hours(next_dt_utc):
             break
         next_dt = next_dt_utc.tz_convert(trading.environment.exchange_tz)
 
