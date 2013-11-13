@@ -310,6 +310,10 @@ class TradingAlgorithm(object):
 
             self.transforms.append(sf)
 
+        # force a reset of the performance tracker, in case
+        # this is a repeat run of the algorithm.
+        self.perf_tracker = None
+
         # create transforms and zipline
         self.gen = self._create_generator(sim_params)
 
