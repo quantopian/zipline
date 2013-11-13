@@ -191,12 +191,13 @@ class Blotter(object):
         if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
             return
 
-        if zp_math.tolerant_equals(trade_event.volume, 0):
-            # there are zero volume trade_events bc some stocks trade
-            # less frequently than once per minute.
+        if trade_event.sid not in self.open_orders:
             return
 
-        if trade_event.sid not in self.open_orders:
+        # if zp_math.tolerant_equals(trade_event.volume, 0):
+        if trade_event.volume < 1:
+            # there are zero volume trade_events bc some stocks trade
+            # less frequently than once per minute.
             return
 
         orders = self.open_orders[trade_event.sid]
