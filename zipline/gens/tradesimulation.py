@@ -217,8 +217,10 @@ class AlgorithmSimulator(object):
         Update the universe with new event information.
         """
         # Update our knowledge of this event's sid
-        if event.sid in self.current_data:
+        # rather than use if event.sid in ..., just trying
+        # and handling the exception is significantly faster
+        try:
             sid_data = self.current_data[event.sid]
-        else:
+        except KeyError:
             sid_data = self.current_data[event.sid] = SIDData()
         sid_data.__dict__.update(event.__dict__)
