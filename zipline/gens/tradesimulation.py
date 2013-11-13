@@ -127,16 +127,21 @@ class AlgorithmSimulator(object):
                         events = []
 
                     for event in snapshot:
-                        if event.type == DATASOURCE_TYPE.SPLIT:
-                            self.algo.blotter.process_split(event)
-
-                        if event.type in (DATASOURCE_TYPE.TRADE,
-                                          DATASOURCE_TYPE.CUSTOM):
+                        if event.type == DATASOURCE_TYPE.TRADE:
                             self.update_universe(event)
                             updated = True
-                        if event.type == DATASOURCE_TYPE.BENCHMARK:
+
+                        elif event.type == DATASOURCE_TYPE.BENCHMARK:
                             self.algo.set_datetime(event.dt)
                             bm_updated = True
+
+                        elif event.type == DATASOURCE_TYPE.CUSTOM:
+                            self.update_universe(event)
+                            updated = True
+
+                        elif event.type == DATASOURCE_TYPE.SPLIT:
+                            self.algo.blotter.process_split(event)
+
                         # If we are instantly filling orders we process
                         # them after handle_data().
                         if not self.algo.instant_fill:
