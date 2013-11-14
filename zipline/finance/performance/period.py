@@ -255,10 +255,14 @@ class PerformancePeriod(object):
         return np.dot(self._position_amounts, self._position_last_sale_prices)
 
     def update_last_sale(self, event):
-        is_trade = event.type == zp.DATASOURCE_TYPE.TRADE
-        has_price = not np.isnan(event.price)
+        if event.sid not in self.positions:
+            return
+
+        if event.type != zp.DATASOURCE_TYPE.TRADE:
+            return
+
+        if not pd.isnull(event.price):
         # isnan check will keep the last price if its not present
-        if (event.sid in self.positions) and is_trade and has_price:
             self.update_position(event.sid, last_sale_price=event.price,
                                  last_sale_date=event.dt)
 
