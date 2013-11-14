@@ -149,12 +149,6 @@ class AlgorithmSimulator(object):
                         else:
                             events.append(event)
 
-                    # update the portfolio and performance calculations
-                    # in preparation for the emission of the message
-                    # self.algo.update_portfolio()
-                    # if self.algo.perf_tracker.emission_rate == 'minute':
-                    #     self.algo.update_portfolio()
-
                     # Send the current state of the universe
                     # to the user's algo.
                     if updated:
