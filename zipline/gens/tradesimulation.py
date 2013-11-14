@@ -150,11 +150,6 @@ class AlgorithmSimulator(object):
                         else:
                             events.append(event)
 
-                    # Update our portfolio.
-                    self.algo.set_portfolio(
-                        self.algo.perf_tracker.get_portfolio()
-                    )
-
                     # Send the current state of the universe
                     # to the user's algo.
                     if updated:

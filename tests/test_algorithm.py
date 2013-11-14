@@ -27,7 +27,8 @@ from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      TestTargetAlgorithm,
                                      TestOrderPercentAlgorithm,
                                      TestTargetPercentAlgorithm,
-                                     TestTargetValueAlgorithm)
+                                     TestTargetValueAlgorithm,
+                                     TestExitPositionAlgorithm)
 
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
@@ -187,6 +188,13 @@ class TestTransformAlgorithm(TestCase):
                 data_frequency='daily'
             )
             algo.run(self.df)
+
+    def test_exit_position(self):
+        algo = TestExitPositionAlgorithm(
+            sim_params=self.sim_params,
+            data_frequency='daily'
+        )
+        algo.run(self.df)
 
     def test_order_instant(self):
         algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,

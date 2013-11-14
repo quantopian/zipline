@@ -102,7 +102,10 @@ class OLMAR(TradingAlgorithm):
                 self.portfolio.cash
 
         for i, stock in enumerate(self.stocks):
-            current_amount[i] = self.portfolio.positions[stock].amount
+            if stock in self.portfolio.positions:
+                current_amount[i] = self.portfolio.positions[stock].amount
+            else:
+                current_amount[i] = 0
             prices[i] = data[stock].price
 
         desired_amount = np.round(desired_port * positions_value / prices)
