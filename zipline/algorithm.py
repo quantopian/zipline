@@ -394,7 +394,7 @@ class TradingAlgorithm(object):
         # period performance calculations.
         return self.perf_tracker.get_portfolio()
 
-    def update_portfolio(self):
+    def updated_portfolio(self):
         # internally this will cause a refresh of the
         # period performance calculations.
         return self.perf_tracker.get_portfolio()
