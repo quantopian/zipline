@@ -321,7 +321,7 @@ class SlippageTestCase(TestCase):
     @parameterized.expand([
         (name, case['order'], case['event'], case['expected'])
         for name, case in STOP_ORDER_CASES.items()
-        ])
+    ])
     def test_orders_stop(self, name, order_data, event_data, expected):
         order = Order(**order_data)
         event = Event(initial_values=event_data)
