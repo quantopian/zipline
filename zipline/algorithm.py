@@ -90,7 +90,6 @@ class TradingAlgorithm(object):
             capital_base : float <default: 1.0e5>
                How much capital to start with.
         """
-        self._portfolio = None
         self.datetime = None
 
         self.registered_transforms = {}
@@ -102,6 +101,7 @@ class TradingAlgorithm(object):
         self.logger = None
 
         self.benchmark_return_source = None
+        self.perf_tracker = None
 
         # default components for transact
         self.slippage = VolumeShareSlippage()
@@ -124,10 +124,14 @@ class TradingAlgorithm(object):
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params:
             self.sim_params.data_frequency = self.data_frequency
+            self.perf_tracker = PerformanceTracker(self.sim_params)
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
             self.blotter = Blotter()
+
+        self.portfolio_needs_update = True
+        self._portfolio = None
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
@@ -213,9 +217,14 @@ class TradingAlgorithm(object):
         """
         sim_params.data_frequency = self.data_frequency
 
+        # perf_tracker will be instantiated in __init__ if a sim_params
+        # is passed to the constructor. If not, we instantiate here.
+        if self.perf_tracker is None:
+            self.perf_tracker = PerformanceTracker(sim_params)
+
         self.data_gen = self._create_data_generator(source_filter,
                                                     sim_params)
-        self.perf_tracker = PerformanceTracker(sim_params)
+
         self.trading_client = AlgorithmSimulator(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
@@ -304,6 +313,10 @@ class TradingAlgorithm(object):
 
             self.transforms.append(sf)
 
+        # force a reset of the performance tracker, in case
+        # this is a repeat run of the algorithm.
+        self.perf_tracker = None
+
         # create transforms and zipline
         self.gen = self._create_generator(sim_params)
 
@@ -380,10 +393,17 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        return self._portfolio
+        # internally this will cause a refresh of the
+        # period performance calculations.
+        return self.perf_tracker.get_portfolio()
 
-    def set_portfolio(self, portfolio):
-        self._portfolio = portfolio
+    def updated_portfolio(self):
+        # internally this will cause a refresh of the
+        # period performance calculations.
+        if self.portfolio_needs_update:
+            self._portfolio = self.perf_tracker.get_portfolio()
+            self.portfolio_needs_update = False
+        return self._portfolio
 
     def set_logger(self, logger):
         self.logger = logger
