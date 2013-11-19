@@ -260,7 +260,7 @@ must specify stocks or indexes"""
             cache_filename = "{stock}-{start}-{end}.csv".format(
                 stock=stock,
                 start=start,
-                end=end)
+                end=end).replace(':', '-')
             cache_filepath = get_cache_filepath(cache_filename)
             if os.path.exists(cache_filepath):
                 stkd = pd.DataFrame.from_csv(cache_filepath)
