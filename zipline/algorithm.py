@@ -130,6 +130,9 @@ class TradingAlgorithm(object):
         if not self.blotter:
             self.blotter = Blotter()
 
+        self.portfolio_needs_update = True
+        self._portfolio = None
+
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
         self.initialized = False
@@ -397,7 +400,10 @@ class TradingAlgorithm(object):
     def updated_portfolio(self):
         # internally this will cause a refresh of the
         # period performance calculations.
-        return self.perf_tracker.get_portfolio()
+        if self.portfolio_needs_update:
+            self._portfolio = self.perf_tracker.get_portfolio()
+            self.portfolio_needs_update = False
+        return self._portfolio
 
     def set_logger(self, logger):
         self.logger = logger

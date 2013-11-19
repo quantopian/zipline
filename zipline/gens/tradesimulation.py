@@ -195,6 +195,8 @@ class AlgorithmSimulator(object):
                                     )
                                 self.algo.perf_tracker.handle_intraday_close()
 
+                    self.portfolio_needs_update = True
+
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
 
