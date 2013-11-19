@@ -173,7 +173,7 @@ class AlgorithmSimulator(object):
                     # updates, we need to emit a performance message.
                     if bm_updated:
                         bm_updated = False
-                        self.algo.update_portfolio()
+                        self.algo.updated_portfolio()
                         yield self.get_message(date)
 
                     # When emitting minutely, we re-iterate the day as a
