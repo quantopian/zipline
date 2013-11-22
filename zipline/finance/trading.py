@@ -290,6 +290,7 @@ class SimulationParameters(object):
     period_start={period_start},
     period_end={period_end},
     capital_base={capital_base},
+    data_frequency={data_frequency},
     emission_rate={emission_rate},
     first_open={first_open},
     last_close={last_close})\
@@ -297,6 +298,7 @@ class SimulationParameters(object):
            period_start=self.period_start,
            period_end=self.period_end,
            capital_base=self.capital_base,
+           data_frequency=self.data_frequency,
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
