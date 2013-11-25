@@ -484,7 +484,8 @@ class TradingAlgorithm(object):
         else:
             return self.order(sid, target, limit_price, stop_price)
 
-    def order_target_value(self, sid, target, limit_price=None, stop_price=None):
+    def order_target_value(self, sid, target, limit_price=None,
+                           stop_price=None):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -501,7 +502,8 @@ class TradingAlgorithm(object):
         else:
             return self.order_value(sid, target, limit_price, stop_price)
 
-    def order_target_percent(self, sid, target, limit_price=None, stop_price=None):
+    def order_target_percent(self, sid, target, limit_price=None,
+                             stop_price=None):
         """
         Place an order to adjust a position to a target percent of the
         current portfolio value. If the position doesn't already exist, this is
