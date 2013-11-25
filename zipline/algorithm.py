@@ -382,10 +382,29 @@ class TradingAlgorithm(object):
         return self.blotter.order(sid, amount, limit_price, stop_price)
 
     def order_value(self, sid, value, limit_price=None, stop_price=None):
+        """
+        Place an order by desired value rather than desired number of shares.
+        If the requested sid is found in the universe, the requested value is
+        divided by its price to imply the number of shares to transact.
+
+        value > 0 :: Buy/Cover
+        value < 0 :: Sell/Short
+        Market order:    order(sid, value)
+        Limit order:     order(sid, value, limit_price)
+        Stop order:      order(sid, value, None, stop_price)
+        StopLimit order: order(sid, value, limit_price, stop_price)
+        """
         last_price = self.trading_client.current_data[sid].price
-        return self.blotter.order_value(sid, value, last_price,
-                                        limit_price=limit_price,
-                                        stop_price=stop_price)
+        if np.allclose(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=sid
+            )
+            log.debug(zero_message)
+            # Don't place any order
+            return
+        else:
+            amount = value / last_price
+            return self.order(sid, amount, limit_price, stop_price)
 
     @property
     def recorded_vars(self):
