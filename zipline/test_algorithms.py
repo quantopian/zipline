@@ -283,7 +283,7 @@ class TestTargetAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
         self.target_shares = np.random.randint(1, 30)
-        self.target(0, self.target_shares)
+        self.order_target(0, self.target_shares)
 
 
 class TestOrderPercentAlgorithm(TradingAlgorithm):
@@ -325,7 +325,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
         self.sale_price = data[0].price
-        self.target_percent(0, .002)
+        self.order_target_percent(0, .002)
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
@@ -346,7 +346,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
 
-        self.target_value(0, 20)
+        self.order_target_value(0, 20)
         self.target_shares = np.round(20 / data[0].price)
 
 
