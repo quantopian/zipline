@@ -18,7 +18,6 @@ import uuid
 from copy import copy
 from logbook import Logger
 from collections import defaultdict
-import numpy as np
 
 import zipline.errors
 import zipline.protocol as zp
