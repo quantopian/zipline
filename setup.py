@@ -64,7 +64,6 @@ setup(
     install_requires=[
         'iso8601',
         'Logbook',
-        'blist',
         'pytz',
         'requests',
         'numpy',

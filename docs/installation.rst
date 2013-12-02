@@ -25,7 +25,6 @@ Dependencies
 * pytz
 * iso8601
 * Logbook
-* blist
 
 
 Develop

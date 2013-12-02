@@ -1,6 +1,3 @@
-from datetime import datetime
-import blist
-from itertools import izip_longest
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
 
@@ -13,46 +10,6 @@ def setup_logger(test, path='test.log'):
 def teardown_logger(test):
     test.log_handler.pop_application()
     test.log_handler.close()
-
-
-def check_list(test, a, b, label):
-    test.assertIsInstance(a, (list, blist.blist), "not list at: " + label)
-    test.assertIsInstance(b, (list, blist.blist), "not list at: " + label)
-    for i, (a_val, b_val) in enumerate(izip_longest(a, b)):
-        check(test, a_val, b_val, label + "[" + str(i) + "]")
-
-
-def check_dict(test, a, b, label):
-    test.assertIsInstance(a, dict, "not dict at: " + label)
-    test.assertIsInstance(b, dict, "not dict at: " + label)
-    test.assertEqual(sorted(a), sorted(b), "different keys at: " + label)
-    for key in a:
-        a_val = a[key]
-        b_val = b[key]
-        check(test, a_val, b_val, label + "." + key)
-
-
-def check_datetime(test, a, b, label):
-    test.assertIsInstance(a, datetime, "not datetime at: " + label)
-    test.assertIsInstance(b, datetime, "not datetime at: " + label)
-    test.assertEqual(a, b, "mismatched dates " + label)
-
-
-def check(test, a, b, label=None):
-    """
-    Check equality for arbitrarily nested dicts and lists that terminate
-    in types that allow direct comparisons (string, ints, floats, datetimes)
-    """
-    if not label:
-        label = '<root>'
-    if isinstance(a, dict):
-        check_dict(test, a, b, label)
-    elif isinstance(a, (list, blist.blist)):
-        check_list(test, a, b, label)
-    elif isinstance(a, datetime):
-        check_datetime(test, a, b, label)
-    else:
-        test.assertEqual(a, b, "mismatch on path: " + label)
 
 
 def drain_zipline(test, zipline):
