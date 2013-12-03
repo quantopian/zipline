@@ -181,3 +181,6 @@ class BarData(object):
 
     def items(self):
         return self._data.items()
+
+    def __len__(self):
+        return len(self._data.keys())
