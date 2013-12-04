@@ -89,6 +89,8 @@ class TradingAlgorithm(object):
                If not provided, will extract from data_frequency.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
+            instant_fill : bool <default: False>
+               Whether to fill orders immediately or on next bar.
         """
         self.datetime = None
 
