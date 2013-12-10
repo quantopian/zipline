@@ -171,7 +171,7 @@ class TestCommissionEvents(unittest.TestCase):
                 self.sim_params
             )
 
-            cash_adj_dt = self.sim_params.period_start \
+            cash_adj_dt = self.sim_params.first_open \
                 + datetime.timedelta(hours=3)
             cash_adjustment = factory.create_commission(1, 300.0,
                                                         cash_adj_dt)
@@ -201,7 +201,7 @@ class TestCommissionEvents(unittest.TestCase):
                 self.sim_params
             )
 
-            cash_adj_dt = self.sim_params.period_start \
+            cash_adj_dt = self.sim_params.first_open \
                 + datetime.timedelta(hours=3)
             cash_adjustment = factory.create_commission(1, 300.0,
                                                         cash_adj_dt)
@@ -231,7 +231,7 @@ class TestCommissionEvents(unittest.TestCase):
                 self.sim_params
             )
 
-            cash_adj_dt = self.sim_params.period_start \
+            cash_adj_dt = self.sim_params.first_open \
                 + datetime.timedelta(hours=3)
             cash_adjustment = factory.create_commission(1, 300.0,
                                                         cash_adj_dt)
