@@ -5,6 +5,7 @@ before_install:
   - wget -O ta-lib-0.4.0-src.tar.gz http://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz/download
   - tar xvzf ta-lib-0.4.0-src.tar.gz
   - pushd ta-lib; ./configure; make; sudo make install; popd
+  - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
   - sudo apt-get install gfortran
 install:
   - cat etc/requirements_dev.txt  | grep -v "^#" | grep -v "^$" | grep -v ipython | grep -v nose== | grep -v scipy | grep -v matplotlib | grep -v statsmodels | grep -v patsy | xargs pip install --use-mirrors
