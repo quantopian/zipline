@@ -17,7 +17,7 @@
 import pandas as pd
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import rrule
 from zipline.utils.tradingcalendar import end, canonicalize_datetime
 
@@ -67,7 +67,6 @@ def get_non_trading_days(start, end):
         until=end
     )
     non_trading_rules.append(new_years_saturday)
-
 
     # Family day in Ontario, starting in 2008, third monday of February
     family_day = rrule.rrule(
@@ -255,9 +254,8 @@ def get_non_trading_days(start, end):
     # 23 24 25 26 27 28 29
     # 30
 
-
     non_trading_days.append(
-            datetime(2001, 9, 12, tzinfo=pytz.utc))
+        datetime(2001, 9, 12, tzinfo=pytz.utc))
 
     non_trading_days.sort()
     return pd.DatetimeIndex(non_trading_days)
@@ -352,7 +350,7 @@ def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
                 hour=9,
                 minute=31),
             tz='US/Eastern').tz_convert('UTC')
-            # 1 PM if early close, 4 PM otherwise
+        # 1 PM if early close, 4 PM otherwise
         close_hour = 13 if day in early_closes else 16
         market_close = pd.Timestamp(
             datetime(
@@ -366,5 +364,6 @@ def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
         open_and_closes.ix[day]['market_close'] = market_close
 
     return open_and_closes
+
 
 open_and_closes = get_open_and_closes(trading_days, early_closes)
