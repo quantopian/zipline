@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+import importlib
 import os
 from os.path import expanduser
 from collections import OrderedDict
@@ -25,7 +26,6 @@ import pandas as pd
 from pandas.io.data import DataReader
 import pytz
 
-from . treasuries import get_treasury_data
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
@@ -49,6 +49,16 @@ CACHE_PATH = os.path.join(
     'cache'
 )
 
+#Mapping from index symbol to appropriate bond data
+INDEX_MAPPING = {
+    '^GSPC':
+    ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
+    '^GSPTSE':
+    ('treasuries_can', 'treasury_curves_can.csv', 'bankofcanada.ca'),
+    '^FTSE':  # use US treasuries until UK bonds implemented
+    ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
+}
+
 
 def get_datafile(name, mode='r'):
     """
@@ -70,21 +80,27 @@ def get_cache_filepath(name):
     return os.path.join(CACHE_PATH, name)
 
 
-def dump_treasury_curves():
+def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):
     """
     Dumps data to be used with zipline.
 
     Puts source treasury and data into zipline.
     """
+    try:
+        m = importlib.import_module("." + module, package='zipline.data')
+    except ImportError:
+        raise NotImplementedError(
+            'Treasury curve {0} module not implemented'.format(module))
+
     tr_data = {}
 
-    for curve in get_treasury_data():
+    for curve in m.get_treasury_data():
         # Not ideal but massaging data into expected format
         tr_data[curve['date']] = curve
 
     curves = pd.DataFrame(tr_data).T
 
-    datafile = get_datafile('treasury_curves.csv', mode='wb')
+    datafile = get_datafile(filename, mode='wb')
     curves.to_csv(datafile)
     datafile.close()
 
@@ -184,15 +200,20 @@ Fetching data from Yahoo Finance.
         ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
 
+    #Get treasury curve module, filename & source from mapping.
+    #Default to USA.
+    module, filename, source = INDEX_MAPPING.get(
+        bm_symbol, INDEX_MAPPING['^GSPC'])
+
     try:
-        fp_tr = get_datafile('treasury_curves.csv', "rb")
+        fp_tr = get_datafile(filename, "rb")
     except IOError:
         print("""
 data files aren't distributed with source.
-Fetching data from data.treasury.gov
-""").strip()
-        dump_treasury_curves()
-        fp_tr = get_datafile('treasury_curves.csv', "rb")
+Fetching data from {0}
+""").format(source).strip()
+        dump_treasury_curves(module, filename)
+        fp_tr = get_datafile(filename, "rb")
 
     saved_curves = pd.DataFrame.from_csv(fp_tr)
 
@@ -205,7 +226,7 @@ Fetching data from data.treasury.gov
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     if len(days_up_to_now) - last_tr_date_offset > 1:
-        treasury_curves = dump_treasury_curves()
+        treasury_curves = dump_treasury_curves(module, filename)
     else:
         treasury_curves = saved_curves.tz_localize('UTC')
 
@@ -218,8 +239,8 @@ Fetching data from data.treasury.gov
     fp_tr.close()
 
     tr_curves = OrderedDict(sorted(
-                            ((dt, c) for dt, c in tr_curves.iteritems()),
-                            key=lambda t: t[0]))
+        ((dt, c) for dt, c in tr_curves.iteritems()),
+        key=lambda t: t[0]))
 
     return benchmark_returns, tr_curves
 

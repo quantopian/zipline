@@ -58,10 +58,10 @@ _CURVE_MAPPINGS = {
 }
 
 
-def treasury_mappings():
+def treasury_mappings(mappings):
     return {key: Mapping(*value)
             for key, value
-            in _CURVE_MAPPINGS.iteritems()}
+            in mappings.iteritems()}
 
 
 class iter_to_stream(object):
@@ -133,7 +133,7 @@ http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
 
 
 def get_treasury_data():
-    mappings = treasury_mappings()
+    mappings = treasury_mappings(_CURVE_MAPPINGS)
     source = get_treasury_source()
     return source_to_records(mappings, source)
 
