@@ -544,3 +544,45 @@ class TradingAlgorithm(object):
 
         req_value = target_value - current_value
         return self.order_value(sid, req_value, limit_price, stop_price)
+
+    def get_open_orders(self, sid=None):
+        if sid is None:
+            return {key: [order.to_api_obj() for order in orders]
+                    for key, orders
+                    in self.blotter.open_orders.iteritems()}
+        if sid in self.blotter.open_orders:
+            orders = self.blotter.open_orders[sid]
+            return [order.to_api_obj() for order in orders]
+        return []
+
+    def get_order(self, order_id):
+        if order_id in self.blotter.orders:
+            return self.blotter.orders[order_id].to_api_obj()
+
+    def cancel_order(self, order_param):
+        order_id = order_param
+        if isinstance(order_param, zipline.protocol.Order):
+            order_id = order_param.id
+
+        self.blotter.cancel(order_id)
+
+    def raw_positions(self):
+        """
+        Returns the current portfolio for the algorithm.
+
+        N.B. this is not done as a property, so that the function can be
+        passed and called from within a source.
+        """
+        # Return the 'internal' positions object, as in the one that is
+        # not passed to the algo, and thus should not have tainted keys.
+        return self.perf_tracker.cumulative_performance.positions
+
+    def raw_orders(self):
+        """
+        Returns the current open orders from the blotter.
+
+        N.B. this is not a property, so that the function can be passed
+        and called back from within a source.
+        """
+
+        return self.blotter.open_orders
