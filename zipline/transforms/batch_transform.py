@@ -230,7 +230,7 @@ class BatchTransform(object):
         Point of entry. Process an event frame.
         """
         # extract dates
-        dts = [event.datetime for event in data.itervalues()]
+        dts = [event.datetime for event in data._data.itervalues()]
         # we have to provide the event with a dt. This is only for
         # checking if the event is outside the window or not so a
         # couple of seconds shouldn't matter. We don't add it to
@@ -238,7 +238,7 @@ class BatchTransform(object):
         # sid keys.
         event = Event()
         event.dt = max(dts)
-        event.data = {k: v.__dict__ for k, v in data.iteritems()
+        event.data = {k: v.__dict__ for k, v in data._data.iteritems()
                       # Need to check if data has a 'length' to filter
                       # out sids without trade data available.
                       # TODO: expose more of 'no trade available'

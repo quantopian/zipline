@@ -164,23 +164,32 @@ class BarData(object):
 
     def __iter__(self):
         for sid, data in self._data.iteritems():
-            if len(data):
-                yield sid
-
-    def keys(self):
-        return self._data.keys()
+            # Allow contains override to filter out sids.
+            if sid in self:
+                if len(data):
+                    yield sid
 
     def iterkeys(self):
-        return self._data.iterkeys()
+        # Allow contains override to filter out sids.
+        return [sid for sid in self._data.iterkeys() if sid in self]
+
+    def keys(self):
+        # Allow contains override to filter out sids.
+        return list(self.iterkeys())
 
     def itervalues(self):
-        return self._data.itervalues()
+        return (value for sid, value in self.iteritems())
+
+    def values(self):
+        return list(self.itervalues())
 
     def iteritems(self):
-        return self._data.iteritems()
+        return ((sid, value) for sid, value
+                in self._data.iteritems()
+                if sid in self)
 
     def items(self):
-        return self._data.items()
+        return list(self.iteritems())
 
     def __len__(self):
-        return len(self._data.keys())
+        return len(self.keys())
