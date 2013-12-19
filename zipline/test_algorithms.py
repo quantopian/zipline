@@ -78,7 +78,7 @@ from six.moves import range
 from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.finance.slippage import FixedSlippage
+from zipline.api import FixedSlippage
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -665,3 +665,120 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         # Should be 0 when all positions are exited.
         self.record(num_positions=len(self.portfolio.positions))
+
+
+##############################
+# Quantopian style algorithms
+from zipline.api import (order,
+                         set_slippage,
+                         record)
+
+
+# Noop algo
+def initialize_noop(context):
+    pass
+
+
+def handle_data_noop(context, data):
+    pass
+
+
+# API functions
+def initialize_api(context):
+    context.incr = 0
+    context.sale_price = None
+    set_slippage(FixedSlippage())
+
+
+def handle_data_api(context, data):
+    if context.incr == 0:
+        assert 0 not in context.portfolio.positions
+    else:
+        assert context.portfolio.positions[0]['amount'] == \
+            context.incr, "Orders not filled immediately."
+        assert context.portfolio.positions[0]['last_sale_price'] == \
+            data[0].price, "Orders not filled at current price."
+    context.incr += 1
+    order(0, 1)
+
+    record(incr=context.incr)
+
+###########################
+# AlgoScripts as strings
+noop_algo = """
+# Noop algo
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
+api_algo = """
+from zipline.api import (order,
+                         set_slippage,
+                         FixedSlippage,
+                         record)
+
+def initialize(context):
+    context.incr = 0
+    context.sale_price = None
+    set_slippage(FixedSlippage())
+
+def handle_data(context, data):
+    if context.incr == 0:
+        assert 0 not in context.portfolio.positions
+    else:
+        assert context.portfolio.positions[0]['amount'] == \
+                context.incr, "Orders not filled immediately."
+        assert context.portfolio.positions[0]['last_sale_price'] == \
+                data[0].price, "Orders not filled at current price."
+    context.incr += 1
+    order(0, 1)
+
+    record(incr=context.incr)
+"""
+
+call_all_order_methods = """
+from zipline.api import (order,
+                         order_value,
+                         order_percent,
+                         order_target,
+                         order_target_value,
+                         order_target_percent)
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(0, 10)
+    order_value(0, 300)
+    order_percent(0, .1)
+    order_target(0, 100)
+    order_target_value(0, 100)
+    order_target_percent(0, .2)
+"""
+
+record_variables = """
+from zipline.api import record
+
+def initialize(context):
+    context.stocks = [0, 1]
+    context.incr = 0
+
+def handle_data(context, data):
+    context.incr += 1
+    record(incr=context.incr)
+"""
+
+record_float_magic = """
+from zipline.api import record
+
+def initialize(context):
+    context.stocks = [0, 1]
+    context.incr = 0
+
+def handle_data(context, data):
+    context.incr += 1
+    record(data=float('%s'))
+"""

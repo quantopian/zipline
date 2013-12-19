@@ -22,7 +22,7 @@ from datetime import datetime
 
 from itertools import groupby
 from six.moves import filter
-from six import iteritems
+from six import iteritems, exec_
 from operator import attrgetter
 
 from zipline.errors import (
@@ -34,6 +34,7 @@ from zipline.errors import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
+from zipline.utils.api_support import set_algo_instance, api_method
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -64,19 +65,21 @@ class TradingAlgorithm(object):
 
     A new algorithm could look like this:
     ```
-    class MyAlgo(TradingAlgorithm):
-        def initialize(self, sids, amount):
-            self.sids = sids
-            self.amount = amount
+    from zipline.api import order
 
-        def handle_data(self, data):
-            sid = self.sids[0]
-            amount = self.amount
-            self.order(sid, amount)
+    def initialize(context):
+        context.sid = 'AAPL'
+        context.amount = 100
+
+    def handle_data(self, data):
+        sid = context.sid
+        amount = context.amount
+        order(sid, amount)
     ```
-    To then to run this algorithm:
+    To then to run this algorithm pass these functions to
+    TradingAlgorithm:
 
-    my_algo = MyAlgo([0], 100) # first argument has to be list of sids
+    my_algo = TradingAlgorithm(initialize, handle_data)
     stats = my_algo.run(data)
 
     """
@@ -84,6 +87,16 @@ class TradingAlgorithm(object):
         """Initialize sids and other state variables.
 
         :Arguments:
+        :Optional:
+            initialize : function
+                Function that is called with a single
+                argument at the begninning of the simulation.
+            handle_data : function
+                Function that is called with 2 arguments
+                (context and data) on every bar.
+            script : str
+                Algoscript that contains initialize and
+                handle_data function definition.
             data_frequency : str (daily, hourly or minutely)
                The duration of the bars.
             annualizer : int <optional>
@@ -137,12 +150,45 @@ class TradingAlgorithm(object):
         self.portfolio_needs_update = True
         self._portfolio = None
 
+        # If string is passed in, execute and get reference to
+        # functions.
+        self.algoscript = kwargs.pop('script', None)
+
+        if self.algoscript is not None:
+            self.ns = {}
+            exec_(self.algoscript, self.ns)
+            if 'initialize' not in self.ns:
+                raise ValueError('You must define an initialze function.')
+            if 'handle_data' not in self.ns:
+                raise ValueError('You must define a handle_data function.')
+            self._initialize = self.ns['initialize']
+            self._handle_data = self.ns['handle_data']
+
+        # If two functions are passed in assume initialize and
+        # handle_data are passed in.
+        elif kwargs.get('initialize', False) and kwargs.get('handle_data'):
+            if self.algoscript is not None:
+                raise ValueError('You can not set script and \
+                initialize/handle_data.')
+            self._initialize = kwargs.pop('initialize')
+            self._handle_data = kwargs.pop('handle_data')
+
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
         self.initialized = False
 
-        # call to user-defined constructor method
         self.initialize(*args, **kwargs)
+
+    def initialize(self, *args, **kwargs):
+        # store algo reference in global space
+        set_algo_instance(self)
+        try:
+            self._initialize(self)
+        finally:
+            set_algo_instance(None)
+
+    def handle_data(self, data):
+        self._handle_data(self, data)
 
     def __repr__(self):
         """
@@ -244,9 +290,6 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    def initialize(self, *args, **kwargs):
-        pass
-
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
@@ -324,14 +367,21 @@ class TradingAlgorithm(object):
         # create transforms and zipline
         self.gen = self._create_generator(sim_params)
 
-        # loop through simulated_trading, each iteration returns a
-        # perf dictionary
-        perfs = []
-        for perf in self.gen:
-            perfs.append(perf)
+        # store algo reference in global space
+        set_algo_instance(self)
 
-        # convert perf dict to pandas dataframe
-        daily_stats = self._create_daily_stats(perfs)
+        try:
+            # loop through simulated_trading, each iteration returns a
+            # perf dictionary
+            perfs = []
+            for perf in self.gen:
+                perfs.append(perf)
+
+            # convert perf dict to pandas dataframe
+            daily_stats = self._create_daily_stats(perfs)
+        finally:
+            # remove algo from global space
+            set_algo_instance(None)
 
         return daily_stats
 
@@ -375,6 +425,7 @@ class TradingAlgorithm(object):
                                            'args': args,
                                            'kwargs': kwargs}
 
+    @api_method
     def record(self, **kwargs):
         """
         Track and record local variable (i.e. attributes) each day.
@@ -382,9 +433,11 @@ class TradingAlgorithm(object):
         for name, value in kwargs.items():
             self._recorded_vars[name] = value
 
+    @api_method
     def order(self, sid, amount, limit_price=None, stop_price=None):
         return self.blotter.order(sid, amount, limit_price, stop_price)
 
+    @api_method
     def order_value(self, sid, value, limit_price=None, stop_price=None):
         """
         Place an order by desired value rather than desired number of shares.
@@ -438,6 +491,7 @@ class TradingAlgorithm(object):
             "Algorithm expects a utc datetime"
         self.datetime = dt
 
+    @api_method
     def get_datetime(self):
         """
         Returns a copy of the datetime.
@@ -454,6 +508,7 @@ class TradingAlgorithm(object):
         """
         self.blotter.transact = transact
 
+    @api_method
     def set_slippage(self, slippage):
         if not isinstance(slippage, SlippageModel):
             raise UnsupportedSlippageModel()
@@ -461,6 +516,7 @@ class TradingAlgorithm(object):
             raise OverrideSlippagePostInit()
         self.slippage = slippage
 
+    @api_method
     def set_commission(self, commission):
         if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
             raise UnsupportedCommissionModel()
@@ -482,6 +538,7 @@ class TradingAlgorithm(object):
         self.data_frequency = data_frequency
         self.annualizer = ANNUALIZER[self.data_frequency]
 
+    @api_method
     def order_percent(self, sid, percent, limit_price=None, stop_price=None):
         """
         Place an order in the specified security corresponding to the given
@@ -492,6 +549,7 @@ class TradingAlgorithm(object):
         value = self.portfolio.portfolio_value * percent
         return self.order_value(sid, value, limit_price, stop_price)
 
+    @api_method
     def order_target(self, sid, target, limit_price=None, stop_price=None):
         """
         Place an order to adjust a position to a target number of shares. If
@@ -507,6 +565,7 @@ class TradingAlgorithm(object):
         else:
             return self.order(sid, target, limit_price, stop_price)
 
+    @api_method
     def order_target_value(self, sid, target, limit_price=None,
                            stop_price=None):
         """
@@ -525,6 +584,7 @@ class TradingAlgorithm(object):
         else:
             return self.order_value(sid, target, limit_price, stop_price)
 
+    @api_method
     def order_target_percent(self, sid, target, limit_price=None,
                              stop_price=None):
         """
@@ -547,6 +607,7 @@ class TradingAlgorithm(object):
         req_value = target_value - current_value
         return self.order_value(sid, req_value, limit_price, stop_price)
 
+    @api_method
     def get_open_orders(self, sid=None):
         if sid is None:
             return {key: [order.to_api_obj() for order in orders]
@@ -557,10 +618,12 @@ class TradingAlgorithm(object):
             return [order.to_api_obj() for order in orders]
         return []
 
+    @api_method
     def get_order(self, order_id):
         if order_id in self.blotter.orders:
             return self.blotter.orders[order_id].to_api_obj()
 
+    @api_method
     def cancel_order(self, order_param):
         order_id = order_param
         if isinstance(order_param, zipline.protocol.Order):
