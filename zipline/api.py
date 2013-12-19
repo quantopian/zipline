@@ -80,7 +80,7 @@ def order_value(sid, value, limit_price=None, stop_price=None):
         return
     else:
         amount = value / last_price
-        return algo.order(sid, amount, limit_price, stop_price)
+        return order(sid, amount, limit_price, stop_price)
 
 
 def get_datetime(algo):
@@ -125,7 +125,7 @@ def order_percent(sid, percent, limit_price=None, stop_price=None):
     algo = get_algo_instance()
 
     value = algo.portfolio.portfolio_value * percent
-    return algo.order_value(sid, value, limit_price, stop_price)
+    return order_value(sid, value, limit_price, stop_price)
 
 
 def order_target(sid, target, limit_price=None, stop_price=None):
@@ -141,9 +141,9 @@ def order_target(sid, target, limit_price=None, stop_price=None):
     if sid in algo.portfolio.positions:
         current_position = algo.portfolio.positions[sid].amount
         req_shares = target - current_position
-        return algo.order(sid, req_shares, limit_price, stop_price)
+        return order(sid, req_shares, limit_price, stop_price)
     else:
-        return algo.order(sid, target, limit_price, stop_price)
+        return order(sid, target, limit_price, stop_price)
 
 
 def order_target_value(sid, target, limit_price=None,
@@ -162,9 +162,9 @@ def order_target_value(sid, target, limit_price=None,
         current_price = algo.portfolio.positions[sid].last_sale_price
         current_value = current_position * current_price
         req_value = target - current_value
-        return algo.order_value(sid, req_value, limit_price, stop_price)
+        return order_value(sid, req_value, limit_price, stop_price)
     else:
-        return algo.order_value(sid, target, limit_price, stop_price)
+        return order_value(sid, target, limit_price, stop_price)
 
 
 def order_target_percent(sid, target, limit_price=None,
@@ -189,7 +189,7 @@ def order_target_percent(sid, target, limit_price=None,
     target_value = algo.portfolio.portfolio_value * target
 
     req_value = target_value - current_value
-    return algo.order_value(sid, req_value, limit_price, stop_price)
+    return order_value(sid, req_value, limit_price, stop_price)
 
 
 def get_open_orders(sid=None):
