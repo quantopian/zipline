@@ -78,7 +78,7 @@ from six.moves import range
 from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.finance.slippage import FixedSlippage
+from zipline.api import FixedSlippage
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -668,8 +668,10 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
 
 ##############################
-# Quantpian style algorithms
-from zipline import api
+# Quantopian style algorithms
+from zipline.api import (order,
+                         set_slippage,
+                         record)
 
 
 # Noop algo
@@ -685,7 +687,7 @@ def handle_data_noop(context, data):
 def initialize_api(context):
     context.incr = 0
     context.sale_price = None
-    api.set_slippage(FixedSlippage())
+    set_slippage(FixedSlippage())
 
 
 def handle_data_api(context, data):
@@ -697,9 +699,9 @@ def handle_data_api(context, data):
         assert context.portfolio.positions[0]['last_sale_price'] == \
             data[0].price, "Orders not filled at current price."
         context.incr += 1
-        api.order(0, 1)
+        order(0, 1)
 
-    api.record(incr=context.incr)
+    record(incr=context.incr)
 
 ###########################
 # Quantopian style string algorithms
@@ -713,12 +715,15 @@ def handle_data(context, data):
 """
 
 api_algo = """
-from zipline import api
+from zipline.api import (order,
+                         set_slippage,
+                         FixedSlippage,
+                         record)
 
 def initialize(context):
     context.incr = 0
     context.sale_price = None
-    api.set_slippage(api.FixedSlippage())
+    set_slippage(FixedSlippage())
 
 def handle_data(context, data):
     if context.incr == 0:
@@ -729,7 +734,7 @@ def handle_data(context, data):
         assert context.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
         context.incr += 1
-        api.order(0, 1)
+        order(0, 1)
 
-    api.record(incr=context.incr)
+    record(incr=context.incr)
 """
