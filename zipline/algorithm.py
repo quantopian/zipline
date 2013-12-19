@@ -65,7 +65,7 @@ class TradingAlgorithm(object):
 
     A new algorithm could look like this:
     ```
-    from zipline.api import *
+    from zipline.api import order
 
     def initialize(context):
         context.sid = 'AAPL'
