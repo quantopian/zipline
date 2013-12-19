@@ -665,3 +665,71 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         # Should be 0 when all positions are exited.
         self.record(num_positions=len(self.portfolio.positions))
+
+
+##############################
+# Quantpian style algorithms
+from zipline import api
+
+
+# Noop algo
+def initialize_noop(context):
+    pass
+
+
+def handle_data_noop(context, data):
+    pass
+
+
+# API functions
+def initialize_api(context):
+    context.incr = 0
+    context.sale_price = None
+    api.set_slippage(FixedSlippage())
+
+
+def handle_data_api(context, data):
+    if context.incr == 0:
+        assert 0 not in context.portfolio.positions
+    else:
+        assert context.portfolio.positions[0]['amount'] == \
+            context.incr, "Orders not filled immediately."
+        assert context.portfolio.positions[0]['last_sale_price'] == \
+            data[0].price, "Orders not filled at current price."
+        context.incr += 1
+        api.order(0, 1)
+
+    api.record(incr=context.incr)
+
+###########################
+# Quantopian style string algorithms
+noop_algo = """
+# Noop algo
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
+api_algo = """
+from zipline import api
+
+def initialize(context):
+    context.incr = 0
+    context.sale_price = None
+    api.set_slippage(api.FixedSlippage())
+
+def handle_data(context, data):
+    if context.incr == 0:
+        assert 0 not in context.portfolio.positions
+    else:
+        assert context.portfolio.positions[0]['amount'] == \
+                context.incr, "Orders not filled immediately."
+        assert context.portfolio.positions[0]['last_sale_price'] == \
+                data[0].price, "Orders not filled at current price."
+        context.incr += 1
+        api.order(0, 1)
+
+    api.record(incr=context.incr)
+"""

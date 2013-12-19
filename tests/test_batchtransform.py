@@ -27,9 +27,10 @@ from zipline.utils.test_utils import setup_logger
 from zipline.sources.data_source import DataSource
 import zipline.utils.factory as factory
 
+from zipline.transforms import batch_transform
+
 from zipline.test_algorithms import (BatchTransformAlgorithm,
                                      BatchTransformAlgorithmMinute,
-                                     batch_transform,
                                      ReturnPriceBatchTransform)
 
 from zipline.algorithm import TradingAlgorithm

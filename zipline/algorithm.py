@@ -34,6 +34,7 @@ from zipline.errors import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
+from zipline.utils.algo_instance import set_algo_instance
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -64,19 +65,21 @@ class TradingAlgorithm(object):
 
     A new algorithm could look like this:
     ```
-    class MyAlgo(TradingAlgorithm):
-        def initialize(self, sids, amount):
-            self.sids = sids
-            self.amount = amount
+    from zipline.api import *
 
-        def handle_data(self, data):
-            sid = self.sids[0]
-            amount = self.amount
-            self.order(sid, amount)
+    def initialize(context):
+        context.sid = 'AAPL'
+        context.amount = 100
+
+    def handle_data(self, data):
+        sid = context.sid
+        amount = context.amount
+        order(sid, amount)
     ```
-    To then to run this algorithm:
+    To then to run this algorithm pass these functions to
+    TradingAlgorithm:
 
-    my_algo = MyAlgo([0], 100) # first argument has to be list of sids
+    my_algo = TradingAlgorithm(initialize, handle_data
     stats = my_algo.run(data)
 
     """
@@ -84,6 +87,14 @@ class TradingAlgorithm(object):
         """Initialize sids and other state variables.
 
         :Arguments:
+            initialize : function
+                Function that is called with a single
+                argument at the begninning of the simulation.
+            handle_data : function
+                Function that is called with 2 arguments
+                (context and data) on every bar.
+
+        :Optional:
             data_frequency : str (daily, hourly or minutely)
                The duration of the bars.
             annualizer : int <optional>
@@ -137,12 +148,40 @@ class TradingAlgorithm(object):
         self.portfolio_needs_update = True
         self._portfolio = None
 
+        # If string is passed in, execute and get reference to
+        # functions.
+        if (len(args) == 1) and isinstance(args[0], str):
+            self.ns = {}
+            exec args[0] in self.ns
+            if 'initialize' not in self.ns:
+                raise ValueError('You must define an initialze function.')
+            if 'handle_data' not in self.ns:
+                raise ValueError('You must define a handle_data function.')
+            self._initialize = self.ns['initialize']
+            self._handle_data = self.ns['handle_data']
+
+        # If two functions are passed in assume initialize and
+        # handle_data are passed in.
+        if len(args) == 2 and \
+                hasattr(args[0], '__call__') and \
+                hasattr(args[1], '__call__'):
+            self._initialize = args[0]
+            self._handle_data = args[1]
+
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
         self.initialized = False
 
         # call to user-defined constructor method
         self.initialize(*args, **kwargs)
+
+    def initialize(self, *args, **kwargs):
+        set_algo_instance(self)
+        self._initialize(self)
+
+    def handle_data(self, data):
+        set_algo_instance(self)
+        self._handle_data(self, data)
 
     def __repr__(self):
         """
@@ -243,9 +282,6 @@ class TradingAlgorithm(object):
         method to get a standard construction generator.
         """
         return self._create_generator(self.sim_params)
-
-    def initialize(self, *args, **kwargs):
-        pass
 
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
