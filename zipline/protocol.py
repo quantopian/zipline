@@ -67,9 +67,17 @@ class Order(Event):
 
 class Portfolio(object):
 
-    def __init__(self, initial_values=None):
-        if initial_values:
-            self.__dict__ = initial_values
+    def __init__(self):
+        self.capital_used = 0.0
+        self.starting_cash = 0.0
+        self.portfolio_value = 0.0
+        self.pnl = 0.0
+        self.returns = 0.0
+        self.cash = 0.0
+        self.positions = Positions()
+        self.start_date = None
+        self.positions_value = 0.0
+        self.portfolio_value = 0.0
 
     def __getitem__(self, key):
         return self.__dict__[key]
