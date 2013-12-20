@@ -12,13 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 import pandas as pd
 import pytz
 
 from datetime import datetime, timedelta
 from dateutil import rrule
+from functools import partial
 
 start = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')
@@ -369,30 +368,36 @@ def get_early_closes(start, end):
 early_closes = get_early_closes(start, end)
 
 
+def get_open_and_close(day, early_closes):
+    market_open = pd.Timestamp(
+        datetime(
+            year=day.year,
+            month=day.month,
+            day=day.day,
+            hour=9,
+            minute=31),
+        tz='US/Eastern').tz_convert('UTC')
+    # 1 PM if early close, 4 PM otherwise
+    close_hour = 13 if day in early_closes else 16
+    market_close = pd.Timestamp(
+        datetime(
+            year=day.year,
+            month=day.month,
+            day=day.day,
+            hour=close_hour),
+        tz='US/Eastern').tz_convert('UTC')
+
+    return market_open, market_close
+
+
 def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
     open_and_closes = pd.DataFrame(index=trading_days,
                                    columns=('market_open', 'market_close'))
-    for day in trading_days:
-        market_open = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=9,
-                minute=31),
-            tz='US/Eastern').tz_convert('UTC')
-            # 1 PM if early close, 4 PM otherwise
-        close_hour = 13 if day in early_closes else 16
-        market_close = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=close_hour),
-            tz='US/Eastern').tz_convert('UTC')
 
-        open_and_closes.ix[day]['market_open'] = market_open
-        open_and_closes.ix[day]['market_close'] = market_close
+    get_o_and_c = partial(get_open_and_close, early_closes=early_closes)
+
+    open_and_closes['market_open'], open_and_closes['market_close'] = \
+        zip(*open_and_closes.index.map(get_o_and_c))
 
     return open_and_closes
 
