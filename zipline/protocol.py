@@ -171,7 +171,7 @@ class BarData(object):
 
     def iterkeys(self):
         # Allow contains override to filter out sids.
-        return [sid for sid in self._data.iterkeys() if sid in self]
+        return (sid for sid in self._data.iterkeys() if sid in self)
 
     def keys(self):
         # Allow contains override to filter out sids.
