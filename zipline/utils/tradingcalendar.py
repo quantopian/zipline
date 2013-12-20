@@ -390,7 +390,7 @@ def get_open_and_close(day, early_closes):
     return market_open, market_close
 
 
-def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
+def get_open_and_closes(trading_days, early_closes):
     open_and_closes = pd.DataFrame(index=trading_days,
                                    columns=('market_open', 'market_close'))
 
