@@ -285,17 +285,19 @@ class TestQuantopianScript(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def test_noop(self):
-        algo = TradingAlgorithm(initialize_noop, handle_data_noop)
+        algo = TradingAlgorithm(initialize=initialize_noop,
+                                handle_data=handle_data_noop)
         algo.run(self.df)
 
     def test_noop_string(self):
-        algo = TradingAlgorithm(noop_algo)
+        algo = TradingAlgorithm(script=noop_algo)
         algo.run(self.df)
 
     def test_api_calls(self):
-        algo = TradingAlgorithm(initialize_api, handle_data_api)
+        algo = TradingAlgorithm(initialize=initialize_api,
+                                handle_data=handle_data_api)
         algo.run(self.df)
 
     def test_api_calls_string(self):
-        algo = TradingAlgorithm(api_algo)
+        algo = TradingAlgorithm(script=api_algo)
         algo.run(self.df)

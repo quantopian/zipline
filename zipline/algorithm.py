@@ -87,14 +87,16 @@ class TradingAlgorithm(object):
         """Initialize sids and other state variables.
 
         :Arguments:
+        :Optional:
             initialize : function
                 Function that is called with a single
                 argument at the begninning of the simulation.
             handle_data : function
                 Function that is called with 2 arguments
                 (context and data) on every bar.
-
-        :Optional:
+            script : str
+                Algoscript that contains initialize and
+                handle_data function definition.
             data_frequency : str (daily, hourly or minutely)
                The duration of the bars.
             annualizer : int <optional>
@@ -147,12 +149,14 @@ class TradingAlgorithm(object):
 
         self.portfolio_needs_update = True
         self._portfolio = None
+        self.algoscript = None
 
         # If string is passed in, execute and get reference to
         # functions.
-        if (len(args) == 1) and isinstance(args[0], str):
+        if kwargs.get('script', False):
             self.ns = {}
-            exec args[0] in self.ns
+            self.algoscript = kwargs.pop('script')
+            exec self.algoscript in self.ns
             if 'initialize' not in self.ns:
                 raise ValueError('You must define an initialze function.')
             if 'handle_data' not in self.ns:
@@ -162,17 +166,17 @@ class TradingAlgorithm(object):
 
         # If two functions are passed in assume initialize and
         # handle_data are passed in.
-        if len(args) == 2 and \
-                hasattr(args[0], '__call__') and \
-                hasattr(args[1], '__call__'):
-            self._initialize = args[0]
-            self._handle_data = args[1]
+        elif kwargs.get('initialize', False) and kwargs.get('handle_data'):
+            if self.algoscript is not None:
+                raise ValueError('You can not set script and \
+                initialize/handle_data.')
+            self._initialize = kwargs.pop('initialize')
+            self._handle_data = kwargs.pop('handle_data')
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
         self.initialized = False
 
-        # call to user-defined constructor method
         self.initialize(*args, **kwargs)
 
     def initialize(self, *args, **kwargs):
@@ -181,7 +185,6 @@ class TradingAlgorithm(object):
 
         self._initialize(self)
 
-        # clear algo reference from global space
         set_algo_instance(None)
 
     def handle_data(self, data):

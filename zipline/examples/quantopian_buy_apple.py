@@ -38,7 +38,8 @@ if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
                            end=end)
     data = data.dropna()
-    algo = TradingAlgorithm(initialize, handle_date)
+    algo = TradingAlgorithm(initialize=initialize,
+                            handle_data=handle_date)
     results = algo.run(data)
     results.portfolio_value.plot()
     pl.show()
