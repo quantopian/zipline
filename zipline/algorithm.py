@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from copy import copy
+import sys
 
 import pytz
 import pandas as pd
@@ -56,6 +58,20 @@ from zipline.gens.composites import (
 from zipline.gens.tradesimulation import AlgorithmSimulator
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
+
+
+class AlgorithmError(Exception):
+    def __init__(self, exc_type, exc_value, exc_traceback):
+        self.exc_type = exc_type
+        self.exc_value = exc_value
+        self.exc_traceback = exc_traceback
+
+    def __str__(self):
+        # Approximates default Exception printing
+        # Could be more precise, but this gets us most of the way there.
+        import traceback
+        return ("".join(traceback.format_tb(self.exc_traceback)) +
+                repr(self.exc_value))
 
 
 class TradingAlgorithm(object):
@@ -182,13 +198,20 @@ class TradingAlgorithm(object):
     def initialize(self, *args, **kwargs):
         # store algo reference in global space
         set_algo_instance(self)
-
-        self._initialize(self)
-
-        set_algo_instance(None)
+        try:
+            self._initialize(self)
+        except BaseException:
+            exc = AlgorithmError(*sys.exc_info())
+            raise exc
+        finally:
+            set_algo_instance(None)
 
     def handle_data(self, data):
-        self._handle_data(self, data)
+        try:
+            self._handle_data(self, data)
+        except BaseException:
+            exc = AlgorithmError(*sys.exc_info())
+            raise exc
 
     def __repr__(self):
         """

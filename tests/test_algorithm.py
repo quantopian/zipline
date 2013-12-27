@@ -1,4 +1,3 @@
-
 #
 # Copyright 2013 Quantopian, Inc.
 #
@@ -17,9 +16,12 @@
 from unittest import TestCase
 from datetime import timedelta
 import numpy as np
+from mock import MagicMock
 
 from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
+import zipline.utils.simfactory as simfactory
+
 from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      RecordAlgorithm,
                                      TestOrderAlgorithm,
@@ -35,14 +37,21 @@ from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      initialize_api,
                                      handle_data_api,
                                      noop_algo,
-                                     api_algo)
+                                     api_algo,
+                                     call_all_order_methods,
+                                     record_variables,
+                                     record_float_magic
+                                     )
+
+from zipline.utils.test_utils import drain_zipline, assert_single_position
 
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
 from zipline.transforms import MovingAverage
 from zipline.finance.trading import SimulationParameters
-from zipline import TradingAlgorithm
+from zipline.utils.api_support import set_algo_instance
+from zipline.algorithm import TradingAlgorithm
 
 
 class TestRecordAlgorithm(TestCase):
@@ -245,13 +254,16 @@ class TestPositions(TestCase):
                              expected)
 
 
-class TestQuantopianScript(TestCase):
+class TestAlgoScript(TestCase):
     def setUp(self):
-        self.sim_params = factory.create_simulation_parameters(num_days=4)
+        days = 251
+        self.sim_params = factory.create_simulation_parameters(num_days=days)
+        setup_logger(self)
+
         trade_history = factory.create_trade_history(
             133,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
+            [10.0] * days,
+            [100] * days,
             timedelta(days=1),
             self.sim_params
         )
@@ -280,9 +292,22 @@ class TestQuantopianScript(TestCase):
             self.assertEqual(daily_stats.ix[i]['num_positions'],
                              expected)
 
+        # self.sim_params = factory.create_simulation_parameters(num_days=4)
+        # trade_history = factory.create_trade_history(
+        #     133,
+        #     [10.0, 10.0, 11.0, 11.0],
+        #     [100, 100, 100, 300],
+        #     timedelta(days=1),
+        #     self.sim_params
+        # )
+
         self.source = SpecificEquityTrades(event_list=trade_history)
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
+
+        self.zipline_test_config = {
+            'sid': 0,
+        }
 
     def test_noop(self):
         algo = TradingAlgorithm(initialize=initialize_noop,
@@ -301,3 +326,192 @@ class TestQuantopianScript(TestCase):
     def test_api_calls_string(self):
         algo = TradingAlgorithm(script=api_algo)
         algo.run(self.df)
+
+    def test_fixed_slippage(self):
+        # verify order -> transaction -> portfolio position.
+        # --------------
+        test_algo = TradingAlgorithm(
+            script="""
+from zipline.api import *
+
+def initialize(context):
+    model = slippage.FixedSlippage(spread=0.10)
+    set_slippage(model)
+    set_commission(commission.PerTrade(100.00))
+    context.count = 1
+    context.incr = 0
+
+def handle_data(context, data):
+    if context.incr < context.count:
+        order(0, -1000)
+    record(price=data[0].price)
+
+    context.incr += 1""",
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 200
+
+        # this matches the value in the algotext initialize
+        # method, and will be used inside assert_single_position
+        # to confirm we have as many transactions as orders we
+        # placed.
+        self.zipline_test_config['order_count'] = 1
+
+        # self.zipline_test_config['transforms'] = \
+        #     test_algo.transform_visitor.transforms.values()
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+
+        output, _ = assert_single_position(self, zipline)
+
+        # confirm the slippage and commission on a sample
+        # transaction
+        recorded_price = output[1]['daily_perf']['recorded_vars']['price']
+        transaction = output[1]['daily_perf']['transactions'][0]
+        self.assertEqual(100.0, transaction['commission'])
+        expected_spread = 0.05
+        expected_commish = 0.10
+        expected_price = recorded_price - expected_spread - expected_commish
+        self.assertEqual(expected_price, transaction['price'])
+
+    def test_volshare_slippage(self):
+        # verify order -> transaction -> portfolio position.
+        # --------------
+        test_algo = TradingAlgorithm(
+            script="""
+from zipline.api import *
+
+def initialize(context):
+    model = slippage.VolumeShareSlippage(
+                            volume_limit=.3,
+                            price_impact=0.05
+                       )
+    set_slippage(model)
+    set_commission(commission.PerShare(0.02))
+    context.count = 2
+    context.incr = 0
+
+def handle_data(context, data):
+    if context.incr < context.count:
+        # order small lots to be sure the
+        # order will fill in a single transaction
+        order(0, 5000)
+    record(price=data[0].price)
+    record(volume=data[0].volume)
+    record(incr=context.incr)
+    context.incr += 1
+    """,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 100
+
+        # 67 will be used inside assert_single_position
+        # to confirm we have as many transactions as expected.
+        # The algo places 2 trades of 5000 shares each. The trade
+        # events have volume ranging from 100 to 950. The volume cap
+        # of 0.3 limits the trade volume to a range of 30 - 316 shares.
+        # The spreadsheet linked below calculates the total position
+        # size over each bar, and predicts 67 txns will be required
+        # to fill the two orders. The number of bars and transactions
+        # differ because some bars result in multiple txns. See
+        # spreadsheet for details:
+        # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
+        self.zipline_test_config['expected_transactions'] = 67
+
+        # self.zipline_test_config['transforms'] = \
+        #     test_algo.transform_visitor.transforms.values()
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+        output, _ = assert_single_position(self, zipline)
+
+        # confirm the slippage and commission on a sample
+        # transaction
+        per_share_commish = 0.02
+        perf = output[1]
+        transaction = perf['daily_perf']['transactions'][0]
+        commish = transaction['amount'] * per_share_commish
+        self.assertEqual(commish, transaction['commission'])
+        self.assertEqual(2.029, transaction['price'])
+
+    def test_algo_record_vars(self):
+        test_algo = TradingAlgorithm(
+            script=record_variables,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 200
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+        output, _ = drain_zipline(self, zipline)
+        self.assertEqual(len(output), 252)
+        incr = []
+        for o in output[:200]:
+            incr.append(o['daily_perf']['recorded_vars']['incr'])
+
+        np.testing.assert_array_equal(incr, range(1, 201))
+
+    def test_algo_record_allow_mock(self):
+        """
+        Test that values from "MagicMock"ed methods can be passed to record.
+
+        Relevant for our basic/validation and methods like history, which
+        will end up returning a MagicMock instead of a DataFrame.
+        """
+        test_algo = TradingAlgorithm(
+            script=record_variables,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        test_algo.record(foo=MagicMock())
+
+    def _algo_record_float_magic_should_pass(self, var_type):
+        test_algo = TradingAlgorithm(
+            script=record_float_magic % var_type,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 200
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+        output, _ = drain_zipline(self, zipline)
+        self.assertEqual(len(output), 252)
+        incr = []
+        for o in output[:200]:
+            incr.append(o['daily_perf']['recorded_vars']['data'])
+        np.testing.assert_array_equal(incr, [np.nan] * 200)
+
+    def test_algo_record_nan(self):
+        self._algo_record_float_magic_should_pass('nan')
+
+    def test_order_methods(self):
+        """Only test that order methods can be called without error.
+        Correct filling of orders is tested in zipline.
+        """
+        test_algo = TradingAlgorithm(
+            script=call_all_order_methods,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 200
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+
+        output, _ = drain_zipline(self, zipline)

@@ -18,18 +18,20 @@
 # decorator `api_methods` inside of algorithm.py.
 
 import zipline
+from .finance import (commission, slippage)
+from .utils import math_utils
 
 from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
 
-slippage = zipline.finance.slippage
-math_utils = zipline.utils.math_utils
+
 batch_transform = zipline.transforms.BatchTransform
 
 __all__ = [
     'slippage',
+    'commission',
     'math_utils',
     'batch_transform',
     'FixedSlippage',
