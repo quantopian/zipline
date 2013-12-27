@@ -292,15 +292,6 @@ class TestAlgoScript(TestCase):
             self.assertEqual(daily_stats.ix[i]['num_positions'],
                              expected)
 
-        # self.sim_params = factory.create_simulation_parameters(num_days=4)
-        # trade_history = factory.create_trade_history(
-        #     133,
-        #     [10.0, 10.0, 11.0, 11.0],
-        #     [100, 100, 100, 300],
-        #     timedelta(days=1),
-        #     self.sim_params
-        # )
-
         self.source = SpecificEquityTrades(event_list=trade_history)
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
