@@ -26,13 +26,17 @@ from . import data
 from . import finance
 from . import gens
 from . import utils
+from . import transforms
 
 from . algorithm import TradingAlgorithm
+from . import api
 
 __all__ = [
     'data',
     'finance',
     'gens',
     'utils',
+    'transforms',
+    'api',
     'TradingAlgorithm'
 ]

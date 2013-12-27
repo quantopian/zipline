@@ -34,7 +34,7 @@ from zipline.errors import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.algo_instance import set_algo_instance
+from zipline.utils.api_support import set_algo_instance, api_method
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -56,24 +56,6 @@ from zipline.gens.composites import (
 from zipline.gens.tradesimulation import AlgorithmSimulator
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
-
-from functools import wraps
-from zipline.utils.algo_instance import get_algo_instance
-import zipline.api
-
-
-def api_method(f):
-    # Decorator that adds the decorated class method as a callable
-    # function (wrapped) to zipline.api
-    @wraps(f)
-    def wrapped(*args, **kwargs):
-        # Get the instance and call the method
-        return getattr(get_algo_instance(), f.__name__)(*args, **kwargs)
-    # Add functor to zipline.api
-    setattr(zipline.api, f.__name__, wrapped)
-    zipline.api.__all__.append(f.__name__)
-
-    return f
 
 
 class TradingAlgorithm(object):

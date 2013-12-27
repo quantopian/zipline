@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import wraps
+import zipline.api
+
 import threading
 context = threading.local()
 
@@ -23,3 +26,17 @@ def get_algo_instance():
 
 def set_algo_instance(algo):
     context.algorithm = algo
+
+
+def api_method(f):
+    # Decorator that adds the decorated class method as a callable
+    # function (wrapped) to zipline.api
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        # Get the instance and call the method
+        return getattr(get_algo_instance(), f.__name__)(*args, **kwargs)
+    # Add functor to zipline.api
+    setattr(zipline.api, f.__name__, wrapped)
+    zipline.api.__all__.append(f.__name__)
+
+    return f
