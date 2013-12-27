@@ -57,6 +57,24 @@ from zipline.gens.tradesimulation import AlgorithmSimulator
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
+from functools import wraps
+from zipline.utils.algo_instance import get_algo_instance
+import zipline.api
+
+
+def api_method(f):
+    # Decorator that adds the decorated class method as a callable
+    # function (wrapped) to zipline.api
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        # Get the instance and call the method
+        return getattr(get_algo_instance(), f.__name__)(*args, **kwargs)
+    # Add functor to zipline.api
+    setattr(zipline.api, f.__name__, wrapped)
+    zipline.api.__all__.append(f.__name__)
+
+    return f
+
 
 class TradingAlgorithm(object):
     """
@@ -424,6 +442,7 @@ class TradingAlgorithm(object):
                                            'args': args,
                                            'kwargs': kwargs}
 
+    @api_method
     def record(self, **kwargs):
         """
         Track and record local variable (i.e. attributes) each day.
@@ -431,9 +450,11 @@ class TradingAlgorithm(object):
         for name, value in kwargs.items():
             self._recorded_vars[name] = value
 
+    @api_method
     def order(self, sid, amount, limit_price=None, stop_price=None):
         return self.blotter.order(sid, amount, limit_price, stop_price)
 
+    @api_method
     def order_value(self, sid, value, limit_price=None, stop_price=None):
         """
         Place an order by desired value rather than desired number of shares.
@@ -487,6 +508,7 @@ class TradingAlgorithm(object):
             "Algorithm expects a utc datetime"
         self.datetime = dt
 
+    @api_method
     def get_datetime(self):
         """
         Returns a copy of the datetime.
@@ -503,6 +525,7 @@ class TradingAlgorithm(object):
         """
         self.blotter.transact = transact
 
+    @api_method
     def set_slippage(self, slippage):
         if not isinstance(slippage, SlippageModel):
             raise UnsupportedSlippageModel()
@@ -510,6 +533,7 @@ class TradingAlgorithm(object):
             raise OverrideSlippagePostInit()
         self.slippage = slippage
 
+    @api_method
     def set_commission(self, commission):
         if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
             raise UnsupportedCommissionModel()
@@ -531,6 +555,7 @@ class TradingAlgorithm(object):
         self.data_frequency = data_frequency
         self.annualizer = ANNUALIZER[self.data_frequency]
 
+    @api_method
     def order_percent(self, sid, percent, limit_price=None, stop_price=None):
         """
         Place an order in the specified security corresponding to the given
@@ -541,6 +566,7 @@ class TradingAlgorithm(object):
         value = self.portfolio.portfolio_value * percent
         return self.order_value(sid, value, limit_price, stop_price)
 
+    @api_method
     def order_target(self, sid, target, limit_price=None, stop_price=None):
         """
         Place an order to adjust a position to a target number of shares. If
@@ -556,6 +582,7 @@ class TradingAlgorithm(object):
         else:
             return self.order(sid, target, limit_price, stop_price)
 
+    @api_method
     def order_target_value(self, sid, target, limit_price=None,
                            stop_price=None):
         """
@@ -574,6 +601,7 @@ class TradingAlgorithm(object):
         else:
             return self.order_value(sid, target, limit_price, stop_price)
 
+    @api_method
     def order_target_percent(self, sid, target, limit_price=None,
                              stop_price=None):
         """
@@ -596,6 +624,7 @@ class TradingAlgorithm(object):
         req_value = target_value - current_value
         return self.order_value(sid, req_value, limit_price, stop_price)
 
+    @api_method
     def get_open_orders(self, sid=None):
         if sid is None:
             return {key: [order.to_api_obj() for order in orders]
@@ -606,10 +635,12 @@ class TradingAlgorithm(object):
             return [order.to_api_obj() for order in orders]
         return []
 
+    @api_method
     def get_order(self, order_id):
         if order_id in self.blotter.orders:
             return self.blotter.orders[order_id].to_api_obj()
 
+    @api_method
     def cancel_order(self, order_param):
         order_id = order_param
         if isinstance(order_param, zipline.protocol.Order):

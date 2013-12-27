@@ -698,8 +698,8 @@ def handle_data_api(context, data):
             context.incr, "Orders not filled immediately."
         assert context.portfolio.positions[0]['last_sale_price'] == \
             data[0].price, "Orders not filled at current price."
-        context.incr += 1
-        order(0, 1)
+    context.incr += 1
+    order(0, 1)
 
     record(incr=context.incr)
 
@@ -733,8 +733,8 @@ def handle_data(context, data):
                 context.incr, "Orders not filled immediately."
         assert context.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
-        context.incr += 1
-        order(0, 1)
+    context.incr += 1
+    order(0, 1)
 
     record(incr=context.incr)
 """
