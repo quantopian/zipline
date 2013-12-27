@@ -182,10 +182,10 @@ class TradingAlgorithm(object):
     def initialize(self, *args, **kwargs):
         # store algo reference in global space
         set_algo_instance(self)
-
-        self._initialize(self)
-
-        set_algo_instance(None)
+        try:
+            self._initialize(self)
+        finally:
+            set_algo_instance(None)
 
     def handle_data(self, data):
         self._handle_data(self, data)
@@ -370,17 +370,18 @@ class TradingAlgorithm(object):
         # store algo reference in global space
         set_algo_instance(self)
 
-        # loop through simulated_trading, each iteration returns a
-        # perf dictionary
-        perfs = []
-        for perf in self.gen:
-            perfs.append(perf)
+        try:
+            # loop through simulated_trading, each iteration returns a
+            # perf dictionary
+            perfs = []
+            for perf in self.gen:
+                perfs.append(perf)
 
-        # convert perf dict to pandas dataframe
-        daily_stats = self._create_daily_stats(perfs)
-
-        # remove algo from global space
-        set_algo_instance(None)
+            # convert perf dict to pandas dataframe
+            daily_stats = self._create_daily_stats(perfs)
+        finally:
+            # remove algo from global space
+            set_algo_instance(None)
 
         return daily_stats
 
