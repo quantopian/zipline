@@ -227,8 +227,13 @@ class TradingAlgorithm(object):
         skipped.
         """
         if self.benchmark_return_source is None:
+            env = trading.environment
+            if self.data_frequency == 'minute':
+                update_time = lambda date: env.get_open_and_close(date)[1]
+            else:
+                update_time = lambda date: date
             benchmark_return_source = [
-                Event({'dt': dt,
+                Event({'dt': update_time(dt),
                        'returns': ret,
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
