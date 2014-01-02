@@ -188,7 +188,7 @@ class AlgorithmSimulator(object):
                             yield daily_rollup
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
-                            if mkt_close < self.algo.perf_tracker.last_close:
+                            if mkt_close <= self.algo.perf_tracker.last_close:
                                 _, mkt_close = \
                                     trading.environment.next_open_and_close(
                                         mkt_close

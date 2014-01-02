@@ -131,6 +131,9 @@ class NoopAlgorithm(TradingAlgorithm):
     def set_transact_setter(self, txn_sim_callable):
         pass
 
+    def handle_data(self, data):
+        pass
+
 
 class ExceptionAlgorithm(TradingAlgorithm):
     """

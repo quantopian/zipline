@@ -180,7 +180,8 @@ class TradingAlgorithm(object):
         """
         if self.benchmark_return_source is None:
             env = trading.environment
-            if self.data_frequency == 'minute':
+            if (self.data_frequency == 'minute'
+                or sim_params.emission_rate == 'minute'):
                 update_time = lambda date: env.get_open_and_close(date)[1]
             else:
                 update_time = lambda date: date
