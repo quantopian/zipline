@@ -75,7 +75,7 @@ def get_raw_benchmark_data(start_date, end_date, symbol):
         ('g', 'd'),
     ))
 
-    res = requests.get('http://ichart.yahoo.com/table.csv',
+    res = requests.get('http://ichart.finance.yahoo.com/table.csv',
                        params=params, stream=True)
 
     if not res.ok:
