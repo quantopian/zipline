@@ -300,7 +300,7 @@ class TestTALIB(TestCase):
                  and n not in BLACKLIST]
 
         for name in names:
-            print name
+            print(name)
             zipline_transform = getattr(ta, name)(sid=0)
             talib_fn = getattr(talib.abstract, name)
 
@@ -337,7 +337,7 @@ class TestTALIB(TestCase):
                     and np.all(np.isnan(expected_result))):
                 self.assertTrue(np.allclose(zipline_result, expected_result))
             else:
-                print '--- NAN'
+                print('--- NAN')
 
             # reset generator so next iteration has data
             # self.source, self.panel = \

@@ -974,7 +974,6 @@ shares in position"
             "should have a cost basis of 11.33"
         )
 
-        # print "second period pnl is {pnl}".format(pnl=pp2.pnl)
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
         pp3 = perf.PerformancePeriod(1000.0)

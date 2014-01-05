@@ -96,5 +96,5 @@ if __name__ == '__main__':
     plt.legend(loc=0)
 
     sharpe = [risk['sharpe'] for risk in dma.risk_report['one_month']]
-    print "Monthly Sharpe ratios:", sharpe
+    print("Monthly Sharpe ratios: {0}".format(sharpe))
     plt.gcf().set_size_inches(18, 8)

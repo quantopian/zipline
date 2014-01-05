@@ -163,7 +163,7 @@ def load_market_data(bm_symbol='^GSPC'):
         print("""
 data files aren't distributed with source.
 Fetching data from Yahoo Finance.
-""").strip()
+""".strip())
         dump_benchmarks(bm_symbol)
         fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
 
@@ -211,7 +211,7 @@ Fetching data from Yahoo Finance.
         print("""
 data files aren't distributed with source.
 Fetching data from {0}
-""").format(source).strip()
+""".format(source).strip())
         dump_treasury_curves(module, filename)
         fp_tr = get_datafile(filename, "rb")
 
@@ -277,7 +277,7 @@ must specify stocks or indexes"""
 
     if stocks is not None:
         for stock in stocks:
-            print stock
+            print(stock)
             cache_filename = "{stock}-{start}-{end}.csv".format(
                 stock=stock,
                 start=start,
@@ -292,7 +292,7 @@ must specify stocks or indexes"""
 
     if indexes is not None:
         for name, ticker in indexes.iteritems():
-            print name
+            print(name)
             stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
             data[name] = stkd
 

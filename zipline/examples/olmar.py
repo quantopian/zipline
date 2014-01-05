@@ -128,9 +128,9 @@ def simplex_projection(v, b=1):
 
     :Example:
     >>> proj = simplex_projection([.4 ,.3, -.4, .5])
-    >>> print proj
+    >>> print(proj)
     array([ 0.33333333, 0.23333333, 0. , 0.43333333])
-    >>> print proj.sum()
+    >>> print(proj.sum())
     1.0
 
     Original matlab implementation: John Duchi (jduchi@cs.berkeley.edu)

@@ -340,7 +340,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             self.target_shares = 10
             return
         else:
-            print self.portfolio
+            print(self.portfolio)
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
