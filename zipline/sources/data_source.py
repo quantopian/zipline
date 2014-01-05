@@ -62,3 +62,6 @@ class DataSource(object):
 
     def next(self):
         return self.mapped_data.next()
+
+    def __next__(self):
+        return next(self.mapped_data)

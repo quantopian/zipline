@@ -166,6 +166,9 @@ class SpecificEquityTrades(object):
     def next(self):
         return self.generator.next()
 
+    def __next__(self):
+        return next(self.generator)
+
     def rewind(self):
         self.generator = self.create_fresh_generator()
 
