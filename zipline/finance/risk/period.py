@@ -26,7 +26,7 @@ from zipline.finance import trading
 
 import pandas as pd
 
-import risk
+from . import risk
 from . risk import (
     alpha,
     check_entry,
