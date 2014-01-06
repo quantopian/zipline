@@ -19,6 +19,9 @@ import numpy as np
 import pandas as pd
 import talib
 import copy
+
+from six import iteritems
+
 from zipline.transforms import BatchTransform
 
 
@@ -45,7 +48,7 @@ def zipline_wrapper(talib_fn, key_map, data):
     for sid in data.minor_axis:
         # build talib_data from zipline data
         talib_data = dict()
-        for talib_key, zipline_key in key_map.iteritems():
+        for talib_key, zipline_key in iteritems(key_map):
             # if zipline_key is found, add it to talib_data
             if zipline_key in data:
                 values = data[zipline_key][sid].values

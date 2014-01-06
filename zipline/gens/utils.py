@@ -21,16 +21,18 @@ from hashlib import md5
 from datetime import datetime
 from zipline.protocol import DATASOURCE_TYPE
 
+from six import iteritems, b
+
 
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
     arg_string = '_'.join([str(arg) for arg in args])
     kwarg_string = '_'.join([str(key) + '=' + str(value)
-                             for key, value in kwargs.iteritems()])
+                             for key, value in iteritems(kwargs)])
     combined = ':'.join([arg_string, kwarg_string])
 
     hasher = md5()
-    hasher.update(combined)
+    hasher.update(b(combined))
     return hasher.hexdigest()
 
 

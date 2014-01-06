@@ -24,6 +24,8 @@ import datetime
 import pytz
 import itertools
 
+from six.moves import range
+
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
@@ -431,7 +433,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         pay_date = self.sim_params.first_open
         # find pay date that is much later.
-        for i in xrange(30):
+        for i in range(30):
             pay_date = factory.get_next_trading_dt(pay_date, oneday)
         dividend = factory.create_dividend(
             1,

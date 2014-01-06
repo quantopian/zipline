@@ -24,6 +24,8 @@ import zipline.utils.math_utils as zp_math
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
+from six import iteritems
+
 from . risk import (
     alpha,
     check_entry,
@@ -359,7 +361,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         return {k: None
                 if check_entry(k, v)
-                else v for k, v in rval.iteritems()}
+                else v for k, v in iteritems(rval)}
 
     def __repr__(self):
         statements = []

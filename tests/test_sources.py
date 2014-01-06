@@ -16,6 +16,8 @@ import pandas as pd
 import pytz
 from itertools import cycle
 
+from six import integer_types
+
 from unittest import TestCase
 
 import zipline.utils.factory as factory
@@ -71,5 +73,5 @@ class TestDataFrameSource(TestCase):
         for event in source:
             for check_field in check_fields:
                 self.assertIn(check_field, event)
-            self.assertTrue(isinstance(event['volume'], (int, long)))
+            self.assertTrue(isinstance(event['volume'], (integer_types)))
             self.assertEqual(stocks_iter.next(), event['sid'])

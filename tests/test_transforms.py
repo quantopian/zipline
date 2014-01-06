@@ -20,6 +20,8 @@ import pandas as pd
 from datetime import timedelta, datetime
 from unittest import TestCase
 
+from six.moves import range
+
 from zipline.utils.test_utils import setup_logger
 
 from zipline.protocol import Event
@@ -64,7 +66,7 @@ class TestEventWindow(TestCase):
 
         self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
         self.eleven_normal_days = [self.monday + i * timedelta(days=1)
-                                   for i in xrange(11)]
+                                   for i in range(11)]
 
         # Modify the end of the period slightly to exercise the
         # incomplete day logic.
@@ -75,7 +77,7 @@ class TestEventWindow(TestCase):
         # Second set of dates to test holiday handling.
         self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
         self.week_of_jul4 = [self.jul4_monday + i * timedelta(days=1)
-                             for i in xrange(5)]
+                             for i in range(5)]
 
     def test_market_aware_window_normal_week(self):
         window = NoopEventWindow(

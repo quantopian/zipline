@@ -23,6 +23,8 @@ from functools import partial
 import requests
 import pandas as pd
 
+from six import iteritems
+
 from . loader_utils import (
     date_conversion,
     source_to_records,
@@ -50,7 +52,7 @@ _BENCHMARK_MAPPING = {
 def benchmark_mappings():
     return {key: Mapping(*value)
             for key, value
-            in _BENCHMARK_MAPPING.iteritems()}
+            in iteritems(_BENCHMARK_MAPPING)}
 
 
 def get_raw_benchmark_data(start_date, end_date, symbol):

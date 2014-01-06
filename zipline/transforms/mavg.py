@@ -15,6 +15,8 @@
 
 from collections import defaultdict
 
+from six import string_types
+
 from zipline.transforms.utils import EventWindow, TransformMeta
 from zipline.errors import WrongDataForTransform
 
@@ -31,7 +33,7 @@ class MovingAverage(object):
     def __init__(self, fields='price',
                  market_aware=True, window_length=None, delta=None):
 
-        if isinstance(fields, basestring):
+        if isinstance(fields, string_types):
             fields = [fields]
         self.fields = fields
 

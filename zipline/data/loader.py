@@ -26,6 +26,8 @@ import pandas as pd
 from pandas.io.data import DataReader
 import pytz
 
+from six import iteritems
+
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
@@ -239,7 +241,7 @@ Fetching data from {0}
     fp_tr.close()
 
     tr_curves = OrderedDict(sorted(
-        ((dt, c) for dt, c in tr_curves.iteritems()),
+        ((dt, c) for dt, c in iteritems(tr_curves)),
         key=lambda t: t[0]))
 
     return benchmark_returns, tr_curves
@@ -291,7 +293,7 @@ must specify stocks or indexes"""
             data[stock] = stkd
 
     if indexes is not None:
-        for name, ticker in indexes.iteritems():
+        for name, ticker in iteritems(indexes):
             print(name)
             stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
             data[name] = stkd
@@ -327,7 +329,7 @@ def load_from_yahoo(indexes=None,
         close_key = 'Adj Close'
     else:
         close_key = 'Close'
-    df = pd.DataFrame({key: d[close_key] for key, d in data.iteritems()})
+    df = pd.DataFrame({key: d[close_key] for key, d in iteritems(data)})
     df.index = df.index.tz_localize(pytz.utc)
     return df
 

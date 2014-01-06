@@ -15,6 +15,8 @@
 
 import heapq
 
+from six.moves import reduce
+
 
 def _decorate_source(source):
     for message in source:

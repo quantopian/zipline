@@ -77,6 +77,8 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict, defaultdict
 
+from six import iteritems, itervalues
+
 import zipline.protocol as zp
 from . position import positiondict
 
@@ -164,7 +166,7 @@ class PerformancePeriod(object):
         payment has been disbursed.
         """
         cash_payments = 0.0
-        for sid, pos in self.positions.iteritems():
+        for sid, pos in iteritems(self.positions):
             cash_payments += pos.update_dividends(todays_date)
 
         # credit our cash balance with the dividend payments, or
@@ -307,7 +309,7 @@ class PerformancePeriod(object):
             else:
                 transactions = \
                     [y.to_dict()
-                     for x in self.processed_transactions.itervalues()
+                     for x in itervalues(self.processed_transactions)
                      for y in x]
             rval['transactions'] = transactions
 
@@ -315,9 +317,9 @@ class PerformancePeriod(object):
             if dt:
                 # only include orders modified as of the given dt.
                 orders = [x.to_dict()
-                          for x in self.orders_by_modified[dt].itervalues()]
+                          for x in itervalues(self.orders_by_modified[dt])]
             else:
-                orders = [x.to_dict() for x in self.orders_by_id.itervalues()]
+                orders = [x.to_dict() for x in itervalues(self.orders_by_id)]
             rval['orders'] = orders
 
         return rval
@@ -352,7 +354,7 @@ class PerformancePeriod(object):
 
         positions = self._positions_store
 
-        for sid, pos in self.positions.iteritems():
+        for sid, pos in iteritems(self.positions):
             if sid not in positions:
                 positions[sid] = zp.Position(sid)
             position = positions[sid]
@@ -364,7 +366,7 @@ class PerformancePeriod(object):
 
     def get_positions_list(self):
         positions = []
-        for sid, pos in self.positions.iteritems():
+        for sid, pos in iteritems(self.positions):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
