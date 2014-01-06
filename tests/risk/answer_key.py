@@ -22,6 +22,8 @@ import pytz
 import xlrd
 import requests
 
+from six.moves import map
+
 
 def col_letter_to_index(col_letter):
     # Only supports single letter,
@@ -288,7 +290,8 @@ class AnswerKey(object):
 
     def get_values(self, data_index):
         value_parser = self.value_type_to_value_func[data_index.value_type]
-        return map(value_parser, self.get_raw_values(data_index))
+        return [value for value in
+                map(value_parser, self.get_raw_values(data_index))]
 
 
 ANSWER_KEY = AnswerKey()
