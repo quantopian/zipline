@@ -17,7 +17,6 @@
 """
 Generator versions of transforms.
 """
-import types
 import logbook
 
 
@@ -92,8 +91,6 @@ class StatefulTransform(object):
     Otherwise only dt, tnfm_id, and tnfm_value are forwarded.
     """
     def __init__(self, tnfm_class, *args, **kwargs):
-        assert isinstance(tnfm_class, (types.ObjectType, types.ClassType)), \
-            "Stateful transform requires a class."
         assert hasattr(tnfm_class, 'update'), \
             "Stateful transform requires the class to have an update method"
 
