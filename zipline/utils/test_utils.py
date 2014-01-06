@@ -95,6 +95,9 @@ class ExceptionSource(object):
     def next(self):
         5 / 0
 
+    def __next__(self):
+        5 / 0
+
 
 class ExceptionTransform(object):
 
