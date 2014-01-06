@@ -15,15 +15,16 @@
 
 from collections import defaultdict
 
+from six import with_metaclass
+
 from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
-class MovingVWAP(object):
+class MovingVWAP(with_metaclass(TransformMeta)):
     """
     Class that maintains a dictionary from sids to VWAPEventWindows.
     """
-    __metaclass__ = TransformMeta
 
     def __init__(self, market_aware=True, delta=None, window_length=None):
 

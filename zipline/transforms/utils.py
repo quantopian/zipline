@@ -26,6 +26,8 @@ from datetime import datetime
 from collections import deque
 from abc import ABCMeta, abstractmethod
 
+from six import with_metaclass
+
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.gens.utils import assert_sort_unframe_protocol, hash_args
 from zipline.finance import trading
@@ -147,7 +149,7 @@ class StatefulTransform(object):
             yield out_message
 
 
-class EventWindow(object):
+class EventWindow(with_metaclass(ABCMeta)):
     """
     Abstract base class for transform classes that calculate iterative
     metrics on events within a given timedelta.  Maintains a list of
@@ -166,7 +168,6 @@ class EventWindow(object):
     price.
     """
     # Mark this as an abstract base class.
-    __metaclass__ = ABCMeta
 
     def __init__(self, market_aware=True, window_length=None, delta=None):
 

@@ -15,20 +15,19 @@
 
 from collections import defaultdict
 
-from six import string_types
+from six import string_types, with_metaclass
 
 from zipline.transforms.utils import EventWindow, TransformMeta
 from zipline.errors import WrongDataForTransform
 
 
-class MovingAverage(object):
+class MovingAverage(with_metaclass(TransformMeta)):
     """
     Class that maintains a dictionary from sids to
     MovingAverageEventWindows.  For each sid, we maintain moving
     averages over any number of distinct fields (For example, we can
     maintain a sid's average volume as well as its average price.)
     """
-    __metaclass__ = TransformMeta
 
     def __init__(self, fields='price',
                  market_aware=True, window_length=None, delta=None):
