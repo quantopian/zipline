@@ -141,7 +141,8 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'ex_date': ex_date.replace(hour=0, minute=0, second=0, microsecond=0),
         'pay_date': pay_date.replace(hour=0, minute=0, second=0,
                                      microsecond=0),
-        'type': DATASOURCE_TYPE.DIVIDEND
+        'type': DATASOURCE_TYPE.DIVIDEND,
+        'source_id': 'MockDividendSource'
     })
 
     return div
@@ -152,7 +153,8 @@ def create_split(sid, ratio, date):
         'sid': sid,
         'ratio': ratio,
         'dt': date.replace(hour=0, minute=0, second=0, microsecond=0),
-        'type': DATASOURCE_TYPE.SPLIT
+        'type': DATASOURCE_TYPE.SPLIT,
+        'source_id': 'MockSplitSource'
     })
 
 
@@ -162,7 +164,8 @@ def create_txn(sid, price, amount, datetime):
         'amount': amount,
         'dt': datetime,
         'price': price,
-        'type': DATASOURCE_TYPE.TRANSACTION
+        'type': DATASOURCE_TYPE.TRANSACTION,
+        'source_id': 'MockTransactionSource'
     })
     return txn
 
@@ -172,7 +175,8 @@ def create_commission(sid, value, datetime):
         'dt': datetime,
         'type': DATASOURCE_TYPE.COMMISSION,
         'cost': value,
-        'sid': sid
+        'sid': sid,
+        'source_id': 'MockCommissionSource'
     })
     return txn
 

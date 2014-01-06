@@ -49,7 +49,9 @@ tradingday = datetime.timedelta(hours=6, minutes=30)
 
 def create_txn(event, price, amount):
     mock_order = Order(None, None, event.sid, id=None)
-    return create_transaction(event, mock_order, price, amount)
+    txn = create_transaction(event, mock_order, price, amount)
+    txn.source_id = 'MockTransactionSource'
+    return txn
 
 
 def benchmark_events_in_range(sim_params):
@@ -69,12 +71,10 @@ def calculate_results(host, events):
 
     perf_tracker = perf.PerformanceTracker(host.sim_params)
 
-    all_events = heapq.merge(
-        ((event.dt, event) for event in events),
-        ((event.dt, event) for event in host.benchmark_events))
+    all_events = date_sorted_sources(events, host.benchmark_events)
 
-    filtered_events = [(date, filt_event) for (date, filt_event)
-                       in all_events if date <= events[-1].dt]
+    filtered_events = [(filt_event.dt, filt_event) for filt_event
+                       in all_events if filt_event.dt <= events[-1].dt]
     filtered_events.sort(key=lambda x: x[0])
     grouped_events = itertools.groupby(filtered_events, lambda x: x[0])
     results = []
@@ -1135,12 +1135,10 @@ class TestPerformanceTracker(unittest.TestCase):
         orders = [event for event in
                   events if event.type == DATASOURCE_TYPE.ORDER]
 
-        all_events = (msg[1] for msg in heapq.merge(
-            ((event.dt, event) for event in events),
-            ((event.dt, event) for event in benchmark_events)))
+        all_events = date_sorted_sources(events, benchmark_events)
 
         filtered_events = [filt_event for filt_event
-                           in all_events if event.dt <= end_dt]
+                           in all_events if filt_event.dt <= end_dt]
         filtered_events.sort(key=lambda x: x.dt)
         grouped_events = itertools.groupby(filtered_events, lambda x: x.dt)
         perf_messages = []
@@ -1172,6 +1170,7 @@ class TestPerformanceTracker(unittest.TestCase):
                     amount=-25,
                     dt=event.dt
                 )
+                order.source_id = 'MockOrderSource'
                 yield order
                 yield event
                 txn = Transaction(
@@ -1182,6 +1181,7 @@ class TestPerformanceTracker(unittest.TestCase):
                     commission=0.50,
                     order_id=order.id
                 )
+                txn.source_id = 'MockTransactionSource'
                 yield txn
             else:
                 yield event
