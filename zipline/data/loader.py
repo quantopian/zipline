@@ -62,7 +62,7 @@ INDEX_MAPPING = {
 }
 
 
-def get_datafile(name, mode='r'):
+def get_data_filepath(name):
     """
     Returns a handle to data file.
 
@@ -72,7 +72,7 @@ def get_datafile(name, mode='r'):
     if not os.path.exists(DATA_PATH):
         os.makedirs(DATA_PATH)
 
-    return open(os.path.join(DATA_PATH, name), mode)
+    return os.path.join(DATA_PATH, name)
 
 
 def get_cache_filepath(name):
@@ -102,9 +102,8 @@ def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):
 
     curves = pd.DataFrame(tr_data).T
 
-    datafile = get_datafile(filename, mode='wb')
-    curves.to_csv(datafile)
-    datafile.close()
+    data_filepath = get_data_filepath(filename)
+    curves.to_csv(data_filepath)
 
     return curves
 
@@ -121,10 +120,9 @@ def dump_benchmarks(symbol):
         benchmark = (daily_return.date, daily_return.returns)
         benchmark_data.append(benchmark)
 
-    datafile = get_datafile(get_benchmark_filename(symbol), mode='wb')
+    data_filepath = get_data_filepath(get_benchmark_filename(symbol))
     benchmark_returns = pd.Series(dict(benchmark_data))
-    benchmark_returns.to_csv(datafile)
-    datafile.close()
+    benchmark_returns.to_csv(data_filepath)
 
 
 def update_benchmarks(symbol, last_date):
@@ -135,9 +133,8 @@ def update_benchmarks(symbol, last_date):
 
     Puts source benchmark into zipline.
     """
-    datafile = get_datafile(get_benchmark_filename(symbol), mode='rb')
+    datafile = get_data_filepath(get_benchmark_filename(symbol))
     saved_benchmarks = pd.Series.from_csv(datafile)
-    datafile.close()
 
     try:
         start = last_date + timedelta(days=1)
@@ -146,9 +143,8 @@ def update_benchmarks(symbol, last_date):
             benchmark = pd.Series({daily_return.date: daily_return.returns})
             saved_benchmarks = saved_benchmarks.append(benchmark)
 
-        datafile = get_datafile(get_benchmark_filename(symbol), mode='wb')
+        datafile = get_data_filepath(get_benchmark_filename(symbol))
         saved_benchmarks.to_csv(datafile)
-        datafile.close()
     except benchmarks.BenchmarkDataNotFoundError as exc:
         logger.warn(exc)
     return saved_benchmarks
@@ -159,19 +155,18 @@ def get_benchmark_filename(symbol):
 
 
 def load_market_data(bm_symbol='^GSPC'):
+    bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
-        fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
-    except IOError:
+        saved_benchmarks = pd.Series.from_csv(bm_filepath)
+    except OSError:
         print("""
 data files aren't distributed with source.
 Fetching data from Yahoo Finance.
 """.strip())
         dump_benchmarks(bm_symbol)
-        fp_bm = get_datafile(get_benchmark_filename(bm_symbol), "rb")
+        saved_benchmarks = pd.Series.from_csv(bm_filepath)
 
-    saved_benchmarks = pd.Series.from_csv(fp_bm)
     saved_benchmarks = saved_benchmarks.tz_localize('UTC')
-    fp_bm.close()
 
     most_recent = pd.Timestamp('today', tz='UTC') - trading_day
     most_recent_index = trading_days.searchsorted(most_recent)
@@ -207,17 +202,16 @@ Fetching data from Yahoo Finance.
     module, filename, source = INDEX_MAPPING.get(
         bm_symbol, INDEX_MAPPING['^GSPC'])
 
+    tr_filepath = get_data_filepath(filename)
     try:
-        fp_tr = get_datafile(filename, "rb")
-    except IOError:
+        saved_curves = pd.DataFrame.from_csv(tr_filepath)
+    except OSError:
         print("""
 data files aren't distributed with source.
 Fetching data from {0}
 """.format(source).strip())
         dump_treasury_curves(module, filename)
-        fp_tr = get_datafile(filename, "rb")
-
-    saved_curves = pd.DataFrame.from_csv(fp_tr)
+        saved_curves = pd.DataFrame.from_csv(tr_filepath)
 
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
@@ -237,8 +231,6 @@ Fetching data from {0}
         # tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,
         #                       tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve.to_dict()
-
-    fp_tr.close()
 
     tr_curves = OrderedDict(sorted(
         ((dt, c) for dt, c in iteritems(tr_curves)),
