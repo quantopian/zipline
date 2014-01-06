@@ -51,12 +51,12 @@ LATEST_ANSWER_KEY_URL = ANSWER_KEY_DL_TEMPLATE.format(
 
 
 def answer_key_signature():
-    with open(ANSWER_KEY_PATH, 'r') as f:
+    with open(ANSWER_KEY_PATH, 'rb') as f:
         md5 = hashlib.md5()
-        while True:
+        buf = f.read(1024)
+        md5.update(buf)
+        while buf != b"":
             buf = f.read(1024)
-            if not buf:
-                break
             md5.update(buf)
     return md5.hexdigest()
 
