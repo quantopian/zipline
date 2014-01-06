@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+  - "3.3"
 before_install:
   - wget -O ta-lib-0.4.0-src.tar.gz http://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz/download
   - tar xvzf ta-lib-0.4.0-src.tar.gz
