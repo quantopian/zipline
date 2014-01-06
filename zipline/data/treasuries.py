@@ -98,7 +98,7 @@ def get_treasury_source():
 http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
 """
     res = requests.get(url, stream=True)
-    stream = iter_to_stream(res.iter_lines())
+    stream = iter_to_stream(res.text.splitlines())
 
     elements = ET.iterparse(stream, ('end', 'start-ns', 'end-ns'))
 

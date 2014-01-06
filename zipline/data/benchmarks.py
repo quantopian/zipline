@@ -88,7 +88,7 @@ start_date={start_date}, end_date={end_date}, url={url}""".strip().
                                                 end_date=end_date,
                                                 url=res.url))
 
-    return csv.DictReader(res.iter_lines())
+    return csv.DictReader(res.text.splitlines())
 
 
 def get_benchmark_data(symbol, start_date=None, end_date=None):
