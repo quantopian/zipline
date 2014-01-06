@@ -21,15 +21,22 @@
 import matplotlib
 matplotlib.use('Agg')
 
-from os import path
 import os
+from os import path
+
+try:
+    from path import walk
+except ImportError:
+    # Assume Python 3
+    from os import walk
+
 import fnmatch
 import imp
 
 
 def test_examples():
     os.chdir(example_dir())
-    for fname in all_matching_files('.', '*.py'):
+    for fname in all_matching_files(example_dir(), '*.py'):
         yield check_example, fname
 
 
@@ -40,7 +47,8 @@ def all_matching_files(d, pattern):
         fls.extend(nfiles)
 
     files = []
-    path.walk(d, addfiles, files)
+    for dirpath, dirnames, filenames in walk(d):
+        addfiles(files, dirpath, filenames)
     return files
 
 
