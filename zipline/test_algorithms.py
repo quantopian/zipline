@@ -74,6 +74,8 @@ The algorithm must expose methods:
 from copy import deepcopy
 import numpy as np
 
+from six.moves import range
+
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
 
@@ -191,7 +193,7 @@ class TooMuchProcessingAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         # Unless we're running on some sort of
         # supercomputer this will hit timeout.
-        for i in xrange(1000000000):
+        for i in range(1000000000):
             self.foo = i
 
 

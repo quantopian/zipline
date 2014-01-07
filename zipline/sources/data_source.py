@@ -3,13 +3,13 @@ from abc import (
     abstractproperty
 )
 
+from six import with_metaclass
+
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.protocol import Event
 
 
-class DataSource(object):
-
-    __metaclass__ = ABCMeta
+class DataSource(with_metaclass(ABCMeta)):
 
     @property
     def event_type(self):
@@ -62,3 +62,6 @@ class DataSource(object):
 
     def next(self):
         return self.mapped_data.next()
+
+    def __next__(self):
+        return next(self.mapped_data)

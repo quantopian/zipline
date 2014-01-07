@@ -22,6 +22,8 @@ import pytz
 import xlrd
 import requests
 
+from six.moves import map
+
 
 def col_letter_to_index(col_letter):
     # Only supports single letter,
@@ -51,12 +53,12 @@ LATEST_ANSWER_KEY_URL = ANSWER_KEY_DL_TEMPLATE.format(
 
 
 def answer_key_signature():
-    with open(ANSWER_KEY_PATH, 'r') as f:
+    with open(ANSWER_KEY_PATH, 'rb') as f:
         md5 = hashlib.md5()
-        while True:
+        buf = f.read(1024)
+        md5.update(buf)
+        while buf != b"":
             buf = f.read(1024)
-            if not buf:
-                break
             md5.update(buf)
     return md5.hexdigest()
 
@@ -288,7 +290,8 @@ class AnswerKey(object):
 
     def get_values(self, data_index):
         value_parser = self.value_type_to_value_func[data_index.value_type]
-        return map(value_parser, self.get_raw_values(data_index))
+        return [value for value in
+                map(value_parser, self.get_raw_values(data_index))]
 
 
 ANSWER_KEY = AnswerKey()

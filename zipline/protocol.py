@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from six import iteritems, iterkeys
+
 from . utils.protocol_utils import Enum
 
 # Datasource type should completely determine the other fields of a
@@ -171,7 +173,7 @@ class BarData(object):
         del self._data[name]
 
     def __iter__(self):
-        for sid, data in self._data.iteritems():
+        for sid, data in iteritems(self._data):
             # Allow contains override to filter out sids.
             if sid in self:
                 if len(data):
@@ -179,25 +181,25 @@ class BarData(object):
 
     def iterkeys(self):
         # Allow contains override to filter out sids.
-        return (sid for sid in self._data.iterkeys() if sid in self)
+        return (sid for sid in iterkeys(self._data) if sid in self)
 
     def keys(self):
         # Allow contains override to filter out sids.
         return list(self.iterkeys())
 
     def itervalues(self):
-        return (value for sid, value in self.iteritems())
+        return (value for sid, value in iteritems(self))
 
     def values(self):
         return list(self.itervalues())
 
     def iteritems(self):
         return ((sid, value) for sid, value
-                in self._data.iteritems()
+                in iteritems(self._data)
                 if sid in self)
 
     def items(self):
-        return list(self.iteritems())
+        return list(iteritems(self))
 
     def __len__(self):
         return len(self.keys())

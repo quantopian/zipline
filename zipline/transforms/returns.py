@@ -17,13 +17,14 @@ from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import TransformMeta
 from collections import defaultdict, deque
 
+from six import with_metaclass
 
-class Returns(object):
+
+class Returns(with_metaclass(TransformMeta)):
     """
     Class that maintains a dictionary from sids to the sid's
     closing price N trading days ago.
     """
-    __metaclass__ = TransformMeta
 
     def __init__(self, window_length):
         self.window_length = window_length

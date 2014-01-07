@@ -20,11 +20,13 @@ import math
 import numpy as np
 import numpy.linalg as la
 
+from six import iteritems
+
 from zipline.finance import trading
 
 import pandas as pd
 
-import risk
+from . import risk
 from . risk import (
     alpha,
     check_entry,
@@ -131,7 +133,7 @@ class RiskMetricsPeriod(object):
         }
 
         return {k: None if check_entry(k, v) else v
-                for k, v in rval.iteritems()}
+                for k, v in iteritems(rval)}
 
     def __repr__(self):
         statements = []

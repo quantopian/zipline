@@ -20,6 +20,9 @@ import math
 
 from copy import copy
 from functools import partial
+
+from six import with_metaclass
+
 from zipline.protocol import DATASOURCE_TYPE
 import zipline.utils.math_utils as zp_math
 
@@ -152,9 +155,7 @@ def create_transaction(event, order, price, amount):
     return transaction
 
 
-class SlippageModel(object):
-
-    __metaclass__ = abc.ABCMeta
+class SlippageModel(with_metaclass(abc.ABCMeta)):
 
     @property
     def volume_for_bar(self):

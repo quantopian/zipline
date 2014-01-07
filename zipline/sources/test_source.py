@@ -19,9 +19,12 @@ A source to be used in testing.
 
 import pytz
 
-from itertools import cycle, ifilter, izip
+from itertools import cycle
+from six.moves import filter, zip
 from datetime import datetime, timedelta
 import numpy as np
+
+from six.moves import range
 
 from zipline.protocol import (
     Event,
@@ -68,9 +71,9 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
     # during trading hours.
     # NB: Being inside of trading hours is currently dependent upon the
     # count parameter being less than the number of trading minutes in a day
-    for i in xrange(count):
+    for i in range(count):
         if repeats:
-            for j in xrange(repeats):
+            for j in range(repeats):
                 yield cur
         else:
             yield cur
@@ -90,7 +93,7 @@ def mock_prices(count):
     Utility to generate a stream of mock prices. By default
     cycles through values from 0.0 to 10.0, n times.
     """
-    return (float(i % 10) + 1.0 for i in xrange(count))
+    return (float(i % 10) + 1.0 for i in range(count))
 
 
 def mock_volumes(count):
@@ -98,7 +101,7 @@ def mock_volumes(count):
     Utility to generate a set of volumes. By default cycles
     through values from 100 to 1000, incrementing by 50.
     """
-    return ((i * 50) % 900 + 100 for i in xrange(count))
+    return ((i * 50) % 900 + 100 for i in range(count))
 
 
 class SpecificEquityTrades(object):
@@ -163,6 +166,9 @@ class SpecificEquityTrades(object):
     def next(self):
         return self.generator.next()
 
+    def __next__(self):
+        return next(self.generator)
+
     def rewind(self):
         self.generator = self.create_fresh_generator()
 
@@ -204,7 +210,7 @@ class SpecificEquityTrades(object):
             sids = cycle(self.sids)
 
             # Combine the iterators into a single iterator of arguments
-            arg_gen = izip(sids, prices, volumes, dates)
+            arg_gen = zip(sids, prices, volumes, dates)
 
             # Convert argument packages into events.
             unfiltered = (create_trade(*args, source_id=self.get_hash())
@@ -213,7 +219,7 @@ class SpecificEquityTrades(object):
         # If we specified a sid filter, filter out elements that don't
         # match the filter.
         if self.filter:
-            filtered = ifilter(
+            filtered = filter(
                 lambda event: event.sid in self.filter, unfiltered)
 
         # Otherwise just use all events.

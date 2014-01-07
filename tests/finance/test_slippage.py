@@ -329,7 +329,7 @@ class SlippageTestCase(TestCase):
         slippage_model = VolumeShareSlippage()
 
         try:
-            _, txn = slippage_model.simulate(event, [order]).next()
+            _, txn = next(slippage_model.simulate(event, [order]))
         except StopIteration:
             txn = None
 

@@ -30,6 +30,8 @@ from collections import namedtuple
 
 from functools import partial
 
+from six import iteritems
+
 
 def get_utc_from_exchange_time(naive):
     local = pytz.timezone('US/Eastern')
@@ -126,7 +128,7 @@ def _row_cb(mapping, row):
     return {
         target: apply_mapping(mapping, row)
         for target, mapping
-        in mapping.iteritems()
+        in iteritems(mapping)
     }
 
 

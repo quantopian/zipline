@@ -1,6 +1,8 @@
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
 
+from six import itervalues
+
 
 def setup_logger(test, path='test.log'):
     test.log_handler = FileHandler(path)
@@ -57,7 +59,7 @@ def assert_single_position(test, zipline):
                 for order in update['daily_perf']['orders']:
                     orders_by_id[order['id']] = order
 
-    for order in orders_by_id.itervalues():
+    for order in itervalues(orders_by_id):
         test.assertEqual(
             order['status'],
             ORDER_STATUS.FILLED,
@@ -91,6 +93,9 @@ class ExceptionSource(object):
         return self
 
     def next(self):
+        5 / 0
+
+    def __next__(self):
         5 / 0
 
 

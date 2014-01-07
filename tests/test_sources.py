@@ -16,6 +16,8 @@ import pandas as pd
 import pytz
 from itertools import cycle
 
+from six import integer_types
+
 from unittest import TestCase
 
 import zipline.utils.factory as factory
@@ -29,7 +31,7 @@ class TestDataFrameSource(TestCase):
         assert isinstance(source.end, pd.lib.Timestamp)
 
         for expected_dt, expected_price in df.iterrows():
-            sid0 = source.next()
+            sid0 = next(source)
 
             assert expected_dt == sid0.dt
             assert expected_price[0] == sid0.price
@@ -71,5 +73,5 @@ class TestDataFrameSource(TestCase):
         for event in source:
             for check_field in check_fields:
                 self.assertIn(check_field, event)
-            self.assertTrue(isinstance(event['volume'], (int, long)))
-            self.assertEqual(stocks_iter.next(), event['sid'])
+            self.assertTrue(isinstance(event['volume'], (integer_types)))
+            self.assertEqual(next(stocks_iter), event['sid'])
