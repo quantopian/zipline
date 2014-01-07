@@ -109,7 +109,7 @@ def ensure_latest_answer_key():
     if answer_key_dl_checksum:
         res = requests.get(
             ANSWER_KEY_DL_TEMPLATE.format(md5=answer_key_dl_checksum))
-        with open(ANSWER_KEY_PATH, 'w') as f:
+        with open(ANSWER_KEY_PATH, 'wb') as f:
             f.write(res.content)
 
 # Get latest answer key on load.
