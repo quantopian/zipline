@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import collections
-import heapq
 import logging
 import operator
 
