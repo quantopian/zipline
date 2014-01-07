@@ -158,7 +158,7 @@ def load_market_data(bm_symbol='^GSPC'):
     bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
-    except OSError:
+    except (OSError, IOError):
         print("""
 data files aren't distributed with source.
 Fetching data from Yahoo Finance.
@@ -205,7 +205,7 @@ Fetching data from Yahoo Finance.
     tr_filepath = get_data_filepath(filename)
     try:
         saved_curves = pd.DataFrame.from_csv(tr_filepath)
-    except OSError:
+    except (OSError, IOError):
         print("""
 data files aren't distributed with source.
 Fetching data from {0}
