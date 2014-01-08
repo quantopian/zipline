@@ -63,7 +63,6 @@ setup(
         'Topic :: System :: Distributed Computing',
     ],
     install_requires=[
-        'iso8601',
         'Logbook',
         'pytz',
         'requests',
