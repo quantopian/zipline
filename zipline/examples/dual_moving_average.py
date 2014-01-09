@@ -67,8 +67,8 @@ class DualMovingAverage(TradingAlgorithm):
                     sell=self.sell)
 
 if __name__ == '__main__':
-    start = datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(1991, 1, 1, 0, 0, 0, 0, pytz.utc)
+    start = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2003, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
                            end=end)
 
