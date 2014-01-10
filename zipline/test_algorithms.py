@@ -75,6 +75,7 @@ from copy import deepcopy
 import numpy as np
 
 from six.moves import range
+from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
@@ -653,7 +654,7 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         if not self.exited:
             amounts = [pos.amount for pos
-                       in self.portfolio.positions.itervalues()]
+                       in itervalues(self.portfolio.positions)]
             if (
                 all([(amount == 100) for amount in amounts]) and
                 (len(amounts) == len(data.keys()))
