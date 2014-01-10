@@ -355,12 +355,19 @@ class PerformancePeriod(object):
         positions = self._positions_store
 
         for sid, pos in iteritems(self.positions):
-            if sid not in positions:
+            if pos.amount != 0 and sid not in positions:
                 positions[sid] = zp.Position(sid)
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price = pos.last_sale_price
+
+            # Remove positions with no amounts from portfolio container
+            # that is passed to the algorithm.
+            # These positions are still stored internally for use with
+            # dividends etc.
+            if pos.amount == 0 and sid in positions:
+                del positions[sid]
 
         return positions
 

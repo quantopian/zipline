@@ -27,7 +27,8 @@ from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      TestTargetAlgorithm,
                                      TestOrderPercentAlgorithm,
                                      TestTargetPercentAlgorithm,
-                                     TestTargetValueAlgorithm)
+                                     TestTargetValueAlgorithm,
+                                     EmptyPositionsAlgorithm)
 
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
@@ -194,3 +195,43 @@ class TestTransformAlgorithm(TestCase):
                                          instant_fill=True)
 
         algo.run(self.df)
+
+
+class TestPositions(TestCase):
+
+    def setUp(self):
+        setup_logger(self)
+        self.sim_params = factory.create_simulation_parameters(num_days=4)
+        setup_logger(self)
+
+        trade_history = factory.create_trade_history(
+            1,
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
+            self.sim_params
+        )
+        self.source = SpecificEquityTrades(event_list=trade_history)
+
+        self.df_source, self.df = \
+            factory.create_test_df_source(self.sim_params)
+
+        self.panel_source, self.panel = \
+            factory.create_test_panel_source(self.sim_params)
+
+    def test_empty_portfolio(self):
+        algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
+                                       data_frequency='daily')
+
+        daily_stats = algo.run(self.df)
+
+        expected_position_count = [
+            0,  # Before entering the first position
+            1,  # After entering, exiting on this date
+            0,  # After exiting
+            0,
+        ]
+
+        for i, expected in enumerate(expected_position_count):
+            self.assertEqual(daily_stats.ix[i]['num_positions'],
+                             expected)
