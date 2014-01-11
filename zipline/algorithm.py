@@ -79,7 +79,7 @@ class TradingAlgorithm(object):
     To then to run this algorithm pass these functions to
     TradingAlgorithm:
 
-    my_algo = TradingAlgorithm(initialize, handle_data
+    my_algo = TradingAlgorithm(initialize, handle_data)
     stats = my_algo.run(data)
 
     """
@@ -149,13 +149,13 @@ class TradingAlgorithm(object):
 
         self.portfolio_needs_update = True
         self._portfolio = None
-        self.algoscript = None
 
         # If string is passed in, execute and get reference to
         # functions.
-        if kwargs.get('script', False):
+        self.algoscript = kwargs.pop('script', None)
+
+        if self.algoscript is not None:
             self.ns = {}
-            self.algoscript = kwargs.pop('script')
             exec self.algoscript in self.ns
             if 'initialize' not in self.ns:
                 raise ValueError('You must define an initialze function.')

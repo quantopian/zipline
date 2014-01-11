@@ -243,9 +243,9 @@ class TestPositions(TestCase):
         daily_stats = algo.run(self.df)
 
         expected_position_count = [
-            0, # Before entering the first position
-            1, # After entering, exiting on this date
-            0, # After exiting
+            0,  # Before entering the first position
+            1,  # After entering, exiting on this date
+            0,  # After exiting
             0,
         ]
 
@@ -267,30 +267,6 @@ class TestAlgoScript(TestCase):
             timedelta(days=1),
             self.sim_params
         )
-        self.source = SpecificEquityTrades(event_list=trade_history)
-
-        self.df_source, self.df = \
-            factory.create_test_df_source(self.sim_params)
-
-        self.panel_source, self.panel = \
-            factory.create_test_panel_source(self.sim_params)
-
-    def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
-                                       data_frequency='daily')
-
-        daily_stats = algo.run(self.df)
-
-        expected_position_count = [
-            0,  # Before entering the first position
-            1,  # After entering, exiting on this date
-            0,  # After exiting
-            0,
-        ]
-
-        for i, expected in enumerate(expected_position_count):
-            self.assertEqual(daily_stats.ix[i]['num_positions'],
-                             expected)
 
         self.source = SpecificEquityTrades(event_list=trade_history)
         self.df_source, self.df = \
@@ -323,7 +299,12 @@ class TestAlgoScript(TestCase):
         # --------------
         test_algo = TradingAlgorithm(
             script="""
-from zipline.api import *
+from zipline.api import (slippage,
+                         commission,
+                         set_slippage,
+                         set_commission,
+                         order,
+                         record)
 
 def initialize(context):
     model = slippage.FixedSlippage(spread=0.10)
@@ -413,7 +394,7 @@ def handle_data(context, data):
         # to fill the two orders. The number of bars and transactions
         # differ because some bars result in multiple txns. See
         # spreadsheet for details:
-        # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
+# https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
         self.zipline_test_config['expected_transactions'] = 67
 
         # self.zipline_test_config['transforms'] = \

@@ -740,7 +740,12 @@ def handle_data(context, data):
 """
 
 call_all_order_methods = """
-from zipline.api import *
+from zipline.api import (order,
+                         order_value,
+                         order_percent,
+                         order_target,
+                         order_target_value,
+                         order_target_percent)
 
 def initialize(context):
     pass
@@ -755,7 +760,7 @@ def handle_data(context, data):
 """
 
 record_variables = """
-from zipline.api import *
+from zipline.api import record
 
 def initialize(context):
     context.stocks = [0, 1]
@@ -767,7 +772,7 @@ def handle_data(context, data):
 """
 
 record_float_magic = """
-from zipline.api import *
+from zipline.api import record
 
 def initialize(context):
     context.stocks = [0, 1]
