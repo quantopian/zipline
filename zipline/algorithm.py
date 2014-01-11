@@ -22,7 +22,7 @@ from datetime import datetime
 
 from itertools import groupby
 from six.moves import filter
-from six import iteritems
+from six import iteritems, exec_
 from operator import attrgetter
 
 from zipline.errors import (
@@ -156,7 +156,7 @@ class TradingAlgorithm(object):
 
         if self.algoscript is not None:
             self.ns = {}
-            exec self.algoscript in self.ns
+            exec_(self.algoscript, self.ns)
             if 'initialize' not in self.ns:
                 raise ValueError('You must define an initialze function.')
             if 'handle_data' not in self.ns:

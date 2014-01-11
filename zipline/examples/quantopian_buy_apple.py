@@ -28,7 +28,7 @@ def initialize(context):
 
 def handle_date(context, data):
     order('AAPL', 10)
-    print context.test
+    print(context.test)
 
 
 if __name__ == '__main__':
