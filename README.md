@@ -219,7 +219,7 @@ the zipline codebase adheres to both PEP-8,
 <https://launchpad.net/pyflakes/>.
 
 The maintainers check the code using the flake8 script,
-<https://github.com/bmcustodio/flake8>, which is included in the
+<https://bitbucket.org/tarek/flake8/wiki/Home>, which is included in the
 requirements_dev.txt.
 
 Before submitting patches or pull requests, please ensure that your

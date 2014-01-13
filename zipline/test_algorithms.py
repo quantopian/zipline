@@ -75,6 +75,7 @@ from copy import deepcopy
 import numpy as np
 
 from six.moves import range
+from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.slippage import FixedSlippage
@@ -633,3 +634,34 @@ class TALIBAlgorithm(TradingAlgorithm):
                 else:
                     result = (np.nan,) * len(t.talib_fn.output_names)
             self.talib_results[t].append(result)
+
+
+class EmptyPositionsAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that ensures that 'phantom' positions do not appear
+    portfolio.positions in the case that a position has been entered
+    and fully exited.
+    """
+    def initialize(self, *args, **kwargs):
+        self.ordered = False
+        self.exited = False
+
+    def handle_data(self, data):
+        if not self.ordered:
+            for s in data:
+                self.order(s, 100)
+            self.ordered = True
+
+        if not self.exited:
+            amounts = [pos.amount for pos
+                       in itervalues(self.portfolio.positions)]
+            if (
+                all([(amount == 100) for amount in amounts]) and
+                (len(amounts) == len(data.keys()))
+            ):
+                for stock in self.portfolio.positions:
+                    self.order(stock, -100)
+                self.exited = True
+
+        # Should be 0 when all positions are exited.
+        self.record(num_positions=len(self.portfolio.positions))

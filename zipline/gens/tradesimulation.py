@@ -155,13 +155,13 @@ class AlgorithmSimulator(object):
                         self.algo.handle_data(self.current_data)
                         updated = False
 
-                        # run orders placed in the algorithm call
-                        # above through perf tracker before emitting
-                        # the perf packet, so that the perf includes
-                        # placed orders
-                        for order in self.algo.blotter.new_orders:
-                            self.algo.perf_tracker.process_event(order)
-                        self.algo.blotter.new_orders = []
+                    # run orders placed in the algorithm call
+                    # above through perf tracker before emitting
+                    # the perf packet, so that the perf includes
+                    # placed orders
+                    for order in self.algo.blotter.new_orders:
+                        self.algo.perf_tracker.process_event(order)
+                    self.algo.blotter.new_orders = []
 
                     # If we are instantly filling we execute orders
                     # in this iteration rather than the next.
