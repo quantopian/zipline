@@ -17,6 +17,7 @@ from unittest import TestCase
 from zipline.utils import tradingcalendar
 from zipline.utils import tradingcalendar_lse
 from zipline.utils import tradingcalendar_tse
+from zipline.utils import tradingcalendar_bmf
 import pytz
 import datetime
 from zipline.finance.trading import TradingEnvironment
@@ -71,6 +72,19 @@ class TestTradingCalendar(TestCase):
             env.trading_days.searchsorted(tradingcalendar_tse.start)
         env_days = env.trading_days[env_start_index:]
         cal_days = tradingcalendar_tse.trading_days
+        self.check_days(env_days, cal_days)
+
+    @nottest
+    def test_bmf_calendar_vs_environment(self):
+        env = TradingEnvironment(
+            bm_symbol='^BVSP',
+            exchange_tz='America/Sao_Paulo'
+        )
+
+        env_start_index = \
+            env.trading_days.searchsorted(tradingcalendar_bmf.start)
+        env_days = env.trading_days[env_start_index:]
+        cal_days = tradingcalendar_bmf.trading_days
         self.check_days(env_days, cal_days)
 
     def check_days(self, env_days, cal_days):

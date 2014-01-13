@@ -111,10 +111,21 @@ def get_non_trading_days(start, end):
         bymonth=7,
         bymonthday=9,
         cache=True,
-        dtstart=start,
+        dtstart=datetime(1997, 1, 1, tzinfo=pytz.utc),
         until=end
     )
     non_trading_rules.append(constitucionalista)
+
+    # Independency day
+    independencia = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=9,
+        bymonthday=7,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(independencia)
 
     # Our Lady of Aparecida
     aparecida = rrule.rrule(
@@ -193,6 +204,18 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(ano_novo)
 
+    # New Year Eve on saturday
+    ano_novo_sab = rrule.rrule(
+        rrule.MONTHLY,
+        bymonth=12,
+        bymonthday=30,
+        byweekday=rrule.FR,
+        cache=True,
+        dtstart=start,
+        until=end
+    )
+    non_trading_rules.append(ano_novo_sab)
+
     non_trading_ruleset = rrule.rruleset()
 
     for rule in non_trading_rules:
@@ -218,7 +241,7 @@ trading_days = get_trading_days(start, end)
 # Ash Wednesday
 quarta_cinzas = rrule.rrule(
     rrule.MONTHLY,
-    byeaster=-46
+    byeaster=-46,
     cache=True,
     dtstart=start,
     until=end
@@ -266,7 +289,7 @@ def get_open_and_closes(trading_days, early_closes):
                 year=day.year,
                 month=day.month,
                 day=day.day,
-                hour=close_hour),
+                hour=16),
             tz='America/Sao_Paulo').tz_convert('UTC')
 
         open_and_closes.ix[day]['market_open'] = market_open
