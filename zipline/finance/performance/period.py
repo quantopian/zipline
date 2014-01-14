@@ -81,6 +81,7 @@ from six import iteritems, itervalues
 
 import zipline.protocol as zp
 from . position import positiondict
+from . margins import Margins
 
 log = logbook.Logger('Performance')
 
@@ -348,6 +349,7 @@ class PerformancePeriod(object):
         portfolio.start_date = self.period_open
         portfolio.positions = self.get_positions()
         portfolio.positions_value = self.ending_value
+        portfolio.margin_requirement = Margins(portfolio)
         return portfolio
 
     def get_positions(self):

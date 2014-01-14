@@ -29,6 +29,9 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | cost_basis      | the volume weighted average price paid per share   |
     +-----------------+----------------------------------------------------+
+    | margin\         | The maintenance margin required for the position   |
+    | _requiremnt     |                                                    |
+    +-----------------+----------------------------------------------------+
 
 """
 
@@ -43,13 +46,14 @@ class Position(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None,
-                 dividends=None):
+                 dividends=None, margin_requirement=None):
         self.sid = sid
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
         self.last_sale_date = last_sale_date
         self.dividends = dividends or []
+        self.margin_requirement = margin_requirement
 
     def update_dividends(self, midnight_utc):
         """
@@ -175,12 +179,13 @@ class Position(object):
 
     def __repr__(self):
         template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
-last_sale_price: {last_sale_price}"
+last_sale_price: {last_sale_price}, margin_requirement: {margin_requirement}"
         return template.format(
             sid=self.sid,
             amount=self.amount,
             cost_basis=self.cost_basis,
-            last_sale_price=self.last_sale_price
+            last_sale_price=self.last_sale_price,
+            margin_requirement=self.margin_requirement
         )
 
     def to_dict(self):
@@ -192,7 +197,8 @@ last_sale_price: {last_sale_price}"
             'sid': self.sid,
             'amount': self.amount,
             'cost_basis': self.cost_basis,
-            'last_sale_price': self.last_sale_price
+            'last_sale_price': self.last_sale_price,
+            'margin_requirement': self.margin_requirement
         }
 
 
