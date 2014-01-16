@@ -183,6 +183,10 @@ Last successful date: %s" % self.last_trading_day)
 
     def get_open_and_close(self, day):
         todays_minutes = self.open_and_closes.ix[day.date()]
+        if todays_minutes.isnull().any():
+            raise Exception(
+                "No open and close data found for day {0}. \
+Check benchmark data for entries on non trading days".format(day.date()))
 
         return todays_minutes['market_open'], todays_minutes['market_close']
 
