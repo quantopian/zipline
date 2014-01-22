@@ -31,7 +31,8 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
-from zipline.utils.tradingcalendar import trading_days
+
+from zipline.finance import trading
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
@@ -66,6 +67,9 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
         # use midnight
         cur = cur.replace(hour=0, minute=0, second=0,
                           microsecond=0)
+
+    trading_days = \
+        trading.environment.tradingcalendar.trading_days
 
     # yield count trade events, all on trading days, and
     # during trading hours.
