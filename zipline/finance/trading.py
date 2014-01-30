@@ -19,10 +19,10 @@ import datetime
 
 import pandas as pd
 
-from zipline.data.loader import load_market_data
-from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
+import zipline.data.loader
+from zipline.utils.tradingcalendar import NyseTradingCalendar
 
+from functools import partial
 
 log = logbook.Logger('Trading')
 
@@ -74,12 +74,14 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
         max_date=None,
-        extra_dates=None
+        extra_dates=None,
+        tradingcalendar=NyseTradingCalendar()
     ):
         self.prev_environment = self
         self.bm_symbol = bm_symbol
         if not load:
-            load = load_market_data
+            load = partial(zipline.data.loader.load_market_data,
+                           tradingcalendar=tradingcalendar)
 
         self.benchmark_returns, treasury_curves_map = \
             load(self.bm_symbol)
@@ -91,6 +93,7 @@ class TradingEnvironment(object):
         self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
         self.early_close_trading_day = datetime.timedelta(hours=3, minutes=30)
         self.exchange_tz = exchange_tz
+        self.tradingcalendar = tradingcalendar
 
         bi = self.benchmark_returns.index
         if max_date:
@@ -109,11 +112,12 @@ class TradingEnvironment(object):
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
 
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
+        self.early_closes = \
+            self.tradingcalendar.get_early_closes(self.first_trading_day,
+                                                  self.last_trading_day)
 
-        self.open_and_closes = tradingcalendar.open_and_closes.ix[
-            self.trading_days]
+        self.open_and_closes = \
+            tradingcalendar.open_and_closes.ix[self.trading_days]
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -183,6 +187,10 @@ Last successful date: %s" % self.last_trading_day)
 
     def get_open_and_close(self, day):
         todays_minutes = self.open_and_closes.ix[day.date()]
+        if todays_minutes.isnull().any():
+            raise Exception(
+                "No open and close data found for day {0}. \
+Check benchmark data for entries on non trading days".format(day.date()))
 
         return todays_minutes['market_open'], todays_minutes['market_close']
 

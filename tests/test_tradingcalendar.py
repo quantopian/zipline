@@ -14,10 +14,10 @@
 # limitations under the License.
 
 from unittest import TestCase
-from zipline.utils import tradingcalendar
-from zipline.utils import tradingcalendar_lse
-from zipline.utils import tradingcalendar_tse
-from zipline.utils import tradingcalendar_bmf
+from zipline.utils.tradingcalendar import NyseTradingCalendar
+from zipline.utils.tradingcalendar_lse import LseTradingCalendar
+from zipline.utils.tradingcalendar_tse import TseTradingCalendar
+from zipline.utils.tradingcalendar_bmf import BvmfTradingCalendar
 import pytz
 import datetime
 from zipline.finance.trading import TradingEnvironment
@@ -26,11 +26,12 @@ from pandas import DatetimeIndex
 from nose.tools import nottest
 
 
-class TestTradingCalendar(TestCase):
+class NyseTestTradingCalendar(TestCase):
 
     def setUp(self):
         today = pd.Timestamp('today', tz='UTC')
         self.end = DatetimeIndex([today])
+        self.tradingcalendar = NyseTradingCalendar()
 
     @nottest
     def test_calendar_vs_environment(self):
@@ -41,50 +42,12 @@ class TestTradingCalendar(TestCase):
         http://www.chronos-st.org/NYSE_Observed_Holidays-1885-Present.html
         """
 
+        calendar = NyseTradingCalendar()
         env = TradingEnvironment()
         env_start_index = \
-            env.trading_days.searchsorted(tradingcalendar.start)
+            env.trading_days.searchsorted(calendar.start)
         env_days = env.trading_days[env_start_index:]
-        cal_days = tradingcalendar.trading_days
-        self.check_days(env_days, cal_days)
-
-    @nottest
-    def test_lse_calendar_vs_environment(self):
-        env = TradingEnvironment(
-            bm_symbol='^FTSE',
-            exchange_tz='Europe/London'
-        )
-
-        env_start_index = \
-            env.trading_days.searchsorted(tradingcalendar_lse.start)
-        env_days = env.trading_days[env_start_index:]
-        cal_days = tradingcalendar_lse.trading_days
-        self.check_days(env_days, cal_days)
-
-    @nottest
-    def test_tse_calendar_vs_environment(self):
-        env = TradingEnvironment(
-            bm_symbol='^GSPTSE',
-            exchange_tz='US/Eastern'
-        )
-
-        env_start_index = \
-            env.trading_days.searchsorted(tradingcalendar_tse.start)
-        env_days = env.trading_days[env_start_index:]
-        cal_days = tradingcalendar_tse.trading_days
-        self.check_days(env_days, cal_days)
-
-    @nottest
-    def test_bmf_calendar_vs_environment(self):
-        env = TradingEnvironment(
-            bm_symbol='^BVSP',
-            exchange_tz='America/Sao_Paulo'
-        )
-
-        env_start_index = \
-            env.trading_days.searchsorted(tradingcalendar_bmf.start)
-        env_days = env.trading_days[env_start_index:]
-        cal_days = tradingcalendar_bmf.trading_days
+        cal_days = calendar.trading_days
         self.check_days(env_days, cal_days)
 
     def check_days(self, env_days, cal_days):
@@ -118,7 +81,7 @@ class TestTradingCalendar(TestCase):
             2012, 1, 2, tzinfo=pytz.utc)
 
         self.assertNotIn(day_after_new_years_sunday,
-                         tradingcalendar.trading_days,
+                         self.tradingcalendar.trading_days,
                          """
 If NYE falls on a weekend, {0} the Monday after is a holiday.
 """.strip().format(day_after_new_years_sunday)
@@ -128,7 +91,7 @@ If NYE falls on a weekend, {0} the Monday after is a holiday.
             2012, 1, 3, tzinfo=pytz.utc)
 
         self.assertIn(first_trading_day_after_new_years_sunday,
-                      tradingcalendar.trading_days,
+                      self.tradingcalendar.trading_days,
                       """
 If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
 """.strip().format(first_trading_day_after_new_years_sunday)
@@ -146,7 +109,7 @@ If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
             2013, 1, 1, tzinfo=pytz.utc)
 
         self.assertNotIn(new_years_day,
-                         tradingcalendar.trading_days,
+                         self.tradingcalendar.trading_days,
                          """
 If NYE falls during the week, e.g. {0}, it is a holiday.
 """.strip().format(new_years_day)
@@ -156,7 +119,7 @@ If NYE falls during the week, e.g. {0}, it is a holiday.
             2013, 1, 2, tzinfo=pytz.utc)
 
         self.assertIn(first_trading_day_after_new_years,
-                      tradingcalendar.trading_days,
+                      self.tradingcalendar.trading_days,
                       """
 If the day after NYE falls during the week, {0} \
 is the first trading day.
@@ -178,7 +141,7 @@ is the first trading day.
             2005, 11, 24, tzinfo=pytz.utc)
 
         self.assertNotIn(thanksgiving_with_four_weeks,
-                         tradingcalendar.trading_days,
+                         self.tradingcalendar.trading_days,
                          """
 If Nov has 4 Thursdays, {0} Thanksgiving is the last Thursady.
 """.strip().format(thanksgiving_with_four_weeks)
@@ -195,7 +158,7 @@ If Nov has 4 Thursdays, {0} Thanksgiving is the last Thursady.
             2006, 11, 23, tzinfo=pytz.utc)
 
         self.assertNotIn(thanksgiving_with_five_weeks,
-                         tradingcalendar.trading_days,
+                         self.tradingcalendar.trading_days,
                          """
 If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
 """.strip().format(thanksgiving_with_five_weeks)
@@ -205,16 +168,17 @@ If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
             2012, 1, 3, tzinfo=pytz.utc)
 
         self.assertIn(first_trading_day_after_new_years_sunday,
-                      tradingcalendar.trading_days,
+                      self.tradingcalendar.trading_days,
                       """
 If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
 """.strip().format(first_trading_day_after_new_years_sunday)
         )
 
     def test_day_after_thanksgiving(self):
-        early_closes = tradingcalendar.get_early_closes(
-            tradingcalendar.start,
-            tradingcalendar.end.replace(year=tradingcalendar.end.year + 1)
+        early_closes = self.tradingcalendar.get_early_closes(
+            self.tradingcalendar.start,
+            self.tradingcalendar.end.replace(
+                year=self.tradingcalendar.end.year + 1)
         )
 
         #    November 2012
@@ -243,9 +207,10 @@ If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
         Independence Day on Thursday.  Since then, the early close is on
         Wednesday.
         """
-        early_closes = tradingcalendar.get_early_closes(
-            tradingcalendar.start,
-            tradingcalendar.end.replace(year=tradingcalendar.end.year + 1)
+        early_closes = self.tradingcalendar.get_early_closes(
+            self.tradingcalendar.start,
+            self.tradingcalendar.end.replace(
+                year=self.tradingcalendar.end.year + 1)
         )
         #      July 2002
         # Su Mo Tu We Th Fr Sa
@@ -270,3 +235,114 @@ If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
         friday_after = datetime.datetime(2013, 7, 5, tzinfo=pytz.utc)
         self.assertIn(wednesday_before, early_closes)
         self.assertNotIn(friday_after, early_closes)
+
+
+class LseTestTradingCalendar(TestCase):
+
+    def setUp(self):
+        today = pd.Timestamp('today', tz='UTC')
+        self.end = DatetimeIndex([today])
+        self.tradingcalendar = LseTradingCalendar()
+
+    @nottest
+    def test_lse_calendar_vs_environment(self):
+        env = TradingEnvironment(
+            bm_symbol='^FTSE',
+            exchange_tz='Europe/London',
+            calendar=self.tradingcalendar
+        )
+
+        env_start_index = \
+            env.trading_days.searchsorted(self.tradingcalendar.start)
+        env_days = env.trading_days[env_start_index:]
+        cal_days = self.tradingcalendar.trading_days
+        self.check_days(env_days, cal_days)
+
+    def check_days(self, env_days, cal_days):
+        diff = env_days - cal_days
+        self.assertEqual(
+            len(diff),
+            0,
+            "{diff} should be empty".format(diff=diff)
+        )
+
+        diff2 = cal_days - env_days
+        self.assertEqual(
+            len(diff2),
+            0,
+            "{diff} should be empty".format(diff=diff2)
+        )
+
+
+class TseTestTradingCalendar(TestCase):
+
+    def setUp(self):
+        today = pd.Timestamp('today', tz='UTC')
+        self.end = DatetimeIndex([today])
+        self.tradingcalendar = TseTradingCalendar()
+
+    @nottest
+    def test_tse_calendar_vs_environment(self):
+        env = TradingEnvironment(
+            bm_symbol='^GSPTSE',
+            exchange_tz='US/Eastern',
+            calendar=self.tradingcalendar
+        )
+
+        env_start_index = \
+            env.trading_days.searchsorted(self.tradingcalendar.start)
+        env_days = env.trading_days[env_start_index:]
+        cal_days = self.tradingcalendar.trading_days
+        self.check_days(env_days, cal_days)
+
+    def check_days(self, env_days, cal_days):
+        diff = env_days - cal_days
+        self.assertEqual(
+            len(diff),
+            0,
+            "{diff} should be empty".format(diff=diff)
+        )
+
+        diff2 = cal_days - env_days
+        self.assertEqual(
+            len(diff2),
+            0,
+            "{diff} should be empty".format(diff=diff2)
+        )
+
+
+class BvmfTestTradingCalendar(TestCase):
+
+    def setUp(self):
+        today = pd.Timestamp('today', tz='UTC')
+        self.end = DatetimeIndex([today])
+        self.tradingcalendar = BvmfTradingCalendar()
+
+    @nottest
+    def test_bmf_calendar_vs_environment(self):
+        env = TradingEnvironment(
+            bm_symbol='^BVSP',
+            exchange_tz='America/Sao_Paulo',
+            calendar=self.tradingcalendar
+        )
+
+        env_start_index = \
+            env.trading_days.searchsorted(self.tradingcalendar.start)
+        env_days = env.trading_days[env_start_index:]
+        cal_days = self.tradingcalendar.trading_days
+        self.check_days(env_days, cal_days)
+
+    def check_days(self, env_days, cal_days):
+        diff = env_days - cal_days
+        self.assertEqual(
+            len(diff),
+            0,
+            "{diff} should be empty".format(diff=diff)
+        )
+
+        diff2 = cal_days - env_days
+        self.assertEqual(
+            len(diff2),
+            0,
+            "{diff} should be empty".format(diff=diff2)
+        )

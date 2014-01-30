@@ -28,13 +28,10 @@ import pytz
 
 from six import iteritems
 
-from . import benchmarks
+from zipline.data import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.utils.tradingcalendar import (
-    trading_day,
-    trading_days
-)
+from zipline.finance import trading
 
 logger = logbook.Logger('Loader')
 
@@ -154,7 +151,10 @@ def get_benchmark_filename(symbol):
     return "%s_benchmark.csv" % symbol
 
 
-def load_market_data(bm_symbol='^GSPC'):
+def load_market_data(bm_symbol='^GSPC', tradingcalendar=None):
+    if not tradingcalendar:
+        tradingcalendar = trading.environment.calendar
+
     bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
@@ -167,6 +167,10 @@ Fetching data from Yahoo Finance.
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
 
     saved_benchmarks = saved_benchmarks.tz_localize('UTC')
+
+    # get series from current trading calendar
+    trading_day = tradingcalendar.non_trading_days_offset
+    trading_days = tradingcalendar.trading_days
 
     most_recent = pd.Timestamp('today', tz='UTC') - trading_day
     most_recent_index = trading_days.searchsorted(most_recent)

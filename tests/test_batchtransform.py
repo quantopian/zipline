@@ -34,7 +34,7 @@ from zipline.test_algorithms import (BatchTransformAlgorithm,
                                      ReturnPriceBatchTransform)
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.tradingcalendar import NyseTradingCalendar
 from copy import deepcopy
 
 
@@ -90,9 +90,10 @@ class DifferentSidSource(DataSource):
         }
 
     def raw_data_gen(self):
+        calendar = NyseTradingCalendar()
         # Create differente sid for each event
         for date in self.dates:
-            if date not in trading_days:
+            if date not in calendar.trading_days:
                 continue
             event = {'dt': date,
                      'sid': self.sid,
