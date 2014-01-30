@@ -59,6 +59,7 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
 class TradingAlgorithm(object):
+
     """
     Base class for trading algorithms. Inherit and overload
     initialize() and handle_data(data).
@@ -83,6 +84,7 @@ class TradingAlgorithm(object):
     stats = my_algo.run(data)
 
     """
+
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
 
@@ -227,8 +229,14 @@ class TradingAlgorithm(object):
         skipped.
         """
         if self.benchmark_return_source is None:
+            env = trading.environment
+            if (self.data_frequency == 'minute'
+                    or sim_params.emission_rate == 'minute'):
+                update_time = lambda date: env.get_open_and_close(date)[1]
+            else:
+                update_time = lambda date: date
             benchmark_return_source = [
-                Event({'dt': dt,
+                Event({'dt': update_time(dt),
                        'returns': ret,
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
