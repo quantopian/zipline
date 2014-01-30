@@ -159,3 +159,17 @@ class AlgorithmGeneratorTestCase(TestCase):
         gen = algo.get_generator()
         results = list(gen)
         self.assertEqual(results[-2]['progress'], 1.0)
+
+    def test_benchmark_times_match_market_close_for_minutely_data(self):
+        """
+        Benchmark dates should be adjusted so that benchmark events are
+        emitted at the end of each trading day when working with minutely
+        data.
+        Verification relies on the fact that there are no trades so
+        algo.datetime should be equal to the last benchmark time.
+        See https://github.com/quantopian/zipline/issues/241
+        """
+        sim_params = factory.create_simulation_parameters(num_days=1)
+        algo = TestAlgo(self, sim_params=sim_params, data_frequency='minute')
+        algo.run(source=[])
+        self.assertEqual(algo.datetime, sim_params.last_close)
