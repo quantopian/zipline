@@ -13,30 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Zipline
-"""
+# Note that part of the API is implemented in TradingAlgorithm as
+# methods (e.g. order). These are added to this namespace via the
+# decorator `api_methods` inside of algorithm.py.
 
-# This is *not* a place to dump arbitrary classes/modules for convenience,
-# it is a place to expose the public interfaces.
+import zipline
+from .finance import (commission, slippage)
+from .utils import math_utils
 
-__version__ = "0.5.11.dev"
+from zipline.finance.slippage import (
+    FixedSlippage,
+    VolumeShareSlippage,
+)
 
-from . import data
-from . import finance
-from . import gens
-from . import utils
-from . import transforms
 
-from . algorithm import TradingAlgorithm
-from . import api
+batch_transform = zipline.transforms.BatchTransform
 
 __all__ = [
-    'data',
-    'finance',
-    'gens',
-    'utils',
-    'transforms',
-    'api',
-    'TradingAlgorithm'
+    'slippage',
+    'commission',
+    'math_utils',
+    'batch_transform',
+    'FixedSlippage',
+    'VolumeShareSlippage'
 ]

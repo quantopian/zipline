@@ -381,7 +381,7 @@ class BatchTransform(object):
         else:
             data = self.rolling_panel.get_current()
 
-        if self.supplemental_data:
+        if self.supplemental_data is not None:
             for item in data.items:
                 if item not in self.supplemental_data.items:
                     continue

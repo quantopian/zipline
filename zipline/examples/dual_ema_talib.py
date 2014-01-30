@@ -53,11 +53,11 @@ class DualEMATaLib(TradingAlgorithm):
         self.buy = False
         self.sell = False
 
-        if self.short_ema > self.long_ema and not self.invested:
+        if (self.short_ema > self.long_ema).all() and not self.invested:
             self.order('AAPL', 100)
             self.invested = True
             self.buy = True
-        elif self.short_ema < self.long_ema and self.invested:
+        elif (self.short_ema < self.long_ema).all() and self.invested:
             self.order('AAPL', -100)
             self.invested = False
             self.sell = True
