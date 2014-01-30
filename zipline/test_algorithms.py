@@ -131,6 +131,9 @@ class NoopAlgorithm(TradingAlgorithm):
     def get_sid_filter(self):
         return []
 
+    def initialize(self):
+        pass
+
     def set_transact_setter(self, txn_sim_callable):
         pass
 
