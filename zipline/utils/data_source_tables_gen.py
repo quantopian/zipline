@@ -153,7 +153,7 @@ def main(argv=None):
                                         "tz_in=",
                                         "fake_csv=",
                                         "file_out="])
-        except getopt.error, msg:
+        except getopt.error as msg:
             raise Usage(msg)
         for opt, value in opts:
             if opt in ("--help", "-h"):
