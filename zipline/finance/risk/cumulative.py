@@ -365,25 +365,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
     def __repr__(self):
         statements = []
-        metrics = [
-            "algorithm_period_returns",
-            "benchmark_period_returns",
-            "excess_returns",
-            "trading_days",
-            "benchmark_volatility",
-            "algorithm_volatility",
-            "sharpe",
-            "sortino",
-            "information",
-            "beta",
-            "alpha",
-            "max_drawdown",
-            "algorithm_returns",
-            "benchmark_returns",
-        ]
-
-        for metric in metrics:
-            value = getattr(self, metric)
+        for metric in self.METRIC_NAMES:
+            value = getattr(self.metrics, metric)[-1]
             if isinstance(value, list):
                 if len(value) == 0:
                     value = np.nan
