@@ -142,7 +142,11 @@ class TradingAlgorithm(object):
 
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params:
-            self.sim_params.data_frequency = self.data_frequency
+            if self.data_frequency is None:
+                self.data_frequency = self.sim_params.data_frequency
+            elif self.sim_params.data_frequency is None:
+                self.sim_params.data_frequency = self.data_frequency
+
             self.perf_tracker = PerformanceTracker(self.sim_params)
 
         self.blotter = kwargs.pop('blotter', None)
