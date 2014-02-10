@@ -144,7 +144,7 @@ class TradingAlgorithm(object):
         if self.sim_params:
             if self.data_frequency is None:
                 self.data_frequency = self.sim_params.data_frequency
-            elif self.sim_params.data_frequency is None:
+            else:
                 self.sim_params.data_frequency = self.data_frequency
 
             self.perf_tracker = PerformanceTracker(self.sim_params)
