@@ -137,7 +137,6 @@ class AlgorithmSimulator(object):
 
                         elif event.type == DATASOURCE_TYPE.CUSTOM:
                             self.update_universe(event)
-                            updated = True
 
                         elif event.type == DATASOURCE_TYPE.SPLIT:
                             self.algo.blotter.process_split(event)

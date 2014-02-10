@@ -21,6 +21,7 @@ from nose.tools import (
 )
 
 from datetime import datetime
+import pandas as pd
 
 import pytz
 from zipline.finance import trading
@@ -30,6 +31,10 @@ from zipline.utils import factory
 from zipline.utils.test_utils import (
     setup_logger,
     teardown_logger
+)
+from zipline.protocol import (
+    Event,
+    DATASOURCE_TYPE
 )
 
 DEFAULT_TIMEOUT = 15  # seconds
@@ -59,8 +64,10 @@ class TestAlgo(TradingAlgorithm):
         self.set_slippage(RecordDateSlippage(spread=0.05))
         self.stocks = [8229]
         self.ordered = False
+        self.num_bars = 0
 
     def handle_data(self, data):
+        self.num_bars += 1
         self.latest_date = self.get_datetime()
 
         if not self.ordered:
@@ -137,6 +144,53 @@ class AlgorithmGeneratorTestCase(TestCase):
 
         self.assertTrue(algo.slippage.latest_date)
         self.assertTrue(algo.latest_date)
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_handle_data_on_market(self):
+        """
+        Ensure that handle_data is only called on market minutes.
+
+        i.e. events that come in at midnight should be processed at market
+        open.
+        """
+        from zipline.finance.trading import SimulationParameters
+        sim_params = SimulationParameters(
+            period_start=datetime(2012, 7, 30, tzinfo=pytz.utc),
+            period_end=datetime(2012, 7, 30, tzinfo=pytz.utc),
+            data_frequency='minute'
+        )
+        algo = TestAlgo(self,
+                        sim_params=sim_params)
+
+        midnight_custom_source = [Event({
+            'custom_field': 42.0,
+            'sid': 'custom_data',
+            'source_id': 'TestMidnightSource',
+            'dt': pd.Timestamp('2012-07-30', tz='UTC'),
+            'type': DATASOURCE_TYPE.CUSTOM
+        })]
+        minute_event_source = [Event({
+            'volume': 100,
+            'price': 200.0,
+            'high': 210.0,
+            'open_price': 190.0,
+            'low': 180.0,
+            'sid': 8229,
+            'source_id': 'TestMinuteEventSource',
+            'dt': pd.Timestamp('2012-07-30 9:31 AM', tz='US/Eastern').
+            tz_convert('UTC'),
+            'type': DATASOURCE_TYPE.TRADE
+        })]
+
+        algo.set_sources([midnight_custom_source, minute_event_source])
+
+        gen = algo.get_generator()
+        # Consume the generator
+        list(gen)
+
+        # Though the events had different time stamps, handle data should
+        # have only been called once, at the market open.
+        self.assertEqual(algo.num_bars, 1)
 
     @timed(DEFAULT_TIMEOUT)
     def test_progress(self):
