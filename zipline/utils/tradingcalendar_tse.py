@@ -360,8 +360,8 @@ def get_open_and_closes(trading_days, early_closes, tz='US/Eastern'):
                 hour=close_hour),
             tz='US/Eastern').tz_convert('UTC')
 
-        open_and_closes.ix[day]['market_open'] = market_open
-        open_and_closes.ix[day]['market_close'] = market_close
+        open_and_closes.loc[day, 'market_open'] = market_open
+        open_and_closes.loc[day, 'market_close'] = market_close
 
     return open_and_closes
 
