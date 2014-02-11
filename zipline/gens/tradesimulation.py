@@ -189,10 +189,16 @@ class AlgorithmSimulator(object):
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
                             if mkt_close <= self.algo.perf_tracker.last_close:
-                                _, mkt_close = \
-                                    trading.environment.next_open_and_close(
-                                        mkt_close
-                                    )
+                                try:
+                                    _, mkt_close = \
+                                        trading.environment.\
+                                        next_open_and_close(
+                                            mkt_close
+                                        )
+                                except trading.NoFurtherDataError:
+                                    # If at the end of backtest history,
+                                    # skip advancing market close.
+                                    pass
                                 self.algo.perf_tracker.handle_intraday_close()
 
                     self.algo.portfolio_needs_update = True

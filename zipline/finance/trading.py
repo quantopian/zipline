@@ -66,6 +66,13 @@ log = logbook.Logger('Trading')
 environment = None
 
 
+class NoFurtherDataError(Exception):
+    """
+    Thrown when next trading is attempted at the end of available data.
+    """
+    pass
+
+
 class TradingEnvironment(object):
 
     def __init__(
@@ -175,7 +182,7 @@ class TradingEnvironment(object):
         next_open = self.next_trading_day(start_date)
 
         if next_open is None:
-            raise Exception(
+            raise NoFurtherDataError(
                 "Attempt to backtest beyond available history. \
 Last successful date: %s" % self.last_trading_day)
 
