@@ -1,0 +1,43 @@
+package:
+  name: zipline
+  version: 0.6.0
+
+source:
+  fn: zipline-0.6.0.tar.gz
+  url: https://pypi.python.org/packages/source/z/zipline/zipline-0.6.0.tar.gz
+  md5: 75d818c291df133946bb15a1b08ae0d8
+
+# build:
+  #preserve_egg_dir: True
+  #entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - zipline = zipline:main
+    #
+    # Would create an entry point called zipline that calls zipline.main()
+
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
+requirements:
+  build:
+    - python
+    - pytz
+    - requests
+    - numpy
+    - pandas
+    - scipy
+    - matplotlib
+    - ta-lib
+    - logbook
+
+about:
+  home: https://github.com/quantopian/zipline
+  license: Apache Software License
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
