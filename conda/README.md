@@ -5,9 +5,9 @@ conda build files
 Python package management system by Continuum that provides
 easy installation of binary packages.
 
-These files provide instructions for how to create these
-binary packages. After install conda and conda-build you
-should be able to:
+The files in this directory provide instructions for how 
+to create these binary packages. After installing conda and 
+conda-build you should be able to:
 
 ```
 conda build ta-lib
@@ -15,7 +15,7 @@ conda build logbook
 conda build zipline
 ```
 
-You can the update these binary packages to your own
+You can then upload these binary packages to your own
 channel at [binstar](https://binstar.org).
 
 Note that we currently don't have binary packages for
