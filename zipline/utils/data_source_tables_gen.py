@@ -13,6 +13,8 @@ import os
 import random
 import csv
 import time
+from six import print_
+
 FORMAT = "%(asctime)-15s -8s %(message)s"
 
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -157,7 +159,7 @@ def main(argv=None):
             raise Usage(msg)
         for opt, value in opts:
             if opt in ("--help", "-h"):
-                print main.__doc__
+                print_(main.__doc__)
             if opt in ("-d", "--debug"):
                 logging.basicConfig(format=FORMAT,
                                     level=logging.DEBUG)
@@ -184,10 +186,10 @@ def main(argv=None):
             error += repr(sys.exc_info()[1]) + "\n"
             error += str(sys.exc_info()[1]) + "\n"
             error += '-' * 70 + "\n"
-            print error
-    except Usage, err:
-        print >>sys.stderr, err.msg
-        print >>sys.stderr, "for help use --help"
+            print_(error)
+    except Usage as err:
+        print_(err.msg)
+        print_("for help use --help")
         return 2
 
 if __name__ == "__main__":
