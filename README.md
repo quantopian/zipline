@@ -71,6 +71,19 @@ Dependencies
 * requests
 * [python-dateutil](https://pypi.python.org/pypi/python-dateutil) (>= 2.1)
 
+
+Conda
+-----
+
+We provide experimental support for conda packages. Thus if you installed [Anaconda](http://continuum.io/downloads)
+you can try:
+```
+conda install -c https://binstar.org/twiecki zipline
+```
+
+Currently this only works for linux 64 bit. If you want to help extend this,
+have a look at the `conda` subdirectory.
+
 Quickstart
 ==========
 
