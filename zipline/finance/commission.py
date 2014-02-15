@@ -25,7 +25,7 @@ class PerShare(object):
         Cost parameter is the cost of a trade per-share. $0.03
         means three cents per share, which is a very conservative
         (quite high) for per share costs.
-        Min_cost parameter is the minimum transaction cost
+        min_trade_cost parameter is the minimum trade cost
         regardless of the number of shares traded (e.g. $1.00).
         """
         self.cost = float(cost)
