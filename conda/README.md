@@ -18,7 +18,9 @@ conda build zipline
 You can then upload these binary packages to your own
 channel at [binstar](https://binstar.org).
 
-Note that we currently don't have binary packages for
-some platforms so if you successfully build them on anything
-we don't provide at [https://binstar.org/twiecki](https://binstar.org/twiecki)
-please let us know (especially windows).
+Windows
+-------
+
+Building ta-lib on Windows requires Visual Studio (Express) and
+the [compiled ta-lib](ta-lib-0.4.0-msvc.zip) which you have to
+unzip to C:\ta-lib.

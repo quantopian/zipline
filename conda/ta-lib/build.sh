@@ -8,6 +8,5 @@ make install
 popd
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PREFIX/lib
-python setup.py build_ext
-
-python setup.py install
+python setup.py build
+python setup.py install --prefix=$PREFIX
