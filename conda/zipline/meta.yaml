@@ -10,6 +10,7 @@ source:
 requirements:
   build:
     - python
+  run:
     - pytz
     - requests
     - numpy
@@ -28,6 +29,11 @@ requirements:
     - matplotlib
     - ta-lib
     - logbook
+
+test:
+  # Python imports
+  imports:
+    - zipline
 
 test:
   # Python imports
