@@ -160,6 +160,8 @@ class TradingAlgorithm(object):
         # functions.
         self.algoscript = kwargs.pop('script', None)
 
+        self._initialize = None
+
         if self.algoscript is not None:
             self.ns = {}
             exec_(self.algoscript, self.ns)
@@ -178,6 +180,9 @@ class TradingAlgorithm(object):
                 initialize/handle_data.')
             self._initialize = kwargs.pop('initialize')
             self._handle_data = kwargs.pop('handle_data')
+
+        if self._initialize is None:
+            self._initialize = lambda x: None
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
