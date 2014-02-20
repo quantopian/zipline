@@ -73,16 +73,6 @@ class MovingStandardDev(with_metaclass(TransformMeta)):
         window.update(event)
         return window.get_stddev()
 
-    def assert_required_fields(self, event):
-        """
-        We only allow events with a price field to be run through
-        the returns transform.
-        """
-        if 'price' not in event:
-            raise WrongDataForTransform(
-                transform="StdDevEventWindow",
-                fields='price')
-
 
 class MovingStandardDevWindow(EventWindow):
     """
@@ -100,6 +90,7 @@ class MovingStandardDevWindow(EventWindow):
         self.sum_sqr = 0.0
 
     def handle_add(self, event):
+        self.assert_required_fields(event)
         self.sum += event.price
         self.sum_sqr += event.price ** 2
 
@@ -122,3 +113,13 @@ class MovingStandardDevWindow(EventWindow):
                 return 0.0
             stddev = sqrt(s_squared)
         return stddev
+
+    def assert_required_fields(self, event):
+        """
+        We only allow events with a price field to be run through
+        the returns transform.
+        """
+        if 'price' not in event:
+            raise WrongDataForTransform(
+                transform="StdDevEventWindow",
+                fields='price')
