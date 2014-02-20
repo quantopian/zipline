@@ -180,9 +180,9 @@ class Blotter(object):
             lambda o: o.dt <= trade_event.dt,
             orders)
 
-        for order, txn in self.process_transactions(trade_event,
+        for txn, order in self.process_transactions(trade_event,
                                                     current_orders):
-            yield order, txn
+            yield txn, order
 
         # update the open orders for the trade_event's sid
         self.open_orders[trade_event.sid] = \
