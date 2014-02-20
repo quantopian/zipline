@@ -79,9 +79,9 @@ class MovingStandardDev(with_metaclass(TransformMeta)):
         the returns transform.
         """
         if 'price' not in event:
-                raise WrongDataForTransform(
-                    transform="StdDevEventWindow",
-                    fields='price')
+            raise WrongDataForTransform(
+                transform="StdDevEventWindow",
+                fields='price')
 
 
 class MovingStandardDevWindow(EventWindow):
