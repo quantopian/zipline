@@ -29,7 +29,8 @@ class PerShare(object):
         regardless of the number of shares traded (e.g. $1.00).
         """
         self.cost = float(cost)
-        self.min_trade_cost = float(min_trade_cost)
+        self.min_trade_cost = None if min_trade_cost is None\
+            else float(min_trade_cost)
 
     def __repr__(self):
         return "{class_name}(cost={cost}, min trade cost={min_trade_cost})"\
