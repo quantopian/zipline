@@ -172,7 +172,7 @@ class TestCommissionEvents(unittest.TestCase):
                 oneday,
                 self.sim_params
             )
-            
+
             # Test commission models and validate result
             # Expected commission amounts:
             # PerShare commission:  1.00, 1.00, 1.50 = $3.50
@@ -181,7 +181,8 @@ class TestCommissionEvents(unittest.TestCase):
             # Total commission = $3.50 + $15.00 + $9.00 = $27.50
 
             # Create 3 transactions:  50, 100, 150 shares traded @ $20
-            transactions = [create_txn(events[0], 20, i) for i in arange(50, 200, 50)]
+            transactions = [create_txn(events[0], 20, i)
+                                for i in [50, 100, 150]]
 
             # Create commission models
             models = [PerShare(cost=0.01, min_trade_cost=1.00),
