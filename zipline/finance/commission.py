@@ -17,28 +17,32 @@
 class PerShare(object):
     """
     Calculates a commission for a transaction based on a per
-    share cost.
+    share cost with an optional minimum cost per trade.
     """
 
-    def __init__(self, cost=0.03):
+    def __init__(self, cost=0.03, min_cost=0.0, min_trade_cost=0.0):
         """
         Cost parameter is the cost of a trade per-share. $0.03
         means three cents per share, which is a very conservative
         (quite high) for per share costs.
+        min_trade_cost parameter is the minimum trade cost
+        regardless of the number of shares traded (e.g. $1.00).
         """
         self.cost = float(cost)
+        self.min_trade_cost = float(min_trade_cost)
 
     def __repr__(self):
         return "{class_name}(cost={cost})".format(
             class_name=self.__class__.__name__,
-            cost=self.cost)
+            cost=self.cost,
+            min_trade_cost=self.min_trade_cost)
 
     def calculate(self, transaction):
         """
         returns a tuple of:
         (per share commission, total transaction commission)
         """
-        return self.cost, abs(transaction.amount * self.cost)
+        return self.cost, max(self.min_trade_cost, abs(transaction.amount * self.cost))
 
 
 class PerTrade(object):
