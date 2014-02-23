@@ -33,10 +33,9 @@ class PerShare(object):
 
     def __repr__(self):
         return "{class_name}(cost={cost}, min trade cost={min_trade_cost})"\
-            .format(
-            class_name=self.__class__.__name__,
-            cost=self.cost,
-            min_trade_cost=self.min_trade_cost)
+            .format(class_name=self.__class__.__name__,
+                    cost=self.cost,
+                    min_trade_cost=self.min_trade_cost)
 
     def calculate(self, transaction):
         """
