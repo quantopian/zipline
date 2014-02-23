@@ -193,7 +193,7 @@ class TestCommissionEvents(unittest.TestCase):
             total_commission = 0
             for model in models:
                 for trade in transactions:
-                    total_commission += model.calculate(trade)
+                    total_commission += model.calculate(trade)[1]
             self.assertEqual(total_commission, 27.5)
 
             cash_adj_dt = self.sim_params.first_open \
