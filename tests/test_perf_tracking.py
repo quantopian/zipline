@@ -33,6 +33,7 @@ import zipline.utils.math_utils as zp_math
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
+from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance import trading
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.factory import create_random_simulation_parameters
@@ -171,6 +172,29 @@ class TestCommissionEvents(unittest.TestCase):
                 oneday,
                 self.sim_params
             )
+
+            # Test commission models and validate result
+            # Expected commission amounts:
+            # PerShare commission:  1.00, 1.00, 1.50 = $3.50
+            # PerTrade commission:  5.00, 5.00, 5.00 = $15.00
+            # PerDollar commission: 1.50, 3.00, 4.50 = $9.00
+            # Total commission = $3.50 + $15.00 + $9.00 = $27.50
+
+            # Create 3 transactions:  50, 100, 150 shares traded @ $20
+            transactions = [create_txn(events[0], 20, i)
+                            for i in [50, 100, 150]]
+
+            # Create commission models
+            models = [PerShare(cost=0.01, min_trade_cost=1.00),
+                      PerTrade(cost=5.00),
+                      PerDollar(cost=0.0015)]
+
+            # Aggregate commission amounts
+            total_commission = 0
+            for model in models:
+                for trade in transactions:
+                    total_commission += model.calculate(trade)[1]
+            self.assertEqual(total_commission, 27.5)
 
             cash_adj_dt = self.sim_params.first_open \
                 + datetime.timedelta(hours=3)
