@@ -249,6 +249,9 @@ class AnswerKey(object):
         'CUMULATIVE_ALPHA': DataIndex(
             'Sim Cumulative', 'AC', 4, 254),
 
+        'CUMULATIVE_MAX_DRAWDOWN': DataIndex(
+            'Sim Cumulative', 'AF', 4, 254),
+
     }
 
     def __init__(self):
@@ -319,4 +322,6 @@ RISK_CUMULATIVE = pd.DataFrame({
         DATES, ANSWER_KEY.CUMULATIVE_ALPHA))),
     'beta': pd.Series(dict(zip(
         DATES, ANSWER_KEY.CUMULATIVE_BETA))),
+    'max_drawdown': pd.Series(dict(zip(
+        DATES, ANSWER_KEY.CUMULATIVE_MAX_DRAWDOWN))),
 })

@@ -190,7 +190,6 @@ class RiskMetricsCumulative(object):
         self.mean_benchmark_returns = None
         self.annualized_benchmark_returns = None
 
-        self.compounded_log_returns = pd.Series(index=cont_index)
         self.algorithm_period_returns = pd.Series(index=cont_index)
         self.benchmark_period_returns = pd.Series(index=cont_index)
         self.excess_returns = pd.Series(index=cont_index)
@@ -266,8 +265,6 @@ class RiskMetricsCumulative(object):
         self.annualized_benchmark_returns = self.mean_benchmark_returns * 252
 
         self.num_trading_days = len(self.algorithm_returns)
-
-        self.update_compounded_log_returns()
 
         self.algorithm_period_returns[dt] = \
             self.calculate_period_returns(self.algorithm_returns)
@@ -379,39 +376,30 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         return '\n'.join(statements)
 
-    def update_compounded_log_returns(self):
-        if len(self.algorithm_returns) == 0:
-            return
-
-        try:
-            compound = math.log(1 + self.algorithm_returns[
-                self.algorithm_returns.last_valid_index()])
-        except ValueError:
-            compound = 0.0
-            # BUG? Shouldn't this be set to log(1.0 + 0) ?
-
-        if np.isnan(self.compounded_log_returns[self.latest_dt]):
-            self.compounded_log_returns[self.latest_dt] = compound
-        else:
-            self.compounded_log_returns[self.latest_dt] = \
-                self.compounded_log_returns[self.latest_dt] + compound
-
     def calculate_period_returns(self, returns):
         return (1. + returns).prod() - 1
 
     def update_current_max(self):
-        if len(self.compounded_log_returns) == 0:
+        if len(self.algorithm_period_returns) == 0:
             return
-        if self.current_max < self.compounded_log_returns[self.latest_dt]:
-            self.current_max = self.compounded_log_returns[self.latest_dt]
+        if self.current_max < self.algorithm_period_returns[self.latest_dt]:
+            self.current_max = self.algorithm_period_returns[self.latest_dt]
 
     def calculate_max_drawdown(self):
-        if len(self.compounded_log_returns) == 0:
+        if len(self.algorithm_period_returns) == 0:
             return self.max_drawdown
 
-        cur_drawdown = 1.0 - math.exp(
-            self.compounded_log_returns[self.latest_dt] -
-            self.current_max)
+        # The drawdown is defined as: (high - low) / high
+        # The above factors out to: 1.0 - (low / high)
+        #
+        # Instead of explicitly always using the low, use the current total
+        # return value, and test that against the max drawdown, which will
+        # exceed the previous max_drawdown iff the current return is lower than
+        # the previous low in the current drawdown window.
+        cur_drawdown = 1.0 - (
+            (1.0 + self.algorithm_period_returns[self.latest_dt])
+            /
+            (1.0 + self.current_max))
 
         self.drawdowns[self.latest_dt] = cur_drawdown
 
