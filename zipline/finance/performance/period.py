@@ -250,9 +250,6 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
-    def round_to_nearest(self, x, base=5):
-        return int(base * round(float(x) / base))
-
     def calculate_positions_value(self):
         return np.dot(self._position_amounts, self._position_last_sale_prices)
 
