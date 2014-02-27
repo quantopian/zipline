@@ -200,6 +200,8 @@ class RiskMetricsCumulative(object):
         self.metrics = pd.DataFrame(index=cont_index,
                                     columns=self.METRIC_NAMES)
 
+        self.drawdowns = pd.Series(index=cont_index)
+        self.max_drawdowns = pd.Series(index=cont_index)
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.trading_days)
@@ -318,6 +320,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.sortino[dt] = self.calculate_sortino()
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
+        self.max_drawdowns[dt] = self.max_drawdown
 
         if self.create_first_day_stats:
             # Remove placeholder 0 return
@@ -409,6 +412,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         cur_drawdown = 1.0 - math.exp(
             self.compounded_log_returns[self.latest_dt] -
             self.current_max)
+
+        self.drawdowns[self.latest_dt] = cur_drawdown
 
         if self.max_drawdown < cur_drawdown:
             return cur_drawdown
