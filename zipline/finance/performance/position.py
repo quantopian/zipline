@@ -88,8 +88,8 @@ class Position(object):
 
     # Returns the unused cash.
     def handle_split(self, split):
-        if (self.sid != split.sid):
-            raise NameError("updating split with the wrong sid!")
+        if self.sid != split.sid:
+            raise Exception("updating split with the wrong sid!")
 
         ratio = split.ratio
 
@@ -132,21 +132,31 @@ class Position(object):
         return return_cash
 
     def update(self, txn):
-        if(self.sid != txn.sid):
+        if self.sid != txn.sid:
             raise Exception('updating position with txn for a '
                             'different sid')
 
-         # we're covering a short or closing a position
-        if(self.amount + txn.amount == 0):
+        total_shares = self.amount + txn.amount
+
+        if total_shares == 0:
             self.cost_basis = 0.0
-            self.amount = 0
         else:
-            prev_cost = self.cost_basis * self.amount
-            txn_cost = txn.amount * txn.price
-            total_cost = prev_cost + txn_cost
-            total_shares = self.amount + txn.amount
-            self.cost_basis = total_cost / total_shares
-            self.amount = total_shares
+            prev_direction = math.copysign(1, self.amount)
+            txn_direction = math.copysign(1, txn.amount)
+
+            if prev_direction != txn_direction:
+                # we're covering a short or closing a position
+                if abs(txn.amount) > abs(self.amount):
+                    # we've closed the position and gone short
+                    # or covered the short position and gone long
+                    self.cost_basis = txn.price
+            else:
+                prev_cost = self.cost_basis * self.amount
+                txn_cost = txn.amount * txn.price
+                total_cost = prev_cost + txn_cost
+                self.cost_basis = total_cost / total_shares
+
+        self.amount = total_shares
 
     def adjust_commission_cost_basis(self, commission):
         """
