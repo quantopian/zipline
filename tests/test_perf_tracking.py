@@ -993,9 +993,9 @@ shares in position"
         )
 
         self.assertEqual(
-            round(pp.positions[1].cost_basis, 2),
-            11.33,
-            "should have a cost basis of 11.33"
+            pp.positions[1].cost_basis,
+            11,
+            "should have a cost basis of 11"
         )
 
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
@@ -1022,9 +1022,9 @@ shares in position"
         )
 
         self.assertEqual(
-            round(pp3.positions[1].cost_basis, 2),
-            11.33,
-            "should have a cost basis of 11.33"
+            pp3.positions[1].cost_basis,
+            11,
+            "should have a cost basis of 11"
         )
 
         self.assertEqual(
@@ -1032,6 +1032,32 @@ shares in position"
             -400,
             "should be -400 for all trades and transactions in period"
         )
+
+    def test_cost_basis_calc_close_pos(self):
+        history_args = (
+            1,
+            [10, 9, 11, 8, 9, 12, 13, 14],
+            [200, -100, -100, 100, -300, 100, 500, 400],
+            onesec,
+            self.sim_params
+        )
+        cost_bases = [10, 10, 0, 8, 9, 9, 13, 13.5]
+
+        trades = factory.create_trade_history(*history_args)
+        transactions = factory.create_txn_history(*history_args)
+
+        pp = perf.PerformancePeriod(1000.0)
+
+        for txn, cb in zip(transactions, cost_bases):
+            pp.execute_transaction(txn)
+            self.assertEqual(pp.positions[1].cost_basis, cb)
+
+        for trade in trades:
+            pp.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
 
 
 class TestPerformanceTracker(unittest.TestCase):
