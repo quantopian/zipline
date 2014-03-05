@@ -38,6 +38,7 @@ from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      handle_data_api,
                                      noop_algo,
                                      api_algo,
+                                     api_symbol_algo,
                                      call_all_order_methods,
                                      record_variables,
                                      record_float_magic
@@ -292,6 +293,10 @@ class TestAlgoScript(TestCase):
 
     def test_api_calls_string(self):
         algo = TradingAlgorithm(script=api_algo)
+        algo.run(self.df)
+
+    def test_api_symbol(self):
+        algo = TradingAlgorithm(script=api_symbol_algo)
         algo.run(self.df)
 
     def test_fixed_slippage(self):
