@@ -78,7 +78,7 @@ Conda
 We provide experimental support for conda packages. Thus if you installed [Anaconda](http://continuum.io/downloads)
 you can try:
 ```
-conda install -c https://binstar.org/twiecki zipline
+conda install -c Quantopian zipline
 ```
 
 Currently this only works for linux 64 bit. If you want to help extend this,
