@@ -745,6 +745,17 @@ def handle_data(context, data):
     record(incr=context.incr)
 """
 
+api_symbol_algo = """
+from zipline.api import (order,
+                         symbol)
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(symbol(0), 1)
+"""
+
 call_all_order_methods = """
 from zipline.api import (order,
                          order_value,
