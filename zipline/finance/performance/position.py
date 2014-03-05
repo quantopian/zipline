@@ -88,8 +88,8 @@ class Position(object):
 
     # Returns the unused cash.
     def handle_split(self, split):
-        if (self.sid != split.sid):
-            raise NameError("updating split with the wrong sid!")
+        if self.sid != split.sid:
+            raise Exception("updating split with the wrong sid!")
 
         ratio = split.ratio
 
@@ -132,7 +132,7 @@ class Position(object):
         return return_cash
 
     def update(self, txn):
-        if(self.sid != txn.sid):
+        if self.sid != txn.sid:
             raise Exception('updating position with txn for a '
                             'different sid')
 
