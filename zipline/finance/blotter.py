@@ -99,8 +99,16 @@ class Blotter(object):
         StopLimit order: order(sid, amount, limit_price, stop_price)
         """
 
+        # This fixes a bug that if amount is e.g. -27.99999 due to
+        # floating point madness we actually want to treat it as -28.
+        def almost_equal_to(a, eps=1e-4):
+            if abs(a - round(a)) <= eps:
+                return round(a)
+            else:
+                return a
+
         # Fractional shares are not supported.
-        amount = int(amount)
+        amount = int(almost_equal_to(amount))
 
         # just validates amount and passes rest on to TransactionSimulator
         # Tell the user if they try to buy 0 shares of something.
