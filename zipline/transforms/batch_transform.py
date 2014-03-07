@@ -236,7 +236,7 @@ class BatchTransform(object):
         Point of entry. Process an event frame.
         """
         # extract dates
-        dts = [event.datetime for event in itervalues(data._data)]
+        dts = [event.dt for event in itervalues(data._data)]
         # we have to provide the event with a dt. This is only for
         # checking if the event is outside the window or not so a
         # couple of seconds shouldn't matter. We don't add it to
@@ -439,8 +439,7 @@ class BatchTransform(object):
         # with CUSTOM data events, there may be different fields
         # per sid. So the allowable keys are the union of all events.
         union = set.union(*sid_keys)
-        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type',
-                               'datetime', 'source_id'])
+        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type', 'source_id'])
         return union - unwanted_fields
 
     def _get_field_names(self, event):

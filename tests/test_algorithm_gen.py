@@ -47,7 +47,7 @@ class RecordDateSlippage(slippage.FixedSlippage):
         self.latest_date = None
 
     def simulate(self, event, open_orders):
-        self.latest_date = event['datetime']
+        self.latest_date = event.dt
         result = super(RecordDateSlippage, self).simulate(event, open_orders)
         return result
 

@@ -117,6 +117,21 @@ class SIDData(object):
         if initial_values:
             self.__dict__ = initial_values
 
+    @property
+    def datetime(self):
+        """
+        Provides an alias from data['foo'].datetime -> data['foo'].dt
+
+        `datetime` was previously provided by adding a seperate `datetime`
+        member of the SIDData object via a generator that wrapped the incoming
+        data feed and added the field to each equity event.
+
+        This alias is intended to be temporary, to provide backwards
+        compatibility with existing algorithms, but should be considered
+        deprecated, and may be removed in the future.
+        """
+        return self.dt
+
     def __getitem__(self, name):
         return self.__dict__[name]
 

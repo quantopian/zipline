@@ -51,7 +51,6 @@ from zipline.protocol import Event
 from zipline.gens.composites import (
     date_sorted_sources,
     sequential_transforms,
-    alias_dt
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
 
@@ -263,10 +262,9 @@ class TradingAlgorithm(object):
 
         with_tnfms = sequential_transforms(date_sorted,
                                            *self.transforms)
-        with_alias_dt = alias_dt(with_tnfms)
 
         with_benchmarks = date_sorted_sources(benchmark_return_source,
-                                              with_alias_dt)
+                                              with_tnfms)
 
         # Group together events with the same dt field. This depends on the
         # events already being sorted.
