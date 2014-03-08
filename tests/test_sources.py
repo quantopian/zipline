@@ -15,13 +15,16 @@
 import pandas as pd
 import pytz
 from itertools import cycle
+import numpy as np
 
 from six import integer_types
 
 from unittest import TestCase
 
 import zipline.utils.factory as factory
-from zipline.sources import DataFrameSource, DataPanelSource
+from zipline.sources import (DataFrameSource,
+                             DataPanelSource,
+                             RandomWalkSource)
 
 
 class TestDataFrameSource(TestCase):
@@ -75,3 +78,56 @@ class TestDataFrameSource(TestCase):
                 self.assertIn(check_field, event)
             self.assertTrue(isinstance(event['volume'], (integer_types)))
             self.assertEqual(next(stocks_iter), event['sid'])
+
+
+class TestRandomWalkSource(TestCase):
+    def test_minute(self):
+        from zipline.utils import tradingcalendar as calendar_nyse
+        np.random.seed(123)
+        start_prices = {0: 100,
+                        1: 500}
+        start = pd.Timestamp('1990-01-01', tz='UTC')
+        end = pd.Timestamp('1991-01-01', tz='UTC')
+        source = RandomWalkSource(start_prices=start_prices,
+                                  calendar=calendar_nyse, start=start,
+                                  end=end)
+        self.assertIsInstance(source.start, pd.lib.Timestamp)
+        self.assertIsInstance(source.end, pd.lib.Timestamp)
+
+        for event in source:
+            self.assertIn(event.sid, start_prices.keys())
+            self.assertIn(event.dt.replace(minute=0, hour=0),
+                          calendar_nyse.trading_days)
+            self.assertTrue(event.dt > start)
+            self.assertTrue(event.dt < end)
+            self.assertTrue(event.price > 0,
+                            "price should never go negative.")
+            self.assertEqual(event.volume, 1000)
+            self.assertTrue(13 <= event.dt.hour <= 21,
+                            "event.dt.hour == %i, not during market \
+                            hours." % event.dt.hour)
+
+    def test_day(self):
+        from zipline.utils import tradingcalendar as calendar_nyse
+        np.random.seed(123)
+        start_prices = {0: 100,
+                        1: 500}
+        start = pd.Timestamp('1990-01-01', tz='UTC')
+        end = pd.Timestamp('1992-01-01', tz='UTC')
+        source = RandomWalkSource(start_prices=start_prices,
+                                  calendar=calendar_nyse, start=start,
+                                  end=end, freq='day')
+        self.assertIsInstance(source.start, pd.lib.Timestamp)
+        self.assertIsInstance(source.end, pd.lib.Timestamp)
+
+        for event in source:
+            self.assertIn(event.sid, start_prices.keys())
+            self.assertIn(event.dt.replace(minute=0, hour=0),
+                          calendar_nyse.trading_days)
+            self.assertTrue(13 <= event.dt.hour <= 21,
+                            "event.dt.hour == %i, not during market \
+                            hours." % event.dt.hour)
+            self.assertTrue(event.dt > start)
+            self.assertTrue(event.dt < end)
+            self.assertTrue(event.price > 0)
+            self.assertEqual(event.volume, 1000)
