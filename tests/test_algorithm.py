@@ -16,6 +16,7 @@
 from unittest import TestCase
 from datetime import timedelta
 import numpy as np
+import pandas as pd
 from mock import MagicMock
 
 from zipline.utils.test_utils import setup_logger
@@ -48,7 +49,9 @@ from zipline.utils.test_utils import drain_zipline, assert_single_position
 
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
-                             DataPanelSource)
+                             DataPanelSource,
+                             RandomWalkSource)
+
 from zipline.transforms import MovingAverage
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
@@ -213,6 +216,17 @@ class TestTransformAlgorithm(TestCase):
                                          instant_fill=True)
 
         algo.run(self.df)
+
+    def test_minute_data(self):
+        source = RandomWalkSource(freq='minute',
+                                  start=pd.Timestamp('2000-1-1',
+                                                     tz='UTC'),
+                                  end=pd.Timestamp('2000-1-1',
+                                                   tz='UTC'))
+        algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
+                                         data_frequency='minute',
+                                         instant_fill=True)
+        algo.run(source)
 
 
 class TestPositions(TestCase):
