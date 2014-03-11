@@ -151,6 +151,17 @@ class TestSplitPerformance(unittest.TestCase):
                 zp_math.tolerant_equals(8020,
                                         daily_perf['ending_cash'], 1))
 
+            for i, result in enumerate(results):
+                for perf_kind in ('daily_perf', 'cumulative_perf'):
+                    perf_result = result[perf_kind]
+                    # prices aren't changing, so pnl and returns should be 0.0
+                    self.assertEqual(0.0, perf_result['pnl'],
+                                     "day %s %s pnl %s instead of 0.0" %
+                                     (i, perf_kind, perf_result['pnl']))
+                    self.assertEqual(0.0, perf_result['returns'],
+                                     "day %s %s returns %s instead of 0.0" %
+                                     (i, perf_kind, perf_result['returns']))
+
 
 class TestCommissionEvents(unittest.TestCase):
 

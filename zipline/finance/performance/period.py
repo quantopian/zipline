@@ -154,7 +154,11 @@ class PerformancePeriod(object):
         if split.sid in self.positions:
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
-            leftover_cash = self.positions[split.sid].handle_split(split)
+            position = self.positions[split.sid]
+            leftover_cash = position.handle_split(split)
+            self._position_amounts[split.sid] = position.amount
+            self._position_last_sale_prices[split.sid] = \
+                position.last_sale_price
 
             if leftover_cash > 0:
                 self.handle_cash_payment(leftover_cash)
