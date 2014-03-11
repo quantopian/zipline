@@ -73,17 +73,17 @@ def calculate_results(host, events):
 
     perf_tracker = perf.PerformanceTracker(host.sim_params)
 
+    events = sorted(events, key=lambda ev: ev.dt)
     all_events = date_sorted_sources(events, host.benchmark_events)
 
-    filtered_events = [(filt_event.dt, filt_event) for filt_event
-                       in all_events if filt_event.dt <= events[-1].dt]
-    filtered_events.sort(key=lambda x: x[0])
-    grouped_events = itertools.groupby(filtered_events, lambda x: x[0])
+    filtered_events = (filt_event for filt_event in all_events
+                       if filt_event.dt <= events[-1].dt)
+    grouped_events = itertools.groupby(filtered_events, lambda x: x.dt)
     results = []
 
     bm_updated = False
     for date, group in grouped_events:
-        for _, event in group:
+        for event in group:
             perf_tracker.process_event(event)
             if event.type == DATASOURCE_TYPE.BENCHMARK:
                 bm_updated = True
