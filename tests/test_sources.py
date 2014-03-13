@@ -25,6 +25,7 @@ import zipline.utils.factory as factory
 from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
+from zipline.utils import tradingcalendar as calendar_nyse
 
 
 class TestDataFrameSource(TestCase):
@@ -82,7 +83,6 @@ class TestDataFrameSource(TestCase):
 
 class TestRandomWalkSource(TestCase):
     def test_minute(self):
-        from zipline.utils import tradingcalendar as calendar_nyse
         np.random.seed(123)
         start_prices = {0: 100,
                         1: 500}
@@ -98,17 +98,16 @@ class TestRandomWalkSource(TestCase):
             self.assertIn(event.sid, start_prices.keys())
             self.assertIn(event.dt.replace(minute=0, hour=0),
                           calendar_nyse.trading_days)
-            self.assertTrue(event.dt > start)
-            self.assertTrue(event.dt < end)
-            self.assertTrue(event.price > 0,
-                            "price should never go negative.")
+            self.assertGreater(event.dt, start)
+            self.assertLess(event.dt, end)
+            self.assertGreater(event.price, 0,
+                               "price should never go negative.")
             self.assertEqual(event.volume, 1000)
             self.assertTrue(13 <= event.dt.hour <= 21,
                             "event.dt.hour == %i, not during market \
                             hours." % event.dt.hour)
 
     def test_day(self):
-        from zipline.utils import tradingcalendar as calendar_nyse
         np.random.seed(123)
         start_prices = {0: 100,
                         1: 500}
@@ -124,10 +123,11 @@ class TestRandomWalkSource(TestCase):
             self.assertIn(event.sid, start_prices.keys())
             self.assertIn(event.dt.replace(minute=0, hour=0),
                           calendar_nyse.trading_days)
+            self.assertGreater(event.dt, start)
+            self.assertLess(event.dt, end)
+            self.assertGreater(event.price, 0,
+                               "price should never go negative.")
+            self.assertEqual(event.volume, 1000)
             self.assertTrue(13 <= event.dt.hour <= 21,
                             "event.dt.hour == %i, not during market \
                             hours." % event.dt.hour)
-            self.assertTrue(event.dt > start)
-            self.assertTrue(event.dt < end)
-            self.assertTrue(event.price > 0)
-            self.assertEqual(event.volume, 1000)

@@ -59,7 +59,7 @@ class RandomWalkSource(DataSource):
         """
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(start_prices, freq, start, end,
-                                    calendar)
+                                    calendar.__name__)
 
         self.freq = freq
         if start_prices is None:
@@ -84,13 +84,6 @@ class RandomWalkSource(DataSource):
         self.open_and_closes = \
             calendar.open_and_closes[self.start:self.end]
 
-        if self.freq == 'minute':
-            self.raw_data_gen = self.raw_data_gen_minute
-        elif self.freq == 'day':
-            self.raw_data_gen = self.raw_data_gen_day
-        else:
-            raise ValueError('Frequency %s not supported.' % self.freq)
-
         self._raw_data = None
 
     @property
@@ -108,46 +101,35 @@ class RandomWalkSource(DataSource):
 
     def _gen_next_step(self, x):
         x += np.random.randn() * self.sd + self.drift
-        if x <= 0.1:
-            return 0.1
-        else:
-            return x
+        return max(x, 0.1)
 
-    def raw_data_gen_minute(self):
+    def _gen_events(self, cur_prices, current_dt):
+        for sid, price in six.iteritems(cur_prices):
+            cur_prices[sid] = self._gen_next_step(cur_prices[sid])
+
+            event = {
+                'dt': current_dt,
+                'sid': sid,
+                'price': cur_prices[sid],
+                'volume': 1000,
+            }
+
+            yield event
+
+    def raw_data_gen(self):
         cur_prices = copy(self.start_prices)
         for _, (open_dt, close_dt) in self.open_and_closes.iterrows():
-            # Emit minutely trade signals from open to close
             current_dt = copy(open_dt)
-            while current_dt < close_dt:
-                for sid, price in six.iteritems(cur_prices):
-                    cur_prices[sid] = self._gen_next_step(cur_prices[sid])
-
-                    event = {
-                        'dt': current_dt,
-                        'sid': sid,
-                        'price': cur_prices[sid],
-                        'volume': 1000,
-                    }
-
+            if self.freq == 'minute':
+                # Emit minutely trade signals from open to close
+                while current_dt < close_dt:
+                    for event in self._gen_events(cur_prices, current_dt):
+                        yield event
+                    current_dt += timedelta(minutes=1)
+            elif self.freq == 'day':
+                # Emit one signal per day at close
+                for event in self._gen_events(cur_prices, close_dt):
                     yield event
-
-                current_dt += timedelta(minutes=1)
-
-    def raw_data_gen_day(self):
-        cur_prices = copy(self.start_prices)
-        for _, (open_dt, close_dt) in self.open_and_closes.iterrows():
-            # Emit daily trade signals
-            for sid, price in six.iteritems(cur_prices):
-                cur_prices[sid] = self._gen_next_step(cur_prices[sid])
-
-                event = {
-                    'dt': close_dt,
-                    'sid': sid,
-                    'price': cur_prices[sid],
-                    'volume': 1000,
-                }
-
-                yield event
 
     @property
     def raw_data(self):
