@@ -290,6 +290,23 @@ must specify stocks or indexes"""
             stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
             data[name] = stkd
 
+
+    # Find common dates
+    base = set(data[data.keys()[0]]['Close'].keys())
+    to_del = []
+    for k in data.keys()[1:]:
+        here = set(data[k]['Close'].keys())
+        if abs(len(base) - len(here)) > 0:
+            print 'Date mismatch for', k
+            to_del.append(k)
+        else:
+            base = base & here
+
+    for k in to_del:
+        del data[k]
+
+    print len(data), 'safe symbols loaded of', len(stocks)
+
     return data
 
 
