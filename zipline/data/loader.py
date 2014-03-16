@@ -18,13 +18,15 @@ import importlib
 import os
 from os.path import expanduser
 from collections import OrderedDict
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import logbook
 
 import pandas as pd
 from pandas.io.data import DataReader
 import pytz
+
+import urllib
 
 from six import iteritems
 
@@ -35,6 +37,8 @@ from zipline.utils.tradingcalendar import (
     trading_day,
     trading_days
 )
+
+import pdb
 
 logger = logbook.Logger('Loader')
 
@@ -389,4 +393,204 @@ def load_bars_from_yahoo(indexes=None,
             ratio_filtered = ratio.fillna(0).values
             for col in adj_cols:
                 panel[ticker][col] *= ratio_filtered
+    return panel
+
+def _create_google_url(ticker, startdate, enddate):
+    """Returns a google finance csv url from given ticker, startdate, enddate
+
+    :Requires:
+        ticker : string (appropriate ticker symbol for google finance lookup)
+            Financial ticker to load
+        start: datetime
+            Retrieve stock info beginning at specified time.
+        end: datetime
+            Retrieve stock info ending at specified time.
+    """
+
+    BASE_GOOGLE_URL = "http://www.google.com/finance/historical?"
+
+    if not ticker or not isinstance(ticker, str):
+        raise ValueError('No valid ticker supplied for google finance retrieval.')
+
+    if not startdate or not isinstance(startdate, datetime):
+        raise ValueError('No valid start date supplied for google finance retrieval.')
+
+    if not enddate or not isinstance(enddate, datetime):
+        raise ValueError('No valid end date supplied for google finance retrieval.')
+
+    startstr = startdate.strftime('%b %d, %Y')
+    endstr = enddate.strftime('%b %d, %Y')
+    
+    url_params = (
+        ('q', urllib.quote(ticker)),
+        ('startdate', startstr.replace(' ', '+')),
+        ('enddate', endstr.replace(' ', '+')),
+        ('output', 'csv')
+    )
+
+    url = BASE_GOOGLE_URL + '&'.join(['='.join(p) for p in url_params])
+    return url
+
+def _create_cache_filename(name, start, end, optional=None):
+    """Create filename for cached data.
+
+    :Requires:
+        name : string
+            Ticker symbol or other uniquely idenitifiable key.
+        start : datetime
+            Start datetime of cache
+        end : datetime
+            End datetime of cache
+    
+    :Optional:
+        optional : string
+            Optional key placed at the end of the filename.
+    """
+
+    fn = "{name}-{start}-{end}"
+    if optional and isinstance(optional, str):
+        fn += "-{optional}".format(optional=optional)
+    fn.format(
+        stock=stock,
+        start=start.strftime('%Y_%m_%d'),
+        end=end.strftime('%Y_%m_%d')).replace(':', '-')
+
+    return fn
+
+def _load_raw_google_data(indexes=None, stocks=None, start=None, end=None):
+    """Load stock data from google finance.
+
+    :Optional:
+        indexes : dict (Default: {'SPX': 'INDEXSP:.INX'})
+            Financial indexes to load.
+        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
+                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
+            Stock closing prices to load.
+        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices from start date on.
+        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
+            Retrieve prices until end date.
+
+    :Note:
+        Must make the url fetch ourselves since google finance is not
+        built into pandas DataReader.
+    :Example URL:
+        http://www.google.com/finance/historical?q=C&startdate=Jan%201,%202013&enddate=Jan%2030,%202014&output=csv
+    """
+
+    assert indexes is not None or stocks is not None, """
+must specify stocks or indexes"""
+
+    if start is None:
+        start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+    if end is None:
+        end = pd.datetime(*(pd.datetime.utcnow().utctimetuple()[:7] + (pytz.utc,)))
+
+    print start, end
+
+    if not start is None and not end is None:
+        assert start < end, "start date is later than end date."
+
+    data = OrderedDict()
+
+    if stocks is not None:
+        for stock in stocks:
+            print(stock)
+            cache_filename = _create_cache_filename(stock, start, end, 'google')
+            cache_filepath = get_cache_filepath(cache_filename)
+            
+            if os.path.exists(cache_filepath):
+                stkd = pd.DataFrame.from_csv(cache_filepath)
+            else:
+                urllib.urlretrieve(_create_google_url(stock, start, end), cache_filepath)
+                stkd = pd.DataFrame.from_csv(cache_filepath)
+            
+            data[stock] = stkd
+
+    if indexes is not None:
+        for name, ticker in iteritems(indexes):
+            print(name)
+            cache_filename = _create_cache_filename(name, start, end, 'google')
+            cache_filepath = get_cache_filepath(cache_filename)
+            
+            if os.path.exists(cache_filepath):
+                stkd = pd.DataFrame.from_csv(cache_filepath)
+            else:
+                urllib.urlretrieve(_create_google_url(name, start, end), cache_filepath)
+                stkd = pd.DataFrame.from_csv(cache_filepath)
+            data[name] = stkd
+
+    # Find common dates
+    base = set(data[data.keys()[0]]['Close'].keys())
+    to_del = []
+    for k in data.keys()[1:]:
+        here = set(data[k]['Close'].keys())
+        if abs(len(base) - len(here)) > 0:
+            print 'Date mismatch for', k
+            to_del.append(k)
+        else:
+            base = base & here
+
+    for k in to_del:
+        del data[k]
+
+    print len(data), 'safe symbols loaded of', len(stocks)
+
+    return data
+
+def load_from_google(indexes=None,
+                    stocks=None,
+                    start=None,
+                    end=None):
+    """
+    Loads price data from Google into a dataframe for each of the indicated
+    securities.
+
+    :param indexes: Financial indexes to load.
+    :type indexes: dict
+    :param stocks: Stock closing prices to load.
+    :type stocks: list
+    :param start: Retrieve prices from start date on.
+    :type start: datetime
+    :param end: Retrieve prices until end date.
+    :type end: datetime
+
+    """
+    data = _load_raw_yahoo_data(indexes, stocks, start, end)
+    close_key = 'Close'
+    
+    df = pd.DataFrame({key: d[close_key] for key, d in iteritems(data)})
+    df.index = df.index.tz_localize(pytz.utc)
+    return df
+
+def load_bars_from_google(indexes=None,
+                         stocks=None,
+                         start=None,
+                         end=None):
+    """
+    Loads data from Yahoo into a panel with the following
+    column names for each indicated security:
+
+        - open
+        - high
+        - low
+        - close
+        - volume
+
+    :param indexes: Financial indexes to load.
+    :type indexes: dict
+    :param stocks: Stock closing prices to load.
+    :type stocks: list
+    :param start: Retrieve prices from start date on.
+    :type start: datetime
+    :param end: Retrieve prices until end date.
+    :type end: datetime
+    """
+    data = _load_raw_google_data(indexes, stocks, start, end)
+    panel = pd.Panel(data)
+    # Rename columns
+    panel.minor_axis = ['open', 'high', 'low', 'close', 'volume']
+    panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
+    
     return panel
