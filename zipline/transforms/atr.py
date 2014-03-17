@@ -15,10 +15,9 @@
 
 from collections import defaultdict
 
-from six import string_types, with_metaclass
+from six import with_metaclass
 
 from zipline.transforms.utils import EventWindow, TransformMeta
-from zipline.errors import WrongDataForTransform
 
 
 class AverageTrueRange(with_metaclass(TransformMeta)):
@@ -113,13 +112,13 @@ class ATREventWindow(EventWindow):
         if self.prior_close is not None:
             # Calculate true range using current high & low and prior close
             tr = max(event.high, self.prior_close) - \
-                 min(event.low, self.prior_close)
+                min(event.low, self.prior_close)
 
             # Calculate Average True Range
             if len(self.ticks) <= self.days:
                 # Just return the simple average during warm-up period
                 self.atr = (self.atr * len(self.ticks - 1) + tr) \
-                                / len(self.ticks)
+                    / len(self.ticks)
             else:
                 # atr = prior atr * (days-1)/days + tr/days
                 self.atr *= (self.days - 1) / self.days
@@ -127,7 +126,7 @@ class ATREventWindow(EventWindow):
 
         # Save closing price for next tick's calculation
         self.prior_close = event.close_price
-        
+
     # Subclass customization for removing expired events.
     def handle_remove(self, event):
         # Not required.
@@ -138,4 +137,3 @@ class ATREventWindow(EventWindow):
         Calculate the average true range of our ticks over a single field.
         """
         return self.atr
-
