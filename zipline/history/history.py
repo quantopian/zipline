@@ -51,7 +51,7 @@ class HistorySpec(object):
     def __init__(self, bar_count, frequency, field, ffill):
         # Number of bars to look back.
         self.bar_count = bar_count
-        if isinstance(frequency, basestring):
+        if isinstance(frequency, str):
             frequency = Frequency(frequency)
         # The frequency at which the data is sampled.
         self.frequency = frequency

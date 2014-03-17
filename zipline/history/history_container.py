@@ -6,8 +6,6 @@ from . history import (
     days_index_at_dt,
 )
 
-from qexec.sources.history_source import populate_initial_day_panel
-
 from zipline.finance import trading
 from zipline.utils.data import RollingPanel
 
@@ -59,10 +57,7 @@ class HistoryContainer(object):
     Entry point for the algoscript is the result of `get_history`.
     """
 
-    def __init__(self, db, history_specs, initial_sids, initial_dt):
-
-        self.db = db
-
+    def __init__(self, history_specs, initial_sids, initial_dt):
         # All of the history specs found by the algoscript parsing.
         self.history_specs = history_specs
 
@@ -77,16 +72,6 @@ class HistoryContainer(object):
         self.prior_day_panel = create_initial_day_panel(
             self.max_days_needed, self.fields, initial_sids, initial_dt)
 
-        # The panel should contain values dating before the first algodt.
-        # The following call does the 'backfilling' so that `get_history`
-        # will return full values on the first `handle_data` call.
-        # Backfill not needed if only 1 bar
-        # Also, only backfill if a database is available; the main case
-        # where there is no database available is during unit testing.
-        if self.max_days_needed != 1 and self.db:
-            populate_initial_day_panel(self.db,
-                                       self.prior_day_panel)
-
         # This panel contains the minutes for the current day.
         # The value that is used is some sort of aggregation call on the
         # panel, e.g. `sum` for volume, `max` for high, etc.
@@ -98,7 +83,7 @@ class HistoryContainer(object):
         self.last_known_prior_values = {field: {} for field in self.fields}
 
         # Populating initial frames here, so that the cost of creating the
-        # initial frames does not show up when profiling get_history
+        # initial frames does not show up when profiling get_y
         # These frames are cached since mid-stream creation of containing
         # data frames on every bar is expensive.
         self.return_frames = {}
@@ -138,52 +123,6 @@ class HistoryContainer(object):
                           sid in self.current_day_panel.minor_axis)}
         field_frame = pd.DataFrame(field_data)
         self.current_day_panel.ix[:, algo_dt, :] = field_frame.T
-
-    def backfill_sids(self, sid_states, dt):
-        """
-        backfills data for sids that have entered the universe.
-
-        New sids will not have the data for previous bars, so the data
-        needs to be fetched and populated when they enter.
-        """
-        prior_day_panel = self.prior_day_panel.get_current()
-        # Remove the dropped sids, to prevent stale data.
-        prior_day_panel = prior_day_panel.drop(sid_states['removed_sids'],
-                                               axis=2)
-        for sid in sid_states['removed_sids']:
-            try:
-                del self.last_known_prior_values[sid]
-            except KeyError:
-                # Better to ask forgiveness, than ask permission.
-                pass
-        existing_sids = set(prior_day_panel.minor_axis)
-        sids_to_add = sid_states['new_sids'] - existing_sids
-        if not sids_to_add:
-            # If there are no new sids to add, shortcircuit.
-            return
-        total_sids = sids_to_add.union(existing_sids)
-        # Like at the beginning of the backtest, use a panel to collect
-        # the backfilled values.
-        # This implementation is aggressive/inefficent and gets for *all*
-        # sids in the current universe, instead of merging the data.
-        # Mainly because this was easier than dealing whith the merge logic,
-        # and the rollover occurs at quarter turns, which is relatively rare
-        # compared to the minute frequency.
-        # If universe changes closer to a daily rate, we may need to find
-        # a more efficient solution.
-        new_sid_rolling_panel = create_initial_day_panel(
-            self.max_days_needed,
-            self.fields,
-            total_sids,
-            dt)
-        new_sid_panel = new_sid_rolling_panel.get_current()
-        if self.max_days_needed != 1:
-            populate_initial_day_panel(self.db, new_sid_rolling_panel)
-        self.prior_day_panel = new_sid_rolling_panel
-        # Create a fresh current day panel, now using the new universe.
-        self.current_day_panel = create_current_day_panel(
-            self.fields, new_sid_panel.minor_axis, dt)
-        self.create_return_frames(dt)
 
     def roll(self, roll_dt):
         env = trading.environment

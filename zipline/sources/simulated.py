@@ -81,6 +81,8 @@ class RandomWalkSource(DataSource):
         self.drift = .1
         self.sd = .1
 
+        self.sids = self.start_prices.keys()
+
         self.open_and_closes = \
             calendar.open_and_closes[self.start:self.end]
 

@@ -54,6 +54,9 @@ from zipline.gens.composites import (
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
 
+from zipline.history import HistorySpec
+from zipline.history.history_container import HistoryContainer
+
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -155,6 +158,9 @@ class TradingAlgorithm(object):
         self.portfolio_needs_update = True
         self._portfolio = None
 
+        self.history_container = None
+        self.history_specs = {}
+
         # If string is passed in, execute and get reference to
         # functions.
         self.algoscript = kwargs.pop('script', None)
@@ -187,8 +193,6 @@ class TradingAlgorithm(object):
         # it is fully initialized.
         self.initialized = False
 
-        self.initialize(*args, **kwargs)
-
     def initialize(self, *args, **kwargs):
         # store algo reference in global space
         set_algo_instance(self)
@@ -197,7 +201,16 @@ class TradingAlgorithm(object):
         finally:
             set_algo_instance(None)
 
+        if len(self.history_specs) != 0:
+            self.history_container = HistoryContainer(
+                self.history_specs,
+                self.sim_params.sids,
+                self.sim_params.first_open)
+
     def handle_data(self, data):
+        if self.history_container:
+            self.history_container.update(data, self.datetime)
+
         self._handle_data(self, data)
 
     def __repr__(self):
@@ -350,18 +363,25 @@ class TradingAlgorithm(object):
         # use the default params set with the algorithm.
         # Else, we create simulation parameters using the start and end of the
         # source provided.
-        if not sim_params:
-            if not self.sim_params:
+        if sim_params is None:
+            if self.sim_params is None:
                 start = source.start
                 end = source.end
-
                 sim_params = create_simulation_parameters(
                     start=start,
                     end=end,
-                    capital_base=self.capital_base
+                    capital_base=self.capital_base,
                 )
             else:
                 sim_params = self.sim_params
+
+        # update sim params to ensure it's set
+        self.sim_params = sim_params
+        if self.sim_params.sids is None:
+            all_sids = [sid for s in self.sources for sid in s.sids]
+            self.sim_params.sids = set(all_sids)
+
+        self.initialize()
 
         # Create transforms by wrapping them into StatefulTransforms
         self.transforms = []
@@ -667,3 +687,16 @@ class TradingAlgorithm(object):
         """
 
         return self.blotter.open_orders
+
+    @api_method
+    def add_history(self, bar_count, frequency, field,
+                    ffill=True):
+        history_spec = HistorySpec(bar_count, frequency, field, ffill)
+        self.history_specs[history_spec.key_str] = history_spec
+
+    @api_method
+    def history(self, bar_count, frequency, field, ffill=True):
+        spec_key_str = HistorySpec.spec_key(
+            bar_count, frequency, field, ffill)
+        history_spec = self.history_specs[spec_key_str]
+        return self.history_container.get_history(history_spec, self.datetime)
