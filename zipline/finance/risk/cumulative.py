@@ -190,8 +190,8 @@ class RiskMetricsCumulative(object):
         self.mean_benchmark_returns = None
         self.annualized_benchmark_returns = None
 
-        self.algorithm_period_returns = pd.Series(index=cont_index)
-        self.benchmark_period_returns = pd.Series(index=cont_index)
+        self.algorithm_cumulative_returns = pd.Series(index=cont_index)
+        self.benchmark_cumulative_returns = pd.Series(index=cont_index)
         self.excess_returns = pd.Series(index=cont_index)
 
         self.latest_dt = cont_index[0]
@@ -266,10 +266,10 @@ class RiskMetricsCumulative(object):
 
         self.num_trading_days = len(self.algorithm_returns)
 
-        self.algorithm_period_returns[dt] = \
-            self.calculate_period_returns(self.algorithm_returns)
-        self.benchmark_period_returns[dt] = \
-            self.calculate_period_returns(self.benchmark_returns)
+        self.algorithm_cumulative_returns[dt] = \
+            self.calculate_cumulative_returns(self.algorithm_returns)
+        self.benchmark_cumulative_returns[dt] = \
+            self.calculate_cumulative_returns(self.benchmark_returns)
 
         if not self.algorithm_returns.index.equals(
             self.benchmark_returns.index
@@ -307,7 +307,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.treasury_period_return = \
             self.daily_treasury[treasury_end]
         self.excess_returns[self.latest_dt] = (
-            self.algorithm_period_returns[self.latest_dt]
+            self.algorithm_cumulative_returns[self.latest_dt]
             -
             self.treasury_period_return)
         self.metrics.beta[dt] = self.calculate_beta()
@@ -346,8 +346,14 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'algo_volatility':
             self.metrics.algorithm_volatility[dt],
             'treasury_period_return': self.treasury_period_return,
-            'algorithm_period_return': self.algorithm_period_returns[dt],
-            'benchmark_period_return': self.benchmark_period_returns[dt],
+            # Though the two following keys say period return,
+            # they would be more accurately called the cumulative return.
+            # However, the keys need to stay the same, for now, for backwards
+            # compatibility with existing consumers.
+            'algorithm_period_return':
+            self.algorithm_cumulative_returns[dt],
+            'benchmark_period_return':
+            self.benchmark_cumulative_returns[dt],
             'beta': self.metrics.beta[dt],
             'alpha': self.metrics.alpha[dt],
             'excess_return': self.excess_returns[dt],
@@ -376,17 +382,19 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         return '\n'.join(statements)
 
-    def calculate_period_returns(self, returns):
+    def calculate_cumulative_returns(self, returns):
         return (1. + returns).prod() - 1
 
     def update_current_max(self):
-        if len(self.algorithm_period_returns) == 0:
+        if len(self.algorithm_cumulative_returns) == 0:
             return
-        if self.current_max < self.algorithm_period_returns[self.latest_dt]:
-            self.current_max = self.algorithm_period_returns[self.latest_dt]
+        current_cumulative_return = \
+            self.algorithm_cumulative_returns[self.latest_dt]
+        if self.current_max < current_cumulative_return:
+            self.current_max = current_cumulative_return
 
     def calculate_max_drawdown(self):
-        if len(self.algorithm_period_returns) == 0:
+        if len(self.algorithm_cumulative_returns) == 0:
             return self.max_drawdown
 
         # The drawdown is defined as: (high - low) / high
@@ -397,7 +405,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # exceed the previous max_drawdown iff the current return is lower than
         # the previous low in the current drawdown window.
         cur_drawdown = 1.0 - (
-            (1.0 + self.algorithm_period_returns[self.latest_dt])
+            (1.0 + self.algorithm_cumulative_returns[self.latest_dt])
             /
             (1.0 + self.current_max))
 

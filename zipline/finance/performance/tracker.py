@@ -289,7 +289,7 @@ class PerformanceTracker(object):
                                           self.all_benchmark_returns[dt])
 
         bench_since_open = \
-            self.intraday_risk_metrics.benchmark_period_returns[dt]
+            self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
 
         # if we've reached market close, check on dividends
         if dt == self.market_close:
