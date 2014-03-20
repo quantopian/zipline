@@ -39,6 +39,7 @@ def symbol(symbol_str, as_of_date=None):
     return symbol_str
 
 __all__ = [
+    'symbol',
     'slippage',
     'commission',
     'math_utils',
