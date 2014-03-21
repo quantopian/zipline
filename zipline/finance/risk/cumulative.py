@@ -229,7 +229,7 @@ class RiskMetricsCumulative(object):
         self.latest_dt = dt
 
         self.algorithm_returns_cont[dt] = algorithm_returns
-        self.algorithm_returns = self.algorithm_returns_cont.valid()
+        self.algorithm_returns = self.algorithm_returns_cont[:dt]
 
         if self.create_first_day_stats:
             if len(self.algorithm_returns) == 1:
@@ -243,7 +243,7 @@ class RiskMetricsCumulative(object):
         self.annualized_mean_returns = self.mean_returns * 252
 
         self.benchmark_returns_cont[dt] = benchmark_returns
-        self.benchmark_returns = self.benchmark_returns_cont.valid()
+        self.benchmark_returns = self.benchmark_returns_cont[:dt]
 
         self.mean_benchmark_returns = pd.rolling_mean(
             self.benchmark_returns,
@@ -340,7 +340,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         dt = self.latest_dt
         period_label = dt.strftime("%Y-%m")
         rval = {
-            'trading_days': len(self.algorithm_returns.valid()),
+            'trading_days': len(self.algorithm_returns),
             'benchmark_volatility':
             self.metrics.benchmark_volatility[dt],
             'algo_volatility':
