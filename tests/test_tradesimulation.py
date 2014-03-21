@@ -22,6 +22,7 @@ class TestTradeSimulation(TestCase):
 
     def test_minutely_emissions_generate_performance_stats_for_last_day(self):
         params = factory.create_simulation_parameters(num_days=1)
+        params.data_frequency = 'minute'
         params.emission_rate = 'minute'
         algo = NoopAlgorithm()
         algo.run(source=[], sim_params=params)

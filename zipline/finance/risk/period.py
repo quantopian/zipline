@@ -30,6 +30,7 @@ from . import risk
 from . risk import (
     alpha,
     check_entry,
+    downside_risk,
     information_ratio,
     sharpe_ratio,
     sortino_ratio,
@@ -90,6 +91,17 @@ class RiskMetricsPeriod(object):
             raise Exception(message)
 
         self.num_trading_days = len(self.benchmark_returns)
+        self.trading_day_counts = pd.stats.moments.rolling_count(
+            self.algorithm_returns, self.num_trading_days)
+        self.mean_algorithm_returns = pd.Series(
+            index=self.algorithm_returns.index)
+        for dt, ret in self.algorithm_returns.iterkv():
+            self.mean_algorithm_returns[dt] = (
+                self.algorithm_returns[:dt].sum()
+                /
+                self.trading_day_counts[dt]
+            )
+
         self.benchmark_volatility = self.calculate_volatility(
             self.benchmark_returns)
         self.algorithm_volatility = self.calculate_volatility(
@@ -195,15 +207,17 @@ class RiskMetricsPeriod(object):
                             self.algorithm_period_returns,
                             self.treasury_period_return)
 
-    def calculate_sortino(self, mar=None):
+    def calculate_sortino(self):
         """
         http://en.wikipedia.org/wiki/Sortino_ratio
         """
-        if mar is None:
-            mar = self.treasury_period_return
-
-        return sortino_ratio(self.algorithm_returns,
-                             self.algorithm_period_returns,
+        mar = downside_risk(self.algorithm_returns,
+                            self.mean_algorithm_returns,
+                            self.num_trading_days)
+        # Hold on to downside risk for debugging purposes.
+        self.downside_risk = mar
+        return sortino_ratio(self.algorithm_period_returns,
+                             self.treasury_period_return,
                              mar)
 
     def calculate_information(self):

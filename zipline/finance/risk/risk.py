@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,19 +99,21 @@ def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
         float. The Sharpe ratio.
     """
     if zp_math.tolerant_equals(algorithm_volatility, 0):
-        return 0.0
+        return np.nan
 
     return (algorithm_return - treasury_return) / algorithm_volatility
 
 
 def downside_risk(algorithm_returns, mean_returns, normalization_factor):
-    rets = algorithm_returns
-    mar = mean_returns
+    rets = algorithm_returns.round(8)
+    mar = mean_returns.round(8)
     downside_diff = (rets[rets < mar] - mar[rets < mar])
-    return np.std(downside_diff) * math.sqrt(normalization_factor)
+    if len(downside_diff) <= 1:
+        return 0.0
+    return np.std(downside_diff, ddof=1) * math.sqrt(normalization_factor)
 
 
-def sortino_ratio(algorithm_returns, algorithm_period_return, mar):
+def sortino_ratio(algorithm_period_return, treasury_period_return, mar):
     """
     http://en.wikipedia.org/wiki/Sortino_ratio
 
@@ -125,17 +127,10 @@ def sortino_ratio(algorithm_returns, algorithm_period_return, mar):
     Returns:
         float. The Sortino ratio.
     """
-    if len(algorithm_returns) == 0:
+    if zp_math.tolerant_equals(mar, 0):
         return 0.0
 
-    rets = algorithm_returns
-    downside = (rets[rets < mar] - mar) ** 2
-    dr = np.sqrt(downside.sum() / len(rets))
-
-    if zp_math.tolerant_equals(dr, 0):
-        return 0.0
-
-    return (algorithm_period_return - mar) / dr
+    return (algorithm_period_return - treasury_period_return) / mar
 
 
 def information_ratio(algorithm_returns, benchmark_returns):

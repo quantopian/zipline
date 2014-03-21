@@ -145,8 +145,8 @@ class TestEventsThroughRisk(unittest.TestCase):
         #       at least be an early warning against changes.
         expected_sharpe = {
             first_date: np.nan,
-            second_date: -31.56903265,
-            third_date: -11.459888981,
+            second_date: -22.322677,
+            third_date: -9.353741
         }
 
         for bar in gen:
