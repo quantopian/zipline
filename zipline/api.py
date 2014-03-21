@@ -38,7 +38,36 @@ def symbol(symbol_str, as_of_date=None):
     """
     return symbol_str
 
+class sid:
+    
+    """Default sid lookup for any source that directly maps the
+    sid a symbol.
+    """
+    
+    def __init__(self, sid_to_symbol):
+        """Initialise the maping of sids to symbols
+        
+        :Arguments:
+            sid_to_symbol : dict
+                Contains the maping
+        :Returns:
+            Mapped symbol
+        """
+        self.sid_to_symbol = sid_to_symbol
+        
+    def __call__(self, sid_num):
+        """Retrive the symbol corresponding to the sid
+        
+        :Arguments:
+            sid_num : int
+                sid for which the symbol needs to be retrived
+        """
+        
+        return self.sid_to_symbol[sid_num]
+
 __all__ = [
+    'sid',
+    'symbol',
     'slippage',
     'commission',
     'math_utils',
