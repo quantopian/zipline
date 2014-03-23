@@ -471,7 +471,8 @@ class TradingAlgorithm(object):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
                 psid=sid
             )
-            self.logger.debug(zero_message)
+            if self.logger:
+                self.logger.debug(zero_message)
             # Don't place any order
             return
         else:
