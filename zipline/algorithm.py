@@ -592,7 +592,7 @@ class TradingAlgorithm(object):
         """
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
-            current_price = self.portfolio.positions[sid].last_sale_price
+            current_price = self.trading_client.current_data[sid].price
             current_value = current_position * current_price
             req_value = target - current_value
             return self.order_value(sid, req_value, limit_price, stop_price)
@@ -613,7 +613,7 @@ class TradingAlgorithm(object):
         """
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
-            current_price = self.portfolio.positions[sid].last_sale_price
+            current_price = self.trading_client.current_data[sid].price
             current_value = current_position * current_price
         else:
             current_value = 0
