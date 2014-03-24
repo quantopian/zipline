@@ -302,10 +302,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                 self.start_date,
                 treasury_end
             )
-            self.daily_treasury[treasury_end] =\
-                treasury_period_return
-        self.treasury_period_return = \
-            self.daily_treasury[treasury_end]
+            self.daily_treasury[treasury_end] = treasury_period_return
+        self.treasury_period_return = self.daily_treasury[treasury_end]
         self.excess_returns[self.latest_dt] = (
             self.algorithm_cumulative_returns[self.latest_dt]
             -
@@ -341,33 +339,27 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         period_label = dt.strftime("%Y-%m")
         rval = {
             'trading_days': len(self.algorithm_returns),
-            'benchmark_volatility':
-            self.metrics.benchmark_volatility[dt],
-            'algo_volatility':
-            self.metrics.algorithm_volatility[dt],
+            'benchmark_volatility': self.metrics.benchmark_volatility[dt],
+            'algo_volatility': self.metrics.algorithm_volatility[dt],
             'treasury_period_return': self.treasury_period_return,
             # Though the two following keys say period return,
             # they would be more accurately called the cumulative return.
             # However, the keys need to stay the same, for now, for backwards
             # compatibility with existing consumers.
-            'algorithm_period_return':
-            self.algorithm_cumulative_returns[dt],
-            'benchmark_period_return':
-            self.benchmark_cumulative_returns[dt],
+            'algorithm_period_return': self.algorithm_cumulative_returns[dt],
+            'benchmark_period_return': self.benchmark_cumulative_returns[dt],
             'beta': self.metrics.beta[dt],
             'alpha': self.metrics.alpha[dt],
+            'sharpe': self.metrics.sharpe[dt],
+            'sortino': self.metrics.sortino[dt],
+            'information': self.metrics.information[dt],
             'excess_return': self.excess_returns[dt],
             'max_drawdown': self.max_drawdown,
             'period_label': period_label
         }
 
-        rval['sharpe'] = self.metrics.sharpe[dt]
-        rval['sortino'] = self.metrics.sortino[dt]
-        rval['information'] = self.metrics.information[dt]
-
-        return {k: None
-                if check_entry(k, v)
-                else v for k, v in iteritems(rval)}
+        return {k: (None if check_entry(k, v) else v)
+                for k, v in iteritems(rval)}
 
     def __repr__(self):
         statements = []
