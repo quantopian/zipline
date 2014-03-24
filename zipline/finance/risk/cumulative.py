@@ -204,6 +204,9 @@ class RiskMetricsCumulative(object):
         self.max_drawdown = 0
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.trading_days)
+        self.treasury_period_return = np.nan
+
+        self.num_trading_days = 0
 
     def get_minute_index(self, sim_params):
         """
@@ -338,7 +341,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         dt = self.latest_dt
         period_label = dt.strftime("%Y-%m")
         rval = {
-            'trading_days': len(self.algorithm_returns),
+            'trading_days': self.num_trading_days,
             'benchmark_volatility': self.metrics.benchmark_volatility[dt],
             'algo_volatility': self.metrics.algorithm_volatility[dt],
             'treasury_period_return': self.treasury_period_return,
