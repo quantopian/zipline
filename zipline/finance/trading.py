@@ -95,8 +95,6 @@ class TradingEnvironment(object):
         if max_date:
             self.treasury_curves = self.treasury_curves.ix[:max_date, :]
 
-        self.full_trading_day = datetime.timedelta(hours=6, minutes=30)
-        self.early_close_trading_day = datetime.timedelta(hours=3, minutes=30)
         self.exchange_tz = exchange_tz
 
         bi = self.benchmark_returns.index
