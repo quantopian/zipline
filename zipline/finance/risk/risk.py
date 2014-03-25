@@ -56,6 +56,7 @@ Risk Report
 """
 
 import logbook
+import math
 import numpy as np
 
 from zipline.finance import trading
@@ -101,6 +102,13 @@ def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
         return 0.0
 
     return (algorithm_return - treasury_return) / algorithm_volatility
+
+
+def downside_risk(algorithm_returns, mean_returns, normalization_factor):
+    rets = algorithm_returns
+    mar = mean_returns
+    downside_diff = (rets[rets < mar] - mar).valid()
+    return np.std(downside_diff) * math.sqrt(normalization_factor)
 
 
 def sortino_ratio(algorithm_returns, algorithm_period_return, mar):

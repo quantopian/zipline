@@ -30,6 +30,7 @@ from . risk import (
     alpha,
     check_entry,
     choose_treasury,
+    downside_risk,
 )
 
 log = logbook.Logger('Risk Cumulative')
@@ -449,10 +450,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return np.std(daily_returns) * math.sqrt(252)
 
     def calculate_downside_risk(self):
-        rets = self.algorithm_returns
-        mar = self.mean_returns
-        downside_diff = (rets[rets < mar] - mar).valid()
-        return np.std(downside_diff) * math.sqrt(252)
+        return downside_risk(self.algorithm_returns,
+                             self.mean_returns,
+                             252)
 
     def calculate_beta(self):
         """
