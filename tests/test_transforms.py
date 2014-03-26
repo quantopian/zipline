@@ -299,8 +299,8 @@ class TestTALIB(TestCase):
         BLACKLIST = ['make_transform', 'BatchTransform',
                      # TODO: Figure out why MAVP generates a KeyError
                      'MAVP']
-        names = [n for n in dir(ta) if n[0].isupper()
-                 and n not in BLACKLIST]
+        names = [name for name in dir(ta) if name[0].isupper()
+                 and name not in BLACKLIST]
 
         for name in names:
             print(name)
