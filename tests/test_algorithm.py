@@ -506,3 +506,23 @@ def handle_data(context, data):
             **self.zipline_test_config)
 
         output, _ = drain_zipline(self, zipline)
+
+
+class TestHistory(TestCase):
+    def test_history(self):
+        history_algo = """
+from zipline.api import history, add_history
+
+def initialize(context):
+    add_history(10, '1d', 'price')
+
+def handle_data(context, data):
+    df = history(10, '1d', 'price')
+"""
+        start = pd.Timestamp('1991-01-01', tz='UTC')
+        end = pd.Timestamp('1991-01-15', tz='UTC')
+        source = RandomWalkSource(start=start,
+                                  end=end)
+        algo = TradingAlgorithm(script=history_algo, data_frequency='minute')
+        output = algo.run(source)
+        output
