@@ -130,7 +130,7 @@ class RandomWalkSource(DataSource):
             current_dt = copy(open_dt)
             if self.freq == 'minute':
                 # Emit minutely trade signals from open to close
-                while current_dt < close_dt:
+                while current_dt <= close_dt:
                     for event in self._gen_events(cur_prices, current_dt):
                         yield event
                     current_dt += timedelta(minutes=1)
