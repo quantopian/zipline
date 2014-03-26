@@ -51,9 +51,9 @@ def create_test_zipline(**config):
         # trade than order
         trade_count = 101
 
-    #-------------------
+    # -------------------
     # Create the Algo
-    #-------------------
+    # -------------------
     if 'algorithm' in config:
         test_algo = config['algorithm']
     else:
@@ -65,9 +65,9 @@ def create_test_zipline(**config):
                                   factory.create_simulation_parameters())
         )
 
-    #-------------------
+    # -------------------
     # Trade Source
-    #-------------------
+    # -------------------
     if 'trade_source' in config:
         trade_source = config['trade_source']
     else:
@@ -80,21 +80,21 @@ def create_test_zipline(**config):
     if trade_source:
         test_algo.set_sources([trade_source])
 
-    #-------------------
+    # -------------------
     # Benchmark source
-    #-------------------
+    # -------------------
 
     test_algo.benchmark_return_source = config.get('benchmark_source', None)
 
-    #-------------------
+    # -------------------
     # Transforms
-    #-------------------
+    # -------------------
 
     transforms = config.get('transforms', None)
     if transforms is not None:
         test_algo.set_transforms(transforms)
 
-    #-------------------
+    # -------------------
     # Slippage
     # ------------------
     slippage = config.get('slippage', None)

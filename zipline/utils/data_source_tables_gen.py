@@ -106,7 +106,7 @@ def merge_all_files_into_pytables(file_dir, file_out):
                                        createparents=True)
             table.append(rows)
             table.flush()
-        if not table is None:
+        if table is not None:
             table.flush()
     end = datetime.datetime.now()
     diff = (end - start).seconds

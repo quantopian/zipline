@@ -51,7 +51,7 @@ CACHE_PATH = os.path.join(
     'cache'
 )
 
-#Mapping from index symbol to appropriate bond data
+# Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
     '^GSPC':
     ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
@@ -197,8 +197,8 @@ Fetching data from Yahoo Finance.
         ):
             benchmark_returns = benchmark_returns.tz_localize('UTC')
 
-    #Get treasury curve module, filename & source from mapping.
-    #Default to USA.
+    # Get treasury curve module, filename & source from mapping.
+    # Default to USA.
     module, filename, source = INDEX_MAPPING.get(
         bm_symbol, INDEX_MAPPING['^GSPC'])
 
@@ -264,7 +264,7 @@ must specify stocks or indexes"""
     if start is None:
         start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
 
-    if not start is None and not end is None:
+    if start is not None and end is not None:
         assert start < end, "start date is later than end date."
 
     data = OrderedDict()

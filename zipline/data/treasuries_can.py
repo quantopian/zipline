@@ -36,7 +36,7 @@ _CURVE_MAPPINGS = {
     '5year': (get_treasury_rate, "V39053"),
     '7year': (get_treasury_rate, "V39054"),
     '10year': (get_treasury_rate, "V39055"),
-    #Bank of Canada refers to this as 'Long' Rate, approximately 30 years.
+    # Bank of Canada refers to this as 'Long' Rate, approximately 30 years.
     '30year': (get_treasury_rate, "V39056"),
 }
 
@@ -47,7 +47,7 @@ BONDS = ['V39051', 'V39052', 'V39053', 'V39054', 'V39055', 'V39056']
 def get_treasury_source(start_date=None, end_date=None):
 
     today = datetime.date.today()
-    #Bank of Canada only has 10 years of data and has this in the URL.
+    # Bank of Canada only has 10 years of data and has this in the URL.
     restriction = datetime.date(today.year-10, today.month, today.day)
 
     if not end_date:
@@ -100,7 +100,7 @@ def get_treasury_source(start_date=None, end_date=None):
                 "%Y-%m-%d").date()
     bond_header = bond_row.split(",")
 
-    #Line up the two dates
+    # Line up the two dates
     if bill_end_date > bond_end_date:
         bill_iter.next()
     elif bond_end_date > bill_end_date:

@@ -88,7 +88,7 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(good_friday)
 
-    #Monday prior to May 25th.
+    # Monday prior to May 25th.
     victoria_day = rrule.rrule(
         rrule.MONTHLY,
         bymonth=5,
@@ -207,7 +207,7 @@ def get_non_trading_days(start, end):
     )
     non_trading_rules.append(boxing_day)
 
-    #if boxing day is a sunday, the Christmas was saturday.
+    # if boxing day is a sunday, the Christmas was saturday.
     # Christmas is observed on the 27th, a month and boxing day is observed
     # on the 28th, a tuesday.
     boxing_day_sunday = rrule.rrule(
@@ -271,34 +271,34 @@ def get_trading_days(start, end, trading_day=trading_day):
 
 trading_days = get_trading_days(start, end)
 
-#Days in Environment but not in Calendar (using ^GSPTSE as bm_symbol):
-#--------------------------------------------------------------------
-#Used http://web.tmxmoney.com/pricehistory.php?qm_page=61468&qm_symbol=^TSX
-#to check whether exchange was open on these days.
-#1994-07-01     - July 1st, Yahoo Finance has Volume = 0
-#1996-07-01     - July 1st, Yahoo Finance has Volume = 0
-#1996-08-05     - Civic Holiday, Yahoo Finance has Volume = 0
-#1997-07-01     - July 1st, Yahoo Finance has Volume = 0
-#1997-08-04     - Civic Holiday, Yahoo Finance has Volume = 0
-#2001-05-21     - Victoria day, Yahoo Finance has Volume = 0
-#2004-10-11     - Closed, Thanksgiving - Confirmed closed
-#2004-12-28     - Closed, Boxing Day - Confirmed closed
-#2012-10-08     - Closed, Thanksgiving - Confirmed closed
+# Days in Environment but not in Calendar (using ^GSPTSE as bm_symbol):
+# --------------------------------------------------------------------
+# Used http://web.tmxmoney.com/pricehistory.php?qm_page=61468&qm_symbol=^TSX
+# to check whether exchange was open on these days.
+# 1994-07-01     - July 1st, Yahoo Finance has Volume = 0
+# 1996-07-01     - July 1st, Yahoo Finance has Volume = 0
+# 1996-08-05     - Civic Holiday, Yahoo Finance has Volume = 0
+# 1997-07-01     - July 1st, Yahoo Finance has Volume = 0
+# 1997-08-04     - Civic Holiday, Yahoo Finance has Volume = 0
+# 2001-05-21     - Victoria day, Yahoo Finance has Volume = 0
+# 2004-10-11     - Closed, Thanksgiving - Confirmed closed
+# 2004-12-28     - Closed, Boxing Day - Confirmed closed
+# 2012-10-08     - Closed, Thanksgiving - Confirmed closed
 
-#Days in Calendar but not in Environment using ^GSPTSE as bm_symbol:
-#--------------------------------------------------------------------
-#Used http://web.tmxmoney.com/pricehistory.php?qm_page=61468&qm_symbol=^TSX
-#to check whether exchange was open on these days.
-#2000-06-28     - No data this far back, can't confirm
-#2000-08-28     - No data this far back, can't confirm
-#2000-08-29     - No data this far back, can't confirm
-#2001-09-11     - TSE Open for 71 min.
-#2002-02-01     - Confirm TSE Open
-#2002-06-14     - Confirm TSE Open
-#2002-07-02     - Confirm TSE Open
-#2002-11-11     - TSX website has no data for 2 weeks in 2002
-#2003-07-07     - Confirm TSE Open
-#2003-12-16     - Confirm TSE Open
+# Days in Calendar but not in Environment using ^GSPTSE as bm_symbol:
+# --------------------------------------------------------------------
+# Used http://web.tmxmoney.com/pricehistory.php?qm_page=61468&qm_symbol=^TSX
+# to check whether exchange was open on these days.
+# 2000-06-28     - No data this far back, can't confirm
+# 2000-08-28     - No data this far back, can't confirm
+# 2000-08-29     - No data this far back, can't confirm
+# 2001-09-11     - TSE Open for 71 min.
+# 2002-02-01     - Confirm TSE Open
+# 2002-06-14     - Confirm TSE Open
+# 2002-07-02     - Confirm TSE Open
+# 2002-11-11     - TSX website has no data for 2 weeks in 2002
+# 2003-07-07     - Confirm TSE Open
+# 2003-12-16     - Confirm TSE Open
 
 
 def get_early_closes(start, end):

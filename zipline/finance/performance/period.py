@@ -265,7 +265,7 @@ class PerformancePeriod(object):
             return
 
         if not pd.isnull(event.price):
-        # isnan check will keep the last price if its not present
+            # isnan check will keep the last price if its not present
             self.update_position(event.sid, last_sale_price=event.price,
                                  last_sale_date=event.dt)
 

@@ -342,7 +342,7 @@ class BatchTransform(object):
         if self.refresh_period == 0:
             period_signals_update = True
         else:
-        # 1. Is the refresh period over?
+            # 1. Is the refresh period over?
             period_signals_update = (
                 self.trading_days_total % self.refresh_period == 0)
         # 2. Have the args or kwargs been changed since last time?

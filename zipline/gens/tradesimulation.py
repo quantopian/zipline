@@ -76,7 +76,7 @@ class AlgorithmSimulator(object):
         # Processor function for injecting the algo_dt into
         # user prints/logs.
         def inject_algo_dt(record):
-            if not 'algo_dt' in record.extra:
+            if 'algo_dt' not in record.extra:
                 record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
