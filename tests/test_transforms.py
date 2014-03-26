@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from datetime import timedelta, datetime
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from six.moves import range
 
@@ -294,6 +294,7 @@ class TestTALIB(TestCase):
         self.source, self.panel = \
             factory.create_test_panel_ohlc_source(sim_params)
 
+    @skip
     def test_talib_with_default_params(self):
         BLACKLIST = ['make_transform', 'BatchTransform',
                      # TODO: Figure out why MAVP generates a KeyError
