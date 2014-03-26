@@ -196,7 +196,7 @@ class HistoryContainer(object):
         """
         Main API used by the algoscript is mapped to this function.
 
-        Selects from the overarching history panel the valuse for the
+        Selects from the overarching history panel the values for the
         @history_spec at the given @algo_dt.
         """
         field = history_spec.field
