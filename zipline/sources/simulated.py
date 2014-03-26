@@ -99,6 +99,9 @@ class RandomWalkSource(DataSource):
             'sid': (lambda x: x, 'sid'),
             'price': (float, 'price'),
             'volume': (int, 'volume'),
+            'open_price': (float, 'open_price'),
+            'high': (float, 'high'),
+            'low': (float, 'low'),
         }
 
     def _gen_next_step(self, x):
@@ -113,7 +116,10 @@ class RandomWalkSource(DataSource):
                 'dt': current_dt,
                 'sid': sid,
                 'price': cur_prices[sid],
-                'volume': 1000,
+                'volume': np.random.randint(1e5, 1e6),
+                'open_price': cur_prices[sid],
+                'high': cur_prices[sid] + .1,
+                'low': cur_prices[sid] - .1,
             }
 
             yield event
