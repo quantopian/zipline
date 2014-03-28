@@ -81,7 +81,7 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
         max_date=None,
-        extra_dates=None
+        env_trading_calendar=tradingcalendar
     ):
         self.prev_environment = self
         self.bm_symbol = bm_symbol
@@ -93,23 +93,22 @@ class TradingEnvironment(object):
 
         self.treasury_curves = pd.DataFrame(treasury_curves_map).T
         if max_date:
-            self.treasury_curves = self.treasury_curves.ix[:max_date, :]
+            tr_c = self.treasury_curves
+            # Mask the treasury curvers down to the current date.
+            # In the case of live trading, the last date in the treasury
+            # curves would be the day before the date considered to be
+            # 'today'.
+            self.treasury_curves = tr_c[tr_c.index <= max_date]
 
         self.exchange_tz = exchange_tz
 
-        bi = self.benchmark_returns.index
-        if max_date:
-            self.trading_days = bi[bi <= max_date].copy()
-        else:
-            self.trading_days = bi.copy()
+        # `tc_td` is short for "trading calendar trading days"
+        tc_td = env_trading_calendar.trading_days
 
-        if len(self.benchmark_returns) and extra_dates:
-            for extra_date in extra_dates:
-                extra_date = extra_date.replace(hour=0, minute=0, second=0,
-                                                microsecond=0)
-                if extra_date not in self.trading_days:
-                    self.trading_days = self.trading_days + \
-                        pd.DatetimeIndex([extra_date])
+        if max_date:
+            self.trading_days = tc_td[tc_td <= max_date].copy()
+        else:
+            self.trading_days = tc_td.copy()
 
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
