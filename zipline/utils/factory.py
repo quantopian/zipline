@@ -138,15 +138,32 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'sid': sid,
         'gross_amount': payment,
         'net_amount': payment,
-        'dt': declared_date.replace(hour=0, minute=0, second=0, microsecond=0),
-        'ex_date': ex_date.replace(hour=0, minute=0, second=0, microsecond=0),
-        'pay_date': pay_date.replace(hour=0, minute=0, second=0,
-                                     microsecond=0),
+        'payment_sid': None,
+        'ratio': None,
+        'dt': pd.tslib.normalize_date(declared_date),
+        'ex_date': pd.tslib.normalize_date(ex_date),
+        'pay_date': pd.tslib.normalize_date(pay_date),
         'type': DATASOURCE_TYPE.DIVIDEND,
         'source_id': 'MockDividendSource'
     })
 
     return div
+
+
+def create_stock_dividend(sid, payment_sid, ratio, declared_date,
+                          ex_date, pay_date):
+    return Event({
+        'sid': sid,
+        'payment_sid': payment_sid,
+        'ratio': ratio,
+        'net_amount': None,
+        'gross_amount': None,
+        'dt': pd.tslib.normalize_date(declared_date),
+        'ex_date': pd.tslib.normalize_date(ex_date),
+        'pay_date': pd.tslib.normalize_date(pay_date),
+        'type': DATASOURCE_TYPE.DIVIDEND,
+        'source_id': 'MockDividendSource'
+    })
 
 
 def create_split(sid, ratio, date):

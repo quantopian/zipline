@@ -75,7 +75,7 @@ import logbook
 
 import numpy as np
 import pandas as pd
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 
 from six import iteritems, itervalues
 
@@ -170,8 +170,19 @@ class PerformancePeriod(object):
         payment has been disbursed.
         """
         cash_payments = 0.0
+        stock_payments = Counter()  # maps sid to number of shares paid
         for sid, pos in iteritems(self.positions):
-            cash_payments += pos.update_dividends(todays_date)
+            cash_payment, stock_payment = pos.update_dividends(todays_date)
+            cash_payments += cash_payment
+            stock_payments.update(stock_payment)
+
+        for stock, payment in iteritems(stock_payments):
+            position = self.positions[stock]
+            position.amount += payment
+            self.ensure_position_index(stock)
+            self._position_amounts[stock] = position.amount
+            self._position_last_sale_prices[stock] = \
+                position.last_sale_price
 
         # credit our cash balance with the dividend payments, or
         # if we are short, debit our cash balance with the
