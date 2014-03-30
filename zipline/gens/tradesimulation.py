@@ -97,6 +97,7 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         # Initialize the mkt_close
+        mkt_open = self.algo.perf_tracker.market_open
         mkt_close = self.algo.perf_tracker.market_close
 
         # inject the current algo
@@ -189,7 +190,7 @@ class AlgorithmSimulator(object):
                             tp.rollover()
                             if mkt_close <= self.algo.perf_tracker.last_close:
                                 try:
-                                    _, mkt_close = \
+                                    mkt_open, mkt_close = \
                                         trading.environment.\
                                         next_open_and_close(
                                             mkt_close
@@ -198,7 +199,8 @@ class AlgorithmSimulator(object):
                                     # If at the end of backtest history,
                                     # skip advancing market close.
                                     pass
-                                self.algo.perf_tracker.handle_intraday_close()
+                                self.algo.perf_tracker.handle_intraday_close(
+                                    mkt_open, mkt_close)
 
                     self.algo.portfolio_needs_update = True
 

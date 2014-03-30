@@ -305,19 +305,15 @@ class PerformanceTracker(object):
         if dt == self.market_close:
             self.returns[todays_date] = self.todays_performance.returns
 
-    def handle_intraday_close(self):
+    def handle_intraday_close(self, new_mkt_open, new_mkt_close):
         # update_performance should have been called in handle_minute_close
         # so it is not repeated here.
         self.intraday_risk_metrics = \
             risk.RiskMetricsCumulative(self.sim_params)
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
-        # move the market day markers forward
-        if self.market_close < trading.environment.last_trading_day:
-            self.market_open, self.market_close = \
-                trading.environment.next_open_and_close(self.market_open)
-        else:
-            self.market_close = self.sim_params.last_close
+        self.market_open = new_mkt_open
+        self.market_close = new_mkt_close
 
     def handle_market_close(self):
         self.update_performance()
