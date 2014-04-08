@@ -120,3 +120,11 @@ the corresponding order.
     msg = """
 Transaction volume of {txn} exceeds the order volume of {order}.
 """.strip()
+
+
+class UnsupportedOrderParameters(ZiplineError):
+    """
+    Raised if a set of mutually exclusive parameters are passed to an order
+    call.
+    """
+    msg = "{msg}"

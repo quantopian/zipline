@@ -29,30 +29,38 @@ from zipline.errors import (
     UnsupportedSlippageModel,
     OverrideSlippagePostInit,
     UnsupportedCommissionModel,
-    OverrideCommissionPostInit
+    OverrideCommissionPostInit,
+    UnsupportedOrderParameters
+)
+
+from zipline.finance import trading
+from zipline.finance.blotter import Blotter
+from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.constants import ANNUALIZER
+from zipline.finance.execution import (
+    LimitOrder,
+    MarketOrder,
+    StopLimitOrder,
+    StopOrder,
 )
 from zipline.finance.performance import PerformanceTracker
-from zipline.sources import DataFrameSource, DataPanelSource
-from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.api_support import ZiplineAPI, api_method
-from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel,
     transact_partial
 )
-from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance.blotter import Blotter
-from zipline.finance.constants import ANNUALIZER
-from zipline.finance import trading
-import zipline.protocol
-from zipline.protocol import Event
-
 from zipline.gens.composites import (
     date_sorted_sources,
     sequential_transforms,
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.sources import DataFrameSource, DataPanelSource
+from zipline.transforms.utils import StatefulTransform
+from zipline.utils.api_support import ZiplineAPI, api_method
+from zipline.utils.factory import create_simulation_parameters
+
+import zipline.protocol
+from zipline.protocol import Event
 
 from zipline.history import HistorySpec
 from zipline.history.history_container import HistoryContainer
@@ -463,8 +471,70 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     @api_method
-    def order(self, sid, amount, limit_price=None, stop_price=None):
-        return self.blotter.order(sid, amount, limit_price, stop_price)
+    def order(self, sid, amount,
+              limit_price=None,
+              stop_price=None,
+              style=None):
+        """
+        Place an order using the specified parameters.
+        """
+        # Raises a ZiplineError if invalid parameters are detected.
+        self.validate_order_params(sid,
+                                   amount,
+                                   limit_price,
+                                   stop_price,
+                                   style)
+
+        # Convert deprecated limit_price and stop_price parameters to use
+        # ExecutionStyle objects.
+        style = self.__convert_order_params_for_blotter(limit_price,
+                                                        stop_price,
+                                                        style)
+        return self.blotter.order(sid, amount, style)
+
+    def validate_order_params(self,
+                              sid,
+                              amount,
+                              limit_price,
+                              stop_price,
+                              style):
+        """
+        Helper method for validating parameters to the order API function.
+
+        Raises an UnsupportedOrderParameters if invalid arguments are found.
+        """
+        if style:
+            if limit_price:
+                raise UnsupportedOrderParameters(
+                    msg="Passing both limit_price and style is not supported."
+                )
+
+            if stop_price:
+                raise UnsupportedOrderParameters(
+                    msg="Passing both stop_price and style is not supported."
+                )
+
+    @staticmethod
+    def __convert_order_params_for_blotter(limit_price, stop_price, style):
+        """
+        Helper method for converting deprecated limit_price and stop_price
+        arguments into ExecutionStyle instances.
+
+        This function assumes that either style == None or (limit_price,
+        stop_price) == (None, None).
+        """
+        # TODO_SS: DeprecationWarning for usage of limit_price and stop_price.
+        if style:
+            assert (limit_price, stop_price) == (None, None)
+            return style
+        if limit_price and stop_price:
+            return StopLimitOrder(limit_price, stop_price)
+        if limit_price:
+            return LimitOrder(limit_price)
+        if stop_price:
+            return StopOrder(stop_price)
+        else:
+            return MarketOrder()
 
     @api_method
     def order_value(self, sid, value, limit_price=None, stop_price=None):

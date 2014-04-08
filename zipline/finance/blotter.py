@@ -30,7 +30,6 @@ from zipline.finance.slippage import (
     check_order_triggers
 )
 from zipline.finance.commission import PerShare
-import zipline.utils.math_utils as zp_math
 
 log = Logger('Blotter')
 
@@ -41,17 +40,6 @@ ORDER_STATUS = Enum(
     'FILLED',
     'CANCELLED'
 )
-
-
-# On an order to buy, between .05 below to .95 above a penny, use that penny.
-# On an order to sell, between .05 above to .95 below a penny, use that penny.
-# buy: [.0095, .0195) -> round to .01, sell: (.0005, .0105] -> round to .01
-def round_for_minimum_price_variation(x, is_buy, diff=(0.0095 - .005)):
-    # relies on rounding half away from zero, unlike numpy's bankers' rounding
-    rounded = round(x - (diff if is_buy else -diff), 2)
-    if zp_math.tolerant_equals(rounded, 0.0):
-        return 0.0
-    return rounded
 
 
 class Blotter(object):
@@ -86,7 +74,7 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, limit_price, stop_price, order_id=None):
+    def order(self, sid, amount, style, order_id=None):
 
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
@@ -96,11 +84,10 @@ class Blotter(object):
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
         Market order:    order(sid, amount)
-        Limit order:     order(sid, amount, limit_price)
-        Stop order:      order(sid, amount, None, stop_price)
-        StopLimit order: order(sid, amount, limit_price, stop_price)
+        Limit order:     order(sid, amount, LimitOrder(price))
+        Stop order:      order(sid, amount, StopOrder(price))
+        StopLimit order: order(sid, amount, StopLimitOrder(price))
         """
-
         # This fixes a bug that if amount is e.g. -27.99999 due to
         # floating point madness we actually want to treat it as -28.
         def almost_equal_to(a, eps=1e-4):
@@ -127,15 +114,13 @@ class Blotter(object):
             raise OverflowError("Can't order more than %d shares" %
                                 self.max_shares)
 
-        if limit_price:
-            limit_price = round_for_minimum_price_variation(limit_price,
-                                                            amount > 0)
+        is_buy = (amount > 0)
         order = Order(
             dt=self.current_dt,
             sid=sid,
             amount=amount,
-            stop=stop_price,
-            limit=limit_price,
+            stop=style.get_stop_price(is_buy),
+            limit=style.get_limit_price(is_buy),
             id=order_id
         )
 
