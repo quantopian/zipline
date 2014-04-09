@@ -23,6 +23,7 @@ from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
 
+import answer_key
 from . answer_key import AnswerKey
 
 ANSWER_KEY = AnswerKey()
@@ -54,9 +55,13 @@ class TestRisk(unittest.TestCase):
             self.sim_params
         )
 
+        self.benchmark_returns_06 = \
+            answer_key.RETURNS_DATA['Benchmark Returns']
+
         self.metrics_06 = risk.RiskReport(
             self.algo_returns_06,
-            self.sim_params
+            self.sim_params,
+            benchmark_returns=self.benchmark_returns_06,
         )
 
         start_08 = datetime.datetime(
@@ -98,23 +103,22 @@ class TestRisk(unittest.TestCase):
         self.assertEqual(metrics.max_drawdown, 0.505)
 
     def test_benchmark_returns_06(self):
-        returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params)
+
         np.testing.assert_almost_equal(
             [x.benchmark_period_returns
-             for x in metrics.month_periods],
+             for x in self.metrics_06.month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['Monthly'])
         np.testing.assert_almost_equal(
             [x.benchmark_period_returns
-             for x in metrics.three_month_periods],
+             for x in self.metrics_06.three_month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['3-Month'])
         np.testing.assert_almost_equal(
             [x.benchmark_period_returns
-             for x in metrics.six_month_periods],
+             for x in self.metrics_06.six_month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['6-month'])
         np.testing.assert_almost_equal(
             [x.benchmark_period_returns
-             for x in metrics.year_periods],
+             for x in self.metrics_06.year_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['year'])
 
     def test_trading_days_06(self):
@@ -126,23 +130,22 @@ class TestRisk(unittest.TestCase):
                          [20, 19, 23, 19, 22, 22, 20, 23, 20, 22, 21, 20])
 
     def test_benchmark_volatility_06(self):
-        returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params)
+
         np.testing.assert_almost_equal(
             [x.benchmark_volatility
-             for x in metrics.month_periods],
+             for x in self.metrics_06.month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['Monthly'])
         np.testing.assert_almost_equal(
             [x.benchmark_volatility
-             for x in metrics.three_month_periods],
+             for x in self.metrics_06.three_month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['3-Month'])
         np.testing.assert_almost_equal(
             [x.benchmark_volatility
-             for x in metrics.six_month_periods],
+             for x in self.metrics_06.six_month_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['6-month'])
         np.testing.assert_almost_equal(
             [x.benchmark_volatility
-             for x in metrics.year_periods],
+             for x in self.metrics_06.year_periods],
             ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['year'])
 
     def test_algorithm_returns_06(self):
