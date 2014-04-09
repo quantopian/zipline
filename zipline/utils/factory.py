@@ -272,7 +272,7 @@ def create_test_df_source(sim_params=None, bars='daily'):
     elif bars == 'minute':
         freq = pd.datetools.Minute()
     else:
-        raise ValueError('%s bars not understood.' % freq)
+        raise ValueError('%s bars not understood.' % bars)
 
     if sim_params:
         index = sim_params.trading_days
