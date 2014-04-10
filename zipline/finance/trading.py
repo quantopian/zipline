@@ -52,7 +52,7 @@ log = logbook.Logger('Trading')
 # you can use a TradingEnvironment in a with clause:
 #       lse = TradingEnvironment(bm_index="^FTSE", exchange_tz="Europe/London")
 #       with lse:
-#           # the code here will have lse as the global trading.environment
+# the code here will have lse as the global trading.environment
 #           algo.run(start, end)
 #
 # User code will not normally need to use TradingEnvironment

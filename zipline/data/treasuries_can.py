@@ -48,7 +48,7 @@ def get_treasury_source(start_date=None, end_date=None):
 
     today = datetime.date.today()
     # Bank of Canada only has 10 years of data and has this in the URL.
-    restriction = datetime.date(today.year-10, today.month, today.day)
+    restriction = datetime.date(today.year - 10, today.month, today.day)
 
     if not end_date:
         end_date = today

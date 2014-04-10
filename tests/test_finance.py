@@ -325,9 +325,9 @@ class FinanceTestCase(TestCase):
             # move after market orders to just after market next
             # market open.
             if order_date.hour >= 21:
-                    if order_date.minute >= 00:
-                        order_date = order_date + timedelta(days=1)
-                        order_date = order_date.replace(hour=14, minute=30)
+                if order_date.minute >= 00:
+                    order_date = order_date + timedelta(days=1)
+                    order_date = order_date.replace(hour=14, minute=30)
 
         # there should now be one open order list stored under the sid
         oo = blotter.open_orders
