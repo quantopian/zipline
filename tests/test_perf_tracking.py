@@ -654,8 +654,8 @@ class TestPositionPerformance(unittest.TestCase):
             trades[-1]['price'],
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
-                exp=trades[-1]['price'],
-                act=pp.positions[1].last_sale_price)
+            exp=trades[-1]['price'],
+            act=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(
