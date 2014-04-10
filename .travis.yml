@@ -12,7 +12,7 @@ install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/twiecki numpy==1.8.0 scipy nose matplotlib pandas Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
-  - pip install flake8 nose-parameterized==0.3.3 nose-ignore-docstring==0.2
+  - pip install pyflakes==0.7.3 pep8==1.4.6 mccabe==0.2.1 flake8==2.1.0 nose-parameterized==0.3.3 nose-ignore-docstring==0.2
 before_script:
   - "flake8 zipline tests"
 script:
