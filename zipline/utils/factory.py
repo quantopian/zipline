@@ -42,8 +42,8 @@ __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
 def create_simulation_parameters(year=2006, start=None, end=None,
                                  capital_base=float("1.0e5"),
-                                 num_days=None, load=None
-                                 ):
+                                 num_days=None, load=None,
+                                 sids=None):
     """Construct a complete environment with reasonable defaults"""
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
@@ -59,6 +59,7 @@ def create_simulation_parameters(year=2006, start=None, end=None,
         period_start=start,
         period_end=end,
         capital_base=capital_base,
+        sids=sids,
     )
 
     return sim_params
