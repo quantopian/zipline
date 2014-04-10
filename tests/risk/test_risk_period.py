@@ -23,7 +23,7 @@ from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
 
-import answer_key
+from . import answer_key
 from . answer_key import AnswerKey
 
 ANSWER_KEY = AnswerKey()
