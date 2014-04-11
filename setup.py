@@ -67,7 +67,8 @@ setup(
         'pytz',
         'requests',
         'numpy',
-        'pandas'
+        'pandas',
+        'six'
     ],
     url="https://github.com/quantopian/zipline"
 )
