@@ -59,9 +59,12 @@ class TestRisk(unittest.TestCase):
                                               returns['Benchmark Returns'])
 
     def test_algorithm_volatility_06(self):
-        np.testing.assert_almost_equal(
-            ANSWER_KEY.ALGORITHM_CUMULATIVE_VOLATILITY,
-            self.cumulative_metrics_06.metrics.algorithm_volatility.values)
+        algo_vol_answers = answer_key.RISK_CUMULATIVE.volatility
+        for dt, value in algo_vol_answers.iterkv():
+            np.testing.assert_almost_equal(
+                self.cumulative_metrics_06.metrics.algorithm_volatility[dt],
+                value,
+                err_msg="Mismatch at %s" % (dt,))
 
     def test_sharpe_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.sharpe.iterkv():
