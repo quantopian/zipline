@@ -17,4 +17,3 @@ TA-Lib==0.4.8
 # For fetching remote data
 requests==2.2.0
 
-six==1.6.1
