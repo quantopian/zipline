@@ -69,8 +69,8 @@ class TestRisk(unittest.TestCase):
     def test_sharpe_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.sharpe.iterkv():
             np.testing.assert_almost_equal(
-                value,
                 self.cumulative_metrics_06.metrics.sharpe[dt],
+                value,
                 decimal=2,
                 err_msg="Mismatch at %s" % (dt,))
 
