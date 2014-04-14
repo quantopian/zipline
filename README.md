@@ -196,6 +196,7 @@ Thank you for all the help so far!
 - @jkp and @bencpeters for bugfixes to benchmark.
 - @dstephens for adding Canadian treasury curves.
 - @mtrovo for adding BMF&Bovespa calendars.
+- @sdrdis for bugfixes.
 - Quantopian Team
 
 (alert us if we've inadvertantly missed listing you here!)
