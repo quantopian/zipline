@@ -112,6 +112,15 @@ class RiskMetricsPeriod(object):
             self.end_date
         )
         self.sharpe = self.calculate_sharpe()
+        # The consumer currently expects a 0.0 value for sharpe in period,
+        # this differs from cumulative which was np.nan.
+        # When factoring out the sharpe_ratio, the different return types
+        # were collapsed into `np.nan`.
+        # TODO: Either fix consumer to accept `np.nan` or make the
+        # `sharpe_ratio` return type configurable.
+        # In the meantime, convert nan values to 0.0
+        if pd.isnull(self.sharpe):
+            self.sharpe = 0.0
         self.sortino = self.calculate_sortino()
         self.information = self.calculate_information()
         self.beta, self.algorithm_covariance, self.benchmark_variance, \
