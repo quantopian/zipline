@@ -206,7 +206,7 @@ class RiskMetricsCumulative(object):
             if len(self.algorithm_returns) == 1:
                 self.algorithm_returns = pd.Series(
                     {self.day_before_start: 0.0}).append(
-                        self.algorithm_returns)
+                    self.algorithm_returns)
 
         self.algorithm_cumulative_returns[dt] = \
             self.calculate_cumulative_returns(self.algorithm_returns)
@@ -230,7 +230,7 @@ class RiskMetricsCumulative(object):
                     {self.day_before_start: 0.0}).append(self.mean_returns)
                 self.annualized_mean_returns = pd.Series(
                     {self.day_before_start: 0.0}).append(
-                        self.annualized_mean_returns)
+                    self.annualized_mean_returns)
 
         self.benchmark_returns_cont[dt] = benchmark_returns
         self.benchmark_returns = self.benchmark_returns_cont[:dt]
@@ -239,7 +239,7 @@ class RiskMetricsCumulative(object):
             if len(self.benchmark_returns) == 1:
                 self.benchmark_returns = pd.Series(
                     {self.day_before_start: 0.0}).append(
-                        self.benchmark_returns)
+                    self.benchmark_returns)
 
         self.benchmark_cumulative_returns[dt] = \
             self.calculate_cumulative_returns(self.benchmark_returns)
