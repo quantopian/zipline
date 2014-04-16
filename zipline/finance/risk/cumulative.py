@@ -110,6 +110,12 @@ class RiskMetricsCumulative(object):
             self.start_date,
             self.end_date)
 
+        # Hold on to the trading day before the start,
+        # used for index of the zero return value when forcing returns
+        # on the first day.
+        self.day_before_start = self.start_date - \
+            trading.environment.trading_days.freq
+
         last_day = normalize_date(sim_params.period_end)
         if last_day not in self.trading_days:
             last_day = pd.tseries.index.DatetimeIndex(
@@ -199,7 +205,8 @@ class RiskMetricsCumulative(object):
         if self.create_first_day_stats:
             if len(self.algorithm_returns) == 1:
                 self.algorithm_returns = pd.Series(
-                    {'null return': 0.0}).append(self.algorithm_returns)
+                    {self.day_before_start: 0.0}).append(
+                        self.algorithm_returns)
 
         self.algorithm_cumulative_returns[dt] = \
             self.calculate_cumulative_returns(self.algorithm_returns)
@@ -220,9 +227,10 @@ class RiskMetricsCumulative(object):
         if self.create_first_day_stats:
             if len(self.mean_returns) == 1:
                 self.mean_returns = pd.Series(
-                    {'null return': 0.0}).append(self.mean_returns)
+                    {self.day_before_start: 0.0}).append(self.mean_returns)
                 self.annualized_mean_returns = pd.Series(
-                    {'null return': 0.0}).append(self.annualized_mean_returns)
+                    {self.day_before_start: 0.0}).append(
+                        self.annualized_mean_returns)
 
         self.benchmark_returns_cont[dt] = benchmark_returns
         self.benchmark_returns = self.benchmark_returns_cont[:dt]
@@ -230,7 +238,8 @@ class RiskMetricsCumulative(object):
         if self.create_first_day_stats:
             if len(self.benchmark_returns) == 1:
                 self.benchmark_returns = pd.Series(
-                    {'null return': 0.0}).append(self.benchmark_returns)
+                    {self.day_before_start: 0.0}).append(
+                        self.benchmark_returns)
 
         self.benchmark_cumulative_returns[dt] = \
             self.calculate_cumulative_returns(self.benchmark_returns)
@@ -294,29 +303,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
         self.max_drawdowns[dt] = self.max_drawdown
-
-        if self.create_first_day_stats:
-            # Remove placeholder 0 return
-            if 'null return' in self.algorithm_returns:
-                self.algorithm_returns = self.algorithm_returns.drop(
-                    'null return')
-                self.algorithm_returns.index = pd.to_datetime(
-                    self.algorithm_returns.index)
-            if 'null return' in self.benchmark_returns:
-                self.benchmark_returns = self.benchmark_returns.drop(
-                    'null return')
-                self.benchmark_returns.index = pd.to_datetime(
-                    self.benchmark_returns.index)
-            if 'null return' in self.mean_returns:
-                self.mean_returns = self.mean_returns.drop(
-                    'null return')
-                self.mean_returns.index = pd.to_datetime(
-                    self.mean_returns.index)
-            if 'null return' in self.annualized_mean_returns:
-                self.annualized_mean_returns = \
-                    self.annualized_mean_returns.drop('null return')
-                self.annualized_mean_returns.index = pd.to_datetime(
-                    self.mean_returns.index)
 
     def to_dict(self):
         """
