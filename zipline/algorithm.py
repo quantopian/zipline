@@ -34,7 +34,7 @@ from zipline.errors import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.api_support import set_algo_instance, api_method
+from zipline.utils.api_support import ZiplineAPI, api_method
 from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
@@ -195,12 +195,12 @@ class TradingAlgorithm(object):
         self.initialize(*args, **kwargs)
 
     def initialize(self, *args, **kwargs):
-        # store algo reference in global space
-        set_algo_instance(self)
-        try:
+        """
+        Call self._initialize with `self` made available to Zipline API
+        functions.
+        """
+        with ZiplineAPI(self):
             self._initialize(self)
-        finally:
-            set_algo_instance(None)
 
     def handle_data(self, data):
         if self.history_container:
@@ -402,10 +402,7 @@ class TradingAlgorithm(object):
         # create transforms and zipline
         self.gen = self._create_generator(sim_params)
 
-        # store algo reference in global space
-        set_algo_instance(self)
-
-        try:
+        with ZiplineAPI(self):
             # loop through simulated_trading, each iteration returns a
             # perf dictionary
             perfs = []
@@ -414,9 +411,6 @@ class TradingAlgorithm(object):
 
             # convert perf dict to pandas dataframe
             daily_stats = self._create_daily_stats(perfs)
-        finally:
-            # remove algo from global space
-            set_algo_instance(None)
 
         return daily_stats
 
