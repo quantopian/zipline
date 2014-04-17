@@ -296,7 +296,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             -
             self.treasury_period_return)
         self.metrics.beta[dt] = self.calculate_beta()
-        self.metrics.alpha[dt] = self.calculate_alpha(dt)
+        self.metrics.alpha[dt] = self.calculate_alpha()
         self.metrics.sharpe[dt] = self.calculate_sharpe()
         self.metrics.downside_risk[dt] = self.calculate_downside_risk()
         self.metrics.sortino[dt] = self.calculate_sortino()
@@ -407,14 +407,14 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.annualized_mean_returns[self.latest_dt],
             self.annualized_mean_benchmark_returns[self.latest_dt])
 
-    def calculate_alpha(self, dt):
+    def calculate_alpha(self):
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
         return alpha(self.annualized_mean_returns[self.latest_dt],
                      self.treasury_period_return,
                      self.annualized_mean_benchmark_returns[self.latest_dt],
-                     self.metrics.beta[dt])
+                     self.metrics.beta[self.latest_dt])
 
     def calculate_volatility(self, daily_returns):
         if len(daily_returns) <= 1:
