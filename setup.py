@@ -42,7 +42,7 @@ else:
 
 setup(
     name='zipline',
-    version='0.6.0',
+    version='0.6.1',
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',

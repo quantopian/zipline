@@ -1,10 +1,10 @@
 package:
   name: zipline
-  version: 0.6.0
+  version: 0.6.1
 
 source:
-  fn: zipline-0.6.0.tar.gz
-  url: https://pypi.python.org/packages/source/z/zipline/zipline-0.6.0.tar.gz
+  fn: zipline-0.6.1.tar.gz
+  url: https://pypi.python.org/packages/source/z/zipline/zipline-0.6.1.tar.gz
   md5: 75d818c291df133946bb15a1b08ae0d8
 
 requirements:
