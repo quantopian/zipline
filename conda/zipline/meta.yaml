@@ -5,11 +5,12 @@ package:
 source:
   fn: zipline-0.6.1.tar.gz
   url: https://pypi.python.org/packages/source/z/zipline/zipline-0.6.1.tar.gz
-  md5: 75d818c291df133946bb15a1b08ae0d8
+  md5: e07499447eccdfc97d57478daef4d114
 
 requirements:
   build:
     - python
+    - setuptools
   run:
     - pytz
     - requests
@@ -19,21 +20,6 @@ requirements:
     - matplotlib
     - ta-lib
     - logbook
-  run:
-    - python
-    - pytz
-    - requests
-    - numpy
-    - pandas
-    - scipy
-    - matplotlib
-    - ta-lib
-    - logbook
-
-test:
-  # Python imports
-  imports:
-    - zipline
 
 test:
   # Python imports
