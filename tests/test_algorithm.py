@@ -26,6 +26,7 @@ import zipline.utils.simfactory as simfactory
 from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      RecordAlgorithm,
                                      TestOrderAlgorithm,
+                                     TestOrderStyleForwardingAlgorithm,
                                      TestOrderInstantAlgorithm,
                                      TestOrderValueAlgorithm,
                                      TestTargetAlgorithm,
@@ -208,6 +209,24 @@ class TestTransformAlgorithm(TestCase):
             algo = AlgoClass(
                 sim_params=self.sim_params,
                 data_frequency='daily'
+            )
+            algo.run(self.df)
+
+    def test_order_method_style_forwarding(self):
+
+        method_names_to_test = ['order',
+                                'order_value',
+                                'order_percent',
+                                'order_target',
+                                'order_target_percent',
+                                'order_target_value']
+
+        for name in method_names_to_test:
+            algo = TestOrderStyleForwardingAlgorithm(
+                sim_params=self.sim_params,
+                data_frequency='daily',
+                instant_fill=False,
+                method_name=name
             )
             algo.run(self.df)
 

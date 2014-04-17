@@ -79,6 +79,7 @@ from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import FixedSlippage
+from zipline.finance.execution import StopLimitOrder
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -259,6 +260,37 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
         self.incr += 2
         self.order_value(0, data[0].price * 2.)
         self.last_price = data[0].price
+
+
+class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
+    """
+    Test Algorithm for verifying that ExecutionStyles are properly forwarded by
+    order API helper methods.  Pass the name of the method to be tested as a
+    string parameter to this algorithm's constructor.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.method_name = kwargs.pop('method_name')
+        super(TestOrderStyleForwardingAlgorithm, self)\
+            .__init__(*args, **kwargs)
+
+    def initialize(self):
+        self.incr = 0
+        self.last_price = None
+
+    def handle_data(self, data):
+        if self.incr == 0:
+            assert len(self.portfolio.positions.keys()) == 0
+
+            method_to_check = getattr(self, self.method_name)
+            method_to_check(0, data[0].price, style=StopLimitOrder(10, 10))
+
+            assert len(self.blotter.open_orders[0]) == 1
+            result = self.blotter.open_orders[0][0]
+            assert result.limit == 10
+            assert result.stop == 10
+
+            self.incr += 1
 
 
 class TestOrderValueAlgorithm(TradingAlgorithm):
