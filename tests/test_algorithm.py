@@ -42,7 +42,8 @@ from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
                                      api_symbol_algo,
                                      call_all_order_methods,
                                      record_variables,
-                                     record_float_magic
+                                     record_float_magic,
+                                     AmbitiousStopLimitAlgorithm
                                      )
 
 from zipline.utils.test_utils import drain_zipline, assert_single_position
@@ -263,6 +264,15 @@ class TestPositions(TestCase):
         for i, expected in enumerate(expected_position_count):
             self.assertEqual(daily_stats.ix[i]['num_positions'],
                              expected)
+
+    def test_noop_orders(self):
+
+        algo = AmbitiousStopLimitAlgorithm(sid=1)
+        daily_stats = algo.run(self.source)
+
+        # Verify that possitions are empty for all dates.
+        empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
+        self.assertTrue(empty_positions.all())
 
 
 class TestAlgoScript(TestCase):

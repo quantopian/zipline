@@ -335,3 +335,12 @@ class Order(object):
     @property
     def open_amount(self):
         return self.amount - self.filled
+
+    def __repr__(self):
+        """
+        String representation for this object.
+        """
+        return "Order(%s)" % self.to_dict().__repr__()
+
+    def __unicode__(self):
+        return unicode(self.__repr__)

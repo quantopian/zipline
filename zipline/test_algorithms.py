@@ -376,6 +376,55 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
         pass
 
 
+class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
+    """
+    Algorithm that tries to buy with extremely low stops/limits and tries to
+    sell with extremely high versions of same. Should not end up with any
+    positions for reasonable data.
+    """
+
+    def initialize(self, *args, **kwargs):
+        self.sid = kwargs.pop('sid')
+
+    def handle_data(self, data):
+
+        ########
+        # Buys #
+        ########
+
+        # Buy with low limit, shouldn't trigger.
+        self.order(self.sid, 100, limit_price=1)
+
+        # But with high stop, shouldn't trigger
+        self.order(self.sid, 100, stop_price=10000000)
+
+        # Buy with high limit (should trigger) but also high stop (should
+        # prevent trigger).
+        self.order(self.sid, 100, limit_price=10000000, stop_price=10000000)
+
+        # Buy with low stop (should trigger), but also low limit (should
+        # prevent trigger).
+        self.order(self.sid, 100, limit_price=1, stop_price=1)
+
+        #########
+        # Sells #
+        #########
+
+        # Sell with high limit, shouldn't trigger.
+        self.order(self.sid, -100, limit_price=1000000)
+
+        # Sell with low stop, shouldn't trigger.
+        self.order(self.sid, -100, stop_price=1)
+
+        # Sell with low limit (should trigger), but also high stop (should
+        # prevent trigger).
+        self.order(self.sid, -100, limit_price=1000000, stop_price=1000000)
+
+        # Sell with low limit (should trigger), but also low stop (should
+        # prevent trigger).
+        self.order(self.sid, -100, limit_price=1, stop_price=1)
+
+
 ##########################################
 # Algorithm using simple batch transforms
 
