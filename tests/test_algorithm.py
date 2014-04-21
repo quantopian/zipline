@@ -248,13 +248,9 @@ class TestPositions(TestCase):
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
 
-        self.panel_source, self.panel = \
-            factory.create_test_panel_source(self.sim_params)
-
     def test_empty_portfolio(self):
         algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
                                        data_frequency='daily')
-
         daily_stats = algo.run(self.df)
 
         expected_position_count = [
