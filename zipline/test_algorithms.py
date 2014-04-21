@@ -424,6 +424,12 @@ class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
         # prevent trigger).
         self.order(self.sid, -100, limit_price=1, stop_price=1)
 
+        ###################
+        # Rounding Checks #
+        ###################
+        self.order(self.sid, 100, limit_price=.00000001)
+        self.order(self.sid, -100, stop_price=.00000001)
+
 
 ##########################################
 # Algorithm using simple batch transforms

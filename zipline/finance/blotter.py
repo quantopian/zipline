@@ -296,10 +296,10 @@ class Order(object):
 
         self.amount = int(self.amount / ratio)
 
-        if self.limit:
+        if self.limit is not None:
             self.limit = round(self.limit * ratio, 2)
 
-        if self.stop:
+        if self.stop is not None:
             self.stop = round(self.stop * ratio, 2)
 
     @property
@@ -324,10 +324,10 @@ class Order(object):
         For a stop order, True IFF stop_reached.
         For a limit order, True IFF limit_reached.
         """
-        if self.stop and not self.stop_reached:
+        if self.stop is not None and not self.stop_reached:
             return False
 
-        if self.limit and not self.limit_reached:
+        if self.limit is not None and not self.limit_reached:
             return False
 
         return True
