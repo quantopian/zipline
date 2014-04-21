@@ -23,29 +23,31 @@ from zipline.utils.test_utils import setup_logger
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
-from zipline.test_algorithms import (TestRegisterTransformAlgorithm,
-                                     RecordAlgorithm,
-                                     TestOrderAlgorithm,
-                                     TestOrderStyleForwardingAlgorithm,
-                                     TestOrderInstantAlgorithm,
-                                     TestOrderValueAlgorithm,
-                                     TestTargetAlgorithm,
-                                     TestOrderPercentAlgorithm,
-                                     TestTargetPercentAlgorithm,
-                                     TestTargetValueAlgorithm,
-                                     EmptyPositionsAlgorithm,
-                                     initialize_noop,
-                                     handle_data_noop,
-                                     initialize_api,
-                                     handle_data_api,
-                                     noop_algo,
-                                     api_algo,
-                                     api_symbol_algo,
-                                     call_all_order_methods,
-                                     record_variables,
-                                     record_float_magic,
-                                     AmbitiousStopLimitAlgorithm
-                                     )
+from zipline.test_algorithms import (
+    AmbitiousStopLimitAlgorithm,
+    EmptyPositionsAlgorithm,
+    InvalidOrderAlgorithm,
+    RecordAlgorithm,
+    TestOrderAlgorithm,
+    TestOrderInstantAlgorithm,
+    TestOrderPercentAlgorithm,
+    TestOrderStyleForwardingAlgorithm,
+    TestOrderValueAlgorithm,
+    TestRegisterTransformAlgorithm,
+    TestTargetAlgorithm,
+    TestTargetPercentAlgorithm,
+    TestTargetValueAlgorithm,
+    api_algo,
+    api_symbol_algo,
+    call_all_order_methods,
+    handle_data_api,
+    handle_data_noop,
+    initialize_api,
+    initialize_noop,
+    noop_algo,
+    record_float_magic,
+    record_variables,
+)
 
 from zipline.utils.test_utils import drain_zipline, assert_single_position
 
@@ -122,6 +124,13 @@ class TestTransformAlgorithm(TestCase):
 
         with self.assertRaises(AssertionError):
             algo.run([self.source, self.df_source])
+
+    def test_invalid_order_parameters(self):
+        algo = InvalidOrderAlgorithm(
+            sids=[133],
+            sim_params=self.sim_params
+        )
+        algo.run(self.source)
 
     def test_multi_source_as_input(self):
         sim_params = SimulationParameters(
