@@ -174,19 +174,20 @@ class TradingAlgorithm(object):
         self.algoscript = kwargs.pop('script', None)
 
         self._initialize = None
+        self._analyze = None
 
         if self.algoscript is not None:
             self.ns = {}
             exec_(self.algoscript, self.ns)
-            if 'initialize' not in self.ns:
-                raise ValueError('You must define an initialze function.')
+            self._initialize = self.ns.get('initialize', None)
             if 'handle_data' not in self.ns:
                 raise ValueError('You must define a handle_data function.')
-            self._initialize = self.ns['initialize']
-            self._handle_data = self.ns['handle_data']
+            else:
+                self._handle_data = self.ns['handle_data']
 
-        # If two functions are passed in assume initialize and
-        # handle_data are passed in.
+            # Optional analyze function, gets called after run
+            self._analyze = self.ns.get('analyze', None)
+
         elif kwargs.get('initialize', False) and kwargs.get('handle_data'):
             if self.algoscript is not None:
                 raise ValueError('You can not set script and \
@@ -194,6 +195,7 @@ class TradingAlgorithm(object):
             self._initialize = kwargs.pop('initialize')
             self._handle_data = kwargs.pop('handle_data')
 
+        # If method not defined, NOOP
         if self._initialize is None:
             self._initialize = lambda x: None
 
@@ -215,6 +217,13 @@ class TradingAlgorithm(object):
             self.history_container.update(data, self.datetime)
 
         self._handle_data(self, data)
+
+    def analyze(self, perf):
+        if self._analyze is None:
+            return
+
+        with ZiplineAPI(self):
+            self._analyze(self, perf)
 
     def __repr__(self):
         """
@@ -419,6 +428,8 @@ class TradingAlgorithm(object):
 
             # convert perf dict to pandas dataframe
             daily_stats = self._create_daily_stats(perfs)
+
+        self.analyze(daily_stats)
 
         return daily_stats
 

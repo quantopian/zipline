@@ -14,35 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import matplotlib.pyplot as plt
-from datetime import datetime
-import pytz
+from zipline.api import order, record
 
-from zipline.algorithm import TradingAlgorithm
-from zipline.utils.factory import load_from_yahoo
+def initialize(context):
+    pass
 
-
-class BuyApple(TradingAlgorithm):  # inherit from TradingAlgorithm
-    """This is the simplest possible algorithm that does nothing but
-    buy 1 apple share on each event.
-    """
-    def initialize(self):
-        pass
-
-    def handle_data(self, data):  # overload handle_data() method
-        self.order('AAPL', 1)  # order SID (=0) and amount (=1 shares)
-
-
-if __name__ == '__main__':
-    start = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
-    data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
-                           end=end)
-    simple_algo = BuyApple()
-    results = simple_algo.run(data)
-
-    ax1 = plt.subplot(211)
-    results.portfolio_value.plot(ax=ax1)
-    ax2 = plt.subplot(212, sharex=ax1)
-    data.AAPL.plot(ax=ax2)
-    plt.gcf().set_size_inches(18, 8)
+def handle_data(context, data):
+    order('AAPL', 10)
+    record(AAPL=data['AAPL'].price)
