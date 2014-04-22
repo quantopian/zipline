@@ -19,6 +19,8 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
+from six import text_type
+
 import zipline.errors
 import zipline.protocol as zp
 
@@ -343,4 +345,7 @@ class Order(object):
         return "Order(%s)" % self.to_dict().__repr__()
 
     def __unicode__(self):
-        return unicode(self.__repr__)
+        """
+        Unicode representation for this object.
+        """
+        return text_type(repr(self))
