@@ -29,30 +29,38 @@ from zipline.errors import (
     UnsupportedSlippageModel,
     OverrideSlippagePostInit,
     UnsupportedCommissionModel,
-    OverrideCommissionPostInit
+    OverrideCommissionPostInit,
+    UnsupportedOrderParameters
+)
+
+from zipline.finance import trading
+from zipline.finance.blotter import Blotter
+from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.constants import ANNUALIZER
+from zipline.finance.execution import (
+    LimitOrder,
+    MarketOrder,
+    StopLimitOrder,
+    StopOrder,
 )
 from zipline.finance.performance import PerformanceTracker
-from zipline.sources import DataFrameSource, DataPanelSource
-from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.api_support import ZiplineAPI, api_method
-from zipline.transforms.utils import StatefulTransform
 from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel,
     transact_partial
 )
-from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance.blotter import Blotter
-from zipline.finance.constants import ANNUALIZER
-from zipline.finance import trading
-import zipline.protocol
-from zipline.protocol import Event
-
 from zipline.gens.composites import (
     date_sorted_sources,
     sequential_transforms,
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.sources import DataFrameSource, DataPanelSource
+from zipline.transforms.utils import StatefulTransform
+from zipline.utils.api_support import ZiplineAPI, api_method
+from zipline.utils.factory import create_simulation_parameters
+
+import zipline.protocol
+from zipline.protocol import Event
 
 from zipline.history import HistorySpec
 from zipline.history.history_container import HistoryContainer
@@ -463,11 +471,74 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     @api_method
-    def order(self, sid, amount, limit_price=None, stop_price=None):
-        return self.blotter.order(sid, amount, limit_price, stop_price)
+    def order(self, sid, amount,
+              limit_price=None,
+              stop_price=None,
+              style=None):
+        """
+        Place an order using the specified parameters.
+        """
+        # Raises a ZiplineError if invalid parameters are detected.
+        self.validate_order_params(sid,
+                                   amount,
+                                   limit_price,
+                                   stop_price,
+                                   style)
+
+        # Convert deprecated limit_price and stop_price parameters to use
+        # ExecutionStyle objects.
+        style = self.__convert_order_params_for_blotter(limit_price,
+                                                        stop_price,
+                                                        style)
+        return self.blotter.order(sid, amount, style)
+
+    def validate_order_params(self,
+                              sid,
+                              amount,
+                              limit_price,
+                              stop_price,
+                              style):
+        """
+        Helper method for validating parameters to the order API function.
+
+        Raises an UnsupportedOrderParameters if invalid arguments are found.
+        """
+        if style:
+            if limit_price:
+                raise UnsupportedOrderParameters(
+                    msg="Passing both limit_price and style is not supported."
+                )
+
+            if stop_price:
+                raise UnsupportedOrderParameters(
+                    msg="Passing both stop_price and style is not supported."
+                )
+
+    @staticmethod
+    def __convert_order_params_for_blotter(limit_price, stop_price, style):
+        """
+        Helper method for converting deprecated limit_price and stop_price
+        arguments into ExecutionStyle instances.
+
+        This function assumes that either style == None or (limit_price,
+        stop_price) == (None, None).
+        """
+        # TODO_SS: DeprecationWarning for usage of limit_price and stop_price.
+        if style:
+            assert (limit_price, stop_price) == (None, None)
+            return style
+        if limit_price and stop_price:
+            return StopLimitOrder(limit_price, stop_price)
+        if limit_price:
+            return LimitOrder(limit_price)
+        if stop_price:
+            return StopOrder(stop_price)
+        else:
+            return MarketOrder()
 
     @api_method
-    def order_value(self, sid, value, limit_price=None, stop_price=None):
+    def order_value(self, sid, value,
+                    limit_price=None, stop_price=None, style=None):
         """
         Place an order by desired value rather than desired number of shares.
         If the requested sid is found in the universe, the requested value is
@@ -491,7 +562,10 @@ class TradingAlgorithm(object):
             return
         else:
             amount = value / last_price
-            return self.order(sid, amount, limit_price, stop_price)
+            return self.order(sid, amount,
+                              limit_price=limit_price,
+                              stop_price=stop_price,
+                              style=style)
 
     @property
     def recorded_vars(self):
@@ -569,7 +643,8 @@ class TradingAlgorithm(object):
         self.annualizer = ANNUALIZER[self.data_frequency]
 
     @api_method
-    def order_percent(self, sid, percent, limit_price=None, stop_price=None):
+    def order_percent(self, sid, percent,
+                      limit_price=None, stop_price=None, style=None):
         """
         Place an order in the specified security corresponding to the given
         percent of the current portfolio value.
@@ -577,10 +652,14 @@ class TradingAlgorithm(object):
         Note that percent must expressed as a decimal (0.50 means 50\%).
         """
         value = self.portfolio.portfolio_value * percent
-        return self.order_value(sid, value, limit_price, stop_price)
+        return self.order_value(sid, value,
+                                limit_price=limit_price,
+                                stop_price=stop_price,
+                                style=style)
 
     @api_method
-    def order_target(self, sid, target, limit_price=None, stop_price=None):
+    def order_target(self, sid, target,
+                     limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target number of shares. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -591,13 +670,19 @@ class TradingAlgorithm(object):
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
             req_shares = target - current_position
-            return self.order(sid, req_shares, limit_price, stop_price)
+            return self.order(sid, req_shares,
+                              limit_price=limit_price,
+                              stop_price=stop_price,
+                              style=style)
         else:
-            return self.order(sid, target, limit_price, stop_price)
+            return self.order(sid, target,
+                              limit_price=limit_price,
+                              stop_price=stop_price,
+                              style=style)
 
     @api_method
-    def order_target_value(self, sid, target, limit_price=None,
-                           stop_price=None):
+    def order_target_value(self, sid, target,
+                           limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -610,13 +695,19 @@ class TradingAlgorithm(object):
             current_price = self.trading_client.current_data[sid].price
             current_value = current_position * current_price
             req_value = target - current_value
-            return self.order_value(sid, req_value, limit_price, stop_price)
+            return self.order_value(sid, req_value,
+                                    limit_price=limit_price,
+                                    stop_price=stop_price,
+                                    style=style)
         else:
-            return self.order_value(sid, target, limit_price, stop_price)
+            return self.order_value(sid, target,
+                                    limit_price=limit_price,
+                                    stop_price=stop_price,
+                                    style=style)
 
     @api_method
-    def order_target_percent(self, sid, target, limit_price=None,
-                             stop_price=None):
+    def order_target_percent(self, sid, target,
+                             limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target percent of the
         current portfolio value. If the position doesn't already exist, this is
@@ -635,7 +726,10 @@ class TradingAlgorithm(object):
         target_value = self.portfolio.portfolio_value * target
 
         req_value = target_value - current_value
-        return self.order_value(sid, req_value, limit_price, stop_price)
+        return self.order_value(sid, req_value,
+                                limit_price=limit_price,
+                                stop_price=stop_price,
+                                style=style)
 
     @api_method
     def get_open_orders(self, sid=None):

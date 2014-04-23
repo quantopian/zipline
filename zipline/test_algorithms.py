@@ -36,7 +36,7 @@ The algorithm must expose methods:
     of the current state of the simulation universe. An example data object:
 
         ..  This outputs the table as an HTML table but for some reason there
-            is no bounding box. Make the previous paragraph ending colon a
+            is no bounding box. Make the previous paraagraph ending colon a
             double-colon to turn this back into blockquoted table in ASCII art.
 
         +-----------------+--------------+----------------+-------------------+
@@ -74,11 +74,20 @@ The algorithm must expose methods:
 from copy import deepcopy
 import numpy as np
 
+from nose.tools import assert_raises
+
 from six.moves import range
 from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import FixedSlippage
+from zipline.errors import UnsupportedOrderParameters
+from zipline.finance.execution import (
+    LimitOrder,
+    MarketOrder,
+    StopLimitOrder,
+    StopOrder,
+)
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -259,6 +268,37 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
         self.incr += 2
         self.order_value(0, data[0].price * 2.)
         self.last_price = data[0].price
+
+
+class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
+    """
+    Test Algorithm for verifying that ExecutionStyles are properly forwarded by
+    order API helper methods.  Pass the name of the method to be tested as a
+    string parameter to this algorithm's constructor.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.method_name = kwargs.pop('method_name')
+        super(TestOrderStyleForwardingAlgorithm, self)\
+            .__init__(*args, **kwargs)
+
+    def initialize(self):
+        self.incr = 0
+        self.last_price = None
+
+    def handle_data(self, data):
+        if self.incr == 0:
+            assert len(self.portfolio.positions.keys()) == 0
+
+            method_to_check = getattr(self, self.method_name)
+            method_to_check(0, data[0].price, style=StopLimitOrder(10, 10))
+
+            assert len(self.blotter.open_orders[0]) == 1
+            result = self.blotter.open_orders[0][0]
+            assert result.limit == 10
+            assert result.stop == 10
+
+            self.incr += 1
 
 
 class TestOrderValueAlgorithm(TradingAlgorithm):
@@ -726,6 +766,63 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         # Should be 0 when all positions are exited.
         self.record(num_positions=len(self.portfolio.positions))
+
+
+class InvalidOrderAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that tries to make various invalid order calls, verifying that
+    appropriate exceptions are raised.
+    """
+    def initialize(self, *args, **kwargs):
+        self.sid = kwargs.pop('sids')[0]
+
+    def handle_data(self, data):
+        from zipline.api import (
+            order_percent,
+            order_target,
+            order_target_percent,
+            order_target_value,
+            order_value,
+        )
+
+        for style in [MarketOrder(), LimitOrder(10),
+                      StopOrder(10), StopLimitOrder(10, 10)]:
+
+            with assert_raises(UnsupportedOrderParameters):
+                order(self.sid, 10, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order(self.sid, 10, stop_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_value(self.sid, 300, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_value(self.sid, 300, stop_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_percent(self.sid, .1, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_percent(self.sid, .1, stop_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target(self.sid, 100, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target(self.sid, 100, stop_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target_value(self.sid, 100, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target_value(self.sid, 100, stop_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target_percent(self.sid, .2, limit_price=10, style=style)
+
+            with assert_raises(UnsupportedOrderParameters):
+                order_target_percent(self.sid, .2, stop_price=10, style=style)
 
 
 ##############################

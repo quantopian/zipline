@@ -40,6 +40,7 @@ from zipline.finance.blotter import Blotter
 from zipline.gens.composites import date_sorted_sources
 
 from zipline.finance import trading
+from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.trading import SimulationParameters
 
 from zipline.finance.performance import PerformanceTracker
@@ -319,7 +320,7 @@ class FinanceTestCase(TestCase):
         for i in range(order_count):
 
             blotter.set_date(order_date)
-            blotter.order(sid, order_amount * alternator ** i, None, None)
+            blotter.order(sid, order_amount * alternator ** i, MarketOrder())
 
             order_date = order_date + order_interval
             # move after market orders to just after market next
@@ -400,8 +401,8 @@ class FinanceTestCase(TestCase):
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(1, 100, 10, None, None)
-        blotter.order(2, 100, 10, None, None)
+        blotter.order(1, 100, LimitOrder(10))
+        blotter.order(2, 100, LimitOrder(10))
 
         # send in a split for sid 2
         split_event = factory.create_split(2, 0.33333,
