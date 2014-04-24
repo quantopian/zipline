@@ -348,6 +348,56 @@ class TestDividendPerformance(unittest.TestCase):
                 [event['cumulative_perf']['ending_cash'] for event in results]
             self.assertEqual(cash_pos, [9000, 9000, 10000, 10000, 10000])
 
+    def test_long_position_receives_stock_dividend(self):
+        with trading.TradingEnvironment():
+            # post some trades in the market
+            events = []
+            for sid in (1, 2):
+                events.extend(
+                    factory.create_trade_history(
+                        sid,
+                        [10, 10, 10, 10, 10],
+                        [100, 100, 100, 100, 100],
+                        oneday,
+                        self.sim_params)
+                )
+
+            dividend = factory.create_stock_dividend(
+                1,
+                payment_sid=2,
+                ratio=2,
+                # declared date, when the algorithm finds out about
+                # the dividend
+                declared_date=events[1].dt,
+                # ex_date, when the algorithm is credited with the
+                # dividend
+                ex_date=events[1].dt,
+                # pay date, when the algorithm receives the dividend.
+                pay_date=events[2].dt
+            )
+
+            txn = create_txn(events[0], 10.0, 100)
+            events.insert(0, txn)
+            events.insert(1, dividend)
+            results = calculate_results(self, events)
+
+            self.assertEqual(len(results), 5)
+            cumulative_returns = \
+                [event['cumulative_perf']['returns'] for event in results]
+            self.assertEqual(cumulative_returns, [0.0, 0.0, 0.2, 0.2, 0.2])
+            daily_returns = [event['daily_perf']['returns']
+                             for event in results]
+            self.assertEqual(daily_returns, [0.0, 0.0, 0.2, 0.0, 0.0])
+            cash_flows = [event['daily_perf']['capital_used']
+                          for event in results]
+            self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0])
+            cumulative_cash_flows = \
+                [event['cumulative_perf']['capital_used'] for event in results]
+            self.assertEqual(cumulative_cash_flows, [-1000] * 5)
+            cash_pos = \
+                [event['cumulative_perf']['ending_cash'] for event in results]
+            self.assertEqual(cash_pos, [9000] * 5)
+
     def test_post_ex_long_position_receives_no_dividend(self):
         # post some trades in the market
         events = factory.create_trade_history(

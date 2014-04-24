@@ -36,6 +36,8 @@ from __future__ import division
 import logbook
 import math
 
+from collections import Counter
+
 log = logbook.Logger('Performance')
 
 
@@ -57,28 +59,45 @@ class Position(object):
         This method will be invoked at the end of the market
         close handling, before the next market open.
         """
-        payment = 0.0
+        cash_payment = 0.0
+        stock_payment = Counter()  # maps sid to number of shares paid
         unpaid_dividends = []
         for dividend in self.dividends:
             if midnight_utc == dividend.ex_date:
                 # if we own shares at midnight of the div_ex date
                 # we are entitled to the dividend.
                 dividend.amount_on_ex_date = self.amount
-                if dividend.net_amount:
-                    dividend.payment = self.amount * dividend.net_amount
+                # stock dividend
+                if dividend.payment_sid:
+                    # e.g., 33.333
+                    raw_share_count = self.amount * float(dividend.ratio)
+                    # e.g., 33
+                    dividend.stock_payment = math.floor(raw_share_count)
                 else:
-                    dividend.payment = self.amount * dividend.gross_amount
+                    dividend.stock_payment = None
+                # cash dividend
+                if dividend.net_amount:
+                    dividend.cash_payment = self.amount * dividend.net_amount
+                elif dividend.gross_amount:
+                    dividend.cash_payment = self.amount * dividend.gross_amount
+                else:
+                    dividend.cash_payment = None
 
             if midnight_utc == dividend.pay_date:
                 # if it is the payment date, include this
                 # dividend's actual payment (calculated on
                 # ex_date)
-                payment += dividend.payment
+                if dividend.stock_payment:
+                    stock_payment[dividend.payment_sid] += \
+                        dividend.stock_payment
+
+                if dividend.cash_payment:
+                    cash_payment += dividend.cash_payment
             else:
                 unpaid_dividends.append(dividend)
 
         self.dividends = unpaid_dividends
-        return payment
+        return cash_payment, stock_payment
 
     def add_dividend(self, dividend):
         self.dividends.append(dividend)
@@ -103,16 +122,16 @@ class Position(object):
         # (old_share_count / ratio = new_share_count)
         # (old_price * ratio = new_price)
 
-        # ie, 33.333
+        # e.g., 33.333
         raw_share_count = self.amount / float(ratio)
 
-        # ie, 33
+        # e.g., 33
         full_share_count = math.floor(raw_share_count)
 
-        # ie, 0.333
+        # e.g., 0.333
         fractional_share_count = raw_share_count - full_share_count
 
-        # adjust the cost basis to the nearest cent, ie, 60.0
+        # adjust the cost basis to the nearest cent, e.g., 60.0
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
         # adjust the last sale price
