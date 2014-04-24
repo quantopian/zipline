@@ -69,9 +69,9 @@ class Position(object):
                 dividend.amount_on_ex_date = self.amount
                 # stock dividend
                 if dividend.payment_sid:
-                    # ie, 33.333
+                    # e.g., 33.333
                     raw_share_count = self.amount * float(dividend.ratio)
-                    # ie, 33
+                    # e.g., 33
                     dividend.stock_payment = math.floor(raw_share_count)
                 else:
                     dividend.stock_payment = None
@@ -122,16 +122,16 @@ class Position(object):
         # (old_share_count / ratio = new_share_count)
         # (old_price * ratio = new_price)
 
-        # ie, 33.333
+        # e.g., 33.333
         raw_share_count = self.amount / float(ratio)
 
-        # ie, 33
+        # e.g., 33
         full_share_count = math.floor(raw_share_count)
 
-        # ie, 0.333
+        # e.g., 0.333
         fractional_share_count = raw_share_count - full_share_count
 
-        # adjust the cost basis to the nearest cent, ie, 60.0
+        # adjust the cost basis to the nearest cent, e.g., 60.0
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
         # adjust the last sale price
