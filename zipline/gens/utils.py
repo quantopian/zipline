@@ -52,7 +52,6 @@ def assert_trade_protocol(event):
     assert_datasource_protocol(event)
 
     assert event.type == DATASOURCE_TYPE.TRADE
-    assert isinstance(event.sid, int)
     assert isinstance(event.price, numbers.Real)
     assert isinstance(event.volume, numbers.Integral)
     assert isinstance(event.dt, datetime)
