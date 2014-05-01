@@ -43,6 +43,25 @@ DEFAULTS = {
 
 
 def parse_args(argv, ipython_mode=False):
+    """Parse list of arguments.
+
+    If a config file is provided (via -c), it will read in the
+    supplied options and overwrite any global defaults.
+
+    All other directly supplied arguments will overwrite the config
+    file settings.
+
+    Arguments:
+        * argv : list of strings
+            List of arguments, e.g. ['-c', 'my.conf']
+        * ipython_mode : bool <default=True>
+            Whether to parse IPython specific arguments
+            like --local_namespace
+
+    Notes:
+    Default settings can be found in zipline.utils.cli.DEFAULTS.
+
+    """
     # Parse any conf_file specification
     # We make this parser with add_help=False so that
     # it doesn't parse -h and print help.
@@ -92,7 +111,8 @@ def parse_args(argv, ipython_mode=False):
 
 
 def parse_cell_magic(line, cell):
-    """Parse IPython magic"""
+    """Parse IPython magic
+    """
     args_list = line.split(' ')
     args = parse_args(args_list, ipython_mode=True)
 
@@ -111,6 +131,27 @@ def parse_cell_magic(line, cell):
 
 
 def run_algo(print_algo=True, **kwargs):
+    """Runs a full zipline pipeline given configuration keyword
+    arguments.
+
+    1. Load data (start and end dates can be provided a strings as
+    well as the source and symobls).
+
+    2. Instantiate algorithm (supply either algo_text or algofile
+    kwargs containing initialize() and handle_data() functions). If
+    algofile is supplied, will try to look for algofile_analyze.py and
+    append it.
+
+    3. Run algorithm (supply capital_base as float).
+
+    4. Return performance dataframe.
+
+    :Arguments:
+        * print_algo : bool <default=True>
+           Whether to print the algorithm to command line. Will use
+           pygments syntax coloring if pygments is found.
+
+    """
     start = pd.Timestamp(kwargs['start'], tz='UTC')
     end = pd.Timestamp(kwargs['end'], tz='UTC')
 
