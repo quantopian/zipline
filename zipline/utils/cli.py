@@ -121,7 +121,7 @@ def parse_cell_magic(line, cell):
     if not local_namespace:
         args['namespace'] = get_ipython().user_ns # flake8: noqa
 
-    perf = run_algo(print_algo=False, algo_text=cell, **args)
+    perf = run_pipeline(print_algo=False, algo_text=cell, **args)
 
     # If we are running inside NB, do not output to file but create a
     # variable instead
@@ -130,7 +130,7 @@ def parse_cell_magic(line, cell):
         get_ipython().user_ns[output_var_name] = perf # flake8: noqa
 
 
-def run_algo(print_algo=True, **kwargs):
+def run_pipeline(print_algo=True, **kwargs):
     """Runs a full zipline pipeline given configuration keyword
     arguments.
 

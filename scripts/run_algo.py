@@ -17,9 +17,9 @@
 import sys
 
 import zipline
-from zipline.utils import parse_args, run_algo
+from zipline.utils import parse_args, run_pipeline
 
 if __name__ == "__main__":
     parsed = parse_args(sys.argv[1:])
-    run_algo(print_algo=True, **parsed)
+    run_pipeline(print_algo=True, **parsed)
     sys.exit(0)
