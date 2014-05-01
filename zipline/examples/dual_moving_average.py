@@ -26,12 +26,14 @@ from zipline.api import order_target, record, symbol
 from collections import deque as moving_window
 import numpy as np
 
+
 def initialize(context):
     # Add 2 windows, one with a long window, one
     # with a short window.
     # Note that this is bound to change soon and will be easier.
     context.short_window = moving_window(maxlen=100)
     context.long_window = moving_window(maxlen=300)
+
 
 def handle_data(context, data):
     # Save price to window

@@ -126,6 +126,7 @@ class TradingAlgorithm(object):
         self.sources = []
 
         self._recorded_vars = {}
+        self.namespace = kwargs.get('namespace', {})
 
         self.logger = None
 
@@ -177,16 +178,15 @@ class TradingAlgorithm(object):
         self._analyze = None
 
         if self.algoscript is not None:
-            self.ns = {}
-            exec_(self.algoscript, self.ns)
-            self._initialize = self.ns.get('initialize', None)
-            if 'handle_data' not in self.ns:
+            exec_(self.algoscript, self.namespace)
+            self._initialize = self.namespace.get('initialize', None)
+            if 'handle_data' not in self.namespace:
                 raise ValueError('You must define a handle_data function.')
             else:
-                self._handle_data = self.ns['handle_data']
+                self._handle_data = self.namespace['handle_data']
 
             # Optional analyze function, gets called after run
-            self._analyze = self.ns.get('analyze', None)
+            self._analyze = self.namespace.get('analyze', None)
 
         elif kwargs.get('initialize', False) and kwargs.get('handle_data'):
             if self.algoscript is not None:

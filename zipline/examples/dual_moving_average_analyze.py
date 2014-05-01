@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def analyze(context, perf):
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
@@ -11,7 +12,8 @@ def analyze(context, perf):
 
     perf_trans = perf.ix[[t != [] for t in perf.transactions]]
     buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
-    sells = perf_trans.ix[[t[0]['amount'] < 0 for t in perf_trans.transactions]]
+    sells = perf_trans.ix[
+        [t[0]['amount'] < 0 for t in perf_trans.transactions]]
     ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
              '^', markersize=10, color='m')
     ax2.plot(sells.index, perf.short_mavg.ix[sells.index],

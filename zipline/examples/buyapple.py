@@ -16,8 +16,10 @@
 
 from zipline.api import order, record
 
+
 def initialize(context):
     pass
+
 
 def handle_data(context, data):
     order('AAPL', 10)

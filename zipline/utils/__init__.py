@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .cli import run_algo, parse_args
+from .cli import run_algo, parse_args, parse_cell_magic
 
-__all__ = ['run_algo', 'parse_args']
+__all__ = ['run_algo', 'parse_args', 'parse_cell_magic']

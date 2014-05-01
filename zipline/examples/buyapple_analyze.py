@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def analyze(context, perf):
     ax1 = plt.subplot(211)
     perf.portfolio_value.plot(ax=ax1)
