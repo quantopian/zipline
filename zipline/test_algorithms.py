@@ -109,7 +109,7 @@ class TestAlgorithm(TradingAlgorithm):
             self.sid_filter = [self.sid]
 
     def handle_data(self, data):
-        # place an order for 100 shares of sid
+        # place an order for amount shares of sid
         if self.incr < self.count:
             self.order(self.sid, self.amount)
             self.incr += 1
@@ -399,7 +399,39 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
         self.target_shares = np.round(20 / data[0].price)
 
 
-from zipline.algorithm import TradingAlgorithm
+############################
+# TradingControl Test Algos#
+############################
+
+
+class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, max_shares=None, max_notional=None):
+        self.order_count = 0
+        self.set_max_position_size(sid=sid,
+                                   max_shares=max_shares,
+                                   max_notional=max_notional)
+
+
+class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, max_shares=None, max_notional=None):
+        self.order_count = 0
+        self.set_max_order_size(sid=sid,
+                                max_shares=max_shares,
+                                max_notional=max_notional)
+
+
+class SetMaxOrderCountAlgorithm(TradingAlgorithm):
+    def initialize(self, count):
+        self.order_count = 0
+        self.set_max_order_count(count)
+
+
+class SetLongOnlyAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.order_count = 0
+        self.set_long_only()
+
+
 from zipline.transforms import BatchTransform, batch_transform
 from zipline.transforms import MovingAverage
 
