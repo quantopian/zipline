@@ -228,6 +228,12 @@ mkvirtualenv zipline
 pip install -r ./etc/requirements_dev.txt
 ```
 
+Finally, install zipline in develop mode (from the zipline source root dir):
+
+```
+python setup.py develop
+```
+
 Style Guide
 ------------
 
