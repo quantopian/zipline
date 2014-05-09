@@ -80,6 +80,7 @@ class Portfolio(object):
         self.start_date = None
         self.positions_value = 0.0
         self.portfolio_value = 0.0
+        self.margin_requirement = None
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -95,6 +96,7 @@ class Position(object):
         self.amount = 0
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
+        self.margin_requirement = 0.0
 
     def __getitem__(self, key):
         return self.__dict__[key]
