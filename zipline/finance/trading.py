@@ -116,7 +116,7 @@ class TradingEnvironment(object):
         self.early_closes = get_early_closes(self.first_trading_day,
                                              self.last_trading_day)
 
-        self.open_and_closes = tradingcalendar.open_and_closes.ix[
+        self.open_and_closes = env_trading_calendar.open_and_closes.ix[
             self.trading_days]
 
     def __enter__(self, *args, **kwargs):
