@@ -60,6 +60,15 @@ method.
 """.strip()
 
 
+class RegisterTradingControlPostInit(ZiplineError):
+    # Raised if a user's script register's a trading control after initialize
+    # has been run.
+    msg = """
+You attempted to set a trading control after the simulation has \
+started. Trading controls may only be set during initialize.
+""".strip()
+
+
 class UnsupportedCommissionModel(ZiplineError):
     """
     Raised if a user script calls the override_commission magic
@@ -128,3 +137,12 @@ class UnsupportedOrderParameters(ZiplineError):
     call.
     """
     msg = "{msg}"
+
+
+class TradingControlViolation(ZiplineError):
+    """
+    Raised if an order would violate a constraint set by a TradingControl.
+    """
+    msg = """
+Order for {amount} shares of {sid} violates trading constraint {constraint}.
+""".strip()

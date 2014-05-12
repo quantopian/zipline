@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
 
@@ -110,3 +111,15 @@ class ExceptionTransform(object):
 
     def update(self, event):
         assert False, "An assertion message"
+
+
+@contextmanager
+def nullctx():
+    """
+    Null context manager.  Useful for conditionally adding a contextmanager in
+    a single line, e.g.:
+
+    with SomeContextManager() if some_expr else nullcontext:
+        do_stuff()
+    """
+    yield

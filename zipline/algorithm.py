@@ -26,16 +26,23 @@ from six import iteritems, exec_
 from operator import attrgetter
 
 from zipline.errors import (
-    UnsupportedSlippageModel,
-    OverrideSlippagePostInit,
-    UnsupportedCommissionModel,
     OverrideCommissionPostInit,
-    UnsupportedOrderParameters
+    OverrideSlippagePostInit,
+    RegisterTradingControlPostInit,
+    UnsupportedCommissionModel,
+    UnsupportedOrderParameters,
+    UnsupportedSlippageModel,
 )
 
 from zipline.finance import trading
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.controls import (
+    LongOnly,
+    MaxOrderCount,
+    MaxOrderSize,
+    MaxPositionSize,
+)
 from zipline.finance.constants import ANNUALIZER
 from zipline.finance.execution import (
     LimitOrder,
@@ -124,6 +131,9 @@ class TradingAlgorithm(object):
         self.registered_transforms = {}
         self.transforms = []
         self.sources = []
+
+        # List of trading controls to be used to validate orders.
+        self.trading_controls = []
 
         self._recorded_vars = {}
         self.namespace = kwargs.get('namespace', {})
@@ -525,6 +535,13 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
+        for control in self.trading_controls:
+            control.validate(sid,
+                             amount,
+                             self.updated_portfolio(),
+                             self.get_datetime(),
+                             self.trading_client.current_data)
+
     @staticmethod
     def __convert_order_params_for_blotter(limit_price, stop_price, style):
         """
@@ -799,3 +816,68 @@ class TradingAlgorithm(object):
             bar_count, frequency, field, ffill)
         history_spec = self.history_specs[spec_key_str]
         return self.history_container.get_history(history_spec, self.datetime)
+
+    ####################
+    # Trading Controls #
+    ####################
+
+    def register_trading_control(self, control):
+        """
+        Register a new TradingControl to be checked prior to order calls.
+        """
+        if self.initialized:
+            raise RegisterTradingControlPostInit()
+        self.trading_controls.append(control)
+
+    @api_method
+    def set_max_position_size(self,
+                              sid=None,
+                              max_shares=None,
+                              max_notional=None):
+        """
+        Set a limit on the number of shares and/or dollar value held for the
+        given sid. Limits are treated as absolute values and are enforced at
+        the time that the algo attempts to place an order for sid. This means
+        that it's possible to end up with more than the max number of shares
+        due to splits/dividends, and more than the max notional due to price
+        improvement.
+
+        If an algorithm attempts to place an order that would result in
+        increasing the absolute value of shares/dollar value exceeding one of
+        these limits, raise a TradingControlException.
+        """
+        control = MaxPositionSize(sid=sid,
+                                  max_shares=max_shares,
+                                  max_notional=max_notional)
+        self.register_trading_control(control)
+
+    @api_method
+    def set_max_order_size(self, sid=None, max_shares=None, max_notional=None):
+        """
+        Set a limit on the number of shares and/or dollar value of any single
+        order placed for sid.  Limits are treated as absolute values and are
+        enforced at the time that the algo attempts to place an order for sid.
+
+        If an algorithm attempts to place an order that would result in
+        exceeding one of these limits, raise a TradingControlException.
+        """
+        control = MaxOrderSize(sid=sid,
+                               max_shares=max_shares,
+                               max_notional=max_notional)
+        self.register_trading_control(control)
+
+    @api_method
+    def set_max_order_count(self, max_count):
+        """
+        Set a limit on the number of orders that can be placed within the given
+        time interval.
+        """
+        control = MaxOrderCount(max_count)
+        self.register_trading_control(control)
+
+    @api_method
+    def set_long_only(self):
+        """
+        Set a rule specifying that this algorithm cannot take short positions.
+        """
+        self.register_trading_control(LongOnly())
