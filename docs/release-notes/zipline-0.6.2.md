@@ -34,6 +34,9 @@
 
 ## Bug Fixes (BUG)
 
+* Fix alignment of trading days and open and closes in trading environment.
+  [PR331](https://github.com/quantopian/zipline/pull/331)
+
 ## Performance (PERF)
 
 ## Maintenance and Refactorings (MAINT)
