@@ -799,3 +799,25 @@ class TradingAlgorithm(object):
             bar_count, frequency, field, ffill)
         history_spec = self.history_specs[spec_key_str]
         return self.history_container.get_history(history_spec, self.datetime)
+
+    @api_method
+    def cancel_all_open_orders(self):
+        open_orders = self.get_open_orders()
+        if open_orders:
+            for key in open_orders:
+                x = [oo.id for oo in open_orders[key]]
+                for i in x:
+                    self.cancel_order(i)
+
+    @api_method
+    def total_commission(self):
+        ords = self.all_raw_orders()
+        commission = 0
+        for i in ords:
+            x = ords[i].commission
+            if x is not None:
+                commission += x
+        return commission
+
+    def all_raw_orders(self):
+        return self.blotter.orders
