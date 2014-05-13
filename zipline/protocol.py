@@ -79,7 +79,6 @@ class Portfolio(object):
         self.positions = Positions()
         self.start_date = None
         self.positions_value = 0.0
-        self.portfolio_value = 0.0
 
     def __getitem__(self, key):
         return self.__dict__[key]
