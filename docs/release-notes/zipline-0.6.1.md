@@ -7,7 +7,7 @@
 - **Start of support for Quantopian algorithm script-syntax, see ENH section.**
 - **conda package manager support, see BLD section.**
 
-## Enchancements (ENH)
+## Enhancements (ENH)
 
 ### Always process new orders.
 

@@ -1,18 +1,17 @@
 Zipline
 =======
 
-Zipline is a Pythonic algorithmic trading library.
-The system is fundamentally event-driven and a close
-approximation of how live-trading systems operate.
-Currently, backtesting is well supported, but the intent is
-to develop the library for both paper and live trading,
-so that the same logic used for backtesting can be applied
-to the market.
+Zipline is a Pythonic algorithmic trading library.  The system is
+fundamentally event-driven and a close approximation of how
+live-trading systems operate.  Currently, backtesting is well
+supported, but the intent is to develop the library for both paper and
+live trading, so that the same logic used for backtesting can be
+applied to the market.
 
 Zipline is currently used in production as the backtesting engine
-powering Quantopian (https://www.quantopian.com) -- a free, community-centered
-platform that allows development and real-time backtesting of trading
-algorithms in the web browser.
+powering Quantopian (https://www.quantopian.com) -- a free,
+community-centered platform that allows development and real-time
+backtesting of trading algorithms in the web browser.
 
 Want to contribute? See our [open requests](https://github.com/quantopian/zipline/wiki/Contribution-Requests)
 and our [general guidelines](https://github.com/quantopian/zipline#contributions) below.
@@ -45,8 +44,25 @@ visualization of state-of-the-art trading systems.
 Installation
 ============
 
-Since zipline is pure-python code it should be very easy to install
-and set up with pip:
+The easiest way to install Zipline is via `conda` which comes as part of [Anaconda](http://continuum.io/downloads) or can be installed via `pip install conda`.
+
+Once set up, you can install Zipline from our Quantopian channel:
+
+```
+conda install -c Quantopian zipline
+```
+
+Currently supported platforms include:
+* Windows 32-bit (can be 64-bit Windows but has to be 32-bit Anaconda)
+* OSX 64-bit
+* Linux 64-bit
+
+PIP
+---
+
+Alternatively you can install Zipline via the more traditional `pip`
+command. Since zipline is pure-python code it should be very easy to
+install and set up:
 
 ```
 pip install numpy   # Pre-install numpy to handle dependency chain quirk
@@ -72,107 +88,57 @@ Dependencies
 * [python-dateutil](https://pypi.python.org/pypi/python-dateutil) (>= 2.1)
 
 
-Conda
------
-
-We provide experimental support for conda packages. Thus if you installed [Anaconda](http://continuum.io/downloads)
-you can try:
-```
-conda install -c Quantopian zipline
-```
-
-Currently this only works for linux 64 bit. If you want to help extend this,
-have a look at the `conda` subdirectory.
-
 Quickstart
 ==========
 
-The following code implements a simple dual moving average algorithm
-and tests it on data extracted from yahoo finance.
+The following code implements a simple dual moving average algorithm.
 
 ```python
-from zipline import TradingAlgorithm
-from zipline.transforms import MovingAverage
-from zipline.utils.factory import load_from_yahoo
+from zipline.api import order_target, record, symbol
+from collections import deque as moving_window
+import numpy as np
 
-from datetime import datetime
-import pytz
-import matplotlib.pyplot as plt
 
-class DualMovingAverage(TradingAlgorithm):
-    """Dual Moving Average Crossover algorithm.
+def initialize(context):
+    # Add 2 windows, one with a long window, one
+    # with a short window.
+    # Note that this is bound to change soon and will be easier.
+    context.short_window = moving_window(maxlen=100)
+    context.long_window = moving_window(maxlen=300)
 
-    This algorithm buys apple once its short moving average crosses
-    its long moving average (indicating upwards momentum) and sells
-    its shares once the averages cross again (indicating downwards
-    momentum).
 
-    """
-    def initialize(self, short_window=100, long_window=400):
-        # Add 2 mavg transforms, one with a long window, one
-        # with a short window.
-        self.add_transform(MovingAverage, 'short_mavg', ['price'],
-                           window_length=short_window)
+def handle_data(context, data):
+    # Save price to window
+    context.short_window.append(data[symbol('AAPL')].price)
+    context.long_window.append(data[symbol('AAPL')].price)
 
-        self.add_transform(MovingAverage, 'long_mavg', ['price'],
-                           window_length=long_window)
+    # Compute averages
+    short_mavg = np.mean(context.short_window)
+    long_mavg = np.mean(context.long_window)
 
-        # To keep track of whether we invested in the stock or not
-        self.invested = False
+    # Trading logic
+    if short_mavg > long_mavg:
+        order_target(symbol('AAPL'), 100)
+    elif short_mavg < long_mavg:
+        order_target(symbol('AAPL'), 0)
 
-    def handle_data(self, data):
-        short_mavg = data['AAPL'].short_mavg['price']
-        long_mavg = data['AAPL'].long_mavg['price']
-        buy = False
-        sell = False
-
-	# Has short mavg crossed long mavg?
-        if short_mavg > long_mavg and not self.invested:
-            self.order('AAPL', 100)
-            self.invested = True
-            buy = True
-        elif short_mavg < long_mavg and self.invested:
-            self.order('AAPL', -100)
-            self.invested = False
-            sell = True
-
-	# Record state variables. A column for each
-	# variable will be added to the performance
-	# DataFrame returned by .run()
-        self.record(short_mavg=short_mavg,
-                    long_mavg=long_mavg,
-                    buy=buy,
-                    sell=sell)
-
-# Load data
-start = datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
-data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
-       		       end=end, adjusted=False)
-
-# Run algorithm
-dma = DualMovingAverage()
-perf = dma.run(data)
-
-# Plot results
-fig = plt.figure()
-ax1 = fig.add_subplot(211,  ylabel='Price in $')
-data['AAPL'].plot(ax=ax1, color='r', lw=2.)
-perf[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
-
-ax1.plot(perf.ix[perf.buy].index, perf.short_mavg[perf.buy],
-         '^', markersize=10, color='m')
-ax1.plot(perf.ix[perf.sell].index, perf.short_mavg[perf.sell],
-         'v', markersize=10, color='k')
-
-ax2 = fig.add_subplot(212, ylabel='Portfolio value in $')
-perf.portfolio_value.plot(ax=ax2, lw=2.)
-
-ax2.plot(perf.ix[perf.buy].index, perf.portfolio_value[perf.buy],
-         '^', markersize=10, color='m')
-ax2.plot(perf.ix[perf.sell].index, perf.portfolio_value[perf.sell],
-         'v', markersize=10, color='k')
+    # Save values for later inspection
+    record(AAPL=data[symbol('AAPL')].price,
+           short_mavg=short_mavg,
+           long_mavg=long_mavg)
 ```
+
+You can then run this algorithm using the Zipline CLI. From the
+command line, run:
+
+```bash
+python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+```
+
+This will download the AAPL price data from Yahoo! Finance in the
+specified time range and stream it through the algorithm and save the
+resulting performance dataframe to dma.pickle which you can then load
+and analyze from within python.
 
 You can find other examples in the zipline/examples directory.
 
@@ -226,6 +192,12 @@ Suggested installation of Python library dependencies used for development:
 mkvirtualenv zipline
 ./etc/ordered_pip.sh ./etc/requirements.txt
 pip install -r ./etc/requirements_dev.txt
+```
+
+Finally, install zipline in develop mode (from the zipline source root dir):
+
+```
+python setup.py develop
 ```
 
 Style Guide
