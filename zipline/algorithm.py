@@ -881,3 +881,11 @@ class TradingAlgorithm(object):
         Set a rule specifying that this algorithm cannot take short positions.
         """
         self.register_trading_control(LongOnly())
+
+    @classmethod
+    def all_api_methods(cls):
+        """
+        Return a list of all the TradingAlgorithm API methods.
+        """
+        return [fn for fn in cls.__dict__.itervalues()
+                if getattr(fn, 'is_api_method', False)]
