@@ -82,6 +82,10 @@
                          # an order that would cause it to hold a short position.
                          set_long_only()
 
+* Adds an `all_api_methods` classmethod on `TradingAlgorithm` that returns a
+  list of all `TradingAlgorithm` API methods. [PR333](https://github.com/quantopian/zipline/pull/333)
+
+
 ## Bug Fixes (BUG)
 
 * Fix alignment of trading days and open and closes in trading environment.
