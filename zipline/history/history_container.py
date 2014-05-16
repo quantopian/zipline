@@ -25,7 +25,7 @@ from . history import (
 from zipline.finance import trading
 from zipline.utils.data import RollingPanel
 
-# The closing price is referred to be multiple names,
+# The closing price is referred to by multiple names,
 # allow both for price rollover logic etc.
 CLOSING_PRICE_FIELDS = {'price', 'close_price'}
 
@@ -68,13 +68,13 @@ class HistoryContainer(object):
     """
     Container for all history panels and frames used by an algoscript.
 
-    To be used internally by algoproxy, but *not* passed directly to the
-    algorithm.
-    Entry point for the algoscript is the result of `get_history`.
+    To be used internally by TradingAlgorithm, but *not* passed directly to the
+    algorithm.  Entry point for the algoscript is the result of `get_history`.
     """
 
     def __init__(self, history_specs, initial_sids, initial_dt):
-        # All of the history specs found by the algoscript parsing.
+
+        # History specs to be served by this container.
         self.history_specs = history_specs
 
         # The overaching panel needs to be large enough to contain the
@@ -94,8 +94,8 @@ class HistoryContainer(object):
         self.current_day_panel = create_current_day_panel(
             self.fields, initial_sids, initial_dt)
 
-        # Helps prop up the prior day panel against having a nan, when
-        # the data has been seen.
+        # Helps prop up the prior day panel against having a nan, when the data
+        # has been seen.
         self.last_known_prior_values = {field: {} for field in self.fields}
 
         # Populating initial frames here, so that the cost of creating the
