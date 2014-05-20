@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
-
+import numpy as np
 from setuptools import setup, find_packages
 
 LONG_DESCRIPTION = None
@@ -48,6 +48,7 @@ setup(
     author_email='opensource@quantopian.com',
     packages=find_packages(),
     scripts=['scripts/run_algo.py'],
+    include_dirs = [np.get_include()],
     long_description=LONG_DESCRIPTION,
     license='Apache 2.0',
     classifiers=[
