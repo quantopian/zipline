@@ -54,9 +54,8 @@ class OverrideSlippagePostInit(ZiplineError):
     # Raised if a users script calls override_slippage magic
     # after the initialize method has returned.
     msg = """
-You attempted to override slippage after the simulation has \
-started. You may only call override_slippage in your initialize \
-method.
+You attempted to override slippage outside of `initialize`. \
+You may only call override_slippage in your initialize method.
 """.strip()
 
 
@@ -64,8 +63,8 @@ class RegisterTradingControlPostInit(ZiplineError):
     # Raised if a user's script register's a trading control after initialize
     # has been run.
     msg = """
-You attempted to set a trading control after the simulation has \
-started. Trading controls may only be set during initialize.
+You attempted to set a trading control outside of `initialize`. \
+Trading controls may only be set in your initialize method.
 """.strip()
 
 
@@ -87,9 +86,8 @@ class OverrideCommissionPostInit(ZiplineError):
     after the initialize method has returned.
     """
     msg = """
-You attempted to override commission after the simulation has \
-started. You may only call override_commission in your initialize \
-method.
+You attempted to override commission outside of `initialize`. \
+You may only call override_commission in your initialize method.
 """.strip()
 
 
