@@ -3,7 +3,7 @@ Logbook==0.7.0
 
 # Scientific Libraries
 
-pytz==2013.9
+pytz==2014.3
 numpy==1.8.1
 
 # Needed for parts of pandas.stats
