@@ -7,8 +7,8 @@ pytz==2013.9
 numpy==1.8.0
 
 # Needed for parts of pandas.stats
-statsmodels==0.5.0
 patsy==0.2.1
+statsmodels==0.5.0
 
 pandas==0.12.0
 python-dateutil==2.2
