@@ -4,7 +4,7 @@ Logbook==0.6.0
 # Scientific Libraries
 
 pytz==2013.9
-numpy==1.8.0
+numpy==1.8.1
 
 # Needed for parts of pandas.stats
 patsy==0.2.1
