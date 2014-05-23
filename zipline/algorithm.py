@@ -566,11 +566,20 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_value(self, sid, value,
-                    limit_price=None, stop_price=None, style=None):
+                    limit_price=None, stop_price=None,
+                    style=None, ignore_open_orders=False):
         """
         Place an order by desired value rather than desired number of shares.
         If the requested sid is found in the universe, the requested value is
         divided by its price to imply the number of shares to transact.
+
+        :Arguments:
+        :Optional:
+            ignore_open_orders : boolean <default=False>
+                If True, the order will be placed regardless of any open
+                orders. Otherwise, if there are any pending transactions
+                for "the" sid, the orders will not be placed.
+                (sid specific)
 
         value > 0 :: Buy/Cover
         value < 0 :: Sell/Short
@@ -581,19 +590,26 @@ class TradingAlgorithm(object):
         """
         last_price = self.trading_client.current_data[sid].price
         if np.allclose(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(
-                psid=sid
-            )
+            # Don't place an order
             if self.logger:
-                self.logger.debug(zero_message)
-            # Don't place any order
+                zero_message = "Price of 0 for {psid}; can't infer value"
+                self.logger.debug(zero_message.format(psid=sid))
             return
-        else:
-            amount = value / last_price
-            return self.order(sid, amount,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
+        if not ignore_open_orders:
+            open_orders = self.get_open_orders(sid=sid)
+            share_count = sum(order.amount - order.filled
+                              for order in open_orders)
+            if share_count:
+                if self.logger:
+                    value = share_count * last_price
+                    msg = 'OPEN ORDERS: sid: {sid}, value: {value}'
+                    self.logger.debug(msg.format(sid=sid, value=value))
+                return
+        amount = value / last_price
+        return self.order(sid, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
 
     @property
     def recorded_vars(self):
