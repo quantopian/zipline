@@ -316,6 +316,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
         self.incr += 2
         self.order_value(0, data[0].price * 2.)
+        self.order_value(0, data[0].price * 2., ignore_open_orders=False)
 
 
 class TestTargetAlgorithm(TradingAlgorithm):
