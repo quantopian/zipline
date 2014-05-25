@@ -688,7 +688,8 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_percent(self, sid, percent,
-                      limit_price=None, stop_price=None, style=None):
+                      limit_price=None, stop_price=None,
+                      style=None, ignore_open_orders=False):
         """
         Place an order in the specified security corresponding to the given
         percent of the current portfolio value.
@@ -699,11 +700,13 @@ class TradingAlgorithm(object):
         return self.order_value(sid, value,
                                 limit_price=limit_price,
                                 stop_price=stop_price,
-                                style=style)
+                                style=style,
+                                ignore_open_orders=ignore_open_orders)
 
     @api_method
     def order_target(self, sid, target,
-                     limit_price=None, stop_price=None, style=None):
+                     limit_price=None, stop_price=None,
+                     style=None, ignore_open_orders=False):
         """
         Place an order to adjust a position to a target number of shares. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -711,6 +714,15 @@ class TradingAlgorithm(object):
         order for the difference between the target number of shares and the
         current number of shares.
         """
+        if not ignore_open_orders:
+            open_orders = self.get_open_orders(sid=sid)
+            share_count = sum(order.amount - order.filled
+                              for order in open_orders)
+            if share_count:
+                if self.logger:
+                    msg = 'OPEN ORDERS: sid: {sid}, shares: {count}'
+                    self.logger.debug(msg.format(sid=sid, count=share_count))
+                return
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
             req_shares = target - current_position
@@ -726,7 +738,8 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_value(self, sid, target,
-                           limit_price=None, stop_price=None, style=None):
+                           limit_price=None, stop_price=None,
+                           style=None, ignore_open_orders=False):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -742,16 +755,19 @@ class TradingAlgorithm(object):
             return self.order_value(sid, req_value,
                                     limit_price=limit_price,
                                     stop_price=stop_price,
-                                    style=style)
+                                    style=style,
+                                    ignore_open_orders=ignore_open_orders)
         else:
             return self.order_value(sid, target,
                                     limit_price=limit_price,
                                     stop_price=stop_price,
-                                    style=style)
+                                    style=style,
+                                    ignore_open_orders=ignore_open_orders)
 
     @api_method
     def order_target_percent(self, sid, target,
-                             limit_price=None, stop_price=None, style=None):
+                             limit_price=None, stop_price=None,
+                             style=None, ignore_open_orders=False):
         """
         Place an order to adjust a position to a target percent of the
         current portfolio value. If the position doesn't already exist, this is
@@ -773,7 +789,8 @@ class TradingAlgorithm(object):
         return self.order_value(sid, req_value,
                                 limit_price=limit_price,
                                 stop_price=stop_price,
-                                style=style)
+                                style=style,
+                                ignore_open_orders=ignore_open_orders)
 
     @api_method
     def get_open_orders(self, sid=None):
