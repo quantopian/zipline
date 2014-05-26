@@ -601,13 +601,9 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        # internally this will cause a refresh of the
-        # period performance calculations.
-        return self.perf_tracker.get_portfolio()
+        return self.updated_portfolio()
 
     def updated_portfolio(self):
-        # internally this will cause a refresh of the
-        # period performance calculations.
         if self.portfolio_needs_update:
             self._portfolio = self.perf_tracker.get_portfolio()
             self.portfolio_needs_update = False

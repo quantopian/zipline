@@ -367,20 +367,24 @@ class PerformancePeriod(object):
         positions = self._positions_store
 
         for sid, pos in iteritems(self.positions):
-            if pos.amount != 0 and sid not in positions:
-                positions[sid] = zp.Position(sid)
+
+            if pos.amount == 0:
+                # Clear out the position if it has become empty since the last
+                # time get_positions was called.  Catching the KeyError is
+                # faster than checking `if sid in positions`, and this can be
+                # potentially called in a tight inner loop.
+                try:
+                    del positions[sid]
+                except KeyError:
+                    pass
+                continue
+
+            # Note that this will create a position if we don't currently have
+            # an entry
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price = pos.last_sale_price
-
-            # Remove positions with no amounts from portfolio container
-            # that is passed to the algorithm.
-            # These positions are still stored internally for use with
-            # dividends etc.
-            if pos.amount == 0 and sid in positions:
-                del positions[sid]
-
         return positions
 
     def get_positions_list(self):
