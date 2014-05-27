@@ -695,8 +695,8 @@ class TradingAlgorithm(object):
         order for the difference between the target number of shares and the
         current number of shares.
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
+        if sid in self.updated_portfolio().positions:
+            current_position = self.updated_portfolio().positions[sid].amount
             req_shares = target - current_position
             return self.order(sid, req_shares,
                               limit_price=limit_price,
@@ -718,8 +718,8 @@ class TradingAlgorithm(object):
         order for the difference between the target value and the
         current value.
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
+        if sid in self.updated_portfolio().positions:
+            current_position = self.updated_portfolio().positions[sid].amount
             current_price = self.trading_client.current_data[sid].price
             current_value = current_position * current_price
             req_value = target - current_value
@@ -745,13 +745,13 @@ class TradingAlgorithm(object):
 
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
+        if sid in self.updated_portfolio().positions:
+            current_position = self.updated_portfolio().positions[sid].amount
             current_price = self.trading_client.current_data[sid].price
             current_value = current_position * current_price
         else:
             current_value = 0
-        target_value = self.portfolio.portfolio_value * target
+        target_value = self.updated_portfolio().portfolio_value * target
 
         req_value = target_value - current_value
         return self.order_value(sid, req_value,
