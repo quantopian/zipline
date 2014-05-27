@@ -12,7 +12,7 @@ statsmodels==0.5.0
 
 pandas==0.12.0
 python-dateutil==2.2
-six==1.5.2
+six==1.6.1
 
 # Cython is required for TA-Lib
 Cython==0.20
