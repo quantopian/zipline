@@ -15,7 +15,7 @@ python-dateutil==2.2
 six==1.6.1
 
 # Cython is required for TA-Lib
-Cython==0.20
+Cython==0.20.1
 TA-Lib==0.4.8
 
 # For fetching remote data
