@@ -19,4 +19,4 @@ Cython==0.20
 TA-Lib==0.4.8
 
 # For fetching remote data
-requests==2.2.0
+requests==2.3.0
