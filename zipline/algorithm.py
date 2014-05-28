@@ -758,9 +758,11 @@ class TradingAlgorithm(object):
     @api_method
     def get_open_orders(self, sid=None):
         if sid is None:
-            return {key: [order.to_api_obj() for order in orders]
-                    for key, orders
-                    in self.blotter.open_orders.iteritems()}
+            return {
+                key: [order.to_api_obj() for order in orders]
+                for key, orders in iteritems(self.blotter.open_orders)
+                if orders
+            }
         if sid in self.blotter.open_orders:
             orders = self.blotter.open_orders[sid]
             return [order.to_api_obj() for order in orders]
