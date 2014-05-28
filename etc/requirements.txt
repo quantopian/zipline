@@ -19,7 +19,10 @@ six==1.6.1
 
 # Cython is required for TA-Lib
 Cython==0.20.1
-TA-Lib==0.4.8
+# This --allow syntax is for compatibility with pip >= 1.5
+# However, this is backwards incompatible change, since previous
+# versions of pip do not support that flag.
+--allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
 
 # For fetching remote data
 requests==2.3.0
