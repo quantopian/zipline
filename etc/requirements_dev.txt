@@ -19,7 +19,6 @@ pyandoc==0.0.1
 
 # Example scripts that are run during unit tests use the following:
 
-scipy==0.13.2
 matplotlib==1.3.1
 # tornado and pyparsing are required by matplotlib
 tornado==3.2

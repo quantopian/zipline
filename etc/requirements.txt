@@ -6,6 +6,8 @@ Logbook==0.7.0
 pytz==2014.3
 numpy==1.8.1
 
+# scipy is required for statsmodels
+scipy==0.13.2
 # Needed for parts of pandas.stats
 patsy==0.2.1
 statsmodels==0.5.0
