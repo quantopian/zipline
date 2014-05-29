@@ -740,10 +740,10 @@ class TradingAlgorithm(object):
             return
         target_amount = target / last_price
         return self.order_target(sid, target_amount,
-                                    limit_price=limit_price,
-                                    stop_price=stop_price,
-                                    style=style,
-                                    include_open_orders=include_open_orders)
+                                 limit_price=limit_price,
+                                 stop_price=stop_price,
+                                 style=style,
+                                 include_open_orders=include_open_orders)
 
     @api_method
     def order_target_percent(self, sid, target,
@@ -760,10 +760,10 @@ class TradingAlgorithm(object):
         """
         target_value = self.portfolio.portfolio_value * target
         return self.order_target_value(sid, target_value,
-                                limit_price=limit_price,
-                                stop_price=stop_price,
-                                style=style,
-                                include_open_orders=include_open_orders)
+                                       limit_price=limit_price,
+                                       stop_price=stop_price,
+                                       style=style,
+                                       include_open_orders=include_open_orders)
 
     @api_method
     def get_open_orders(self, sid=None):
