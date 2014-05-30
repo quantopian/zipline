@@ -82,7 +82,7 @@ class ExceptionTestCase(TestCase):
                 'handle_data',
                 self.zipline_test_config['sid'],
                 sim_params=factory.create_simulation_parameters()
-            )
+        )
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
@@ -102,7 +102,7 @@ class ExceptionTestCase(TestCase):
             DivByZeroAlgorithm(
                 self.zipline_test_config['sid'],
                 sim_params=factory.create_simulation_parameters()
-            )
+        )
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
@@ -122,7 +122,7 @@ class ExceptionTestCase(TestCase):
             SetPortfolioAlgorithm(
                 self.zipline_test_config['sid'],
                 sim_params=factory.create_simulation_parameters()
-            )
+        )
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config
