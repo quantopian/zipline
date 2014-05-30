@@ -102,8 +102,7 @@ def group_by_frequency(history_specs):
     return {key: list(group)
             for key, group in groupby(
                 sorted(history_specs, key=freq_str_and_bar_count),
-                key=lambda spec: spec.frequency,
-            )}
+                key=lambda spec: spec.frequency)}
 
 
 class HistoryContainer(object):
