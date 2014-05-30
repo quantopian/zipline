@@ -40,6 +40,7 @@ from zipline.finance.blotter import Blotter
 from zipline.gens.composites import date_sorted_sources
 
 from zipline.finance import trading
+from zipline.finance.trading import TradingEnvironment
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.trading import SimulationParameters
 
@@ -79,88 +80,6 @@ class FinanceTestCase(TestCase):
             if prev:
                 self.assertTrue(trade.dt > prev.dt)
             prev = trade
-
-    @timed(DEFAULT_TIMEOUT)
-    def test_trading_environment(self):
-        # holidays taken from: http://www.nyse.com/press/1191407641943.html
-        new_years = datetime(2008, 1, 1, tzinfo=pytz.utc)
-        mlk_day = datetime(2008, 1, 21, tzinfo=pytz.utc)
-        presidents = datetime(2008, 2, 18, tzinfo=pytz.utc)
-        good_friday = datetime(2008, 3, 21, tzinfo=pytz.utc)
-        memorial_day = datetime(2008, 5, 26, tzinfo=pytz.utc)
-        july_4th = datetime(2008, 7, 4, tzinfo=pytz.utc)
-        labor_day = datetime(2008, 9, 1, tzinfo=pytz.utc)
-        tgiving = datetime(2008, 11, 27, tzinfo=pytz.utc)
-        christmas = datetime(2008, 5, 25, tzinfo=pytz.utc)
-        a_saturday = datetime(2008, 8, 2, tzinfo=pytz.utc)
-        a_sunday = datetime(2008, 10, 12, tzinfo=pytz.utc)
-        holidays = [
-            new_years,
-            mlk_day,
-            presidents,
-            good_friday,
-            memorial_day,
-            july_4th,
-            labor_day,
-            tgiving,
-            christmas,
-            a_saturday,
-            a_sunday
-        ]
-
-        for holiday in holidays:
-            self.assertTrue(not trading.environment.is_trading_day(holiday))
-
-        first_trading_day = datetime(2008, 1, 2, tzinfo=pytz.utc)
-        last_trading_day = datetime(2008, 12, 31, tzinfo=pytz.utc)
-        workdays = [first_trading_day, last_trading_day]
-
-        for workday in workdays:
-            self.assertTrue(trading.environment.is_trading_day(workday))
-
-    def test_simulation_parameters(self):
-        env = SimulationParameters(
-            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
-            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
-            capital_base=100000,
-        )
-
-        self.assertTrue(env.last_close.month == 12)
-        self.assertTrue(env.last_close.day == 31)
-
-    @timed(DEFAULT_TIMEOUT)
-    def test_sim_params_days_in_period(self):
-
-        #     January 2008
-        #  Su Mo Tu We Th Fr Sa
-        #         1  2  3  4  5
-        #   6  7  8  9 10 11 12
-        #  13 14 15 16 17 18 19
-        #  20 21 22 23 24 25 26
-        #  27 28 29 30 31
-
-        env = SimulationParameters(
-            period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
-            period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
-            capital_base=100000,
-        )
-
-        expected_trading_days = (
-            datetime(2007, 12, 31, tzinfo=pytz.utc),
-            # Skip new years
-            # holidays taken from: http://www.nyse.com/press/1191407641943.html
-            datetime(2008, 1, 2, tzinfo=pytz.utc),
-            datetime(2008, 1, 3, tzinfo=pytz.utc),
-            datetime(2008, 1, 4, tzinfo=pytz.utc),
-            # Skip Saturday
-            # Skip Sunday
-            datetime(2008, 1, 7, tzinfo=pytz.utc)
-        )
-
-        num_expected_trading_days = 5
-        self.assertEquals(num_expected_trading_days, env.days_in_period)
-        np.testing.assert_array_equal(expected_trading_days,
-                                      env.trading_days.tolist())
 
     @timed(EXTENDED_TIMEOUT)
     def test_full_zipline(self):
@@ -429,3 +348,183 @@ class FinanceTestCase(TestCase):
         self.assertEqual(300, fls_order['amount'])
         self.assertEqual(3.33, fls_order['limit'])
         self.assertEqual(2, fls_order['sid'])
+
+
+class TradingEnvironmentTestCase(TestCase):
+    """
+    Tests for date management utilities in zipline.finance.trading.
+    """
+
+    def setUp(self):
+        setup_logger(self)
+
+    def tearDown(self):
+        teardown_logger(self)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_is_trading_day(self):
+        # holidays taken from: http://www.nyse.com/press/1191407641943.html
+        new_years = datetime(2008, 1, 1, tzinfo=pytz.utc)
+        mlk_day = datetime(2008, 1, 21, tzinfo=pytz.utc)
+        presidents = datetime(2008, 2, 18, tzinfo=pytz.utc)
+        good_friday = datetime(2008, 3, 21, tzinfo=pytz.utc)
+        memorial_day = datetime(2008, 5, 26, tzinfo=pytz.utc)
+        july_4th = datetime(2008, 7, 4, tzinfo=pytz.utc)
+        labor_day = datetime(2008, 9, 1, tzinfo=pytz.utc)
+        tgiving = datetime(2008, 11, 27, tzinfo=pytz.utc)
+        christmas = datetime(2008, 5, 25, tzinfo=pytz.utc)
+        a_saturday = datetime(2008, 8, 2, tzinfo=pytz.utc)
+        a_sunday = datetime(2008, 10, 12, tzinfo=pytz.utc)
+        holidays = [
+            new_years,
+            mlk_day,
+            presidents,
+            good_friday,
+            memorial_day,
+            july_4th,
+            labor_day,
+            tgiving,
+            christmas,
+            a_saturday,
+            a_sunday
+        ]
+
+        for holiday in holidays:
+            self.assertTrue(not self.env.is_trading_day(holiday))
+
+        first_trading_day = datetime(2008, 1, 2, tzinfo=pytz.utc)
+        last_trading_day = datetime(2008, 12, 31, tzinfo=pytz.utc)
+        workdays = [first_trading_day, last_trading_day]
+
+        for workday in workdays:
+            self.assertTrue(self.env.is_trading_day(workday))
+
+    def test_simulation_parameters(self):
+        env = SimulationParameters(
+            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
+            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
+            capital_base=100000,
+        )
+
+        self.assertTrue(env.last_close.month == 12)
+        self.assertTrue(env.last_close.day == 31)
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_sim_params_days_in_period(self):
+
+        #     January 2008
+        #  Su Mo Tu We Th Fr Sa
+        #         1  2  3  4  5
+        #   6  7  8  9 10 11 12
+        #  13 14 15 16 17 18 19
+        #  20 21 22 23 24 25 26
+        #  27 28 29 30 31
+
+        env = SimulationParameters(
+            period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
+            period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
+            capital_base=100000,
+        )
+
+        expected_trading_days = (
+            datetime(2007, 12, 31, tzinfo=pytz.utc),
+            # Skip new years
+            # holidays taken from: http://www.nyse.com/press/1191407641943.html
+            datetime(2008, 1, 2, tzinfo=pytz.utc),
+            datetime(2008, 1, 3, tzinfo=pytz.utc),
+            datetime(2008, 1, 4, tzinfo=pytz.utc),
+            # Skip Saturday
+            # Skip Sunday
+            datetime(2008, 1, 7, tzinfo=pytz.utc)
+        )
+
+        num_expected_trading_days = 5
+        self.assertEquals(num_expected_trading_days, env.days_in_period)
+        np.testing.assert_array_equal(expected_trading_days,
+                                      env.trading_days.tolist())
+
+    @timed(DEFAULT_TIMEOUT)
+    def test_market_minute_window(self):
+
+        #     January 2008
+        #  Su Mo Tu We Th Fr Sa
+        #         1  2  3  4  5
+        #   6  7  8  9 10 11 12
+        #  13 14 15 16 17 18 19
+        #  20 21 22 23 24 25 26
+        #  27 28 29 30 31
+
+        us_east = pytz.timezone('US/Eastern')
+        utc = pytz.utc
+
+        # 10:01 AM Eastern on January 7th..
+        start = us_east.localize(datetime(2008, 1, 7, 10, 1))
+        utc_start = start.astimezone(utc)
+
+        # Get the next 10 minutes
+        minutes = self.env.market_minute_window(
+            utc_start, 10,
+        )
+        self.assertEqual(len(minutes), 10)
+        for i in range(10):
+            self.assertEqual(minutes[i], utc_start + timedelta(minutes=i))
+
+        # Get the previous 10 minutes.
+        minutes = self.env.market_minute_window(
+            utc_start, 10, step=-1,
+        )
+        self.assertEqual(len(minutes), 10)
+        for i in range(10):
+            self.assertEqual(minutes[i], utc_start + timedelta(minutes=-i))
+
+        # Get the next 900 minutes, including utc_start, rolling over into the
+        # next two days.
+        # Should include:
+        # Today:    10:01 AM  ->  4:00 PM  (360 minutes)
+        # Tomorrow: 9:31  AM  ->  4:00 PM  (390 minutes, 750 total)
+        # Last Day: 9:31  AM  -> 12:00 PM  (150 minutes, 900 total)
+        minutes = self.env.market_minute_window(
+            utc_start, 900,
+        )
+        today = self.env.market_minutes_for_day(start)[30:]
+        tomorrow = self.env.market_minutes_for_day(
+            start + timedelta(days=1)
+        )
+        last_day = self.env.market_minutes_for_day(
+            start + timedelta(days=2))[:150]
+
+        self.assertEqual(len(minutes), 900)
+        self.assertEqual(minutes[0], utc_start)
+        self.assertTrue(all(today == minutes[:360]))
+        self.assertTrue(all(tomorrow == minutes[360:750]))
+        self.assertTrue(all(last_day == minutes[750:]))
+
+        # Get the previous 801 minutes, including utc_start, rolling over into
+        # Friday the 4th and Thursday the 3rd.
+        # Should include:
+        # Today:    10:01 AM -> 9:31 AM (31 minutes)
+        # Friday:   4:00 PM  -> 9:31 AM (390 minutes, 421 total)
+        # Thursday: 4:00 PM  -> 9:41 AM (380 minutes, 801 total)
+        minutes = self.env.market_minute_window(
+            utc_start, 801, step=-1,
+        )
+
+        today = self.env.market_minutes_for_day(start)[30::-1]
+        # minus an extra two days from each of these to account for the two
+        # weekend days we skipped
+        friday = self.env.market_minutes_for_day(
+            start + timedelta(days=-3),
+        )[::-1]
+        thursday = self.env.market_minutes_for_day(
+            start + timedelta(days=-4),
+        )[:9:-1]
+
+        self.assertEqual(len(minutes), 801)
+        self.assertEqual(minutes[0], utc_start)
+        self.assertTrue(all(today == minutes[:31]))
+        self.assertTrue(all(friday == minutes[31:421]))
+        self.assertTrue(all(thursday == minutes[421:]))
