@@ -706,7 +706,8 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_value(self, sid, target,
-                           limit_price=None, stop_price=None, style=None):
+                           limit_price=None, stop_price=None,
+                           style=None, include_open_orders=False):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -714,20 +715,18 @@ class TradingAlgorithm(object):
         order for the difference between the target value and the
         current value.
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
-            current_price = self.trading_client.current_data[sid].price
-            current_value = current_position * current_price
-            req_value = target - current_value
-            return self.order_value(sid, req_value,
-                                    limit_price=limit_price,
-                                    stop_price=stop_price,
-                                    style=style)
-        else:
-            return self.order_value(sid, target,
-                                    limit_price=limit_price,
-                                    stop_price=stop_price,
-                                    style=style)
+        last_price = self.trading_client.current_data[sid].price
+        if np.allclose(last_price, 0):
+            # Don't place an order
+            if self.logger:
+                zero_message = "Price of 0 for {psid}; can't infer value"
+                self.logger.debug(zero_message.format(psid=sid))
+            return
+        target_amount = target / last_price
+        return self.order_target(sid, target_amount,
+                                 limit_price=limit_price,
+                                 stop_price=stop_price,
+                                 style=style)
 
     @api_method
     def order_target_percent(self, sid, target,
@@ -741,19 +740,11 @@ class TradingAlgorithm(object):
 
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
-            current_price = self.trading_client.current_data[sid].price
-            current_value = current_position * current_price
-        else:
-            current_value = 0
         target_value = self.portfolio.portfolio_value * target
-
-        req_value = target_value - current_value
-        return self.order_value(sid, req_value,
-                                limit_price=limit_price,
-                                stop_price=stop_price,
-                                style=style)
+        return self.order_target_value(sid, target_value,
+                                       limit_price=limit_price,
+                                       stop_price=stop_price,
+                                       style=style)
 
     @api_method
     def get_open_orders(self, sid=None):
