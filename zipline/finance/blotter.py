@@ -100,12 +100,7 @@ class Blotter(object):
         amount = int(almost_equal_to(amount))
 
         # just validates amount and passes rest on to TransactionSimulator
-        # Tell the user if they try to buy 0 shares of something.
         if amount == 0:
-            zero_message = "Requested to trade zero shares of {psid}".format(
-                psid=sid
-            )
-            log.debug(zero_message)
             # Don't bother placing orders for 0 shares.
             return
         elif amount > self.max_shares:
