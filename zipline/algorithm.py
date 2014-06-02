@@ -706,8 +706,7 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_value(self, sid, target,
-                           limit_price=None, stop_price=None,
-                           style=None, include_open_orders=False):
+                           limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
