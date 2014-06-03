@@ -26,9 +26,10 @@ from . history import (
 from zipline.finance import trading
 from zipline.utils.data import RollingPanel
 
+
 # The closing price is referred to by multiple names,
 # allow both for price rollover logic etc.
-CLOSING_PRICE_FIELDS = {'price', 'close_price'}
+CLOSING_PRICE_FIELDS = frozenset({'price', 'close_price'})
 
 
 def ffill_buffer_from_prior_values(field,
@@ -39,10 +40,6 @@ def ffill_buffer_from_prior_values(field,
     Forward-fill a buffer frame, falling back to the end-of-period values of a
     digest frame if the buffer frame has leading NaNs.
     """
-
-    if field == 'volume':
-        # Volume is never forward-filled.
-        return buffer_frame
 
     # Get values which are NaN at the beginning of the period.
     first_bar = buffer_frame.iloc[0]
@@ -70,6 +67,35 @@ def ffill_buffer_from_prior_values(field,
                 buffer_frame[sid][0] = prior_sid_value.get('value', np.nan)
 
     return buffer_frame.ffill()
+
+
+def ffill_digest_frame_from_prior_values(field, digest_frame, prior_values):
+    """
+    Forward-fill a digest frame, falling back to the last known priof values if
+    necessary.
+    """
+    if digest_frame is not None:
+        # Digest frame is None in the case that we only have length 1 history
+        # specs for a given frequency.
+
+        # It's possible that the first bar in our digest frame is storing NaN
+        # values. If so, check if we've tracked an older value and use that as
+        # an ffill value for the first bar.
+        first_bar = digest_frame.ix[0]
+        nan_sids = first_bar[first_bar.isnull()].index
+        for sid in nan_sids:
+            try:
+                # Only use prior value if it is before the index,
+                # so that a backfill does not accidentally occur.
+                if prior_values[field][sid]['dt'] <= digest_frame.index[0]:
+                    digest_frame[sid][0] = prior_values[field][sid]['value']
+
+            except KeyError:
+                # Allow case where there is no previous value.
+                # e.g. with leading nans.
+                pass
+        digest_frame = digest_frame.ffill()
+    return digest_frame
 
 
 def freq_str_and_bar_count(history_spec):
@@ -329,41 +355,53 @@ class HistoryContainer(object):
             index=self.fields,
             columns=buffer_minutes.minor_axis)
 
-        if len(buffer_minutes.major_axis) > 0:
-            for field in self.fields:
-                if field in CLOSING_PRICE_FIELDS:
-                    # Use the last price.
-                    prices = buffer_minutes.ffill().ix[field, -1, :]
-                    rolled.ix[field] = prices
-                elif field == 'open_price':
-                    # Use the first price.
-                    opens = buffer_minutes.ix['open_price', 0, :]
-                    rolled.ix['open_price'] = opens
-                elif field == 'volume':
-                    # Volume is the sum of the volumes during the
-                    # course of the day
-                    volumes = buffer_minutes.ix['volume'].apply(np.sum)
-                    rolled.ix['volume'] = volumes
-                elif field == 'high':
-                    # Use the highest high.
-                    highs = buffer_minutes.ix['high'].apply(np.max)
-                    rolled.ix['high'] = highs
-                elif field == 'low':
-                    # Use the lowest low.
-                    lows = buffer_minutes.ix['low'].apply(np.min)
-                    rolled.ix['low'] = lows
+        for field in self.fields:
 
-                for sid, value in rolled.ix[field].iterkv():
-                    if not np.isnan(value):
-                        try:
-                            prior_values = \
-                                self.last_known_prior_values[field][sid]
-                        except KeyError:
-                            prior_values = {}
-                            self.last_known_prior_values[field][sid] = \
-                                prior_values
-                        prior_values['dt'] = digest_dt
-                        prior_values['value'] = value
+            if field in CLOSING_PRICE_FIELDS:
+                # Use the last close, or NaN if we have no minutes.
+                try:
+                    prices = buffer_minutes.loc[field].ffill().iloc[-1]
+                except IndexError:
+                    # Scalar assignment sets the value for all entries.
+                    prices = np.nan
+                rolled.ix[field] = prices
+
+            elif field == 'open_price':
+                # Use the first open, or NaN if we have no minutes.
+                try:
+                    opens = buffer_minutes.loc[field].bfill().iloc[0]
+                except IndexError:
+                    # Scalar assignment sets the value for all entries.
+                    opens = np.nan
+                rolled.ix['open_price'] = opens
+
+            elif field == 'volume':
+                # Volume is the sum of the volumes during the
+                # course of the period.
+                volumes = buffer_minutes.ix['volume'].sum().fillna(0)
+                rolled.ix['volume'] = volumes
+
+            elif field == 'high':
+                # Use the highest high.
+                highs = buffer_minutes.ix['high'].max()
+                rolled.ix['high'] = highs
+
+            elif field == 'low':
+                # Use the lowest low.
+                lows = buffer_minutes.ix['low'].min()
+                rolled.ix['low'] = lows
+
+            for sid, value in rolled.ix[field].iterkv():
+                if not np.isnan(value):
+                    try:
+                        prior_values = \
+                            self.last_known_prior_values[field][sid]
+                    except KeyError:
+                        prior_values = {}
+                        self.last_known_prior_values[field][sid] = \
+                            prior_values
+                    prior_values['dt'] = digest_dt
+                    prior_values['value'] = value
 
         digest_panel.add_frame(digest_dt, rolled)
 
@@ -377,6 +415,8 @@ class HistoryContainer(object):
 
         field = history_spec.field
         bar_count = history_spec.bar_count
+        do_ffill = history_spec.ffill
+
         index = pd.to_datetime(index_at_dt(history_spec, algo_dt))
         return_frame = self.return_frames[history_spec.key_str]
 
@@ -394,56 +434,36 @@ class HistoryContainer(object):
         else:
             digest_frame = None
 
-        if digest_frame is not None and history_spec.ffill:
-            # It's possible that the first bar in our digest frame is storing
-            # NaN values.  If so, check if we've tracked an older value and use
-            # that as an ffill value for the first bar.
-            first_bar = digest_frame.ix[0]
-            nan_sids = first_bar[first_bar.isnull()].index
-            for sid in nan_sids:
-                try:
-                    # Only use prior value if it is before the index,
-                    # so that a backfill does not accidentally occur.
-                    have_pre_frame_value = (
-                        self.last_known_prior_values[field][sid]['dt'] <=
-                        digest_frame.index[0]
-                    )
-                    if have_pre_frame_value:
-                        digest_frame[sid][0] =\
-                            self.last_known_prior_values[field][sid]['value']
-                except KeyError:
-                    # Allow case where there is no previous value.
-                    # e.g. with leading nans.
-                    pass
-            digest_frame = digest_frame.ffill()
-
-        if digest_frame is not None:
-            return_frame.ix[:-1] = digest_frame.ix[:]
-
         # Get minutes from our buffer panel to build the last row.
-        frequency = history_spec.frequency
         buffer_frame = self.buffer_panel_minutes(
-            earliest_minute=self.cur_window_starts[frequency],
+            earliest_minute=self.cur_window_starts[history_spec.frequency],
         )[field].copy()
 
-        if history_spec.ffill:
+        if do_ffill:
+            digest_frame = ffill_digest_frame_from_prior_values(
+                field,
+                digest_frame,
+                self.last_known_prior_values,
+            )
             buffer_frame = ffill_buffer_from_prior_values(
                 field,
                 buffer_frame,
                 digest_frame,
                 self.last_known_prior_values,
             )
+
+        if digest_frame is not None:
+            return_frame.ix[:-1] = digest_frame.ix[:]
+
         if field == 'volume':
-            # This works for the day rollup, i.e. '1d',
-            # but '1m' will need to allow for 0 or nan minutes
-            return_frame.ix[algo_dt] = buffer_frame.sum()
+            return_frame.ix[algo_dt] = buffer_frame.fillna(0).sum()
         elif field == 'high':
             return_frame.ix[algo_dt] = buffer_frame.max()
         elif field == 'low':
             return_frame.ix[algo_dt] = buffer_frame.min()
         elif field == 'open_price':
-            return_frame.ix[algo_dt] = buffer_frame.ix[0]
+            return_frame.ix[algo_dt] = buffer_frame.iloc[0]
         else:
-            return_frame.ix[algo_dt] = buffer_frame.ix[algo_dt]
+            return_frame.ix[algo_dt] = buffer_frame.loc[algo_dt]
 
         return return_frame

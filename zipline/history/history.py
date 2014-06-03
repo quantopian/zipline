@@ -219,6 +219,8 @@ class HistorySpec(object):
     result frames.
     """
 
+    FORWARD_FILLABLE = frozenset({'price'})
+
     @classmethod
     def spec_key(cls, bar_count, freq_str, field, ffill):
         """
@@ -237,11 +239,19 @@ class HistorySpec(object):
         # The field, e.g. 'price', 'volume', etc.
         self.field = field
         # Whether or not to forward fill the nan data.
-        self.ffill = ffill
+        self._ffill = ffill
 
         # Calculate the cache key string once.
         self.key_str = self.spec_key(
             bar_count, frequency.freq_str, field, ffill)
+
+    @property
+    def ffill(self):
+        """
+        Wrapper around ffill that returns False for fields which are not
+        forward-fillable.
+        """
+        return self._ffill and self.field in self.FORWARD_FILLABLE
 
     def __repr__(self):
         return ''.join([self.__class__.__name__, "('", self.key_str, "')"])
