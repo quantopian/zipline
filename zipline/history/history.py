@@ -243,34 +243,6 @@ class HistorySpec(object):
         self.key_str = self.spec_key(
             bar_count, frequency.freq_str, field, ffill)
 
-    # def first_window_bounds(self, initial_dt):
-    #     """
-    #     Get the window bounds of the earliest digest frame serving this
-    #     frequency for a simulation starting at @initial_dt
-    #     """
-    #     env = trading.environment
-    #     if self.frequency.unit_str == 'd':
-    #         # Get the open from (self.bar_count - 1) periods ago.
-    #         day_delta = (self.bar_count - 1) * self.frequency.num
-    #         first_open = env.open_close_window(
-    #             initial_dt,
-    #             1,
-    #             offset=-day_delta,
-    #         ).market_open[0]
-
-    #     elif self.frequency.unit_str == 'm':
-    #         # Get the minute from (self.bar_count -1) periods ago.
-    #         minute_delta = (self.bar_count - 1) * self.frequency.num + 1
-    #         first_open = env.market_minute_window(
-    #             initial_dt,
-    #             minute_delta,
-    #             step=-self.frequency.num,
-    #         # -1 because the minutes are returned in reverse order.
-    #         )[-1]
-
-    #     first_close = self.frequency.window_close(first_open)
-    #     return first_open, first_close
-
     def __repr__(self):
         return ''.join([self.__class__.__name__, "('", self.key_str, "')"])
 
