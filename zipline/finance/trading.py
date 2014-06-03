@@ -75,6 +75,14 @@ class NoFurtherDataError(Exception):
 
 class TradingEnvironment(object):
 
+    @classmethod
+    def instance(cls):
+        global environment
+        if not environment:
+            environment = TradingEnvironment()
+
+        return environment
+
     def __init__(
         self,
         load=None,
@@ -227,10 +235,9 @@ class SimulationParameters(object):
                  emission_rate='daily',
                  data_frequency='daily',
                  sids=None):
-        global environment
-        if not environment:
-            # This is the global environment for trading simulation.
-            environment = TradingEnvironment()
+
+        # This is the global environment for trading simulation.
+        environment = TradingEnvironment.instance()
 
         self.period_start = period_start
         self.period_end = period_end
