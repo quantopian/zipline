@@ -92,9 +92,7 @@ start_date={start_date}, end_date={end_date}, url={url}""".strip().
 
 
 def get_benchmark_data(symbol, start_date=None, end_date=None):
-    """
-    Benchmarks from Yahoo.
-    """
+    """Benchmarks from Yahoo."""
     if start_date is None:
         start_date = datetime(year=1950, month=1, day=3)
     if end_date is None:
@@ -108,9 +106,7 @@ def get_benchmark_data(symbol, start_date=None, end_date=None):
 
 
 def get_benchmark_returns(symbol, start_date=None, end_date=None):
-    """
-    Returns a list of return percentages in chronological order.
-    """
+    """Returns a list of return percentages in chronological order."""
     if start_date is None:
         start_date = datetime(year=1950, month=1, day=3)
     if end_date is None:

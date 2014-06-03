@@ -67,9 +67,7 @@ environment = None
 
 
 class NoFurtherDataError(Exception):
-    """
-    Thrown when next trading is attempted at the end of available data.
-    """
+    """Thrown when next trading goes beyond the end of available data."""
     pass
 
 
@@ -172,10 +170,7 @@ class TradingEnvironment(object):
         return self.trading_days[mask]
 
     def next_open_and_close(self, start_date):
-        """
-        Given the start_date, returns the next open and close of
-        the market.
-        """
+        """Given start_date, returns next open and close of the market."""
         next_open = self.next_trading_day(start_date)
 
         if next_open is None:
@@ -273,9 +268,7 @@ class SimulationParameters(object):
         return mkt_open
 
     def calculate_last_close(self):
-        """
-        Finds the last trading day on or before self.period_end
-        """
+        """Finds the last trading day on or before self.period_end"""
         last_close = self.period_end
         one_day = datetime.timedelta(days=1)
 

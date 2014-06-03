@@ -29,10 +29,10 @@ def set_algo_instance(algo):
 
 
 class ZiplineAPI(object):
-    """
+    """API context manager.
+
     Context manager for making an algorithm instance available to zipline API
-    functions within a scoped block.
-    """
+    functions within a scoped block."""
 
     def __init__(self, algo_instance):
         self.algo_instance = algo_instance

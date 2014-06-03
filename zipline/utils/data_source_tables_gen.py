@@ -77,9 +77,7 @@ def parse_csv(csv_reader):
 
 
 def merge_all_files_into_pytables(file_dir, file_out):
-    """
-    process each file into pytables
-    """
+    """process each file into pytables"""
     start = None
     start = datetime.datetime.now()
     out_h5 = tables.openFile(file_out,
@@ -143,9 +141,10 @@ def create_fake_csv(file_in):
 
 
 def main(argv=None):
-    """
-    This script cleans minute bars into pytables file
+    """This script cleans minute bars into a pytables file
+
     data_source_tables_gen.py
+
     [--tz_in] sets time zone of data only reasonably fast way to use
     time.tzset()
     [--dir_in] iterates through directory provided of csv files in gzip form
@@ -154,6 +153,7 @@ def main(argv=None):
     2012-01-01T12:30:30,1234HT,1, 2,3,4.0
     [--fake_csv] creates a fake sample csv to iterate through
     [--file_out] determines output file
+
     """
     if argv is None:
         argv = sys.argv
