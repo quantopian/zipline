@@ -31,18 +31,21 @@ class ZiplineError(Exception):
 
 
 class WrongDataForTransform(ZiplineError):
-    """
-    Raised whenever a rolling transform is called on an event that
-    does not have the necessary properties.
+    """Error when transform events are missing fiealds.
+
+    Raised whenever a rolling transform is called on an event that does not
+    have the necessary properties.
+
     """
     msg = "{transform} requires {fields}. Event cannot be processed."
 
 
 class UnsupportedSlippageModel(ZiplineError):
-    """
-    Raised if a user script calls the override_slippage magic
-    with a slipage object that isn't a VolumeShareSlippage or
-    FixedSlipapge
+    """Error when slippage mode is unsupported.
+
+    Raised if a user script calls the override_slippage magic with a slipage
+    object that isn't a VolumeShareSlippage or FixedSlipapge
+
     """
     msg = """
 You attempted to override slippage with an unsupported class. \
@@ -69,10 +72,11 @@ Trading controls may only be set in your initialize method.
 
 
 class UnsupportedCommissionModel(ZiplineError):
-    """
-    Raised if a user script calls the override_commission magic
-    with a commission object that isn't a PerShare, PerTrade or
-    PerDollar commission
+    """Error for unsupported commission model.
+
+    Raised if a user script calls the override_commission magic with a
+    commission object that isn't a PerShare, PerTrade or PerDollar commission.
+
     """
     msg = """
 You attempted to override commission with an unsupported class. \
@@ -81,9 +85,11 @@ Please use PerShare or PerTrade.
 
 
 class OverrideCommissionPostInit(ZiplineError):
-    """
-    Raised if a users script calls override_commission magic
-    after the initialize method has returned.
+    """Error for setting commission type outside of init.
+
+    Raised if a users script calls override_commission magic after the
+    initialize method has returned.
+
     """
     msg = """
 You attempted to override commission outside of `initialize`. \
@@ -92,8 +98,10 @@ You may only call override_commission in your initialize method.
 
 
 class TransactionWithNoVolume(ZiplineError):
-    """
+    """Error for transactions with no volume.
+
     Raised if a transact call returns a transaction with zero volume.
+
     """
     msg = """
 Transaction {txn} has a volume of zero.

@@ -26,10 +26,10 @@ def _ensure_index(x):
 
 
 class RollingPanel(object):
-    """
-    Preallocation strategies for rolling window over expanding data set
+    """Preallocation strategies for rolling window over expanding data set
 
     Restrictions: major_axis can only be a DatetimeIndex for now
+
     """
 
     def __init__(self, window, items, sids, cap_multiple=2,
@@ -76,8 +76,6 @@ class RollingPanel(object):
         self.buffer = new_buffer
 
     def add_frame(self, tick, frame):
-        """
-        """
         if self.pos == self.cap:
             self._roll_data()
 
@@ -92,9 +90,11 @@ class RollingPanel(object):
         self.pos += 1
 
     def get_current(self):
-        """
-        Get a Panel that is the current data in view. It is not safe to persist
-        these objects because internal data might change
+        """Get a Panel that is the current data in view.
+
+        It is not safe to persist these objects because internal data might
+        change.
+
         """
         where = slice(max(self.pos - self.window, 0), self.pos)
         major_axis = pd.DatetimeIndex(deepcopy(self.index_buf[where]),
@@ -104,9 +104,10 @@ class RollingPanel(object):
                         major_axis, self.minor_axis)
 
     def _roll_data(self):
-        """
-        Roll window worth of data up to position zero.
-        Save the effort of having to expensively roll at each iteration
+        """Roll window worth of data up to position zero.
+
+        Save the effort of having to expensively roll at each iteration.
+
         """
         self.buffer.values[:, :self.window, :] = \
             self.buffer.values[:, -self.window:]

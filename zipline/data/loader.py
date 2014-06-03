@@ -63,10 +63,10 @@ INDEX_MAPPING = {
 
 
 def get_data_filepath(name):
-    """
-    Returns a handle to data file.
+    """Returns a handle to data file.
 
     Creates containing directory, if needed.
+
     """
 
     if not os.path.exists(DATA_PATH):
@@ -83,10 +83,10 @@ def get_cache_filepath(name):
 
 
 def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):
-    """
-    Dumps data to be used with zipline.
+    """Dumps data to be used with zipline.
 
     Puts source treasury and data into zipline.
+
     """
     try:
         m = importlib.import_module("." + module, package='zipline.data')
@@ -109,10 +109,10 @@ def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):
 
 
 def dump_benchmarks(symbol):
-    """
-    Dumps data to be used with zipline.
+    """Dumps data to be used with zipline.
 
     Puts source treasury and data into zipline.
+
     """
     benchmark_data = []
     for daily_return in get_benchmark_returns(symbol):
@@ -126,12 +126,12 @@ def dump_benchmarks(symbol):
 
 
 def update_benchmarks(symbol, last_date):
-    """
-    Updates data in the zipline message pack
+    """Updates data in the zipline message pack
 
     last_date should be a datetime object of the most recent data
 
     Puts source benchmark into zipline.
+
     """
     datafile = get_data_filepath(get_benchmark_filename(symbol))
     saved_benchmarks = pd.Series.from_csv(datafile)
@@ -298,8 +298,9 @@ def load_from_yahoo(indexes=None,
                     start=None,
                     end=None,
                     adjusted=True):
-    """
-    Loads price data from Yahoo into a dataframe for each of the indicated
+    """Loads price data from Yahoo!.
+
+    Loads price data from Yahoo! into a dataframe for each of the indicated
     securities.  By default, 'price' is taken from Yahoo's 'Adjusted Close',
     which removes the impact of splits and dividends. If the argument
     'adjusted' is False, then the non-adjusted 'close' field is used instead.
@@ -331,9 +332,10 @@ def load_bars_from_yahoo(indexes=None,
                          start=None,
                          end=None,
                          adjusted=True):
-    """
-    Loads data from Yahoo into a panel with the following
-    column names for each indicated security:
+    """Loads data from Yahoo!.
+
+    Loads data from Yahoo! into a panel with the following column names for
+    each indicated security:
 
         - open
         - high

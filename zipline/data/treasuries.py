@@ -67,9 +67,7 @@ def treasury_mappings(mappings):
 
 
 class iter_to_stream(object):
-    """
-    Exposes an iterable as an i/o stream
-    """
+    """Exposes an iterable as an i/o stream."""
     def __init__(self, iterable):
         self.buffered = ""
         self.iter = iter(iterable)
@@ -148,8 +146,12 @@ def dataconverter(s):
 
 
 def get_daily_10yr_treasury_data():
-    """Download daily 10 year treasury rates from the Federal Reserve and
-    return a pandas.Series."""
+    """Download daily 10 year treasury rates.
+
+    Downlad daily 10 year treasury rates from the Federal Reserve and return a
+    pandas.Series.
+
+    """
     url = "http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15" \
           "&series=bcb44e57fb57efbe90002369321bfb3f&lastObs=&from=&to=" \
           "&filetype=csv&label=include&layout=seriescolumn"
