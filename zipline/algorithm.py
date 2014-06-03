@@ -581,19 +581,16 @@ class TradingAlgorithm(object):
         """
         last_price = self.trading_client.current_data[sid].price
         if np.allclose(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(
-                psid=sid
-            )
+            # Don't place an order
             if self.logger:
-                self.logger.debug(zero_message)
-            # Don't place any order
+                zero_message = "Price of 0 for {psid}; can't infer value"
+                self.logger.debug(zero_message.format(psid=sid))
             return
-        else:
-            amount = value / last_price
-            return self.order(sid, amount,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
+        amount = value / last_price
+        return self.order(sid, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
 
     @property
     def recorded_vars(self):
@@ -683,14 +680,33 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target(self, sid, target,
-                     limit_price=None, stop_price=None, style=None):
+                     limit_price=None, stop_price=None,
+                     style=None, include_open_orders=False):
         """
         Place an order to adjust a position to a target number of shares. If
         the position doesn't already exist, this is equivalent to placing a new
         order. If the position does exist, this is equivalent to placing an
         order for the difference between the target number of shares and the
         current number of shares.
+
+        :Arguments:
+        :Optional:
+            include_open_orders: boolean <default=False>
+                If True, the share count ordered will be adjusted
+                to include pending shares from open orders.
         """
+        if include_open_orders:
+            open_orders = self.get_open_orders(sid=sid)
+            if open_orders:
+                share_count = sum(order.amount - order.filled
+                                  for order in open_orders)
+                target -= share_count
+                if self.logger:
+                    msg = 'Target adjusted to {target}; '
+                    msg += '{count} unfilled shares of {sid}'
+                    self.logger.warn(
+                        msg.format(target=target, count=share_count, sid=sid)
+                    )
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
             req_shares = target - current_position
@@ -706,7 +722,8 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_value(self, sid, target,
-                           limit_price=None, stop_price=None, style=None):
+                           limit_price=None, stop_price=None,
+                           style=None, include_open_orders=False):
         """
         Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
@@ -714,24 +731,24 @@ class TradingAlgorithm(object):
         order for the difference between the target value and the
         current value.
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
-            current_price = self.trading_client.current_data[sid].price
-            current_value = current_position * current_price
-            req_value = target - current_value
-            return self.order_value(sid, req_value,
-                                    limit_price=limit_price,
-                                    stop_price=stop_price,
-                                    style=style)
-        else:
-            return self.order_value(sid, target,
-                                    limit_price=limit_price,
-                                    stop_price=stop_price,
-                                    style=style)
+        last_price = self.trading_client.current_data[sid].price
+        if np.allclose(last_price, 0):
+            # Don't place an order
+            if self.logger:
+                zero_message = "Price of 0 for {psid}; can't infer value"
+                self.logger.debug(zero_message.format(psid=sid))
+            return
+        target_amount = target / last_price
+        return self.order_target(sid, target_amount,
+                                 limit_price=limit_price,
+                                 stop_price=stop_price,
+                                 style=style,
+                                 include_open_orders=include_open_orders)
 
     @api_method
     def order_target_percent(self, sid, target,
-                             limit_price=None, stop_price=None, style=None):
+                             limit_price=None, stop_price=None,
+                             style=None, include_open_orders=False):
         """
         Place an order to adjust a position to a target percent of the
         current portfolio value. If the position doesn't already exist, this is
@@ -741,19 +758,12 @@ class TradingAlgorithm(object):
 
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
-            current_price = self.trading_client.current_data[sid].price
-            current_value = current_position * current_price
-        else:
-            current_value = 0
         target_value = self.portfolio.portfolio_value * target
-
-        req_value = target_value - current_value
-        return self.order_value(sid, req_value,
-                                limit_price=limit_price,
-                                stop_price=stop_price,
-                                style=style)
+        return self.order_target_value(sid, target_value,
+                                       limit_price=limit_price,
+                                       stop_price=stop_price,
+                                       style=style,
+                                       include_open_orders=include_open_orders)
 
     @api_method
     def get_open_orders(self, sid=None):
