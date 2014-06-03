@@ -91,10 +91,12 @@ from zipline.finance.execution import (
 
 
 class TestAlgorithm(TradingAlgorithm):
-    """
+    """An algorithm for testing basic behavior.
+
     This algorithm will send a specified number of orders, to allow unit tests
-    to verify the orders sent/received, transactions created, and positions
-    at the close of a simulation.
+    to verify the orders sent/received, transactions created, and positions at
+    the close of a simulation.
+
     """
 
     def initialize(self, sid, amount, order_count, sid_filter=None):
@@ -116,10 +118,12 @@ class TestAlgorithm(TradingAlgorithm):
 
 
 class HeavyBuyAlgorithm(TradingAlgorithm):
-    """
+    """An algorithm for testing heavy buying.
+
     This algorithm will send a specified number of orders, to allow unit tests
-    to verify the orders sent/received, transactions created, and positions
-    at the close of a simulation.
+    to verify the orders sent/received, transactions created, and positions at
+    the close of a simulation.
+
     """
 
     def initialize(self, sid, amount):
@@ -134,9 +138,7 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
 
 
 class NoopAlgorithm(TradingAlgorithm):
-    """
-    Dolce fa niente.
-    """
+    """Dolce fa niente."""
     def get_sid_filter(self):
         return []
 
@@ -151,9 +153,10 @@ class NoopAlgorithm(TradingAlgorithm):
 
 
 class ExceptionAlgorithm(TradingAlgorithm):
-    """
-    Throw an exception from the method name specified in the
-    constructor.
+    """An algorithm for testing exception handling.
+
+    Throw an exception from the method name specified in the constructor.
+
     """
 
     def initialize(self, throw_from, sid):
@@ -271,10 +274,12 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
 
 
 class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
-    """
+    """An algorithm for testing order style forwarding.
+
     Test Algorithm for verifying that ExecutionStyles are properly forwarded by
     order API helper methods.  Pass the name of the method to be tested as a
     string parameter to this algorithm's constructor.
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -449,10 +454,12 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
 
 
 class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
-    """
+    """An algorithm to test stop limits at extremities.
+
     Algorithm that tries to buy with extremely low stops/limits and tries to
     sell with extremely high versions of same. Should not end up with any
     positions for reasonable data.
+
     """
 
     def initialize(self, *args, **kwargs):
@@ -726,11 +733,11 @@ class BatchTransformAlgorithmMinute(TradingAlgorithm):
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):
-    """
-    An algorithm that tries to set the portfolio directly.
+    """An algorithm that tries to set the portfolio directly.
 
     The portfolio should be treated as a read-only object
     within the algorithm.
+
     """
 
     def initialize(self, *args, **kwargs):
@@ -741,10 +748,10 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
 
 
 class TALIBAlgorithm(TradingAlgorithm):
-    """
-    An algorithm that applies a TA-Lib transform. The transform object can be
-    passed at initialization with the 'talib' keyword argument. The results are
-    stored in the talib_results array.
+    """An algorithm that applies a TA-Lib transform.
+
+    The transform object can be passed at initialization with the 'talib'
+    keyword argument. The results are stored in the talib_results array.
     """
     def initialize(self, *args, **kwargs):
 
@@ -770,10 +777,11 @@ class TALIBAlgorithm(TradingAlgorithm):
 
 
 class EmptyPositionsAlgorithm(TradingAlgorithm):
-    """
-    An algorithm that ensures that 'phantom' positions do not appear
-    portfolio.positions in the case that a position has been entered
-    and fully exited.
+    """An algorithm that ensures that 'phantom' positions do not appear.
+
+    portfolio.positions in the case that a position has been entered and fully
+    exited.
+
     """
     def initialize(self, *args, **kwargs):
         self.ordered = False
