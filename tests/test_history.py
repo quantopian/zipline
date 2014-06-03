@@ -24,9 +24,13 @@ from zipline.history.history_container import HistoryContainer
 from zipline.protocol import BarData
 import zipline.utils.factory as factory
 from zipline import TradingAlgorithm
-from zipline.finance.trading import SimulationParameters
+from zipline.finance.trading import SimulationParameters, TradingEnvironment
 
 from zipline.sources import RandomWalkSource
+
+from .history_cases import (
+    HISTORY_CONTAINER_TEST_CASES,
+)
 
 # Cases are over the July 4th holiday, to ensure use of trading calendar.
 
@@ -73,7 +77,7 @@ from zipline.sources import RandomWalkSource
 # Times to be converted via:
 # pd.Timestamp('2013-07-05 9:31', tz='US/Eastern').tz_convert('UTC')},
 
-MINUTE_CASES_RAW = {
+INDEX_TEST_CASES_RAW = {
     'week of daily data': {
         'input': {'bar_count': 5,
                   'frequency': '1d',
@@ -82,6 +86,18 @@ MINUTE_CASES_RAW = {
             '2013-06-28 4:00PM',
             '2013-07-01 4:00PM',
             '2013-07-02 4:00PM',
+            '2013-07-03 1:00PM',
+            '2013-07-05 9:31AM',
+        ]
+    },
+    'five minutes on july 5th open': {
+        'input': {'bar_count': 5,
+                  'frequency': '1m',
+                  'algo_dt': '2013-07-05 9:31AM'},
+        'expected': [
+            '2013-07-03 12:57PM',
+            '2013-07-03 12:58PM',
+            '2013-07-03 12:59PM',
             '2013-07-03 1:00PM',
             '2013-07-05 9:31AM',
         ]
@@ -104,28 +120,31 @@ def convert_cases(cases):
                                              in case['expected']])
     return cases
 
-MINUTE_CASES = convert_cases(MINUTE_CASES_RAW)
+INDEX_TEST_CASES = convert_cases(INDEX_TEST_CASES_RAW)
 
 
-def index_at_dt(case_input):
+def get_index_at_dt(case_input):
     history_spec = history.HistorySpec(
         case_input['bar_count'],
         case_input['frequency'],
         None,
         False
     )
-    return history.index_at_dt(history_spec,
-                               case_input['algo_dt'])
+    return history.index_at_dt(history_spec, case_input['algo_dt'])
 
 
 class TestHistoryIndex(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.environment = TradingEnvironment.instance()
+
     @parameterized.expand(
         [(name, case['input'], case['expected'])
-         for name, case in MINUTE_CASES.items()]
+         for name, case in INDEX_TEST_CASES.items()]
     )
     def test_index_at_dt(self, name, case_input, expected):
-        history_index = index_at_dt(case_input)
+        history_index = get_index_at_dt(case_input)
 
         history_series = pd.Series(index=history_index)
         expected_series = pd.Series(index=expected)
@@ -135,9 +154,64 @@ class TestHistoryIndex(TestCase):
 
 class TestHistoryContainer(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment.instance()
+
+    def bar_data_dt(self, bar_data, require_unique=True):
+        """
+        Get a dt to associate with the given BarData object.
+
+        If require_unique == True, throw an error if multiple unique dt's are
+        encountered.  Otherwise, return the earliest dt encountered.
+        """
+        dts = {sid_data['dt'] for sid_data in bar_data.values()}
+        if require_unique and len(dts) > 1:
+            self.fail("Multiple unique dts ({0}) in {1}".format(dts, bar_data))
+
+        return sorted(dts)[0]
+
+    @parameterized.expand(
+        [(name,
+          case['specs'],
+          case['sids'],
+          case['dt'],
+          case['updates'],
+          case['expected'])
+         for name, case in HISTORY_CONTAINER_TEST_CASES.items()]
+    )
+    def test_history_container(self,
+                               name,
+                               specs,
+                               sids,
+                               dt,
+                               updates,
+                               expected):
+
+        for spec in specs:
+            # Sanity check on test input.
+            self.assertEqual(len(expected[spec.key_str]), len(updates))
+
+        container = HistoryContainer(
+            {spec.key_str: spec for spec in specs}, sids, dt
+        )
+
+        for update_count, update in enumerate(updates):
+
+            bar_dt = self.bar_data_dt(update)
+            container.update(update, bar_dt)
+
+            for spec in specs:
+                pd.util.testing.assert_frame_equal(
+                    container.get_history(spec, bar_dt),
+                    expected[spec.key_str][update_count],
+                    check_dtype=False,
+                    check_column_type=True,
+                    check_index_type=True,
+                    check_frame_type=True,
+                )
+
     def test_container_nans_and_daily_roll(self):
-        # set up trading environment
-        factory.create_simulation_parameters(num_days=4)
 
         spec = history.HistorySpec(
             bar_count=3,

@@ -38,7 +38,7 @@ class Frequency(object):
     the elapsed minutes of the (incomplete) current day
     - "1m" provides data at minute frequency
     """
-    SUPPORTED_FREQUENCIES = frozenset({'1d'})
+    SUPPORTED_FREQUENCIES = frozenset({'1d', '1m'})
     MAX_MINUTES = {'m': 1, 'd': 390}
 
     def __init__(self, freq_str):
