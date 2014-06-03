@@ -145,7 +145,7 @@ class TestHistoryContainer(TestCase):
             field='price',
             ffill=True
         )
-        specs = {hash(spec): spec}
+        specs = {spec.key_str: spec}
         initial_sids = [1, ]
         initial_dt = pd.Timestamp(
             '2013-06-28 9:31AM', tz='US/Eastern').tz_convert('UTC')
@@ -154,7 +154,7 @@ class TestHistoryContainer(TestCase):
             specs, initial_sids, initial_dt)
 
         bar_data = BarData()
-
+        container.update(bar_data, initial_dt)
         # Since there was no backfill because of no db.
         # And no first bar of data, so all values should be nans.
         prices = container.get_history(spec, initial_dt)
@@ -169,7 +169,6 @@ class TestHistoryContainer(TestCase):
             'price': 10,
             'dt': second_bar_dt
         }
-
         container.update(bar_data, second_bar_dt)
 
         prices = container.get_history(spec, second_bar_dt)
@@ -288,7 +287,6 @@ def handle_data(context, data):
         # 12 13 14 15 16 17 18
         # 19 20 21 22 23 24 25
         # 26 27 28 29 30 31
-
         start = pd.Timestamp('2006-03-20', tz='UTC')
         end = pd.Timestamp('2006-03-21', tz='UTC')
 
