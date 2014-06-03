@@ -416,6 +416,8 @@ class HistoryContainer(object):
                     # e.g. with leading nans.
                     pass
             digest_frame = digest_frame.ffill()
+
+        if digest_frame is not None:
             return_frame.ix[:-1] = digest_frame.ix[:]
 
         # Get minutes from our buffer panel to build the last row.
