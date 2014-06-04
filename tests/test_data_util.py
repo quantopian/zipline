@@ -60,8 +60,8 @@ class TestRollingPanel(unittest.TestCase):
             tm.assert_panel_equal(result, expected.swapaxes(0, 1))
 
 
-def f(option='clever', n=500, copy=False):
-    items = range(5)
+def run_history_implementations(option='clever', n=500, copy=False):
+    items = range(15)
     minor = range(20)
     window = 100
     periods = n
@@ -72,10 +72,16 @@ def f(option='clever', n=500, copy=False):
     if option == 'clever':
         rp = RollingPanel(window, items, minor, cap_multiple=2)
         major_deque = deque()
-        dummy = pd.DataFrame(np.random.randn(len(items), len(minor)),
-                             index=items, columns=minor)
 
         for i in range(periods):
+            if len(minor) > 5:
+                minor = minor[:-1]
+            if len(items) > 5:
+                items = items[:-1]
+
+            dummy = pd.DataFrame(np.random.randn(len(items), len(minor)),
+                                 index=items, columns=minor)
+
             frame = dummy * (1 + 0.001 * i)
             date = dates[i]
 
