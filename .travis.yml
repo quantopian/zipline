@@ -11,7 +11,7 @@ before_install:
 install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
-  - conda install --yes -c https://conda.binstar.org/twiecki numpy==1.8.0 scipy nose matplotlib pandas Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
+  - conda install --yes -c https://conda.binstar.org/twiecki numpy==1.8.1 scipy nose matplotlib pandas Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
   - grep pyflakes== etc/requirements_dev.txt | xargs pip install
   - grep pep8== etc/requirements_dev.txt | xargs pip install
   - grep mccabe== etc/requirements_dev.txt | xargs pip install
