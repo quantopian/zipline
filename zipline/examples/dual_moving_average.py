@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,35 +22,39 @@ its shares once the averages cross again (indicating downwards
 momentum).
 """
 
-from zipline.api import order_target, record, symbol
-from collections import deque as moving_window
-import numpy as np
+from zipline.api import order_target, record, symbol, history, add_history
 
 
 def initialize(context):
-    # Add 2 windows, one with a long window, one
-    # with a short window.
-    # Note that this is bound to change soon and will be easier.
-    context.short_window = moving_window(maxlen=100)
-    context.long_window = moving_window(maxlen=300)
+    # Register 2 histories that track daily prices,
+    # one with a 100 window and one with a 300 day window
+    add_history(100, '1d', 'price')
+    add_history(300, '1d', 'price')
+
+    context.i = 0
 
 
 def handle_data(context, data):
-    # Save price to window
-    context.short_window.append(data[symbol('AAPL')].price)
-    context.long_window.append(data[symbol('AAPL')].price)
+    # Skip first 300 days to get full windows
+    context.i += 1
+    if context.i < 300:
+        return
 
     # Compute averages
-    short_mavg = np.mean(context.short_window)
-    long_mavg = np.mean(context.long_window)
+    # history() has to be called with the same params
+    # from above and returns a pandas dataframe.
+    short_mavg = history(100, '1d', 'price').mean()
+    long_mavg = history(300, '1d', 'price').mean()
 
     # Trading logic
     if short_mavg > long_mavg:
+        # order_target orders as many shares as needed to
+        # achieve the desired number of shares.
         order_target(symbol('AAPL'), 100)
     elif short_mavg < long_mavg:
         order_target(symbol('AAPL'), 0)
 
     # Save values for later inspection
     record(AAPL=data[symbol('AAPL')].price,
-           short_mavg=short_mavg,
-           long_mavg=long_mavg)
+           short_mavg=short_mavg[0],
+           long_mavg=long_mavg[0])

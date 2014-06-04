@@ -27,6 +27,7 @@ import pytz
 
 
 class DualEMATaLib(TradingAlgorithm):
+
     """Dual Moving Average Crossover algorithm.
 
     This algorithm buys apple once its short moving average crosses
@@ -35,6 +36,7 @@ class DualEMATaLib(TradingAlgorithm):
     momentum).
 
     """
+
     def initialize(self, short_window=20, long_window=40):
         # Add 2 mavg transforms, one with a long window, one
         # with a short window.

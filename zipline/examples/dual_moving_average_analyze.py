@@ -5,6 +5,7 @@ def analyze(context, perf):
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
     perf.portfolio_value.plot(ax=ax1)
+    ax1.set_ylabel('portfolio value in $')
 
     ax2 = fig.add_subplot(212)
     perf['AAPL'].plot(ax=ax2)
@@ -18,5 +19,6 @@ def analyze(context, perf):
              '^', markersize=10, color='m')
     ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
              'v', markersize=10, color='k')
+    ax2.set_ylabel('price in $')
     plt.legend(loc=0)
     plt.show()
