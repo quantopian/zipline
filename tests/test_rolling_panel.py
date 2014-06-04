@@ -27,43 +27,94 @@ from zipline.utils.data import RollingPanel
 
 class TestRollingPanel(unittest.TestCase):
 
-    def test_basics(self):
-        items = ['foo', 'bar', 'baz']
+    def test_basics(self, window=10):
+        items = ['bar', 'baz', 'foo']
         minor = ['A', 'B', 'C', 'D']
-
-        window = 10
 
         rp = RollingPanel(window, items, minor, cap_multiple=2)
 
         dates = pd.date_range('2000-01-01', periods=30, tz='utc')
 
-        major_deque = deque()
+        major_deque = deque(maxlen=window)
 
         frames = {}
 
-        for i in range(30):
+        for i, date in enumerate(dates):
             frame = pd.DataFrame(np.random.randn(3, 4), index=items,
                                  columns=minor)
-            date = dates[i]
 
             rp.add_frame(date, frame)
 
             frames[date] = frame
             major_deque.append(date)
 
-            if i >= window:
-                major_deque.popleft()
-
             result = rp.get_current()
             expected = pd.Panel(frames, items=list(major_deque),
                                 major_axis=items, minor_axis=minor)
+
             tm.assert_panel_equal(result, expected.swapaxes(0, 1))
 
+    def test_adding_and_dropping_items(self, n_items=5, n_minor=10, window=10):
+        items = list(range(n_items))
+        minor = list(range(n_minor))
 
-def run_history_implementations(option='clever', n=500, copy=False):
-    items = range(15)
-    minor = range(20)
-    window = 100
+        expected_items = list(range(n_items))
+        expected_minor = list(range(n_minor))
+
+        rp = RollingPanel(window, items, minor, cap_multiple=2)
+
+        dates = pd.date_range('2000-01-01', periods=30, tz='utc')
+
+        frames = {}
+
+        expected_frames = deque(maxlen=window)
+        expected_dates = deque()
+
+        for i, date in enumerate(dates):
+            frame = pd.DataFrame(np.random.randn(n_items, n_minor),
+                                 index=items, columns=minor)
+
+            if i >= window:
+                # Old labels and dates should start to get dropped at every
+                # call
+                del frames[expected_dates.popleft()]
+                expected_minor = expected_minor[1:]
+                expected_items = expected_items[1:]
+
+            expected_frames.append(frame)
+            expected_dates.append(date)
+
+            rp.add_frame(date, frame)
+
+            frames[date] = frame
+
+            result = rp.get_current()
+            np.testing.assert_array_equal(sorted(result.minor_axis.values),
+                                          sorted(expected_minor))
+            np.testing.assert_array_equal(sorted(result.items.values),
+                                          sorted(expected_items))
+            tm.assert_frame_equal(frame.T,
+                                  result.ix[frame.index, -1, frame.columns])
+            expected_result = pd.Panel(frames).swapaxes(0, 1)
+            tm.assert_panel_equal(expected_result,
+                                  result)
+
+            # shift minor and items to trigger updating of underlying data
+            # structure
+            minor = minor[1:]
+            minor.append(minor[-1] + 1)
+            items = items[1:]
+            items.append(items[-1] + 1)
+
+            expected_minor.append(expected_minor[-1] + 1)
+            expected_items.append(expected_items[-1] + 1)
+
+
+def run_history_implementations(option='clever', n=500, change_fields=False,
+                                copy=False, n_items=15, n_minor=20,
+                                change_freq=5, window=100):
+    items = range(n_items)
+    minor = range(n_minor)
     periods = n
 
     dates = pd.date_range('2000-01-01', periods=periods, tz='utc')
@@ -74,10 +125,12 @@ def run_history_implementations(option='clever', n=500, copy=False):
         major_deque = deque()
 
         for i in range(periods):
-            if len(minor) > 5:
-                minor = minor[:-1]
-            if len(items) > 5:
-                items = items[:-1]
+            # Add a new and drop an field every change_freq iterations
+            if change_fields and (i % change_freq) == 0:
+                minor = minor[1:]
+                minor.append(minor[-1] + 1)
+                items = items[1:]
+                items.append(items[-1] + 1)
 
             dummy = pd.DataFrame(np.random.randn(len(items), len(minor)),
                                  index=items, columns=minor)
