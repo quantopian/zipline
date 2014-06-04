@@ -20,7 +20,7 @@ from copy import deepcopy
 
 def _ensure_index(x):
     if not isinstance(x, pd.Index):
-        x = pd.Index(x)
+        x = pd.Index(sorted(x))
 
     return x
 
@@ -59,22 +59,42 @@ class RollingPanel(object):
         return panel
 
     def _update_buffer(self, frame):
-        # Drop outdated, nan-filled minors (sids) and items (fields)
-        non_nan_cols = set(self.buffer.dropna(axis=1).minor_axis)
-        new_cols = set(frame.columns)
+        # Get current frame as we only need to care about the data that is in
+        # the active window
+        # Note that we have to increase pos so that we get the current frame as
+        # self.pos is increased _after_ this call
+        old_buffer = self.get_current(self.pos + 1)
+
+        nans = pd.isnull(old_buffer)
+
+        # Find minor_axes that have only nans
+        # Note that minor is axis 2
+        non_nan_cols = set(old_buffer.minor_axis[~np.all(nans, axis=(0, 1))])
+        # Determine new columns to be added
+        new_cols = set(frame.columns).difference(non_nan_cols)
+        # Update internal minor axis
         self.minor_axis = _ensure_index(new_cols.union(non_nan_cols))
 
-        non_nan_items = set(self.buffer.dropna(axis=1).items)
-        new_items = set(frame.index)
+        # Same for items (fields)
+        # Find items axes that have only nans
+        # Note that items is axis 0
+        non_nan_items = set(old_buffer.items[~np.all(nans, axis=(1, 2))])
+        new_items = set(frame.index).difference(non_nan_items)
         self.items = _ensure_index(new_items.union(non_nan_items))
 
+        # :NOTE:
+        # There is a simpler and 10x faster way to do this:
+        #
+        # Reindex buffer to update axes (automatically adds nans)
+        # self.buffer = self.buffer.reindex(items=self.items,
+        #                                   major_axis=np.arange(self.cap),
+        #                                   minor_axis=self.minor_axis)
+        #
+        # However, pandas==0.12.0, for which we remain backwards compatible,
+        # has a bug in .reindex() that this triggers. Using .update() as before
+        # seems to work fine.
+
         new_buffer = self._create_buffer()
-        # Copy old values we want to keep
-        # .update() is pretty slow. Ideally we would be using
-        # new_buffer.loc[non_nan_items, :, non_nan_cols] =
-        # but this triggers a bug in Pandas 0.11. Update
-        # this when 0.12 is released.
-        # https://github.com/pydata/pandas/issues/3777
         new_buffer.update(
             self.buffer.loc[non_nan_items, :, non_nan_cols])
 
@@ -90,30 +110,37 @@ class RollingPanel(object):
                 set(frame.index).difference(set(self.items)):
             self._update_buffer(frame)
 
-        self.buffer.loc[:, self.pos, :] = frame.ix[self.items].T
+        self.buffer.loc[:, self.pos, :] = \
+            frame.ix[self.items].T.astype(self.dtype)
 
         self.index_buf[self.pos] = tick
 
         self.pos += 1
 
-    def get_current(self):
+    def get_current(self, pos=None):
         """
         Get a Panel that is the current data in view. It is not safe to persist
         these objects because internal data might change
         """
-        where = slice(max(self.pos - self.window, 0), self.pos)
+        if pos is None:
+            pos = self.pos
+
+        where = slice(max(pos - self.window, 0), pos)
         major_axis = pd.DatetimeIndex(deepcopy(self.index_buf[where]),
                                       tz='utc')
 
         return pd.Panel(self.buffer.values[:, where, :], self.items,
-                        major_axis, self.minor_axis)
+                        major_axis, self.minor_axis, dtype=self.dtype)
 
     def _roll_data(self):
         """
         Roll window worth of data up to position zero.
         Save the effort of having to expensively roll at each iteration
         """
+
         self.buffer.values[:, :self.window, :] = \
-            self.buffer.values[:, -self.window:]
+            self.buffer.values[:, -self.window:, :]
+        # Clean out nans so that they get dropped in _update_buffer()
+        self.buffer.values[:, -self.window:, :] = np.nan
         self.index_buf[:self.window] = self.index_buf[-self.window:]
         self.pos = self.window
