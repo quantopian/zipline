@@ -163,6 +163,7 @@ Thank you for all the help so far!
 - @dstephens for adding Canadian treasury curves.
 - @mtrovo for adding BMF&Bovespa calendars.
 - @sdrdis for bugfixes.
+- @humdings for refactoring the order methods.
 - Quantopian Team
 
 (alert us if we've inadvertantly missed listing you here!)
