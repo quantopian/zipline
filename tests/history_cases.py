@@ -32,10 +32,11 @@ def mixed_frequency_expected_data(count, frequency):
     Helper for enumerating expected data test_mixed_frequency.
     """
     if frequency == '1d':
-        if count < 390:
+        # First day of this test is July 3rd, which is a half day.
+        if count < 210:
             return [np.nan, count]
         else:
-            return [389, count]
+            return [209, count]
     elif frequency == '1m':
         if count == 0:
             return [np.nan, count]
@@ -44,7 +45,7 @@ def mixed_frequency_expected_data(count, frequency):
 
 
 MIXED_FREQUENCY_MINUTES = TradingEnvironment.instance().market_minute_window(
-    to_utc('2013-06-28 9:31AM'), 780,
+    to_utc('2013-07-03 9:31AM'), 600,
 )
 DAILY_OPEN_CLOSE_SPECS = [
     HistorySpec(3, '1d', 'open_price', False),
@@ -55,6 +56,7 @@ ILLIQUID_PRICES_SPECS = [
     HistorySpec(5, '1m', 'price', True),
 ]
 MIXED_FREQUENCY_SPECS = [
+    HistorySpec(1, '1m', 'price', False),
     HistorySpec(2, '1m', 'price', False),
     HistorySpec(2, '1d', 'price', False),
 ]
@@ -361,7 +363,14 @@ HISTORY_CONTAINER_TEST_CASES = {
         'sids': [1],
 
         # Start date for test.
-        'dt': to_utc('2013-06-28 9:31AM'),
+        #      July 2013
+        # Su Mo Tu We Th Fr Sa
+        #     1  2  3  4  5  6
+        #  7  8  9 10 11 12 13
+        # 14 15 16 17 18 19 20
+        # 21 22 23 24 25 26 27
+        # 28 29 30 31
+        'dt': to_utc('2013-07-03 9:31AM'),
 
         # Sequence of updates to the container
         'updates': [
@@ -378,7 +387,18 @@ HISTORY_CONTAINER_TEST_CASES = {
 
         # Dictionary mapping spec_key -> list of expected outputs.
         'expected': {
+
             MIXED_FREQUENCY_SPECS[0].key_str: [
+                pd.DataFrame(
+                    data={
+                        1: [count],
+                    },
+                    index=[minute],
+                )
+                for count, minute in enumerate(MIXED_FREQUENCY_MINUTES)
+            ],
+
+            MIXED_FREQUENCY_SPECS[1].key_str: [
                 pd.DataFrame(
                     data={
                         1: mixed_frequency_expected_data(count, '1m'),
@@ -388,7 +408,7 @@ HISTORY_CONTAINER_TEST_CASES = {
                 for count in range(len(MIXED_FREQUENCY_MINUTES))
             ],
 
-            MIXED_FREQUENCY_SPECS[1].key_str: [
+            MIXED_FREQUENCY_SPECS[2].key_str: [
                 pd.DataFrame(
                     data={
                         1: mixed_frequency_expected_data(count, '1d'),
