@@ -157,8 +157,8 @@ class BarData(object):
     usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self):
-        self._data = {}
+    def __init__(self, data=None):
+        self._data = data or {}
         self._contains_override = None
 
     def __contains__(self, name):
@@ -217,3 +217,6 @@ class BarData(object):
 
     def __len__(self):
         return len(self.keys())
+
+    def __repr__(self):
+        return '{0}({1})'.format(self.__class__.__name__, self._data)

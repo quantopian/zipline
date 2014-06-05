@@ -32,8 +32,8 @@ class RollingPanel(object):
     Restrictions: major_axis can only be a DatetimeIndex for now
     """
 
-    def __init__(self, window, items, sids, cap_multiple=2,
-                 dtype=np.float64):
+    def __init__(self, window, items, sids, cap_multiple=2, dtype=np.float64):
+
         self.pos = 0
         self.window = window
 
@@ -49,9 +49,14 @@ class RollingPanel(object):
         self.buffer = self._create_buffer()
 
     def _create_buffer(self):
-        return pd.Panel(items=self.items, minor_axis=self.minor_axis,
-                        major_axis=range(self.cap),
-                        dtype=self.dtype)
+        panel = pd.Panel(
+            items=self.items,
+            minor_axis=self.minor_axis,
+            major_axis=range(self.cap),
+            dtype=self.dtype,
+        )
+
+        return panel
 
     def _update_buffer(self, frame):
         # Drop outdated, nan-filled minors (sids) and items (fields)
