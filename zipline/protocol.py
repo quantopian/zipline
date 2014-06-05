@@ -202,7 +202,7 @@ class BarData(object):
         return list(self.iterkeys())
 
     def itervalues(self):
-        return (value for sid, value in iteritems(self))
+        return (value for _sid, value in self.iteritems())
 
     def values(self):
         return list(self.itervalues())
@@ -213,7 +213,7 @@ class BarData(object):
                 if sid in self)
 
     def items(self):
-        return list(iteritems(self))
+        return list(self.iteritems())
 
     def __len__(self):
         return len(self.keys())
