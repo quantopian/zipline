@@ -4,6 +4,12 @@ from zipline.finance.blotter import ORDER_STATUS
 
 from six import itervalues
 
+import pandas as pd
+
+
+def to_utc(time_str):
+    return pd.Timestamp(time_str, tz='US/Eastern').tz_convert('UTC')
+
 
 def setup_logger(test, path='test.log'):
     test.log_handler = FileHandler(path)

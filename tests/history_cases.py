@@ -8,10 +8,7 @@ import numpy as np
 from zipline.finance.trading import TradingEnvironment
 from zipline.history.history import HistorySpec
 from zipline.protocol import BarData
-
-
-def to_utc(time_str):
-    return pd.Timestamp(time_str, tz='US/Eastern').tz_convert('UTC')
+from zipline.utils.test_utils import to_utc
 
 
 def mixed_frequency_expected_index(count, frequency):
