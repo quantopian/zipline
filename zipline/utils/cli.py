@@ -121,11 +121,12 @@ def parse_cell_magic(line, cell):
     if not local_namespace:
         args['namespace'] = get_ipython().user_ns # flake8: noqa
 
-    perf = run_pipeline(print_algo=False, algo_text=cell, **args)
-
     # If we are running inside NB, do not output to file but create a
     # variable instead
     output_var_name = args.pop('output', None)
+
+    perf = run_pipeline(print_algo=False, algo_text=cell, **args)
+
     if output_var_name is not None:
         get_ipython().user_ns[output_var_name] = perf # flake8: noqa
 
