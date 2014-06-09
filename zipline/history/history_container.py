@@ -100,7 +100,7 @@ def ffill_digest_frame_from_prior_values(field, digest_frame, prior_values):
 
 def freq_str_and_bar_count(history_spec):
     """
-    Helper for getting the frequency string from a history spec.
+    Helper for getting the frequency string and bar count from a history spec.
     """
     return (history_spec.frequency.freq_str, history_spec.bar_count)
 

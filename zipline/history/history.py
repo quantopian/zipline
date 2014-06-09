@@ -248,7 +248,7 @@ class HistorySpec(object):
     @property
     def ffill(self):
         """
-        Wrapper around ffill that returns False for fields which are not
+        Wrapper around self._ffill that returns False for fields which are not
         forward-fillable.
         """
         return self._ffill and self.field in self.FORWARD_FILLABLE
