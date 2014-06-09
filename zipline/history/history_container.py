@@ -305,13 +305,19 @@ class HistoryContainer(object):
                  sid in self.buffer_panel.minor_axis)})
         self.buffer_panel.add_frame(algo_dt, frame)
 
-    def update_digest_panels(self, algo_dt, buffer_panel):
+    def update_digest_panels(self, algo_dt, buffer_panel, freq_filter=None):
         """
         Check whether @algo_dt is greater than cur_window_close for any of our
         frequencies.  If so, roll a digest for that frequency using data drawn
         from @buffer panel and insert it into the appropriate digest panels.
+
+        If @freq_filter is specified, only use the given data to update
+        frequencies on which the filter returns True.
         """
         for frequency in self.unique_frequencies:
+
+            if freq_filter is not None and not freq_filter(frequency):
+                continue
 
             # We don't keep a digest panel if we only have a length-1 history
             # spec for a given frequency
