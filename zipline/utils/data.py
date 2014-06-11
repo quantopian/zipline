@@ -83,7 +83,7 @@ class RollingPanel(object):
         self.items = _ensure_index(new_items.union(non_nan_items))
 
         # :NOTE:
-        # There is a simpler and 10x faster way to do this:
+        # There is a simpler way to do this:
         #
         # Reindex buffer to update axes (automatically adds nans)
         # self.buffer = self.buffer.reindex(items=self.items,
@@ -91,14 +91,13 @@ class RollingPanel(object):
         #                                   minor_axis=self.minor_axis)
         #
         # However, pandas==0.12.0, for which we remain backwards compatible,
-        # has a bug in .reindex() that this triggers. Using .update() as before
-        # seems to work fine.
+        # has a bug in .reindex() that this triggers.
 
         new_buffer = self._create_buffer()
-        new_buffer.update(
-            self.buffer.loc[non_nan_items, :, non_nan_cols])
-
-        self.buffer = new_buffer
+        self.buffer = pd.concat([self.buffer.loc[sorted(non_nan_items), :,
+                                                 sorted(non_nan_cols)],
+                                 new_buffer.loc[sorted(new_items), :,
+                                                sorted(new_cols)]])
 
     def add_frame(self, tick, frame):
         """
