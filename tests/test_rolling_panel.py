@@ -69,7 +69,7 @@ class TestRollingPanel(unittest.TestCase):
 
         expected_frames = deque(maxlen=window)
         expected_dates = deque()
-
+        j = 0
         for i, date in enumerate(dates):
             frame = pd.DataFrame(np.random.randn(n_items, n_minor),
                                  index=items, columns=minor)
@@ -101,13 +101,26 @@ class TestRollingPanel(unittest.TestCase):
 
             # shift minor and items to trigger updating of underlying data
             # structure
-            minor = minor[1:]
-            minor.append(minor[-1] + 1)
-            items = items[1:]
-            items.append(items[-1] + 1)
+            if i < window:
+                # Insert new items
+                minor = minor[1:]
+                minor.append(minor[-1] + 1)
+                items = items[1:]
+                items.append(items[-1] + 1)
 
-            expected_minor.append(expected_minor[-1] + 1)
-            expected_items.append(expected_items[-1] + 1)
+                expected_minor.append(expected_minor[-1] + 1)
+                expected_items.append(expected_items[-1] + 1)
+            else:
+                # Start inserting old items out of order to make sure sorting
+                # works.
+                j += 1
+                minor = minor[1:]
+                minor.append(j)
+                items = items[1:]
+                items.append(j)
+
+                expected_minor.append(j)
+                expected_items.append(j)
 
 
 def run_history_implementations(option='clever', n=500, change_fields=False,
