@@ -21,6 +21,8 @@ from six import with_metaclass
 
 import zipline.utils.math_utils as zp_math
 
+from zipline.utils import tradingcalendar
+
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
     """
@@ -139,6 +141,128 @@ class StopLimitOrder(ExecutionStyle):
 
     def get_stop_price(self, is_buy):
         return asymmetric_round_price_to_penny(self.stop_price, not is_buy)
+
+
+class TimeInForceModel(with_metaclass(abc.ABCMeta)):
+    """
+    Abstract base class representing when an order is valid
+
+    Types supported by IB
+        DAY: will cancel at EOD
+        GTC: Good till cancelled
+        IOC: Immediate-or-Cancel; Any portion not filled as soon as it becomes
+             available in the market is canceled.
+        GTD: Good till date
+    """
+
+    _time_in_force = None
+
+    @abc.abstractmethod
+    def get_good_till_dt(self):
+        """
+        Get the last valid datetime for this order
+        """
+        raise NotImplemented
+
+    @abc.abstractmethod
+    def get_good_after_dt(self):
+        """
+        Get the first valid datetime for this order
+        """
+        raise NotImplemented
+
+    @abc.abstractmethod
+    def within_valid_date_range(self, dt):
+        raise NotImplemented
+
+    def __repr__(self):
+        return str(self._time_in_force)
+
+
+class DayOrder(TimeInForceModel):
+
+    def __init__(self, algo_dt):
+        self._time_in_force = 'DAY'
+        self.good_after_dt = algo_dt
+        open_and_closes = tradingcalendar.open_and_closes
+        dt = tradingcalendar.canonicalize_datetime(self.good_after_dt)
+        idx = open_and_closes.index.searchsorted(dt)
+        self.good_till_dt = open_and_closes.ix[idx]['market_close']
+
+    def get_good_till_dt(self):
+        return self.good_till_dt
+
+    def get_good_after_dt(self):
+        return self.good_after_dt
+
+    def within_valid_date_range(self, dt):
+        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+
+
+class GoodTillCancelled(TimeInForceModel):
+
+    def __init__(self):
+        self._time_in_force = 'GTC'
+
+    def get_good_till_dt(self):
+        return None
+
+    def get_good_after_dt(self):
+        return None
+
+    def within_valid_date_range(self, dt):
+        return True
+
+
+class ImmediateOrCancel(TimeInForceModel):
+
+    def __init__(self, algo_dt):
+        self._time_in_force = 'IOC'
+        self.good_after_dt = algo_dt
+
+    def get_good_till_dt(self):
+        # Use algo_dt + one time step? Hmmmm
+        pass
+
+    def get_good_after_dt(self):
+        return self.good_after_dt
+
+    def within_valid_date_range(self, dt):
+        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+
+
+class GoodTillDate(TimeInForceModel):
+
+    def __init__(self, algo_dt, good_till_dt):
+        self._time_in_force = 'GTD'
+        self.good_after_dt = algo_dt
+        self.good_till_dt = good_till_dt
+
+    def get_good_till_dt(self):
+        return self.good_till_dt
+
+    def get_good_after_dt(self):
+        return self.good_after_dt
+
+    def within_valid_date_range(self, dt):
+        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+
+
+class GoodBetweenDates(TimeInForceModel):
+    ''' Not supported by IB, but they have fields for good after/before  '''
+    def __init__(self, good_after_dt, good_till_dt):
+        self._time_in_force = ''
+        self.good_after_dt = good_after_dt
+        self.good_till_dt = good_till_dt
+
+    def get_good_till_dt(self):
+        return self.good_till_dt
+
+    def get_good_after_dt(self):
+        return self.good_after_dt
+
+    def within_valid_date_range(self, dt):
+        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
 
 
 def asymmetric_round_price_to_penny(price, prefer_round_down,
