@@ -1,6 +1,10 @@
 Zipline
 =======
 
+[![version status](https://pypip.in/v/mpld3/badge.png)](https://pypi.python.org/pypi/zipline)
+[![downloads](https://pypip.in/d/mpld3/badge.png)](https://pypi.python.org/pypi/zipline)
+[![build status](https://travis-ci.org/quantopian/zipline.png?branch=master)](https://travis-ci.org/quantopian/zipline)
+
 Zipline is a Pythonic algorithmic trading library.  The system is
 fundamentally event-driven and a close approximation of how
 live-trading systems operate.  Currently, backtesting is well
@@ -231,11 +235,6 @@ You can compile the documentation using Sphinx:
 sudo apt-get install python-sphinx
 make html
 ```
-
-Build Status
-============
-
-[![Build Status](https://travis-ci.org/quantopian/zipline.png)](https://travis-ci.org/quantopian/zipline)
 
 Contact
 =======
