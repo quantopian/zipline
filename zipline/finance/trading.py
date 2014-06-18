@@ -354,9 +354,6 @@ class SimulationParameters(object):
                  data_frequency='daily',
                  sids=None):
 
-        # This is the global environment for trading simulation.
-        environment = TradingEnvironment.instance()
-
         self.period_start = period_start
         self.period_end = period_end
         self.capital_base = capital_base
@@ -364,6 +361,12 @@ class SimulationParameters(object):
         self.emission_rate = emission_rate
         self.data_frequency = data_frequency
         self.sids = sids
+
+        self._update_internal()
+
+    def _update_internal(self):
+        # This is the global environment for trading simulation.
+        environment = TradingEnvironment.instance()
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."

@@ -32,7 +32,7 @@ from . algorithm import TradingAlgorithm
 from . import api
 
 try:
-    ip = get_ipython() # flake8: noqa
+    ip = get_ipython()  # flake8: noqa
     ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
 except:
     pass

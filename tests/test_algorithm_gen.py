@@ -27,6 +27,7 @@ from zipline.finance import trading
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance import slippage
 from zipline.utils import factory
+from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.test_utils import (
     setup_logger,
     teardown_logger
@@ -222,7 +223,8 @@ class AlgorithmGeneratorTestCase(TestCase):
         algo.datetime should be equal to the last benchmark time.
         See https://github.com/quantopian/zipline/issues/241
         """
-        sim_params = factory.create_simulation_parameters(num_days=1)
-        algo = TestAlgo(self, sim_params=sim_params, data_frequency='minute')
+        sim_params = create_simulation_parameters(num_days=1,
+                                                  data_frequency='minute')
+        algo = TestAlgo(self, sim_params=sim_params)
         algo.run(source=[])
         self.assertEqual(algo.datetime, sim_params.last_close)

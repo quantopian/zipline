@@ -93,8 +93,7 @@ class TestRecordAlgorithm(TestCase):
 
     def test_record_incr(self):
         algo = RecordAlgorithm(
-            sim_params=self.sim_params,
-            data_frequency='daily')
+            sim_params=self.sim_params)
         output = algo.run(self.source)
 
         np.testing.assert_array_equal(output['incr'].values,
@@ -161,8 +160,9 @@ class TestMiscellaneousAPI(TestCase):
             algo.minute += 1
 
         algo = TradingAlgorithm(initialize=initialize,
-                                handle_data=handle_data)
-        algo.run(self.source, sim_params=self.sim_params)
+                                handle_data=handle_data,
+                                sim_params=self.sim_params)
+        algo.run(self.source)
 
 
 class TestTransformAlgorithm(TestCase):
@@ -193,14 +193,6 @@ class TestTransformAlgorithm(TestCase):
         algo.run(self.source)
         self.assertEqual(len(algo.sources), 1)
         assert isinstance(algo.sources[0], SpecificEquityTrades)
-
-    def test_multi_source_as_input_no_start_end(self):
-        algo = TestRegisterTransformAlgorithm(
-            sids=[133]
-        )
-
-        with self.assertRaises(AssertionError):
-            algo.run([self.source, self.df_source])
 
     def test_invalid_order_parameters(self):
         algo = InvalidOrderAlgorithm(
@@ -261,26 +253,26 @@ class TestTransformAlgorithm(TestCase):
         assert algo.registered_transforms['mavg']['class'] is MovingAverage
 
     def test_data_frequency_setting(self):
+        self.sim_params.data_frequency = 'daily'
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            data_frequency='daily'
         )
-        self.assertEqual(algo.data_frequency, 'daily')
+        self.assertEqual(algo.sim_params.data_frequency, 'daily')
         self.assertEqual(algo.annualizer, 250)
 
+        self.sim_params.data_frequency = 'minute'
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            data_frequency='minute'
         )
-        self.assertEqual(algo.data_frequency, 'minute')
+        self.assertEqual(algo.sim_params.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 250 * 6 * 60)
 
+        self.sim_params.data_frequency = 'minute'
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            data_frequency='minute',
             annualizer=10
         )
-        self.assertEqual(algo.data_frequency, 'minute')
+        self.assertEqual(algo.sim_params.data_frequency, 'minute')
         self.assertEqual(algo.annualizer, 10)
 
     def test_order_methods(self):
@@ -294,7 +286,6 @@ class TestTransformAlgorithm(TestCase):
         for AlgoClass in AlgoClasses:
             algo = AlgoClass(
                 sim_params=self.sim_params,
-                data_frequency='daily'
             )
             algo.run(self.df)
 
@@ -310,7 +301,6 @@ class TestTransformAlgorithm(TestCase):
         for name in method_names_to_test:
             algo = TestOrderStyleForwardingAlgorithm(
                 sim_params=self.sim_params,
-                data_frequency='daily',
                 instant_fill=False,
                 method_name=name
             )
@@ -318,19 +308,18 @@ class TestTransformAlgorithm(TestCase):
 
     def test_order_instant(self):
         algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
-                                         data_frequency='daily',
                                          instant_fill=True)
 
         algo.run(self.df)
 
     def test_minute_data(self):
         source = RandomWalkSource(freq='minute',
-                                  start=pd.Timestamp('2000-1-1',
+                                  start=pd.Timestamp('2000-1-3',
                                                      tz='UTC'),
-                                  end=pd.Timestamp('2000-1-1',
+                                  end=pd.Timestamp('2000-1-4',
                                                    tz='UTC'))
+        self.sim_params.data_frequency = 'minute'
         algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
-                                         data_frequency='minute',
                                          instant_fill=True)
         algo.run(source)
 
@@ -355,8 +344,7 @@ class TestPositions(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
-                                       data_frequency='daily')
+        algo = EmptyPositionsAlgorithm(sim_params=self.sim_params)
         daily_stats = algo.run(self.df)
 
         expected_position_count = [
@@ -634,7 +622,9 @@ def handle_data(context, data):
         end = pd.Timestamp('1991-01-15', tz='UTC')
         source = RandomWalkSource(start=start,
                                   end=end)
-        algo = TradingAlgorithm(script=history_algo, data_frequency='minute')
+        sim_params = factory.create_simulation_parameters(
+            data_frequency='minute')
+        algo = TradingAlgorithm(script=history_algo, sim_params=sim_params)
         output = algo.run(source)
         self.assertIsNot(output, None)
 
