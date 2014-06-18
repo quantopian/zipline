@@ -19,7 +19,8 @@ install:
   - grep nose== etc/requirements_dev.txt | xargs pip install
   - grep nose-parameterized== etc/requirements_dev.txt | xargs pip install
   - grep nose-ignore-docstring== etc/requirements_dev.txt | xargs pip install
+  - pip install coveralls
 before_script:
   - "flake8 zipline tests"
 script:
-  - nosetests --exclude=^test_examples
+  - nosetests --exclude=^test_examples --with-coverage --cover-package=zipline
