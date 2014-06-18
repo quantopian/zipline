@@ -24,3 +24,5 @@ before_script:
   - "flake8 zipline tests"
 script:
   - nosetests --exclude=^test_examples --with-coverage --cover-package=zipline
+after_success:
+  - coveralls
