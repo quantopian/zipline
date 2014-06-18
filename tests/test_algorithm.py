@@ -258,22 +258,12 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
         )
         self.assertEqual(algo.sim_params.data_frequency, 'daily')
-        self.assertEqual(algo.annualizer, 250)
 
         self.sim_params.data_frequency = 'minute'
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
         )
         self.assertEqual(algo.sim_params.data_frequency, 'minute')
-        self.assertEqual(algo.annualizer, 250 * 6 * 60)
-
-        self.sim_params.data_frequency = 'minute'
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            annualizer=10
-        )
-        self.assertEqual(algo.sim_params.data_frequency, 'minute')
-        self.assertEqual(algo.annualizer, 10)
 
     def test_order_methods(self):
         AlgoClasses = [TestOrderAlgorithm,

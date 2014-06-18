@@ -44,7 +44,6 @@ from zipline.finance.controls import (
     MaxOrderSize,
     MaxPositionSize,
 )
-from zipline.finance.constants import ANNUALIZER
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -119,9 +118,6 @@ class TradingAlgorithm(object):
                 handle_data function definition.
             data_frequency : str (daily, hourly or minutely)
                The duration of the bars.
-            annualizer : int <optional>
-               Which constant to use for annualizing risk metrics.
-               If not provided, will extract from data_frequency.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
             instant_fill : bool <default: False>
@@ -149,10 +145,6 @@ class TradingAlgorithm(object):
         self.commission = PerShare()
 
         self.instant_fill = kwargs.pop('instant_fill', False)
-
-        # Override annualizer if set
-        if 'annualizer' in kwargs:
-            self.annualizer = kwargs['annualizer']
 
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
@@ -677,7 +669,6 @@ class TradingAlgorithm(object):
     def data_frequency(self, value):
         assert value in ('daily', 'minute')
         self.sim_params.data_frequency = value
-        self.annualizer = ANNUALIZER[self.sim_params.data_frequency]
 
     @api_method
     def order_percent(self, sid, percent,
