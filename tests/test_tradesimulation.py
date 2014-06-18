@@ -21,9 +21,9 @@ from zipline.utils import factory
 class TestTradeSimulation(TestCase):
 
     def test_minutely_emissions_generate_performance_stats_for_last_day(self):
-        params = factory.create_simulation_parameters(num_days=1)
-        params.data_frequency = 'minute'
-        params.emission_rate = 'minute'
-        algo = NoopAlgorithm()
-        algo.run(source=[], sim_params=params)
+        params = factory.create_simulation_parameters(num_days=1,
+                                                      data_frequency='minute',
+                                                      emission_rate='minute')
+        algo = NoopAlgorithm(sim_params=params)
+        algo.run(source=[])
         self.assertEqual(algo.perf_tracker.day_count, 1.0)

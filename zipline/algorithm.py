@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
+import warnings
 
 import pytz
 import pandas as pd
@@ -147,11 +148,6 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        if 'data_frequency' in kwargs:
-            self.set_data_frequency(kwargs.pop('data_frequency'))
-        else:
-            self.data_frequency = None
-
         self.instant_fill = kwargs.pop('instant_fill', False)
 
         # Override annualizer if set
@@ -162,13 +158,13 @@ class TradingAlgorithm(object):
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
 
         self.sim_params = kwargs.pop('sim_params', None)
-        if self.sim_params:
-            if self.data_frequency is None:
-                self.data_frequency = self.sim_params.data_frequency
-            else:
-                self.sim_params.data_frequency = self.data_frequency
+        if self.sim_params is None:
+            self.sim_params = create_simulation_parameters(
+                capital_base=self.capital_base
+            )
 
-            self.perf_tracker = PerformanceTracker(self.sim_params)
+        # perf_tacker gets instantiated in ._create_generator()
+        self.perf_tracker = None
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -208,6 +204,11 @@ class TradingAlgorithm(object):
         # If method not defined, NOOP
         if self._initialize is None:
             self._initialize = lambda x: None
+
+        # Alternative way of setting data_frequency for backwards
+        # compatibility.
+        if 'data_frequency' in kwargs:
+            self.data_frequency = kwargs.pop('data_frequency')
 
         # an algorithm subclass needs to set initialized to True when
         # it is fully initialized.
@@ -261,7 +262,7 @@ class TradingAlgorithm(object):
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
-    def _create_data_generator(self, source_filter, sim_params):
+    def _create_data_generator(self, source_filter, sim_params=None):
         """
         Create a merged data generator using the sources and
         transforms attached to this algorithm.
@@ -271,9 +272,12 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        if sim_params is None:
+            sim_params = self.sim_params
+
         if self.benchmark_return_source is None:
             env = trading.environment
-            if (self.data_frequency == 'minute'
+            if (sim_params.data_frequency == 'minute'
                     or sim_params.emission_rate == 'minute'):
                 update_time = lambda date: env.get_open_and_close(date)[1]
             else:
@@ -315,15 +319,11 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-        sim_params.data_frequency = self.data_frequency
-
-        # perf_tracker will be instantiated in __init__ if a sim_params
-        # is passed to the constructor. If not, we instantiate here.
+        # Instantiate perf_tracker
         if self.perf_tracker is None:
             self.perf_tracker = PerformanceTracker(sim_params)
 
-        self.data_gen = self._create_data_generator(source_filter,
-                                                    sim_params)
+        self.data_gen = self._create_data_generator(source_filter, sim_params)
 
         self.trading_client = AlgorithmSimulator(self, sim_params)
 
@@ -343,14 +343,15 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, sim_params=None, benchmark_return_source=None):
+    def run(self, source, overwrite_sim_params=True,
+            benchmark_return_source=None):
         """Run the algorithm.
 
         :Arguments:
             source : can be either:
                      - pandas.DataFrame
                      - zipline source
-                     - list of zipline sources
+                     - list of sources
 
                If pandas.DataFrame is provided, it must have the
                following structure:
@@ -364,44 +365,34 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if isinstance(source, (list, tuple)):
-            assert self.sim_params is not None or sim_params is not None, \
-                """When providing a list of sources, \
-                sim_params have to be specified as a parameter
-                or in the constructor."""
+        if isinstance(source, list):
+            if overwrite_sim_params:
+                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
+ dates. Make sure to set the correct fields in sim_params passed to
+ __init__().""", UserWarning)
+                overwrite_sim_params = False
         elif isinstance(source, pd.DataFrame):
             # if DataFrame provided, wrap in DataFrameSource
             source = DataFrameSource(source)
         elif isinstance(source, pd.Panel):
             source = DataPanelSource(source)
 
-        if not isinstance(source, (list, tuple)):
-            self.sources = [source]
+        if isinstance(source, list):
+            self.set_sources(source)
         else:
-            self.sources = source
+            self.set_sources([source])
 
-        # Check for override of sim_params.
-        # If it isn't passed to this function,
-        # use the default params set with the algorithm.
-        # Else, we create simulation parameters using the start and end of the
-        # source provided.
-        if sim_params is None:
-            if self.sim_params is None:
-                start = source.start
-                end = source.end
-                sim_params = create_simulation_parameters(
-                    start=start,
-                    end=end,
-                    capital_base=self.capital_base,
-                )
-            else:
-                sim_params = self.sim_params
-
-        # update sim params to ensure it's set
-        self.sim_params = sim_params
-        if self.sim_params.sids is None:
+        # Override sim_params if params are provided by the source.
+        if overwrite_sim_params:
+            if hasattr(source, 'start'):
+                self.sim_params.period_start = source.start
+            if hasattr(source, 'end'):
+                self.sim_params.period_end = source.end
             all_sids = [sid for s in self.sources for sid in s.sids]
             self.sim_params.sids = set(all_sids)
+            # Changing period_start and period_close might require updating
+            # of first_open and last_close.
+            self.sim_params._update_internal()
 
         # Create history containers
         if len(self.history_specs) != 0:
@@ -427,7 +418,7 @@ class TradingAlgorithm(object):
         self.perf_tracker = None
 
         # create transforms and zipline
-        self.gen = self._create_generator(sim_params)
+        self.gen = self._create_generator(self.sim_params)
 
         with ZiplineAPI(self):
             # loop through simulated_trading, each iteration returns a
@@ -677,10 +668,16 @@ class TradingAlgorithm(object):
         assert isinstance(transforms, list)
         self.transforms = transforms
 
-    def set_data_frequency(self, data_frequency):
-        assert data_frequency in ('daily', 'minute')
-        self.data_frequency = data_frequency
-        self.annualizer = ANNUALIZER[self.data_frequency]
+    # Remain backwards compatibility
+    @property
+    def data_frequency(self):
+        return self.sim_params.data_frequency
+
+    @data_frequency.setter
+    def data_frequency(self, value):
+        assert value in ('daily', 'minute')
+        self.sim_params.data_frequency = value
+        self.annualizer = ANNUALIZER[self.sim_params.data_frequency]
 
     @api_method
     def order_percent(self, sid, percent,
