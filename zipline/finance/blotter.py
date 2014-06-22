@@ -155,9 +155,13 @@ class Blotter(object):
         orders = self.open_orders[trade_event.sid]
         orders = sorted(orders, key=lambda o: o.dt)
         # Only use orders for the current day or before
-        current_orders = filter(
-            lambda o: o.dt <= trade_event.dt,
-            orders)
+        # that meet their time in force constraints
+        current_orders = filter(lambda o:
+            o.tif_model.valid_date_tuple(trade_event.dt)[0] and
+            o.tif_model.valid_date_tuple(trade_event.dt)[1] and
+            o.dt <= trade_event.dt, # probably redundant
+            orders
+        )
 
         for txn, order in self.process_transactions(trade_event,
                                                     current_orders):
@@ -243,8 +247,10 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        if not self.tif_model.within_valid_date_range(event.dt):
+        if self.tif_model.get_last_valid_dt() < event.dt:
+            # TODO: This doesn't get triggered. Orders should be cancelled.
             self.cancel()
+            return
         stop_reached, limit_reached, sl_stop_reached = \
             check_order_triggers(self, event)
         if (stop_reached, limit_reached) \
