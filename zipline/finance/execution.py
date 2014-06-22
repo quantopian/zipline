@@ -146,123 +146,136 @@ class StopLimitOrder(ExecutionStyle):
 class TimeInForceModel(with_metaclass(abc.ABCMeta)):
     """
     Abstract base class representing when an order is valid
-
-    Types supported by IB
-        DAY: will cancel at EOD
-        GTC: Good till cancelled
-        IOC: Immediate-or-Cancel; Any portion not filled as soon as it becomes
-             available in the market is canceled.
-        GTD: Good till date
     """
-
     _time_in_force = None
 
     @abc.abstractmethod
-    def get_good_till_dt(self):
-        """
-        Get the last valid datetime for this order
-        """
-        raise NotImplemented
-
-    @abc.abstractmethod
-    def get_good_after_dt(self):
+    def get_first_valid_dt(self):
         """
         Get the first valid datetime for this order
         """
         raise NotImplemented
 
     @abc.abstractmethod
-    def within_valid_date_range(self, dt):
+    def get_last_valid_dt(self):
+        """
+        Get the last valid datetime for this order
+        """
         raise NotImplemented
 
-    def __repr__(self):
-        return str(self._time_in_force)
+    @abc.abstractmethod
+    def valid_date_tuple(self, dt):
+        """
+        Returns a tuple of (f(dt) ==> bool) outputs.
+        """
+        raise NotImplemented
 
 
 class DayOrder(TimeInForceModel):
+    """
+    Represents an order that only remains open for
+    the trading day in which it was submitted.
+    """
 
     def __init__(self, algo_dt):
+        """
+        Set the last valid dt the market_close that day.
+        """
         self._time_in_force = 'DAY'
-        self.good_after_dt = algo_dt
+        self.first_valid_dt = algo_dt
         open_and_closes = tradingcalendar.open_and_closes
-        dt = tradingcalendar.canonicalize_datetime(self.good_after_dt)
+        dt = tradingcalendar.canonicalize_datetime(self.first_valid_dt)
         idx = open_and_closes.index.searchsorted(dt)
-        self.good_till_dt = open_and_closes.ix[idx]['market_close']
+        self.last_valid_dt = open_and_closes.iloc[idx]['market_close']
 
-    def get_good_till_dt(self):
-        return self.good_till_dt
+    def get_first_valid_dt(self):
+        return self.first_valid_dt
 
-    def get_good_after_dt(self):
-        return self.good_after_dt
+    def get_last_valid_dt(self):
+        return self.last_valid_dt
 
-    def within_valid_date_range(self, dt):
-        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+    def valid_date_tuple(self, dt):
+        return dt >= self.first_valid_dt, dt <= self.last_valid_dt
 
 
 class GoodTillCancelled(TimeInForceModel):
+    """
+    Represents an order that remains open
+    until it is explicitly cancelled.
+    """
 
     def __init__(self):
         self._time_in_force = 'GTC'
 
-    def get_good_till_dt(self):
+    def get_first_valid_dt(self):
         return None
 
-    def get_good_after_dt(self):
+    def get_last_valid_dt(self):
         return None
 
-    def within_valid_date_range(self, dt):
-        return True
+    def valid_date_tuple(self, dt):
+        return True, True
 
 
 class ImmediateOrCancel(TimeInForceModel):
+    """
+    Represents an order that must fill immediatley,
+    any amount still open after the first bar is cancelled.
+    """
 
     def __init__(self, algo_dt):
+        """
+        Set the first and last dt equal to each other.
+        """
         self._time_in_force = 'IOC'
-        self.good_after_dt = algo_dt
+        self.first_valid_dt = algo_dt
+        self.last_valid_dt = algo_dt
 
-    def get_good_till_dt(self):
-        # Use algo_dt + one time step? Hmmmm
-        pass
+    def get_first_valid_dt(self):
+        return self.first_valid_dt
 
-    def get_good_after_dt(self):
-        return self.good_after_dt
+    def get_last_valid_dt(self):
+        return self.last_valid_dt
 
-    def within_valid_date_range(self, dt):
-        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+    def valid_date_tuple(self, dt):
+        return dt >= self.first_valid_dt, dt <= self.last_valid_dt
 
 
 class GoodTillDate(TimeInForceModel):
 
-    def __init__(self, algo_dt, good_till_dt):
+    def __init__(self, algo_dt, last_valid_dt):
         self._time_in_force = 'GTD'
-        self.good_after_dt = algo_dt
-        self.good_till_dt = good_till_dt
+        self.first_valid_dt = algo_dt
+        self.last_valid_dt = last_valid_dt
 
-    def get_good_till_dt(self):
-        return self.good_till_dt
-
-    def get_good_after_dt(self):
+    def get_first_valid_dt(self):
         return self.good_after_dt
 
-    def within_valid_date_range(self, dt):
-        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+    def get_last_valid_dt(self):
+        return self.last_valid_dt
+
+    def valid_date_tuple(self, dt):
+        return dt >= self.first_valid_dt, dt <= self.last_valid_dt
 
 
 class GoodBetweenDates(TimeInForceModel):
-    ''' Not supported by IB, but they have fields for good after/before  '''
-    def __init__(self, good_after_dt, good_till_dt):
-        self._time_in_force = ''
-        self.good_after_dt = good_after_dt
-        self.good_till_dt = good_till_dt
+    """
+    Represents an order that only remains open
+    between two specified dates (inclusive).
+    """
+    def __init__(self, first_valid_dt, last_valid_dt):
+        self._time_in_force = 'GBD'
+        self.first_valid_dt = first_valid_dt
+        self.last_valid_dt = last_valid_dt
 
-    def get_good_till_dt(self):
-        return self.good_till_dt
+    def get_first_valid_dt(self):
+        return self.first_valid_dt
 
-    def get_good_after_dt(self):
-        return self.good_after_dt
+    def get_last_valid_dt(self):
+        return self.last_valid_dt
 
-    def within_valid_date_range(self, dt):
-        return (dt >= self.good_after_dt) and (dt <= self.good_till_dt)
+    def valid_date_tuple(self, dt):
+        return dt >= self.first_valid_dt, dt <= self.last_valid_dt
 
 
 def asymmetric_round_price_to_penny(price, prefer_round_down,
