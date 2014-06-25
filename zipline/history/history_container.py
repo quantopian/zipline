@@ -23,7 +23,6 @@ from . history import (
     index_at_dt,
 )
 
-from zipline.finance import trading
 from zipline.utils.data import RollingPanel
 
 
@@ -206,13 +205,14 @@ class HistoryContainer(object):
             # requiring the largest number of bars.
             largest_spec = specs[-1]
             if largest_spec.bar_count == 1:
+
                 # No need to allocate a digest panel; this frequency will only
                 # ever use data drawn from self.buffer_panel.
-                env = trading.environment
-                first_window_closes[freq] = \
-                    env.get_open_and_close(initial_dt)[1]
-                first_window_starts[freq] = \
-                    freq.window_open(first_window_closes[freq])
+                first_window_starts[freq] = freq.window_open(initial_dt)
+                first_window_closes[freq] = freq.window_close(
+                    first_window_starts[freq]
+                )
+
                 continue
 
             initial_dates = index_at_dt(largest_spec, initial_dt)

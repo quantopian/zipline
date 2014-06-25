@@ -44,6 +44,9 @@ def mixed_frequency_expected_data(count, frequency):
 MIXED_FREQUENCY_MINUTES = TradingEnvironment.instance().market_minute_window(
     to_utc('2013-07-03 9:31AM'), 600,
 )
+ONE_MINUTE_PRICE_ONLY_SPECS = [
+    HistorySpec(1, '1m', 'price', True),
+]
 DAILY_OPEN_CLOSE_SPECS = [
     HistorySpec(3, '1d', 'open_price', False),
     HistorySpec(3, '1d', 'close_price', False),
@@ -76,6 +79,55 @@ HISTORY_CONTAINER_TEST_CASES = {
     # 16 17 18 19 20 21 22
     # 23 24 25 26 27 28 29
     # 30
+
+    'test one minute price only': {
+        # A list of HistorySpec objects.
+        'specs': ONE_MINUTE_PRICE_ONLY_SPECS,
+        # Sids for the test.
+        'sids': [1],
+        # Start date for test.
+        'dt': to_utc('2013-06-21 9:31AM'),
+        # Sequency of updates to the container
+        'updates': [
+            BarData(
+                {
+                    1: {
+                        'price': 5,
+                        'dt': to_utc('2013-06-21 9:31AM'),
+                    },
+                },
+            ),
+            BarData(
+                {
+                    1: {
+                        'price': 6,
+                        'dt': to_utc('2013-06-21 9:32AM'),
+                    },
+                },
+            ),
+        ],
+        # Expected results
+        'expected': {
+            ONE_MINUTE_PRICE_ONLY_SPECS[0].key_str: [
+                pd.DataFrame(
+                    data={
+                        1: [5],
+                    },
+                    index=[
+                        to_utc('2013-06-21 9:31AM'),
+                    ],
+                ),
+                pd.DataFrame(
+                    data={
+                        1: [6],
+                    },
+                    index=[
+                        to_utc('2013-06-21 9:32AM'),
+                    ],
+                ),
+            ],
+        },
+    },
 
     'test daily open close': {
         # A list of HistorySpec objects.
