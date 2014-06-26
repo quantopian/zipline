@@ -21,7 +21,7 @@ import numpy as np
 
 from datetime import datetime
 
-from itertools import groupby
+from itertools import groupby, chain
 from six.moves import filter
 from six import iteritems, exec_
 from operator import attrgetter
@@ -467,11 +467,19 @@ class TradingAlgorithm(object):
                                            'kwargs': kwargs}
 
     @api_method
-    def record(self, **kwargs):
+    def record(self, *args, **kwargs):
         """
         Track and record local variable (i.e. attributes) each day.
         """
-        for name, value in kwargs.items():
+        # Make 2 objects both referencing the same iterator
+        args = [iter(args)] * 2
+
+        # Zip generates list entries by calling `next` on each iterator it
+        # receives.  In this case the two iterators are the same object, so the
+        # call to next on args[0] will also advance args[1], resulting in zip
+        # returning (a,b) (c,d) (e,f) rather than (a,a) (b,b) (c,c) etc.
+        positionals = zip(*args)
+        for name, value in chain(positionals, iteritems(kwargs)):
             self._recorded_vars[name] = value
 
     @api_method

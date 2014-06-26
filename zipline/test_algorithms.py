@@ -233,6 +233,9 @@ class RecordAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         self.incr += 1
         self.record(incr=self.incr)
+        name = 'name'
+        self.record(name, self.incr)
+        record(name, self.incr, 'name2', 2, name3=self.incr)
 
 
 class TestOrderAlgorithm(TradingAlgorithm):
