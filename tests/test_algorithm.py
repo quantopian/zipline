@@ -98,6 +98,12 @@ class TestRecordAlgorithm(TestCase):
 
         np.testing.assert_array_equal(output['incr'].values,
                                       range(1, len(output) + 1))
+        np.testing.assert_array_equal(output['name'].values,
+                                      range(1, len(output) + 1))
+        np.testing.assert_array_equal(output['name2'].values,
+                                      [2] * len(output))
+        np.testing.assert_array_equal(output['name3'].values,
+                                      range(1, len(output) + 1))
 
 
 class TestMiscellaneousAPI(TestCase):
