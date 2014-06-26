@@ -125,7 +125,7 @@ class TradingEnvironment(object):
         self.early_closes = get_early_closes(self.first_trading_day,
                                              self.last_trading_day)
 
-        self.open_and_closes = env_trading_calendar.open_and_closes.ix[
+        self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
     def __enter__(self, *args, **kwargs):
@@ -256,7 +256,7 @@ Last successful date: %s" % self.last_trading_day)
         return self.previous_open_and_close(start)[1]
 
     def get_open_and_close(self, day):
-        todays_minutes = self.open_and_closes.ix[day.date()]
+        todays_minutes = self.open_and_closes.loc[day.date()]
 
         return todays_minutes['market_open'], todays_minutes['market_close']
 
