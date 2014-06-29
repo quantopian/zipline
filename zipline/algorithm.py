@@ -819,7 +819,10 @@ class TradingAlgorithm(object):
     @api_method
     def add_history(self, bar_count, frequency, field,
                     ffill=True):
-        history_spec = HistorySpec(bar_count, frequency, field, ffill)
+        daily_at_midnight = (self.sim_params.data_frequency == 'daily')
+
+        history_spec = HistorySpec(bar_count, frequency, field, ffill,
+                                   daily_at_midnight=daily_at_midnight)
         self.history_specs[history_spec.key_str] = history_spec
 
     @api_method
