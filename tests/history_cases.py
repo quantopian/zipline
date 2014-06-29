@@ -246,7 +246,6 @@ HISTORY_CONTAINER_TEST_CASES = {
             ],
         },
     },
-
     'test illiquid prices': {
 
         # A list of HistorySpec objects.
