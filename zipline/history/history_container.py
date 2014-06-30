@@ -443,7 +443,7 @@ class HistoryContainer(object):
         # Get minutes from our buffer panel to build the last row.
         buffer_frame = self.buffer_panel_minutes(
             earliest_minute=self.cur_window_starts[history_spec.frequency],
-        )[field].copy()
+        )[field]
 
         if do_ffill:
             digest_frame = ffill_digest_frame_from_prior_values(
@@ -472,4 +472,9 @@ class HistoryContainer(object):
         else:
             return_frame.ix[algo_dt] = buffer_frame.loc[algo_dt]
 
-        return return_frame
+        # Returning a copy of the DataFrame so that we don't crash if the user
+        # adds columns to the frame.  Ideally we would just drop any added
+        # columns, but pandas 0.12.0 doesn't support in-place dropping of
+        # columns.  We should re-evaluate this implementation once we're on a
+        # more up-to-date pandas.
+        return return_frame.copy()

@@ -351,6 +351,7 @@ def initialize(context):
 
 def handle_data(context, data):
     prices = history(bar_count=2, frequency='1d', field='price')
+    prices['prices_times_two'] = prices[1] * 2
     context.last_prices = prices
 """.strip()
 
