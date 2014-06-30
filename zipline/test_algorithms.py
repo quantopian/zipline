@@ -943,6 +943,17 @@ def handle_data(context, data):
     order(symbol(0), 1)
 """
 
+call_order_in_init = """
+from zipline.api import (order)
+
+def initialize(context):
+    order(0, 10)
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
 call_all_order_methods = """
 from zipline.api import (order,
                          order_value,
