@@ -63,7 +63,7 @@ def create_test_zipline(**config):
             order_count,
             sim_params=config.get('sim_params',
                                   factory.create_simulation_parameters()),
-            slippage = config.get('slippage'),
+            slippage=config.get('slippage'),
         )
 
     # -------------------
