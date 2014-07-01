@@ -215,6 +215,7 @@ class TradingAlgorithm(object):
         """
         with ZiplineAPI(self):
             self._initialize(self)
+        self.initialized = True
 
     def handle_data(self, data):
         if self.history_container:

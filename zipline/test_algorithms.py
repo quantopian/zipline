@@ -97,7 +97,12 @@ class TestAlgorithm(TradingAlgorithm):
     at the close of a simulation.
     """
 
-    def initialize(self, sid, amount, order_count, sid_filter=None):
+    def initialize(self,
+                   sid,
+                   amount,
+                   order_count,
+                   sid_filter=None,
+                   slippage=None):
         self.count = order_count
         self.sid = sid
         self.amount = amount
@@ -107,6 +112,11 @@ class TestAlgorithm(TradingAlgorithm):
             self.sid_filter = sid_filter
         else:
             self.sid_filter = [self.sid]
+
+        if slippage is not None:
+            self.set_slippage(slippage)
+
+        self.initialized = True
 
     def handle_data(self, data):
         # place an order for amount shares of sid
