@@ -43,6 +43,7 @@ class DualEMATaLib(TradingAlgorithm):
 
         # To keep track of whether we invested in the stock or not
         self.invested = False
+        self.initialized = True
 
     def handle_data(self, data):
         self.short_ema = self.short_ema_trans.handle_data(data)

@@ -40,6 +40,7 @@ class OLMAR(TradingAlgorithm):
                            window_length=window_length)
 
         self.set_commission(commission.PerShare(cost=0))
+        self.initialized = True
 
     def handle_data(self, data):
         self.days += 1
