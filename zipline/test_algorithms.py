@@ -252,6 +252,7 @@ class TestOrderAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.incr == 0:
@@ -269,6 +270,7 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
         self.last_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.incr == 0:
@@ -298,6 +300,7 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
         self.last_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.incr == 0:
@@ -318,6 +321,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.incr == 0:
@@ -335,6 +339,7 @@ class TestTargetAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.target_shares == 0:
@@ -352,6 +357,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.target_shares == 0:
@@ -375,6 +381,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.target_shares == 0:
@@ -394,6 +401,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
+        self.initialized = True
 
     def handle_data(self, data):
         if self.target_shares == 0:
@@ -423,6 +431,7 @@ class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
         self.set_max_position_size(sid=sid,
                                    max_shares=max_shares,
                                    max_notional=max_notional)
+        self.initialized = True
 
 
 class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
@@ -431,18 +440,21 @@ class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
         self.set_max_order_size(sid=sid,
                                 max_shares=max_shares,
                                 max_notional=max_notional)
+        self.initialized = True
 
 
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0
         self.set_max_order_count(count)
+        self.initialized = True
 
 
 class SetLongOnlyAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.order_count = 0
         self.set_long_only()
+        self.initialized = True
 
 
 from zipline.transforms import BatchTransform, batch_transform
@@ -456,6 +468,7 @@ class TestRegisterTransformAlgorithm(TradingAlgorithm):
                            window_length=2)
 
         self.set_slippage(FixedSlippage())
+        self.initialized = True
 
     def handle_data(self, data):
         pass
@@ -470,6 +483,7 @@ class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
 
     def initialize(self, *args, **kwargs):
         self.sid = kwargs.pop('sid')
+        self.initialized = True
 
     def handle_data(self, data):
 
@@ -643,6 +657,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
+        self.initialized = True
 
     def handle_data(self, data):
         self.history_return_price_class.append(
@@ -733,6 +748,7 @@ class BatchTransformAlgorithmMinute(TradingAlgorithm):
             clean_nans=False,
             bars='minute'
         )
+        self.initialized = True
 
     def handle_data(self, data):
         self.history.append(self.batch_transform.handle_data(data))
@@ -747,6 +763,7 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
     """
 
     def initialize(self, *args, **kwargs):
+        self.initialized = True
         pass
 
     def handle_data(self, data):
@@ -770,6 +787,7 @@ class TALIBAlgorithm(TradingAlgorithm):
             self.talib_transforms = kwargs['talib']
 
         self.talib_results = dict((t, []) for t in self.talib_transforms)
+        self.initialized = True
 
     def handle_data(self, data):
         for t in self.talib_transforms:
@@ -791,6 +809,7 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
         self.ordered = False
         self.exited = False
+        self.initialized = True
 
     def handle_data(self, data):
         if not self.ordered:
@@ -820,6 +839,7 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
     """
     def initialize(self, *args, **kwargs):
         self.sid = kwargs.pop('sids')[0]
+        self.initialized = True
 
     def handle_data(self, data):
         from zipline.api import (
