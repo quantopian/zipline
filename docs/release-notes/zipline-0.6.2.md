@@ -95,6 +95,8 @@
 
 ## Maintenance and Refactorings (MAINT)
 
+* Removed undocumented and untested HDF5 and CSV data sources. [267](https://github.com/quantopian/zipline/issues/267]
+
 ## Build (BLD)
 
 # Contributors
