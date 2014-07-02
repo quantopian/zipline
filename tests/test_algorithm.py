@@ -587,7 +587,8 @@ def handle_data(context, data):
         self._algo_record_float_magic_should_pass('nan')
 
     def test_order_methods(self):
-        """Only test that order methods can be called without error.
+        """
+        Only test that order methods can be called without error.
         Correct filling of orders is tested in zipline.
         """
         test_algo = TradingAlgorithm(
@@ -605,7 +606,8 @@ def handle_data(context, data):
         output, _ = drain_zipline(self, zipline)
 
     def test_order_in_init(self):
-        """Test that calling order in initialize
+        """
+        Test that calling order in initialize
          will return an error
         """
         with self.assertRaises(OrderDuringInitialize):
