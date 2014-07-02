@@ -85,6 +85,18 @@
 * Adds an `all_api_methods` classmethod on `TradingAlgorithm` that returns a
   list of all `TradingAlgorithm` API methods. [PR333](https://github.com/quantopian/zipline/pull/333)
 
+* Expanded record() functionality. [PR325](https://github.com/quantopian/zipline/pull/355)
+
+   > The record() function can now take positional args before the kwargs.
+   > All original usage and functionality is the same, but now these
+   > extra usages will work:
+   
+    - name = 'string'
+    - record( name, value, ... )
+    - record( name, value1, 'name2', value2, name3=value3, name4=value4)
+
+   > The requirements are simply that the poritional args occur only before the
+   > kwargs.
 
 ## Bug Fixes (BUG)
 
