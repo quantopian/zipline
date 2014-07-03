@@ -66,8 +66,6 @@ class TestAlgo(TradingAlgorithm):
         self.ordered = False
         self.num_bars = 0
 
-        self.initialized = True
-
     def handle_data(self, data):
         self.num_bars += 1
         self.latest_date = self.get_datetime()

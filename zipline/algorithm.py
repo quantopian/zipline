@@ -77,7 +77,6 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
 class TradingAlgorithm(object):
-
     """
     Base class for trading algorithms. Inherit and overload
     initialize() and handle_data(data).
@@ -102,6 +101,11 @@ class TradingAlgorithm(object):
     stats = my_algo.run(data)
 
     """
+
+    # This is our manual override flag.
+    # If this is set to false then it is the responsibility
+    # of the overriding subclass to set initiazlied = true
+    AUTO_INITIALIZE = True
 
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
@@ -203,10 +207,13 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
-        # an algorithm subclass needs to set initialized to True when
-        # it is fully initialized.
+        # Subclasses that override initialize should no longer need to set
+        # self.initialized = True. Instead this should only be the case
+        # if AUTO_INITIALIZE is manually set to False.
         self.initialized = False
         self.initialize(*args, **kwargs)
+        if self.AUTO_INITIALIZE:
+            self.initialized = True
 
     def initialize(self, *args, **kwargs):
         """
@@ -215,7 +222,6 @@ class TradingAlgorithm(object):
         """
         with ZiplineAPI(self):
             self._initialize(self)
-        self.initialized = True
 
     def handle_data(self, data):
         if self.history_container:

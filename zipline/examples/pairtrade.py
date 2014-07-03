@@ -59,7 +59,6 @@ class Pairtrade(TradingAlgorithm):
         self.window_length = window_length
         self.ols_transform = ols_transform(refresh_period=self.window_length,
                                            window_length=self.window_length)
-        self.initialized = True
 
     def handle_data(self, data):
         ######################################################

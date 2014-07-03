@@ -34,7 +34,6 @@ class BuyAndHoldAlgorithm(TradingAlgorithm):
 
     def initialize(self):
         self.holding = False
-        self.initialized = True
 
     def handle_data(self, data):
         if not self.holding:
