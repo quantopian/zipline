@@ -29,6 +29,7 @@ import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
 
 from zipline.errors import (
+    OrderDuringInitialize,
     RegisterTradingControlPostInit,
     TradingControlViolation,
 )
@@ -53,6 +54,7 @@ from zipline.test_algorithms import (
     api_algo,
     api_symbol_algo,
     call_all_order_methods,
+    call_order_in_init,
     handle_data_api,
     handle_data_noop,
     initialize_api,
@@ -585,7 +587,8 @@ def handle_data(context, data):
         self._algo_record_float_magic_should_pass('nan')
 
     def test_order_methods(self):
-        """Only test that order methods can be called without error.
+        """
+        Only test that order methods can be called without error.
         Correct filling of orders is tested in zipline.
         """
         test_algo = TradingAlgorithm(
@@ -601,6 +604,18 @@ def handle_data(context, data):
             **self.zipline_test_config)
 
         output, _ = drain_zipline(self, zipline)
+
+    def test_order_in_init(self):
+        """
+        Test that calling order in initialize
+         will return an error
+        """
+        with self.assertRaises(OrderDuringInitialize):
+            test_algo = TradingAlgorithm(
+                script=call_order_in_init,
+                sim_params=self.sim_params,
+            )
+            set_algo_instance(test_algo)
 
 
 class TestHistory(TestCase):

@@ -62,7 +62,8 @@ def create_test_zipline(**config):
             order_amount,
             order_count,
             sim_params=config.get('sim_params',
-                                  factory.create_simulation_parameters())
+                                  factory.create_simulation_parameters()),
+            slippage=config.get('slippage'),
         )
 
     # -------------------
@@ -93,13 +94,6 @@ def create_test_zipline(**config):
     transforms = config.get('transforms', None)
     if transforms is not None:
         test_algo.set_transforms(transforms)
-
-    # -------------------
-    # Slippage
-    # ------------------
-    slippage = config.get('slippage', None)
-    if slippage is not None:
-        test_algo.set_slippage(slippage)
 
     # ------------------
     # generator/simulator

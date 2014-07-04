@@ -27,6 +27,7 @@ from six import iteritems, exec_
 from operator import attrgetter
 
 from zipline.errors import (
+    OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
     RegisterTradingControlPostInit,
@@ -76,7 +77,6 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
 class TradingAlgorithm(object):
-
     """
     Base class for trading algorithms. Inherit and overload
     initialize() and handle_data(data).
@@ -101,6 +101,11 @@ class TradingAlgorithm(object):
     stats = my_algo.run(data)
 
     """
+
+    # This is our manual override flag.
+    # If this is set to false then it is the responsibility
+    # of the overriding subclass to set initiazlied = true
+    AUTO_INITIALIZE = True
 
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
@@ -202,10 +207,13 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
-        # an algorithm subclass needs to set initialized to True when
-        # it is fully initialized.
+        # Subclasses that override initialize should no longer need to set
+        # self.initialized = True. Instead this should only be the case
+        # if AUTO_INITIALIZE is manually set to False.
         self.initialized = False
         self.initialize(*args, **kwargs)
+        if self.AUTO_INITIALIZE:
+            self.initialized = True
 
     def initialize(self, *args, **kwargs):
         """
@@ -531,6 +539,13 @@ class TradingAlgorithm(object):
 
         Raises an UnsupportedOrderParameters if invalid arguments are found.
         """
+
+        # Make sure we're not in init before we order.
+        if not self.initialized:
+            raise OrderDuringInitialize(
+                msg="order() can only be called from within handle_data()"
+            )
+
         if style:
             if limit_price:
                 raise UnsupportedOrderParameters(
