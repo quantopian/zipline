@@ -27,6 +27,7 @@ from six import iteritems, exec_
 from operator import attrgetter
 
 from zipline.errors import (
+    OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
     RegisterTradingControlPostInit,
@@ -76,7 +77,6 @@ DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
 class TradingAlgorithm(object):
-
     """
     Base class for trading algorithms. Inherit and overload
     initialize() and handle_data(data).
@@ -531,6 +531,13 @@ class TradingAlgorithm(object):
 
         Raises an UnsupportedOrderParameters if invalid arguments are found.
         """
+
+        # Make sure we're not in init before we order.
+        if not self.initialized:
+            raise OrderDuringInitialize(
+                msg="order() can only be called from within handle_data()"
+            )
+
         if style:
             if limit_price:
                 raise UnsupportedOrderParameters(

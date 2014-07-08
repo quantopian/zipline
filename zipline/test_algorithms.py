@@ -97,7 +97,12 @@ class TestAlgorithm(TradingAlgorithm):
     at the close of a simulation.
     """
 
-    def initialize(self, sid, amount, order_count, sid_filter=None):
+    def initialize(self,
+                   sid,
+                   amount,
+                   order_count,
+                   sid_filter=None,
+                   slippage=None):
         self.count = order_count
         self.sid = sid
         self.amount = amount
@@ -107,6 +112,9 @@ class TestAlgorithm(TradingAlgorithm):
             self.sid_filter = sid_filter
         else:
             self.sid_filter = [self.sid]
+
+        if slippage is not None:
+            self.set_slippage(slippage)
 
     def handle_data(self, data):
         # place an order for amount shares of sid
@@ -241,7 +249,6 @@ class RecordAlgorithm(TradingAlgorithm):
 class TestOrderAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
-        self.sale_price = None
 
     def handle_data(self, data):
         if self.incr == 0:
@@ -633,6 +640,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
+        self.initialized = True
 
     def handle_data(self, data):
         self.history_return_price_class.append(
@@ -941,6 +949,17 @@ def initialize(context):
 
 def handle_data(context, data):
     order(symbol(0), 1)
+"""
+
+call_order_in_init = """
+from zipline.api import (order)
+
+def initialize(context):
+    order(0, 10)
+    pass
+
+def handle_data(context, data):
+    pass
 """
 
 call_all_order_methods = """

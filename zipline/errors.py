@@ -137,6 +137,13 @@ class UnsupportedOrderParameters(ZiplineError):
     msg = "{msg}"
 
 
+class OrderDuringInitialize(ZiplineError):
+    """
+    Raised if order is called during initialize()
+    """
+    msg = "{msg}"
+
+
 class TradingControlViolation(ZiplineError):
     """
     Raised if an order would violate a constraint set by a TradingControl.
