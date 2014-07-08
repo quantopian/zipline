@@ -640,7 +640,6 @@ class BatchTransformAlgorithm(TradingAlgorithm):
         self.iter = 0
 
         self.set_slippage(FixedSlippage())
-        self.initialized = True
 
     def handle_data(self, data):
         self.history_return_price_class.append(

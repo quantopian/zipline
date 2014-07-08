@@ -608,7 +608,7 @@ def handle_data(context, data):
     def test_order_in_init(self):
         """
         Test that calling order in initialize
-        will return an error
+        will raise an error.
         """
         with self.assertRaises(OrderDuringInitialize):
             test_algo = TradingAlgorithm(

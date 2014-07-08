@@ -102,6 +102,10 @@ class TradingAlgorithm(object):
 
     """
 
+    # If this is set to false then it is the responsibility
+    # of the overriding subclass to set initialized = true
+    AUTO_INITIALIZE = True
+
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
 
@@ -202,10 +206,13 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
-        # an algorithm subclass needs to set initialized to True when
-        # it is fully initialized.
+        # Subclasses that override initialize should only worry about
+        # setting self.initialized = True if AUTO_INITIALIZE is
+        # is manually set to False.
         self.initialized = False
         self.initialize(*args, **kwargs)
+        if self.AUTO_INITIALIZE:
+            self.initialized = True
 
     def initialize(self, *args, **kwargs):
         """
@@ -532,7 +539,6 @@ class TradingAlgorithm(object):
         Raises an UnsupportedOrderParameters if invalid arguments are found.
         """
 
-        # Make sure we're not in init before we order.
         if not self.initialized:
             raise OrderDuringInitialize(
                 msg="order() can only be called from within handle_data()"
