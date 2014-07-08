@@ -153,3 +153,15 @@ class BetweenTimes(EntryRule):
     def __call__(self, dt):
         dt = self.tz.normalize(dt).timetz()
         return self.t1 <= dt < self.t2
+
+
+def at_market_open(dt):
+    ref = tradingcalendar.canonicalize_datetime(dt)
+    open_close = tradingcalendar.open_and_closes.T[ref]
+    return dt == open_close['market_open']
+
+
+def at_market_close(dt):
+    ref = tradingcalendar.canonicalize_datetime(dt)
+    open_close = tradingcalendar.open_and_closes.T[ref]
+    return dt == open_close['market_close']
