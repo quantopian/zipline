@@ -1,4 +1,5 @@
 import pytz
+from datetime import time, timedelta
 from zipline.utils import tradingcalendar
 
 
@@ -79,3 +80,76 @@ class EventManager(object):
         oc_times = self.open_and_close(self.next_event_date)
         self.market_open = oc_times['market_open']
         self.market_close = oc_times['market_close']
+
+
+class EntryRule(object):
+    """
+    Base class for entry rule classes that need
+    to accept arguments at initialization.
+    """
+    pass
+
+
+class AfterOpen(EntryRule):
+    """
+    A rule to enter after the market has been open for N minutes.
+    """
+    def __init__(self, minutes=0, hours=0):
+        self.delta_t = 60*hours + minutes
+
+    def __call__(self, dt):
+        ref = tradingcalendar.canonicalize_datetime(dt)
+        open_close = tradingcalendar.open_and_closes.T[ref]
+        market_open = open_close['market_open']
+        return dt >= market_open + timedelta(minutes=self.delta_t)
+
+
+class BeforeClose(EntryRule):
+    """
+    A rule to enter in the last N minutes of the trading day.
+    """
+    def __init__(self, minutes=0, hours=0):
+        self.delta_t = 60*hours + minutes
+
+    def __call__(self, dt):
+        ref = tradingcalendar.canonicalize_datetime(dt)
+        open_close = tradingcalendar.open_and_closes.T[ref]
+        market_close = open_close['market_close']
+        return dt >= market_close - timedelta(minutes=self.delta_t)
+
+
+class AtTime(EntryRule):
+    """
+    Rule to enter at a specific time only.
+    """
+    def __init__(self, hour=None, minute=None, tz='US/Eastern'):
+        self.tz = pytz.timezone(tz)
+        self.time = time(hour, minute, tzinfo=self.tz)
+
+    def __call__(self, dt):
+        dt = self.tz.normalize(dt)
+        return dt.timetz() == self.time
+
+
+class BetweenTimes(EntryRule):
+    """
+    Rule to enter when the current time falls between two times.
+    i.e. time1 <= current time < time2
+    """
+
+    def __init__(self, time1=None, time2=None, tz='US/Eastern'):
+        """
+        :params:
+            time1 and time2: tuples
+            lower and upper bounds of the entry times.
+        e.g.
+        BetweenTimes((9, 31), (10, 0)) evaluates
+        to True from 9:31 to 9:59 Eastern time.
+        """
+        self.tz = pytz.timezone(tz)
+        self.t1 = time(*time1, tzinfo=self.tz)
+        self.t2 = time(*time2, tzinfo=self.tz)
+
+    def __call__(self, dt):
+        dt = self.tz.normalize(dt).timetz()
+        return self.t1 <= dt < self.t2
