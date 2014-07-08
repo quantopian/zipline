@@ -631,12 +631,22 @@ class TradingAlgorithm(object):
     def set_logger(self, logger):
         self.logger = logger
 
-    def set_datetime(self, dt):
+    def on_dt_changed(self, dt):
+        """
+        Callback triggered by the simulation loop whenever the current dt
+        changes.
+
+        Any logic that should happen exactly once at the start of each datetime
+        group should happen here.
+        """
         assert isinstance(dt, datetime), \
             "Attempt to set algorithm's current time with non-datetime"
         assert dt.tzinfo == pytz.utc, \
             "Algorithm expects a utc datetime"
+
         self.datetime = dt
+        self.perf_tracker.set_date(dt)
+        self.blotter.set_date(dt)
 
     @api_method
     def get_datetime(self):
