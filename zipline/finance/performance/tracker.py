@@ -291,11 +291,6 @@ class PerformanceTracker(object):
         bench_since_open = \
             self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
 
-        # if we've reached market close, check on dividends
-        if dt == self.market_close:
-            for perf_period in self.perf_periods:
-                perf_period.update_dividends(todays_date)
-
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open)
@@ -319,8 +314,6 @@ class PerformanceTracker(object):
         self.update_performance()
         # add the return results from today to the returns series
         todays_date = normalize_date(self.market_close)
-        self.cumulative_performance.update_dividends(todays_date)
-        self.todays_performance.update_dividends(todays_date)
 
         self.returns[todays_date] = self.todays_performance.returns
 

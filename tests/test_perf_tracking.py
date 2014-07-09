@@ -312,15 +312,14 @@ class TestDividendPerformance(unittest.TestCase):
                 oneday,
                 self.sim_params
             )
-
             dividend = factory.create_dividend(
                 1,
                 10.00,
                 # declared date, when the algorithm finds out about
                 # the dividend
-                events[1].dt,
-                # ex_date, when the algorithm is credited with the
-                # dividend
+                events[0].dt,
+                # ex_date, the date before which the algorithm must hold stock
+                # to receive the dividend
                 events[1].dt,
                 # pay date, when the algorithm receives the dividend.
                 events[2].dt
@@ -368,9 +367,9 @@ class TestDividendPerformance(unittest.TestCase):
                 ratio=2,
                 # declared date, when the algorithm finds out about
                 # the dividend
-                declared_date=events[1].dt,
-                # ex_date, when the algorithm is credited with the
-                # dividend
+                declared_date=events[0].dt,
+                # ex_date, the date before which the algorithm must hold stock
+                # to receive the dividend
                 ex_date=events[1].dt,
                 # pay date, when the algorithm receives the dividend.
                 pay_date=events[2].dt
