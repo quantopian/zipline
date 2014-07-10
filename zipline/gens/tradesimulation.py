@@ -153,8 +153,10 @@ class AlgorithmSimulator(object):
                                     # If at the end of backtest history,
                                     # skip advancing market close.
                                     pass
-                                self.algo.perf_tracker.handle_intraday_close(
-                                    mkt_open, mkt_close)
+                                self.algo.perf_tracker\
+                                         .handle_intraday_market_close(
+                                             mkt_open,
+                                             mkt_close)
 
                     self.algo.portfolio_needs_update = True
 
@@ -236,16 +238,19 @@ class AlgorithmSimulator(object):
         self.algo.blotter.new_orders = []
         return orders
 
-    def get_message(self, date):
+    def get_message(self, dt):
+        """
+        Get a perf message for the given datetime.
+        """
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
-                self.algo.perf_tracker.handle_market_close()
+                self.algo.perf_tracker.handle_market_close_daily()
             perf_message['daily_perf']['recorded_vars'] = rvars
             return perf_message
 
         elif self.algo.perf_tracker.emission_rate == 'minute':
-            self.algo.perf_tracker.handle_minute_close(date)
+            self.algo.perf_tracker.handle_minute_close(dt)
             perf_message = self.algo.perf_tracker.to_dict()
             perf_message['minute_perf']['recorded_vars'] = rvars
             return perf_message

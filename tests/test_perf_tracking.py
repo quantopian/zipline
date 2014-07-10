@@ -88,7 +88,7 @@ def calculate_results(host, events):
             if event.type == DATASOURCE_TYPE.BENCHMARK:
                 bm_updated = True
         if bm_updated:
-            msg = perf_tracker.handle_market_close()
+            msg = perf_tracker.handle_market_close_daily()
             results.append(msg)
             bm_updated = False
     return results
@@ -1259,7 +1259,7 @@ class TestPerformanceTracker(unittest.TestCase):
         for date, group in grouped_events:
             for event in group:
                 perf_tracker.process_event(event)
-            msg = perf_tracker.handle_market_close()
+            msg = perf_tracker.handle_market_close_daily()
             perf_messages.append(msg)
 
         self.assertEqual(perf_tracker.txn_count, len(txns))

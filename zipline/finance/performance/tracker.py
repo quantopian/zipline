@@ -305,7 +305,17 @@ class PerformanceTracker(object):
         if dt == self.market_close:
             self.returns[todays_date] = self.todays_performance.returns
 
-    def handle_intraday_close(self, new_mkt_open, new_mkt_close):
+    def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
+        """
+        Function called at market close only when emitting at minutely
+        frequency.
+
+        TODO_SS: Why dont' we call this if we're emitting at daily frequency
+                 but running with a minutely datasource?  Is that just not a
+                 valid combination? If so, why do we draw a distinction between
+                 emission rate and data frequency?
+        """
+
         # update_performance should have been called in handle_minute_close
         # so it is not repeated here.
         self.intraday_risk_metrics = \
@@ -315,7 +325,11 @@ class PerformanceTracker(object):
         self.market_open = new_mkt_open
         self.market_close = new_mkt_close
 
-    def handle_market_close(self):
+    def handle_market_close_daily(self):
+        """
+        Function called after handle_data when running with daily emission
+        rate.
+        """
         self.update_performance()
         # add the return results from today to the returns series
         todays_date = normalize_date(self.market_close)
