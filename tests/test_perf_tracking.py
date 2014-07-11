@@ -16,7 +16,10 @@
 from __future__ import division
 
 import collections
-import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 import logging
 import operator
 
@@ -44,9 +47,9 @@ from zipline.protocol import Event
 
 logger = logging.getLogger('Test Perf Tracking')
 
-onesec = datetime.timedelta(seconds=1)
-oneday = datetime.timedelta(days=1)
-tradingday = datetime.timedelta(hours=6, minutes=30)
+onesec = timedelta(seconds=1)
+oneday = timedelta(days=1)
+tradingday = timedelta(hours=6, minutes=30)
 
 
 def create_txn(trade_event, price, amount):
@@ -357,10 +360,10 @@ class TestDividendPerformance(unittest.TestCase):
     def test_market_hours_calculations(self):
         with trading.TradingEnvironment():
             # DST in US/Eastern began on Sunday March 14, 2010
-            before = datetime.datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
+            before = datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
             after = factory.get_next_trading_dt(
                 before,
-                datetime.timedelta(days=1)
+                timedelta(days=1)
             )
             self.assertEqual(after.hour, 13)
 
@@ -723,8 +726,8 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     # be skipped by the simulation.
 
     def setUp(self):
-        self.dt = datetime.datetime(2003, 11, 30, tzinfo=pytz.utc)
-        self.end_dt = datetime.datetime(2004, 11, 25, tzinfo=pytz.utc)
+        self.dt = datetime(2003, 11, 30, tzinfo=pytz.utc)
+        self.end_dt = datetime(2004, 11, 25, tzinfo=pytz.utc)
         self.sim_params = SimulationParameters(
             self.dt,
             self.end_dt)
@@ -1254,11 +1257,11 @@ class TestPerformanceTracker(unittest.TestCase):
         # 12 13 14 15 16 17 18
         # 19 20 21 22 23 24 25
         # 26 27 28 29 30 31
-        start_dt = datetime.datetime(year=2008,
+        start_dt = datetime(year=2008,
                             month=10,
                             day=9,
                             tzinfo=pytz.utc)
-        end_dt = datetime.datetime(year=2008,
+        end_dt = datetime(year=2008,
                           month=10,
                           day=16,
                           tzinfo=pytz.utc)
@@ -1268,7 +1271,7 @@ class TestPerformanceTracker(unittest.TestCase):
         price = 10.1
         price_list = [price] * trade_count
         volume = [100] * trade_count
-        trade_time_increment = datetime.timedelta(days=1)
+        trade_time_increment = timedelta(days=1)
 
         sim_params = SimulationParameters(
             period_start=start_dt,
@@ -1397,9 +1400,9 @@ class TestPerformanceTracker(unittest.TestCase):
         """ Tests minute performance tracking."""
         with trading.TradingEnvironment():
             start_dt = trading.environment.exchange_dt_in_utc(
-                datetime.datetime(2013, 3, 1, 9, 31))
+                datetime(2013, 3, 1, 9, 31))
             end_dt = trading.environment.exchange_dt_in_utc(
-                datetime.datetime(2013, 3, 1, 16, 0))
+                datetime(2013, 3, 1, 16, 0))
 
             sim_params = SimulationParameters(
                 period_start=start_dt,
@@ -1426,11 +1429,11 @@ class TestPerformanceTracker(unittest.TestCase):
             })
 
             foo_event_2 = factory.create_trade(
-                'foo', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
+                'foo', 11.0, 20, start_dt + timedelta(minutes=1))
             bar_event_2 = factory.create_trade(
-                'bar', 11.0, 20, start_dt + datetime.timedelta(minutes=1))
+                'bar', 11.0, 20, start_dt + timedelta(minutes=1))
             benchmark_event_2 = Event({
-                'dt': start_dt + datetime.timedelta(minutes=1),
+                'dt': start_dt + timedelta(minutes=1),
                 'returns': 0.02,
                 'type': zp.DATASOURCE_TYPE.BENCHMARK
             })
