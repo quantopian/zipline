@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from six import iteritems, iterkeys
+import pandas as pd
 
 from . utils.protocol_utils import Enum
 
@@ -33,6 +34,50 @@ DATASOURCE_TYPE = Enum(
     'BENCHMARK',
     'COMMISSION'
 )
+
+# Expected fields/index values for a dividend Series.
+DIVIDEND_FIELDS = [
+    'declared_date',
+    'ex_date',
+    'gross_amount',
+    'net_amount',
+    'pay_date',
+    'payment_sid',
+    'ratio',
+    'sid',
+]
+# Expected fields/index values for a dividend payment Series.
+DIVIDEND_PAYMENT_FIELDS = ['guid', 'payment_sid', 'cash_amount', 'share_count']
+
+
+def dividend_payment(data=None):
+    """
+    Take a dictionary whose values are in DIVIDEND_PAYMENT_FIELDS and return a
+    series representing the payment of a dividend.
+
+    Guids are assigned to each historical dividend in
+    PerformanceTracker.update_dividends. They are guaranteed to be unique
+    integers with the context of a single simulation. If @data is non-empty, a
+    guid is required to identify the historical dividend associated with this
+    payment.
+
+    Additionally, if @data is non-empty, either data['cash_amount'] should be
+    nonzero or data['payment_sid'] should be a security identifier and
+    data['share_count'] should be nonzero.
+
+    The returned Series is given its guid value as a name so that concatenating
+    payments results in a DataFrame indexed by guid.  (Note, however, that the
+    name value is not used to construct an index when this series is returned
+    by function called by `DataFrame.apply`.  In such a case, pandas preserves
+    the index of the DataFrame on which `apply` is being called.)
+
+    """
+    return pd.Series(
+        data=data,
+        name=data['guid'] if data is not None else None,
+        index=DIVIDEND_PAYMENT_FIELDS,
+        dtype=object,
+    )
 
 
 class Event(object):
@@ -61,6 +106,9 @@ class Event(object):
 
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
+
+    def to_series(self, index=None):
+        return pd.Series(self.__dict__, index=index)
 
 
 class Order(Event):

@@ -143,7 +143,7 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'net_amount': payment,
         'payment_sid': None,
         'ratio': None,
-        'dt': pd.tslib.normalize_date(declared_date),
+        'declared_date': pd.tslib.normalize_date(declared_date),
         'ex_date': pd.tslib.normalize_date(ex_date),
         'pay_date': pd.tslib.normalize_date(pay_date),
         'type': DATASOURCE_TYPE.DIVIDEND,

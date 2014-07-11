@@ -60,6 +60,7 @@ Performance Tracking
 from __future__ import division
 import logbook
 
+import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
@@ -95,6 +96,9 @@ class PerformanceTracker(object):
                 (all_trading_days <= normalize_date(self.period_end)))
 
         self.trading_days = all_trading_days[mask]
+
+        self.dividend_frame = pd.DataFrame()
+        self._dividend_count = 0
 
         self.perf_periods = []
 
@@ -188,6 +192,35 @@ class PerformanceTracker(object):
             self.saved_dt = date
             self.todays_performance.period_close = self.saved_dt
 
+    def update_dividends(self, new_dividends):
+        """
+        Update our dividend frame with new dividends.
+        """
+        # Mark each new dividend with a unique integer id.  This ensures that
+        # we can differentiate dividends whose date/sid fields are otherwise
+        # identical.
+        new_dividends['guid'] = np.arange(
+            self._dividend_count,
+            self._dividend_count + len(new_dividends),
+        )
+        self._dividend_count += len(new_dividends)
+
+        self.dividend_frame = pd.concat(
+            [self.dividend_frame, new_dividends]
+        ).sort(['pay_date', 'ex_date']).set_index('guid', drop=False)
+
+    def initialize_dividends_from_other(self, other):
+        """
+        Helper for copying dividends to a new PerformanceTracker while
+        preserving dividend count.  Useful if a simulation needs to create a
+        new PerformanceTracker mid-stream and wants to preserve stored dividend
+        info.
+
+        Note that this does not copy unpaid dividends.
+        """
+        self.dividend_frame = other.dividend_frame
+        self._dividend_count = other._dividend_count
+
     def update_performance(self):
         # calculate performance as of last trade
         for perf_period in self.perf_periods:
@@ -239,8 +272,7 @@ class PerformanceTracker(object):
                 perf_period.execute_transaction(event)
 
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
-            for perf_period in self.perf_periods:
-                perf_period.add_dividend(event)
+            log.info("Ignoring DIVIDEND event.")
 
         elif event.type == zp.DATASOURCE_TYPE.SPLIT:
             for perf_period in self.perf_periods:
@@ -256,6 +288,7 @@ class PerformanceTracker(object):
 
         elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
             pass
+
         elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
             if (
                 self.sim_params.data_frequency == 'minute'
@@ -266,15 +299,61 @@ class PerformanceTracker(object):
                 # close, so that calculations are triggered at the right time.
                 # However, risk module uses midnight as the 'day'
                 # marker for returns, so adjust back to midgnight.
-                midnight = event.dt.replace(
-                    hour=0,
-                    minute=0,
-                    second=0,
-                    microsecond=0)
+                midnight = pd.tseries.tools.normalize_date(event.dt)
             else:
                 midnight = event.dt
 
             self.all_benchmark_returns[midnight] = event.returns
+
+    def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
+        """
+        Check if we currently own any stocks with dividends whose ex_date is
+        the next trading day.  Track how much we should be payed on those
+        dividends' pay dates.
+
+        Then check if we are owed cash/stock for any dividends whose pay date
+        is the next trading day.  Apply all such benefits, then recalculate
+        performance.
+        """
+        if len(self.dividend_frame) == 0:
+            # We don't currently know about any dividends for this simulation
+            # period, so bail.
+            return
+
+        next_trading_day_idx = self.trading_days.get_loc(
+            midnight_of_date_that_just_ended,
+        ) + 1
+
+        if next_trading_day_idx < len(self.trading_days):
+            next_trading_day = self.trading_days[next_trading_day_idx]
+        else:
+            # Bail if the next trading day is outside our trading range, since
+            # we won't simulate the next day.
+            return
+
+        # Dividends whose ex_date is the next trading day.  We need to check if
+        # we own any of these stocks so we know to pay them out when the pay
+        # date comes.
+        ex_date_mask = (self.dividend_frame['ex_date'] == next_trading_day)
+        dividends_earnable = self.dividend_frame[ex_date_mask]
+
+        # Dividends whose pay date is the next trading day.  If we held any of
+        # these stocks on midnight before the ex_date, we need to pay these out
+        # now.
+        pay_date_mask = (self.dividend_frame['pay_date'] == next_trading_day)
+        dividends_payable = self.dividend_frame[pay_date_mask]
+
+        for period in self.perf_periods:
+            # TODO SS: There's no reason we should have to duplicate this
+            #          computation, but we do it currently because each perf
+            #          period maintains its own separate positiondict.  We
+            #          should eventually remove this duplication and give each
+            #          period a (preferably read-only) DataFrame of positions.
+            if len(dividends_earnable):
+                period.earn_dividends(dividends_earnable)
+
+            if len(dividends_payable):
+                period.pay_dividends(dividends_payable)
 
     def handle_minute_close(self, dt):
         self.update_performance()
@@ -291,29 +370,20 @@ class PerformanceTracker(object):
         bench_since_open = \
             self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
 
-        # if we've reached market close, check on dividends
-        if dt == self.market_close:
-            for perf_period in self.perf_periods:
-                perf_period.update_dividends(todays_date)
-
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open)
 
-        # if this is the close, save the returns objects for cumulative
-        # risk calculations
+        # if this is the close, save the returns objects for cumulative risk
+        # calculations and update dividends for the next day.
         if dt == self.market_close:
+            self.check_upcoming_dividends(todays_date)
             self.returns[todays_date] = self.todays_performance.returns
 
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
         Function called at market close only when emitting at minutely
         frequency.
-
-        TODO_SS: Why dont' we call this if we're emitting at daily frequency
-                 but running with a minutely datasource?  Is that just not a
-                 valid combination? If so, why do we draw a distinction between
-                 emission rate and data frequency?
         """
 
         # update_performance should have been called in handle_minute_close
@@ -331,18 +401,16 @@ class PerformanceTracker(object):
         rate.
         """
         self.update_performance()
-        # add the return results from today to the returns series
-        todays_date = normalize_date(self.market_close)
-        self.cumulative_performance.update_dividends(todays_date)
-        self.todays_performance.update_dividends(todays_date)
+        completed_date = normalize_date(self.market_close)
 
-        self.returns[todays_date] = self.todays_performance.returns
+        # add the return results from today to the returns series
+        self.returns[completed_date] = self.todays_performance.returns
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
-            todays_date,
+            completed_date,
             self.todays_performance.returns,
-            self.all_benchmark_returns[todays_date])
+            self.all_benchmark_returns[completed_date])
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -352,8 +420,8 @@ class PerformanceTracker(object):
         daily_update = self.to_dict()
 
         # On the last day of the test, don't create tomorrow's performance
-        # period.  We may not be able to find the next trading day if we're
-        # at the end of our historical data
+        # period.  We may not be able to find the next trading day if we're at
+        # the end of our historical data
         if self.market_close >= self.last_close:
             return daily_update
 
@@ -366,15 +434,7 @@ class PerformanceTracker(object):
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        # The dividend calculation for the daily needs to be made
-        # after the rollover. midnight_between is the last midnight
-        # hour between the close of markets and the next open. To
-        # make sure midnight_between matches identically with
-        # dividend data dates, it is in UTC.
-        midnight_between = self.market_open.replace(hour=0, minute=0, second=0,
-                                                    microsecond=0)
-        self.cumulative_performance.update_dividends(midnight_between)
-        self.todays_performance.update_dividends(midnight_between)
+        self.check_upcoming_dividends(completed_date)
 
         return daily_update
 
