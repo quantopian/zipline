@@ -9,22 +9,24 @@ class EventManager(object):
     """
 
     def __init__(self,
-                 period=1,
                  rule_func=None,
+                 period=1,
                  max_daily_hits=1,
                  skip_early_close_days=False,
                  calendar=tradingcalendar):
         """
         :params:
+            rule_func: function or class instance with a __call__ method.
+                Must accept a datetime obj and return a boolean value.
+                This will be used as the decision function for the intraday
+                entry point when all other criteria has been met.
+
             period: integer <default=1>
                 number of trading days between events
 
             max_daily_hits: integer <default=1>
                 upper limit on the number of times per day
                 the event is triggered.
-
-            rule_func: function (returns a boolean)
-                decision function for the intraday entry point
 
             skip_early_close_days: boolean <default=False>
                 if True, the event will not occur on days
@@ -115,7 +117,7 @@ class BeforeClose(EntryRule):
         ref = tradingcalendar.canonicalize_datetime(dt)
         open_close = tradingcalendar.open_and_closes.T[ref]
         market_close = open_close['market_close']
-        return dt >= market_close - timedelta(minutes=self.delta_t)
+        return dt > market_close - timedelta(minutes=self.delta_t)
 
 
 class AtTime(EntryRule):
