@@ -29,6 +29,7 @@ from zipline.utils.event_management import(
 import pandas as pd
 import pytz
 import numpy as np
+import random
 
 
 class TestFactory(TestCase):
@@ -71,7 +72,9 @@ class TestFactory(TestCase):
 class TestEntryRules(TestCase):
 
     def setUp(self):
-        open_close = tradingcalendar.open_and_closes.iloc[0]
+        n = len(tradingcalendar.open_and_closes)
+        index = random.choice(range(n))
+        open_close = tradingcalendar.open_and_closes.iloc[index]
         self.open_time = open_close['market_open']
         self.close_time = open_close['market_close']
         self.interval = datetime.timedelta(minutes=1)
@@ -88,12 +91,11 @@ class TestEntryRules(TestCase):
         should evaluate to False.
         """
         after_open = AfterOpen(minutes=5, hours=1)
-        results = pd.Series(
-            {dt: after_open(dt) for dt in self.market_mins}
-        )
-        invalid_times = results[results == False]
-        assert len(invalid_times) == 65
-        assert np.all(invalid_times.index == self.market_mins[0:65])
+        results = {dt: after_open(dt) for dt in self.market_mins}
+        for dt in self.market_mins[0:65]:
+            assert results[dt] is False
+        for dt in self.market_mins[65::]:
+            assert results[dt] is True
 
     def test_BeforeClose(self):
         """
@@ -101,47 +103,46 @@ class TestEntryRules(TestCase):
         should evaluate to True.
         """
         before_close = BeforeClose(minutes=5, hours=1)
-        results = pd.Series(
-            {dt: before_close(dt) for dt in self.market_mins}
-        )
-        valid_times = results[results == True]
-        assert len(valid_times) == 65
-        assert np.all(valid_times.index == self.market_mins[-65::])
+        results = {dt: before_close(dt) for dt in self.market_mins}
+        for dt in self.market_mins[0:-65]:
+            assert results[dt] is False
+        for dt in self.market_mins[-65::]:
+            assert results[dt] is True
 
     def test_AtTime(self):
-        # 10:00 EST / 15:00 UTC test date
-        testdt = pd.Timestamp('1990-01-02 15:00:00+0000', tz='UTC')
-        at_time = AtTime(hour=10, minute=0, tz='US/Eastern')
-        results = pd.Series({i: at_time(i) for i in self.market_mins})
-        valid_times = results[results == True]
-        assert len(valid_times) == 1
-        assert testdt in valid_times
+        # 9:40 EST / 13:40 UTC test date
+        test_dt = self.market_mins[9]
+        at_time = AtTime(hour=9, minute=40, tz='US/Eastern')
+        results = {i: at_time(i) for i in self.market_mins}
+        for dt in self.market_mins:
+            if dt == test_dt:
+                assert results[dt] is True
+            else:
+                assert results[dt] is False
 
     def test_BetweenTimes(self):
-        # 10:00 EST / 15:00 UTC to 5 min later test times
-        bw_times = BetweenTimes((10, 0), (10, 5), tz='US/Eastern')
-        testdts = pd.Index([
-            pd.Timestamp('1990-01-02 15:00:00+0000', tz='UTC'),
-            pd.Timestamp('1990-01-02 15:01:00+0000', tz='UTC'),
-            pd.Timestamp('1990-01-02 15:02:00+0000', tz='UTC'),
-            pd.Timestamp('1990-01-02 15:03:00+0000', tz='UTC'),
-            pd.Timestamp('1990-01-02 15:04:00+0000', tz='UTC')
-        ])
-        results = pd.Series({i: bw_times(i) for i in self.market_mins})
-        valid_times = results[results == True]
-        assert len(valid_times) == 5
-        assert np.all(testdts == valid_times.index)
+        # criteria: t1 <= dt < t2
+        bw_times = BetweenTimes((9, 40), (9, 50), tz='US/Eastern')
+        test_dts = self.market_mins[9:19]
+        results = {i: bw_times(i) for i in self.market_mins}
+        for dt in self.market_mins:
+            if dt in test_dts:
+                assert results[dt] is True
+            else:
+                assert results[dt] is False
 
     def test_at_market_open(self):
-        results = pd.Series({dt: at_market_open(dt)
-                             for dt in self.market_mins})
-        valid_times = results[results == True]
-        assert len(valid_times) == 1
-        assert self.open_time in valid_times
+        results = {dt: at_market_open(dt) for dt in self.market_mins}
+        for dt in self.market_mins:
+            if dt == self.open_time:
+                assert results[dt] is True
+            else:
+                assert results[dt] is False
 
     def test_at_market_close(self):
-        results = pd.Series({dt: at_market_close(dt)
-                             for dt in self.market_mins})
-        valid_times = results[results == True]
-        assert len(valid_times) == 1
-        assert self.close_time in valid_times
+        results = {dt: at_market_close(dt) for dt in self.market_mins}
+        for dt in self.market_mins:
+            if dt == self.close_time:
+                assert results[dt] is True
+            else:
+                assert results[dt] is False
