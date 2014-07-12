@@ -55,6 +55,12 @@ class EventManager(object):
         dt = dt.astimezone(pytz.utc)
         if dt < self.market_open:
             return False
+        if self.skip_early_close_days:
+            # Step next event forward one day if it's an early close day.
+            if self.is_early_close(dt):
+                idx = self.days_index(dt)
+                self.next_event_date = self.calendar.trading_days[idx + 1]
+                return False
         if dt >= self.market_close:
             self.set_next_event_date(dt)
         decision = self._rule_func(dt, *args, **kwargs)
@@ -75,13 +81,14 @@ class EventManager(object):
         self.remaining_hits = self.max_daily_hits
         trading_days = self.calendar.trading_days
         idx = self.days_index(dt) + self.period
-        if self.skip_early_close_days:
-            while trading_days[idx] in self.calendar.open_and_closes:
-                idx += 1
         self.next_event_date = trading_days[idx]
         oc_times = self.open_and_close(self.next_event_date)
         self.market_open = oc_times['market_open']
         self.market_close = oc_times['market_close']
+
+    def is_early_close(self, dt):
+        ref_dt = self.calendar.trading_days[self.days_index(dt)]
+        return ref_dt in self.calendar.early_closes
 
 
 class EntryRule(object):
