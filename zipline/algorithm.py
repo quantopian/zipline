@@ -142,7 +142,6 @@ class TradingAlgorithm(object):
         self.logger = None
 
         self.benchmark_return_source = None
-        self.perf_tracker = None
 
         # default components for transact
         self.slippage = VolumeShareSlippage()
