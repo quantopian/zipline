@@ -232,7 +232,7 @@ class PerformancePeriod(object):
         with fields drawn from zipline.protocol.DIVIDEND_PAYMENT_FIELDS.
         """
         try:
-            unpaid_dividend = self._unpaid_dividends.loc[dividend['guid']]
+            unpaid_dividend = self._unpaid_dividends.loc[dividend['id']]
             return unpaid_dividend
         except KeyError:
             return zp.dividend_payment()

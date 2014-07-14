@@ -61,7 +61,7 @@ class Position(object):
         that we can pay out the correct amount on the dividend's pay date.
         """
         assert dividend['sid'] == self.sid
-        out = {'guid': dividend['guid']}
+        out = {'id': dividend['id']}
 
         # stock dividend
         if dividend['payment_sid']:
