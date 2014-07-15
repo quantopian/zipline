@@ -26,6 +26,7 @@ from zipline.utils.event_management import(
     at_market_open,
     at_market_close
 )
+from zipline.finance.trading import TradingEnvironment
 import pandas as pd
 import pytz
 import numpy as np
@@ -72,18 +73,11 @@ class TestFactory(TestCase):
 class TestEntryRules(TestCase):
 
     def setUp(self):
-        n = len(tradingcalendar.open_and_closes)
-        index = random.choice(range(n))
-        open_close = tradingcalendar.open_and_closes.iloc[index]
-        self.open_time = open_close['market_open']
-        self.close_time = open_close['market_close']
-        self.interval = datetime.timedelta(minutes=1)
-        market_mins = []
-        dt = self.open_time
-        while dt <= self.close_time:
-            market_mins.append(dt)
-            dt += self.interval
-        self.market_mins = market_mins
+        env = TradingEnvironment()
+        index = random.choice(range(len(env.trading_days)))
+        test_dt = env.trading_days[index]
+        self.open_time, self.close_time = env.get_open_and_close(test_dt)
+        self.market_mins = env.market_minutes_for_day(test_dt)
 
     def test_AfterOpen(self):
         """
