@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 from unittest import TestCase
-from zipline.utils import tradingcalendar
 from zipline.utils.factory import (load_from_yahoo,
                                    load_bars_from_yahoo)
 from zipline.utils.event_management import(

@@ -42,8 +42,7 @@ class EventManager(object):
         self.period = period
         self.max_daily_hits = max_daily_hits
         self.remaining_hits = max_daily_hits
-        self.calendar = calendar
-        self.env = TradingEnvironment(env_trading_calendar=self.calendar)
+        self.env = TradingEnvironment(env_trading_calendar=calendar)
         self.next_event_date = self.env.first_trading_day
         self.market_open, self.market_close = \
             self.env.get_open_and_close(self.next_event_date)
@@ -61,7 +60,7 @@ class EventManager(object):
         # to that days date. In practice, this should only be
         # triggered when signal hasn't been called yet.
         #    i.e. self.next_event_date == self.env.first_trading_day
-        # This rule seems less britle than checking for strict
+        # This rule seems less brittle than checking for strict
         # equality with env.first_trading_day.
         if dt >= self.market_close:
             self.next_event_date = pd.Timestamp(dt.date())
@@ -83,9 +82,6 @@ class EventManager(object):
             if self.remaining_hits <= 0:
                 self.set_next_event_date(dt)
         return decision
-
-    def open_and_close(self, dt):
-        return self.calendar.open_and_closes.T[dt]
 
     def set_next_event_date(self, dt):
         self.remaining_hits = self.max_daily_hits
