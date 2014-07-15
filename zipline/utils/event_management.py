@@ -1,5 +1,8 @@
 import pytz
 from datetime import time, timedelta
+
+import pandas as pd
+from zipline.finance.trading import TradingEnvironment
 from zipline.utils import tradingcalendar
 
 
@@ -9,14 +12,14 @@ class EventManager(object):
     """
 
     def __init__(self,
-                 rule_func=None,
+                 rule=None,
                  period=1,
                  max_daily_hits=1,
                  skip_early_close_days=False,
                  calendar=tradingcalendar):
         """
         :params:
-            rule_func: function or class instance with a __call__ method.
+            rule: function or class instance with a __call__ method.
                 Must accept a datetime obj and return a boolean value.
                 This will be used as the decision function for the intraday
                 entry point when all other criteria has been met.
@@ -39,56 +42,62 @@ class EventManager(object):
         self.period = period
         self.max_daily_hits = max_daily_hits
         self.remaining_hits = max_daily_hits
-        self.next_event_date = tradingcalendar.start
-        open_close = tradingcalendar.open_and_closes.iloc[0]
-        self.market_open = open_close['market_open']
-        self.market_close = open_close['market_close']
-        self.skip_early_close_days = skip_early_close_days
         self.calendar = calendar
-        self._rule_func = rule_func
+        self.env = TradingEnvironment(env_trading_calendar=self.calendar)
+        self.next_event_date = self.env.first_trading_day
+        self.market_open, self.market_close = \
+            self.env.get_open_and_close(self.next_event_date)
+        self.skip_early_close_days = skip_early_close_days
+        self._rule = rule
 
     def signal(self, dt, *args, **kwargs):
         """
-        Entry point for the rule_func
-        All arguments are passed to rule_func
+        Algo enrty point, dt is the current algo datetime.
+        All arguments are passed to the rule
         """
         dt = dt.astimezone(pytz.utc)
+        # The datetime passed should never be greater than
+        # self.market_close, if it is, the next_event_date is set
+        # to that days date. In practice, this should only be
+        # triggered when signal hasn't been called yet.
+        #    i.e. self.next_event_date == self.env.first_trading_day
+        # This rule seems less britle than checking for strict
+        # equality with env.first_trading_day.
+        if dt >= self.market_close:
+            self.next_event_date = pd.Timestamp(dt.date())
+            self.market_open, self.market_close = \
+                self.env.get_open_and_close(self.next_event_date)
         if dt < self.market_open:
             return False
         if self.skip_early_close_days:
             # Step next event forward one day if it's an early close day.
             if self.is_early_close(dt):
-                idx = self.days_index(dt)
-                self.next_event_date = self.calendar.trading_days[idx + 1]
+                self.next_event_date = self.env.next_trading_day(dt)
+                self.market_open, self.market_close = \
+                    self.env.get_open_and_close(self.next_event_date)
+                self.remaining_hits = self.max_daily_hits
                 return False
-        if dt >= self.market_close:
-            self.set_next_event_date(dt)
-        decision = self._rule_func(dt, *args, **kwargs)
+        decision = self._rule(dt, *args, **kwargs)
         if decision:
             self.remaining_hits -= 1
             if self.remaining_hits <= 0:
                 self.set_next_event_date(dt)
         return decision
 
-    def days_index(self, dt):
-        dt = self.calendar.canonicalize_datetime(dt)
-        return self.calendar.trading_days.searchsorted(dt)
-
     def open_and_close(self, dt):
         return self.calendar.open_and_closes.T[dt]
 
     def set_next_event_date(self, dt):
         self.remaining_hits = self.max_daily_hits
-        trading_days = self.calendar.trading_days
-        idx = self.days_index(dt) + self.period
-        self.next_event_date = trading_days[idx]
-        oc_times = self.open_and_close(self.next_event_date)
-        self.market_open = oc_times['market_open']
-        self.market_close = oc_times['market_close']
+        idx = self.env.get_index(dt) + self.period
+        self.next_event_date = self.env.trading_days[idx]
+        self.market_open, self.market_close = \
+            self.env.get_open_and_close(self.next_event_date)
 
     def is_early_close(self, dt):
-        ref_dt = self.calendar.trading_days[self.days_index(dt)]
-        return ref_dt in self.calendar.early_closes
+        # TODO: move this to TradingEnvironment
+        ref_dt = self.env.trading_days[self.env.get_index(dt)]
+        return ref_dt in self.env.early_closes
 
 
 class EntryRule(object):
