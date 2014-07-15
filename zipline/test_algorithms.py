@@ -961,6 +961,17 @@ def handle_data(context, data):
     pass
 """
 
+access_portfolio_in_init = """
+from zipline.api import (order)
+
+def initialize(context):
+    var = context.portfolio
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
 call_all_order_methods = """
 from zipline.api import (order,
                          order_value,

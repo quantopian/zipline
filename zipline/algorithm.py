@@ -30,6 +30,7 @@ from zipline.errors import (
     OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
+    PortfolioAccessInInitialize,
     RegisterTradingControlPostInit,
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
@@ -625,8 +626,14 @@ class TradingAlgorithm(object):
 
     def updated_portfolio(self):
         if self.portfolio_needs_update:
-            self._portfolio = self.perf_tracker.get_portfolio()
-            self.portfolio_needs_update = False
+            if self.perf_tracker is not None:
+                self._portfolio = self.perf_tracker.get_portfolio()
+                self.portfolio_needs_update = False
+            else:
+                raise PortfolioAccessInInitialize(
+                    msg="portfolio object can only be accessed in \
+                    handle_data()."
+                )
         return self._portfolio
 
     def set_logger(self, logger):
