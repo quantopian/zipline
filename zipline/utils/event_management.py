@@ -102,8 +102,8 @@ class EventManager(object):
 
 class EntryRule(object):
     """
-    Base class for entry rule classes that need
-    to accept arguments at initialization.
+    Base class for entry rules that need
+    to be configured at initialization.
     """
     pass
 
