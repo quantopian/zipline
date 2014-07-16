@@ -34,6 +34,7 @@ from zipline.errors import (
     TradingControlViolation,
 )
 from zipline.test_algorithms import (
+    access_portfolio_in_init,
     AmbitiousStopLimitAlgorithm,
     EmptyPositionsAlgorithm,
     InvalidOrderAlgorithm,
@@ -616,6 +617,24 @@ def handle_data(context, data):
                 sim_params=self.sim_params,
             )
             set_algo_instance(test_algo)
+
+    def test_portfolio_in_init(self):
+        """
+        Test that accessing portfolio in init doesn't break.
+        """
+        test_algo = TradingAlgorithm(
+            script=access_portfolio_in_init,
+            sim_params=self.sim_params,
+        )
+        set_algo_instance(test_algo)
+
+        self.zipline_test_config['algorithm'] = test_algo
+        self.zipline_test_config['trade_count'] = 1
+
+        zipline = simfactory.create_test_zipline(
+            **self.zipline_test_config)
+
+        output, _ = drain_zipline(self, zipline)
 
 
 class TestHistory(TestCase):
