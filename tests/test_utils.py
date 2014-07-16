@@ -17,6 +17,7 @@ from unittest import TestCase
 from zipline.utils.factory import (load_from_yahoo,
                                    load_bars_from_yahoo)
 from zipline.utils.event_management import(
+    EventManager,
     AfterOpen,
     BeforeClose,
     AtTime,
@@ -138,3 +139,51 @@ class TestEntryRules(TestCase):
                 assert results[dt] is True
             else:
                 assert results[dt] is False
+
+
+class TestEventManager(TestCase):
+
+    def setUp(self):
+        self.env = TradingEnvironment()
+        self.early_closes = self.env.early_closes
+        index = random.choice(range(len(self.env.trading_days) - 5))
+        self.trading_days = self.env.trading_days[index:index + 5]
+        self.market_mins = {dt: self.env.market_minutes_for_day(dt)
+                            for dt in self.trading_days}
+        # Set the rule to always return True so that it does not
+        # affect the outcome of the call to .signal()
+        self.rule = lambda x: True
+
+    def test_max_daily_hits(self):
+        manager = EventManager(rule=self.rule, max_daily_hits=3)
+        days_hits = {dt: 0 for dt in self.trading_days}
+        for dt in self.trading_days:
+            for t in self.market_mins[dt]:
+                if manager.signal(t):
+                    days_hits[dt] += 1
+        for d in self.trading_days:
+            assert days_hits[d] == 3
+
+    def test_skip_early_close_days(self):
+        manager = EventManager(rule=self.rule,
+                               period=1,
+                               skip_early_close_days=True)
+        for dt in self.early_closes:
+            market_mins = self.env.market_minutes_for_day(dt)
+            for t in market_mins:
+                assert manager.signal(t) is False
+
+    def test_period(self):
+        manager = EventManager(rule=self.rule, period=2)
+        # Only even indexed days should pass
+        valid_days = set(self.trading_days[::2])
+        count = 0
+        results = set()
+        for dt in self.trading_days:
+            for t in self.market_mins[dt]:
+                if manager.signal(t):
+                    count += 1
+                    results.add(dt)
+        # Check max_daily_hits via count
+        assert count == len(valid_days)
+        assert results == valid_days
