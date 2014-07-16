@@ -246,6 +246,13 @@ class HistoryContainer(object):
         )
         return rp
 
+    def convert_columns(self, values):
+        """
+        If columns have a specific type you want to enforce, overwrite this
+        method and return the transformed values.
+        """
+        return values
+
     def create_return_frames(self, algo_dt):
         """
         Populates the return frame cache.
@@ -257,7 +264,8 @@ class HistoryContainer(object):
             index = pd.to_datetime(index_at_dt(history_spec, algo_dt))
             frame = pd.DataFrame(
                 index=index,
-                columns=map(int, self.buffer_panel.minor_axis.values),
+                columns=self.convert_columns(
+                    self.buffer_panel.minor_axis.values),
                 dtype=np.float64)
             self.return_frames[spec_key] = frame
 
