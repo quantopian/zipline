@@ -30,6 +30,7 @@ import zipline.utils.simfactory as simfactory
 
 from zipline.errors import (
     OrderDuringInitialize,
+    PortfolioAccessInInitialize,
     RegisterTradingControlPostInit,
     TradingControlViolation,
 )
@@ -55,6 +56,7 @@ from zipline.test_algorithms import (
     api_symbol_algo,
     call_all_order_methods,
     call_order_in_init,
+    access_portfolio_in_init,
     handle_data_api,
     handle_data_noop,
     initialize_api,
@@ -613,6 +615,18 @@ def handle_data(context, data):
         with self.assertRaises(OrderDuringInitialize):
             test_algo = TradingAlgorithm(
                 script=call_order_in_init,
+                sim_params=self.sim_params,
+            )
+            set_algo_instance(test_algo)
+
+    def test_access_portfolio_in_init(self):
+        """
+        Test that accessing portfolio in initialize
+        will raise an error.
+        """
+        with self.assertRaises(PortfolioAccessInInitialize):
+            test_algo = TradingAlgorithm(
+                script=access_portfolio_in_init,
                 sim_params=self.sim_params,
             )
             set_algo_instance(test_algo)

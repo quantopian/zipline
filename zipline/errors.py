@@ -144,6 +144,13 @@ class OrderDuringInitialize(ZiplineError):
     msg = "{msg}"
 
 
+class PortfolioAccessInInitialize(ZiplineError):
+    """
+    Raised if portfolio is accessed before it has been set up.
+    """
+    msg = "{msg}"
+
+
 class TradingControlViolation(ZiplineError):
     """
     Raised if an order would violate a constraint set by a TradingControl.
