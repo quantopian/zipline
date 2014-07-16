@@ -9,6 +9,24 @@ from zipline.utils import tradingcalendar
 class EventManager(object):
     """
     Manager for periodic events.
+
+    Example:
+    This algorithm will trade once per day, at five minutes after open.
+    ```
+    from zipline.api import order, get_datetime
+    from zipline.utils.event_management import EventManager, AfterOpen
+
+
+    def initialize(context):
+        context.manager = EventManager(rule=AfterOpen(minutes=5))
+        context.sid = 'AAPL'
+        context.amount = 100
+
+    def handle_data(self, data):
+        if context.manager.signal(get_datetime()):
+            sid = context.sid
+            amount = context.amount
+            order(sid, amount)
     """
 
     def __init__(self,
