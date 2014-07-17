@@ -104,7 +104,7 @@
    > The requirements are simply that the poritional args occur only before the
    > kwargs.
 
- * history() has been ported from Quantopian to Zipline and provides moving window of market data. [PR345](https://github.com/quantopian/zipline/pull/345) and [PR357](https://github.com/quantopian/zipline/pull/357)
+* history() has been ported from Quantopian to Zipline and provides moving window of market data. [PR345](https://github.com/quantopian/zipline/pull/345) and [PR357](https://github.com/quantopian/zipline/pull/357)
 
     > history() replaces BatchTransform. It is faster, works for minute level data and has a superior interface.
     > To use it, call `add_history()` inside of `initialize()` and then receive a pandas `DataFrame` by calling
@@ -121,7 +121,7 @@
 
 ## Maintenance and Refactorings (MAINT)
 
-* Removed undocumented and untested HDF5 and CSV data sources. [267](https://github.com/quantopian/zipline/issues/267]
+* Removed undocumented and untested HDF5 and CSV data sources. [PR267](https://github.com/quantopian/zipline/issues/267)
 
 * Refactor sim_params [PR352](https://github.com/quantopian/zipline/pull/352)
 
