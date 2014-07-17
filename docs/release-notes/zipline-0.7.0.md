@@ -1,4 +1,4 @@
-# Zipline 0.6.2 Release Notes
+# Zipline 0.7.0 Release Notes
 
 **Highlights**
 
@@ -9,6 +9,11 @@
 
 * API methods for building safeguards against runaway ordering and undesired
   short positions.
+
+* New history() function to get a moving DataFrame of past market data
+  (replaces BatchTransform).
+
+* A new [beginner tutorial](http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb).
 
 
 ## Enhancements (ENH)
@@ -95,14 +100,22 @@
                      name = 'Dynamically_Generated_String'
                      record( name, value, ... )
                      record( name, value1, 'name2', value2, name3=value3, name4=value4 )
-                     
+
    > The requirements are simply that the poritional args occur only before the
    > kwargs.
+
+ * history() has been ported from Quantopian to Zipline and provides moving window of market data. [PR345](https://github.com/quantopian/zipline/pull/345) and [PR357](https://github.com/quantopian/zipline/pull/357)
+
+    > history() replaces BatchTransform. It is faster, works for minute level data and has a superior interface.
+    > To use it, call `add_history()` inside of `initialize()` and then receive a pandas `DataFrame` by calling
+    > history() from inside `handle_data()`. Check out the [tutorial](http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb) and an [example](https://github.com/quantopian/zipline/blob/master/zipline/examples/dual_moving_average.py).
 
 ## Bug Fixes (BUG)
 
 * Fix alignment of trading days and open and closes in trading environment.
   [PR331](https://github.com/quantopian/zipline/pull/331)
+
+* RollingPanel fix when adding/dropping new fields [PR349](https://github.com/quantopian/zipline/pull/349)
 
 ## Performance (PERF)
 
@@ -110,6 +123,18 @@
 
 * Removed undocumented and untested HDF5 and CSV data sources. [267](https://github.com/quantopian/zipline/issues/267]
 
+* Refactor sim_params [PR352](https://github.com/quantopian/zipline/pull/352)
+
 ## Build (BLD)
 
 # Contributors
+    38  Scott Sanderson
+    29  Thomas Wiecki
+    26  Eddie Hebert
+     6  Delaney Granizo-Mackenzie
+     3  David Edwards
+     3  Richard Frank
+     2  Jonathan Kamens
+     1  Pankaj Garg
+     1  Tony Lambiris
+     1  fawce

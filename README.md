@@ -96,6 +96,8 @@ Dependencies
 Quickstart
 ==========
 
+See our [tutorial](http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb) to get started.
+
 The following code implements a simple dual moving average algorithm.
 
 ```python
