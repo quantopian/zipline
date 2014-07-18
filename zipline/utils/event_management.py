@@ -11,30 +11,50 @@ class EventManager(object):
     Manager for periodic events.
 
     Example:
-    This algorithm will trade once per day, at five minutes after open.
+    This algorithm will buy 10 shares at open and sell them at the close.
     ```
     from zipline.api import order, get_datetime
-    from zipline.utils.event_management import EventManager, AfterOpen
-
+    from zipline.utils.event_management import(
+        EventManager, at_market_open, at_market_close
+    )
 
     def initialize(context):
-        context.manager = EventManager(rule=AfterOpen(minutes=5))
+        manager = EventManager()
+        manager.add_event('market_open', at_market_open)
+        manager.add_event('market_close', at_market_close)
+        context.manager = manager
         context.sid = 'AAPL'
-        context.amount = 100
+        context.amount = 10
 
     def handle_data(self, data):
-        if context.manager.signal(get_datetime()):
-            sid = context.sid
-            amount = context.amount
-            order(sid, amount)
+        if context.manager.market_open(get_datetime()):
+            order(context.sid, context.amount)
+        if context.manager.market_close(get_datetime()):
+            order(context.sid, -context.amount)
     """
+    def add_event(self, name, rule,
+                  period=1, max_daily_hits=1, skip_early_close_days=False):
+        event = PeriodicEvent(
+            rule=rule,
+            period=period,
+            max_daily_hits=max_daily_hits,
+            skip_early_close_days=skip_early_close_days
+        )
+        self.__dict__[name] = event
+
+    def remove_event(self, event_name):
+        del self.__dict__[event_name]
+
+
+
+class PeriodicEvent(object):
+
 
     def __init__(self,
                  rule=None,
                  period=1,
                  max_daily_hits=1,
-                 skip_early_close_days=False,
-                 calendar=tradingcalendar):
+                 skip_early_close_days=False):
         """
         :params:
             rule: function or class instance with a __call__ method.
@@ -53,37 +73,36 @@ class EventManager(object):
                 if True, the event will not occur on days
                 when the market is closing early.
 
-            calendar: zipline module <default=tradingcalendar>
-                Trading calendar to use, default is NYSE.
-                See zipline.utils for choices
         """
         self.period = period
         self.max_daily_hits = max_daily_hits
         self.remaining_hits = max_daily_hits
-        self.env = TradingEnvironment(env_trading_calendar=calendar)
+        self.env = TradingEnvironment().instance()
         self.next_event_date = self.env.first_trading_day
         self.market_open, self.market_close = \
             self.env.get_open_and_close(self.next_event_date)
         self.skip_early_close_days = skip_early_close_days
         self._rule = rule
 
-    def signal(self, dt, *args, **kwargs):
+    def __call__(self, dt):
         """
-        Algo enrty point, dt is the current algo datetime.
+        Algo entry point, dt is the current algo datetime.
         All arguments are passed to the rule
         """
         dt = dt.astimezone(pytz.utc)
         # The datetime passed should never be greater than
         # self.market_close, if it is, the next_event_date is set
         # to that days date. In practice, this should only be
-        # triggered when signal hasn't been called yet.
-        #    i.e. self.next_event_date == self.env.first_trading_day
+        # triggered when signal hasn't been called yet or if the call
+        # is nested inside a code block.
+        #
         # This rule seems less brittle than checking for strict
         # equality with env.first_trading_day.
         if dt >= self.market_close:
             self.next_event_date = pd.Timestamp(dt.date())
             self.market_open, self.market_close = \
                 self.env.get_open_and_close(self.next_event_date)
+            self.remaining_hits = self.max_daily_hits
         if dt < self.market_open:
             return False
         if self.skip_early_close_days:
@@ -94,7 +113,7 @@ class EventManager(object):
                     self.env.get_open_and_close(self.next_event_date)
                 self.remaining_hits = self.max_daily_hits
                 return False
-        decision = self._rule(dt, *args, **kwargs)
+        decision = self._rule(dt)
         if decision:
             self.remaining_hits -= 1
             if self.remaining_hits <= 0:
@@ -127,13 +146,13 @@ class AfterOpen(EntryRule):
     A rule to enter after the market has been open for N minutes.
     """
     def __init__(self, minutes=0, hours=0):
-        self.delta_t = 60*hours + minutes
+        self.delta_t = timedelta(minutes=60*hours + minutes)
 
     def __call__(self, dt):
         ref = tradingcalendar.canonicalize_datetime(dt)
         open_close = tradingcalendar.open_and_closes.T[ref]
         market_open = open_close['market_open']
-        return dt >= market_open + timedelta(minutes=self.delta_t)
+        return dt >= market_open + self.delta_t
 
 
 class BeforeClose(EntryRule):
