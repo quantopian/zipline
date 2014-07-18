@@ -46,7 +46,6 @@ class EventManager(object):
         del self.__dict__[event_name]
 
 
-
 class PeriodicEvent(object):
     """
     A Periodic Event that can be configured to only occur
