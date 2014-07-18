@@ -48,8 +48,13 @@ class EventManager(object):
 
 
 class PeriodicEvent(object):
-
-
+    """
+    A Periodic Event that can be configured to only occur
+    a maximum number of times per day, every N days. It can
+    also be set to skip early market close days.
+    It must be initialized with a rule for the final
+    intraday entry decision.
+    """
     def __init__(self,
                  rule=None,
                  period=1,

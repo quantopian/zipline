@@ -166,8 +166,8 @@ class TestPeriodicEvent(TestCase):
 
     def test_skip_early_close_days(self):
         event = PeriodicEvent(rule=self.rule,
-                               period=1,
-                               skip_early_close_days=True)
+                              period=1,
+                              skip_early_close_days=True)
         for dt in self.early_closes:
             market_mins = self.env.market_minutes_for_day(dt)
             for t in market_mins:
