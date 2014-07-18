@@ -17,7 +17,7 @@ from unittest import TestCase
 from zipline.utils.factory import (load_from_yahoo,
                                    load_bars_from_yahoo)
 from zipline.utils.event_management import(
-    EventManager,
+    PeriodicEvent,
     AfterOpen,
     BeforeClose,
     AtTime,
@@ -141,7 +141,7 @@ class TestEntryRules(TestCase):
                 assert results[dt] is False
 
 
-class TestEventManager(TestCase):
+class TestPeriodicEvent(TestCase):
 
     def setUp(self):
         self.env = TradingEnvironment()
@@ -155,33 +155,33 @@ class TestEventManager(TestCase):
         self.rule = lambda x: True
 
     def test_max_daily_hits(self):
-        manager = EventManager(rule=self.rule, max_daily_hits=3)
+        event = PeriodicEvent(rule=self.rule, max_daily_hits=3)
         days_hits = {dt: 0 for dt in self.trading_days}
         for dt in self.trading_days:
             for t in self.market_mins[dt]:
-                if manager.signal(t):
+                if event(t):
                     days_hits[dt] += 1
         for d in self.trading_days:
             assert days_hits[d] == 3
 
     def test_skip_early_close_days(self):
-        manager = EventManager(rule=self.rule,
+        event = PeriodicEvent(rule=self.rule,
                                period=1,
                                skip_early_close_days=True)
         for dt in self.early_closes:
             market_mins = self.env.market_minutes_for_day(dt)
             for t in market_mins:
-                assert manager.signal(t) is False
+                assert event(t) is False
 
     def test_period(self):
-        manager = EventManager(rule=self.rule, period=2)
+        event = PeriodicEvent(rule=self.rule, period=2)
         # Only even indexed days should pass
         valid_days = set(self.trading_days[::2])
         count = 0
         results = set()
         for dt in self.trading_days:
             for t in self.market_mins[dt]:
-                if manager.signal(t):
+                if event(t):
                     count += 1
                     results.add(dt)
         # Check max_daily_hits via count
