@@ -17,7 +17,6 @@ from collections import defaultdict
 
 from six import with_metaclass
 
-from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
 
 
@@ -73,14 +72,16 @@ class VWAPEventWindow(EventWindow):
     """
     def __init__(self, market_aware=True, window_length=None, delta=None):
         EventWindow.__init__(self, market_aware, window_length, delta)
-        self.fields = ('price', 'volume')
+        self._fields = ('price', 'volume')
         self.flux = 0.0
         self.totalvolume = 0.0
 
+    @property
+    def fields(self):
+        return self._fields
+
     # Subclass customization for adding new events.
     def handle_add(self, event):
-        # Sanity check on the event.
-        self.assert_required_fields(event)
         self.flux += event.volume * event.price
         self.totalvolume += event.volume
 
@@ -98,11 +99,3 @@ class VWAPEventWindow(EventWindow):
             return None
         else:
             return (self.flux / self.totalvolume)
-
-    # We need numerical price and volume to calculate a vwap.
-    def assert_required_fields(self, event):
-        for field in self.fields:
-            if field not in event:
-                raise WrongDataForTransform(
-                    transform="VWAPEventWindow",
-                    fields=self.fields)

@@ -17,13 +17,18 @@ import pytz
 import numpy as np
 
 from datetime import timedelta, datetime
+from itertools import chain
 from unittest import TestCase
 
+from nose_parameterized import parameterized
 from six.moves import range
 
 from zipline.utils.test_utils import setup_logger
 
-from zipline.protocol import Event
+from zipline.protocol import (
+    DATASOURCE_TYPE,
+    Event,
+)
 from zipline.sources import SpecificEquityTrades
 from zipline.transforms.utils import StatefulTransform, EventWindow
 from zipline.transforms import MovingVWAP
@@ -47,6 +52,11 @@ class NoopEventWindow(EventWindow):
 
         self.added = []
         self.removed = []
+        self._fields = []
+
+    @property
+    def fields(self):
+        return self._fields
 
     def handle_add(self, event):
         self.added.append(event)
@@ -134,20 +144,53 @@ class TestFinanceTransforms(TestCase):
             timedelta(days=1),
             self.sim_params
         )
-        self.source = SpecificEquityTrades(event_list=trade_history)
+        self.source = trade_history
+
+    def intersperse_custom_events(self, events):
+        """
+        Take a stream of events and return the same stream with a minimal event
+        of type CUSTOM following each trade event.  Used to test graceful
+        handling of CUSTOM events that are missing required transform fields.
+        """
+        return list(
+            chain.from_iterable(
+                (
+                    event,
+                    Event(
+                        initial_values={
+                            'dt': event.dt,
+                            'sid': event.sid,
+                            'source_id': "fake_custom_source",
+                            'type': DATASOURCE_TYPE.CUSTOM
+                        }
+                    )
+                )
+                for event in events
+            )
+        )
 
     def tearDown(self):
         self.log_handler.pop_application()
 
-    def test_vwap(self):
+    @parameterized.expand([
+        ('with_custom', True),
+        ('without_custom', False),
+    ])
+    def test_vwap(self, name, add_custom_events):
         vwap = MovingVWAP(
             market_aware=True,
             window_length=2
         )
+
+        if add_custom_events:
+            self.source = self.intersperse_custom_events(self.source)
+
         transformed = list(vwap.transform(self.source))
 
-        # Output values
-        tnfm_vals = [message[vwap.get_hash()] for message in transformed]
+        # Output values.  Unprocessed custom events will not have a field
+        # corresponding to the transform hash.
+        tnfm_vals = [message[vwap.get_hash()] for message in transformed
+                     if message.type != DATASOURCE_TYPE.CUSTOM]
         # "Hand calculated" values.
         expected = [
             (10.0 * 100) / 100.0,
@@ -161,12 +204,20 @@ class TestFinanceTransforms(TestCase):
         # Output should match the expected.
         self.assertEquals(tnfm_vals, expected)
 
-    def test_returns(self):
+    @parameterized.expand([
+        ('with_custom', True),
+        ('without_custom', False),
+    ])
+    def test_returns(self, name, add_custom_events):
         # Daily returns.
         returns = Returns(1)
 
+        if add_custom_events:
+            self.source = self.intersperse_custom_events(self.source)
+
         transformed = list(returns.transform(self.source))
-        tnfm_vals = [message[returns.get_hash()] for message in transformed]
+        tnfm_vals = [message[returns.get_hash()] for message in transformed
+                     if message.type != DATASOURCE_TYPE.CUSTOM]
 
         # No returns for the first event because we don't have a
         # previous close.
@@ -202,7 +253,11 @@ class TestFinanceTransforms(TestCase):
 
         self.assertEquals(tnfm_vals, expected)
 
-    def test_moving_average(self):
+    @parameterized.expand([
+        ('with_custom', True),
+        ('without_custom', False),
+    ])
+    def test_moving_average(self, name, add_custom_events):
 
         mavg = MovingAverage(
             market_aware=True,
@@ -210,12 +265,17 @@ class TestFinanceTransforms(TestCase):
             window_length=2
         )
 
+        if add_custom_events:
+            self.source = self.intersperse_custom_events(self.source)
+
         transformed = list(mavg.transform(self.source))
         # Output values.
         tnfm_prices = [message[mavg.get_hash()].price
-                       for message in transformed]
+                       for message in transformed
+                       if message.type != DATASOURCE_TYPE.CUSTOM]
         tnfm_volumes = [message[mavg.get_hash()].volume
-                        for message in transformed]
+                        for message in transformed
+                        if message.type != DATASOURCE_TYPE.CUSTOM]
 
         # "Hand-calculated" values
         expected_prices = [
@@ -238,7 +298,11 @@ class TestFinanceTransforms(TestCase):
         self.assertEquals(tnfm_prices, expected_prices)
         self.assertEquals(tnfm_volumes, expected_volumes)
 
-    def test_moving_stddev(self):
+    @parameterized.expand([
+        ('with_custom', True),
+        ('without_custom', False),
+    ])
+    def test_moving_stddev(self, name, add_custom_events):
         trade_history = factory.create_trade_history(
             133,
             [10.0, 15.0, 13.0, 12.0],
@@ -253,10 +317,13 @@ class TestFinanceTransforms(TestCase):
         )
 
         self.source = SpecificEquityTrades(event_list=trade_history)
+        if add_custom_events:
+            self.source = self.intersperse_custom_events(self.source)
 
         transformed = list(stddev.transform(self.source))
 
-        vals = [message[stddev.get_hash()] for message in transformed]
+        vals = [message[stddev.get_hash()] for message in transformed
+                if message.type != DATASOURCE_TYPE.CUSTOM]
 
         expected = [
             None,

@@ -59,7 +59,7 @@ class ReturnsFromPriorClose(object):
         self.window_length = window_length
 
     def update(self, event):
-        self.assert_required_fields(event)
+        self.check_required_fields(event)
         if self.last_event:
 
             # Day has changed since the last event we saw.  Treat
@@ -91,7 +91,7 @@ class ReturnsFromPriorClose(object):
         # the current event is now the last_event
         self.last_event = event
 
-    def assert_required_fields(self, event):
+    def check_required_fields(self, event):
         """
         We only allow events with a price field to be run through
         the returns transform.
@@ -99,4 +99,4 @@ class ReturnsFromPriorClose(object):
         if 'price' not in event:
             raise WrongDataForTransform(
                 transform="ReturnsEventWindow",
-                fields='price')
+                fields=['price'])
