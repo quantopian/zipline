@@ -110,6 +110,8 @@
     > To use it, call `add_history()` inside of `initialize()` and then receive a pandas `DataFrame` by calling
     > history() from inside `handle_data()`. Check out the [tutorial](http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb) and an [example](https://github.com/quantopian/zipline/blob/master/zipline/examples/dual_moving_average.py).
 
+* history() now supports `1m` window lengths [PR345](https://github.com/quantopian/zipline/pull/345)
+
 ## Bug Fixes (BUG)
 
 * Fix alignment of trading days and open and closes in trading environment.
@@ -125,7 +127,54 @@
 
 * Refactor sim_params [PR352](https://github.com/quantopian/zipline/pull/352)
 
+* Refactoring of history [PR340](https://github.com/quantopian/zipline/pull/340)
+
 ## Build (BLD)
+
+* The following dependencies have been updated (zipline might work with other versions too):
+```diff
+-pytz==2013.9
+-numpy==1.8.0
++pytz==2014.4
++numpy==1.8.1
+
++scipy==0.12.0
++patsy==0.2.1
++statsmodels==0.5.0
+-six==1.5.2
++six==1.6.1
+
+-Cython==0.20
+-TA-Lib==0.4.8
++Cython==0.20.1
++Cython==0.20.1
++--allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
+
+-requests==2.2.0
++requests==2.3.0
+
+-nose==1.3.0
++nose==1.3.3
+-xlrd==0.9.2
++xlrd==0.9.3
+
+-pep8==1.4.6
+-pyflakes==0.7.3
+-pip-tools==0.3.4
++pep8==1.5.7
++pyflakes==0.8.1
+
+-scipy==0.13.2
+-tornado==3.2
+-pyparsing==2.0.1
+-patsy==0.2.1
+-statsmodels==0.4.3
++tornado==3.2.1
++pyparsing==2.0.2
+
+q-Markdown==2.3.1
++Markdown==2.4.1
+```
 
 # Contributors
     38  Scott Sanderson
