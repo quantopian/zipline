@@ -18,7 +18,6 @@ from math import sqrt
 
 from six import with_metaclass
 
-from zipline.errors import WrongDataForTransform
 from zipline.transforms.utils import EventWindow, TransformMeta
 import zipline.utils.math_utils as zp_math
 
@@ -89,8 +88,11 @@ class MovingStandardDevWindow(EventWindow):
         self.sum = 0.0
         self.sum_sqr = 0.0
 
+    @property
+    def fields(self):
+        return ['price']
+
     def handle_add(self, event):
-        self.assert_required_fields(event)
         self.sum += event.price
         self.sum_sqr += event.price ** 2
 
@@ -113,13 +115,3 @@ class MovingStandardDevWindow(EventWindow):
                 return 0.0
             stddev = sqrt(s_squared)
         return stddev
-
-    def assert_required_fields(self, event):
-        """
-        We only allow events with a price field to be run through
-        the returns transform.
-        """
-        if 'price' not in event:
-            raise WrongDataForTransform(
-                transform="StdDevEventWindow",
-                fields='price')

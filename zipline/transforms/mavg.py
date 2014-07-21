@@ -18,7 +18,6 @@ from collections import defaultdict
 from six import string_types, with_metaclass
 
 from zipline.transforms.utils import EventWindow, TransformMeta
-from zipline.errors import WrongDataForTransform
 
 
 class MovingAverage(with_metaclass(TransformMeta)):
@@ -108,13 +107,16 @@ class MovingAverageEventWindow(EventWindow):
 
         # We maintain a dictionary of totals for each of our tracked
         # fields.
-        self.fields = fields
+        self._fields = fields
         self.totals = defaultdict(float)
+
+    @property
+    def fields(self):
+        return self._fields
 
     # Subclass customization for adding new events.
     def handle_add(self, event):
         # Sanity check on the event.
-        self.assert_required_fields(event)
         # Increment our running totals with data from the event.
         for field in self.fields:
             self.totals[field] += event[field]
@@ -148,13 +150,3 @@ class MovingAverageEventWindow(EventWindow):
         for field in self.fields:
             out.__dict__[field] = self.average(field)
         return out
-
-    def assert_required_fields(self, event):
-        """
-        We only allow events with all of our tracked fields.
-        """
-        for field in self.fields:
-            if field not in event:
-                raise WrongDataForTransform(
-                    transform="MovingAverageEventWindow",
-                    fields=self.fields)
