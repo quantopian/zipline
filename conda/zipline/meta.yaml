@@ -12,6 +12,7 @@ requirements:
     - python
     - setuptools
   run:
+    - python
     - pytz
     - requests
     - numpy
