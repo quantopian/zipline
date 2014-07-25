@@ -5,7 +5,7 @@ package:
 source:
   fn: zipline-0.7.0.tar.gz
   url: https://pypi.python.org/packages/source/z/zipline/zipline-0.7.0.tar.gz
-  md5: 5963340584c1bddd446c09bfbbedd38c
+  md5: 62d45c3c0d9a624e787b7e413937f7b4
 
 requirements:
   build:
