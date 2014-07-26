@@ -84,13 +84,14 @@ works very well.
 Dependencies
 ------------
 
-* Python (>= 2.7.2)
+* Python (2.7 or 3.3)
 * numpy (>= 1.6.0)
 * pandas (>= 0.9.0)
 * pytz
 * Logbook
 * requests
 * [python-dateutil](https://pypi.python.org/pypi/python-dateutil) (>= 2.1)
+* ta-lib
 
 
 Quickstart
@@ -126,11 +127,11 @@ def handle_data(context, data):
     long_mavg = history(300, '1d', 'price').mean()
 
     # Trading logic
-    if short_mavg > long_mavg:
+    if short_mavg[0] > long_mavg[0]:
         # order_target orders as many shares as needed to
         # achieve the desired number of shares.
         order_target(symbol('AAPL'), 100)
-    elif short_mavg < long_mavg:
+    elif short_mavg[0] < long_mavg[0]:
         order_target(symbol('AAPL'), 0)
 
     # Save values for later inspection
