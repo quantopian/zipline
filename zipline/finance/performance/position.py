@@ -152,6 +152,12 @@ class Position(object):
                 total_cost = prev_cost + txn_cost
                 self.cost_basis = total_cost / total_shares
 
+            # Update the last sale price if txn is
+            # best data we have so far
+            if self.last_sale_date is None or txn.dt > self.last_sale_date:
+                self.last_sale_price = txn.price
+                self.last_sale_date = txn.dt
+
         self.amount = total_shares
 
     def adjust_commission_cost_basis(self, commission):

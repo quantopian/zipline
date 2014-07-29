@@ -760,6 +760,14 @@ class TestPositionPerformance(unittest.TestCase):
         pp = perf.PerformancePeriod(1000.0)
 
         pp.execute_transaction(txn)
+
+        # This verifies that the last sale price is being correctly
+        # set in the positions. If this is not the case then returns can
+        # incorrectly show as sharply dipping if a transaction arrives
+        # before a trade. This is caused by returns being based on holding
+        # stocks with a last sale price of 0.
+        self.assertEqual(pp.positions[1].last_sale_price, 10.0)
+
         for trade in trades:
             pp.update_last_sale(trade)
 
@@ -1487,7 +1495,9 @@ class TestPerformanceTracker(unittest.TestCase):
             self.assertEquals(foo_event_2.dt,
                               msg_2['minute_perf']['period_close'])
 
-            # Ensure that a Sharpe value for cumulative metrics is being
-            # created.
-            self.assertIsNotNone(msg_1['cumulative_risk_metrics']['sharpe'])
+            # In this test event1 transactions arrive on the first bar.
+            # This leads to no returns as the price is constant.
+            # Sharpe ratio cannot be computed and is None.
+            # In the second bar we can start establishing a sharpe ratio.
+            self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
             self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])

@@ -303,6 +303,7 @@ class PerformancePeriod(object):
         position.update(txn)
         self.ensure_position_index(txn.sid)
         self._position_amounts[txn.sid] = position.amount
+        self._position_last_sale_prices[txn.sid] = position.last_sale_price
 
         self.period_cash_flow -= txn.price * txn.amount
 
