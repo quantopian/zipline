@@ -223,7 +223,6 @@ class AlgorithmSimulator(object):
                 self.process_event(event)
 
         if benchmark_event_occurred:
-            self.algo.updated_portfolio()
             return self.get_message(dt)
         else:
             return None
@@ -242,6 +241,11 @@ class AlgorithmSimulator(object):
         """
         Get a perf message for the given datetime.
         """
+        # Ensure that updated_portfolio has been called at least once for this
+        # dt before we emit a perf message.  This is a no-op if
+        # updated_portfolio has already been called this dt.
+        self.algo.updated_portfolio()
+
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
