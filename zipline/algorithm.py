@@ -819,27 +819,6 @@ class TradingAlgorithm(object):
 
         self.blotter.cancel(order_id)
 
-    def raw_positions(self):
-        """
-        Returns the current portfolio for the algorithm.
-
-        N.B. this is not done as a property, so that the function can be
-        passed and called from within a source.
-        """
-        # Return the 'internal' positions object, as in the one that is
-        # not passed to the algo, and thus should not have tainted keys.
-        return self.perf_tracker.cumulative_performance.positions
-
-    def raw_orders(self):
-        """
-        Returns the current open orders from the blotter.
-
-        N.B. this is not a property, so that the function can be passed
-        and called back from within a source.
-        """
-
-        return self.blotter.open_orders
-
     @api_method
     def add_history(self, bar_count, frequency, field,
                     ffill=True):
