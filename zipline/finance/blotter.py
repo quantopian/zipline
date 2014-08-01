@@ -43,6 +43,7 @@ ORDER_STATUS = Enum(
     'HELD',
 )
 
+
 class Blotter(object):
 
     def __init__(self):
@@ -87,7 +88,8 @@ class Blotter(object):
         Market order:    order(sid, amount)
         Limit order:     order(sid, amount, style=LimitOrder(limit_price))
         Stop order:      order(sid, amount, style=StopOrder(stop_price))
-        StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price, stop_price))
+        StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
+                               stop_price))
         """
         if amount == 0:
             # Don't bother placing orders for 0 shares.
@@ -114,30 +116,46 @@ class Blotter(object):
 
         return order.id
 
-    def cancel(self, order_id, rejected=False, reason=False):
+    def cancel(self, order_id):
         if order_id not in self.orders:
             return
 
         cur_order = self.orders[order_id]
         # if the order has already been rejected, do not update its status to
         # cancelled
-        if cur_order.broker_status == ORDER_STATUS.REJECTED:
+        if cur_order._status == ORDER_STATUS.REJECTED:
             return
 
-        if cur_order.open or rejected:
+        if cur_order.open:
             order_list = self.open_orders[cur_order.sid]
             if cur_order in order_list:
                 order_list.remove(cur_order)
 
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
-            cur_order.cancel(rejected)
+            cur_order.cancel()
             cur_order.dt = self.current_dt
-            if reason:
-                cur_order.reason = reason
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
+
+    def reject(self, order_id, reason=''):
+        if order_id not in self.orders:
+            return
+
+        cur_order = self.orders[order_id]
+
+        order_list = self.open_orders[cur_order.sid]
+        if cur_order in order_list:
+            order_list.remove(cur_order)
+
+        if cur_order in self.new_orders:
+            self.new_orders.remove(cur_order)
+        cur_order.reject(reason=reason)
+        cur_order.dt = self.current_dt
+        # we want this order's new status to be relayed out
+        # along with newly placed orders.
+        self.new_orders.append(cur_order)
 
     def hold(self, order_id, reason):
         if order_id not in self.orders:
@@ -147,9 +165,8 @@ class Blotter(object):
         if cur_order.open:
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
-            cur_order.hold()
+            cur_order.hold(reason=reason)
             cur_order.dt = self.current_dt
-            cur_order.reason = reason
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
@@ -231,13 +248,13 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = id or self.make_id()
         self.dt = dt
-        self.reason = ''
+        self.message = None
         self.created = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
         self.commission = commission
-        self.broker_status = ORDER_STATUS.OPEN
+        self._status = ORDER_STATUS.OPEN
         self.stop = stop
         self.limit = limit
         self.stop_reached = False
@@ -298,23 +315,21 @@ class Order(object):
 
     @property
     def status(self):
-        if self.broker_status in [ORDER_STATUS.REJECTED,
-                                 ORDER_STATUS.CANCELLED]:
-            return ORDER_STATUS.CANCELLED
-        elif not self.open_amount:
-            self.broker_status = ORDER_STATUS.FILLED
+        if not self.open_amount:
             return ORDER_STATUS.FILLED
         else:
-            return ORDER_STATUS.OPEN
+            return self._status
 
-    def cancel(self, rejected=False):
-        if rejected:
-            self.broker_status = ORDER_STATUS.REJECTED
-        else:
-            self.broker_status = ORDER_STATUS.CANCELLED
+    def cancel(self):
+        self._status = ORDER_STATUS.CANCELLED
 
-    def hold(self):
-        self.broker_status = ORDER_STATUS.HELD
+    def reject(self, reason=''):
+        self._status = ORDER_STATUS.REJECTED
+        self.reason = reason
+
+    def hold(self, reason=''):
+        self._status = ORDER_STATUS.HELD
+        self.reason = reason
 
     @property
     def open(self):
