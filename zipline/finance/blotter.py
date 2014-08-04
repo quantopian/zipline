@@ -121,10 +121,6 @@ class Blotter(object):
             return
 
         cur_order = self.orders[order_id]
-        # if the order has already been rejected, do not update its status to
-        # cancelled
-        if cur_order._status == ORDER_STATUS.REJECTED:
-            return
 
         if cur_order.open:
             order_list = self.open_orders[cur_order.sid]
@@ -259,7 +255,7 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = id or self.make_id()
         self.dt = dt
-        self.message = None
+        self.reason = None
         self.created = dt
         self.sid = sid
         self.amount = amount
@@ -278,7 +274,7 @@ class Order(object):
 
     def to_dict(self):
         py = copy(self.__dict__)
-        for field in ['type', 'direction']:
+        for field in ['type', 'direction', '_status']:
             del py[field]
         py['status'] = self.status
         return py
@@ -333,15 +329,19 @@ class Order(object):
         else:
             return self._status
 
+    @status.setter
+    def status(self, status):
+        self._status = status
+
     def cancel(self):
-        self._status = ORDER_STATUS.CANCELLED
+        self.status = ORDER_STATUS.CANCELLED
 
     def reject(self, reason=''):
-        self._status = ORDER_STATUS.REJECTED
+        self.status = ORDER_STATUS.REJECTED
         self.reason = reason
 
     def hold(self, reason=''):
-        self._status = ORDER_STATUS.HELD
+        self.status = ORDER_STATUS.HELD
         self.reason = reason
 
     @property
