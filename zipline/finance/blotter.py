@@ -140,6 +140,12 @@ class Blotter(object):
             self.new_orders.append(cur_order)
 
     def reject(self, order_id, reason=''):
+        """
+        Mark the given order as 'rejected', which is functionally similar to
+        cancelled. The distinction is that rejections are involuntary (and
+        usually include a message from a broker indicating why the order was
+        rejected) while cancels are typically user-driven.
+        """
         if order_id not in self.orders:
             return
 
@@ -157,7 +163,12 @@ class Blotter(object):
         # along with newly placed orders.
         self.new_orders.append(cur_order)
 
-    def hold(self, order_id, reason):
+    def hold(self, order_id, reason=''):
+        """
+        Mark the order with order_id as 'held'. Held is functionally similar
+        to 'open'. When a fill (full or partial) arrives, the status
+        will automatically change back to open/filled as necessary.
+        """
         if order_id not in self.orders:
             return
 
@@ -317,6 +328,8 @@ class Order(object):
     def status(self):
         if not self.open_amount:
             return ORDER_STATUS.FILLED
+        elif self._status == ORDER_STATUS.HELD and self.filled:
+            return ORDER_STATUS.OPEN
         else:
             return self._status
 
