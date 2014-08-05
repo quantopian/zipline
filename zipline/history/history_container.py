@@ -14,6 +14,7 @@
 # limitations under the License.
 from itertools import groupby
 
+import logbook
 import numpy as np
 import pandas as pd
 
@@ -24,6 +25,8 @@ from . history import (
 )
 
 from zipline.utils.data import RollingPanel
+
+logger = logbook.Logger('History Container')
 
 
 # The closing price is referred to by multiple names,
@@ -469,16 +472,27 @@ class HistoryContainer(object):
         if digest_frame is not None:
             return_frame.ix[:-1] = digest_frame.ix[:]
 
-        if field == 'volume':
-            return_frame.ix[algo_dt] = buffer_frame.fillna(0).sum()
-        elif field == 'high':
-            return_frame.ix[algo_dt] = buffer_frame.max()
-        elif field == 'low':
-            return_frame.ix[algo_dt] = buffer_frame.min()
-        elif field == 'open_price':
-            return_frame.ix[algo_dt] = buffer_frame.iloc[0]
-        else:
-            return_frame.ix[algo_dt] = buffer_frame.loc[algo_dt]
+        try:
+            if field == 'volume':
+                return_frame.ix[algo_dt] = buffer_frame.fillna(0).sum()
+            elif field == 'high':
+                return_frame.ix[algo_dt] = buffer_frame.max()
+            elif field == 'low':
+                return_frame.ix[algo_dt] = buffer_frame.min()
+            elif field == 'open_price':
+                return_frame.ix[algo_dt] = buffer_frame.iloc[0]
+            else:
+                return_frame.ix[algo_dt] = buffer_frame.loc[algo_dt]
+        except ValueError as err:
+            # Log the field and algo datetime when history updates fail, to get
+            # more information about under what conditions a ValueError is
+            # raised when building the return frame..
+            logger.error(
+                "Error updating history for field={0} at algo_dt={1}".format(
+                    field, algo_dt))
+            # Currently, re-raise the the error, but consider letting this
+            # condition be a pass.
+            raise err
 
         # Returning a copy of the DataFrame so that we don't crash if the user
         # adds columns to the frame.  Ideally we would just drop any added
