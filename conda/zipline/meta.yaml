@@ -19,7 +19,6 @@ requirements:
     - pandas
     - scipy
     - matplotlib
-    - ta-lib
     - logbook
 
 test:

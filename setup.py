@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,5 +71,8 @@ setup(
         'pandas',
         'six'
     ],
+    extras_require = {
+        'talib':  ["talib"],
+    },
     url="https://github.com/quantopian/zipline"
 )
