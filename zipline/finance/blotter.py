@@ -38,7 +38,9 @@ from zipline.utils.protocol_utils import Enum
 ORDER_STATUS = Enum(
     'OPEN',
     'FILLED',
-    'CANCELLED'
+    'CANCELLED',
+    'REJECTED',
+    'HELD',
 )
 
 
@@ -84,9 +86,10 @@ class Blotter(object):
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
         Market order:    order(sid, amount)
-        Limit order:     order(sid, amount, LimitOrder(price))
-        Stop order:      order(sid, amount, StopOrder(price))
-        StopLimit order: order(sid, amount, StopLimitOrder(price))
+        Limit order:     order(sid, amount, style=LimitOrder(limit_price))
+        Stop order:      order(sid, amount, style=StopOrder(stop_price))
+        StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
+                               stop_price))
         """
         if amount == 0:
             # Don't bother placing orders for 0 shares.
@@ -118,6 +121,7 @@ class Blotter(object):
             return
 
         cur_order = self.orders[order_id]
+
         if cur_order.open:
             order_list = self.open_orders[cur_order.sid]
             if cur_order in order_list:
@@ -126,6 +130,49 @@ class Blotter(object):
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
             cur_order.cancel()
+            cur_order.dt = self.current_dt
+            # we want this order's new status to be relayed out
+            # along with newly placed orders.
+            self.new_orders.append(cur_order)
+
+    def reject(self, order_id, reason=''):
+        """
+        Mark the given order as 'rejected', which is functionally similar to
+        cancelled. The distinction is that rejections are involuntary (and
+        usually include a message from a broker indicating why the order was
+        rejected) while cancels are typically user-driven.
+        """
+        if order_id not in self.orders:
+            return
+
+        cur_order = self.orders[order_id]
+
+        order_list = self.open_orders[cur_order.sid]
+        if cur_order in order_list:
+            order_list.remove(cur_order)
+
+        if cur_order in self.new_orders:
+            self.new_orders.remove(cur_order)
+        cur_order.reject(reason=reason)
+        cur_order.dt = self.current_dt
+        # we want this order's new status to be relayed out
+        # along with newly placed orders.
+        self.new_orders.append(cur_order)
+
+    def hold(self, order_id, reason=''):
+        """
+        Mark the order with order_id as 'held'. Held is functionally similar
+        to 'open'. When a fill (full or partial) arrives, the status
+        will automatically change back to open/filled as necessary.
+        """
+        if order_id not in self.orders:
+            return
+
+        cur_order = self.orders[order_id]
+        if cur_order.open:
+            if cur_order in self.new_orders:
+                self.new_orders.remove(cur_order)
+            cur_order.hold(reason=reason)
             cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
@@ -208,12 +255,13 @@ class Order(object):
         # get a string representation of the uuid.
         self.id = id or self.make_id()
         self.dt = dt
+        self.reason = None
         self.created = dt
         self.sid = sid
         self.amount = amount
         self.filled = filled
         self.commission = commission
-        self._cancelled = False
+        self._status = ORDER_STATUS.OPEN
         self.stop = stop
         self.limit = limit
         self.stop_reached = False
@@ -226,7 +274,7 @@ class Order(object):
 
     def to_dict(self):
         py = copy(self.__dict__)
-        for field in ['type', 'direction', '_cancelled']:
+        for field in ['type', 'direction', '_status']:
             del py[field]
         py['status'] = self.status
         return py
@@ -274,18 +322,31 @@ class Order(object):
 
     @property
     def status(self):
-        if self._cancelled:
-            return ORDER_STATUS.CANCELLED
+        if not self.open_amount:
+            return ORDER_STATUS.FILLED
+        elif self._status == ORDER_STATUS.HELD and self.filled:
+            return ORDER_STATUS.OPEN
+        else:
+            return self._status
 
-        return ORDER_STATUS.FILLED \
-            if not self.open_amount else ORDER_STATUS.OPEN
+    @status.setter
+    def status(self, status):
+        self._status = status
 
     def cancel(self):
-        self._cancelled = True
+        self.status = ORDER_STATUS.CANCELLED
+
+    def reject(self, reason=''):
+        self.status = ORDER_STATUS.REJECTED
+        self.reason = reason
+
+    def hold(self, reason=''):
+        self.status = ORDER_STATUS.HELD
+        self.reason = reason
 
     @property
     def open(self):
-        return self.status == ORDER_STATUS.OPEN
+        return self.status in [ORDER_STATUS.OPEN, ORDER_STATUS.HELD]
 
     @property
     def triggered(self):
