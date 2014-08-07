@@ -939,6 +939,16 @@ def handle_data(context, data):
     record(incr=context.incr)
 """
 
+api_get_environment_algo = """
+from zipline.api import get_environment, order, symbol
+
+
+def initialize(context):
+    context.environment = get_environment()
+
+handle_data = lambda context, data: order(symbol(0), 1)
+"""
+
 api_symbol_algo = """
 from zipline.api import (order,
                          symbol)

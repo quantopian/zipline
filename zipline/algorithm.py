@@ -126,6 +126,8 @@ class TradingAlgorithm(object):
                How much capital to start with.
             instant_fill : bool <default: False>
                Whether to fill orders immediately or on next bar.
+            environment : str <default: 'zipline'>
+               The environment that this algorithm is running in.
         """
         self.datetime = None
 
@@ -138,6 +140,8 @@ class TradingAlgorithm(object):
 
         self._recorded_vars = {}
         self.namespace = kwargs.get('namespace', {})
+
+        self._environment = kwargs.pop('environment', 'zipline')
 
         self.logger = None
 
@@ -469,6 +473,10 @@ class TradingAlgorithm(object):
         self.registered_transforms[tag] = {'class': transform_class,
                                            'args': args,
                                            'kwargs': kwargs}
+
+    @api_method
+    def get_environment(self):
+        return self._environment
 
     @api_method
     def record(self, *args, **kwargs):
