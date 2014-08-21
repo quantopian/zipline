@@ -53,6 +53,7 @@ from zipline.test_algorithms import (
     SetMaxOrderCountAlgorithm,
     SetMaxOrderSizeAlgorithm,
     api_algo,
+    api_get_environment_algo,
     api_symbol_algo,
     call_all_order_methods,
     call_order_in_init,
@@ -406,6 +407,13 @@ class TestAlgoScript(TestCase):
     def test_api_calls_string(self):
         algo = TradingAlgorithm(script=api_algo)
         algo.run(self.df)
+
+    def test_api_get_environment(self):
+        environment = 'zipline'
+        algo = TradingAlgorithm(script=api_get_environment_algo,
+                                environment=environment)
+        algo.run(self.df)
+        self.assertEqual(algo.environment, environment)
 
     def test_api_symbol(self):
         algo = TradingAlgorithm(script=api_symbol_algo)
