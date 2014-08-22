@@ -223,7 +223,7 @@ class AlgorithmSimulator(object):
             elif event.type == DATASOURCE_TYPE.SPLIT:
                 self.algo.blotter.process_split(event)
 
-            if not self.algo.instant_fill:
+            if not instant_fill:
                 self.process_event(event)
             else:
                 events_to_be_processed.append(event)
