@@ -76,7 +76,7 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, style, order_id=None):
+    def order(self, sid, amount, style, tif_model, order_id=None):
 
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
@@ -107,7 +107,8 @@ class Blotter(object):
             amount=amount,
             stop=style.get_stop_price(is_buy),
             limit=style.get_limit_price(is_buy),
-            id=order_id
+            id=order_id,
+            tif_model=tif_model,
         )
 
         self.open_orders[order.sid].append(order)
@@ -201,9 +202,13 @@ class Blotter(object):
         orders = self.open_orders[trade_event.sid]
         orders = sorted(orders, key=lambda o: o.dt)
         # Only use orders for the current day or before
-        current_orders = filter(
-            lambda o: o.dt <= trade_event.dt,
-            orders)
+        # that meet their time in force constraints
+        current_orders = filter(lambda o:
+            o.tif_model.valid_date_tuple(trade_event.dt)[0] and
+            o.tif_model.valid_date_tuple(trade_event.dt)[1] and
+            o.dt <= trade_event.dt, # probably redundant
+            orders
+        )
 
         for txn, order in self.process_transactions(trade_event,
                                                     current_orders):
@@ -243,7 +248,7 @@ class Blotter(object):
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
-                 commission=None, id=None):
+                 commission=None, tif_model=None, id=None):
         """
         @dt - datetime.datetime that the order was placed
         @sid - stock sid of the order
@@ -267,6 +272,7 @@ class Order(object):
         self.stop_reached = False
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
+        self.tif_model = tif_model
         self.type = zp.DATASOURCE_TYPE.ORDER
 
     def make_id(self):
@@ -289,6 +295,10 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
+        if self.tif_model.get_last_valid_dt() < event.dt:
+            # TODO: This doesn't get triggered. Orders should be cancelled.
+            self.cancel()
+            return
         stop_reached, limit_reached, sl_stop_reached = \
             check_order_triggers(self, event)
         if (stop_reached, limit_reached) \

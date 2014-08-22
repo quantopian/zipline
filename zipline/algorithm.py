@@ -50,6 +50,10 @@ from zipline.finance.execution import (
     MarketOrder,
     StopLimitOrder,
     StopOrder,
+    TimeInForceModel,
+    DayOrder,
+    GoodTillCancelled,
+    ImmediateOrCancel,
 )
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.slippage import (
@@ -507,7 +511,8 @@ class TradingAlgorithm(object):
     def order(self, sid, amount,
               limit_price=None,
               stop_price=None,
-              style=None):
+              style=None,
+              time_in_force=None):
         """
         Place an order using the specified parameters.
         """
@@ -532,21 +537,24 @@ class TradingAlgorithm(object):
                                    amount,
                                    limit_price,
                                    stop_price,
-                                   style)
+                                   style,
+                                   time_in_force)
 
         # Convert deprecated limit_price and stop_price parameters to use
         # ExecutionStyle objects.
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(sid, amount, style)
+        tif_model = self._get_tif_model_for_blotter(time_in_force)
+        return self.blotter.order(sid, amount, style, tif_model)
 
     def validate_order_params(self,
                               sid,
                               amount,
                               limit_price,
                               stop_price,
-                              style):
+                              style,
+                              time_in_force):
         """
         Helper method for validating parameters to the order API function.
 
@@ -576,6 +584,13 @@ class TradingAlgorithm(object):
                              self.get_datetime(),
                              self.trading_client.current_data)
 
+        tif_bool = (isinstance(time_in_force, TimeInForceModel) or
+                    time_in_force in ['DAY', 'GTC', 'IOC', None])
+        if not tif_bool:
+            raise UnsupportedOrderParameters(
+                msg="Unsupported time-in-force model passed"
+            )
+
     @staticmethod
     def __convert_order_params_for_blotter(limit_price, stop_price, style):
         """
@@ -597,6 +612,15 @@ class TradingAlgorithm(object):
             return StopOrder(stop_price)
         else:
             return MarketOrder()
+
+    def _get_tif_model_for_blotter(self, time_in_force):
+        if isinstance(time_in_force, TimeInForceModel):
+            return time_in_force
+        if time_in_force == 'GTC':
+            return GoodTillCancelled()
+        if time_in_force == 'IOC':
+            return ImmediateOrCancel(self.get_datetime())
+        return DayOrder(self.get_datetime())
 
     @api_method
     def order_value(self, sid, value,
