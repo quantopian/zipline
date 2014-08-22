@@ -31,6 +31,10 @@ from zipline.utils.test_utils import(
     teardown_logger,
 )
 
+from zipline.errors import(
+    BadOrderParameters
+)
+
 
 class ExecutionStyleTestCase(TestCase):
     """
@@ -58,7 +62,7 @@ class ExecutionStyleTestCase(TestCase):
         for delta in range(1, 10)
     ]
 
-    INVALID_PRICES = [(-1,), (-1.0,), (0 - epsilon,)]
+    INVALID_PRICES = [(-1,), (-1.0,), (0 - epsilon,), (float('nan'),)]
 
     def setUp(self):
         setup_logger(self)
@@ -72,14 +76,14 @@ class ExecutionStyleTestCase(TestCase):
         Test that execution styles throw appropriate exceptions upon receipt
         of an invalid price field.
         """
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BadOrderParameters):
             LimitOrder(price)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BadOrderParameters):
             StopOrder(price)
 
         for lmt, stp in [(price, 1), (1, price), (price, price)]:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(BadOrderParameters):
                 StopLimitOrder(lmt, stp)
 
     def test_market_order_prices(self):

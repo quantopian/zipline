@@ -21,6 +21,10 @@ from six import with_metaclass
 
 import zipline.utils.math_utils as zp_math
 
+from math import isnan
+
+from zipline.errors import BadOrderParameters
+
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
     """
@@ -77,8 +81,17 @@ class LimitOrder(ExecutionStyle):
         """
         Store the given price.
         """
+
+        if isnan(limit_price):
+            raise BadOrderParameters(
+                msg="""Attempted to place an order with a limit price
+                of NaN."""
+            )
+
         if limit_price < 0:
-            raise ValueError("Can't place a limit with a negative price.")
+            raise BadOrderParameters(
+                msg="Can't place a limit with a negative price."
+            )
         self.limit_price = limit_price
         self._exchange = exchange
 
@@ -98,9 +111,16 @@ class StopOrder(ExecutionStyle):
         """
         Store the given price.
         """
+
+        if isnan(stop_price):
+            raise BadOrderParameters(
+                msg="""Attempted to place an order with a stop price
+                of NaN."""
+            )
+
         if stop_price < 0:
-            raise ValueError(
-                "Can't place a stop order with a negative price."
+            raise BadOrderParameters(
+                msg="Can't place a stop order with a negative price."
             )
         self.stop_price = stop_price
         self._exchange = exchange
@@ -121,13 +141,25 @@ class StopLimitOrder(ExecutionStyle):
         """
         Store the given prices
         """
+
+        if isnan(limit_price):
+            raise BadOrderParameters(
+                msg="""Attempted to place an order with a limit price
+                of NaN."""
+            )
+        if isnan(stop_price):
+            raise BadOrderParameters(
+                msg="""Attempted to place an order with a stop price
+                of NaN."""
+            )
+
         if limit_price < 0:
-            raise ValueError(
-                "Can't place a limit with a negative price."
+            raise BadOrderParameters(
+                msg="Can't place a limit with a negative price."
             )
         if stop_price < 0:
-            raise ValueError(
-                "Can't place a stop order with a negative price."
+            raise BadOrderParameters(
+                msg="Can't place a stop order with a negative price."
             )
 
         self.limit_price = limit_price
