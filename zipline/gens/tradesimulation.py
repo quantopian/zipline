@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from logbook import Logger, Processor
+from pandas.tslib import normalize_date
 
 from zipline.finance import trading
 from zipline.protocol import (
@@ -51,10 +52,7 @@ class AlgorithmSimulator(object):
         # Algo Setup
         # ==============
         self.algo = algo
-        self.algo_start = self.sim_params.first_open
-        self.algo_start = self.algo_start.replace(hour=0, minute=0,
-                                                  second=0,
-                                                  microsecond=0)
+        self.algo_start = normalize_date(self.sim_params.first_open)
 
         # ==============
         # Snapshot Setup
@@ -103,10 +101,14 @@ class AlgorithmSimulator(object):
         # inject the current algo
         # snapshot time to any log record generated.
         with self.processor.threadbound():
+            data_frequency = self.sim_params.data_frequency
+
+            self._call_before_trading_start(mkt_open)
+
             for date, snapshot in stream_in:
 
                 self.simulation_dt = date
-                self.algo.on_dt_changed(date)
+                self.on_dt_changed(date)
 
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
@@ -116,8 +118,8 @@ class AlgorithmSimulator(object):
                         if event.type == DATASOURCE_TYPE.SPLIT:
                             self.algo.blotter.process_split(event)
 
-                        if event.type in (DATASOURCE_TYPE.TRADE,
-                                          DATASOURCE_TYPE.CUSTOM):
+                        elif event.type in (DATASOURCE_TYPE.TRADE,
+                                            DATASOURCE_TYPE.CUSTOM):
                             self.update_universe(event)
                         self.algo.perf_tracker.process_event(event)
                 else:
@@ -133,8 +135,8 @@ class AlgorithmSimulator(object):
 
                     # When emitting minutely, we re-iterate the day as a
                     # packet with the entire days performance rolled up.
-                    if self.algo.perf_tracker.emission_rate == 'minute':
-                        if date == mkt_close:
+                    if date == mkt_close:
+                        if self.algo.perf_tracker.emission_rate == 'minute':
                             daily_rollup = self.algo.perf_tracker.to_dict(
                                 emission_type='daily'
                             )
@@ -143,20 +145,36 @@ class AlgorithmSimulator(object):
                             yield daily_rollup
                             tp = self.algo.perf_tracker.todays_performance
                             tp.rollover()
-                            if mkt_close <= self.algo.perf_tracker.last_close:
-                                try:
-                                    mkt_open, mkt_close = \
-                                        trading.environment \
-                                               .next_open_and_close(mkt_close)
 
-                                except trading.NoFurtherDataError:
-                                    # If at the end of backtest history,
-                                    # skip advancing market close.
-                                    pass
+                        if mkt_close <= self.algo.perf_tracker.last_close:
+                            before_last_close = \
+                                mkt_close < self.algo.perf_tracker.last_close
+                            try:
+                                mkt_open, mkt_close = \
+                                    trading.environment \
+                                           .next_open_and_close(mkt_close)
+
+                            except trading.NoFurtherDataError:
+                                # If at the end of backtest history,
+                                # skip advancing market close.
+                                pass
+                            if (self.algo.perf_tracker.emission_rate
+                                    == 'minute'):
                                 self.algo.perf_tracker\
                                          .handle_intraday_market_close(
                                              mkt_open,
                                              mkt_close)
+
+                            if before_last_close:
+                                self._call_before_trading_start(mkt_open)
+
+                    elif data_frequency == 'daily':
+                        next_day = trading.environment.next_trading_day(date)
+
+                        if (next_day is not None
+                                and next_day
+                                < self.algo.perf_tracker.last_close):
+                            self._call_before_trading_start(next_day)
 
                     self.algo.portfolio_needs_update = True
 
@@ -236,6 +254,16 @@ class AlgorithmSimulator(object):
         orders = self.algo.blotter.new_orders
         self.algo.blotter.new_orders = []
         return orders
+
+    def _call_before_trading_start(self, dt):
+        dt = normalize_date(dt)
+        self.simulation_dt = dt
+        self.on_dt_changed(dt)
+        self.algo.before_trading_start()
+
+    def on_dt_changed(self, dt):
+        if self.algo.datetime != dt:
+            self.algo.on_dt_changed(dt)
 
     def get_message(self, dt):
         """

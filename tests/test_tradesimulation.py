@@ -12,10 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pandas as pd
 
+from nose_parameterized import parameterized
+from six.moves import range
 from unittest import TestCase
+from zipline import TradingAlgorithm
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
+
+
+class BeforeTradingAlgorithm(TradingAlgorithm):
+    def __init__(self, *args, **kwargs):
+        self.before_trading_at = []
+        super(BeforeTradingAlgorithm, self).__init__(*args, **kwargs)
+
+    def before_trading_start(self):
+        self.before_trading_at.append(self.datetime)
+
+
+FREQUENCIES = {'daily': 0, 'minute': 1}  # daily is less frequent than minute
 
 
 class TestTradeSimulation(TestCase):
@@ -27,3 +43,24 @@ class TestTradeSimulation(TestCase):
         algo = NoopAlgorithm(sim_params=params)
         algo.run(source=[])
         self.assertEqual(algo.perf_tracker.day_count, 1.0)
+
+    @parameterized.expand([('%s_%s_%s' % (num_days, freq, emission_rate),
+                            num_days, freq, emission_rate)
+                           for freq in FREQUENCIES
+                           for emission_rate in FREQUENCIES
+                           for num_days in range(1, 4)
+                           if FREQUENCIES[emission_rate] <= FREQUENCIES[freq]])
+    def test_before_trading_start(self, test_name, num_days, freq,
+                                  emission_rate):
+        params = factory.create_simulation_parameters(
+            num_days=num_days, data_frequency=freq,
+            emission_rate=emission_rate)
+
+        algo = BeforeTradingAlgorithm(sim_params=params)
+        algo.run(source=[])
+
+        self.assertEqual(algo.perf_tracker.day_count, num_days)
+        self.assertTrue(params.trading_days.equals(
+            pd.DatetimeIndex(algo.before_trading_at)),
+            "Expected %s but was %s."
+            % (params.trading_days, algo.before_trading_at))

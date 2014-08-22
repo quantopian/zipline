@@ -178,25 +178,30 @@ class TradingAlgorithm(object):
         self.algoscript = kwargs.pop('script', None)
 
         self._initialize = None
+        self._before_trading_start = None
         self._analyze = None
 
         if self.algoscript is not None:
             exec_(self.algoscript, self.namespace)
-            self._initialize = self.namespace.get('initialize', None)
+            self._initialize = self.namespace.get('initialize')
             if 'handle_data' not in self.namespace:
                 raise ValueError('You must define a handle_data function.')
             else:
                 self._handle_data = self.namespace['handle_data']
 
+            self._before_trading_start = \
+                self.namespace.get('before_trading_start')
             # Optional analyze function, gets called after run
-            self._analyze = self.namespace.get('analyze', None)
+            self._analyze = self.namespace.get('analyze')
 
-        elif kwargs.get('initialize', False) and kwargs.get('handle_data'):
+        elif kwargs.get('initialize') and kwargs.get('handle_data'):
             if self.algoscript is not None:
                 raise ValueError('You can not set script and \
                 initialize/handle_data.')
             self._initialize = kwargs.pop('initialize')
             self._handle_data = kwargs.pop('handle_data')
+            self._before_trading_start = kwargs.pop('before_trading_start',
+                                                    None)
 
         # If method not defined, NOOP
         if self._initialize is None:
@@ -222,6 +227,12 @@ class TradingAlgorithm(object):
         """
         with ZiplineAPI(self):
             self._initialize(self)
+
+    def before_trading_start(self):
+        if self._before_trading_start is None:
+            return
+
+        self._before_trading_start(self)
 
     def handle_data(self, data):
         if self.history_container:
