@@ -62,7 +62,19 @@ class ExecutionStyleTestCase(TestCase):
         for delta in range(1, 10)
     ]
 
-    INVALID_PRICES = [(-1,), (-1.0,), (0 - epsilon,), (float('nan'),)]
+    class ArbitraryObject():
+        def __str__(self):
+            return """This should yield a bad order error when
+            passed as a stop or limit price."""
+
+    INVALID_PRICES = [
+        (-1,),
+        (-1.0,),
+        (0 - epsilon,),
+        (float('nan'),),
+        (float('inf'),),
+        (ArbitraryObject(),),
+    ]
 
     def setUp(self):
         setup_logger(self)

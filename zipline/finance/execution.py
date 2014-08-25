@@ -21,7 +21,7 @@ from six import with_metaclass
 
 import zipline.utils.math_utils as zp_math
 
-from math import isnan
+from numpy import isfinite
 
 from zipline.errors import BadOrderParameters
 
@@ -82,16 +82,8 @@ class LimitOrder(ExecutionStyle):
         Store the given price.
         """
 
-        if isnan(limit_price):
-            raise BadOrderParameters(
-                msg="""Attempted to place an order with a limit price
-                of NaN."""
-            )
+        check_stoplimit_prices(limit_price, 'limit')
 
-        if limit_price < 0:
-            raise BadOrderParameters(
-                msg="Can't place a limit with a negative price."
-            )
         self.limit_price = limit_price
         self._exchange = exchange
 
@@ -112,16 +104,8 @@ class StopOrder(ExecutionStyle):
         Store the given price.
         """
 
-        if isnan(stop_price):
-            raise BadOrderParameters(
-                msg="""Attempted to place an order with a stop price
-                of NaN."""
-            )
+        check_stoplimit_prices(stop_price, 'stop')
 
-        if stop_price < 0:
-            raise BadOrderParameters(
-                msg="Can't place a stop order with a negative price."
-            )
         self.stop_price = stop_price
         self._exchange = exchange
 
@@ -142,25 +126,9 @@ class StopLimitOrder(ExecutionStyle):
         Store the given prices
         """
 
-        if isnan(limit_price):
-            raise BadOrderParameters(
-                msg="""Attempted to place an order with a limit price
-                of NaN."""
-            )
-        if isnan(stop_price):
-            raise BadOrderParameters(
-                msg="""Attempted to place an order with a stop price
-                of NaN."""
-            )
+        check_stoplimit_prices(limit_price, 'limit')
 
-        if limit_price < 0:
-            raise BadOrderParameters(
-                msg="Can't place a limit with a negative price."
-            )
-        if stop_price < 0:
-            raise BadOrderParameters(
-                msg="Can't place a stop order with a negative price."
-            )
+        check_stoplimit_prices(stop_price, 'stop')
 
         self.limit_price = limit_price
         self.stop_price = stop_price
@@ -201,3 +169,28 @@ def asymmetric_round_price_to_penny(price, prefer_round_down,
     if zp_math.tolerant_equals(rounded, 0.0):
         return 0.0
     return rounded
+
+
+def check_stoplimit_prices(price, label):
+    """
+    Check to make sure the stop/limit prices are reasonable and raise
+    a BadOrderParameters exception if not.
+    """
+    try:
+        if not isfinite(price):
+            raise BadOrderParameters(
+                msg="""Attempted to place an order with a {} price
+                of {}.""".format(label, price)
+            )
+    # This catches arbitrary objects
+    except TypeError:
+        raise BadOrderParameters(
+            msg="""Attempted to place an order with a {} price
+            of {}.""".format(label, type(price))
+        )
+
+    if price < 0:
+        raise BadOrderParameters(
+            msg="""Can't place a {} order
+             with a negative price.""".format(label)
+        )
