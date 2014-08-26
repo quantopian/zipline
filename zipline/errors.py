@@ -137,6 +137,14 @@ class UnsupportedOrderParameters(ZiplineError):
     msg = "{msg}"
 
 
+class BadOrderParameters(ZiplineError):
+    """
+    Raised if any impossible parameters (nan, negative limit/stop)
+    are passed to an order call.
+    """
+    msg = "{msg}"
+
+
 class OrderDuringInitialize(ZiplineError):
     """
     Raised if order is called during initialize()
