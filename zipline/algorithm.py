@@ -73,6 +73,8 @@ from zipline.protocol import Event
 from zipline.history import HistorySpec
 from zipline.history.history_container import HistoryContainer
 
+from zipline.utils.events import EventContainer
+
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -169,6 +171,8 @@ class TradingAlgorithm(object):
         self.history_container = None
         self.history_specs = {}
 
+        self.event_container = EventContainer()
+
         # If string is passed in, execute and get reference to
         # functions.
         self.algoscript = kwargs.pop('script', None)
@@ -223,6 +227,7 @@ class TradingAlgorithm(object):
         if self.history_container:
             self.history_container.update(data, self.datetime)
 
+        self.event_container.handle_data(self, data, self.datetime)
         self._handle_data(self, data)
 
     def analyze(self, perf):
@@ -928,3 +933,14 @@ class TradingAlgorithm(object):
         """
         return [fn for fn in cls.__dict__.itervalues()
                 if getattr(fn, 'is_api_method', False)]
+
+    @api_method
+    def add_event(self, freq='B', functions=[],
+                  time_func=lambda dt: True,
+                  start_dt='1990-01-01', tz='US/Eastern'):
+        self.event_container.add_event(
+            freq=freq,
+            start_dt=pd.Timestamp(start_dt, tz=tz),
+            time_func=time_func,
+            functions=functions
+        )
