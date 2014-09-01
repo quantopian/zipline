@@ -1,66 +1,84 @@
 
 import pytz
 import datetime
-import pandas as pd
+
 from pandas.tseries.frequencies import to_offset
+
 from zipline.utils import tradingcalendar
+from zipline.finance.trading import TradingEnvironment
+
+
+ENV = TradingEnvironment.instance()
 
 
 class EventContainer(object):
+    """
+    Container class to keep track of events and call
+    their associated functions.
+    """
 
-    def __init__(self, *events):
-        self.events = pd.Series(events)
+    events = []
 
-    def add_event(self, freq='B', functions=[],
-                  time_func=lambda dt: True,
-                  start_dt='1990-01-01', tz='US/Eastern'):
-        event = EventOffset(freq=freq,
-                            start_dt=pd.Timestamp(start_dt, tz=tz),
-                            time_func=time_func,
-                            functions=functions)
+    def add_event(self, rule=None, func=None,
+                  freq=None, start_dt=tradingcalendar.start):
 
-        self.events[len(self.events.index)] = event
+        event = EventOffset(
+            rule=rule,
+            func=func,
+            freq=freq,
+            start_dt=start_dt)
+        self.events.append(event)
 
     def handle_data(self, context, data, dt):
-        f = lambda event: event.handle_data(context, data, dt)
-        self.events.apply(f)
+        for event in self.events:
+            event.handle_data(context, data, dt)
 
 
 class EventOffset(object):
+    """
+    Facilitates scheduling function calls at frequencies
+    other than the backtest frequency.
+    """
 
-    def __init__(self, freq='B', functions=[],
-                 time_func=lambda dt: True,
-                 start_dt=tradingcalendar.start):
+    def __init__(self, rule=None, func=None,
+                 freq=None, start_dt=tradingcalendar.start):
+        """
+        Params:
+            rule: callable <defalult=None>
+                  A callable that must accept a datetime arg
+                  and return a boolean value. This is only called
+                  if the offset has been satisfied.
+                  The freq arg is obeyed in the case where the rule is None.
 
+            func: callable or array of callables. <default=None>
+                  function(s) to be called with (context, data) arguments
+                  when the offset and rule are satisfied.
+
+            freq: An object that can be converted to a pandas offset
+                  via pandas.tseries.frequencies.to_offset
+
+            start_dt: tz-aware datetime obj
+                  The first datetime the event can occur.
+        """
+        if rule is None:
+            self._rule = lambda dt: True
+        else:
+            self._rule = rule
+        if hasattr(func, '__iter__'):
+            self._funcs = list(func)
+        else:
+            self._funcs = [func]
         self.offset = to_offset(freq)
-        self.time_func = time_func
-        self.start_dt = pd.Timestamp(start_dt, tz=pytz.utc)
+        self.start_dt = start_dt
         self.event_dt = self.start_dt
-        self._funcs = pd.Series(functions)
 
     def handle_data(self, context, data, dt):
-        dt = dt.astimezone(pytz.utc)
         if dt < self.event_dt:
             return
-        if self.time_func(dt):
-            self._funcs.apply(lambda f: f(context, data))
-            self.roll(dt)
-
-    def roll(self, dt):
-        self.event_dt = pd.Timestamp(self.offset.apply(dt), tz=pytz.utc)
-
-    def next_dt(self, dt=None):
-        if dt is None:
-            dt = self.event_dt
-        return pd.Timestamp(self.offset.apply(dt), tz=pytz.utc)
-
-    def prev_dt(self, dt=None):
-        if dt is None:
-            dt = self.event_dt
-        return pd.Timestamp(dt - self.offset, tz=pytz.utc)
-
-    def add_func(self, func):
-        self._funcs[len(self._funcs.index)] = func
+        if self._rule(dt):
+            for func in self._funcs:
+                func(context, data)
+            self.event_dt = self.offset.apply(dt)
 
 
 #
@@ -75,30 +93,26 @@ class AfterOpen(object):
     def __init__(self, minutes=0, hours=0):
         self.n = 60*hours + minutes
 
-    def __call__(self, dt, exact=False):
+    def __call__(self, dt):
         n = minutes_since_open(dt)
-        if exact:
-            return n == self.n
         return n >= self.n
 
 
 class BeforeClose(object):
     """
-    A rule to enter after the market has been open for N minutes.
+    Returns True for the last N minutes of the trading day.
     """
     def __init__(self, minutes=0, hours=0):
         self.n = 60*hours + minutes
 
-    def __call__(self, dt, exact=False):
+    def __call__(self, dt):
         n = minutes_until_close(dt)
-        if exact:
-            return n == self.n
-        return n >= self.n
+        return n < self.n
 
 
 class AtTime(object):
     """
-    Rule to enter at a specific time only.
+    Returns True at a specific time only.
     """
     def __init__(self, hour=None, minute=None, tz='US/Eastern'):
         self.tz = pytz.timezone(tz)
@@ -110,6 +124,9 @@ class AtTime(object):
 
 
 class BetweenTimes(object):
+    """
+    Returns True in the interval [time1, time2)
+    """
 
     def __init__(self, time1=None, time2=None, tz='US/Eastern'):
         """
@@ -131,44 +148,36 @@ class BetweenTimes(object):
 
 
 def minutes_until_close(dt):
-    ref = tradingcalendar.canonicalize_datetime(dt)
-    open_close = tradingcalendar.open_and_closes.T[ref]
-    market_close = open_close['market_close']
-    return (market_close - dt).seconds / 60
+    """
+    returns the number of minutes remaining
+    in the trading day.
+    """
+    _, close = ENV.get_open_and_close(dt)
+    return (close - dt).seconds / 60
 
 
 def minutes_since_open(dt):
-    ref = tradingcalendar.canonicalize_datetime(dt)
-    open_close = tradingcalendar.open_and_closes.T[ref]
-    market_open = open_close['market_open']
-    return (dt - market_open).seconds / 60
-
-#
-# User facing functions for consistency
-#
+    """
+    returns the number of minutes since
+    the market open.
+    """
+    open_dt, _ = ENV.get_open_and_close(dt)
+    return (dt - open_dt).seconds / 60
 
 
 def market_open(dt):
-    ref = tradingcalendar.canonicalize_datetime(dt)
-    return dt == tradingcalendar.open_and_closes.T[ref]['market_open']
+    """
+    returns True if dt is equal to
+    the market open on that day.
+    """
+    open_dt, _ = ENV.get_open_and_close(dt)
+    return open_dt == dt
 
 
 def market_close(dt):
-    ref = tradingcalendar.canonicalize_datetime(dt)
-    return dt == tradingcalendar.open_and_closes.T[ref]['market_close']
-
-
-def at_time(hour, minute, tz='US/Eastern'):
-    return AtTime(hour=hour, minute=minute, tz=tz)
-
-
-def between_times(time1=None, time2=None, tz='US/Eastern'):
-    return BetweenTimes(time1=time1, time2=time2, tz=tz)
-
-
-def after_open(minutes=0, hours=0):
-    return AfterOpen(minutes=minutes, hours=hours)
-
-
-def before_close(minutes=0, hours=0):
-    return BeforeClose(minutes=minutes, hours=hours)
+    """
+    returns True if dt is equal to
+    the market close on that day.
+    """
+    _, close = ENV.get_open_and_close(dt)
+    return close == dt
