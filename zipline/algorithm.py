@@ -227,8 +227,8 @@ class TradingAlgorithm(object):
         if self.history_container:
             self.history_container.update(data, self.datetime)
 
-        self.event_container.handle_data(self, data, self.datetime)
         self._handle_data(self, data)
+        self.event_container.handle_data(self, data, self.datetime)
 
     def analyze(self, perf):
         if self._analyze is None:
@@ -935,12 +935,15 @@ class TradingAlgorithm(object):
                 if getattr(fn, 'is_api_method', False)]
 
     @api_method
-    def add_event(self, freq='B', functions=[],
-                  time_func=lambda dt: True,
-                  start_dt='1990-01-01', tz='US/Eastern'):
+    def add_event(self, rule=None, func=None,
+                  freq='B', start_dt='1990-01-01', tz='US/Eastern'):
+        """
+        Schedules function calls to occur at a given frequency.
+        """
+        start_dt = pd.Timestamp(start_dt, tz=tz).astimezone(pytz.utc)
         self.event_container.add_event(
+            rule=rule,
+            func=func,
             freq=freq,
-            start_dt=pd.Timestamp(start_dt, tz=tz),
-            time_func=time_func,
-            functions=functions
+            start_dt=start_dt
         )
