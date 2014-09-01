@@ -258,6 +258,20 @@ def get_trading_days(start, end, trading_day=trading_day):
 
 trading_days = get_trading_days(start, end)
 
+def is_trading_day(date):
+    return date.date() in trading_days
+    
+def get_next_trading_day(date, inclusive=True):
+    """
+    If 'inclusive' is True, then 'date' will be returned if it is
+    a trading day. If inclusive' is False, then the first candidate
+    will be the day after 'date'.
+    """
+    if not inclusive:
+        date += timedelta(days=1)
+    while not is_trading_day(date):
+        date += timedelta(days=1)
+    return date.date()
 
 def get_early_closes(start, end):
     # 1:00 PM close rules based on
