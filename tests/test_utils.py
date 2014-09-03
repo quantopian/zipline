@@ -24,6 +24,7 @@ import random
 from zipline.finance.trading import TradingEnvironment
 
 from zipline.utils.events import (
+    EventOffset,
     AfterOpen,
     BeforeClose,
     AtTime,
@@ -136,3 +137,83 @@ class TestMarketTimingRules(TestCase):
             for minute in minutes:
                 if market_close(minute):
                     assert minute == close_time
+
+
+class TestEventOffset(TestCase):
+
+    def setUp(self):
+        self.env = TradingEnvironment()
+        index = random.choice(range(len(self.env.trading_days) - 10))
+        self.trading_days = self.env.trading_days[index:index + 10]
+        self.market_mins = {dt: self.env.market_minutes_for_day(dt)
+                            for dt in self.trading_days}
+        # Set the rule to always return True so that it does not
+        # affect the offset rule is obeyed
+        self.rule = lambda x: True
+        self.func = lambda context, data: True
+
+    def test_intraday_freqs(self):
+        """
+        Tests minute (T) and hour (H) offsets that
+        can be used for intraday offsets.
+        """
+        _offsets = [('H', np.timedelta64(3600*10**9, 'ns')),
+                    ('20T', np.timedelta64(20*60*10**9, 'ns'))]
+        for offset, delta in _offsets:
+            event = EventOffset(rule=self.rule, func=self.func, freq=offset)
+            days_hits = {dt: [] for dt in self.trading_days}
+            for dt in self.trading_days:
+                for t in self.market_mins[dt]:
+                    if event.handle_data(None, None, t):
+                        days_hits[dt].append(t)
+            deltas = pd.DataFrame(days_hits).diff().dropna()
+            results = deltas.apply(lambda delta_t: delta_t == delta)
+            assert np.alltrue(results)
+
+    def test_interday_freqs(self):
+        """
+        Tests frequencies >= 1 day.
+        TODO: This test needs to be refined
+        """
+        freqs = ['B', 'D', 'W', 'M', 'BM',
+                 'MS', 'BMS', 'Q', 'BQ',
+                 'QS', 'BQS', 'A', 'BA',
+                 'AS', 'BAS']
+        day0 = self.env.trading_days[0]
+        for freq in freqs:
+            offset = pd.tseries.frequencies.to_offset(freq)
+            start_dt = offset.apply(day0)
+            event = EventOffset(rule=self.rule, func=self.func,
+                                freq=freq, start_dt=start_dt)
+            for dt in self.env.trading_days:
+                result = event.handle_data(None, None, dt)
+                if dt < start_dt:
+                    assert result is None
+                if result:
+                    start_dt = dt
+
+    def test_rule_trigger(self):
+        """
+        Sets the rule to always return False,
+        no events should be triggered.
+        """
+        event = EventOffset(rule=lambda dt: False, func=self.func)
+        for dt in self.trading_days:
+            result = event.handle_data(None, None, dt)
+            assert result is None
+
+    def test_start_dt(self):
+        """
+        Sets the start date to the 4th test date and
+        asserts that the event is not triggered prior
+        to that date.
+        """
+        start_date = self.trading_days[3]
+        event = EventOffset(rule=self.rule, func=self.func,
+                            freq='B', start_dt=start_date)
+        for dt in self.trading_days:
+            result = event.handle_data(None, None, dt)
+            if dt < start_date:
+                assert result is None
+            else:
+                assert result is True
