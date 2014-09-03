@@ -98,7 +98,7 @@ class Event(object):
         return self.__dict__.keys()
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        return hasattr(other, '__dict__') and self.__dict__ == other.__dict__
 
     def __contains__(self, name):
         return name in self.__dict__
