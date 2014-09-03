@@ -935,12 +935,15 @@ class TradingAlgorithm(object):
                 if getattr(fn, 'is_api_method', False)]
 
     @api_method
-    def add_event(self, rule=None, func=None,
-                  freq='B', start_dt='1990-01-01', tz='US/Eastern'):
+    def add_event(self, rule=None, func=None, freq='B', start_dt=None):
         """
         Schedules function calls to occur at a given frequency.
+        see zipline.utils.events.EventOffset for argument descriptions
         """
-        start_dt = pd.Timestamp(start_dt, tz=tz).astimezone(pytz.utc)
+        if start_dt is None:
+            start_dt = self.sim_params.period_start
+        else:
+            start_dt.astimezone(pytz.utc)
         self.event_container.add_event(
             rule=rule,
             func=func,
