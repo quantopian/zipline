@@ -157,18 +157,20 @@ class TestEventOffset(TestCase):
         Tests minute (T) and hour (H) offsets that
         can be used for intraday offsets.
         """
-        _offsets = [('H', np.timedelta64(3600*10**9, 'ns')),
-                    ('20T', np.timedelta64(20*60*10**9, 'ns'))]
-        for offset, delta in _offsets:
+        offsets_ = [('H', 3600),  # (offset, seconds)
+                    ('20T', 1200)]
+        for offset, delta in offsets_:
             event = EventOffset(rule=self.rule, func=self.func, freq=offset)
             days_hits = {dt: [] for dt in self.trading_days}
             for dt in self.trading_days:
                 for t in self.market_mins[dt]:
                     if event.handle_data(None, None, t):
                         days_hits[dt].append(t)
-            deltas = pd.DataFrame(days_hits).diff().dropna()
-            results = deltas.apply(lambda delta_t: delta_t == delta)
-            assert np.alltrue(results)
+            for day in days_hits:
+                deltas = days_hits[day]
+                for i in range(1, len(deltas)):
+                    delta_t = (deltas[i] - deltas[i - 1]).seconds
+                    assert delta_t == delta
 
     def test_interday_freqs(self):
         """
