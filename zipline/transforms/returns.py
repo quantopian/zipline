@@ -96,7 +96,7 @@ class ReturnsFromPriorClose(object):
         We only allow events with a price field to be run through
         the returns transform.
         """
-        if 'price' not in event:
+        if not hasattr(event, 'price'):
             raise WrongDataForTransform(
                 transform="ReturnsEventWindow",
                 fields=['price'])

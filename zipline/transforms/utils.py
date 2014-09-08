@@ -280,7 +280,7 @@ class EventWindow(with_metaclass(ABCMeta)):
         We only allow events with all of our tracked fields.
         """
         # All events require a 'dt' field.
-        if 'dt' not in event:
+        if not hasattr(event, 'dt'):
             raise WrongDataForTransform(
                 transform=self.__class__.__name__,
                 fields=['dt'],

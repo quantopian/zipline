@@ -53,8 +53,8 @@ class TestDataFrameSource(TestCase):
         for event in source:
             self.assertTrue('sid' in event)
             self.assertTrue('arbitrary' in event)
-            self.assertTrue('volume' in event)
-            self.assertTrue('price' in event)
+            self.assertTrue(hasattr(event, 'volume'))
+            self.assertTrue(hasattr(event, 'price'))
             self.assertEquals(event['arbitrary'], 1.)
             self.assertEquals(event['sid'], 0)
             self.assertTrue(isinstance(event['volume'], int))
