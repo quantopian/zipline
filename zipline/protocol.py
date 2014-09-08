@@ -101,7 +101,19 @@ class Event(object):
         return hasattr(other, '__dict__') and self.__dict__ == other.__dict__
 
     def __contains__(self, name):
-        return name in self.__dict__
+        """
+        Provide dict-like `in` behavior for Event objects.
+
+        This function is a holdover from when the object used in the Event
+        context was a dict.
+
+        Returns True if the name is an attribute of the Event.
+
+        Internal engine code should use hasattr explicitly; however this method
+        maintains support for the `in` statement for objects which may be
+        passed along to the algorithm.
+        """
+        return hasattr(self, name)
 
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
