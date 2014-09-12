@@ -104,6 +104,7 @@ class PerformancePeriod(object):
         self.ending_value = 0.0
         self.period_cash_flow = 0.0
         self.pnl = 0.0
+
         # sid => position object
         self.positions = positiondict()
         self.ending_cash = starting_cash
@@ -122,6 +123,7 @@ class PerformancePeriod(object):
         # when returning portfolio information.
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
+        self._account_store = zp.Account()
         self._positions_store = zp.Positions()
         self.serialize_positions = serialize_positions
 
@@ -250,6 +252,9 @@ class PerformancePeriod(object):
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount
+
+    def adjust_field(self, field, value):
+        setattr(self, field, value)
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
@@ -406,6 +411,50 @@ class PerformancePeriod(object):
         portfolio.positions = self.get_positions()
         portfolio.positions_value = self.ending_value
         return portfolio
+
+    def as_account(self):
+        account = self._account_store
+
+        # If no attribute is found on the PerformancePeriod resort to the
+        # following default values. If an attribute is found use the existing
+        # value. For instance, a broker may provide updates to these
+        # attributes. In this case we do not want to over write the broker
+        # values with the default values.
+        account.settled_cash = \
+            getattr(self, 'settled_cash', self.ending_cash)
+        account.accrued_interest = \
+            getattr(self, 'accrued_interest', 0.0)
+        account.buying_power = \
+            getattr(self, 'buying_power', float('inf'))
+        account.equity_with_loan = \
+            getattr(self, 'equity_with_loan',
+                    self.ending_cash + self.ending_value)
+        account.total_positions_value = \
+            getattr(self, 'total_positions_value', self.ending_value)
+        account.regt_equity = \
+            getattr(self, 'regt_equity', self.ending_cash)
+        account.regt_margin = \
+            getattr(self, 'regt_margin', float('inf'))
+        account.initial_margin_requirement = \
+            getattr(self, 'initial_margin_requirement', 0.0)
+        account.maintenance_margin_requirement = \
+            getattr(self, 'maintenance_margin_requirement', 0.0)
+        account.available_funds = \
+            getattr(self, 'available_funds', self.ending_cash)
+        account.excess_liquidity = \
+            getattr(self, 'excess_liquidity', self.ending_cash)
+        account.cushion = \
+            getattr(self, 'cushion',
+                    self.ending_cash / (self.ending_cash + self.ending_value))
+        account.day_trades_remaining = \
+            getattr(self, 'day_trades_remaining', float('inf'))
+        account.leverage = \
+            getattr(self, 'leverage',
+                    self.ending_value / (self.ending_value + self.ending_cash))
+        account.net_liquidation = \
+            getattr(self, 'net_liquidation',
+                    self.ending_cash + self.ending_value)
+        return account
 
     def get_positions(self):
 

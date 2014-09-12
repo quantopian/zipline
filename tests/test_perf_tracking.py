@@ -29,6 +29,7 @@ import pytz
 import itertools
 
 import pandas as pd
+import numpy as np
 from six.moves import range, zip
 
 import zipline.utils.factory as factory
@@ -107,6 +108,7 @@ def calculate_results(host,
     splits = splits or []
 
     perf_tracker = perf.PerformanceTracker(host.sim_params)
+
     if dividend_events is not None:
         dividend_frame = pd.DataFrame(
             [
@@ -149,6 +151,7 @@ def calculate_results(host,
 
         if bm_updated:
             msg = perf_tracker.handle_market_close_daily()
+            msg['account'] = perf_tracker.get_account(True)
             results.append(msg)
             bm_updated = False
     return results
@@ -215,6 +218,28 @@ class TestSplitPerformance(unittest.TestCase):
         self.assertTrue(
             zp_math.tolerant_equals(8020,
                                     daily_perf['ending_cash'], 1))
+
+        # Validate that the account attributes were updated.
+        account = results[1]['account']
+        self.assertEqual(float('inf'), account['day_trades_remaining'])
+        np.testing.assert_allclose(0.198, account['leverage'], rtol=1e-3)
+        np.testing.assert_allclose(8020, account['regt_equity'], rtol=1e-3)
+        self.assertEqual(float('inf'), account['regt_margin'])
+        np.testing.assert_allclose(8020, account['available_funds'], rtol=1e-3)
+        self.assertEqual(0, account['maintenance_margin_requirement'])
+        np.testing.assert_allclose(10000,
+                                   account['equity_with_loan'], rtol=1e-3)
+        self.assertEqual(float('inf'), account['buying_power'])
+        self.assertEqual(0, account['initial_margin_requirement'])
+        np.testing.assert_allclose(8020, account['excess_liquidity'],
+                                   rtol=1e-3)
+        np.testing.assert_allclose(8020, account['settled_cash'], rtol=1e-3)
+        np.testing.assert_allclose(10000, account['net_liquidation'],
+                                   rtol=1e-3)
+        np.testing.assert_allclose(0.802, account['cushion'], rtol=1e-3)
+        np.testing.assert_allclose(1980, account['total_positions_value'],
+                                   rtol=1e-3)
+        self.assertEqual(0, account['accrued_interest'])
 
         for i, result in enumerate(results):
             for perf_kind in ('daily_perf', 'cumulative_perf'):
@@ -291,6 +316,30 @@ class TestCommissionEvents(unittest.TestCase):
             # Validate that the cost basis of our position changed.
             self.assertEqual(results[-1]['daily_perf']['positions']
                              [0]['cost_basis'], 320.0)
+            # Validate that the account attributes were updated.
+            account = results[1]['account']
+            self.assertEqual(float('inf'), account['day_trades_remaining'])
+            np.testing.assert_allclose(0.001, account['leverage'], rtol=1e-3,
+                                       atol=1e-4)
+            np.testing.assert_allclose(9680, account['regt_equity'], rtol=1e-3)
+            self.assertEqual(float('inf'), account['regt_margin'])
+            np.testing.assert_allclose(9680, account['available_funds'],
+                                       rtol=1e-3)
+            self.assertEqual(0, account['maintenance_margin_requirement'])
+            np.testing.assert_allclose(9690,
+                                       account['equity_with_loan'], rtol=1e-3)
+            self.assertEqual(float('inf'), account['buying_power'])
+            self.assertEqual(0, account['initial_margin_requirement'])
+            np.testing.assert_allclose(9680, account['excess_liquidity'],
+                                       rtol=1e-3)
+            np.testing.assert_allclose(9680, account['settled_cash'],
+                                       rtol=1e-3)
+            np.testing.assert_allclose(9690, account['net_liquidation'],
+                                       rtol=1e-3)
+            np.testing.assert_allclose(0.999, account['cushion'], rtol=1e-3)
+            np.testing.assert_allclose(10, account['total_positions_value'],
+                                       rtol=1e-3)
+            self.assertEqual(0, account['accrued_interest'])
 
     def test_commission_zero_position(self):
         """

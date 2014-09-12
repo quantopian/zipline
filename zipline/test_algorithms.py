@@ -980,6 +980,15 @@ def handle_data(context, data):
     pass
 """
 
+access_account_in_init = """
+def initialize(context):
+    var = context.account.settled_cash
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
 call_all_order_methods = """
 from zipline.api import (order,
                          order_value,

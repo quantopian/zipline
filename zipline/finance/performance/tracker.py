@@ -229,9 +229,15 @@ class PerformanceTracker(object):
         for perf_period in self.perf_periods:
             perf_period.calculate_performance()
 
-    def get_portfolio(self):
-        self.update_performance()
+    def get_portfolio(self, performance_needs_update):
+        if performance_needs_update:
+            self.update_performance()
         return self.cumulative_performance.as_portfolio()
+
+    def get_account(self, performance_needs_update):
+        if performance_needs_update:
+            self.update_performance()
+        return self.cumulative_performance.as_account()
 
     def to_dict(self, emission_type=None):
         """
