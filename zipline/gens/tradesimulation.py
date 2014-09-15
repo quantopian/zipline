@@ -250,7 +250,11 @@ class AlgorithmSimulator(object):
         Call the user's handle_data, returning any orders placed by the algo
         during the call.
         """
-        self.algo.handle_data(self.current_data)
+        self.algo.event_manager.handle_data(
+            self.algo,
+            self.current_data,
+            self.simulation_dt,
+        )
         orders = self.algo.blotter.new_orders
         self.algo.blotter.new_orders = []
         return orders

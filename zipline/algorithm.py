@@ -65,6 +65,13 @@ from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.transforms.utils import StatefulTransform
 from zipline.utils.api_support import ZiplineAPI, api_method
+import zipline.utils.events
+from zipline.utils.events import (
+    EventManager,
+    make_eventrule,
+    DateRuleFactory,
+    TimeRuleFactory,
+)
 from zipline.utils.factory import create_simulation_parameters
 
 import zipline.protocol
@@ -181,6 +188,8 @@ class TradingAlgorithm(object):
         self._before_trading_start = None
         self._analyze = None
 
+        self.event_manager = EventManager()
+
         if self.algoscript is not None:
             exec_(self.algoscript, self.namespace)
             self._initialize = self.namespace.get('initialize')
@@ -202,6 +211,17 @@ class TradingAlgorithm(object):
             self._handle_data = kwargs.pop('handle_data')
             self._before_trading_start = kwargs.pop('before_trading_start',
                                                     None)
+
+        self.event_manager.add_event(
+            zipline.utils.events.Event(
+                zipline.utils.events.Always(),
+                # We pass handle_data.__func__ to get the unbound method.
+                # We will explicitly pass the algorithm to bind it again.
+                self.handle_data.__func__,
+                check_args=False,
+            ),
+            prepend=True,
+        )
 
         # If method not defined, NOOP
         if self._initialize is None:
@@ -491,6 +511,34 @@ class TradingAlgorithm(object):
     @api_method
     def get_environment(self):
         return self._environment
+
+    def add_event(self, rule=None, callback=None, check_args=True):
+        """
+        Adds an event to the algorithm's EventManager.
+        """
+        self.event_manager.add_event(
+            zipline.utils.events.Event(rule, callback, check_args=check_args),
+        )
+
+    @api_method
+    def schedule_function(self,
+                          func,
+                          date_rule=None,
+                          time_rule=None,
+                          half_days=True,
+                          check_args=False):
+        """
+        Schedules a function to be called with some timed rules.
+        """
+        # Defaults to every day 30 minutes before close.
+        date_rule = date_rule or DateRuleFactory.every_day()
+        time_rule = time_rule or TimeRuleFactory.market_close(minutes=30)
+
+        self.add_event(
+            make_eventrule(date_rule, time_rule, half_days),
+            func,
+            check_args=check_args,
+        )
 
     @api_method
     def record(self, *args, **kwargs):

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import datetime
 from datetime import timedelta
 from mock import MagicMock
 from six.moves import range
@@ -77,6 +77,7 @@ from zipline.transforms import MovingAverage
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
+from zipline.utils.events import DateRuleFactory, TimeRuleFactory
 from zipline.algorithm import TradingAlgorithm
 
 
@@ -173,6 +174,44 @@ class TestMiscellaneousAPI(TestCase):
                                 handle_data=handle_data,
                                 sim_params=self.sim_params)
         algo.run(self.source)
+
+    def test_schedule_function(self):
+        date_rules = DateRuleFactory
+        time_rules = TimeRuleFactory
+
+        def incrementer(algo, data):
+            algo.func_called += 1
+            self.assertEqual(
+                algo.get_datetime().time(),
+                datetime.time(hour=14, minute=31),
+            )
+
+        def initialize(algo):
+            algo.func_called = 0
+            algo.days = 1
+            algo.date = None
+            algo.schedule_function(
+                func=incrementer,
+                date_rule=date_rules.every_day(),
+                time_rule=time_rules.market_open(),
+            )
+
+        def handle_data(algo, data):
+            if not algo.date:
+                algo.date = algo.get_datetime().date()
+
+            if algo.date < algo.get_datetime().date():
+                algo.days += 1
+                algo.date = algo.get_datetime().date()
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            sim_params=self.sim_params,
+        )
+        algo.run(self.source)
+
+        self.assertEqual(algo.func_called, algo.days)
 
 
 class TestTransformAlgorithm(TestCase):
@@ -840,7 +879,6 @@ class TestTradingControls(TestCase):
         self.check_algo_succeeds(algo, handle_data, order_count=20)
 
     def test_long_only(self):
-
         # Sell immediately -> fail immediately.
         def handle_data(algo, data):
             algo.order(self.sid, -1)

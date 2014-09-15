@@ -19,6 +19,7 @@ import datetime
 
 import pandas as pd
 import numpy as np
+from six.moves import reduce
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
@@ -179,12 +180,26 @@ class TradingEnvironment(object):
         dt = self.normalize_date(test_date)
         delta = datetime.timedelta(days=-1)
 
-        while self.first_trading_day < test_date:
+        while self.first_trading_day < dt:
             dt += delta
             if dt in self.trading_days:
                 return dt
 
         return None
+
+    def add_trading_days(self, n, date):
+        if n > 0:
+            return reduce(
+                lambda a, b: self.next_trading_day(a),
+                range(n),
+                date,
+            )
+        else:
+            return reduce(
+                lambda a, b: self.previous_trading_day(a),
+                range(abs(n)),
+                date,
+            )
 
     def days_in_range(self, start, end):
         mask = ((self.trading_days >= start) &

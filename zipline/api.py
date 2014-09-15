@@ -19,7 +19,7 @@
 
 import zipline
 from .finance import (commission, slippage)
-from .utils import math_utils
+from .utils import math_utils, events
 
 from zipline.finance.slippage import (
     FixedSlippage,
@@ -33,6 +33,7 @@ batch_transform = zipline.transforms.BatchTransform
 __all__ = [
     'slippage',
     'commission',
+    'events',
     'math_utils',
     'batch_transform',
     'FixedSlippage',

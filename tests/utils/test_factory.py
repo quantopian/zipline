@@ -14,11 +14,13 @@
 # limitations under the License.
 
 from unittest import TestCase
-from zipline.utils.factory import (load_from_yahoo,
-                                   load_bars_from_yahoo)
+
 import pandas as pd
 import pytz
 import numpy as np
+
+from zipline.utils.factory import (load_from_yahoo,
+                                   load_bars_from_yahoo)
 
 
 class TestFactory(TestCase):
