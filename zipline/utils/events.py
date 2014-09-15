@@ -71,7 +71,6 @@ def ensure_utc(time, tz='UTC'):
         time = time.replace(tzinfo=pytz.timezone(tz))
     return time.replace(tzinfo=pytz.utc)
 
-
 def _coerce_datetime(maybe_dt):
     if isinstance(maybe_dt, datetime.datetime):
         return maybe_dt
@@ -401,6 +400,7 @@ class NthTradingDayOfWeek(StatelessRule):
         while dt.date().weekday() < prev.date().weekday():
             prev = dt
             dt = self.env.previous_trading_day(dt)
+
         return prev.date()
 
 
@@ -428,6 +428,7 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
         while dt.date().weekday() > prev.date().weekday():
             prev = dt
             dt = self.env.next_trading_day(dt)
+
         return prev.date()
 
 

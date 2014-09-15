@@ -14,13 +14,16 @@
 # limitations under the License.
 import datetime
 from itertools import islice
-from six import iteritems
 import random
+from itertools import islice, dropwhile
+
+from six import iteritems
 from six.moves import range, map
 from nose_parameterized import parameterized
 from unittest import TestCase
 
 import numpy as np
+
 
 from zipline.finance.trading import TradingEnvironment, with_environment
 import zipline.utils.events
@@ -314,6 +317,7 @@ class TestStatelessRules(RuleTestCase):
                 n_tdays = 0
                 date = m.to_datetime().date()
                 next_date = self.env.next_trading_day(date)
+
                 while next_date.weekday() > date.weekday():
                     date = next_date
                     next_date = self.env.next_trading_day(date)
@@ -376,6 +380,7 @@ class TestStatefulRules(RuleTestCase):
                 return st
 
         rule = RuleCounter(OncePerDay())
+
         for m in ms:
             rule.should_trigger(m)
 

@@ -20,6 +20,7 @@ from functools import wraps
 
 import pandas as pd
 import numpy as np
+from six.moves import reduce
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
