@@ -130,7 +130,8 @@ def get_index_at_dt(case_input):
         case_input['frequency'],
         None,
         False,
-        daily_at_midnight=False
+        daily_at_midnight=False,
+        data_frequency='minute',
     )
     return history.index_at_dt(history_spec, case_input['algo_dt'])
 
@@ -392,6 +393,33 @@ def handle_data(context, data):
         for i, received in enumerate(history_trace[bar_count - 1:]):
             expected = df.iloc[i:i + bar_count]
             assert_frame_equal(expected, received)
+
+    def test_history_daily_data_1m_window(self):
+        bar_count = 3
+        algo_text = """
+from zipline.api import history, add_history
+from copy import deepcopy
+
+def initialize(context):
+    add_history(bar_count=1, frequency='1m', field='price')
+
+def handle_data(context, data):
+    prices = history(bar_count={bar_count}, frequency='1d', field='price')
+    context.history_trace.append(deepcopy(prices))
+""".format(bar_count=bar_count).strip()
+
+        start = pd.Timestamp('2006-03-20', tz='UTC')
+        end = pd.Timestamp('2006-03-30', tz='UTC')
+
+        sim_params = factory.create_simulation_parameters(
+            start=start, end=end)
+
+        with self.assertRaises(ValueError):
+            TradingAlgorithm(
+                script=algo_text,
+                data_frequency='daily',
+                sim_params=sim_params
+            )
 
     def test_basic_history(self):
         algo_text = """

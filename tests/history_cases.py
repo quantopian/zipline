@@ -45,28 +45,28 @@ MIXED_FREQUENCY_MINUTES = TradingEnvironment.instance().market_minute_window(
     to_utc('2013-07-03 9:31AM'), 600,
 )
 ONE_MINUTE_PRICE_ONLY_SPECS = [
-    HistorySpec(1, '1m', 'price', True),
+    HistorySpec(1, '1m', 'price', True, data_frequency='minute'),
 ]
 DAILY_OPEN_CLOSE_SPECS = [
-    HistorySpec(3, '1d', 'open_price', False),
-    HistorySpec(3, '1d', 'close_price', False),
+    HistorySpec(3, '1d', 'open_price', False, data_frequency='minute'),
+    HistorySpec(3, '1d', 'close_price', False, data_frequency='minute'),
 ]
 ILLIQUID_PRICES_SPECS = [
-    HistorySpec(3, '1m', 'price', False),
-    HistorySpec(5, '1m', 'price', True),
+    HistorySpec(3, '1m', 'price', False, data_frequency='minute'),
+    HistorySpec(5, '1m', 'price', True, data_frequency='minute'),
 ]
 MIXED_FREQUENCY_SPECS = [
-    HistorySpec(1, '1m', 'price', False),
-    HistorySpec(2, '1m', 'price', False),
-    HistorySpec(2, '1d', 'price', False),
+    HistorySpec(1, '1m', 'price', False, data_frequency='minute'),
+    HistorySpec(2, '1m', 'price', False, data_frequency='minute'),
+    HistorySpec(2, '1d', 'price', False, data_frequency='minute'),
 ]
 MIXED_FIELDS_SPECS = [
-    HistorySpec(3, '1m', 'price', True),
-    HistorySpec(3, '1m', 'open_price', True),
-    HistorySpec(3, '1m', 'close_price', True),
-    HistorySpec(3, '1m', 'high', True),
-    HistorySpec(3, '1m', 'low', True),
-    HistorySpec(3, '1m', 'volume', True),
+    HistorySpec(3, '1m', 'price', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'open_price', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'close_price', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'high', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'low', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'volume', True, data_frequency='minute'),
 ]
 
 
