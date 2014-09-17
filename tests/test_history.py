@@ -395,7 +395,6 @@ def handle_data(context, data):
             assert_frame_equal(expected, received)
 
     def test_history_daily_data_1m_window(self):
-        bar_count = 3
         algo_text = """
 from zipline.api import history, add_history
 from copy import deepcopy
@@ -404,9 +403,8 @@ def initialize(context):
     add_history(bar_count=1, frequency='1m', field='price')
 
 def handle_data(context, data):
-    prices = history(bar_count={bar_count}, frequency='1d', field='price')
-    context.history_trace.append(deepcopy(prices))
-""".format(bar_count=bar_count).strip()
+    prices = history(bar_count=3, frequency='1d', field='price')
+""".strip()
 
         start = pd.Timestamp('2006-03-20', tz='UTC')
         end = pd.Timestamp('2006-03-30', tz='UTC')
