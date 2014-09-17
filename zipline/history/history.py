@@ -243,13 +243,14 @@ class HistorySpec(object):
     def __init__(self, bar_count, frequency, field, ffill,
                  daily_at_midnight=False, data_frequency='daily'):
 
-        if frequency == '1m' and data_frequency == 'daily':
-            raise ValueError('Minute history requires minute frequency input data.\
-Either use daily history or provide minute frequency data.')
         # Number of bars to look back.
         self.bar_count = bar_count
         if isinstance(frequency, str):
             frequency = Frequency(frequency, daily_at_midnight)
+        if frequency.unit_str == 'm' and data_frequency == 'daily':
+            raise ValueError('Minute history requires minute frequency input data.\
+Either use daily history or provide minute frequency data.')
+
         # The frequency at which the data is sampled.
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
