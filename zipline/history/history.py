@@ -20,6 +20,7 @@ import pandas as pd
 import re
 
 from zipline.finance import trading
+from zipline.errors import IncompatibleHistoryFrequency
 
 
 def parse_freq_str(freq_str):
@@ -248,8 +249,7 @@ class HistorySpec(object):
         if isinstance(frequency, str):
             frequency = Frequency(frequency, daily_at_midnight)
         if frequency.unit_str == 'm' and data_frequency == 'daily':
-            raise ValueError('Minute history requires minute frequency input data.\
-Either use daily history or provide minute frequency data.')
+            raise IncompatibleHistoryFrequency()
 
         # The frequency at which the data is sampled.
         self.frequency = frequency

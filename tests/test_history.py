@@ -26,6 +26,7 @@ from zipline.protocol import BarData
 import zipline.utils.factory as factory
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.errors import IncompatibleHistoryFrequency
 
 from zipline.sources import RandomWalkSource, DataFrameSource
 
@@ -412,7 +413,7 @@ def handle_data(context, data):
         sim_params = factory.create_simulation_parameters(
             start=start, end=end)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IncompatibleHistoryFrequency):
             TradingAlgorithm(
                 script=algo_text,
                 data_frequency='daily',
