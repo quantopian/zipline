@@ -167,5 +167,6 @@ class IncompatibleHistoryFrequency(ZiplineError):
     At least, not yet.
     """
     msg = """
-Minute history requires minute frequency input data.
-Either use daily history or provide minute frequency data.""".strip()
+Requested history at frequency '{frequency}' cannot be created with data
+at frequency '{data_frequency}'.
+""".strip()

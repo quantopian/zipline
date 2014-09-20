@@ -249,7 +249,10 @@ class HistorySpec(object):
         if isinstance(frequency, str):
             frequency = Frequency(frequency, daily_at_midnight)
         if frequency.unit_str == 'm' and data_frequency == 'daily':
-            raise IncompatibleHistoryFrequency()
+            raise IncompatibleHistoryFrequency(
+                frequency=frequency.unit_str,
+                data_frequency=data_frequency,
+            )
 
         # The frequency at which the data is sampled.
         self.frequency = frequency
