@@ -325,10 +325,7 @@ class HistoryContainer(object):
         If @freq_filter is specified, only use the given data to update
         frequencies on which the filter returns True.
         """
-        for frequency in self.unique_frequencies:
-
-            if freq_filter is not None and not freq_filter(frequency):
-                continue
+        for frequency in filter(freq_filter, self.unique_frequencies):
 
             # We don't keep a digest panel if we only have a length-1 history
             # spec for a given frequency
