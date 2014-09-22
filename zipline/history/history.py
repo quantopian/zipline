@@ -320,8 +320,8 @@ def index_at_dt(history_spec, algo_dt):
     Returns index of a frame returned by get_history() with the given
     history_spec and algo_dt.
 
-    The resulting index `@history_spec.bar_count` bars, increasing in units of
-    `@history_spec.frequency`, terminating at the given @algo_dt.
+    The resulting index will have @history_spec.bar_count bars, increasing in
+    units of @history_spec.frequency, terminating at the given @algo_dt.
 
     Note: The last bar of the returned frame represents an as-of-yet incomplete
     time window, so the delta between the last and second-to-last bars is
