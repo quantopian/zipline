@@ -73,6 +73,8 @@ from zipline.protocol import Event
 from zipline.history import HistorySpec
 from zipline.history.history_container import HistoryContainer
 
+from zipline.utils.events import EventContainer
+
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -173,6 +175,8 @@ class TradingAlgorithm(object):
         self.history_container = None
         self.history_specs = {}
 
+        self.event_container = EventContainer()
+
         # If string is passed in, execute and get reference to
         # functions.
         self.algoscript = kwargs.pop('script', None)
@@ -239,6 +243,7 @@ class TradingAlgorithm(object):
             self.history_container.update(data, self.datetime)
 
         self._handle_data(self, data)
+        self.event_container.handle_data(self, data, self.datetime)
 
     def analyze(self, perf):
         if self._analyze is None:
@@ -928,3 +933,20 @@ class TradingAlgorithm(object):
         """
         return [fn for fn in cls.__dict__.itervalues()
                 if getattr(fn, 'is_api_method', False)]
+
+    @api_method
+    def add_event(self, rule=None, func=None, freq='B', start_dt=None):
+        """
+        Schedules function calls to occur at a given frequency.
+        see zipline.utils.events.EventOffset for argument descriptions
+        """
+        if start_dt is None:
+            start_dt = self.sim_params.period_start
+        else:
+            start_dt.astimezone(pytz.utc)
+        self.event_container.add_event(
+            rule=rule,
+            func=func,
+            freq=freq,
+            start_dt=start_dt
+        )
