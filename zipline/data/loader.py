@@ -239,8 +239,8 @@ Fetching data from {0}
     return benchmark_returns, tr_curves
 
 
-def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
-    """Load closing prices from yahoo finance.
+def _load_raw_data(indexes=None, stocks=None, start=None, end=None, source='yahoo'):
+    """Load closing prices from yahoo finance by default.
 
     :Optional:
         indexes : dict (Default: {'SPX': '^GSPC'})
@@ -280,14 +280,14 @@ must specify stocks or indexes"""
             if os.path.exists(cache_filepath):
                 stkd = pd.DataFrame.from_csv(cache_filepath)
             else:
-                stkd = DataReader(stock, 'yahoo', start, end).sort_index()
+                stkd = DataReader(stock, source, start, end).sort_index()
                 stkd.to_csv(cache_filepath)
             data[stock] = stkd
 
     if indexes is not None:
         for name, ticker in iteritems(indexes):
             print(name)
-            stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
+            stkd = DataReader(ticker, source, start, end).sort_index()
             data[name] = stkd
 
     return data
@@ -316,7 +316,7 @@ def load_from_yahoo(indexes=None,
     :type adjusted: bool
 
     """
-    data = _load_raw_yahoo_data(indexes, stocks, start, end)
+    data = _load_raw_data(indexes, stocks, start, end)
     if adjusted:
         close_key = 'Adj Close'
     else:
@@ -359,7 +359,7 @@ def load_bars_from_yahoo(indexes=None,
     :type adjusted: bool
 
     """
-    data = _load_raw_yahoo_data(indexes, stocks, start, end)
+    data = _load_raw_data(indexes, stocks, start, end)
     panel = pd.Panel(data)
     # Rename columns
     panel.minor_axis = ['open', 'high', 'low', 'close', 'volume', 'price']
@@ -373,3 +373,26 @@ def load_bars_from_yahoo(indexes=None,
             for col in adj_cols:
                 panel[ticker][col] *= ratio_filtered
     return panel
+
+def load_from_google(indexes=None,
+                    stocks=None,
+                    start=None,
+                    end=None):
+    """
+    Loads price data from Google into a dataframe for each of the indicated
+    securities. Google's prices are adjusted for dividends and splits.
+
+    :param indexes: Financial indexes to load.
+    :type indexes: dict
+    :param stocks: Stock closing prices to load.
+    :type stocks: list
+    :param start: Retrieve prices from start date on.
+    :type start: datetime
+    :param end: Retrieve prices until end date.
+    :type end: datetime
+
+    """
+    data = _load_raw_data(indexes, stocks, start, end, source='google')
+    df = pd.DataFrame({key: d['Close'] for key, d in iteritems(data)})
+    df.index = df.index.tz_localize(pytz.utc)
+    return df
