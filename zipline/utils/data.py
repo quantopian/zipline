@@ -44,9 +44,22 @@ class RollingPanel(object):
         self.cap = cap_multiple * window
 
         self.dtype = dtype
-        self.index_buf = np.empty(self.cap, dtype='M8[ns]')
+        self.date_buf = np.empty(self.cap, dtype='M8[ns]')
 
         self.buffer = self._create_buffer()
+
+    def _oldest_frame_idx(self):
+        return max(self.pos - self.window, 0)
+
+    def oldest_frame(self):
+        """
+        Get the oldest frame in the panel.
+        """
+        return self.buffer.iloc[:, self._oldest_frame_idx(), :]
+
+    def set_sids(self, sids):
+        self.minor_axis = _ensure_index(sids)
+        self.buffer = self.buffer.reindex(minor_axis=self.minor_axis)
 
     def _create_buffer(self):
         panel = pd.Panel(
@@ -55,15 +68,88 @@ class RollingPanel(object):
             major_axis=range(self.cap),
             dtype=self.dtype,
         )
-
         return panel
 
+    def add_frame(self, tick, frame):
+        """
+        """
+        if self.pos == self.cap:
+            self._roll_data()
+
+        self.buffer.loc[:, self.pos, :] = frame.T.astype(self.dtype)
+        self.date_buf[self.pos] = tick
+
+        self.pos += 1
+
+    def get_current(self):
+        """
+        Get a Panel that is the current data in view. It is not safe to persist
+        these objects because internal data might change
+        """
+
+        where = slice(self._oldest_frame_idx(), self.pos)
+        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        return pd.Panel(self.buffer.values[:, where, :], self.items,
+                        major_axis, self.minor_axis, dtype=self.dtype)
+
+    def set_current(self, panel):
+        """
+        Set the values stored in our current in-view data to be values of the
+        passed panel.  The passed panel must have the same indices as the panel
+        that would be returned by self.get_current.
+        """
+        where = slice(self._oldest_frame_idx(), self.pos)
+        self.buffer.values[:, where, :] = panel.values
+
+    def current_dates(self):
+        where = slice(self._oldest_frame_idx(), self.pos)
+        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+
+    def _roll_data(self):
+        """
+        Roll window worth of data up to position zero.
+        Save the effort of having to expensively roll at each iteration
+        """
+
+        self.buffer.values[:, :self.window, :] = \
+            self.buffer.values[:, -self.window:, :]
+        self.date_buf[:self.window] = self.date_buf[-self.window:]
+        self.pos = self.window
+
+
+class MutableIndexRollingPanel(RollingPanel):
+    """
+    Subclass of RollingPanel that mutates its indices in response to
+    newly-added frames.  Exists primarily to maintain backward-compatibility
+    with the semantics of RollingPanel expected by BatchTransform.
+
+    This class is likely to be deprecated and/or removed in future versions.
+    """
+
+    def add_frame(self, tick, frame):
+        """
+        """
+        if self.pos == self.cap:
+            self._roll_data()
+
+        if set(frame.columns).difference(set(self.minor_axis)) or \
+                set(frame.index).difference(set(self.items)):
+            self._update_buffer(frame)
+
+        self.buffer.loc[:, self.pos, :] = frame.T.astype(self.dtype)
+        self.date_buf[self.pos] = tick
+
+        self.pos += 1
+
     def _update_buffer(self, frame):
+
         # Get current frame as we only need to care about the data that is in
         # the active window
-        # Note that we have to increase pos so that we get the current frame as
-        # self.pos is increased _after_ this call
-        old_buffer = self.get_current(self.pos + 1)
+        old_buffer = self.get_current()
+        if self.pos >= self.window:
+            # Don't count the last major_axis entry if we're past our window,
+            # since it's about to roll off the end of the panel.
+            old_buffer = old_buffer.iloc[:, 1:, :]
 
         nans = pd.isnull(old_buffer)
 
@@ -99,48 +185,3 @@ class RollingPanel(object):
             self.buffer.loc[non_nan_items, :, non_nan_cols])
 
         self.buffer = new_buffer
-
-    def add_frame(self, tick, frame):
-        """
-        """
-        if self.pos == self.cap:
-            self._roll_data()
-
-        if set(frame.columns).difference(set(self.minor_axis)) or \
-                set(frame.index).difference(set(self.items)):
-            self._update_buffer(frame)
-
-        self.buffer.loc[:, self.pos, :] = \
-            frame.ix[self.items].T.astype(self.dtype)
-
-        self.index_buf[self.pos] = tick
-
-        self.pos += 1
-
-    def get_current(self, pos=None):
-        """
-        Get a Panel that is the current data in view. It is not safe to persist
-        these objects because internal data might change
-        """
-        if pos is None:
-            pos = self.pos
-
-        where = slice(max(pos - self.window, 0), pos)
-        major_axis = pd.DatetimeIndex(deepcopy(self.index_buf[where]),
-                                      tz='utc')
-
-        return pd.Panel(self.buffer.values[:, where, :], self.items,
-                        major_axis, self.minor_axis, dtype=self.dtype)
-
-    def _roll_data(self):
-        """
-        Roll window worth of data up to position zero.
-        Save the effort of having to expensively roll at each iteration
-        """
-
-        self.buffer.values[:, :self.window, :] = \
-            self.buffer.values[:, -self.window:, :]
-        # Clean out nans so that they get dropped in _update_buffer()
-        self.buffer.values[:, -self.window:, :] = np.nan
-        self.index_buf[:self.window] = self.index_buf[-self.window:]
-        self.pos = self.window

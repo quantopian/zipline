@@ -32,7 +32,7 @@ from six import (
     iteritems
 )
 
-from zipline.utils.data import RollingPanel
+from zipline.utils.data import MutableIndexRollingPanel
 from zipline.protocol import Event
 
 from zipline.finance import trading
@@ -265,15 +265,23 @@ class BatchTransform(object):
 
     def _init_panels(self, sids):
         if self.downsample:
-            self.rolling_panel = RollingPanel(self.bars_in_day,
-                                              self.field_names, sids)
+            self.rolling_panel = MutableIndexRollingPanel(
+                self.bars_in_day,
+                self.field_names,
+                sids,
+            )
 
-            self.daily_rolling_panel = RollingPanel(self.window_length,
-                                                    self.field_names, sids)
+            self.daily_rolling_panel = MutableIndexRollingPanel(
+                self.window_length,
+                self.field_names,
+                sids,
+            )
         else:
-            self.rolling_panel = RollingPanel(self.window_length *
-                                              self.bars_in_day,
-                                              self.field_names, sids)
+            self.rolling_panel = MutableIndexRollingPanel(
+                self.window_length * self.bars_in_day,
+                self.field_names,
+                sids,
+            )
 
     def _append_to_window(self, event):
         self.field_names = self._get_field_names(event)

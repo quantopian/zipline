@@ -22,16 +22,16 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from zipline.utils.data import RollingPanel
+from zipline.utils.data import MutableIndexRollingPanel
 
 
-class TestRollingPanel(unittest.TestCase):
+class TestMutableIndexRollingPanel(unittest.TestCase):
 
     def test_basics(self, window=10):
         items = ['bar', 'baz', 'foo']
         minor = ['A', 'B', 'C', 'D']
 
-        rp = RollingPanel(window, items, minor, cap_multiple=2)
+        rp = MutableIndexRollingPanel(window, items, minor, cap_multiple=2)
 
         dates = pd.date_range('2000-01-01', periods=30, tz='utc')
 
@@ -69,7 +69,7 @@ class TestRollingPanel(unittest.TestCase):
         add_items = np.arange(first_non_existant, first_non_existant + periods)
         np.random.shuffle(add_items)
 
-        rp = RollingPanel(window, items, minor, cap_multiple=2)
+        rp = MutableIndexRollingPanel(window, items, minor, cap_multiple=2)
 
         dates = pd.date_range('2000-01-01', periods=periods, tz='utc')
 
