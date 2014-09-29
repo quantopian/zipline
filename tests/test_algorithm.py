@@ -866,7 +866,7 @@ class TestTradingControls(TestCase):
                     expected_order_count,
                     expected_exc):
 
-        algo._add_handle_data(handle_data)
+        algo._handle_data = handle_data
         with self.assertRaises(expected_exc) if expected_exc else nullctx():
             algo.run(self.source)
         self.assertEqual(algo.order_count, expected_order_count)

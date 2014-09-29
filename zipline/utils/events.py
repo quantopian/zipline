@@ -14,6 +14,8 @@
 # limitations under the License.
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
+from functools import partial
+import operator
 import six
 
 import datetime
@@ -28,18 +30,41 @@ __all__ = [
     'Event',
     'EventRule',
     'StatelessRule',
+    'InvertedRule',
     'ComposedRule',
     'Always',
     'Never',
     'AfterOpen',
     'BeforeClose',
+    'OnDate',
+    'AfterDate',
+    'BeforeDate',
+    'BetweenDates',
+    'AtTime',
+    'AfterTime',
+    'BeforeTime',
+    'BetweenTimes',
+    'HalfDay',
     'NotHalfDay',
     'NthTradingDayOfWeek',
+    'FirstTradingDayOfWeek',
     'NDaysBeforeLastTradingDayOfWeek',
+    'LastTradingDayOfWeek',
     'NthTradingDayOfMonth',
+    'FirstTradingDayOfMonth',
     'NDaysBeforeLastTradingDayOfMonth',
+    'LastTradingDayOfMonth',
     'StatefulRule',
+    'RuleFromCallable',
+    'Once',
+    'DoNTimes',
+    'SkipNTimes',
+    'NTimesPerPeriod',
+    'OncePerPeriod',
     'OncePerDay',
+    'OncePerWeek',
+    'OncePerMonth',
+    'OncePerQuarter',
 
     # Factory API
     'DateRuleFactory',
@@ -70,6 +95,7 @@ def ensure_utc(time, tz='UTC'):
     if not time.tzinfo:
         time = time.replace(tzinfo=pytz.timezone(tz))
     return time.replace(tzinfo=pytz.utc)
+
 
 def _coerce_datetime(maybe_dt):
     if isinstance(maybe_dt, datetime.datetime):
@@ -240,8 +266,49 @@ class StatelessRule(EventRule):
         Logical and of two rules, triggers only when both rules trigger.
         This follows the short circuiting rules for normal and.
         """
-        return ComposedRule(self, rule, ComposedRule.lazy_and)
+        return ComposedRule(self, rule, ComposedRule.lazy_and, lazy=True)
     __and__ = and_
+
+    def or_(self, rule):
+        """
+        Logical or of two rules, triggers when either rule triggers.
+        This follows the short circuiting rules for normal or.
+        """
+        return ComposedRule(self, rule, ComposedRule.lazy_or, lazy=True)
+    __or__ = or_
+
+    def xor(self, rule):
+        """
+        Logical xor of two rules, triggers if exactly one rule is triggered.
+        """
+        return ComposedRule(self, rule, operator.xor)
+    __xor__ = xor
+
+    def invert(self):
+        """
+        Logical inversion of a rule, triggers only when the rule is not
+        triggered.
+        """
+        return InvertedRule(self)
+    __invert__ = invert
+
+
+# Stateless Rules
+
+class InvertedRule(StatelessRule):
+    """
+    A rule that inverts the results of another rule.
+    """
+    def __init__(self, rule):
+        if not isinstance(rule, StatelessRule):
+            raise ValueError('Only StatelessRules can be inverted')
+        self.rule = rule
+
+    def should_trigger(self, dt):
+        """
+        Triggers only when self.rule.should_trigger(dt) does not trigger.
+        """
+        return not self.rule.should_trigger(dt)
 
 
 class ComposedRule(StatelessRule):
@@ -257,7 +324,7 @@ class ComposedRule(StatelessRule):
     operators so that they will have the same short circuit logic that is
     expected.
     """
-    def __init__(self, first, second, composer):
+    def __init__(self, first, second, composer, lazy=False):
         if not (isinstance(first, StatelessRule)
                 and isinstance(second, StatelessRule)):
             raise ValueError('Only two StatelessRules can be composed')
@@ -265,10 +332,24 @@ class ComposedRule(StatelessRule):
         self.first = first
         self.second = second
         self.composer = composer
+        if lazy:
+            # Switch the the lazy should trigger instead.
+            self.should_trigger = self._lazy_should_trigger
 
     def should_trigger(self, dt):
         """
-        Composes the two rules with a lazy composer.
+        Composes the results of two rule's should_trigger methods to get the
+        result for this rule.
+        """
+        return self.composer(
+            self.first.should_trigger(dt),
+            self.second.should_trigger(dt),
+        )
+
+    def _lazy_should_trigger(self, dt):
+        """
+        Composes the two rules with a lazy composer. This is used when
+        lazy=True in __init__.
         """
         return self.composer(
             self.first.should_trigger,
@@ -283,6 +364,14 @@ class ComposedRule(StatelessRule):
         second rule if the first one returns False.
         """
         return first_should_trigger(dt) and second_should_trigger(dt)
+
+    @staticmethod
+    def lazy_or(first_should_trigger, second_should_trigger, dt):
+        """
+        Lazily ors the two rules. This will NOT call the should_trigger of the
+        second rule the first one returns True.
+        """
+        return first_should_trigger(dt) or second_should_trigger(dt)
 
 
 class Always(StatelessRule):
@@ -370,6 +459,95 @@ class BeforeClose(StatelessRule):
         return self._dt
 
 
+class OnDate(StatelessRule):
+    """
+    A rule that triggers on a certain date.
+    """
+    def __init__(self, date=None, **kwargs):
+        self.date = _build_date(date, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.date() == self.date
+
+
+class AfterDate(StatelessRule):
+    """
+    A rule that triggers after a certain date.
+    """
+    def __init__(self, date, **kwargs):
+        self.date = _build_date(date, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.date() > self.date
+
+
+class BeforeDate(StatelessRule):
+    """
+    A rule that triggers before a certain date.
+    """
+    def __init__(self, date, **kwargs):
+        self.date = _build_date(date, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.date() < self.date
+
+
+def BetweenDates(date1, date2):  # pragma: no cover
+    """
+    A rule that triggers between in the range [date1, date2).
+    """
+    return (OnDate(date1) | AfterDate(date1)) & BeforeDate(date2)
+
+
+class AtTime(StatelessRule):
+    """
+    A rule that triggers at an exact time.
+    """
+    def __init__(self, time=None, **kwargs):
+        self.time = _build_time(time, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.timetz() == self.time
+
+
+class AfterTime(StatelessRule):
+    """
+    A rule that triggers after a given time.
+    """
+    def __init__(self, time=None, **kwargs):
+        self.time = _build_time(time, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.timetz() > self.time
+
+
+class BeforeTime(StatelessRule):
+    """
+    A rule that triggers before a given time.
+    """
+    def __init__(self, time=None, **kwargs):
+        self.time = _build_time(time, kwargs)
+
+    def should_trigger(self, dt):
+        return dt.timetz() < self.time
+
+
+def BetweenTimes(time1=None, time2=None, tz='UTC'):  # pragma: no cover
+    """
+    A rule that triggers when the datetime is in the range [time1, time2).
+    """
+    return (AtTime(time1, tz=tz)
+            | AfterTime(time1, tz=tz)) & BeforeTime(time2, tz=tz)
+
+
+class HalfDay(StatelessRule):
+    """
+    A rule that only triggers on half days.
+    """
+    def should_trigger(self, dt):
+        return dt in self.env.early_closes
+
+
 class NotHalfDay(StatelessRule):
     """
     A rule that only triggers when it is not a half day.
@@ -404,6 +582,9 @@ class NthTradingDayOfWeek(StatelessRule):
         return prev.date()
 
 
+FirstTradingDayOfWeek = partial(NthTradingDayOfWeek, n=0)
+
+
 class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
     """
     A rule that triggers n days before the last trading day of the week.
@@ -430,6 +611,9 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
             dt = self.env.next_trading_day(dt)
 
         return prev.date()
+
+
+LastTradingDayOfWeek = partial(NDaysBeforeLastTradingDayOfWeek, n=0)  # pragma: no cover  # NOQA
 
 
 class NthTradingDayOfMonth(StatelessRule):
@@ -470,6 +654,8 @@ class NthTradingDayOfMonth(StatelessRule):
                           else self.env.next_trading_day(dt)).date()
         return self.first_day
 
+FirstTradingDayOfMonth = partial(NthTradingDayOfMonth, n=0)  # pragma: no cover
+
 
 class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
     """
@@ -509,6 +695,9 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
         return self.last_day
 
 
+LastTradingDayOfMonth = partial(NDaysBeforeLastTradingDayOfMonth, n=0)  # pragma: no cover  # NOQA
+
+
 # Stateful rules
 
 
@@ -529,7 +718,120 @@ class StatefulRule(EventRule):
         self.should_trigger = callable_
 
 
+class RuleFromCallable(StatefulRule):
+    """
+    Constructs an EventRule from an arbitrary callable.
+    """
+    def __init__(self, callback, rule=None):
+        """
+        Constructs an EventRule from a callable.
+        If the provided paramater is not callable, or cannot be called with a
+        single paramater, then a ValueError will be raised.
+        """
+        self.callback = callback
+        super(RuleFromCallable, self).__init__(rule)
+
+    def should_trigger(self, dt):
+        """
+        Only check the wrapped should trigger when callback is true.
+        """
+        return self.callback(dt) and self.rule.should_trigger(dt)
+
+
+class DoNTimes(StatefulRule):
+    """
+    A rule that triggers n times.
+    """
+    def __init__(self, n, rule=None):
+        self.n = n
+        if self.n <= 0:
+            self.new_should_trigger(Never.never_trigger)
+            return
+        super(DoNTimes, self).__init__(rule)
+
+    def should_trigger(self, dt):
+        """
+        Only triggers n times before switching to a never_trigger mode.
+        """
+        triggered = self.rule.should_trigger(dt)
+        if triggered:
+            self.n -= 1
+            if self.n == 0:
+                self.new_should_trigger(Never.never_trigger)
+            return True
+        return False
+
+
+Once = partial(DoNTimes, n=1)  # pragma: no cover
+
+
+class SkipNTimes(StatefulRule):
+    """
+    A rule that skips the first n times.
+    """
+    def __init__(self, n, rule=None):
+        self.n = n
+        if self.n <= 0:
+            self.new_should_trigger(Always.always_trigger)
+            return
+        super(SkipNTimes, self).__init__(rule)
+
+    def should_trigger(self, dt):
+        """
+        Skips the first n times before switching to the inner rule's
+        should_trigger.
+        """
+        triggered = self.rule.should_trigger(dt)
+        if triggered:
+            self.n -= 1
+            if self.n == 0:
+                self.new_should_trigger(self.rule.should_trigger)
+        return False
+
+
+class NTimesPerPeriod(StatefulRule):
+    """
+    A rule that triggers n times in a given period.
+    """
+    def __init__(self, n=1, freq='B', rule=None):
+        self.n = n
+        self.freq = freq
+        if self.n <= 0:
+            self.new_should_trigger(Never.never_trigger)
+        self.period = pd.Period(self.env.first_trading_day, freq=freq)
+        super(NTimesPerPeriod, self).__init__(rule)
+
+    def should_trigger(self, dt):
+        if dt < self.end_time:
+            if self.rule.should_trigger(dt):
+                self.hit_this_period += 1
+                return self.hit_this_period <= self.n
+            else:
+                return False
+        else:
+            # We are now in the next period, compute the next period end and
+            # reset the counter.
+            self.advance_period(dt)
+            self.hit_this_period = 1
+            return self.hit_this_period <= self.n
+
+    def advance_period(self, dt):
+        """
+        Advance the internal period by jumping in steps of size freq from the
+        last known end_time.
+        """
+        while self.end_time < dt:
+            self.period += 1
+
+    @property
+    def end_time(self):
+        return naive_to_utc(self.period.end_time)
+
+
 class OncePerDay(StatefulRule):
+    """
+    A special case implementation of `NTimesPerPeriod`.
+    """
     def __init__(self, rule=None):
         self.date = None
         self.triggered = False
@@ -545,6 +847,13 @@ class OncePerDay(StatefulRule):
         if not self.triggered and self.rule.should_trigger(dt):
             self.triggered = True
             return True
+
+
+# Convenience aliases for common use cases on NTimesPerPeriod.
+OncePerPeriod = partial(NTimesPerPeriod, n=1)  # pragma: no cover
+OncePerWeek = partial(NTimesPerPeriod, n=1, freq='W')  # pragma: no cover
+OncePerMonth = partial(NTimesPerPeriod, n=1, freq='M')  # pragma: no cover
+OncePerQuarter = partial(NTimesPerPeriod, n=1, freq='Q')  # pragma: no cover
 
 
 # Factory API

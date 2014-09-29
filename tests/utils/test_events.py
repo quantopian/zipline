@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-from itertools import islice
+from itertools import islice, product
+import operator
 import random
-from itertools import islice, dropwhile
 
-from six import iteritems
+from six import iteritems, itervalues
 from six.moves import range, map
 from nose_parameterized import parameterized
 from unittest import TestCase
@@ -32,16 +32,28 @@ from zipline.utils.events import (
     StatelessRule,
     Always,
     Never,
+    InvertedRule,
     AfterOpen,
     ComposedRule,
     BeforeClose,
+    OnDate,
+    BeforeDate,
+    AfterDate,
+    AtTime,
+    AfterTime,
+    BeforeTime,
+    HalfDay,
     NotHalfDay,
     NthTradingDayOfWeek,
     NDaysBeforeLastTradingDayOfWeek,
     NthTradingDayOfMonth,
     NDaysBeforeLastTradingDayOfMonth,
     StatefulRule,
+    DoNTimes,
+    SkipNTimes,
+    NTimesPerPeriod,
     OncePerDay,
+    RuleFromCallable,
     _build_offset,
     _build_date,
     _build_time,
@@ -207,7 +219,11 @@ def minutes_for_days(env=None):
     """
     random.seed('deterministic')
     return ((env.market_minutes_for_day(random.choice(env.trading_days)),)
-            for _ in range(500))
+            for _ in range(365))
+
+
+def minutes_gen():
+    return (m[0] for d in minutes_for_days() for m in d)
 
 
 class RuleTestCase(TestCase):
@@ -268,6 +284,17 @@ class TestStatelessRules(RuleTestCase):
         self.assertFalse(any(map(should_trigger, ms)))
 
     @parameterized.expand(minutes_for_days())
+    def test_InvertedRule(self, ms):
+        rule = Always()
+        should_trigger = rule.should_trigger
+        should_not_trigger = InvertedRule(rule).should_trigger
+        f = lambda m: should_trigger(m) != should_not_trigger(m)
+        self.assertTrue(all(map(f, ms)))
+
+        # Test the syntax.
+        self.assertIsInstance(~Always(), InvertedRule)
+
+    @parameterized.expand(minutes_for_days())
     def test_AfterOpen(self, ms):
         should_trigger = AfterOpen(minutes=5, hours=1).should_trigger
         for m in islice(ms, 64):
@@ -288,6 +315,64 @@ class TestStatelessRules(RuleTestCase):
             self.assertFalse(should_trigger(m))
         for m in ms[-66:]:
             self.assertTrue(should_trigger(m))
+
+    def test_OnDate(self):
+        ms = list(minutes_gen())
+        first_day = ms[0].date()
+        should_trigger = OnDate(first_day).should_trigger
+        self.assertTrue(
+            all(m.date() == first_day for m in ms if should_trigger(m))
+        )
+
+    def _test_before_after_date(self, class_, op):
+        ms = list(minutes_gen())
+        half = int(len(ms) / 2)
+        should_trigger = class_(ms[half].date()).should_trigger
+        for m in ms:
+            if op(m.date(), ms[half].date()):
+                self.assertTrue(should_trigger(m))
+            else:
+                self.assertFalse(should_trigger(m))
+
+    def test_BeforeDate(self):
+        self._test_before_after_date(BeforeDate, operator.lt)
+
+    def test_AfterDate(self):
+        self._test_before_after_date(AfterDate, operator.gt)
+
+    @parameterized.expand(minutes_for_days())
+    def test_AtTime(self, ms):
+        time = datetime.time(hour=15, minute=5)
+        should_trigger = AtTime(time).should_trigger
+
+        for m in ms:
+            if m.time() == time:
+                self.assertTrue(should_trigger(m))
+            else:
+                self.assertFalse(should_trigger(m))
+
+    def _test_before_after_time(self, ms, class_, op):
+        time = datetime.time(hour=15, minute=5)
+        should_trigger = class_(time).should_trigger
+
+        for m in ms:
+            if op(m.time(), time):
+                self.assertTrue(should_trigger(m))
+            else:
+                self.assertFalse(should_trigger(m))
+
+    @parameterized.expand(minutes_for_days())
+    def test_BeforeTime(self, ms):
+        self._test_before_after_time(ms, BeforeTime, operator.lt)
+
+    @parameterized.expand(minutes_for_days())
+    def test_AfterTime(self, ms):
+        self._test_before_after_time(ms, AfterTime, operator.gt)
+
+    def test_HalfDay(self):
+        should_trigger = HalfDay().should_trigger
+        self.assertTrue(should_trigger(HALF_DAY))
+        self.assertFalse(should_trigger(FULL_DAY))
 
     def test_NotHalfDay(self):
         should_trigger = NotHalfDay().should_trigger
@@ -345,16 +430,32 @@ class TestStatelessRules(RuleTestCase):
                 else:
                     self.assertNotEqual(n_days_before, n)
 
-    @parameterized.expand(minutes_for_days())
-    def test_ComposedRule(self, ms):
+    @parameterized.expand([
+        ('and', operator.and_, lambda t: t._test_composed_and),
+        ('or', operator.or_, lambda t: t._test_composed_or),
+        ('xor', operator.xor, lambda t: t._test_composed_xor),
+    ])
+    def test_ComposedRule(self, name, composer, tester):
         rule1 = Always()
         rule2 = Never()
 
-        composed = rule1 & rule2
+        composed = composer(rule1, rule2)
         self.assertIsInstance(composed, ComposedRule)
         self.assertIs(composed.first, rule1)
         self.assertIs(composed.second, rule2)
-        self.assertFalse(any(map(composed.should_trigger, ms)))
+        tester(self)(composed)
+
+    def _test_composed_and(self, rule):
+        for ms in minutes_for_days():
+            self.assertFalse(any(map(rule.should_trigger, ms)))
+
+    def _test_composed_or(self, rule):
+        for ms in minutes_for_days():
+            self.assertTrue(all(map(rule.should_trigger, ms)))
+
+    def _test_composed_xor(self, rule):
+        for ms in minutes_for_days():
+            self.assertTrue(all(map(rule.should_trigger, ms)))
 
 
 class TestStatefulRules(RuleTestCase):
@@ -385,3 +486,42 @@ class TestStatefulRules(RuleTestCase):
             rule.should_trigger(m)
 
         self.assertEqual(rule.count, 1)
+
+    @parameterized.expand((n, minutes_for_days()) for n in range(5))
+    def test_DoNTimes(self, n, ms):
+        rule = DoNTimes(n)
+
+        for n in range(n):
+            self.assertTrue(rule.should_trigger(next(ms)))
+
+        self.assertFalse(any(map(rule.should_trigger, ms)))
+
+    @parameterized.expand(param_range(5))
+    def test_SkipNTimes(self, n):
+        rule = SkipNTimes(n)
+        min_gen = minutes_gen()
+
+        for n in range(n):
+            self.assertFalse(rule.should_trigger(next(min_gen)))
+
+        self.assertTrue(any(map(rule.should_trigger, min_gen)))
+
+    @parameterized.expand(
+        product(range(5), ('B', 'W', 'M', 'Q'))
+    )
+    def test_NTimesPerPeriod(self, n, period):
+        rule = NTimesPerPeriod(n=n, freq=period)
+        minutes = list(minutes_gen())
+        hit = {m: 0 for m in minutes}
+
+        for m in minutes:
+            if rule.should_trigger(m):
+                hit[m] += 1
+
+        for h in itervalues(hit):
+            self.assertLessEqual(h, n)
+
+    def test_RuleFromCallable(self):
+        rule = RuleFromCallable(lambda dt: True)
+
+        self.assertTrue(all(map(rule.should_trigger, minutes_gen())))
