@@ -294,6 +294,9 @@ class HistoryContainer(object):
         if isinstance(buffer_panel, RollingPanel):
             buffer_panel = buffer_panel.get_current()
 
+        # Using .ix here rather than .loc because loc requires that the keys
+        # are actually in the index, whereas .ix returns all the values between
+        # earliest_minute and latest_minute, which is what we want.
         return buffer_panel.ix[:, earliest_minute:latest_minute, :]
 
     def update(self, data, algo_dt):
@@ -324,6 +327,10 @@ class HistoryContainer(object):
 
         If @freq_filter is specified, only use the given data to update
         frequencies on which the filter returns True.
+
+        This takes `buffer_panel` as an argument rather than using
+        self.buffer_panel so that this method can be used to add supplemental
+        data from an external source.
         """
         for frequency in filter(freq_filter, self.unique_frequencies):
 
