@@ -330,8 +330,11 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-        # Instantiate perf_tracker
-        self.perf_tracker = PerformanceTracker(sim_params)
+        if self.perf_tracker is None:
+            # HACK: When running with the `run` method, we set perf_tracker to
+            # None so that it will be overwritten here.
+            self.perf_tracker = PerformanceTracker(sim_params)
+
         self.portfolio_needs_update = True
 
         self.data_gen = self._create_data_generator(source_filter, sim_params)
