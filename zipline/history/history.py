@@ -258,7 +258,8 @@ class HistorySpec(object):
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
         self.field = field
-        # Whether or not to forward fill the nan data.
+        # Whether or not to forward fill nan data.  Only has an effect if this
+        # spec's field is in FORWARD_FILLABLE.
         self._ffill = ffill
 
         # Calculate the cache key string once.
