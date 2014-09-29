@@ -35,9 +35,10 @@ from zipline.sources.test_source import create_trade
 
 # For backwards compatibility
 from zipline.data.loader import (load_from_yahoo,
-                                 load_bars_from_yahoo)
+                                 load_bars_from_yahoo,
+                                 load_bars_from_google)
 
-__all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
+__all__ = ['load_from_yahoo', 'load_bars_from_yahoo', 'load_bars_from_google']
 
 
 def create_simulation_parameters(year=2006, start=None, end=None,

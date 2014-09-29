@@ -374,13 +374,22 @@ def load_bars_from_yahoo(indexes=None,
                 panel[ticker][col] *= ratio_filtered
     return panel
 
-def load_from_google(indexes=None,
-                    stocks=None,
-                    start=None,
-                    end=None):
+def load_bars_from_google(indexes=None,
+                         stocks=None,
+                         start=None,
+                         end=None):
     """
-    Loads price data from Google into a dataframe for each of the indicated
-    securities. Google's prices are adjusted for dividends and splits.
+    Loads data from Google into a panel with the following
+    column names for each indicated security:
+
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - price
+
+    Note that Google's prices are adjusted for splits and dividends
 
     :param indexes: Financial indexes to load.
     :type indexes: dict
@@ -390,9 +399,19 @@ def load_from_google(indexes=None,
     :type start: datetime
     :param end: Retrieve prices until end date.
     :type end: datetime
+    :param adjusted: Adjust open/high/low/close for splits and dividends.
+        The 'price' field is always adjusted.
+    :type adjusted: bool
 
     """
     data = _load_raw_data(indexes, stocks, start, end, source='google')
-    df = pd.DataFrame({key: d['Close'] for key, d in iteritems(data)})
-    df.index = df.index.tz_localize(pytz.utc)
-    return df
+
+    #add price column to Google data so that format matches Yahoo's
+    for ticker in data:
+        data[ticker]['Price'] = data[ticker]['Close']
+
+    panel = pd.Panel(data)
+    # Rename columns
+    panel.minor_axis = ['open', 'high', 'low', 'close', 'volume', 'price']
+    panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
+    return panel
