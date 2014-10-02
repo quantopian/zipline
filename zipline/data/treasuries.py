@@ -119,8 +119,7 @@ http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
             if tag == "entry":
                 properties = element.find(properties_xpath[0])
                 datum = {get_localname(node): node.text
-                         for node in properties.getchildren()
-                         if ET.iselement(node)}
+                         for node in properties if ET.iselement(node)}
                 # clear the element after we've dealt with it:
                 element.clear()
                 yield datum
