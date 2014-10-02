@@ -551,14 +551,15 @@ def fast_build_history_output(buffer_frame, last_period, algo_dt):
 
 def fast_append_date_to_index(index, timestamp):
     """
-    Append a timestamp to a DatetimeIndex.  DatetimeIndex.append throws an
-    error on pandas 0.12.0
+    Append a timestamp to a DatetimeIndex.  DatetimeIndex.append does not
+    appear to work.
     """
     return pd.DatetimeIndex(
         np.hstack(
             [
                 index.values,
-                [timestamp],
+                [timestamp.asm8],
             ]
-        )
+        ),
+        tz='UTC',
     )
