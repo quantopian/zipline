@@ -134,10 +134,10 @@ class HistoryContainer(object):
 
         # The set of fields specified by all history specs
         self.fields = pd.Index(
-            set(spec.field for spec in itervalues(history_specs))
+            sorted(set(spec.field for spec in itervalues(history_specs)))
         )
         self.sids = pd.Index(
-            set(initial_sids)
+            sorted(set(initial_sids))
         )
 
         # This panel contains raw minutes for periods that haven't been fully
@@ -209,14 +209,18 @@ class HistoryContainer(object):
         """
         Add new sids to the container.
         """
-        self.sids = self.sids + _ensure_index(to_add)
+        self.sids = pd.Index(
+            sorted(self.sids + _ensure_index(to_add)),
+        )
         self._realign()
 
     def drop_sids(self, to_drop):
         """
         Remove sids from the container.
         """
-        self.sids = self.sids - _ensure_index(to_drop)
+        self.sids = pd.Index(
+            sorted(self.sids - _ensure_index(to_drop)),
+        )
         self._realign()
 
     def _realign(self):
@@ -433,15 +437,15 @@ class HistoryContainer(object):
             )
 
         if field in ['price', 'close_price']:
-            return frame.ffill().iloc[-1]
+            return frame.ffill().iloc[-1].values
         elif field == 'open_price':
-            return frame.bfill().iloc[0]
+            return frame.bfill().iloc[0].values
         elif field == 'volume':
-            return frame.sum()
+            return frame.sum().values
         elif field == 'high':
-            return frame.max()
+            return frame.max().values
         elif field == 'low':
-            return frame.min()
+            return frame.min().values
         else:
             raise ValueError("Unknown field {}".format(field))
 
@@ -456,6 +460,7 @@ class HistoryContainer(object):
                 for field in fields
             ],
             index=fields,
+            columns=ohlcv_panel.minor_axis,
         )
 
     def create_new_digest_frame(self, buffer_minutes):
@@ -518,8 +523,42 @@ class HistoryContainer(object):
                 self.last_known_prior_values,
             )
 
-        last_period = pd.DataFrame(
-            [self.frame_to_series(field, buffer_frame)],
-            index=[algo_dt],
+        last_period = self.frame_to_series(field, buffer_frame)
+        return fast_build_history_output(digest_frame, last_period, algo_dt)
+
+
+def fast_build_history_output(buffer_frame, last_period, algo_dt):
+    """
+    Optimized concatenation of DataFrame and Series for use in
+    HistoryContainer.get_history.
+
+    Relies on the fact that the input arrays have compatible shapes.
+    """
+    return pd.DataFrame(
+        data=np.vstack(
+            [
+                buffer_frame.values,
+                last_period,
+            ]
+        ),
+        index=fast_append_date_to_index(
+            buffer_frame.index,
+            pd.Timestamp(algo_dt)
+        ),
+        columns=buffer_frame.columns,
+    )
+
+
+def fast_append_date_to_index(index, timestamp):
+    """
+    Append a timestamp to a DatetimeIndex.  DatetimeIndex.append throws an
+    error on pandas 0.12.0
+    """
+    return pd.DatetimeIndex(
+        np.hstack(
+            [
+                index.values,
+                [timestamp],
+            ]
         )
-        return pd.concat([digest_frame, last_period])
+    )
