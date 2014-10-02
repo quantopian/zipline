@@ -426,27 +426,24 @@ class HistoryContainer(object):
         Convert a frame with a DatetimeIndex and sid columns into a series with
         a sid index, using the aggregator defined by the given field.
         """
-        if not len(frame.index):
+        if not len(frame):
             return pd.Series(
                 data=(0 if field == 'volume' else np.nan),
                 index=frame.columns,
             )
 
-        # close_price is an alias of price logic, so we use the same
-        # aggregator, which returns the last non-null price.
-        close_price_aggregator = lambda df: df.ffill().iloc[-1]
-        aggregators = {
-            # price/close reduces to the last non-null price in the period
-            'price': close_price_aggregator,
-            'close_price': close_price_aggregator,
-            # open_price reduces to the first non-null open_price in the period
-            'open_price': lambda df: df.bfill().iloc[0],
-            # volume reduces to the sum of all non-null volumes in the period
-            'volume': lambda df: df.sum(),
-            'high': lambda df: df.max(),
-            'low': lambda df: df.min(),
-        }
-        return frame.apply(aggregators[field])
+        if field in ['price', 'close_price']:
+            return frame.ffill().iloc[-1]
+        elif field == 'open_price':
+            return frame.bfill().iloc[0]
+        elif field == 'volume':
+            return frame.sum()
+        elif field == 'high':
+            return frame.max()
+        elif field == 'low':
+            return frame.min()
+        else:
+            raise ValueError("Unknown field {}".format(field))
 
     def aggregate_ohlcv_panel(self, fields, ohlcv_panel):
         """
