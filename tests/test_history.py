@@ -351,7 +351,6 @@ class TestHistoryAlgo(TestCase):
         bar_count = 3
         algo_text = """
 from zipline.api import history, add_history
-from copy import deepcopy
 
 def initialize(context):
     add_history(bar_count={bar_count}, frequency='1d', field='price')
@@ -359,7 +358,7 @@ def initialize(context):
 
 def handle_data(context, data):
     prices = history(bar_count={bar_count}, frequency='1d', field='price')
-    context.history_trace.append(deepcopy(prices))
+    context.history_trace.append(prices)
 """.format(bar_count=bar_count).strip()
 
         #      March 2006
@@ -398,7 +397,6 @@ def handle_data(context, data):
     def test_history_daily_data_1m_window(self):
         algo_text = """
 from zipline.api import history, add_history
-from copy import deepcopy
 
 def initialize(context):
     add_history(bar_count=1, frequency='1m', field='price')
@@ -527,7 +525,6 @@ def handle_data(context, data):
         Ensure that positional args work.
         """
         algo_text = """
-import copy
 from zipline.api import history, add_history
 
 def initialize(context):
@@ -536,7 +533,7 @@ def initialize(context):
 def handle_data(context, data):
 
     prices = history(2, '1d', 'price')
-    context.last_prices = copy.deepcopy(prices)
+    context.last_prices = prices
 """.strip()
 
         #      March 2006
