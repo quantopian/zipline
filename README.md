@@ -1,5 +1,6 @@
 Zipline
 =======
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![version status](https://pypip.in/v/zipline/badge.png)](https://pypi.python.org/pypi/zipline)
 [![downloads](https://pypip.in/d/zipline/badge.png)](https://pypi.python.org/pypi/zipline)
