@@ -16,6 +16,7 @@
 import bisect
 import logbook
 import datetime
+from functools import wraps
 
 import pandas as pd
 import numpy as np
@@ -451,3 +452,33 @@ class SimulationParameters(object):
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
+
+
+def with_environment(asname='env'):
+    """
+    Decorator to automagically pass TradingEnvironment to the function
+    under the name asname. If the environment is passed explicitly as a keyword
+    then the explicitly passed value will be used instead.
+
+    usage:
+       with_environment()
+       def f(env=None):
+           pass
+
+       with_environment(asname='my_env')
+       def g(my_env=None):
+           pass
+    """
+    def with_environment_decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # inject env into the namespace for the function.
+            # This doesn't use setdefault so that grabbing the trading env
+            # is lazy.
+            if asname not in kwargs:
+                kwargs[asname] = TradingEnvironment.instance()
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return with_environment_decorator

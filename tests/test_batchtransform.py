@@ -122,8 +122,7 @@ class TestChangeOfSids(TestCase):
             for sid in self.sids[:i]:
                 self.assertIn(sid, df.columns)
 
-            last_elem = len(df) - 1
-            self.assertEqual(df[last_elem][last_elem], last_elem)
+            self.assertEqual(df.iloc[-1].iloc[-1], i)
 
 
 class TestBatchTransformMinutely(TestCase):

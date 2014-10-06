@@ -534,9 +534,7 @@ HISTORY_CONTAINER_TEST_CASES = {
                                 to_utc('2013-06-28 9:31AM'),
                             ],
 
-                            # Missing volume data should manifest as 0's rather
-                            # than nans.
-                        ).fillna(0 if 'volume' in key else np.nan),
+                        ),
                         pd.DataFrame(
                             data={
                                 1: [np.nan, 0, 1],
@@ -547,7 +545,7 @@ HISTORY_CONTAINER_TEST_CASES = {
                                 to_utc('2013-06-28 9:31AM'),
                                 to_utc('2013-06-28 9:32AM'),
                             ],
-                        ).fillna(0 if 'volume' in key else np.nan),
+                        ),
 
                         pd.DataFrame(
                             data={
@@ -560,11 +558,7 @@ HISTORY_CONTAINER_TEST_CASES = {
                                 to_utc('2013-06-28 9:33AM'),
                             ],
 
-                            # Note: Calling fillna() here even though there are
-                            #       no NaNs because this makes it less likely
-                            #       for us to introduce a stupid bug by
-                            #       copy/pasting in the future.
-                        ).fillna(0 if 'volume' in key else np.nan),
+                        ),
                         pd.DataFrame(
                             data={
                                 1: [2, np.nan, 3],
@@ -575,6 +569,8 @@ HISTORY_CONTAINER_TEST_CASES = {
                                 to_utc('2013-06-28 9:34AM'),
                                 to_utc('2013-06-28 9:35AM'),
                             ],
+                            # For volume, when we are missing data, we replace
+                            # it with 0s to show that no trades occured.
                         ).fillna(0 if 'volume' in key else np.nan),
                     ],
                 )

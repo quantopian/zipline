@@ -12,18 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from bisect import insort_left
+from collections import namedtuple
 from itertools import groupby, product
+
 import logbook
 import numpy as np
 import pandas as pd
-
 from six import itervalues, iteritems, iterkeys
 
-from . history import (
-    index_at_dt,
-    HistorySpec,
-)
+from . history import HistorySpec
 
+from zipline.finance.trading import with_environment
 from zipline.utils.data import RollingPanel, _ensure_index
 
 logger = logbook.Logger('History Container')
@@ -43,7 +43,6 @@ def ffill_buffer_from_prior_values(freq,
     Forward-fill a buffer frame, falling back to the end-of-period values of a
     digest frame if the buffer frame has leading NaNs.
     """
-
     nan_sids = buffer_frame.iloc[0].isnull()
     if any(nan_sids) and len(digest_frame):
         # If we have any leading nans in the buffer and we have a non-empty
@@ -88,31 +87,82 @@ def freq_str_and_bar_count(history_spec):
     return (history_spec.frequency.freq_str, history_spec.bar_count)
 
 
-def group_by_frequency(history_specs):
+@with_environment()
+def next_bar(spec, env):
     """
-    Takes an iterable of history specs and returns a dictionary mapping unique
-    frequencies to a list of specs with that frequency.
-
-    Within each list, the HistorySpecs are sorted by ascending bar count.
-
-    Example:
-
-    [HistorySpec(3, '1d', 'price', True),
-     HistorySpec(2, '2d', 'open', True),
-     HistorySpec(2, '1d', 'open', False),
-     HistorySpec(5, '1m', 'open', True)]
-
-    yields
-
-    {Frequency('1d') : [HistorySpec(2, '1d', 'open', False)],
-                        HistorySpec(3, '1d', 'price', True),
-     Frequency('2d') : [HistorySpec(2, '2d', 'open', True)],
-     Frequency('1m') : [HistorySpec(5, '1m', 'open', True)]}
+    Returns a function that will return the next bar for a given datetime.
     """
-    return {key: list(group)
+    if spec.frequency.unit_str == 'd':
+        if spec.frequency.data_frequency == 'minute':
+            return lambda dt: env.get_open_and_close(
+                env.next_trading_day(dt),
+            )[1]
+        else:
+            return env.next_trading_day
+    else:
+        return env.next_market_minute
+
+
+def compute_largest_specs(history_specs):
+    """
+    Maps a Frequency to the largest HistorySpec at that frequency from an
+    iterable of HistorySpecs.
+    """
+    return {key: max(group, key=lambda f: f.bar_count)
             for key, group in groupby(
                 sorted(history_specs, key=freq_str_and_bar_count),
                 key=lambda spec: spec.frequency)}
+
+
+# tuples to store a change to the shape of a HistoryContainer
+
+FrequencyDelta = namedtuple(
+    'FrequencyDelta',
+    ['freq', 'buffer_delta'],
+)
+
+
+LengthDelta = namedtuple(
+    'LengthDelta',
+    ['freq', 'delta'],
+)
+
+
+HistoryContainerDeltaSuper = namedtuple(
+    'HistoryContainerDelta',
+    ['field', 'frequency_delta', 'length_delta'],
+)
+
+
+class HistoryContainerDelta(HistoryContainerDeltaSuper):
+    """
+    A class representing a resize of the history container.
+    """
+    def __new__(cls, field=None, frequency_delta=None, length_delta=None):
+        """
+        field is a new field that was added.
+        frequency is a FrequencyDelta representing a new frequency was added.
+        length is a bar LengthDelta which is a frequency and a bar_count.
+        If any field is None, then no change occurred of that type.
+        """
+        return super(HistoryContainerDelta, cls).__new__(
+            cls, field, frequency_delta, length_delta,
+        )
+
+    @property
+    def empty(self):
+        """
+        Checks if the delta is empty.
+        """
+        return (self.field is None
+                and self.frequency_delta is None
+                and self.length_delta is None)
+
+
+def normalize_to_data_freq(data_frequency, dt):
+    if data_frequency == 'minute':
+        return dt
+    return pd.tslib.normalize_date(dt)
 
 
 class HistoryContainer(object):
@@ -124,33 +174,64 @@ class HistoryContainer(object):
 
     Entry point for the algoscript is the result of `get_history`.
     """
+    VALID_FIELDS = {
+        'price', 'open_price', 'volume', 'high', 'low', 'close_price',
+    }
 
-    def __init__(self, history_specs, initial_sids, initial_dt):
+    def __init__(self,
+                 history_specs,
+                 initial_sids,
+                 initial_dt,
+                 data_frequency,
+                 shift_digest=False):
+        """
+        A container to hold a rolling window of historical data within a user's
+        algorithm.
+
+        Args:
+          history_specs (dict[Frequency:HistorySpec]): The starting history
+            specs that this container should be able to service.
+
+          initial_sids (set[Security or Int]): The starting sids to watch.
+
+          initial_dt (datetime): The datetime to start collecting history from.
+
+          shift_digest (bool): If True, then the digest panels will be created
+            shifted back by one bar, this is to facilitate the creation of a
+            HistoryContainer during a call to handle_data within
+            TradingAlgorithm. This is False by default.
+
+        Returns:
+          An instance of a new HistoryContainer
+        """
 
         # History specs to be served by this container.
         self.history_specs = history_specs
-        self.frequency_groups = \
-            group_by_frequency(itervalues(self.history_specs))
+        self.largest_specs = compute_largest_specs(
+            itervalues(self.history_specs)
+        )
 
         # The set of fields specified by all history specs
         self.fields = pd.Index(
             sorted(set(spec.field for spec in itervalues(history_specs)))
         )
         self.sids = pd.Index(
-            sorted(set(initial_sids))
+            sorted(set(initial_sids or []))
         )
+
+        self.data_frequency = data_frequency
+
+        initial_dt = normalize_to_data_freq(self.data_frequency, initial_dt)
 
         # This panel contains raw minutes for periods that haven't been fully
         # completed.  When a frequency period rolls over, these minutes are
         # digested using some sort of aggregation call on the panel (e.g. `sum`
         # for volume, `max` for high, `min` for low, etc.).
-        self.buffer_panel = self.create_buffer_panel(
-            initial_dt,
-        )
+        self.buffer_panel = self.create_buffer_panel(initial_dt)
 
         # Dictionaries with Frequency objects as keys.
         self.digest_panels, self.cur_window_starts, self.cur_window_closes = \
-            self.create_digest_panels(initial_sids, initial_dt)
+            self.create_digest_panels(initial_sids, initial_dt, shift_digest)
 
         # Helps prop up the prior day panel against having a nan, when the data
         # has been seen.
@@ -203,7 +284,232 @@ class HistoryContainer(object):
         Return an iterator over all the unique frequencies serviced by this
         container.
         """
-        return iterkeys(self.frequency_groups)
+        return iterkeys(self.largest_specs)
+
+    @with_environment()
+    def _add_frequency(self, spec, dt, env=None):
+        """
+        Adds a new frequency to the container. This reshapes the buffer_panel
+        if needed.
+        """
+        freq = spec.frequency
+        self.largest_specs[freq] = spec
+        new_buffer_len = 0
+
+        if freq.max_bars > self.buffer_panel.window_length:
+            # More bars need to be held in the buffer_panel to support this
+            # freq
+            if freq.data_frequency \
+               != self.buffer_spec.frequency.data_frequency:
+                # If the data_frequencies are not the same, then we need to
+                # create a fresh buffer.
+                self.buffer_panel = self.create_buffer_panel(
+                    dt, shift_digest=True,
+                )
+                new_buffer_len = None
+            else:
+                # The frequencies are the same, we just need to add more bars.
+                self._resize_panel(
+                    self.buffer_panel,
+                    freq.max_bars,
+                    dt,
+                    self.buffer_spec.frequency,
+                )
+                new_buffer_len = freq.max_minutes
+                # update the current buffer_spec to reflect the new lenght.
+                self.buffer_spec.bar_count = new_buffer_len + 1
+
+        if spec.bar_count > 1:
+            # This spec has more than one bar, construct a digest panel for it.
+            self.digest_panels[freq] = self._create_digest_panel(
+                dt, spec=spec, env=env,
+            )
+        else:
+            self.cur_window_starts[freq] = dt
+            self.cur_window_closes[freq] = freq.window_close(
+                self.cur_window_starts[freq]
+            )
+
+        self.last_known_prior_values = self.last_known_prior_values.reindex(
+            index=self.prior_values_index,
+        )
+
+        return FrequencyDelta(freq, new_buffer_len)
+
+    def _add_field(self, field):
+        """
+        Adds a new field to the container.
+        """
+        # self.fields is already sorted, so we just need to insert the new
+        # field in the correct index.
+        ls = list(self.fields)
+        insort_left(ls, field)
+        self.fields = pd.Index(ls)
+
+        self._realign_fields()
+        self.last_known_prior_values = self.last_known_prior_values.reindex(
+            index=self.prior_values_index,
+        )
+        return field
+
+    @with_environment()
+    def _add_length(self, spec, dt, env=None):
+        """
+        Increases the length of the digest panel for spec.frequency. If this
+        does not have a panel, and one is needed; a digest panel will be
+        constructed.
+        """
+        old_count = self.largest_specs[spec.frequency].bar_count
+        self.largest_specs[spec.frequency] = spec
+        delta = spec.bar_count - old_count
+
+        panel = self.digest_panels.get(spec.frequency)
+
+        if panel is None:
+            # The old length for this frequency was 1 bar, meaning no digest
+            # panel was held. We must construct a new one here.
+            panel = self._create_digest_panel(
+                dt, spec=spec, env=env,
+            )
+
+        else:
+            self._resize_panel(
+                panel, spec.bar_count - 1, dt, freq=spec.frequency, env=env,
+            )
+
+        self.digest_panels[spec.frequency] = panel
+
+        return LengthDelta(spec.frequency, delta)
+
+    @with_environment()
+    def _resize_panel(self, panel, size, dt, freq, env=None):
+        """
+        Resizes a panel, fills the date_buf with the correct values.
+        """
+        # This is the oldest datetime that will be shown in the current window
+        # of the panel.
+        oldest_idx = panel._oldest_frame_idx
+        oldest_dt = pd.Timestamp(
+            panel.date_buf[oldest_idx], tz='utc',
+        )
+        old_cap = panel.cap
+        panel.resize(size)
+
+        delta = (old_cap - oldest_idx) - panel._oldest_frame_idx
+
+        # Backfill the missing dates of the new current window.
+        missing_dts = self._create_window_date_buf(
+            delta, freq.unit_str, freq.data_frequency, oldest_dt,
+        )
+
+        # Fill the dates in between the new oldest index and adjusted oldest
+        # index.
+        where = slice(panel._oldest_frame_idx, -(old_cap - oldest_idx))
+        panel.date_buf[where] = missing_dts
+
+    @with_environment()
+    def _create_window_date_buf(self,
+                                window,
+                                unit_str,
+                                data_frequency,
+                                dt,
+                                env=None):
+        """
+        Creates a window length date_buf looking backwards from dt.
+        """
+        if unit_str == 'd':
+            # Get the properly key'd datetime64 out of the pandas Timestamp
+            if data_frequency != 'daily':
+                arr = env.open_close_window(
+                    dt,
+                    window,
+                    offset=-window,
+                ).market_close.astype('datetime64[ns]').values
+            else:
+                arr = env.open_close_window(
+                    dt,
+                    window,
+                    offset=-window,
+                ).index.values
+
+            return arr
+        else:
+            return env.market_minute_window(
+                env.previous_market_minute(dt),
+                window,
+                step=-1,
+            )[::-1].values
+
+    @with_environment()
+    def _create_panel(self, dt, spec, env=None):
+        """
+        Constructs a rolling panel with a properly aligned date_buf.
+        """
+        dt = normalize_to_data_freq(spec.frequency.data_frequency, dt)
+
+        window = spec.bar_count - 1
+
+        # everything after dt is going to be filled from calling update, no
+        # need to precompute these dates.
+        second = np.empty(window, dtype='datetime64[ns]')
+        date_buf = np.hstack(
+            (self._create_window_date_buf(
+                window,
+                spec.frequency.unit_str,
+                spec.frequency.data_frequency,
+                dt,
+                env=env,
+            ), second),
+        )
+
+        panel = RollingPanel(
+            window=window,
+            items=self.fields,
+            sids=self.sids,
+            date_buf=date_buf,
+        )
+
+        return panel
+
+    @with_environment()
+    def _create_digest_panel(self,
+                             dt,
+                             spec,
+                             window_starts=None,
+                             window_closes=None,
+                             env=None):
+        """
+        Creates a digest panel, setting the window_starts and window_closes.
+        If window_starts or window_closes are None, then self.cur_window_starts
+        or self.cur_window_closes will be used.
+        """
+        freq = spec.frequency
+
+        window_starts = window_starts if window_starts is not None \
+            else self.cur_window_starts
+        window_closes = window_closes if window_closes is not None \
+            else self.cur_window_closes
+
+        window_starts[freq] = freq.normalize(dt)
+        window_closes[freq] = freq.window_close(window_starts[freq])
+
+        return self._create_panel(dt, spec, env=env)
+
+    def ensure_spec(self, spec, dt):
+        """
+        Ensure that this container has enough space to hold the data for the
+        given spec. This returns a HistoryContainerDelta to represent the
+        changes in shape that the container made to support the new
+        HistorySpec.
+        """
+        updated = {}
+        if spec.field not in self.fields:
+            updated['field'] = self._add_field(spec.field)
+        if spec.frequency not in self.largest_specs:
+            updated['frequency_delta'] = self._add_frequency(spec, dt)
+        if spec.bar_count > self.largest_specs[spec.frequency].bar_count:
+            updated['length_delta'] = self._add_length(spec, dt)
+        return HistoryContainerDelta(**updated)
 
     def add_sids(self, to_add):
         """
@@ -212,7 +518,7 @@ class HistoryContainer(object):
         self.sids = pd.Index(
             sorted(self.sids + _ensure_index(to_add)),
         )
-        self._realign()
+        self._realign_sids()
 
     def drop_sids(self, to_drop):
         """
@@ -221,9 +527,9 @@ class HistoryContainer(object):
         self.sids = pd.Index(
             sorted(self.sids - _ensure_index(to_drop)),
         )
-        self._realign()
+        self._realign_sids()
 
-    def _realign(self):
+    def _realign_sids(self):
         """
         Realign our constituent panels after adding or removing sids.
         """
@@ -231,17 +537,26 @@ class HistoryContainer(object):
             columns=self.sids,
         )
         for panel in self.all_panels:
-            panel.set_sids(self.sids)
+            panel.set_minor_axis(self.sids)
 
-    def create_digest_panels(self, initial_sids, initial_dt):
+    def _realign_fields(self):
+        self.last_known_prior_values = self.last_known_prior_values.reindex(
+            index=self.prior_values_index,
+        )
+        for panel in self.all_panels:
+            panel.set_items(self.fields)
+
+    @with_environment()
+    def create_digest_panels(self,
+                             initial_sids,
+                             initial_dt,
+                             shift_digest,
+                             env=None):
         """
         Initialize a RollingPanel for each unique panel frequency being stored
         by this container.  Each RollingPanel pre-allocates enough storage
         space to service the highest bar-count of any history call that it
         serves.
-
-        Relies on the fact that group_by_frequency sorts the value lists by
-        ascending bar count.
         """
         # Map from frequency -> first/last minute of the next digest to be
         # rolled for that frequency.
@@ -250,33 +565,27 @@ class HistoryContainer(object):
 
         # Map from frequency -> digest_panels.
         panels = {}
-        for freq, specs in iteritems(self.frequency_groups):
-
-            # Relying on the sorting of group_by_frequency to get the spec
-            # requiring the largest number of bars.
-            largest_spec = specs[-1]
+        for freq, largest_spec in iteritems(self.largest_specs):
             if largest_spec.bar_count == 1:
-
                 # No need to allocate a digest panel; this frequency will only
                 # ever use data drawn from self.buffer_panel.
-                first_window_starts[freq] = freq.window_open(initial_dt)
+                first_window_starts[freq] = freq.normalize(initial_dt)
                 first_window_closes[freq] = freq.window_close(
                     first_window_starts[freq]
                 )
 
                 continue
 
-            initial_dates = index_at_dt(largest_spec, initial_dt)
+            dt = initial_dt
+            if shift_digest:
+                dt = largest_spec.frequency.prev_bar(dt)
 
-            # Set up dates for our first digest roll, which is keyed to the
-            # close of the first entry in our initial index.
-            first_window_closes[freq] = initial_dates[0]
-            first_window_starts[freq] = freq.window_open(initial_dates[0])
-
-            rp = RollingPanel(
-                window=len(initial_dates) - 1,
-                items=self.fields,
-                sids=initial_sids,
+            rp = self._create_digest_panel(
+                dt,
+                spec=largest_spec,
+                window_starts=first_window_starts,
+                window_closes=first_window_closes,
+                env=env,
             )
 
             panels[freq] = rp
@@ -288,13 +597,18 @@ class HistoryContainer(object):
         Initialize a RollingPanel containing enough minutes to service all our
         frequencies.
         """
-        max_bars_needed = max(freq.max_minutes
-                              for freq in self.unique_frequencies)
-        rp = RollingPanel(
-            window=max_bars_needed,
-            items=self.fields,
-            sids=self.sids,
+        max_bars_needed = max(
+            freq.max_bars for freq in self.unique_frequencies
         )
+        freq = '1m' if self.data_frequency == 'minute' else '1d'
+        spec = HistorySpec(
+            max_bars_needed + 1, freq, None, None, self.data_frequency,
+        )
+
+        rp = self._create_panel(
+            initial_dt, spec,
+        )
+        self.buffer_spec = spec
         return rp
 
     def convert_columns(self, values):
@@ -388,7 +702,6 @@ class HistoryContainer(object):
         Takes the bar at @algo_dt's @data, checks to see if we need to roll any
         new digests, then adds new data to the buffer panel.
         """
-
         frame = self.frame_from_bardata(data, algo_dt)
 
         self.update_last_known_values()
@@ -490,7 +803,7 @@ class HistoryContainer(object):
         Store the non-NaN values from our oldest frame in each frequency.
         """
         ffillable = self.ffillable_fields
-        if len(ffillable) == 0:
+        if not len(ffillable):
             return
 
         for frequency in self.unique_frequencies:
@@ -513,7 +826,6 @@ class HistoryContainer(object):
         Selects from the overarching history panel the values for the
         @history_spec at the given @algo_dt.
         """
-
         field = history_spec.field
         do_ffill = history_spec.ffill
 
@@ -535,7 +847,6 @@ class HistoryContainer(object):
                 digest_frame,
                 self.last_known_prior_values,
             )
-
         last_period = self.frame_to_series(field, buffer_frame)
         return fast_build_history_output(digest_frame, last_period, algo_dt)
 

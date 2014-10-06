@@ -20,6 +20,7 @@ import pandas as pd
 import re
 
 from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from zipline.errors import IncompatibleHistoryFrequency
 
 
@@ -42,8 +43,9 @@ class Frequency(object):
     """
     SUPPORTED_FREQUENCIES = frozenset({'1d', '1m'})
     MAX_MINUTES = {'m': 1, 'd': 390}
+    MAX_DAYS = {'d': 1}
 
-    def __init__(self, freq_str, daily_at_midnight=False):
+    def __init__(self, freq_str, data_frequency):
 
         if freq_str not in self.SUPPORTED_FREQUENCIES:
             raise ValueError(
@@ -58,7 +60,7 @@ class Frequency(object):
         # unit_str - The unit type, e.g. 'd'
         self.num, self.unit_str = parse_freq_str(freq_str)
 
-        self.daily_at_midnight = daily_at_midnight
+        self.data_frequency = data_frequency
 
     def next_window_start(self, previous_window_close):
         """
@@ -67,22 +69,22 @@ class Frequency(object):
         """
         if self.unit_str == 'd':
             return self.next_day_window_start(previous_window_close,
-                                              self.daily_at_midnight)
+                                              self.data_frequency)
         elif self.unit_str == 'm':
             return self.next_minute_window_start(previous_window_close)
 
     @staticmethod
-    def next_day_window_start(previous_window_close, daily_at_midnight=False):
+    def next_day_window_start(previous_window_close, data_frequency='minute'):
         """
         Get the next day window start after @previous_window_close.  This is
         defined as the first market open strictly greater than
         @previous_window_close.
         """
         env = trading.environment
-        if daily_at_midnight:
+        if data_frequency == 'daily':
             next_open = env.next_trading_day(previous_window_close)
         else:
-            next_open, _ = env.next_open_and_close(previous_window_close)
+            next_open = env.next_market_minute(previous_window_close)
         return next_open
 
     @staticmethod
@@ -128,7 +130,7 @@ class Frequency(object):
             offset=-(num_days - 1)
         ).market_open.iloc[0]
 
-        if self.daily_at_midnight:
+        if self.data_frequency == 'daily':
             open_ = pd.tslib.normalize_date(open_)
 
         return open_
@@ -150,44 +152,23 @@ class Frequency(object):
 
     def day_window_close(self, window_start, num_days):
         """
-        Get the last minute for a daily window of length @num_days with first
-        minute @window_start.  This is calculated by searching forward until
-        @num_days market closes are encountered.
+        Get the window close for a daily frequency.
+        If the data_frequency is minute, then this will be the last minute of
+        last day of the window.
 
-        Examples:
-
-        window_start = Thursday March 2nd, 2006, 9:31 AM EST
-        num_days = 1
-          --> window_close = Thursday March 2nd, 2006, 4:00 PM EST
-
-        window_start = Thursday March 2nd, 2006, 3:59 AM EST
-        num_days = 1
-          --> window_close = Thursday March 2nd, 2006, 4:00 PM EST
-
-        window_start = Thursday March 2nd, 2006, 9:31 AM EST
-        num_days = 2
-          --> window_close = Friday March 2nd, 2006, 4:00 PM EST
-
-        window_start = Thursday March 2nd, 2006, 9:31 AM EST
-        num_days = 3
-          --> window_close = Monday March 6th, 2006, 4:00 PM EST
-
-        # Day before July 4th is an early close
-        window_start = Wednesday July 3rd, 2013, 9:31 AM EST
-        num_days = 1
-          --> window_close = Wednesday July 3rd, 2013, 1:00 PM EST
+        If the data_frequency is minute, this will be midnight utc of the last
+        day of the window.
         """
         env = trading.environment
-        close = env.open_close_window(
-            window_start,
-            1,
-            offset=num_days - 1
-        ).market_close.iloc[0]
 
-        if self.daily_at_midnight:
-            close = pd.tslib.normalize_date(close)
+        if self.data_frequency != 'daily':
+            return env.get_open_and_close(
+                env.add_trading_days(num_days - 1, window_start),
+            )[1]
 
-        return close
+        return pd.tslib.normalize_date(
+            env.add_trading_days(num_days - 1, window_start),
+        )
 
     def minute_window_close(self, window_start, num_minutes):
         """
@@ -204,12 +185,52 @@ class Frequency(object):
         env = trading.environment
         return env.market_minute_window(window_start, count=num_minutes)[-1]
 
+    @with_environment()
+    def prev_bar(self, dt, env=None):
+        """
+        Returns the previous bar for dt.
+        """
+        if self.unit_str == 'd':
+            if self.data_frequency == 'minute':
+                func = lambda dt: env.get_open_and_close(
+                    env.previous_trading_day(dt),
+                )[1]
+            else:
+                func = env.previous_trading_day
+        else:
+            func = env.previous_market_minute
+
+        # Cache the function dispatch.
+        self.prev_bar = func
+
+        return func(dt)
+
+    @property
+    def max_bars(self):
+        if self.data_frequency == 'daily':
+            return self.max_days
+        else:
+            return self.max_minutes
+
+    @property
+    def max_days(self):
+        if self.data_frequency != 'daily':
+            raise ValueError('max_days requested in minute mode')
+        return self.MAX_DAYS[self.unit_str] * self.num
+
     @property
     def max_minutes(self):
         """
         The maximum number of minutes required to roll a bar at this frequency.
         """
+        if self.data_frequency != 'minute':
+            raise ValueError('max_minutes requested in daily mode')
         return self.MAX_MINUTES[self.unit_str] * self.num
+
+    def normalize(self, dt):
+        if self.data_frequency != 'daily':
+            return dt
+        return pd.tslib.normalize_date(dt)
 
     def __eq__(self, other):
         return self.freq_str == other.freq_str
@@ -242,12 +263,12 @@ class HistorySpec(object):
             bar_count, freq_str, field, ffill)
 
     def __init__(self, bar_count, frequency, field, ffill,
-                 daily_at_midnight=False, data_frequency='daily'):
+                 data_frequency='daily'):
 
         # Number of bars to look back.
         self.bar_count = bar_count
         if isinstance(frequency, str):
-            frequency = Frequency(frequency, daily_at_midnight)
+            frequency = Frequency(frequency, data_frequency)
         if frequency.unit_str == 'm' and data_frequency == 'daily':
             raise IncompatibleHistoryFrequency(
                 frequency=frequency.unit_str,
@@ -293,7 +314,7 @@ def days_index_at_dt(history_spec, algo_dt):
         step=history_spec.frequency.num,
     ).market_close
 
-    if history_spec.frequency.daily_at_midnight:
+    if history_spec.frequency.data_frequency == 'daily':
         market_closes = market_closes.apply(pd.tslib.normalize_date)
 
     # Append the current algo_dt as the last index value.
