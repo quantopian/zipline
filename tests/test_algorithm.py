@@ -116,8 +116,12 @@ class TestMiscellaneousAPI(TestCase):
         setup_logger(self)
 
         sids = [1, 2]
-        self.sim_params = factory.create_simulation_parameters(num_days=2,
-                                                               sids=sids)
+        self.sim_params = factory.create_simulation_parameters(
+            num_days=2,
+            sids=sids,
+            data_frequency='minute',
+            emission_rate='minute',
+        )
         self.source = factory.create_minutely_trade_source(
             sids,
             trade_count=100,

@@ -21,7 +21,6 @@ import pandas as pd
 import pytz
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.utils.argcheck import verify_callable_argspec, Argument
 
 
 __all__ = [
@@ -67,13 +66,13 @@ def ensure_utc(time, tz='UTC'):
     return time.replace(tzinfo=pytz.utc)
 
 
-def _build_offset(offset, kwargs):
+def _build_offset(offset, kwargs, default):
     """
     Builds the offset argument for event rules.
     """
     if offset is None:
         if not kwargs:
-            return datetime.timedelta()  # An empty offset (+0).
+            return default  # use the default.
         else:
             return datetime.timedelta(**kwargs)
     elif kwargs:
@@ -143,24 +142,8 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
     with the current algorithm context, data, and datetime only when the rule
     is triggered.
     """
-    def __new__(cls, rule=None, callback=None, check_args=True):
+    def __new__(cls, rule=None, callback=None):
         callback = callback or (lambda *args, **kwargs: None)
-        if check_args:
-            # Check the callback provided.
-            verify_callable_argspec(
-                callback,
-                [Argument('context' if check_args else Argument.ignore),
-                 Argument('data' if check_args else Argument.ignore)]
-            )
-
-            # Make sure that the rule's should_trigger is valid. This will
-            # catch potential errors much more quickly and give a more helpful
-            # error.
-            verify_callable_argspec(
-                getattr(rule, 'should_trigger'),
-                [Argument('dt')]
-            )
-
         return super(cls, cls).__new__(cls, rule=rule, callback=callback)
 
     def handle_data(self, context, data, dt):
@@ -279,7 +262,11 @@ class AfterOpen(StatelessRule):
     >>> AfterOpen(minutes=30)
     """
     def __init__(self, offset=None, **kwargs):
-        self.offset = _build_offset(offset, kwargs)
+        self.offset = _build_offset(
+            offset,
+            kwargs,
+            datetime.timedelta(),  # Defaults to the first minute.
+        )
 
     def should_trigger(self, dt):
         return self.env.get_open_and_close(dt)[0] + self.offset <= dt
@@ -293,7 +280,11 @@ class BeforeClose(StatelessRule):
     >>> BeforeClose(minutes=30)
     """
     def __init__(self, offset=None, **kwargs):
-        self.offset = _build_offset(offset, kwargs)
+        self.offset = _build_offset(
+            offset,
+            kwargs,
+            datetime.timedelta(minutes=1),  # Defaults to the last minute.
+        )
 
     def should_trigger(self, dt):
         return self.env.get_open_and_close(dt)[1] - self.offset < dt
@@ -304,7 +295,7 @@ class NotHalfDay(StatelessRule):
     A rule that only triggers when it is not a half day.
     """
     def should_trigger(self, dt):
-        return dt not in self.env.early_closes
+        return dt.date() not in self.env.early_closes
 
 
 class NthTradingDayOfWeek(StatelessRule):
@@ -326,9 +317,7 @@ class NthTradingDayOfWeek(StatelessRule):
     def get_first_trading_day_of_week(self, dt):
         prev = dt
         dt = self.env.previous_trading_day(dt)
-        # Backtrack until we hit a week border, then jump to the next trading
-        # day.
-        while dt.day < prev.day:
+        while dt.date().weekday() < prev.date().weekday():
             prev = dt
             dt = self.env.previous_trading_day(dt)
         return prev.date()
@@ -355,7 +344,7 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
         dt = self.env.next_trading_day(dt)
         # Traverse forward until we hit a week border, then jump back to the
         # previous trading day.
-        while dt.day > prev.day:
+        while dt.date().weekday() > prev.date().weekday():
             prev = dt
             dt = self.env.next_trading_day(dt)
         return prev.date()
@@ -482,20 +471,20 @@ class DateRuleFactory(object):
     every_day = Always
 
     @staticmethod
-    def month_start(offset=0):
-        return NthTradingDayOfMonth(n=offset)
+    def month_start(days_offset=0):
+        return NthTradingDayOfMonth(n=days_offset)
 
     @staticmethod
-    def month_end(offset=0):
-        return NDaysBeforeLastTradingDayOfMonth(n=offset)
+    def month_end(days_offset=0):
+        return NDaysBeforeLastTradingDayOfMonth(n=days_offset)
 
     @staticmethod
-    def week_start(offset=0):
-        return NthTradingDayOfWeek(n=offset)
+    def week_start(days_offset=0):
+        return NthTradingDayOfWeek(n=days_offset)
 
     @staticmethod
-    def week_end(offset=0):
-        return NDaysBeforeLastTradingDayOfWeek(n=offset)
+    def week_end(days_offset=0):
+        return NDaysBeforeLastTradingDayOfWeek(n=days_offset)
 
 
 class TimeRuleFactory(object):

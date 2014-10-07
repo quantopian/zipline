@@ -34,6 +34,7 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
+    IncompatibleScheduleFunctionDataFrequency,
 )
 
 from zipline.finance import trading
@@ -218,7 +219,6 @@ class TradingAlgorithm(object):
                 # We pass handle_data.__func__ to get the unbound method.
                 # We will explicitly pass the algorithm to bind it again.
                 self.handle_data.__func__,
-                check_args=False,
             ),
             prepend=True,
         )
@@ -512,12 +512,12 @@ class TradingAlgorithm(object):
     def get_environment(self):
         return self._environment
 
-    def add_event(self, rule=None, callback=None, check_args=True):
+    def add_event(self, rule=None, callback=None):
         """
         Adds an event to the algorithm's EventManager.
         """
         self.event_manager.add_event(
-            zipline.utils.events.Event(rule, callback, check_args=check_args),
+            zipline.utils.events.Event(rule, callback),
         )
 
     @api_method
@@ -525,11 +525,13 @@ class TradingAlgorithm(object):
                           func,
                           date_rule=None,
                           time_rule=None,
-                          half_days=True,
-                          check_args=False):
+                          half_days=True):
         """
         Schedules a function to be called with some timed rules.
         """
+        if self.sim_params.data_frequency != 'minute':
+            raise IncompatibleScheduleFunctionDataFrequency()
+
         # Defaults to every day 30 minutes before close.
         date_rule = date_rule or DateRuleFactory.every_day()
         time_rule = time_rule or TimeRuleFactory.market_close(minutes=30)
@@ -537,7 +539,6 @@ class TradingAlgorithm(object):
         self.add_event(
             make_eventrule(date_rule, time_rule, half_days),
             func,
-            check_args=check_args,
         )
 
     @api_method

@@ -47,10 +47,10 @@ from zipline.utils.events import (
 
 
 # A day known to be a half day.
-HALF_DAY = datetime.date(year=2014, month=7, day=3)
+HALF_DAY = datetime.datetime(year=2014, month=7, day=3)
 
 # A day known to be a full day.
-FULL_DAY = datetime.date(year=2014, month=9, day=24)
+FULL_DAY = datetime.datetime(year=2014, month=9, day=24)
 
 
 def param_range(*args):
@@ -66,21 +66,25 @@ class TestUtils(TestCase):
         with self.assertRaises(ValueError):
             f(None, {})
 
+    def test_build_offset_default(self):
+        default = object()
+        self.assertIs(default, _build_offset(None, {}, default))
+
     def test_build_offset_both(self):
         with self.assertRaises(ValueError):
-            _build_offset(datetime.timedelta(minutes=1), {'minutes': 1})
+            _build_offset(datetime.timedelta(minutes=1), {'minutes': 1}, None)
 
     def test_build_offset_kwargs(self):
         kwargs = {'minutes': 1}
         self.assertEqual(
-            _build_offset(None, kwargs),
+            _build_offset(None, kwargs, None),
             datetime.timedelta(**kwargs),
         )
 
     def test_build_offset_td(self):
         td = datetime.timedelta(minutes=1)
         self.assertEqual(
-            _build_offset(td, {}),
+            _build_offset(td, {}, None),
             td,
         )
 
@@ -155,7 +159,7 @@ class TestEventManager(TestCase):
 
         for r in [CountingRule] * 5:
                 self.em.add_event(
-                    Event(r(), lambda context, data: None, check_args=False)
+                    Event(r(), lambda context, data: None)
                 )
 
         self.em.handle_data(None, None, datetime.datetime.now())
@@ -270,17 +274,17 @@ class TestStatelessRules(RuleTestCase):
     @parameterized.expand(param_range(5))
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = NthTradingDayOfWeek(n).should_trigger
-        prev_day = None
+        prev_day = self.sept_week[0].date()
         n_tdays = 0
         for m in dropwhile(lambda n: not should_trigger(n), self.sept_week):
+            if prev_day < m.date():
+                n_tdays += 1
+            prev_day = m.date()
+
             if should_trigger(m):
                 self.assertEqual(n_tdays, n)
             else:
                 self.assertNotEqual(n_tdays, n)
-
-            if not prev_day or prev_day < m.date():
-                n_tdays += 1
-            prev_day = m.date()
 
     @parameterized.expand(param_range(5))
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
@@ -290,7 +294,7 @@ class TestStatelessRules(RuleTestCase):
                 n_tdays = 0
                 date = m.to_datetime().date()
                 next_date = self.env.next_trading_day(date)
-                while next_date.day > date.day:
+                while next_date.weekday() > date.weekday():
                     date = next_date
                     next_date = self.env.next_trading_day(date)
                     n_tdays += 1
