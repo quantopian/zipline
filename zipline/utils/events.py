@@ -175,7 +175,9 @@ class EventRule(six.with_metaclass(ABCMeta)):
     """
     An event rule checks a datetime and sees if it should trigger.
     """
-    env = TradingEnvironment.instance()
+    @property
+    def env(self):
+        return TradingEnvironment.instance()
 
     @abstractmethod
     def should_trigger(self, dt):
