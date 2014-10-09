@@ -69,8 +69,6 @@ import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
     make_eventrule,
-    DateRuleFactory,
-    TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
 
@@ -530,15 +528,28 @@ class TradingAlgorithm(object):
         """
         Schedules a function to be called with some timed rules.
         """
-        # Defaults to every day 30 minutes before close.
-        date_rule = date_rule or DateRuleFactory.every_day()
-        time_rule = time_rule or TimeRuleFactory.market_close(minutes=30)
-
         self.add_event(
-            make_eventrule(date_rule, time_rule, half_days),
+            make_eventrule(date_rule, time_rule, half_days, wrap_state=True),
             func,
             check_args=check_args,
         )
+
+    @api_method
+    def schedule_check(self,
+                       dt=None,
+                       date_rule=None,
+                       time_rule=None,
+                       half_days=True):
+        """
+        Checks if the given schedule rule would fire at dt.
+        If not dt is given, this defaults to the algorithm datetime.
+        """
+        make_eventrule(
+            date_rule,
+            time_rule,
+            half_days,
+            wrap_state=False,
+        ).should_trigger(dt or self.datetime)
 
     @api_method
     def record(self, *args, **kwargs):

@@ -503,13 +503,15 @@ class TimeRuleFactory(object):
     market_close = BeforeClose
 
 
-def make_eventrule(date_rule, time_rule, half_days=True):
+def make_eventrule(date_rule, time_rule, half_days=True, wrap_state=True):
     """
     Constructs an event rule from the factory api.
     """
+    date_rule = date_rule or DateRuleFactory.every_day()
+    time_rule = time_rule or TimeRuleFactory.market_close()
     if half_days:
         inner_rule = date_rule & time_rule
     else:
         inner_rule = date_rule & time_rule & NotHalfDay()
 
-    return OncePerDay(rule=inner_rule)
+    return OncePerDay(rule=inner_rule) if wrap_state else inner_rule
