@@ -14,7 +14,7 @@
 # limitations under the License.
 import datetime
 import random
-from itertools import islice, dropwhile
+from itertools import islice
 from six.moves import range, map
 from nose_parameterized import parameterized
 from unittest import TestCase
@@ -281,7 +281,7 @@ class TestStatelessRules(RuleTestCase):
         should_trigger = NthTradingDayOfWeek(n).should_trigger
         prev_day = self.sept_week[0].date()
         n_tdays = 0
-        for m in dropwhile(lambda n: not should_trigger(n), self.sept_week):
+        for m in self.sept_week:
             if prev_day < m.date():
                 n_tdays += 1
             prev_day = m.date()

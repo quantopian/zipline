@@ -68,6 +68,45 @@ def ensure_utc(time, tz='UTC'):
     return time.replace(tzinfo=pytz.utc)
 
 
+def _coerce_datetime(maybe_dt):
+    if isinstance(maybe_dt, datetime.datetime):
+        return maybe_dt
+    elif isinstance(maybe_dt, datetime.date):
+        return datetime.datetime(
+            year=maybe_dt.year,
+            month=maybe_dt.month,
+            day=maybe_dt.day,
+            tzinfo=pytz.utc,
+        )
+    elif isinstance(maybe_dt, (tuple, list)) and len(maybe_dt) == 3:
+        year, month, day = maybe_dt
+        return datetime.datetime(
+            year=year,
+            month=month,
+            day=day,
+            tzinfo=pytz.utc,
+        )
+    else:
+        raise TypeError('Cannot coerce %s into a datetime.datetime'
+                        % type(maybe_dt).__name__)
+
+
+def _out_of_range_error(a, b=None, var='offset'):
+    start = 0
+    if b is None:
+        end = a - 1
+    else:
+        start = a
+        end = b - 1
+    return ValueError(
+        '{var} must be in between {start} and {end} inclusive'.format(
+            var=var,
+            start=start,
+            end=end,
+        )
+    )
+
+
 def _build_offset(offset, kwargs, default):
     """
     Builds the offset argument for event rules.
@@ -309,14 +348,14 @@ class NthTradingDayOfWeek(StatelessRule):
     """
     def __init__(self, n=0):
         if n not in range(5):
-            raise ValueError('n must be in [0,5)')
+            raise _out_of_range_error(5)
         self.td_delta = n
 
     def should_trigger(self, dt):
-        return self.env.add_trading_days(
+        return _coerce_datetime(self.env.add_trading_days(
             self.td_delta,
             self.get_first_trading_day_of_week(dt),
-        ) == dt.date()
+        )).date() == dt.date()
 
     def get_first_trading_day_of_week(self, dt):
         prev = dt
@@ -333,15 +372,15 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
     """
     def __init__(self, n):
         if n not in range(5):
-            raise ValueError('n must be in [0,5)')
+            raise _out_of_range_error(5)
         self.td_delta = -n
         self.date = None
 
     def should_trigger(self, dt):
-        return self.env.add_trading_days(
+        return _coerce_datetime(self.env.add_trading_days(
             self.td_delta,
             self.get_last_trading_day_of_week(dt),
-        ) == dt.date()
+        )).date() == dt.date()
 
     def get_last_trading_day_of_week(self, dt):
         prev = dt
@@ -360,8 +399,8 @@ class NthTradingDayOfMonth(StatelessRule):
     This is zero-indexed, n=0 is the first trading day of the month.
     """
     def __init__(self, n=0):
-        if n not in range(31):
-            raise ValueError('n must be in [0,31)')
+        if n not in range(26):
+            raise _out_of_range_error(26)
         self.td_delta = n
         self.month = None
         self.day = None
@@ -398,8 +437,8 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
     A rule that triggers n days before the last trading day of the month.
     """
     def __init__(self, n=0):
-        if n not in range(31):
-            raise ValueError('n must be in [0,31)')
+        if n not in range(26):
+            raise _out_of_range_error(26)
         self.td_delta = -n
         self.month = None
         self.day = None
