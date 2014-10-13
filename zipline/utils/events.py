@@ -77,8 +77,10 @@ def _build_offset(offset, kwargs, default):
             return datetime.timedelta(**kwargs)
     elif kwargs:
         raise ValueError('Cannot pass kwargs and an offset')
-    else:
+    elif isinstance(offset, datetime.timedelta):
         return offset
+    else:
+        raise TypeError("Must pass 'hours' and/or 'minutes' as keywords")
 
 
 def _build_date(date, kwargs):

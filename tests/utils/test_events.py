@@ -74,6 +74,11 @@ class TestUtils(TestCase):
         with self.assertRaises(ValueError):
             _build_offset(datetime.timedelta(minutes=1), {'minutes': 1}, None)
 
+    def test_build_offset_exc(self):
+        with self.assertRaises(TypeError):
+            # object() is not an instance of a timedelta.
+            _build_offset(object(), {}, None)
+
     def test_build_offset_kwargs(self):
         kwargs = {'minutes': 1}
         self.assertEqual(
