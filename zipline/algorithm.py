@@ -537,9 +537,8 @@ class TradingAlgorithm(object):
         if self.sim_params.data_frequency != 'minute':
             raise IncompatibleScheduleFunctionDataFrequency()
 
-        # Defaults to every day 30 minutes before close.
         date_rule = date_rule or DateRuleFactory.every_day()
-        time_rule = time_rule or TimeRuleFactory.market_close(minutes=30)
+        time_rule = time_rule or TimeRuleFactory.market_open()
 
         self.add_event(
             make_eventrule(date_rule, time_rule, half_days),
