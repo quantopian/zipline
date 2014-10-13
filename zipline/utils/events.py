@@ -44,6 +44,8 @@ __all__ = [
     # Factory API
     'DateRuleFactory',
     'TimeRuleFactory',
+    'date_rules',
+    'time_rules',
     'make_eventrule',
 ]
 
@@ -492,6 +494,11 @@ class DateRuleFactory(object):
 class TimeRuleFactory(object):
     market_open = AfterOpen
     market_close = BeforeClose
+
+
+# Convenience aliases.
+date_rules = DateRuleFactory
+time_rules = TimeRuleFactory
 
 
 def make_eventrule(date_rule, time_rule, half_days=True):
