@@ -50,6 +50,10 @@ __all__ = [
 ]
 
 
+MAX_MONTH_RANGE = 26
+MAX_WEEK_RANGE = 5
+
+
 def naive_to_utc(ts):
     """
     Converts a UTC tz-naive timestamp to a tz-aware timestamp.
@@ -107,6 +111,17 @@ def _out_of_range_error(a, b=None, var='offset'):
     )
 
 
+def _td_check(td):
+    seconds = td.total_seconds()
+
+    # 23400 seconds is 6 hours and 30 minutes.
+    if 0 <= seconds <= 23400:
+        return td
+    else:
+        raise ValueError('offset must be in between 0 minutes and 6 hours and'
+                         ' 30 minutes')
+
+
 def _build_offset(offset, kwargs, default):
     """
     Builds the offset argument for event rules.
@@ -115,11 +130,11 @@ def _build_offset(offset, kwargs, default):
         if not kwargs:
             return default  # use the default.
         else:
-            return datetime.timedelta(**kwargs)
+            return _td_check(datetime.timedelta(**kwargs))
     elif kwargs:
         raise ValueError('Cannot pass kwargs and an offset')
     elif isinstance(offset, datetime.timedelta):
-        return offset
+        return _td_check(offset)
     else:
         raise TypeError("Must pass 'hours' and/or 'minutes' as keywords")
 
@@ -347,8 +362,8 @@ class NthTradingDayOfWeek(StatelessRule):
     This is zero-indexed, n=0 is the first trading day of the week.
     """
     def __init__(self, n=0):
-        if n not in range(5):
-            raise _out_of_range_error(5)
+        if not 0 <= n < MAX_WEEK_RANGE:
+            raise _out_of_range_error(MAX_WEEK_RANGE)
         self.td_delta = n
 
     def should_trigger(self, dt):
@@ -371,8 +386,8 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
     A rule that triggers n days before the last trading day of the week.
     """
     def __init__(self, n):
-        if n not in range(5):
-            raise _out_of_range_error(5)
+        if not 0 <= n < MAX_WEEK_RANGE:
+            raise _out_of_range_error(MAX_WEEK_RANGE)
         self.td_delta = -n
         self.date = None
 
@@ -399,8 +414,8 @@ class NthTradingDayOfMonth(StatelessRule):
     This is zero-indexed, n=0 is the first trading day of the month.
     """
     def __init__(self, n=0):
-        if n not in range(26):
-            raise _out_of_range_error(26)
+        if not 0 <= n < MAX_MONTH_RANGE:
+            raise _out_of_range_error(MAX_MONTH_RANGE)
         self.td_delta = n
         self.month = None
         self.day = None
@@ -437,8 +452,8 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
     A rule that triggers n days before the last trading day of the month.
     """
     def __init__(self, n=0):
-        if n not in range(26):
-            raise _out_of_range_error(26)
+        if not 0 <= n < MAX_MONTH_RANGE:
+            raise _out_of_range_error(MAX_MONTH_RANGE)
         self.td_delta = -n
         self.month = None
         self.day = None

@@ -43,6 +43,8 @@ from zipline.utils.events import (
     _build_time,
     EventManager,
     Event,
+    MAX_MONTH_RANGE,
+    MAX_WEEK_RANGE,
 )
 
 
@@ -276,7 +278,7 @@ class TestStatelessRules(RuleTestCase):
         self.assertTrue(should_trigger(FULL_DAY))
         self.assertFalse(should_trigger(HALF_DAY))
 
-    @parameterized.expand(param_range(5))
+    @parameterized.expand(param_range(MAX_WEEK_RANGE))
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = NthTradingDayOfWeek(n).should_trigger
         prev_day = self.sept_week[0].date()
@@ -291,7 +293,7 @@ class TestStatelessRules(RuleTestCase):
             else:
                 self.assertNotEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(5))
+    @parameterized.expand(param_range(MAX_WEEK_RANGE))
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
         should_trigger = NDaysBeforeLastTradingDayOfWeek(n).should_trigger
         for m in self.sept_week:
@@ -306,7 +308,7 @@ class TestStatelessRules(RuleTestCase):
 
                 self.assertEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(30))
+    @parameterized.expand(param_range(MAX_MONTH_RANGE))
     def test_NthTradingDayOfMonth(self, n):
         should_trigger = NthTradingDayOfMonth(n).should_trigger
         for n_tdays, d in enumerate(self.sept_days):
@@ -316,7 +318,7 @@ class TestStatelessRules(RuleTestCase):
                 else:
                     self.assertNotEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(30))
+    @parameterized.expand(param_range(MAX_MONTH_RANGE))
     def test_NDaysBeforeLastTradingDayOfMonth(self, n):
         should_trigger = NDaysBeforeLastTradingDayOfMonth(n).should_trigger
         for n_days_before, d in enumerate(reversed(self.sept_days)):
