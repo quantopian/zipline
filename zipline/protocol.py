@@ -210,6 +210,9 @@ class SIDData(object):
         """
         return self.dt
 
+    def get(self, name, default):
+        return self.__dict__.get(name, default)
+
     def __getitem__(self, name):
         return self.__dict__[name]
 

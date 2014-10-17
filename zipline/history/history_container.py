@@ -361,22 +361,35 @@ class HistoryContainer(object):
         # earliest_minute and latest_minute, which is what we want.
         return buffer_panel.ix[:, earliest_minute:latest_minute, :]
 
+    def frame_from_bardata(self, data, algo_dt):
+        """
+        Create a DataFrame from the given BarData and algo dt.
+        """
+        data = data._data
+        frame_data = np.ones((len(self.sids), len(self.fields))) * np.nan
+
+        for i, sid in enumerate(self.sids):
+            sid_data = data.get(sid)
+            if not sid_data:
+                continue
+            if algo_dt != sid_data['dt']:
+                continue
+            for j, field in enumerate(self.fields):
+                frame_data[i, j] = sid_data.get(field, np.nan)
+
+        return pd.DataFrame(
+            frame_data,
+            index=self.sids.copy(),
+            columns=self.fields.copy(),
+        ).T
+
     def update(self, data, algo_dt):
         """
         Takes the bar at @algo_dt's @data, checks to see if we need to roll any
         new digests, then adds new data to the buffer panel.
         """
-        frame = pd.DataFrame(
-            {
-                sid: {field: bar[field] for field in self.fields}
-                for sid, bar in data.iteritems()
-                # data contains the latest values seen for each security in our
-                # universe.  If a stock didn't trade this dt, then it will
-                # still have an entry in data, but its dt will be behind the
-                # algo_dt.
-                if (bar and bar['dt'] == algo_dt and sid in self.sids)
-            }
-        )
+
+        frame = self.frame_from_bardata(data, algo_dt)
 
         self.update_last_known_values()
         self.update_digest_panels(algo_dt, self.buffer_panel)
