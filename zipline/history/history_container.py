@@ -366,7 +366,7 @@ class HistoryContainer(object):
         Create a DataFrame from the given BarData and algo dt.
         """
         data = data._data
-        frame_data = np.ones((len(self.fields), len(self.sids))) * np.nan
+        frame_data = np.empty((len(self.fields), len(self.sids))) * np.nan
 
         for j, sid in enumerate(self.sids):
             sid_data = data.get(sid)
