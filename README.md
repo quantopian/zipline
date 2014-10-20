@@ -29,6 +29,8 @@ Discussion of the project is held at the Google Group,
 <zipline@googlegroups.com>,
 <https://groups.google.com/forum/#!forum/zipline>.
 
+For other questions, please contact <opensource@quantopian.com>.
+
 Features
 ========
 
@@ -59,8 +61,11 @@ conda install -c Quantopian zipline
 ```
 
 Currently supported platforms include:
+
 * Windows 32-bit (can be 64-bit Windows but has to be 32-bit Anaconda)
+
 * OSX 64-bit
+
 * Linux 64-bit
 
 PIP
@@ -161,93 +166,3 @@ Contributions
 ============
 
 If you would like to contribute, please see our Contribution Requests: https://github.com/quantopian/zipline/wiki/Contribution-Requests
-
-Credits
---------
-Thank you for all the help so far!
-
-- @rday for sortino ratio, information ratio, and exponential moving average transform
-- @snth
-- @yinhm for integrating zipline with @yinhm/datafeed
-- [Jeremiah Lowin](http://www.lowindata.com) for teaching us the nuances of Sharpe and Sortino Ratios,
-  and for implementing new order methods.
-- Brian Cappello
-- @verdverm (Tony Worm), Order types (stop, limit)
-- @benmccann for benchmarking contributions
-- @jkp and @bencpeters for bugfixes to benchmark.
-- @dstephens for adding Canadian treasury curves.
-- @mtrovo for adding BMF&Bovespa calendars.
-- @sdrdis for bugfixes.
-- @humdings for refactoring the order methods.
-- Quantopian Team
-
-(alert us if we've inadvertantly missed listing you here!)
-
-Development Environment
------------------------
-
-The following guide assumes your system has [virtualenvwrapper](https://bitbucket.org/dhellmann/virtualenvwrapper)
-and [pip](http://www.pip-installer.org/en/latest/) already installed.
-
-You'll need to install some C library dependencies:
-
-```
-sudo apt-get install libopenblas-dev liblapack-dev gfortran
-
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-tar -xvzf ta-lib-0.4.0-src.tar.gz
-cd ta-lib/
-./configure --prefix=/usr
-make
-sudo make install
-```
-
-Suggested installation of Python library dependencies used for development:
-
-```
-mkvirtualenv zipline
-./etc/ordered_pip.sh ./etc/requirements.txt
-pip install -r ./etc/requirements_dev.txt
-```
-
-Finally, install zipline in develop mode (from the zipline source root dir):
-
-```
-python setup.py develop
-```
-
-Style Guide
-------------
-
-To ensure that changes and patches are focused on behavior changes,
-the zipline codebase adheres to both PEP-8,
-<http://www.python.org/dev/peps/pep-0008/>, and pyflakes,
-<https://launchpad.net/pyflakes/>.
-
-The maintainers check the code using the flake8 script,
-<https://bitbucket.org/tarek/flake8/wiki/Home>, which is included in the
-requirements_dev.txt.
-
-Before submitting patches or pull requests, please ensure that your
-changes pass ```flake8 zipline tests``` and ```nosetests```
-
-Source
-======
-
-The source for Zipline is hosted at
-<https://github.com/quantopian/zipline>.
-
-Documentation
-------------
-
-You can compile the documentation using Sphinx:
-
-```
-sudo apt-get install python-sphinx
-make html
-```
-
-Contact
-=======
-
-For other questions, please contact <opensource@quantopian.com>.
