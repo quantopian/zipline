@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.utils.simfactory &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.utils.simfactory</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">zipline.utils.factory</span> <span class="kn">as</span> <span class="nn">factory</span>
+
+<span class="kn">from</span> <span class="nn">zipline.test_algorithms</span> <span class="kn">import</span> <span class="n">TestAlgorithm</span>
+
+
+<div class="viewcode-block" id="create_test_zipline"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.simfactory.create_test_zipline">[docs]</a><span class="k">def</span> <span class="nf">create_test_zipline</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">       :param config: A configuration object that is a dict with:</span>
+
+<span class="sd">           - sid - an integer, which will be used as the security ID.</span>
+<span class="sd">           - order_count - the number of orders the test algo will place,</span>
+<span class="sd">             defaults to 100</span>
+<span class="sd">           - order_amount - the number of shares per order, defaults to 100</span>
+<span class="sd">           - trade_count - the number of trades to simulate, defaults to 101</span>
+<span class="sd">             to ensure all orders are processed.</span>
+<span class="sd">           - algorithm - optional parameter providing an algorithm. defaults</span>
+<span class="sd">             to :py:class:`zipline.test.algorithms.TestAlgorithm`</span>
+<span class="sd">           - trade_source - optional parameter to specify trades, if present.</span>
+<span class="sd">             If not present :py:class:`zipline.sources.SpecificEquityTrades`</span>
+<span class="sd">             is the source, with daily frequency in trades.</span>
+<span class="sd">           - slippage: optional parameter that configures the</span>
+<span class="sd">             :py:class:`zipline.gens.tradingsimulation.TransactionSimulator`.</span>
+<span class="sd">             Expects an object with a simulate mehod, such as</span>
+<span class="sd">             :py:class:`zipline.gens.tradingsimulation.FixedSlippage`.</span>
+<span class="sd">             :py:mod:`zipline.finance.trading`</span>
+<span class="sd">           - transforms: optional parameter that provides a list</span>
+<span class="sd">             of StatefulTransform objects.</span>
+<span class="sd">       &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+    <span class="n">sid_list</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;sid_list&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sid_list</span><span class="p">:</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">)</span>
+        <span class="n">sid_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">sid</span><span class="p">]</span>
+
+    <span class="n">concurrent_trades</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;concurrent_trades&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s">&#39;order_count&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">order_count</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;order_count&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">order_count</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="k">if</span> <span class="s">&#39;order_amount&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">order_amount</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;order_amount&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">order_amount</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="k">if</span> <span class="s">&#39;trade_count&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">trade_count</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;trade_count&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c"># to ensure all orders are filled, we provide one more</span>
+        <span class="c"># trade than order</span>
+        <span class="n">trade_count</span> <span class="o">=</span> <span class="mi">101</span>
+
+    <span class="c"># -------------------</span>
+    <span class="c"># Create the Algo</span>
+    <span class="c"># -------------------</span>
+    <span class="k">if</span> <span class="s">&#39;algorithm&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">test_algo</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;algorithm&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">test_algo</span> <span class="o">=</span> <span class="n">TestAlgorithm</span><span class="p">(</span>
+            <span class="n">sid</span><span class="p">,</span>
+            <span class="n">order_amount</span><span class="p">,</span>
+            <span class="n">order_count</span><span class="p">,</span>
+            <span class="n">sim_params</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;sim_params&#39;</span><span class="p">,</span>
+                                  <span class="n">factory</span><span class="o">.</span><span class="n">create_simulation_parameters</span><span class="p">()),</span>
+            <span class="n">slippage</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;slippage&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="c"># -------------------</span>
+    <span class="c"># Trade Source</span>
+    <span class="c"># -------------------</span>
+    <span class="k">if</span> <span class="s">&#39;trade_source&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">trade_source</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;trade_source&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">trade_source</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">create_daily_trade_source</span><span class="p">(</span>
+            <span class="n">sid_list</span><span class="p">,</span>
+            <span class="n">trade_count</span><span class="p">,</span>
+            <span class="n">test_algo</span><span class="o">.</span><span class="n">sim_params</span><span class="p">,</span>
+            <span class="n">concurrent</span><span class="o">=</span><span class="n">concurrent_trades</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">trade_source</span><span class="p">:</span>
+        <span class="n">test_algo</span><span class="o">.</span><span class="n">set_sources</span><span class="p">([</span><span class="n">trade_source</span><span class="p">])</span>
+
+    <span class="c"># -------------------</span>
+    <span class="c"># Benchmark source</span>
+    <span class="c"># -------------------</span>
+
+    <span class="n">test_algo</span><span class="o">.</span><span class="n">benchmark_return_source</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;benchmark_source&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="c"># -------------------</span>
+    <span class="c"># Transforms</span>
+    <span class="c"># -------------------</span>
+
+    <span class="n">transforms</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;transforms&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">test_algo</span><span class="o">.</span><span class="n">set_transforms</span><span class="p">(</span><span class="n">transforms</span><span class="p">)</span>
+
+    <span class="c"># ------------------</span>
+    <span class="c"># generator/simulator</span>
+    <span class="n">sim</span> <span class="o">=</span> <span class="n">test_algo</span><span class="o">.</span><span class="n">get_generator</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">sim</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

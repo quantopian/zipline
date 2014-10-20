@@ -1,0 +1,497 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.utils.tradingcalendar &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.utils.tradingcalendar</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="kn">import</span> <span class="n">rrule</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;1990-01-01&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+<span class="n">end_base</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;today&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+<span class="c"># Give an aggressive buffer for logic that needs to use the next trading</span>
+<span class="c"># day or minute.</span>
+<span class="n">end</span> <span class="o">=</span> <span class="n">end_base</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">365</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="canonicalize_datetime"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.canonicalize_datetime">[docs]</a><span class="k">def</span> <span class="nf">canonicalize_datetime</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
+    <span class="c"># Strip out any HHMMSS or timezone info in the user&#39;s datetime, so that</span>
+    <span class="c"># all the datetimes we return will be 00:00:00 UTC.</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_non_trading_days"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.get_non_trading_days">[docs]</a><span class="k">def</span> <span class="nf">get_non_trading_days</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+    <span class="n">non_trading_rules</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">canonicalize_datetime</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">canonicalize_datetime</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+    <span class="n">weekends</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">YEARLY</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">SA</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">SU</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weekends</span><span class="p">)</span>
+
+    <span class="n">new_years</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">byyearday</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_years</span><span class="p">)</span>
+
+    <span class="n">new_years_sunday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">byyearday</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_years_sunday</span><span class="p">)</span>
+
+    <span class="n">mlk_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">(</span><span class="o">+</span><span class="mi">3</span><span class="p">)),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1998</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mlk_day</span><span class="p">)</span>
+
+    <span class="n">presidents_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">(</span><span class="mi">3</span><span class="p">)),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">presidents_day</span><span class="p">)</span>
+
+    <span class="n">good_friday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">DAILY</span><span class="p">,</span>
+        <span class="n">byeaster</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">good_friday</span><span class="p">)</span>
+
+    <span class="n">memorial_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">memorial_day</span><span class="p">)</span>
+
+    <span class="n">july_4th</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">july_4th</span><span class="p">)</span>
+
+    <span class="n">july_4th_sunday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">july_4th_sunday</span><span class="p">)</span>
+
+    <span class="n">july_4th_saturday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">FR</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">july_4th_saturday</span><span class="p">)</span>
+
+    <span class="n">labor_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">labor_day</span><span class="p">)</span>
+
+    <span class="n">thanksgiving</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">TH</span><span class="p">(</span><span class="mi">4</span><span class="p">)),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thanksgiving</span><span class="p">)</span>
+
+    <span class="n">christmas</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">christmas</span><span class="p">)</span>
+
+    <span class="n">christmas_sunday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">26</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">christmas_sunday</span><span class="p">)</span>
+
+    <span class="c"># If Christmas is a Saturday then 24th, a Friday is observed.</span>
+    <span class="n">christmas_saturday</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">FR</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">non_trading_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">christmas_saturday</span><span class="p">)</span>
+
+    <span class="n">non_trading_ruleset</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rruleset</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">non_trading_rules</span><span class="p">:</span>
+        <span class="n">non_trading_ruleset</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+
+    <span class="n">non_trading_days</span> <span class="o">=</span> <span class="n">non_trading_ruleset</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">inc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="c"># Add September 11th closings</span>
+    <span class="c"># http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks</span>
+    <span class="c"># Due to the terrorist attacks, the stock market did not open on 9/11/2001</span>
+    <span class="c"># It did not open again until 9/17/2001.</span>
+    <span class="c">#</span>
+    <span class="c">#    September 2001</span>
+    <span class="c"># Su Mo Tu We Th Fr Sa</span>
+    <span class="c">#                    1</span>
+    <span class="c">#  2  3  4  5  6  7  8</span>
+    <span class="c">#  9 10 11 12 13 14 15</span>
+    <span class="c"># 16 17 18 19 20 21 22</span>
+    <span class="c"># 23 24 25 26 27 28 29</span>
+    <span class="c"># 30</span>
+
+    <span class="k">for</span> <span class="n">day_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">17</span><span class="p">):</span>
+        <span class="n">non_trading_days</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">day_num</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+
+    <span class="c"># Add closings due to Hurricane Sandy in 2012</span>
+    <span class="c"># http://en.wikipedia.org/wiki/Hurricane_sandy</span>
+    <span class="c">#</span>
+    <span class="c"># The stock exchange was closed due to Hurricane Sandy&#39;s</span>
+    <span class="c"># impact on New York.</span>
+    <span class="c"># It closed on 10/29 and 10/30, reopening on 10/31</span>
+    <span class="c">#     October 2012</span>
+    <span class="c"># Su Mo Tu We Th Fr Sa</span>
+    <span class="c">#     1  2  3  4  5  6</span>
+    <span class="c">#  7  8  9 10 11 12 13</span>
+    <span class="c"># 14 15 16 17 18 19 20</span>
+    <span class="c"># 21 22 23 24 25 26 27</span>
+    <span class="c"># 28 29 30 31</span>
+
+    <span class="k">for</span> <span class="n">day_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">29</span><span class="p">,</span> <span class="mi">31</span><span class="p">):</span>
+        <span class="n">non_trading_days</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="p">(</span><span class="mi">2012</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">day_num</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+
+    <span class="c"># Misc closings from NYSE listing.</span>
+    <span class="c"># http://www.nyse.com/pdfs/closings.pdf</span>
+    <span class="c">#</span>
+    <span class="c"># National Days of Mourning</span>
+    <span class="c"># - President Richard Nixon</span>
+    <span class="n">non_trading_days</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1994</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="c"># - President Ronald W. Reagan - June 11, 2004</span>
+    <span class="n">non_trading_days</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2004</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="c"># - President Gerald R. Ford - Jan 2, 2007</span>
+    <span class="n">non_trading_days</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+
+    <span class="n">non_trading_days</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">(</span><span class="n">non_trading_days</span><span class="p">)</span>
+</div>
+<span class="n">non_trading_days</span> <span class="o">=</span> <span class="n">get_non_trading_days</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+<span class="n">trading_day</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">tseries</span><span class="o">.</span><span class="n">offsets</span><span class="o">.</span><span class="n">CDay</span><span class="p">(</span><span class="n">holidays</span><span class="o">=</span><span class="n">non_trading_days</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_trading_days"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.get_trading_days">[docs]</a><span class="k">def</span> <span class="nf">get_trading_days</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">trading_day</span><span class="o">=</span><span class="n">trading_day</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+                         <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+                         <span class="n">freq</span><span class="o">=</span><span class="n">trading_day</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+</div>
+<span class="n">trading_days</span> <span class="o">=</span> <span class="n">get_trading_days</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_early_closes"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.get_early_closes">[docs]</a><span class="k">def</span> <span class="nf">get_early_closes</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+    <span class="c"># 1:00 PM close rules based on</span>
+    <span class="c"># http://quant.stackexchange.com/questions/4083/nyse-early-close-rules-july-4th-and-dec-25th # noqa</span>
+    <span class="c"># and verified against http://www.nyse.com/pdfs/closings.pdf</span>
+
+    <span class="c"># These rules are valid starting in 1993</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">canonicalize_datetime</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">canonicalize_datetime</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">1993</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">1993</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+
+    <span class="c"># Not included here are early closes prior to 1993</span>
+    <span class="c"># or unplanned early closes</span>
+
+    <span class="n">early_close_rules</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">day_after_thanksgiving</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+        <span class="c"># 4th Friday isn&#39;t correct if month starts on Friday, so restrict to</span>
+        <span class="c"># day range:</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">FR</span><span class="p">),</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">day_after_thanksgiving</span><span class="p">)</span>
+
+    <span class="n">christmas_eve</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">TU</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WE</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">TH</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">christmas_eve</span><span class="p">)</span>
+
+    <span class="n">friday_after_christmas</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">26</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">FR</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="c"># valid 1993-2007</span>
+        <span class="n">until</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">friday_after_christmas</span><span class="p">)</span>
+
+    <span class="n">day_before_independence_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">MO</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">TU</span><span class="p">,</span> <span class="n">rrule</span><span class="o">.</span><span class="n">TH</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">until</span><span class="o">=</span><span class="n">end</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">day_before_independence_day</span><span class="p">)</span>
+
+    <span class="n">day_after_independence_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">FR</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="c"># starting in 2013: wednesday before independence day</span>
+        <span class="n">until</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2012</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">day_after_independence_day</span><span class="p">)</span>
+
+    <span class="n">wednesday_before_independence_day</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span>
+        <span class="n">rrule</span><span class="o">.</span><span class="n">MONTHLY</span><span class="p">,</span>
+        <span class="n">bymonth</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">bymonthday</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">byweekday</span><span class="o">=</span><span class="n">rrule</span><span class="o">.</span><span class="n">WE</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="c"># starting in 2013</span>
+        <span class="n">dtstart</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)),</span>
+        <span class="n">until</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">early_close_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wednesday_before_independence_day</span><span class="p">)</span>
+
+    <span class="n">early_close_ruleset</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rruleset</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">early_close_rules</span><span class="p">:</span>
+        <span class="n">early_close_ruleset</span><span class="o">.</span><span class="n">rrule</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+    <span class="n">early_closes</span> <span class="o">=</span> <span class="n">early_close_ruleset</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">inc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="c"># Misc early closings from NYSE listing.</span>
+    <span class="c"># http://www.nyse.com/pdfs/closings.pdf</span>
+    <span class="c">#</span>
+    <span class="c"># New Year&#39;s Eve</span>
+    <span class="n">nye_1999</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">1999</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">nye_1999</span> <span class="ow">and</span> <span class="n">nye_1999</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">:</span>
+        <span class="n">early_closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nye_1999</span><span class="p">)</span>
+
+    <span class="n">early_closes</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">(</span><span class="n">early_closes</span><span class="p">)</span>
+</div>
+<span class="n">early_closes</span> <span class="o">=</span> <span class="n">get_early_closes</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_open_and_close"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.get_open_and_close">[docs]</a><span class="k">def</span> <span class="nf">get_open_and_close</span><span class="p">(</span><span class="n">day</span><span class="p">,</span> <span class="n">early_closes</span><span class="p">):</span>
+    <span class="n">market_open</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+        <span class="n">datetime</span><span class="p">(</span>
+            <span class="n">year</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+            <span class="n">month</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+            <span class="n">day</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+            <span class="n">hour</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+            <span class="n">minute</span><span class="o">=</span><span class="mi">31</span><span class="p">),</span>
+        <span class="n">tz</span><span class="o">=</span><span class="s">&#39;US/Eastern&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+    <span class="c"># 1 PM if early close, 4 PM otherwise</span>
+    <span class="n">close_hour</span> <span class="o">=</span> <span class="mi">13</span> <span class="k">if</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">early_closes</span> <span class="k">else</span> <span class="mi">16</span>
+    <span class="n">market_close</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+        <span class="n">datetime</span><span class="p">(</span>
+            <span class="n">year</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+            <span class="n">month</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+            <span class="n">day</span><span class="o">=</span><span class="n">day</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+            <span class="n">hour</span><span class="o">=</span><span class="n">close_hour</span><span class="p">),</span>
+        <span class="n">tz</span><span class="o">=</span><span class="s">&#39;US/Eastern&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">market_open</span><span class="p">,</span> <span class="n">market_close</span>
+
+</div>
+<div class="viewcode-block" id="get_open_and_closes"><a class="viewcode-back" href="../../../zipline.utils.html#zipline.utils.tradingcalendar.get_open_and_closes">[docs]</a><span class="k">def</span> <span class="nf">get_open_and_closes</span><span class="p">(</span><span class="n">trading_days</span><span class="p">,</span> <span class="n">early_closes</span><span class="p">):</span>
+    <span class="n">open_and_closes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">trading_days</span><span class="p">,</span>
+                                   <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;market_open&#39;</span><span class="p">,</span> <span class="s">&#39;market_close&#39;</span><span class="p">))</span>
+
+    <span class="n">get_o_and_c</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">get_open_and_close</span><span class="p">,</span> <span class="n">early_closes</span><span class="o">=</span><span class="n">early_closes</span><span class="p">)</span>
+
+    <span class="n">open_and_closes</span><span class="p">[</span><span class="s">&#39;market_open&#39;</span><span class="p">],</span> <span class="n">open_and_closes</span><span class="p">[</span><span class="s">&#39;market_close&#39;</span><span class="p">]</span> <span class="o">=</span> \
+        <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">open_and_closes</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">get_o_and_c</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">open_and_closes</span>
+</div>
+<span class="n">open_and_closes</span> <span class="o">=</span> <span class="n">get_open_and_closes</span><span class="p">(</span><span class="n">trading_days</span><span class="p">,</span> <span class="n">early_closes</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

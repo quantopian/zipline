@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.gens subpackage &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="index.html" />
+    <link rel="up" title="zipline Package" href="zipline.html" />
+    <link rel="next" title="zipline.transforms subpackage" href="zipline.transforms.html" />
+    <link rel="prev" title="zipline.finance subpackage" href="zipline.finance.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.transforms.html" title="zipline.transforms subpackage"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="zipline.finance.html" title="zipline.finance subpackage"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" accesskey="U"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-zipline.gens.__init__">
+<span id="zipline-gens-subpackage"></span><h1><tt class="xref py py-mod docutils literal"><span class="pre">zipline.gens</span></tt> subpackage<a class="headerlink" href="#module-zipline.gens.__init__" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-zipline.gens.composites">
+<span id="composites-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">composites</span></tt> Module<a class="headerlink" href="#module-zipline.gens.composites" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.gens.composites.date_sorted_sources">
+<tt class="descclassname">zipline.gens.composites.</tt><tt class="descname">date_sorted_sources</tt><big>(</big><em>*sources</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/composites.html#date_sorted_sources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.composites.date_sorted_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes an iterable of sources, generating namestrings and
+piping their output into date_sort.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.composites.sequential_transforms">
+<tt class="descclassname">zipline.gens.composites.</tt><tt class="descname">sequential_transforms</tt><big>(</big><em>stream_in</em>, <em>*transforms</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/composites.html#sequential_transforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.composites.sequential_transforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply each transform in transforms sequentially to each event in stream_in.
+Each transform application will add a new entry indexed to the transform&#8217;s
+hash string.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.gens.tradesimulation">
+<span id="tradesimulation-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">tradesimulation</span></tt> Module<a class="headerlink" href="#module-zipline.gens.tradesimulation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator">
+<em class="property">class </em><tt class="descclassname">zipline.gens.tradesimulation.</tt><tt class="descname">AlgorithmSimulator</tt><big>(</big><em>algo</em>, <em>sim_params</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="attribute">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.EMISSION_TO_PERF_KEY_MAP">
+<tt class="descname">EMISSION_TO_PERF_KEY_MAP</tt><em class="property"> = {'daily': 'daily_perf', 'minute': 'minute_perf'}</em><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.EMISSION_TO_PERF_KEY_MAP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.get_hash">
+<tt class="descname">get_hash</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>There should only ever be one TSC in the system, so
+we don&#8217;t bother passing args into the hash.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.get_message">
+<tt class="descname">get_message</tt><big>(</big><em>dt</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.get_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.get_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a perf message for the given datetime.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.on_dt_changed">
+<tt class="descname">on_dt_changed</tt><big>(</big><em>dt</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.on_dt_changed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.on_dt_changed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.perf_key">
+<tt class="descname">perf_key</tt><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.perf_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.perf_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.process_event">
+<tt class="descname">process_event</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.process_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.process_event" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.transform">
+<tt class="descname">transform</tt><big>(</big><em>stream_in</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main generator work loop.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.gens.tradesimulation.AlgorithmSimulator.update_universe">
+<tt class="descname">update_universe</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/tradesimulation.html#AlgorithmSimulator.update_universe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.tradesimulation.AlgorithmSimulator.update_universe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the universe with new event information.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.gens.utils">
+<span id="utils-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">utils</span></tt> Module<a class="headerlink" href="#module-zipline.gens.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.gens.utils.assert_datasource_protocol">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">assert_datasource_protocol</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#assert_datasource_protocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.assert_datasource_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that an event meets the protocol for datasource outputs.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.utils.assert_datasource_unframe_protocol">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">assert_datasource_unframe_protocol</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#assert_datasource_unframe_protocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.assert_datasource_unframe_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that an event is valid output of zp.DATASOURCE_UNFRAME.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.utils.assert_sort_protocol">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">assert_sort_protocol</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#assert_sort_protocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.assert_sort_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that an event is valid input to zp.FEED_FRAME.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.utils.assert_sort_unframe_protocol">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">assert_sort_unframe_protocol</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#assert_sort_unframe_protocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.assert_sort_unframe_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as above.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.utils.assert_trade_protocol">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">assert_trade_protocol</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#assert_trade_protocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.assert_trade_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that an event meets the protocol for datasource TRADE outputs.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.gens.utils.hash_args">
+<tt class="descclassname">zipline.gens.utils.</tt><tt class="descname">hash_args</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/zipline/gens/utils.html#hash_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.gens.utils.hash_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a unique string for any set of representable args.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">zipline.gens</span></tt> subpackage</a><ul>
+<li><a class="reference internal" href="#module-zipline.gens.composites"><tt class="docutils literal"><span class="pre">composites</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.gens.tradesimulation"><tt class="docutils literal"><span class="pre">tradesimulation</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.gens.utils"><tt class="docutils literal"><span class="pre">utils</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="zipline.finance.html"
+                        title="previous chapter"><tt class="docutils literal"><span class="pre">zipline.finance</span></tt> subpackage</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="zipline.transforms.html"
+                        title="next chapter"><tt class="docutils literal"><span class="pre">zipline.transforms</span></tt> subpackage</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/zipline.gens.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.transforms.html" title="zipline.transforms subpackage"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="zipline.finance.html" title="zipline.finance subpackage"
+             >previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" ><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

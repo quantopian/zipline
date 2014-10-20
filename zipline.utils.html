@@ -1,0 +1,411 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.utils subpackage &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="index.html" />
+    <link rel="up" title="zipline Package" href="zipline.html" />
+    <link rel="prev" title="zipline.transforms subpackage" href="zipline.transforms.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.transforms.html" title="zipline.transforms subpackage"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" accesskey="U"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-zipline.utils.__init__">
+<span id="zipline-utils-subpackage"></span><h1><tt class="xref py py-mod docutils literal"><span class="pre">zipline.utils</span></tt> subpackage<a class="headerlink" href="#module-zipline.utils.__init__" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="zipline.utils.__init__.run_pipeline">
+<tt class="descclassname">zipline.utils.__init__.</tt><tt class="descname">run_pipeline</tt><big>(</big><em>print_algo=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#zipline.utils.__init__.run_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs a full zipline pipeline given configuration keyword
+arguments.</p>
+<p>1. Load data (start and end dates can be provided a strings as
+well as the source and symobls).</p>
+<p>2. Instantiate algorithm (supply either algo_text or algofile
+kwargs containing initialize() and handle_data() functions). If
+algofile is supplied, will try to look for algofile_analyze.py and
+append it.</p>
+<ol class="arabic simple" start="3">
+<li>Run algorithm (supply capital_base as float).</li>
+<li>Return performance dataframe.</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last">
+<li><dl class="first docutils">
+<dt>print_algo <span class="classifier-delimiter">:</span> <span class="classifier">bool &lt;default=True&gt;</span></dt>
+<dd><p class="first last">Whether to print the algorithm to command line. Will use
+pygments syntax coloring if pygments is found.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.__init__.parse_args">
+<tt class="descclassname">zipline.utils.__init__.</tt><tt class="descname">parse_args</tt><big>(</big><em>argv</em>, <em>ipython_mode=False</em><big>)</big><a class="headerlink" href="#zipline.utils.__init__.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse list of arguments.</p>
+<p>If a config file is provided (via -c), it will read in the
+supplied options and overwrite any global defaults.</p>
+<p>All other directly supplied arguments will overwrite the config
+file settings.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt>argv <span class="classifier-delimiter">:</span> <span class="classifier">list of strings</span></dt>
+<dd><p class="first last">List of arguments, e.g. [&#8216;-c&#8217;, &#8216;my.conf&#8217;]</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>ipython_mode <span class="classifier-delimiter">:</span> <span class="classifier">bool &lt;default=True&gt;</span></dt>
+<dd><p class="first last">Whether to parse IPython specific arguments
+like &#8211;local_namespace</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p>Notes:
+Default settings can be found in zipline.utils.cli.DEFAULTS.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.__init__.parse_cell_magic">
+<tt class="descclassname">zipline.utils.__init__.</tt><tt class="descname">parse_cell_magic</tt><big>(</big><em>line</em>, <em>cell</em><big>)</big><a class="headerlink" href="#zipline.utils.__init__.parse_cell_magic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse IPython magic</p>
+</dd></dl>
+
+<div class="section" id="module-zipline.utils.factory">
+<span id="factory-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">factory</span></tt> Module<a class="headerlink" href="#module-zipline.utils.factory" title="Permalink to this headline">¶</a></h2>
+<p>Factory functions to prepare useful data.</p>
+<dl class="function">
+<dt id="zipline.utils.factory.load_from_yahoo">
+<tt class="descclassname">zipline.utils.factory.</tt><tt class="descname">load_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="headerlink" href="#zipline.utils.factory.load_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads price data from Yahoo into a dataframe for each of the indicated
+securities.  By default, &#8216;price&#8217; is taken from Yahoo&#8217;s &#8216;Adjusted Close&#8217;,
+which removes the impact of splits and dividends. If the argument
+&#8216;adjusted&#8217; is False, then the non-adjusted &#8216;close&#8217; field is used instead.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust the price for splits and dividends.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.factory.load_bars_from_yahoo">
+<tt class="descclassname">zipline.utils.factory.</tt><tt class="descname">load_bars_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="headerlink" href="#zipline.utils.factory.load_bars_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads data from Yahoo into a panel with the following
+column names for each indicated security:</p>
+<blockquote>
+<div><ul class="simple">
+<li>open</li>
+<li>high</li>
+<li>low</li>
+<li>close</li>
+<li>volume</li>
+<li>price</li>
+</ul>
+</div></blockquote>
+<p>Note that &#8216;price&#8217; is Yahoo&#8217;s &#8216;Adjusted Close&#8217;, which removes the
+impact of splits and dividends. If the argument &#8216;adjusted&#8217; is True, then
+the open, high, low, and close values are adjusted as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust open/high/low/close for splits and dividends.
+The &#8216;price&#8217; field is always adjusted.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.utils.protocol_utils">
+<span id="protocol-units-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">protocol_units</span></tt> Module<a class="headerlink" href="#module-zipline.utils.protocol_utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.utils.protocol_utils.Enum">
+<tt class="descclassname">zipline.utils.protocol_utils.</tt><tt class="descname">Enum</tt><big>(</big><em>*options</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/protocol_utils.html#Enum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.protocol_utils.Enum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fast enums are very important when we want really tight
+loops. These are probably going to evolve into pure C structs
+anyways so might as well get going on that.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.utils.simfactory">
+<span id="simfactory-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">simfactory</span></tt> Module<a class="headerlink" href="#module-zipline.utils.simfactory" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.utils.simfactory.create_test_zipline">
+<tt class="descclassname">zipline.utils.simfactory.</tt><tt class="descname">create_test_zipline</tt><big>(</big><em>**config</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/simfactory.html#create_test_zipline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.simfactory.create_test_zipline" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> &#8211; <p>A configuration object that is a dict with:</p>
+<ul class="simple">
+<li>sid - an integer, which will be used as the security ID.</li>
+<li>order_count - the number of orders the test algo will place,
+defaults to 100</li>
+<li>order_amount - the number of shares per order, defaults to 100</li>
+<li>trade_count - the number of trades to simulate, defaults to 101
+to ensure all orders are processed.</li>
+<li>algorithm - optional parameter providing an algorithm. defaults
+to <tt class="xref py py-class docutils literal"><span class="pre">zipline.test.algorithms.TestAlgorithm</span></tt></li>
+<li>trade_source - optional parameter to specify trades, if present.
+If not present <a class="reference internal" href="zipline.html#zipline.sources.SpecificEquityTrades" title="zipline.sources.SpecificEquityTrades"><tt class="xref py py-class docutils literal"><span class="pre">zipline.sources.SpecificEquityTrades</span></tt></a>
+is the source, with daily frequency in trades.</li>
+<li>slippage: optional parameter that configures the
+<tt class="xref py py-class docutils literal"><span class="pre">zipline.gens.tradingsimulation.TransactionSimulator</span></tt>.
+Expects an object with a simulate mehod, such as
+<tt class="xref py py-class docutils literal"><span class="pre">zipline.gens.tradingsimulation.FixedSlippage</span></tt>.
+<a class="reference internal" href="zipline.finance.html#module-zipline.finance.trading" title="zipline.finance.trading"><tt class="xref py py-mod docutils literal"><span class="pre">zipline.finance.trading</span></tt></a></li>
+<li>transforms: optional parameter that provides a list
+of StatefulTransform objects.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.utils.test_utils">
+<span id="test-utils-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_utils</span></tt> Module<a class="headerlink" href="#module-zipline.utils.test_utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="zipline.utils.test_utils.ExceptionSource">
+<em class="property">class </em><tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">ExceptionSource</tt><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="zipline.utils.test_utils.ExceptionSource.get_hash">
+<tt class="descname">get_hash</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionSource.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionSource.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.test_utils.ExceptionSource.next">
+<tt class="descname">next</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionSource.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionSource.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.utils.test_utils.ExceptionTransform">
+<em class="property">class </em><tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">ExceptionTransform</tt><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionTransform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="zipline.utils.test_utils.ExceptionTransform.get_hash">
+<tt class="descname">get_hash</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionTransform.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionTransform.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.test_utils.ExceptionTransform.update">
+<tt class="descname">update</tt><big>(</big><em>event</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#ExceptionTransform.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.ExceptionTransform.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.assert_single_position">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">assert_single_position</tt><big>(</big><em>test</em>, <em>zipline</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#assert_single_position"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.assert_single_position" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.drain_zipline">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">drain_zipline</tt><big>(</big><em>test</em>, <em>zipline</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#drain_zipline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.drain_zipline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.nullctx">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">nullctx</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#nullctx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.nullctx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Null context manager.  Useful for conditionally adding a contextmanager in
+a single line, e.g.:</p>
+<dl class="docutils">
+<dt>with SomeContextManager() if some_expr else nullcontext:</dt>
+<dd>do_stuff()</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.setup_logger">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">setup_logger</tt><big>(</big><em>test</em>, <em>path='test.log'</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#setup_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.setup_logger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.teardown_logger">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">teardown_logger</tt><big>(</big><em>test</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#teardown_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.teardown_logger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.test_utils.to_utc">
+<tt class="descclassname">zipline.utils.test_utils.</tt><tt class="descname">to_utc</tt><big>(</big><em>time_str</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/test_utils.html#to_utc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.test_utils.to_utc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-zipline.utils.tradingcalendar">
+<span id="tradingcalendar-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">tradingcalendar</span></tt> Module<a class="headerlink" href="#module-zipline.utils.tradingcalendar" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.canonicalize_datetime">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">canonicalize_datetime</tt><big>(</big><em>dt</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#canonicalize_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.canonicalize_datetime" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.get_early_closes">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">get_early_closes</tt><big>(</big><em>start</em>, <em>end</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#get_early_closes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.get_early_closes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.get_non_trading_days">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">get_non_trading_days</tt><big>(</big><em>start</em>, <em>end</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#get_non_trading_days"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.get_non_trading_days" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.get_open_and_close">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">get_open_and_close</tt><big>(</big><em>day</em>, <em>early_closes</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#get_open_and_close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.get_open_and_close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.get_open_and_closes">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">get_open_and_closes</tt><big>(</big><em>trading_days</em>, <em>early_closes</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#get_open_and_closes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.get_open_and_closes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.tradingcalendar.get_trading_days">
+<tt class="descclassname">zipline.utils.tradingcalendar.</tt><tt class="descname">get_trading_days</tt><big>(</big><em>start</em>, <em>end</em>, <em>trading_day=&lt;CustomBusinessDay&gt;</em><big>)</big><a class="reference internal" href="_modules/zipline/utils/tradingcalendar.html#get_trading_days"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.tradingcalendar.get_trading_days" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">zipline.utils</span></tt> subpackage</a><ul>
+<li><a class="reference internal" href="#module-zipline.utils.factory"><tt class="docutils literal"><span class="pre">factory</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.utils.protocol_utils"><tt class="docutils literal"><span class="pre">protocol_units</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.utils.simfactory"><tt class="docutils literal"><span class="pre">simfactory</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.utils.test_utils"><tt class="docutils literal"><span class="pre">test_utils</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.utils.tradingcalendar"><tt class="docutils literal"><span class="pre">tradingcalendar</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="zipline.transforms.html"
+                        title="previous chapter"><tt class="docutils literal"><span class="pre">zipline.transforms</span></tt> subpackage</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/zipline.utils.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.transforms.html" title="zipline.transforms subpackage"
+             >previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" ><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

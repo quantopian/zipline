@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.data.treasuries &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.data.treasuries</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="nn">loader_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">guarded_conversion</span><span class="p">,</span>
+    <span class="n">safe_int</span><span class="p">,</span>
+    <span class="n">Mapping</span><span class="p">,</span>
+    <span class="n">date_conversion</span><span class="p">,</span>
+    <span class="n">source_to_records</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_treasury_date"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_treasury_date">[docs]</a><span class="k">def</span> <span class="nf">get_treasury_date</span><span class="p">(</span><span class="n">dstring</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">date_conversion</span><span class="p">(</span><span class="n">dstring</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;T&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">date_pattern</span><span class="o">=</span><span class="s">&#39;%Y-%m-</span><span class="si">%d</span><span class="s">&#39;</span><span class="p">,</span>
+                           <span class="n">to_utc</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_treasury_rate"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_treasury_rate">[docs]</a><span class="k">def</span> <span class="nf">get_treasury_rate</span><span class="p">(</span><span class="n">string_val</span><span class="p">):</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">guarded_conversion</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">string_val</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">val</span> <span class="o">/</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">val</span>
+</div>
+<span class="n">_CURVE_MAPPINGS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;tid&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">safe_int</span><span class="p">,</span> <span class="s">&quot;Id&quot;</span><span class="p">),</span>
+    <span class="s">&#39;date&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_date</span><span class="p">,</span> <span class="s">&quot;NEW_DATE&quot;</span><span class="p">),</span>
+    <span class="s">&#39;1month&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_1MONTH&quot;</span><span class="p">),</span>
+    <span class="s">&#39;3month&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_3MONTH&quot;</span><span class="p">),</span>
+    <span class="s">&#39;6month&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_6MONTH&quot;</span><span class="p">),</span>
+    <span class="s">&#39;1year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_1YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;2year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_2YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;3year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_3YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;5year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_5YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;7year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_7YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;10year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_10YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;20year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_20YEAR&quot;</span><span class="p">),</span>
+    <span class="s">&#39;30year&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">get_treasury_rate</span><span class="p">,</span> <span class="s">&quot;BC_30YEAR&quot;</span><span class="p">),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="treasury_mappings"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.treasury_mappings">[docs]</a><span class="k">def</span> <span class="nf">treasury_mappings</span><span class="p">(</span><span class="n">mappings</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">(</span><span class="o">*</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span>
+            <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">mappings</span><span class="p">)}</span>
+
+</div>
+<div class="viewcode-block" id="iter_to_stream"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.iter_to_stream">[docs]</a><span class="k">class</span> <span class="nc">iter_to_stream</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exposes an iterable as an i/o stream</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffered</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+
+<div class="viewcode-block" id="iter_to_stream.read"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.iter_to_stream.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+        <span class="k">while</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered</span> <span class="ow">or</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffered</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">size</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="n">size</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">size</span><span class="p">:]</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="n">data</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+</div></div>
+<div class="viewcode-block" id="get_localname"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_localname">[docs]</a><span class="k">def</span> <span class="nf">get_localname</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
+    <span class="n">qtag</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">QName</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">&quot;(\{.*\})(.*)&quot;</span><span class="p">,</span> <span class="n">qtag</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_treasury_source"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_treasury_source">[docs]</a><span class="k">def</span> <span class="nf">get_treasury_source</span><span class="p">():</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s">http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData</span><span class="se">\</span>
+<span class="s">&quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">stream</span> <span class="o">=</span> <span class="n">iter_to_stream</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">iterparse</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="s">&#39;start-ns&#39;</span><span class="p">,</span> <span class="s">&#39;end-ns&#39;</span><span class="p">))</span>
+
+    <span class="n">namespaces</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">properties_xpath</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">updated_namespaces</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s">&#39;&#39;</span> <span class="ow">in</span> <span class="n">namespaces</span> <span class="ow">and</span> <span class="s">&#39;m&#39;</span> <span class="ow">in</span> <span class="n">namespaces</span><span class="p">:</span>
+            <span class="n">properties_xpath</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{</span><span class="si">%s</span><span class="s">}content/{</span><span class="si">%s</span><span class="s">}properties&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">namespaces</span><span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">],</span> <span class="n">namespaces</span><span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">properties_xpath</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+
+    <span class="k">for</span> <span class="n">event</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;end&#39;</span><span class="p">:</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">get_localname</span><span class="p">(</span><span class="n">element</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s">&quot;entry&quot;</span><span class="p">:</span>
+                <span class="n">properties</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">properties_xpath</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">datum</span> <span class="o">=</span> <span class="p">{</span><span class="n">get_localname</span><span class="p">(</span><span class="n">node</span><span class="p">):</span> <span class="n">node</span><span class="o">.</span><span class="n">text</span>
+                         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">properties</span> <span class="k">if</span> <span class="n">ET</span><span class="o">.</span><span class="n">iselement</span><span class="p">(</span><span class="n">node</span><span class="p">)}</span>
+                <span class="c"># clear the element after we&#39;ve dealt with it:</span>
+                <span class="n">element</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="k">yield</span> <span class="n">datum</span>
+
+        <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;start-ns&#39;</span><span class="p">:</span>
+            <span class="n">namespaces</span><span class="p">[</span><span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">updated_namespaces</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;end-ns&#39;</span><span class="p">:</span>
+            <span class="n">namespaces</span><span class="o">.</span><span class="n">popitem</span><span class="p">()</span>
+            <span class="n">updated_namespaces</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="get_treasury_data"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_treasury_data">[docs]</a><span class="k">def</span> <span class="nf">get_treasury_data</span><span class="p">():</span>
+    <span class="n">mappings</span> <span class="o">=</span> <span class="n">treasury_mappings</span><span class="p">(</span><span class="n">_CURVE_MAPPINGS</span><span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">get_treasury_source</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">source_to_records</span><span class="p">(</span><span class="n">mappings</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="dataconverter"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.dataconverter">[docs]</a><span class="k">def</span> <span class="nf">dataconverter</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+</div>
+<div class="viewcode-block" id="get_daily_10yr_treasury_data"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.treasuries.get_daily_10yr_treasury_data">[docs]</a><span class="k">def</span> <span class="nf">get_daily_10yr_treasury_data</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Download daily 10 year treasury rates from the Federal Reserve and</span>
+<span class="sd">    return a pandas.Series.&quot;&quot;&quot;</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s">&quot;http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&quot;</span> \
+          <span class="s">&quot;&amp;series=bcb44e57fb57efbe90002369321bfb3f&amp;lastObs=&amp;from=&amp;to=&quot;</span> \
+          <span class="s">&quot;&amp;filetype=csv&amp;label=include&amp;layout=seriescolumn&quot;</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;DATE&#39;</span><span class="p">,</span> <span class="s">&#39;BC_10YEAR&#39;</span><span class="p">],</span>
+                       <span class="n">parse_dates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">dataconverter</span><span class="p">},</span>
+                       <span class="n">squeeze</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

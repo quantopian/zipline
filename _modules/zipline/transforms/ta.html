@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.transforms.ta &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.transforms.ta</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">talib</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span>
+
+<span class="kn">from</span> <span class="nn">zipline.transforms</span> <span class="kn">import</span> <span class="n">BatchTransform</span>
+
+
+<div class="viewcode-block" id="zipline_wrapper"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.ta.zipline_wrapper">[docs]</a><span class="k">def</span> <span class="nf">zipline_wrapper</span><span class="p">(</span><span class="n">talib_fn</span><span class="p">,</span> <span class="n">key_map</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c"># get required TA-Lib input names</span>
+    <span class="k">if</span> <span class="s">&#39;price&#39;</span> <span class="ow">in</span> <span class="n">talib_fn</span><span class="o">.</span><span class="n">input_names</span><span class="p">:</span>
+        <span class="n">req_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">input_names</span><span class="p">[</span><span class="s">&#39;price&#39;</span><span class="p">]]</span>
+    <span class="k">elif</span> <span class="s">&#39;prices&#39;</span> <span class="ow">in</span> <span class="n">talib_fn</span><span class="o">.</span><span class="n">input_names</span><span class="p">:</span>
+        <span class="n">req_inputs</span> <span class="o">=</span> <span class="n">talib_fn</span><span class="o">.</span><span class="n">input_names</span><span class="p">[</span><span class="s">&#39;prices&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">req_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c"># If there are multiple output names then the results are named,</span>
+    <span class="c"># if there is only one output name, it usually &#39;real&#39; is best represented</span>
+    <span class="c"># by a float.</span>
+    <span class="c"># Use a DataFrame to map sid to named values, and a Series map sid</span>
+    <span class="c"># to floats.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">output_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">all_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">output_names</span><span class="p">,</span>
+                                   <span class="n">columns</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">minor_axis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">all_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">minor_axis</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">minor_axis</span><span class="p">:</span>
+        <span class="c"># build talib_data from zipline data</span>
+        <span class="n">talib_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">talib_key</span><span class="p">,</span> <span class="n">zipline_key</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">key_map</span><span class="p">):</span>
+            <span class="c"># if zipline_key is found, add it to talib_data</span>
+            <span class="k">if</span> <span class="n">zipline_key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">zipline_key</span><span class="p">][</span><span class="n">sid</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                <span class="c"># Do not include sids that have only nans, passing only nans</span>
+                <span class="c"># is incompatible with many of the underlying TALib functions.</span>
+                <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">talib_data</span><span class="p">[</span><span class="n">talib_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">zipline_key</span><span class="p">][</span><span class="n">sid</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+            <span class="c"># if zipline_key is not found and not required, add zeros</span>
+            <span class="k">elif</span> <span class="n">talib_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">req_inputs</span><span class="p">:</span>
+                <span class="n">talib_data</span><span class="p">[</span><span class="n">talib_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="c"># if zipline key is not found and required, raise error</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s">&#39;Tried to set required TA-Lib data with key &#39;</span>
+                    <span class="s">&#39;</span><span class="se">\&#39;</span><span class="s">{0}</span><span class="se">\&#39;</span><span class="s"> but no Zipline data is available under &#39;</span>
+                    <span class="s">&#39;expected key </span><span class="se">\&#39;</span><span class="s">{1}</span><span class="se">\&#39;</span><span class="s">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">talib_key</span><span class="p">,</span> <span class="n">zipline_key</span><span class="p">))</span>
+
+        <span class="c"># call talib</span>
+        <span class="k">if</span> <span class="n">talib_data</span><span class="p">:</span>
+            <span class="n">talib_result</span> <span class="o">=</span> <span class="n">talib_fn</span><span class="p">(</span><span class="n">talib_data</span><span class="p">)</span>
+
+            <span class="c"># keep only the most recent result</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">talib_result</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">sid_result</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">talib_result</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sid_result</span> <span class="o">=</span> <span class="n">talib_result</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">all_results</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">sid_result</span>
+
+    <span class="k">return</span> <span class="n">all_results</span>
+
+</div>
+<div class="viewcode-block" id="make_transform"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.ta.make_transform">[docs]</a><span class="k">def</span> <span class="nf">make_transform</span><span class="p">(</span><span class="n">talib_fn</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A factory for BatchTransforms based on TALIB abstract functions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># make class docstring</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">#---- TA-Lib docs</span><span class="se">\n\n</span><span class="s">&#39;</span>
+    <span class="n">talib_docs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">talib</span><span class="p">,</span> <span class="n">talib_fn</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">__doc__</span>
+    <span class="n">divider1</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">#---- Default mapping (TA-Lib : Zipline)</span><span class="se">\n\n</span><span class="s">&#39;</span>
+    <span class="n">mappings</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;        {0} : {1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">talib_fn</span><span class="o">.</span><span class="n">input_names</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="n">divider2</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n\n</span><span class="s">#---- Zipline docs</span><span class="se">\n</span><span class="s">&#39;</span>
+    <span class="n">help_str</span> <span class="o">=</span> <span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">talib_docs</span> <span class="o">+</span> <span class="n">divider1</span> <span class="o">+</span> <span class="n">mappings</span>
+                <span class="o">+</span> <span class="n">divider2</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">TALibTransform</span><span class="p">(</span><span class="n">BatchTransform</span><span class="p">):</span>
+        <span class="n">__doc__</span> <span class="o">=</span> <span class="n">help_str</span> <span class="o">+</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        TA-Lib keyword arguments must be passed at initialization. For</span>
+<span class="s">        example, to construct a moving average with timeperiod of 5, pass</span>
+<span class="s">        &quot;timeperiod=5&quot; during initialization.</span>
+
+<span class="s">        All abstract TA-Lib functions accept a data dictionary containing</span>
+<span class="s">        &#39;open&#39;, &#39;high&#39;, &#39;low&#39;, &#39;close&#39;, and &#39;volume&#39; keys, even if they do</span>
+<span class="s">        not require those keys to run. For example, talib.MA (moving</span>
+<span class="s">        average) is always computed using the data under the &#39;close&#39;</span>
+<span class="s">        key. By default, Zipline constructs this data dictionary with the</span>
+<span class="s">        appropriate sid data, but users may overwrite this by passing</span>
+<span class="s">        mappings as keyword arguments. For example, to compute the moving</span>
+<span class="s">        average of the sid&#39;s high, provide &quot;close = &#39;high&#39;&quot; and Zipline&#39;s</span>
+<span class="s">        &#39;high&#39; data will be used as TA-Lib&#39;s &#39;close&#39; data. Similarly, if a</span>
+<span class="s">        user had a data column named &#39;Oil&#39;, they could compute its moving</span>
+<span class="s">        average by passing &quot;close=&#39;Oil&#39;&quot;.</span>
+
+
+<span class="s">        **Example**</span>
+
+<span class="s">        A moving average of a data column called &#39;Oil&#39; with timeperiod 5,</span>
+<span class="s">            talib.transforms.ta.MA(close=&#39;Oil&#39;, timeperiod=5)</span>
+
+<span class="s">        The user could find the default arguments and mappings by calling:</span>
+<span class="s">            help(zipline.transforms.ta.MA)</span>
+
+
+<span class="s">        **Arguments**</span>
+
+<span class="s">        open   : string, default &#39;open&#39;</span>
+<span class="s">        high   : string, default &#39;high&#39;</span>
+<span class="s">        low    : string, default &#39;low&#39;</span>
+<span class="s">        close  : string, default &#39;price&#39;</span>
+<span class="s">        volume : string, default &#39;volume&#39;</span>
+
+<span class="s">        refresh_period : int, default 0</span>
+<span class="s">            The refresh_period of the BatchTransform determines the number</span>
+<span class="s">            of iterations that pass before the BatchTransform updates its</span>
+<span class="s">            internal data.</span>
+
+<span class="s">        \*\*kwargs : any arguments to be passed to the TA-Lib function.</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">close</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">,</span>
+                     <span class="nb">open</span><span class="o">=</span><span class="s">&#39;open&#39;</span><span class="p">,</span>
+                     <span class="n">high</span><span class="o">=</span><span class="s">&#39;high&#39;</span><span class="p">,</span>
+                     <span class="n">low</span><span class="o">=</span><span class="s">&#39;low&#39;</span><span class="p">,</span>
+                     <span class="n">volume</span><span class="o">=</span><span class="s">&#39;volume&#39;</span><span class="p">,</span>
+                     <span class="n">refresh_period</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                     <span class="n">bars</span><span class="o">=</span><span class="s">&#39;daily&#39;</span><span class="p">,</span>
+                     <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+            <span class="n">key_map</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;high&#39;</span><span class="p">:</span> <span class="n">high</span><span class="p">,</span>
+                       <span class="s">&#39;low&#39;</span><span class="p">:</span> <span class="n">low</span><span class="p">,</span>
+                       <span class="s">&#39;open&#39;</span><span class="p">:</span> <span class="nb">open</span><span class="p">,</span>
+                       <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="n">volume</span><span class="p">,</span>
+                       <span class="s">&#39;close&#39;</span><span class="p">:</span> <span class="n">close</span><span class="p">}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">call_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+            <span class="c"># Make deepcopy of talib abstract function.</span>
+            <span class="c"># This is necessary because talib abstract functions remember</span>
+            <span class="c"># state, including parameters, and we need to set the parameters</span>
+            <span class="c"># in order to compute the lookback period that will determine the</span>
+            <span class="c"># BatchTransform window_length. TALIB has no way to restore default</span>
+            <span class="c"># parameters, so the deepcopy lets us change this function&#39;s</span>
+            <span class="c"># parameters without affecting other TALibTransforms of the same</span>
+            <span class="c"># function.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">talib_fn</span><span class="p">)</span>
+
+            <span class="c"># set the parameters</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">({</span><span class="n">param</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">param</span><span class="p">]})</span>
+
+            <span class="c"># get the lookback</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lookback</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">lookback</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">=</span> <span class="n">bars</span>
+            <span class="k">if</span> <span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+                <span class="n">lookback</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookback</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+                <span class="n">lookback</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lookback</span> <span class="o">/</span> <span class="p">(</span><span class="mf">6.5</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)))</span>
+
+            <span class="c"># Ensure that window_length is at least 1 day&#39;s worth of data.</span>
+            <span class="n">window_length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">lookback</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">transform_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                <span class="n">zipline_wrapper</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span><span class="p">,</span> <span class="n">key_map</span><span class="p">)</span>
+
+            <span class="nb">super</span><span class="p">(</span><span class="n">TALibTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+                <span class="n">func</span><span class="o">=</span><span class="n">transform_func</span><span class="p">,</span>
+                <span class="n">refresh_period</span><span class="o">=</span><span class="n">refresh_period</span><span class="p">,</span>
+                <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+                <span class="n">compute_only_full</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                <span class="n">bars</span><span class="o">=</span><span class="n">bars</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&#39;Zipline BatchTransform: {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">talib_fn</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="n">TALibTransform</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="c"># return class</span>
+    <span class="k">return</span> <span class="n">TALibTransform</span>
+
+
+<span class="c"># add all TA-Lib functions to locals</span></div>
+<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">talib</span><span class="o">.</span><span class="n">abstract</span><span class="o">.</span><span class="n">__FUNCTION_NAMES</span><span class="p">:</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">talib</span><span class="o">.</span><span class="n">abstract</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="nb">locals</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">make_transform</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

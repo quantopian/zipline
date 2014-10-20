@@ -1,0 +1,389 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.transforms.utils &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.transforms.utils</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generator versions of transforms.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logbook</span>
+
+
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Integral</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">WrongDataForTransform</span>
+<span class="kn">from</span> <span class="nn">zipline.gens.utils</span> <span class="kn">import</span> <span class="n">assert_sort_unframe_protocol</span><span class="p">,</span> <span class="n">hash_args</span>
+<span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="n">DATASOURCE_TYPE</span>
+<span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">trading</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logbook</span><span class="o">.</span><span class="n">Logger</span><span class="p">(</span><span class="s">&#39;Transform&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="UnsupportedEventWindowFlagValue"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.UnsupportedEventWindowFlagValue">[docs]</a><span class="k">class</span> <span class="nc">UnsupportedEventWindowFlagValue</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error state when an EventWindow option is attempted to be set</span>
+<span class="sd">    to a value that is no longer supported by the library.</span>
+
+<span class="sd">    This is to help enforce deprecation of the market_aware and delta flags,</span>
+<span class="sd">    without completely removing it and breaking existing algorithms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="InvalidWindowLength"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.InvalidWindowLength">[docs]</a><span class="k">class</span> <span class="nc">InvalidWindowLength</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error raised when the window length is unusable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="check_window_length"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.check_window_length">[docs]</a><span class="k">def</span> <span class="nf">check_window_length</span><span class="p">(</span><span class="n">window_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensure the window length provided to a transform is valid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be provided&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">window_length</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span>
+            <span class="s">&quot;window_length must be an integer-like number&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be non-zero&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be positive&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="TransformMeta"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.TransformMeta">[docs]</a><span class="k">class</span> <span class="nc">TransformMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Metaclass that automatically packages a class inside of</span>
+<span class="sd">    StatefulTransform on initialization. Specifically, if Foo is a</span>
+<span class="sd">    class with its __metaclass__ attribute set to TransformMeta, then</span>
+<span class="sd">    calling Foo(*args, **kwargs) will return StatefulTransform(Foo,</span>
+<span class="sd">    *args, **kwargs) instead of an instance of Foo. (Note that you can</span>
+<span class="sd">    still recover an instance of a &quot;raw&quot; Foo by introspecting the</span>
+<span class="sd">    resulting StatefulTransform&#39;s &#39;state&#39; field.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">StatefulTransform</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="StatefulTransform"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.StatefulTransform">[docs]</a><span class="k">class</span> <span class="nc">StatefulTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic transform generator that takes each message from an</span>
+<span class="sd">    in-stream and passes it to a state object.  For each call to</span>
+<span class="sd">    update, the state class must produce a message to be fed</span>
+<span class="sd">    downstream. Any transform class with the FORWARDER class variable</span>
+<span class="sd">    set to true will forward all fields in the original message.</span>
+<span class="sd">    Otherwise only dt, tnfm_id, and tnfm_value are forwarded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tnfm_class</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tnfm_class</span><span class="p">,</span> <span class="s">&#39;update&#39;</span><span class="p">),</span> \
+            <span class="s">&quot;Stateful transform requires the class to have an update method&quot;</span>
+
+        <span class="c"># Create an instance of our transform class.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tnfm_class</span><span class="p">,</span> <span class="n">TransformMeta</span><span class="p">):</span>
+            <span class="c"># Classes derived TransformMeta have their __call__</span>
+            <span class="c"># attribute overridden.  Since this is what is usually</span>
+            <span class="c"># used to create an instance, we have to delegate the</span>
+            <span class="c"># responsibility of creating an instance to</span>
+            <span class="c"># TransformMeta&#39;s parent class, which is &#39;type&#39;. This is</span>
+            <span class="c"># what is implicitly done behind the scenes by the python</span>
+            <span class="c"># interpreter for most classes anyway, but here we have to</span>
+            <span class="c"># be explicit because we&#39;ve overridden the method that</span>
+            <span class="c"># usually resolves to our super call.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformMeta</span><span class="p">,</span> <span class="n">tnfm_class</span><span class="p">)</span><span class="o">.</span><span class="n">__call__</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c"># Normal object instantiation.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">tnfm_class</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c"># save the window_length of the state for external access.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">window_length</span>
+        <span class="c"># Create the string associated with this generator&#39;s output.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namestring</span> <span class="o">=</span> <span class="n">tnfm_class</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="n">hash_args</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StatefulTransform.get_hash"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.StatefulTransform.get_hash">[docs]</a>    <span class="k">def</span> <span class="nf">get_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">namestring</span>
+</div>
+<div class="viewcode-block" id="StatefulTransform.transform"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.StatefulTransform.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream_in</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gen</span><span class="p">(</span><span class="n">stream_in</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_gen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream_in</span><span class="p">):</span>
+        <span class="c"># IMPORTANT: Messages may contain pointers that are shared with</span>
+        <span class="c"># other streams.  Transforms that modify their input</span>
+        <span class="c"># messages should only manipulate copies.</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">stream_in</span><span class="p">:</span>
+            <span class="c"># we only handle TRADE and CUSTOM events.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s">&#39;type&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">message</span><span class="o">.</span><span class="n">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+                        <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">TRADE</span><span class="p">,</span>
+                        <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">)):</span>
+                <span class="k">yield</span> <span class="n">message</span>
+                <span class="k">continue</span>
+            <span class="c"># allow upstream generators to yield None to avoid</span>
+            <span class="c"># blocking.</span>
+            <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">assert_sort_unframe_protocol</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">tnfm_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">WrongDataForTransform</span><span class="p">:</span>
+                <span class="c"># Transform classes should raise WrongDataForTransform if they</span>
+                <span class="c"># are unable to process the event BEFORE performing any state</span>
+                <span class="c"># modifications, because we continue the simulation if a</span>
+                <span class="c"># WrongDataForTransform is raised on a CUSTOM event.</span>
+                <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">:</span>
+                    <span class="c"># Pass through custom events that are not applicable to</span>
+                    <span class="c"># this transform.</span>
+                    <span class="k">yield</span> <span class="n">message</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c"># If a TRADE event raises a WrongDataForTransform,</span>
+                    <span class="c"># something bad has happend.</span>
+                    <span class="k">raise</span>
+
+            <span class="n">out_message</span> <span class="o">=</span> <span class="n">message</span>
+            <span class="n">out_message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">namestring</span><span class="p">]</span> <span class="o">=</span> <span class="n">tnfm_value</span>
+            <span class="k">yield</span> <span class="n">out_message</span>
+
+</div>
+<div class="viewcode-block" id="EventWindow"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow">[docs]</a><span class="k">class</span> <span class="nc">EventWindow</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for transform classes that calculate iterative</span>
+<span class="sd">    metrics on events within a given timedelta.  Maintains a list of</span>
+<span class="sd">    events that are within a certain timedelta of the most recent</span>
+<span class="sd">    tick.  Calls self.handle_add(event) for each event added to the</span>
+<span class="sd">    window.  Calls self.handle_remove(event) for each event removed</span>
+<span class="sd">    from the window.  Subclass these methods along with init(*args,</span>
+<span class="sd">    **kwargs) to calculate metrics over the window.</span>
+
+<span class="sd">    If the market_aware flag is True, the EventWindow drops old events</span>
+<span class="sd">    based on the number of elapsed trading days between newest and oldest.</span>
+<span class="sd">    Otherwise old events are dropped based on a raw timedelta.</span>
+
+<span class="sd">    See zipline/transforms/mavg.py and zipline/transforms/vwap.py for example</span>
+<span class="sd">    implementations of moving average and volume-weighted average</span>
+<span class="sd">    price.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Mark this as an abstract base class.</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">window_length</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="n">check_window_length</span><span class="p">(</span><span class="n">window_length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">=</span> <span class="n">window_length</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+        <span class="c"># Only Market-aware mode is now supported.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">market_aware</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedEventWindowFlagValue</span><span class="p">(</span>
+                <span class="s">&quot;Non-&#39;market aware&#39; mode is no longer supported.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">delta</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedEventWindowFlagValue</span><span class="p">(</span>
+                <span class="s">&quot;delta values are no longer supported.&quot;</span>
+            <span class="p">)</span>
+        <span class="c"># Set the behavior for dropping events from the back of the</span>
+        <span class="c"># event window.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drop_condition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_of_market_window</span>
+
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="EventWindow.handle_add"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.handle_add">[docs]</a>    <span class="k">def</span> <span class="nf">handle_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+    <span class="nd">@abstractproperty</span>
+<div class="viewcode-block" id="EventWindow.fields"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.fields">[docs]</a>    <span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="EventWindow.handle_remove"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.handle_remove">[docs]</a>    <span class="k">def</span> <span class="nf">handle_remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EventWindow.update"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_well_formed</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="c"># Add new event and increment totals.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="c"># Subclasses should override handle_add to define behavior for</span>
+        <span class="c"># adding new ticks.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handle_add</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="c"># Clear out any expired events.</span>
+        <span class="c">#</span>
+        <span class="c">#                              oldest               newest</span>
+        <span class="c">#                                |                    |</span>
+        <span class="c">#                                V                    V</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_condition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="p">):</span>
+
+            <span class="c"># popleft removes and returns the oldest tick in self.ticks</span>
+            <span class="n">popped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+
+            <span class="c"># Subclasses should override handle_remove to define</span>
+            <span class="c"># behavior for removing ticks.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">handle_remove</span><span class="p">(</span><span class="n">popped</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="EventWindow.out_of_market_window"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.out_of_market_window">[docs]</a>    <span class="k">def</span> <span class="nf">out_of_market_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oldest</span><span class="p">,</span> <span class="n">newest</span><span class="p">):</span>
+        <span class="n">oldest_index</span> <span class="o">=</span> \
+            <span class="n">trading</span><span class="o">.</span><span class="n">environment</span><span class="o">.</span><span class="n">trading_days</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">oldest</span><span class="p">)</span>
+        <span class="n">newest_index</span> <span class="o">=</span> \
+            <span class="n">trading</span><span class="o">.</span><span class="n">environment</span><span class="o">.</span><span class="n">trading_days</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">newest</span><span class="p">)</span>
+
+        <span class="n">trading_days_between</span> <span class="o">=</span> <span class="n">newest_index</span> <span class="o">-</span> <span class="n">oldest_index</span>
+
+        <span class="c"># &quot;Put back&quot; a day if oldest is earlier in its day than newest,</span>
+        <span class="c"># reflecting the fact that we haven&#39;t yet completed the last</span>
+        <span class="c"># day in the window.</span>
+        <span class="k">if</span> <span class="n">oldest</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">newest</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">trading_days_between</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">trading_days_between</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span>
+</div>
+<div class="viewcode-block" id="EventWindow.assert_well_formed"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.assert_well_formed">[docs]</a>    <span class="k">def</span> <span class="nf">assert_well_formed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verify that the supplied event contains all the fields required by this</span>
+<span class="sd">        EventWindow to be processed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_required_fields</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">datetime</span><span class="p">),</span> \
+            <span class="s">&quot;Bad dt in EventWindow:</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">event</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c"># Something is wrong if new event is older than previous.</span>
+            <span class="k">assert</span> <span class="n">event</span><span class="o">.</span><span class="n">dt</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> \
+                <span class="s">&quot;Events arrived out of order in EventWindow: </span><span class="si">%s</span><span class="s"> -&gt; </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> \
+                <span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="EventWindow.check_required_fields"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.utils.EventWindow.check_required_fields">[docs]</a>    <span class="k">def</span> <span class="nf">check_required_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        We only allow events with all of our tracked fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># All events require a &#39;dt&#39; field.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="s">&#39;dt&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">WrongDataForTransform</span><span class="p">(</span>
+                <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;dt&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c"># Subclasses must implement the &#39;fields&#39; property to specify other</span>
+        <span class="c"># required fields.</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">WrongDataForTransform</span><span class="p">(</span>
+                    <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">fields</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span>
+                <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

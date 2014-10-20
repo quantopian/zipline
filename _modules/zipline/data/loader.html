@@ -1,0 +1,468 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.data.loader &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.data.loader</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">expanduser</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+
+<span class="kn">import</span> <span class="nn">logbook</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pandas.io.data</span> <span class="kn">import</span> <span class="n">DataReader</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">benchmarks</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="nn">benchmarks</span> <span class="kn">import</span> <span class="n">get_benchmark_returns</span>
+
+<span class="kn">from</span> <span class="nn">zipline.utils.tradingcalendar</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">trading_day</span><span class="p">,</span>
+    <span class="n">trading_days</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logbook</span><span class="o">.</span><span class="n">Logger</span><span class="p">(</span><span class="s">&#39;Loader&#39;</span><span class="p">)</span>
+
+<span class="c"># TODO: Make this path customizable.</span>
+<span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~&quot;</span><span class="p">),</span>
+    <span class="s">&#39;.zipline&#39;</span><span class="p">,</span>
+    <span class="s">&#39;data&#39;</span>
+<span class="p">)</span>
+
+<span class="n">CACHE_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~&quot;</span><span class="p">),</span>
+    <span class="s">&#39;.zipline&#39;</span><span class="p">,</span>
+    <span class="s">&#39;cache&#39;</span>
+<span class="p">)</span>
+
+<span class="c"># Mapping from index symbol to appropriate bond data</span>
+<span class="n">INDEX_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;^GSPC&#39;</span><span class="p">:</span>
+    <span class="p">(</span><span class="s">&#39;treasuries&#39;</span><span class="p">,</span> <span class="s">&#39;treasury_curves.csv&#39;</span><span class="p">,</span> <span class="s">&#39;data.treasury.gov&#39;</span><span class="p">),</span>
+    <span class="s">&#39;^GSPTSE&#39;</span><span class="p">:</span>
+    <span class="p">(</span><span class="s">&#39;treasuries_can&#39;</span><span class="p">,</span> <span class="s">&#39;treasury_curves_can.csv&#39;</span><span class="p">,</span> <span class="s">&#39;bankofcanada.ca&#39;</span><span class="p">),</span>
+    <span class="s">&#39;^FTSE&#39;</span><span class="p">:</span>  <span class="c"># use US treasuries until UK bonds implemented</span>
+    <span class="p">(</span><span class="s">&#39;treasuries&#39;</span><span class="p">,</span> <span class="s">&#39;treasury_curves.csv&#39;</span><span class="p">,</span> <span class="s">&#39;data.treasury.gov&#39;</span><span class="p">),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="get_data_filepath"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.get_data_filepath">[docs]</a><span class="k">def</span> <span class="nf">get_data_filepath</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a handle to data file.</span>
+
+<span class="sd">    Creates containing directory, if needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">DATA_PATH</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">DATA_PATH</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_PATH</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_cache_filepath"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.get_cache_filepath">[docs]</a><span class="k">def</span> <span class="nf">get_cache_filepath</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">CACHE_PATH</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">CACHE_PATH</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CACHE_PATH</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="dump_treasury_curves"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.dump_treasury_curves">[docs]</a><span class="k">def</span> <span class="nf">dump_treasury_curves</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="s">&#39;treasuries&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s">&#39;treasury_curves.csv&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dumps data to be used with zipline.</span>
+
+<span class="sd">    Puts source treasury and data into zipline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">module</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="s">&#39;zipline.data&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s">&#39;Treasury curve {0} module not implemented&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">module</span><span class="p">))</span>
+
+    <span class="n">tr_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">curve</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">get_treasury_data</span><span class="p">():</span>
+        <span class="c"># Not ideal but massaging data into expected format</span>
+        <span class="n">tr_data</span><span class="p">[</span><span class="n">curve</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">curve</span>
+
+    <span class="n">curves</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">tr_data</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">data_filepath</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">curves</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">data_filepath</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">curves</span>
+
+</div>
+<div class="viewcode-block" id="dump_benchmarks"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.dump_benchmarks">[docs]</a><span class="k">def</span> <span class="nf">dump_benchmarks</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dumps data to be used with zipline.</span>
+
+<span class="sd">    Puts source treasury and data into zipline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">benchmark_data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">daily_return</span> <span class="ow">in</span> <span class="n">get_benchmark_returns</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+        <span class="c"># Not ideal but massaging data into expected format</span>
+        <span class="n">benchmark</span> <span class="o">=</span> <span class="p">(</span><span class="n">daily_return</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">daily_return</span><span class="o">.</span><span class="n">returns</span><span class="p">)</span>
+        <span class="n">benchmark_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">benchmark</span><span class="p">)</span>
+
+    <span class="n">data_filepath</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">get_benchmark_filename</span><span class="p">(</span><span class="n">symbol</span><span class="p">))</span>
+    <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">benchmark_data</span><span class="p">))</span>
+    <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">data_filepath</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="update_benchmarks"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.update_benchmarks">[docs]</a><span class="k">def</span> <span class="nf">update_benchmarks</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">last_date</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Updates data in the zipline message pack</span>
+
+<span class="sd">    last_date should be a datetime object of the most recent data</span>
+
+<span class="sd">    Puts source benchmark into zipline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">datafile</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">get_benchmark_filename</span><span class="p">(</span><span class="n">symbol</span><span class="p">))</span>
+    <span class="n">saved_benchmarks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">datafile</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">last_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">daily_return</span> <span class="ow">in</span> <span class="n">get_benchmark_returns</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="n">start</span><span class="p">):</span>
+            <span class="c"># Not ideal but massaging data into expected format</span>
+            <span class="n">benchmark</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="n">daily_return</span><span class="o">.</span><span class="n">date</span><span class="p">:</span> <span class="n">daily_return</span><span class="o">.</span><span class="n">returns</span><span class="p">})</span>
+            <span class="n">saved_benchmarks</span> <span class="o">=</span> <span class="n">saved_benchmarks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">benchmark</span><span class="p">)</span>
+
+        <span class="n">datafile</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">get_benchmark_filename</span><span class="p">(</span><span class="n">symbol</span><span class="p">))</span>
+        <span class="n">saved_benchmarks</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">datafile</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">benchmarks</span><span class="o">.</span><span class="n">BenchmarkDataNotFoundError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">saved_benchmarks</span>
+
+</div>
+<div class="viewcode-block" id="get_benchmark_filename"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.get_benchmark_filename">[docs]</a><span class="k">def</span> <span class="nf">get_benchmark_filename</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">_benchmark.csv&quot;</span> <span class="o">%</span> <span class="n">symbol</span>
+
+</div>
+<div class="viewcode-block" id="load_market_data"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.load_market_data">[docs]</a><span class="k">def</span> <span class="nf">load_market_data</span><span class="p">(</span><span class="n">bm_symbol</span><span class="o">=</span><span class="s">&#39;^GSPC&#39;</span><span class="p">):</span>
+    <span class="n">bm_filepath</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">get_benchmark_filename</span><span class="p">(</span><span class="n">bm_symbol</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">saved_benchmarks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">bm_filepath</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">data files aren&#39;t distributed with source.</span>
+<span class="s">Fetching data from Yahoo Finance.</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">dump_benchmarks</span><span class="p">(</span><span class="n">bm_symbol</span><span class="p">)</span>
+        <span class="n">saved_benchmarks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">bm_filepath</span><span class="p">)</span>
+
+    <span class="n">saved_benchmarks</span> <span class="o">=</span> <span class="n">saved_benchmarks</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
+    <span class="n">most_recent</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;today&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="n">trading_day</span>
+    <span class="n">most_recent_index</span> <span class="o">=</span> <span class="n">trading_days</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">most_recent</span><span class="p">)</span>
+    <span class="n">days_up_to_now</span> <span class="o">=</span> <span class="n">trading_days</span><span class="p">[:</span><span class="n">most_recent_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c"># Find the offset of the last date for which we have trading data in our</span>
+    <span class="c"># list of valid trading days</span>
+    <span class="n">last_bm_date</span> <span class="o">=</span> <span class="n">saved_benchmarks</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">last_bm_date_offset</span> <span class="o">=</span> <span class="n">days_up_to_now</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span>
+        <span class="n">last_bm_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;%Y/%m/</span><span class="si">%d</span><span class="s">&#39;</span><span class="p">))</span>
+
+    <span class="c"># If more than 1 trading days has elapsed since the last day where</span>
+    <span class="c"># we have data,then we need to update</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">days_up_to_now</span><span class="p">)</span> <span class="o">-</span> <span class="n">last_bm_date_offset</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="n">update_benchmarks</span><span class="p">(</span><span class="n">bm_symbol</span><span class="p">,</span> <span class="n">last_bm_date</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="bp">None</span>
+            <span class="ow">or</span>
+            <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz</span><span class="o">.</span><span class="n">zone</span> <span class="o">!=</span> <span class="s">&#39;UTC&#39;</span>
+        <span class="p">):</span>
+            <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="n">saved_benchmarks</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="bp">None</span>
+            <span class="ow">or</span>
+            <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz</span><span class="o">.</span><span class="n">zone</span> <span class="o">!=</span> <span class="s">&#39;UTC&#39;</span>
+        <span class="p">):</span>
+            <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
+    <span class="c"># Get treasury curve module, filename &amp; source from mapping.</span>
+    <span class="c"># Default to USA.</span>
+    <span class="n">module</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">INDEX_MAPPING</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="n">bm_symbol</span><span class="p">,</span> <span class="n">INDEX_MAPPING</span><span class="p">[</span><span class="s">&#39;^GSPC&#39;</span><span class="p">])</span>
+
+    <span class="n">tr_filepath</span> <span class="o">=</span> <span class="n">get_data_filepath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">saved_curves</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">tr_filepath</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">data files aren&#39;t distributed with source.</span>
+<span class="s">Fetching data from {0}</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">dump_treasury_curves</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">saved_curves</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">tr_filepath</span><span class="p">)</span>
+
+    <span class="c"># Find the offset of the last date for which we have trading data in our</span>
+    <span class="c"># list of valid trading days</span>
+    <span class="n">last_tr_date</span> <span class="o">=</span> <span class="n">saved_curves</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">last_tr_date_offset</span> <span class="o">=</span> <span class="n">days_up_to_now</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span>
+        <span class="n">last_tr_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;%Y/%m/</span><span class="si">%d</span><span class="s">&#39;</span><span class="p">))</span>
+
+    <span class="c"># If more than 1 trading days has elapsed since the last day where</span>
+    <span class="c"># we have data,then we need to update</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">days_up_to_now</span><span class="p">)</span> <span class="o">-</span> <span class="n">last_tr_date_offset</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">treasury_curves</span> <span class="o">=</span> <span class="n">dump_treasury_curves</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">treasury_curves</span> <span class="o">=</span> <span class="n">saved_curves</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
+    <span class="n">tr_curves</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">tr_dt</span><span class="p">,</span> <span class="n">curve</span> <span class="ow">in</span> <span class="n">treasury_curves</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">iterkv</span><span class="p">():</span>
+        <span class="c"># tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,</span>
+        <span class="c">#                       tzinfo=pytz.utc)</span>
+        <span class="n">tr_curves</span><span class="p">[</span><span class="n">tr_dt</span><span class="p">]</span> <span class="o">=</span> <span class="n">curve</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+
+    <span class="n">tr_curves</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">((</span><span class="n">dt</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">dt</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">tr_curves</span><span class="p">)),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">benchmark_returns</span><span class="p">,</span> <span class="n">tr_curves</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_load_raw_yahoo_data</span><span class="p">(</span><span class="n">indexes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stocks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load closing prices from yahoo finance.</span>
+
+<span class="sd">    :Optional:</span>
+<span class="sd">        indexes : dict (Default: {&#39;SPX&#39;: &#39;^GSPC&#39;})</span>
+<span class="sd">            Financial indexes to load.</span>
+<span class="sd">        stocks : list (Default: [&#39;AAPL&#39;, &#39;GE&#39;, &#39;IBM&#39;, &#39;MSFT&#39;,</span>
+<span class="sd">                                 &#39;XOM&#39;, &#39;AA&#39;, &#39;JNJ&#39;, &#39;PEP&#39;, &#39;KO&#39;])</span>
+<span class="sd">            Stock closing prices to load.</span>
+<span class="sd">        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))</span>
+<span class="sd">            Retrieve prices from start date on.</span>
+<span class="sd">        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))</span>
+<span class="sd">            Retrieve prices until end date.</span>
+
+<span class="sd">    :Note:</span>
+<span class="sd">        This is based on code presented in a talk by Wes McKinney:</span>
+<span class="sd">        http://wesmckinney.com/files/20111017/notebook_output.pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">indexes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">stocks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">must specify stocks or indexes&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1990</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">,</span> <span class="s">&quot;start date is later than end date.&quot;</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">stocks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">stocks</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+            <span class="n">cache_filename</span> <span class="o">=</span> <span class="s">&quot;{stock}-{start}-{end}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span>
+                <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)</span>
+            <span class="n">cache_filepath</span> <span class="o">=</span> <span class="n">get_cache_filepath</span><span class="p">(</span><span class="n">cache_filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_filepath</span><span class="p">):</span>
+                <span class="n">stkd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">cache_filepath</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stkd</span> <span class="o">=</span> <span class="n">DataReader</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="s">&#39;yahoo&#39;</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+                <span class="n">stkd</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">cache_filepath</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">stock</span><span class="p">]</span> <span class="o">=</span> <span class="n">stkd</span>
+
+    <span class="k">if</span> <span class="n">indexes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">ticker</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">indexes</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">stkd</span> <span class="o">=</span> <span class="n">DataReader</span><span class="p">(</span><span class="n">ticker</span><span class="p">,</span> <span class="s">&#39;yahoo&#39;</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">stkd</span>
+
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<div class="viewcode-block" id="load_from_yahoo"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.load_from_yahoo">[docs]</a><span class="k">def</span> <span class="nf">load_from_yahoo</span><span class="p">(</span><span class="n">indexes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">stocks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">start</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">end</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">adjusted</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads price data from Yahoo into a dataframe for each of the indicated</span>
+<span class="sd">    securities.  By default, &#39;price&#39; is taken from Yahoo&#39;s &#39;Adjusted Close&#39;,</span>
+<span class="sd">    which removes the impact of splits and dividends. If the argument</span>
+<span class="sd">    &#39;adjusted&#39; is False, then the non-adjusted &#39;close&#39; field is used instead.</span>
+
+<span class="sd">    :param indexes: Financial indexes to load.</span>
+<span class="sd">    :type indexes: dict</span>
+<span class="sd">    :param stocks: Stock closing prices to load.</span>
+<span class="sd">    :type stocks: list</span>
+<span class="sd">    :param start: Retrieve prices from start date on.</span>
+<span class="sd">    :type start: datetime</span>
+<span class="sd">    :param end: Retrieve prices until end date.</span>
+<span class="sd">    :type end: datetime</span>
+<span class="sd">    :param adjusted: Adjust the price for splits and dividends.</span>
+<span class="sd">    :type adjusted: bool</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_load_raw_yahoo_data</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">stocks</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">adjusted</span><span class="p">:</span>
+        <span class="n">close_key</span> <span class="o">=</span> <span class="s">&#39;Adj Close&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">close_key</span> <span class="o">=</span> <span class="s">&#39;Close&#39;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="n">close_key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">data</span><span class="p">)})</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+</div>
+<div class="viewcode-block" id="load_bars_from_yahoo"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.loader.load_bars_from_yahoo">[docs]</a><span class="k">def</span> <span class="nf">load_bars_from_yahoo</span><span class="p">(</span><span class="n">indexes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">stocks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">start</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">end</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">adjusted</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads data from Yahoo into a panel with the following</span>
+<span class="sd">    column names for each indicated security:</span>
+
+<span class="sd">        - open</span>
+<span class="sd">        - high</span>
+<span class="sd">        - low</span>
+<span class="sd">        - close</span>
+<span class="sd">        - volume</span>
+<span class="sd">        - price</span>
+
+<span class="sd">    Note that &#39;price&#39; is Yahoo&#39;s &#39;Adjusted Close&#39;, which removes the</span>
+<span class="sd">    impact of splits and dividends. If the argument &#39;adjusted&#39; is True, then</span>
+<span class="sd">    the open, high, low, and close values are adjusted as well.</span>
+
+<span class="sd">    :param indexes: Financial indexes to load.</span>
+<span class="sd">    :type indexes: dict</span>
+<span class="sd">    :param stocks: Stock closing prices to load.</span>
+<span class="sd">    :type stocks: list</span>
+<span class="sd">    :param start: Retrieve prices from start date on.</span>
+<span class="sd">    :type start: datetime</span>
+<span class="sd">    :param end: Retrieve prices until end date.</span>
+<span class="sd">    :type end: datetime</span>
+<span class="sd">    :param adjusted: Adjust open/high/low/close for splits and dividends.</span>
+<span class="sd">        The &#39;price&#39; field is always adjusted.</span>
+<span class="sd">    :type adjusted: bool</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_load_raw_yahoo_data</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">stocks</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+    <span class="n">panel</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Panel</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="c"># Rename columns</span>
+    <span class="n">panel</span><span class="o">.</span><span class="n">minor_axis</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;open&#39;</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">]</span>
+    <span class="n">panel</span><span class="o">.</span><span class="n">major_axis</span> <span class="o">=</span> <span class="n">panel</span><span class="o">.</span><span class="n">major_axis</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="c"># Adjust data</span>
+    <span class="k">if</span> <span class="n">adjusted</span><span class="p">:</span>
+        <span class="n">adj_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;open&#39;</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">ticker</span> <span class="ow">in</span> <span class="n">panel</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+            <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">panel</span><span class="p">[</span><span class="n">ticker</span><span class="p">][</span><span class="s">&#39;price&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">panel</span><span class="p">[</span><span class="n">ticker</span><span class="p">][</span><span class="s">&#39;close&#39;</span><span class="p">])</span>
+            <span class="n">ratio_filtered</span> <span class="o">=</span> <span class="n">ratio</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">adj_cols</span><span class="p">:</span>
+                <span class="n">panel</span><span class="p">[</span><span class="n">ticker</span><span class="p">][</span><span class="n">col</span><span class="p">]</span> <span class="o">*=</span> <span class="n">ratio_filtered</span>
+    <span class="k">return</span> <span class="n">panel</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

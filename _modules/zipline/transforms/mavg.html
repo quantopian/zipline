@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.transforms.mavg &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.transforms.mavg</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">string_types</span><span class="p">,</span> <span class="n">with_metaclass</span>
+
+<span class="kn">from</span> <span class="nn">zipline.transforms.utils</span> <span class="kn">import</span> <span class="n">EventWindow</span><span class="p">,</span> <span class="n">TransformMeta</span>
+
+
+<div class="viewcode-block" id="MovingAverage"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverage">[docs]</a><span class="k">class</span> <span class="nc">MovingAverage</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">TransformMeta</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that maintains a dictionary from sids to</span>
+<span class="sd">    MovingAverageEventWindows.  For each sid, we maintain moving</span>
+<span class="sd">    averages over any number of distinct fields (For example, we can</span>
+<span class="sd">    maintain a sid&#39;s average volume as well as its average price.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">,</span>
+                 <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">window_length</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">fields</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">market_aware</span> <span class="o">=</span> <span class="n">market_aware</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="n">delta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">=</span> <span class="n">window_length</span>
+
+        <span class="c"># Market-aware mode only works with full-day windows.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">market_aware</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span>\
+                <span class="s">&quot;Market-aware mode only works with full-day windows.&quot;</span>
+
+        <span class="c"># Non-market-aware mode requires a timedelta.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span> \
+                <span class="s">&quot;Non-market-aware mode requires a timedelta.&quot;</span>
+
+        <span class="c"># No way to pass arguments to the defaultdict factory, so we</span>
+        <span class="c"># need to define a method to generate the correct EventWindows.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sid_windows</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_window</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MovingAverage.create_window"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverage.create_window">[docs]</a>    <span class="k">def</span> <span class="nf">create_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Factory method for self.sid_windows.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MovingAverageEventWindow</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">market_aware</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta</span>
+        <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MovingAverage.update"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverage.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the event window for this event&#39;s sid.  Return a dict</span>
+<span class="sd">        from tracked fields to moving averages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># This will create a new EventWindow if this is the first</span>
+        <span class="c"># message for this sid.</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sid_windows</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span>
+        <span class="n">window</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">window</span><span class="o">.</span><span class="n">get_averages</span><span class="p">()</span>
+
+</div></div>
+<div class="viewcode-block" id="Averages"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.Averages">[docs]</a><span class="k">class</span> <span class="nc">Averages</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for averages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Allow dictionary lookup.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="MovingAverageEventWindow"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow">[docs]</a><span class="k">class</span> <span class="nc">MovingAverageEventWindow</span><span class="p">(</span><span class="n">EventWindow</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Iteratively calculates moving averages for a particular sid over a</span>
+<span class="sd">    given time window.  We can maintain averages for arbitrarily many</span>
+<span class="sd">    fields on a single sid.  (For example, we might track average</span>
+<span class="sd">    price as well as average volume for a single sid.) The expected</span>
+<span class="sd">    functionality of this class is to be instantiated inside a</span>
+<span class="sd">    MovingAverage transform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">market_aware</span><span class="p">,</span> <span class="n">days</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+
+        <span class="c"># Call the superclass constructor to set up base EventWindow</span>
+        <span class="c"># infrastructure.</span>
+        <span class="n">EventWindow</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">market_aware</span><span class="p">,</span> <span class="n">days</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+
+        <span class="c"># We maintain a dictionary of totals for each of our tracked</span>
+        <span class="c"># fields.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span> <span class="o">=</span> <span class="n">fields</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">totals</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="MovingAverageEventWindow.fields"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow.fields">[docs]</a>    <span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span>
+
+    <span class="c"># Subclass customization for adding new events.</span></div>
+<div class="viewcode-block" id="MovingAverageEventWindow.handle_add"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow.handle_add">[docs]</a>    <span class="k">def</span> <span class="nf">handle_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="c"># Sanity check on the event.</span>
+        <span class="c"># Increment our running totals with data from the event.</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">totals</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">+=</span> <span class="n">event</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+
+    <span class="c"># Subclass customization for removing expired events.</span></div>
+<div class="viewcode-block" id="MovingAverageEventWindow.handle_remove"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow.handle_remove">[docs]</a>    <span class="k">def</span> <span class="nf">handle_remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="c"># Decrement our running totals with data from the event.</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">totals</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">-=</span> <span class="n">event</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="MovingAverageEventWindow.average"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow.average">[docs]</a>    <span class="k">def</span> <span class="nf">average</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the average value of our ticks over a single field.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Sanity check.</span>
+        <span class="k">assert</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span>
+
+        <span class="c"># Averages are None by convention if we have no ticks.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+
+        <span class="c"># Calculate and return the average.  len(self.ticks) is O(1).</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">totals</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MovingAverageEventWindow.get_averages"><a class="viewcode-back" href="../../../zipline.transforms.html#zipline.transforms.mavg.MovingAverageEventWindow.get_averages">[docs]</a>    <span class="k">def</span> <span class="nf">get_averages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dict of all our tracked averages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Averages</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

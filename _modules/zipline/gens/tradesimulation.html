@@ -1,0 +1,401 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.gens.tradesimulation &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.gens.tradesimulation</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2014 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">logbook</span> <span class="kn">import</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">Processor</span>
+<span class="kn">from</span> <span class="nn">pandas.tslib</span> <span class="kn">import</span> <span class="n">normalize_date</span>
+
+<span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">trading</span>
+<span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BarData</span><span class="p">,</span>
+    <span class="n">SIDData</span><span class="p">,</span>
+    <span class="n">DATASOURCE_TYPE</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.gens.utils</span> <span class="kn">import</span> <span class="n">hash_args</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s">&#39;Trade Simulation&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="AlgorithmSimulator"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator">[docs]</a><span class="k">class</span> <span class="nc">AlgorithmSimulator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">EMISSION_TO_PERF_KEY_MAP</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">&#39;minute&#39;</span><span class="p">:</span> <span class="s">&#39;minute_perf&#39;</span><span class="p">,</span>
+        <span class="s">&#39;daily&#39;</span><span class="p">:</span> <span class="s">&#39;daily_perf&#39;</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="AlgorithmSimulator.get_hash"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.get_hash">[docs]</a>    <span class="k">def</span> <span class="nf">get_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        There should only ever be one TSC in the system, so</span>
+<span class="sd">        we don&#39;t bother passing args into the hash.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="n">hash_args</span><span class="p">()</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algo</span><span class="p">,</span> <span class="n">sim_params</span><span class="p">):</span>
+
+        <span class="c"># ==============</span>
+        <span class="c"># Simulation</span>
+        <span class="c"># Param Setup</span>
+        <span class="c"># ==============</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="o">=</span> <span class="n">sim_params</span>
+
+        <span class="c"># ==============</span>
+        <span class="c"># Algo Setup</span>
+        <span class="c"># ==============</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">=</span> <span class="n">algo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo_start</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">first_open</span><span class="p">)</span>
+
+        <span class="c"># ==============</span>
+        <span class="c"># Snapshot Setup</span>
+        <span class="c"># ==============</span>
+
+        <span class="c"># The algorithm&#39;s data as of our most recent event.</span>
+        <span class="c"># We want an object that will have empty objects as default</span>
+        <span class="c"># values on missing keys.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span> <span class="o">=</span> <span class="n">BarData</span><span class="p">()</span>
+
+        <span class="c"># We don&#39;t have a datetime for the current snapshot until we</span>
+        <span class="c"># receive a message.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_dt</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># =============</span>
+        <span class="c"># Logging Setup</span>
+        <span class="c"># =============</span>
+
+        <span class="c"># Processor function for injecting the algo_dt into</span>
+        <span class="c"># user prints/logs.</span>
+        <span class="k">def</span> <span class="nf">inject_algo_dt</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s">&#39;algo_dt&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">extra</span><span class="p">:</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s">&#39;algo_dt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">processor</span> <span class="o">=</span> <span class="n">Processor</span><span class="p">(</span><span class="n">inject_algo_dt</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AlgorithmSimulator.perf_key"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.perf_key">[docs]</a>    <span class="k">def</span> <span class="nf">perf_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EMISSION_TO_PERF_KEY_MAP</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">emission_rate</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="AlgorithmSimulator.process_event"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.process_event">[docs]</a>    <span class="k">def</span> <span class="nf">process_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">process_trade</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">process_trade</span>
+        <span class="k">for</span> <span class="n">txn</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">process_trade</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">txn</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="AlgorithmSimulator.transform"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream_in</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main generator work loop.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Initialize the mkt_close</span>
+        <span class="n">mkt_open</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">market_open</span>
+        <span class="n">mkt_close</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">market_close</span>
+
+        <span class="c"># inject the current algo</span>
+        <span class="c"># snapshot time to any log record generated.</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">threadbound</span><span class="p">():</span>
+            <span class="n">data_frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_call_before_trading_start</span><span class="p">(</span><span class="n">mkt_open</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">date</span><span class="p">,</span> <span class="n">snapshot</span> <span class="ow">in</span> <span class="n">stream_in</span><span class="p">:</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">simulation_dt</span> <span class="o">=</span> <span class="n">date</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">on_dt_changed</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+
+                <span class="c"># If we&#39;re still in the warmup period.  Use the event to</span>
+                <span class="c"># update our universe, but don&#39;t yield any perf messages,</span>
+                <span class="c"># and don&#39;t send a snapshot to handle_data.</span>
+                <span class="k">if</span> <span class="n">date</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo_start</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">SPLIT</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">process_split</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+                        <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">TRADE</span><span class="p">,</span>
+                                            <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">update_universe</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_snapshot</span><span class="p">(</span>
+                        <span class="n">date</span><span class="p">,</span>
+                        <span class="n">snapshot</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">instant_fill</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="c"># Perf messages are only emitted if the snapshot contained</span>
+                    <span class="c"># a benchmark event.</span>
+                    <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="k">yield</span> <span class="n">message</span>
+
+                    <span class="c"># When emitting minutely, we re-iterate the day as a</span>
+                    <span class="c"># packet with the entire days performance rolled up.</span>
+                    <span class="k">if</span> <span class="n">date</span> <span class="o">==</span> <span class="n">mkt_close</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+                            <span class="n">daily_rollup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span>
+                                <span class="n">emission_type</span><span class="o">=</span><span class="s">&#39;daily&#39;</span>
+                            <span class="p">)</span>
+                            <span class="n">daily_rollup</span><span class="p">[</span><span class="s">&#39;daily_perf&#39;</span><span class="p">][</span><span class="s">&#39;recorded_vars&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                                <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">recorded_vars</span>
+                            <span class="k">yield</span> <span class="n">daily_rollup</span>
+                            <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">todays_performance</span>
+                            <span class="n">tp</span><span class="o">.</span><span class="n">rollover</span><span class="p">()</span>
+
+                        <span class="k">if</span> <span class="n">mkt_close</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">last_close</span><span class="p">:</span>
+                            <span class="n">before_last_close</span> <span class="o">=</span> \
+                                <span class="n">mkt_close</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">last_close</span>
+                            <span class="k">try</span><span class="p">:</span>
+                                <span class="n">mkt_open</span><span class="p">,</span> <span class="n">mkt_close</span> <span class="o">=</span> \
+                                    <span class="n">trading</span><span class="o">.</span><span class="n">environment</span> \
+                                           <span class="o">.</span><span class="n">next_open_and_close</span><span class="p">(</span><span class="n">mkt_close</span><span class="p">)</span>
+
+                            <span class="k">except</span> <span class="n">trading</span><span class="o">.</span><span class="n">NoFurtherDataError</span><span class="p">:</span>
+                                <span class="c"># If at the end of backtest history,</span>
+                                <span class="c"># skip advancing market close.</span>
+                                <span class="k">pass</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">emission_rate</span>
+                                    <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">):</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span>\
+                                         <span class="o">.</span><span class="n">handle_intraday_market_close</span><span class="p">(</span>
+                                             <span class="n">mkt_open</span><span class="p">,</span>
+                                             <span class="n">mkt_close</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="n">before_last_close</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_call_before_trading_start</span><span class="p">(</span><span class="n">mkt_open</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+                        <span class="n">next_day</span> <span class="o">=</span> <span class="n">trading</span><span class="o">.</span><span class="n">environment</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="p">(</span><span class="n">next_day</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+                                <span class="ow">and</span> <span class="n">next_day</span>
+                                <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">last_close</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_call_before_trading_start</span><span class="p">(</span><span class="n">next_day</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">portfolio_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">account_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+
+            <span class="n">risk_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">handle_simulation_end</span><span class="p">()</span>
+            <span class="k">yield</span> <span class="n">risk_message</span>
+</div>
+    <span class="k">def</span> <span class="nf">_process_snapshot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">instant_fill</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process a stream of events corresponding to a single datetime, possibly</span>
+<span class="sd">        returning a perf message to be yielded.</span>
+
+<span class="sd">        If @instant_fill = True, we delay processing of events until after the</span>
+<span class="sd">        user&#39;s call to handle_data, and we process the user&#39;s placed orders</span>
+<span class="sd">        before the snapshot&#39;s events.  Note that this introduces a lookahead</span>
+<span class="sd">        bias, since the user effectively is effectively placing orders that are</span>
+<span class="sd">        filled based on trades that happened prior to the call the handle_data.</span>
+
+<span class="sd">        If @instant_fill = False, we process Trade events before calling</span>
+<span class="sd">        handle_data.  This means that orders are filled based on trades</span>
+<span class="sd">        occurring in the next snapshot.  This is the more conservative model,</span>
+<span class="sd">        and as such it is the default behavior in TradingAlgorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c"># Flags indicating whether we saw any events of type TRADE and type</span>
+        <span class="c"># BENCHMARK.  Respectively, these control whether or not handle_data is</span>
+        <span class="c"># called for this snapshot and whether we emit a perf message for this</span>
+        <span class="c"># snapshot.</span>
+        <span class="n">any_trade_occurred</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">benchmark_event_occurred</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="k">if</span> <span class="n">instant_fill</span><span class="p">:</span>
+            <span class="n">events_to_be_processed</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">TRADE</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_universe</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                <span class="n">any_trade_occurred</span> <span class="o">=</span> <span class="bp">True</span>
+
+            <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">BENCHMARK</span><span class="p">:</span>
+                <span class="n">benchmark_event_occurred</span> <span class="o">=</span> <span class="bp">True</span>
+
+            <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_universe</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">SPLIT</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">process_split</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">instant_fill</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">events_to_be_processed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">any_trade_occurred</span><span class="p">:</span>
+            <span class="n">new_orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_handle_data</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">new_orders</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">instant_fill</span><span class="p">:</span>
+            <span class="c"># Now that handle_data has been called and orders have been placed,</span>
+            <span class="c"># process the event stream to fill user orders based on the events</span>
+            <span class="c"># from this snapshot.</span>
+            <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events_to_be_processed</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">benchmark_event_occurred</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_message</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">_call_handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the user&#39;s handle_data, returning any orders placed by the algo</span>
+<span class="sd">        during the call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">event_manager</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simulation_dt</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">new_orders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">new_orders</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="n">orders</span>
+
+    <span class="k">def</span> <span class="nf">_call_before_trading_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_dt</span> <span class="o">=</span> <span class="n">dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_dt_changed</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">before_trading_start</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AlgorithmSimulator.on_dt_changed"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.on_dt_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_dt_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">datetime</span> <span class="o">!=</span> <span class="n">dt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">on_dt_changed</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="AlgorithmSimulator.get_message"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.get_message">[docs]</a>    <span class="k">def</span> <span class="nf">get_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a perf message for the given datetime.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Ensure that updated_portfolio has been called at least once for this</span>
+        <span class="c"># dt before we emit a perf message.  This is a no-op if</span>
+        <span class="c"># updated_portfolio has already been called this dt.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">updated_portfolio</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">updated_account</span><span class="p">()</span>
+
+        <span class="n">rvars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">recorded_vars</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+            <span class="n">perf_message</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">handle_market_close_daily</span><span class="p">()</span>
+            <span class="n">perf_message</span><span class="p">[</span><span class="s">&#39;daily_perf&#39;</span><span class="p">][</span><span class="s">&#39;recorded_vars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rvars</span>
+            <span class="k">return</span> <span class="n">perf_message</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">handle_minute_close</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+            <span class="n">perf_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="n">perf_message</span><span class="p">[</span><span class="s">&#39;minute_perf&#39;</span><span class="p">][</span><span class="s">&#39;recorded_vars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rvars</span>
+            <span class="k">return</span> <span class="n">perf_message</span>
+</div>
+<div class="viewcode-block" id="AlgorithmSimulator.update_universe"><a class="viewcode-back" href="../../../zipline.gens.html#zipline.gens.tradesimulation.AlgorithmSimulator.update_universe">[docs]</a>    <span class="k">def</span> <span class="nf">update_universe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the universe with new event information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Update our knowledge of this event&#39;s sid</span>
+        <span class="c"># rather than use if event.sid in ..., just trying</span>
+        <span class="c"># and handling the exception is significantly faster</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sid_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">sid_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">SIDData</span><span class="p">()</span>
+        <span class="n">sid_data</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

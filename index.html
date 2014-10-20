@@ -1,218 +1,430 @@
-<!doctype html>
-<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
-<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen"/>
-  <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-  <script type="text/javascript" src="javascripts/script.js"></script>
 
-  <title>Zipline</title>
-  <meta name="description" content="Zipline, a Pythonic Algorithmic Trading Library">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Zipline &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="#" />
+    <link rel="next" title="Quantopian Manifesto" href="manifesto.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manifesto.html" title="Quantopian Manifesto"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">zipline 0.7.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
 
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-
-</head>
-
-<body>
-
-  <div class="wrapper">
-    <header>
-      <h1 class="title">Zipline</h1>
-    </header>
-    <div id="container">
-      <p class="tagline">Zipline, a Pythonic Algorithmic Trading Library</p>
-      <div id="main" role="main">
-        <div class="download-bar">
-        <div class="inner">
-          <a href="https://github.com/quantopian/zipline/tarball/master" class="download-button tar"><span>Download</span></a>
-          <a href="https://github.com/quantopian/zipline/zipball/master" class="download-button zip"><span>Download</span></a>
-          <a href="https://github.com/quantopian/zipline" class="code">View Zipline on GitHub</a>
-        </div>
-        <span class="blc"></span><span class="trc"></span>
-        </div>
-        <article class="markdown-body">
-          <h1>Zipline</h1>
-
-<p>Zipline is a Pythonic algorithmic trading library.
-The system is fundamentally event-driven and a close
-approximation of how live-trading systems operate.
-Currently, backtesting is well supported, but the intent is
-to develop the library for both paper and live trading,
-so that the same logic used for backtesting can be applied
-to the market.</p>
-
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="zipline">
+<h1>Zipline<a class="headerlink" href="#zipline" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://gitter.im/quantopian/zipline?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Gitter" src="https://badges.gitter.im/Join%20Chat.svg" /></a></p>
+<p><a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="version status" src="https://pypip.in/v/zipline/badge.png" /></a> <a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="downloads" src="https://pypip.in/d/zipline/badge.png" /></a> <a class="reference external" href="https://travis-ci.org/quantopian/zipline"><img alt="build status" src="https://travis-ci.org/quantopian/zipline.png?branch=master" /></a> <a class="reference external" href="https://coveralls.io/r/quantopian/zipline"><img alt="Coverage Status" src="https://coveralls.io/repos/quantopian/zipline/badge.png" /></a></p>
+<p>Zipline is a Pythonic algorithmic trading library. The system is
+fundamentally event-driven and a close approximation of how live-trading
+systems operate. Currently, backtesting is well supported, but the
+intent is to develop the library for both paper and live trading, so
+that the same logic used for backtesting can be applied to the market.</p>
 <p>Zipline is currently used in production as the backtesting engine
-powering Quantopian (<a href="https://www.quantopian.com">https://www.quantopian.com</a>) -- a free, community-centered
-platform that allows development and real-time backtesting of trading
-algorithms in the web browser.</p>
-
-<p>Want to contribute? See our <a href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">open requests</a>
-and our <a href="https://github.com/quantopian/zipline#contributions">general guidelines</a> below.</p>
-
-<h1>Discussion and Help</h1>
-
+powering Quantopian (<a class="reference external" href="https://www.quantopian.com">https://www.quantopian.com</a>) &#8211; a free,
+community-centered platform that allows development and real-time
+backtesting of trading algorithms in the web browser.</p>
+<p>Want to contribute? See our <a class="reference external" href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">open
+requests</a>
+and our <a class="reference external" href="https://github.com/quantopian/zipline#contributions">general
+guidelines</a>
+below.</p>
+</div>
+<div class="section" id="discussion-and-help">
+<h1>Discussion and Help<a class="headerlink" href="#discussion-and-help" title="Permalink to this headline">¶</a></h1>
 <p>Discussion of the project is held at the Google Group,
-<a href="mailto:zipline@googlegroups.com">zipline@googlegroups.com</a>,
-<a href="https://groups.google.com/forum/#!forum/zipline">https://groups.google.com/forum/#!forum/zipline</a>.</p>
-
-<h1>Features</h1>
-
-<ul>
-<li><p>Ease of use: Zipline tries to get out of your way so that you can
-focus on algorithm development. See below for a code example.</p></li>
-<li><p>Zipline comes "batteries included" as many common statistics like
+<a class="reference external" href="mailto:zipline&#37;&#52;&#48;googlegroups&#46;com">zipline<span>&#64;</span>googlegroups<span>&#46;</span>com</a>,
+<a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">https://groups.google.com/forum/#!forum/zipline</a>.</p>
+</div>
+<div class="section" id="features">
+<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Ease of use: Zipline tries to get out of your way so that you can
+focus on algorithm development. See below for a code example.</li>
+<li>Zipline comes &#8220;batteries included&#8221; as many common statistics like
 moving average and linear regression can be readily accessed from
-within a user-written algorithm.</p></li>
-<li><p>Input of historical data and output of performance statistics is
+within a user-written algorithm.</li>
+<li>Input of historical data and output of performance statistics is
 based on Pandas DataFrames to integrate nicely into the existing
-Python eco-system.</p></li>
-<li><p>Statistic and machine learning libraries like matplotlib, scipy,
+Python eco-system.</li>
+<li>Statistic and machine learning libraries like matplotlib, scipy,
 statsmodels, and sklearn support development, analysis and
-visualization of state-of-the-art trading systems.</p></li>
-</ul><h1>Installation</h1>
-
-<p>Since zipline is pure-python code it should be very easy to install
-and set up with pip:</p>
-
-<p><code>pip install zipline</code></p>
-
+visualization of state-of-the-art trading systems.</li>
+</ul>
+</div>
+<div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>The easiest way to install Zipline is via <tt class="docutils literal"><span class="pre">conda</span></tt> which comes as part
+of <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> or can be installed via
+<tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></tt>.</p>
+<p>Once set up, you can install Zipline from our Quantopian channel:</p>
+<div class="highlight-python"><div class="highlight"><pre>conda install -c Quantopian zipline
+</pre></div>
+</div>
+<p>Currently supported platforms include:</p>
+<ul class="simple">
+<li>Windows 32-bit (can be 64-bit Windows but has to be 32-bit Anaconda)</li>
+<li>OSX 64-bit</li>
+<li>Linux 64-bit</li>
+</ul>
+<div class="section" id="pip">
+<h2>PIP<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h2>
+<p>Alternatively you can install Zipline via the more traditional <tt class="docutils literal"><span class="pre">pip</span></tt>
+command. Since zipline is pure-python code it should be very easy to
+install and set up:</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install numpy   # Pre-install numpy to handle dependency chain quirk
+pip install zipline
+</pre></div>
+</div>
 <p>If there are problems installing the dependencies or zipline we
 recommend installing these packages via some other means. For Windows,
-the <a href="http://www.enthought.com/products/epd.php">Enthought Python Distribution</a>
-includes most of the necessary dependencies. On OSX, the
-<a href="http://fonnesbeck.github.com/ScipySuperpack/">Scipy Superpack</a>
-works very well.</p>
-
-<h2>Dependencies</h2>
-
-<ul>
-<li>Python (&gt;= 2.7.2)</li>
+the <a class="reference external" href="http://www.enthought.com/products/epd.php">Enthought Python
+Distribution</a> includes
+most of the necessary dependencies. On OSX, the <a class="reference external" href="http://fonnesbeck.github.com/ScipySuperpack/">Scipy
+Superpack</a> works very
+well.</p>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Python (2.7 or 3.3)</li>
 <li>numpy (&gt;= 1.6.0)</li>
 <li>pandas (&gt;= 0.9.0)</li>
 <li>pytz</li>
-<li>msgpack-python</li>
 <li>Logbook</li>
-<li>blist</li>
-</ul><h1>Quickstart</h1>
-
-<p>The following code implements a simple dual moving average algorithm
-and tests it on data extracted from yahoo finance.</p>
-
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.algorithm</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
-<span class="kn">from</span> <span class="nn">zipline.transforms</span> <span class="kn">import</span> <span class="n">MovingAverage</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">load_from_yahoo</span>
-
-<span class="k">class</span> <span class="nc">DualMovingAverage</span><span class="p">(</span><span class="n">TradingAlgorithm</span><span class="p">):</span>
-    <span class="sd">"""Dual Moving Average algorithm.</span>
-<span class="sd">    """</span>
-    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">short_window</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">long_window</span><span class="o">=</span><span class="mi">400</span><span class="p">):</span>
-        <span class="c"># Add 2 mavg transforms, one with a long window, one</span>
-        <span class="c"># with a short window.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_transform</span><span class="p">(</span><span class="n">MovingAverage</span><span class="p">,</span> <span class="s">'short_mavg'</span><span class="p">,</span> <span class="p">[</span><span class="s">'price'</span><span class="p">],</span>
-                           <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                           <span class="n">window_length</span><span class="o">=</span><span class="n">short_window</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_transform</span><span class="p">(</span><span class="n">MovingAverage</span><span class="p">,</span> <span class="s">'long_mavg'</span><span class="p">,</span> <span class="p">[</span><span class="s">'price'</span><span class="p">],</span>
-                           <span class="n">market_aware</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                           <span class="n">window_length</span><span class="o">=</span><span class="n">long_window</span><span class="p">)</span>
-
-        <span class="c"># To keep track of whether we invested in the stock or not</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">False</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">short_mavg</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">long_mavg</span> <span class="o">=</span> <span class="p">[]</span>
+<li>requests</li>
+<li><a class="reference external" href="https://pypi.python.org/pypi/python-dateutil">python-dateutil</a>
+(&gt;= 2.1)</li>
+<li>ta-lib</li>
+</ul>
+</div>
+</div>
+<div class="section" id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>See our
+<a class="reference external" href="http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb">tutorial</a>
+to get started.</p>
+<p>The following code implements a simple dual moving average algorithm.</p>
+<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
 
 
-    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">invested</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s">'AAPL'</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">True</span>
-        <span class="k">elif</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">invested</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s">'AAPL'</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">invested</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Register 2 histories that track daily prices,</span>
+    <span class="c"># one with a 100 window and one with a 300 day window</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
 
-        <span class="c"># Save mavgs for later analysis.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">short_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">long_mavg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'AAPL'</span><span class="p">]</span><span class="o">.</span><span class="n">long_mavg</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">load_from_yahoo</span><span class="p">()</span>
-<span class="n">dma</span> <span class="o">=</span> <span class="n">DualMovingAverage</span><span class="p">()</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">dma</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c"># Skip first 300 days to get full windows</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c"># Compute averages</span>
+    <span class="c"># history() has to be called with the same params</span>
+    <span class="c"># from above and returns a pandas dataframe.</span>
+    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="n">sym</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)</span>
+
+    <span class="c"># Trading logic</span>
+    <span class="k">if</span> <span class="n">short_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">long_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">]:</span>
+        <span class="c"># order_target orders as many shares as needed to</span>
+        <span class="c"># achieve the desired number of shares.</span>
+        <span class="n">order_target</span><span class="p">(</span><span class="n">sym</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">short_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">long_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">]:</span>
+        <span class="n">order_target</span><span class="p">(</span><span class="n">sym</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c"># Save values for later inspection</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span><span class="o">.</span><span class="n">price</span><span class="p">,</span>
+           <span class="n">short_mavg</span><span class="o">=</span><span class="n">short_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">],</span>
+           <span class="n">long_mavg</span><span class="o">=</span><span class="n">long_mavg</span><span class="p">[</span><span class="n">sym</span><span class="p">])</span>
 </pre></div>
-
+</div>
+<p>You can then run this algorithm using the Zipline CLI. From the command
+line, run:</p>
+<div class="code bash highlight-python"><div class="highlight"><pre>python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+</pre></div>
+</div>
+<p>This will download the AAPL price data from Yahoo! Finance in the
+specified time range and stream it through the algorithm and save the
+resulting performance dataframe to dma.pickle which you can then load
+and analyze from within python.</p>
 <p>You can find other examples in the zipline/examples directory.</p>
-
-<h1>Contributions</h1>
-
-<p>If you would like to contribute, please see our Contribution Requests: <a href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">https://github.com/quantopian/zipline/wiki/Contribution-Requests</a></p>
-
-<h2>Credits</h2>
-
+</div>
+<div class="section" id="contributions">
+<h1>Contributions<a class="headerlink" href="#contributions" title="Permalink to this headline">¶</a></h1>
+<p>If you would like to contribute, please see our Contribution Requests:
+<a class="reference external" href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">https://github.com/quantopian/zipline/wiki/Contribution-Requests</a></p>
+<div class="section" id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
 <p>Thank you for all the help so far!</p>
-
-<ul>
-<li>
-<a href="https://github.com/rday" class="user-mention">@rday</a> for sortino ratio, information ratio, and exponential moving average transform</li>
-<li><a href="https://github.com/snth" class="user-mention">@snth</a></li>
-<li>
-<a href="https://github.com/yinhm" class="user-mention">@yinhm</a> for integrating zipline with @yinhm/datafeed</li>
-<li>
-<a href="http://www.lowindata.com">Jeremiah Lowin</a> for teaching us the nuances of Sharpe and Sortino Ratios</li>
+<ul class="simple">
+<li>&#64;rday for sortino ratio, information ratio, and exponential moving
+average transform</li>
+<li>&#64;snth</li>
+<li>&#64;yinhm for integrating zipline with &#64;yinhm/datafeed</li>
+<li><a class="reference external" href="http://www.lowindata.com">Jeremiah Lowin</a> for teaching us the
+nuances of Sharpe and Sortino Ratios, and for implementing new order
+methods.</li>
 <li>Brian Cappello</li>
+<li>&#64;verdverm (Tony Worm), Order types (stop, limit)</li>
+<li>&#64;benmccann for benchmarking contributions</li>
+<li>&#64;jkp and &#64;bencpeters for bugfixes to benchmark.</li>
+<li>&#64;dstephens for adding Canadian treasury curves.</li>
+<li>&#64;mtrovo for adding BMF&amp;Bovespa calendars.</li>
+<li>&#64;sdrdis for bugfixes.</li>
+<li>&#64;humdings for refactoring the order methods.</li>
 <li>Quantopian Team</li>
-</ul><p>(alert us if we've inadvertantly missed listing you here!)</p>
+</ul>
+<p>(alert us if we&#8217;ve inadvertantly missed listing you here!)</p>
+</div>
+<div class="section" id="development-environment">
+<h2>Development Environment<a class="headerlink" href="#development-environment" title="Permalink to this headline">¶</a></h2>
+<p>The following guide assumes your system has
+<a class="reference external" href="https://bitbucket.org/dhellmann/virtualenvwrapper">virtualenvwrapper</a>
+and <a class="reference external" href="http://www.pip-installer.org/en/latest/">pip</a> already installed.</p>
+<p>You&#8217;ll need to install some C library dependencies:</p>
+<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install libopenblas-dev liblapack-dev gfortran
 
-<h2>Style Guide</h2>
-
-<p>To ensure that changes and patches are focused on behavior changes,
-the zipline codebase adheres to both PEP-8,
-<a href="http://www.python.org/dev/peps/pep-0008/">http://www.python.org/dev/peps/pep-0008/</a>, and pyflakes,
-<a href="https://launchpad.net/pyflakes/">https://launchpad.net/pyflakes/</a>.</p>
-
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+tar -xvzf ta-lib-0.4.0-src.tar.gz
+cd ta-lib/
+./configure --prefix=/usr
+make
+sudo make install
+</pre></div>
+</div>
+<p>Suggested installation of Python library dependencies used for
+development:</p>
+<div class="highlight-python"><div class="highlight"><pre>mkvirtualenv zipline
+./etc/ordered_pip.sh ./etc/requirements.txt
+pip install -r ./etc/requirements_dev.txt
+</pre></div>
+</div>
+<p>Finally, install zipline in develop mode (from the zipline source root
+dir):</p>
+<div class="highlight-python"><div class="highlight"><pre>python setup.py develop
+</pre></div>
+</div>
+</div>
+<div class="section" id="style-guide">
+<h2>Style Guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
+<p>To ensure that changes and patches are focused on behavior changes, the
+zipline codebase adheres to both PEP-8,
+<a class="reference external" href="http://www.python.org/dev/peps/pep-0008/">http://www.python.org/dev/peps/pep-0008/</a>, and pyflakes,
+<a class="reference external" href="https://launchpad.net/pyflakes/">https://launchpad.net/pyflakes/</a>.</p>
 <p>The maintainers check the code using the flake8 script,
-<a href="https://github.com/bmcustodio/flake8">https://github.com/bmcustodio/flake8</a>, which is included in the
+<a class="reference external" href="https://bitbucket.org/tarek/flake8/wiki/Home">https://bitbucket.org/tarek/flake8/wiki/Home</a>, which is included in the
 requirements_dev.txt.</p>
-
 <p>Before submitting patches or pull requests, please ensure that your
-changes pass <code>flake8 zipline tests</code></p>
-
-<h1>Source</h1>
-
+changes pass <tt class="docutils literal"><span class="pre">flake8</span> <span class="pre">zipline</span> <span class="pre">tests</span></tt> and <tt class="docutils literal"><span class="pre">nosetests</span></tt></p>
+</div>
+</div>
+<div class="section" id="source">
+<h1>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h1>
 <p>The source for Zipline is hosted at
-<a href="https://github.com/quantopian/zipline">https://github.com/quantopian/zipline</a>.</p>
+<a class="reference external" href="https://github.com/quantopian/zipline">https://github.com/quantopian/zipline</a>.</p>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>You can compile the documentation using Sphinx:</p>
+<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-sphinx
+make html
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="contact">
+<h1>Contact<a class="headerlink" href="#contact" title="Permalink to this headline">¶</a></h1>
+<p>For other questions, please contact <a class="reference external" href="mailto:opensource&#37;&#52;&#48;quantopian&#46;com">opensource<span>&#64;</span>quantopian<span>&#46;</span>com</a>.</p>
+<span class="target" id="module-zipline"></span></div>
+<div class="section" id="contents">
+<h1>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="manifesto.html">Quantopian Manifesto</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manifesto.html#the-evolution-of-algorithmic-finance">The Evolution of Algorithmic Finance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#charting">Charting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#technical-analysis">Technical Analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#statistical-arbitrage">Statistical Arbitrage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="manifesto.html#algorithmic-investing-and-the-future">Algorithmic Investing and the Future</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#develop">Develop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#tooling-hints">Tooling hints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#mac-os-hints">Mac OS hints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#data-sources">Data Sources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#dual-moving-average-example">Dual-Moving Average Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to the project</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#style-guide">Style Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#discussion-and-help">Discussion and Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#source">Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#contact">Contact</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Packages and Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="zipline.html"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.algorithm"><tt class="docutils literal"><span class="pre">algorithm</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.sources"><tt class="docutils literal"><span class="pre">sources</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.test_algorithms"><tt class="docutils literal"><span class="pre">test_algorithms</span></tt> Module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zipline.html#algorithm-protocol">Algorithm Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.version"><tt class="docutils literal"><span class="pre">version</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zipline.data.html"><tt class="docutils literal"><span class="pre">zipline.data</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.finance.html"><tt class="docutils literal"><span class="pre">zipline.finance</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.gens.html"><tt class="docutils literal"><span class="pre">zipline.gens</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.transforms.html"><tt class="docutils literal"><span class="pre">zipline.transforms</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.utils.html"><tt class="docutils literal"><span class="pre">zipline.utils</span></tt> subpackage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
 
-<h1>Build Status</h1>
 
-<p><a href="https://travis-ci.org/quantopian/zipline"><img src="https://travis-ci.org/quantopian/zipline.png" alt="Build Status"></a></p>
-
-<h1>Contact</h1>
-
-<p>For other questions, please contact <a href="mailto:opensource@quantopian.com">opensource@quantopian.com</a>.</p>
-        </article>
+          </div>
+        </div>
       </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Zipline</a></li>
+<li><a class="reference internal" href="#discussion-and-help">Discussion and Help</a></li>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#pip">PIP</a></li>
+<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li><a class="reference internal" href="#contributions">Contributions</a><ul>
+<li><a class="reference internal" href="#credits">Credits</a></li>
+<li><a class="reference internal" href="#development-environment">Development Environment</a></li>
+<li><a class="reference internal" href="#style-guide">Style Guide</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#source">Source</a><ul>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contact">Contact</a></li>
+<li><a class="reference internal" href="#contents">Contents</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="manifesto.html"
+                        title="next chapter">Quantopian Manifesto</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
     </div>
-    <footer>
-      <div class="owner">
-      <p><a href="https://github.com/quantopian" class="avatar"><img src="https://secure.gravatar.com/avatar/ec2a0488b1bb9be54a660df4effd6bb6?s=30&amp;d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png" width="48" height="48"/></a> <a href="https://github.com/quantopian">quantopian</a> maintains <a href="https://github.com/quantopian/zipline">Zipline</a></p>
-
-
-      </div>
-      <div class="creds">
-        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br/>theme by <a href="http://twitter.com/jonrohan/">Jon Rohan</a></small>
-      </div>
-    </footer>
-  </div>
-  <div class="current-section">
-    <a href="#top">Scroll to top</a>
-    <a href="https://github.com/quantopian/zipline/tarball/master" class="tar">tar</a><a href="https://github.com/quantopian/zipline/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
-    <p class="name"></p>
-  </div>
-
-  
-</body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manifesto.html" title="Quantopian Manifesto"
+             >next</a> |</li>
+        <li><a href="#">zipline 0.7.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
 </html>

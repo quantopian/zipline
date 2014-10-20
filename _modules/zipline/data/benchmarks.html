@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.data.benchmarks &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.data.benchmarks</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">import</span> <span class="nn">csv</span>
+
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="nn">loader_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">date_conversion</span><span class="p">,</span>
+    <span class="n">source_to_records</span><span class="p">,</span>
+    <span class="n">Mapping</span>
+<span class="p">)</span>
+
+<span class="n">DailyReturn</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;DailyReturn&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;returns&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="BenchmarkDataNotFoundError"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.benchmarks.BenchmarkDataNotFoundError">[docs]</a><span class="k">class</span> <span class="nc">BenchmarkDataNotFoundError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+</div>
+<span class="n">_BENCHMARK_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c"># Need to add &#39;symbol&#39;</span>
+    <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="s">&#39;Volume&#39;</span><span class="p">),</span>
+    <span class="s">&#39;open&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="s">&#39;Open&#39;</span><span class="p">),</span>
+    <span class="s">&#39;close&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="s">&#39;Close&#39;</span><span class="p">),</span>
+    <span class="s">&#39;high&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="s">&#39;High&#39;</span><span class="p">),</span>
+    <span class="s">&#39;low&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="s">&#39;Low&#39;</span><span class="p">),</span>
+    <span class="s">&#39;adj_close&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="s">&#39;Adj Close&#39;</span><span class="p">),</span>
+    <span class="s">&#39;date&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">date_conversion</span><span class="p">,</span> <span class="n">date_pattern</span><span class="o">=</span><span class="s">&#39;%Y-%m-</span><span class="si">%d</span><span class="s">&#39;</span><span class="p">),</span> <span class="s">&#39;Date&#39;</span><span class="p">)</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="benchmark_mappings"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.benchmarks.benchmark_mappings">[docs]</a><span class="k">def</span> <span class="nf">benchmark_mappings</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">(</span><span class="o">*</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span>
+            <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">_BENCHMARK_MAPPING</span><span class="p">)}</span>
+
+</div>
+<div class="viewcode-block" id="get_raw_benchmark_data"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.benchmarks.get_raw_benchmark_data">[docs]</a><span class="k">def</span> <span class="nf">get_raw_benchmark_data</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+
+    <span class="c"># create benchmark files</span>
+    <span class="c"># ^GSPC 19500103</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">((</span>
+        <span class="p">(</span><span class="s">&#39;s&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="p">),</span>
+        <span class="c"># start_date month, zero indexed</span>
+        <span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="n">start_date</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="c"># start_date day</span>
+        <span class="p">(</span><span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="n">start_date</span><span class="o">.</span><span class="n">day</span><span class="p">),</span>
+        <span class="c"># start_date year</span>
+        <span class="p">(</span><span class="s">&#39;c&#39;</span><span class="p">,</span> <span class="n">start_date</span><span class="o">.</span><span class="n">year</span><span class="p">),</span>
+        <span class="c"># end_date month, zero indexed</span>
+        <span class="p">(</span><span class="s">&#39;d&#39;</span><span class="p">,</span> <span class="n">end_date</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="c"># end_date day str(int(todate[6:8])) #day</span>
+        <span class="p">(</span><span class="s">&#39;e&#39;</span><span class="p">,</span> <span class="n">end_date</span><span class="o">.</span><span class="n">day</span><span class="p">),</span>
+        <span class="c"># end_date year str(int(todate[0:4]))</span>
+        <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span> <span class="n">end_date</span><span class="o">.</span><span class="n">year</span><span class="p">),</span>
+        <span class="c"># daily frequency</span>
+        <span class="p">(</span><span class="s">&#39;g&#39;</span><span class="p">,</span> <span class="s">&#39;d&#39;</span><span class="p">),</span>
+    <span class="p">))</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;http://ichart.finance.yahoo.com/table.csv&#39;</span><span class="p">,</span>
+                       <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">BenchmarkDataNotFoundError</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">No benchmark data found for date range.</span>
+<span class="s">start_date={start_date}, end_date={end_date}, url={url}&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span>
+                                         <span class="n">format</span><span class="p">(</span><span class="n">start_date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span>
+                                                <span class="n">end_date</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span>
+                                                <span class="n">url</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">url</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+
+</div>
+<div class="viewcode-block" id="get_benchmark_data"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.benchmarks.get_benchmark_data">[docs]</a><span class="k">def</span> <span class="nf">get_benchmark_data</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Benchmarks from Yahoo.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">start_date</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="mi">1950</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">end_date</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">end_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+    <span class="n">raw_benchmark_data</span> <span class="o">=</span> <span class="n">get_raw_benchmark_data</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">symbol</span><span class="p">)</span>
+
+    <span class="n">mappings</span> <span class="o">=</span> <span class="n">benchmark_mappings</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">source_to_records</span><span class="p">(</span><span class="n">mappings</span><span class="p">,</span> <span class="n">raw_benchmark_data</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_benchmark_returns"><a class="viewcode-back" href="../../../zipline.data.html#zipline.data.benchmarks.get_benchmark_returns">[docs]</a><span class="k">def</span> <span class="nf">get_benchmark_returns</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a list of return percentages in chronological order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">start_date</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="mi">1950</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">end_date</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">end_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+    <span class="c"># Get the benchmark data and convert it to a list in chronological order.</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">get_benchmark_data</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">))</span>
+    <span class="n">data_points</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+
+    <span class="c"># Calculate the return percentages.</span>
+    <span class="n">benchmark_returns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data_point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_points</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">curr_open</span> <span class="o">=</span> <span class="n">data_points</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;open&#39;</span><span class="p">]</span>
+            <span class="n">returns</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;close&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">curr_open</span><span class="p">)</span> <span class="o">/</span> <span class="n">curr_open</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prev_close</span> <span class="o">=</span> <span class="n">data_points</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s">&#39;close&#39;</span><span class="p">]</span>
+            <span class="n">returns</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_point</span><span class="p">[</span><span class="s">&#39;close&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">prev_close</span><span class="p">)</span> <span class="o">/</span> <span class="n">prev_close</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">tseries</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">normalize_date</span><span class="p">(</span><span class="n">data_point</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">])</span>
+        <span class="n">daily_return</span> <span class="o">=</span> <span class="n">DailyReturn</span><span class="p">(</span><span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span> <span class="n">returns</span><span class="o">=</span><span class="n">returns</span><span class="p">)</span>
+        <span class="n">benchmark_returns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">daily_return</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">benchmark_returns</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

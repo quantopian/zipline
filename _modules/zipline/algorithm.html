@@ -1,0 +1,1094 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.algorithm &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.algorithm</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2014 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">filter</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">exec_</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
+
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">OrderDuringInitialize</span><span class="p">,</span>
+    <span class="n">OverrideCommissionPostInit</span><span class="p">,</span>
+    <span class="n">OverrideSlippagePostInit</span><span class="p">,</span>
+    <span class="n">RegisterTradingControlPostInit</span><span class="p">,</span>
+    <span class="n">UnsupportedCommissionModel</span><span class="p">,</span>
+    <span class="n">UnsupportedOrderParameters</span><span class="p">,</span>
+    <span class="n">UnsupportedSlippageModel</span><span class="p">,</span>
+    <span class="n">IncompatibleScheduleFunctionDataFrequency</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">trading</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.blotter</span> <span class="kn">import</span> <span class="n">Blotter</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.commission</span> <span class="kn">import</span> <span class="n">PerShare</span><span class="p">,</span> <span class="n">PerTrade</span><span class="p">,</span> <span class="n">PerDollar</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.controls</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LongOnly</span><span class="p">,</span>
+    <span class="n">MaxOrderCount</span><span class="p">,</span>
+    <span class="n">MaxOrderSize</span><span class="p">,</span>
+    <span class="n">MaxPositionSize</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.execution</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LimitOrder</span><span class="p">,</span>
+    <span class="n">MarketOrder</span><span class="p">,</span>
+    <span class="n">StopLimitOrder</span><span class="p">,</span>
+    <span class="n">StopOrder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.performance</span> <span class="kn">import</span> <span class="n">PerformanceTracker</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.slippage</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">VolumeShareSlippage</span><span class="p">,</span>
+    <span class="n">SlippageModel</span><span class="p">,</span>
+    <span class="n">transact_partial</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.gens.composites</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">date_sorted_sources</span><span class="p">,</span>
+    <span class="n">sequential_transforms</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.gens.tradesimulation</span> <span class="kn">import</span> <span class="n">AlgorithmSimulator</span>
+<span class="kn">from</span> <span class="nn">zipline.sources</span> <span class="kn">import</span> <span class="n">DataFrameSource</span><span class="p">,</span> <span class="n">DataPanelSource</span>
+<span class="kn">from</span> <span class="nn">zipline.transforms.utils</span> <span class="kn">import</span> <span class="n">StatefulTransform</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.api_support</span> <span class="kn">import</span> <span class="n">ZiplineAPI</span><span class="p">,</span> <span class="n">api_method</span>
+<span class="kn">import</span> <span class="nn">zipline.utils.events</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.events</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EventManager</span><span class="p">,</span>
+    <span class="n">make_eventrule</span><span class="p">,</span>
+    <span class="n">DateRuleFactory</span><span class="p">,</span>
+    <span class="n">TimeRuleFactory</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">create_simulation_parameters</span>
+
+<span class="kn">import</span> <span class="nn">zipline.protocol</span>
+<span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="n">Event</span>
+
+<span class="kn">from</span> <span class="nn">zipline.history</span> <span class="kn">import</span> <span class="n">HistorySpec</span>
+<span class="kn">from</span> <span class="nn">zipline.history.history_container</span> <span class="kn">import</span> <span class="n">HistoryContainer</span>
+
+<span class="n">DEFAULT_CAPITAL_BASE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;1.0e5&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TradingAlgorithm"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm">[docs]</a><span class="k">class</span> <span class="nc">TradingAlgorithm</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for trading algorithms. Inherit and overload</span>
+<span class="sd">    initialize() and handle_data(data).</span>
+
+<span class="sd">    A new algorithm could look like this:</span>
+<span class="sd">    ```</span>
+<span class="sd">    from zipline.api import order</span>
+
+<span class="sd">    def initialize(context):</span>
+<span class="sd">        context.sid = &#39;AAPL&#39;</span>
+<span class="sd">        context.amount = 100</span>
+
+<span class="sd">    def handle_data(self, data):</span>
+<span class="sd">        sid = context.sid</span>
+<span class="sd">        amount = context.amount</span>
+<span class="sd">        order(sid, amount)</span>
+<span class="sd">    ```</span>
+<span class="sd">    To then to run this algorithm pass these functions to</span>
+<span class="sd">    TradingAlgorithm:</span>
+
+<span class="sd">    my_algo = TradingAlgorithm(initialize, handle_data)</span>
+<span class="sd">    stats = my_algo.run(data)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># If this is set to false then it is the responsibility</span>
+    <span class="c"># of the overriding subclass to set initialized = true</span>
+    <span class="n">AUTO_INITIALIZE</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize sids and other state variables.</span>
+
+<span class="sd">        :Arguments:</span>
+<span class="sd">        :Optional:</span>
+<span class="sd">            initialize : function</span>
+<span class="sd">                Function that is called with a single</span>
+<span class="sd">                argument at the begninning of the simulation.</span>
+<span class="sd">            handle_data : function</span>
+<span class="sd">                Function that is called with 2 arguments</span>
+<span class="sd">                (context and data) on every bar.</span>
+<span class="sd">            script : str</span>
+<span class="sd">                Algoscript that contains initialize and</span>
+<span class="sd">                handle_data function definition.</span>
+<span class="sd">            data_frequency : str (daily, hourly or minutely)</span>
+<span class="sd">               The duration of the bars.</span>
+<span class="sd">            capital_base : float &lt;default: 1.0e5&gt;</span>
+<span class="sd">               How much capital to start with.</span>
+<span class="sd">            instant_fill : bool &lt;default: False&gt;</span>
+<span class="sd">               Whether to fill orders immediately or on next bar.</span>
+<span class="sd">            environment : str &lt;default: &#39;zipline&#39;&gt;</span>
+<span class="sd">               The environment that this algorithm is running in.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">registered_transforms</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c"># List of trading controls to be used to validate orders.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_controls</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recorded_vars</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;namespace&#39;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_environment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;environment&#39;</span><span class="p">,</span> <span class="s">&#39;zipline&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_return_source</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># default components for transact</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slippage</span> <span class="o">=</span> <span class="n">VolumeShareSlippage</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commission</span> <span class="o">=</span> <span class="n">PerShare</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">instant_fill</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;instant_fill&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="c"># set the capital base</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capital_base</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;capital_base&#39;</span><span class="p">,</span> <span class="n">DEFAULT_CAPITAL_BASE</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;sim_params&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="o">=</span> <span class="n">create_simulation_parameters</span><span class="p">(</span>
+                <span class="n">capital_base</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capital_base</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="o">=</span> <span class="n">PerformanceTracker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;blotter&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span> <span class="o">=</span> <span class="n">Blotter</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">account_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_portfolio</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_account</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_container</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_specs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c"># If string is passed in, execute and get reference to</span>
+        <span class="c"># functions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">algoscript</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;script&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_analyze</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algoscript</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">exec_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">algoscript</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;initialize&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;handle_data&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;You must define a handle_data function.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">[</span><span class="s">&#39;handle_data&#39;</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;before_trading_start&#39;</span><span class="p">)</span>
+            <span class="c"># Optional analyze function, gets called after run</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;analyze&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;initialize&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;handle_data&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algoscript</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;You can not set script and </span><span class="se">\</span>
+<span class="s">                initialize/handle_data.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;initialize&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_data</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;handle_data&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;before_trading_start&#39;</span><span class="p">,</span>
+                                                    <span class="bp">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_manager</span><span class="o">.</span><span class="n">add_event</span><span class="p">(</span>
+            <span class="n">zipline</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span>
+                <span class="n">zipline</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">Always</span><span class="p">(),</span>
+                <span class="c"># We pass handle_data.__func__ to get the unbound method.</span>
+                <span class="c"># We will explicitly pass the algorithm to bind it again.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="o">.</span><span class="n">__func__</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">prepend</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c"># If method not defined, NOOP</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">None</span>
+
+        <span class="c"># Alternative way of setting data_frequency for backwards</span>
+        <span class="c"># compatibility.</span>
+        <span class="k">if</span> <span class="s">&#39;data_frequency&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;data_frequency&#39;</span><span class="p">)</span>
+
+        <span class="c"># Subclasses that override initialize should only worry about</span>
+        <span class="c"># setting self.initialized = True if AUTO_INITIALIZE is</span>
+        <span class="c"># is manually set to False.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">AUTO_INITIALIZE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="bp">True</span>
+
+<div class="viewcode-block" id="TradingAlgorithm.initialize"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call self._initialize with `self` made available to Zipline API</span>
+<span class="sd">        functions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">ZiplineAPI</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.before_trading_start"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.before_trading_start">[docs]</a>    <span class="k">def</span> <span class="nf">before_trading_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.handle_data"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.handle_data">[docs]</a>    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_container</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">history_container</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.analyze"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.analyze">[docs]</a>    <span class="k">def</span> <span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perf</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analyze</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">with</span> <span class="n">ZiplineAPI</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perf</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        N.B. this does not yet represent a string that can be used</span>
+<span class="sd">        to instantiate an exact copy of an algorithm.</span>
+
+<span class="sd">        However, it is getting close, and provides some value as something</span>
+<span class="sd">        that can be inspected interactively.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">{class_name}(</span>
+<span class="s">    capital_base={capital_base}</span>
+<span class="s">    sim_params={sim_params},</span>
+<span class="s">    initialized={initialized},</span>
+<span class="s">    slippage={slippage},</span>
+<span class="s">    commission={commission},</span>
+<span class="s">    blotter={blotter},</span>
+<span class="s">    recorded_vars={recorded_vars})</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                   <span class="n">capital_base</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capital_base</span><span class="p">,</span>
+                   <span class="n">sim_params</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="p">),</span>
+                   <span class="n">initialized</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">,</span>
+                   <span class="n">slippage</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slippage</span><span class="p">),</span>
+                   <span class="n">commission</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">commission</span><span class="p">),</span>
+                   <span class="n">blotter</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="p">),</span>
+                   <span class="n">recorded_vars</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recorded_vars</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_create_data_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_filter</span><span class="p">,</span> <span class="n">sim_params</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a merged data generator using the sources and</span>
+<span class="sd">        transforms attached to this algorithm.</span>
+
+<span class="sd">        ::source_filter:: is a method that receives events in date</span>
+<span class="sd">        sorted order, and returns True for those events that should be</span>
+<span class="sd">        processed by the zipline, and False for those that should be</span>
+<span class="sd">        skipped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sim_params</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">sim_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_return_source</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">env</span> <span class="o">=</span> <span class="n">trading</span><span class="o">.</span><span class="n">environment</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span>
+                    <span class="ow">or</span> <span class="n">sim_params</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">):</span>
+                <span class="n">update_time</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">date</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">date</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">update_time</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">date</span><span class="p">:</span> <span class="n">date</span>
+            <span class="n">benchmark_return_source</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Event</span><span class="p">({</span><span class="s">&#39;dt&#39;</span><span class="p">:</span> <span class="n">update_time</span><span class="p">(</span><span class="n">dt</span><span class="p">),</span>
+                       <span class="s">&#39;returns&#39;</span><span class="p">:</span> <span class="n">ret</span><span class="p">,</span>
+                       <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="n">zipline</span><span class="o">.</span><span class="n">protocol</span><span class="o">.</span><span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">BENCHMARK</span><span class="p">,</span>
+                       <span class="s">&#39;source_id&#39;</span><span class="p">:</span> <span class="s">&#39;benchmarks&#39;</span><span class="p">})</span>
+                <span class="k">for</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ret</span> <span class="ow">in</span> <span class="n">trading</span><span class="o">.</span><span class="n">environment</span><span class="o">.</span><span class="n">benchmark_returns</span><span class="o">.</span><span class="n">iterkv</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+                <span class="ow">and</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">benchmark_return_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_return_source</span>
+
+        <span class="n">date_sorted</span> <span class="o">=</span> <span class="n">date_sorted_sources</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sources</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">source_filter</span><span class="p">:</span>
+            <span class="n">date_sorted</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="n">source_filter</span><span class="p">,</span> <span class="n">date_sorted</span><span class="p">)</span>
+
+        <span class="n">with_tnfms</span> <span class="o">=</span> <span class="n">sequential_transforms</span><span class="p">(</span><span class="n">date_sorted</span><span class="p">,</span>
+                                           <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">)</span>
+
+        <span class="n">with_benchmarks</span> <span class="o">=</span> <span class="n">date_sorted_sources</span><span class="p">(</span><span class="n">benchmark_return_source</span><span class="p">,</span>
+                                              <span class="n">with_tnfms</span><span class="p">)</span>
+
+        <span class="c"># Group together events with the same dt field. This depends on the</span>
+        <span class="c"># events already being sorted.</span>
+        <span class="k">return</span> <span class="n">groupby</span><span class="p">(</span><span class="n">with_benchmarks</span><span class="p">,</span> <span class="n">attrgetter</span><span class="p">(</span><span class="s">&#39;dt&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_create_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_params</span><span class="p">,</span> <span class="n">source_filter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a basic generator setup using the sources and</span>
+<span class="sd">        transforms attached to this algorithm.</span>
+
+<span class="sd">        ::source_filter:: is a method that receives events in date</span>
+<span class="sd">        sorted order, and returns True for those events that should be</span>
+<span class="sd">        processed by the zipline, and False for those that should be</span>
+<span class="sd">        skipped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c"># HACK: When running with the `run` method, we set perf_tracker to</span>
+            <span class="c"># None so that it will be overwritten here.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="o">=</span> <span class="n">PerformanceTracker</span><span class="p">(</span><span class="n">sim_params</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">account_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_gen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_data_generator</span><span class="p">(</span><span class="n">source_filter</span><span class="p">,</span> <span class="n">sim_params</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span> <span class="o">=</span> <span class="n">AlgorithmSimulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_params</span><span class="p">)</span>
+
+        <span class="n">transact_method</span> <span class="o">=</span> <span class="n">transact_partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slippage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">commission</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_transact</span><span class="p">(</span><span class="n">transact_method</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_gen</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TradingAlgorithm.get_generator"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.get_generator">[docs]</a>    <span class="k">def</span> <span class="nf">get_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override this method to add new logic to the construction</span>
+<span class="sd">        of the generator. Overrides can use the _create_generator</span>
+<span class="sd">        method to get a standard construction generator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_generator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="p">)</span>
+
+    <span class="c"># TODO: make a new subclass, e.g. BatchAlgorithm, and move</span>
+    <span class="c"># the run method to the subclass, and refactor to put the</span>
+    <span class="c"># generator creation logic into get_generator.</span></div>
+<div class="viewcode-block" id="TradingAlgorithm.run"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">overwrite_sim_params</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">benchmark_return_source</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run the algorithm.</span>
+
+<span class="sd">        :Arguments:</span>
+<span class="sd">            source : can be either:</span>
+<span class="sd">                     - pandas.DataFrame</span>
+<span class="sd">                     - zipline source</span>
+<span class="sd">                     - list of sources</span>
+
+<span class="sd">               If pandas.DataFrame is provided, it must have the</span>
+<span class="sd">               following structure:</span>
+<span class="sd">               * column names must consist of ints representing the</span>
+<span class="sd">                 different sids</span>
+<span class="sd">               * index must be DatetimeIndex</span>
+<span class="sd">               * array contents should be price info.</span>
+
+<span class="sd">        :Returns:</span>
+<span class="sd">            daily_stats : pandas.DataFrame</span>
+<span class="sd">              Daily performance metrics such as returns, alpha etc.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">overwrite_sim_params</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;&quot;&quot;List of sources passed, will not attempt to extract sids, and start and end</span>
+<span class="s"> dates. Make sure to set the correct fields in sim_params passed to</span>
+<span class="s"> __init__().&quot;&quot;&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
+                <span class="n">overwrite_sim_params</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="c"># if DataFrame provided, wrap in DataFrameSource</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">DataFrameSource</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Panel</span><span class="p">):</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">DataPanelSource</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_sources</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_sources</span><span class="p">([</span><span class="n">source</span><span class="p">])</span>
+
+        <span class="c"># Override sim_params if params are provided by the source.</span>
+        <span class="k">if</span> <span class="n">overwrite_sim_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s">&#39;start&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">start</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s">&#39;end&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">end</span>
+            <span class="n">all_sids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sid</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">sids</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_sids</span><span class="p">)</span>
+            <span class="c"># Changing period_start and period_close might require updating</span>
+            <span class="c"># of first_open and last_close.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">_update_internal</span><span class="p">()</span>
+
+        <span class="c"># Create history containers</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">history_specs</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">history_container</span> <span class="o">=</span> <span class="n">HistoryContainer</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">history_specs</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sids</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">first_open</span><span class="p">)</span>
+
+        <span class="c"># Create transforms by wrapping them into StatefulTransforms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">namestring</span><span class="p">,</span> <span class="n">trans_descr</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">registered_transforms</span><span class="p">):</span>
+            <span class="n">sf</span> <span class="o">=</span> <span class="n">StatefulTransform</span><span class="p">(</span>
+                <span class="n">trans_descr</span><span class="p">[</span><span class="s">&#39;class&#39;</span><span class="p">],</span>
+                <span class="o">*</span><span class="n">trans_descr</span><span class="p">[</span><span class="s">&#39;args&#39;</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">trans_descr</span><span class="p">[</span><span class="s">&#39;kwargs&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">sf</span><span class="o">.</span><span class="n">namestring</span> <span class="o">=</span> <span class="n">namestring</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="p">)</span>
+
+        <span class="c"># force a reset of the performance tracker, in case</span>
+        <span class="c"># this is a repeat run of the algorithm.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># create transforms and zipline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_generator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">ZiplineAPI</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="c"># loop through simulated_trading, each iteration returns a</span>
+            <span class="c"># perf dictionary</span>
+            <span class="n">perfs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">perf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen</span><span class="p">:</span>
+                <span class="n">perfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">perf</span><span class="p">)</span>
+
+            <span class="c"># convert perf dict to pandas dataframe</span>
+            <span class="n">daily_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_daily_stats</span><span class="p">(</span><span class="n">perfs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">analyze</span><span class="p">(</span><span class="n">daily_stats</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">daily_stats</span>
+</div>
+    <span class="k">def</span> <span class="nf">_create_daily_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perfs</span><span class="p">):</span>
+        <span class="c"># create daily and cumulative stats dataframe</span>
+        <span class="n">daily_perfs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># TODO: the loop here could overwrite expected properties</span>
+        <span class="c"># of daily_perf. Could potentially raise or log a</span>
+        <span class="c"># warning.</span>
+        <span class="k">for</span> <span class="n">perf</span> <span class="ow">in</span> <span class="n">perfs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;daily_perf&#39;</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
+
+                <span class="n">perf</span><span class="p">[</span><span class="s">&#39;daily_perf&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">perf</span><span class="p">[</span><span class="s">&#39;daily_perf&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;recorded_vars&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">daily_perfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s">&#39;daily_perf&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">risk_report</span> <span class="o">=</span> <span class="n">perf</span>
+
+        <span class="n">daily_dts</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s">&#39;period_close&#39;</span><span class="p">],</span> <span class="n">utc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">perf</span> <span class="ow">in</span> <span class="n">daily_perfs</span><span class="p">]</span>
+        <span class="n">daily_stats</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">daily_perfs</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">daily_dts</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">daily_stats</span>
+
+<div class="viewcode-block" id="TradingAlgorithm.add_transform"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.add_transform">[docs]</a>    <span class="k">def</span> <span class="nf">add_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform_class</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a single-sid, sequential transform to the model.</span>
+
+<span class="sd">        :Arguments:</span>
+<span class="sd">            transform_class : class</span>
+<span class="sd">                Which transform to use. E.g. mavg.</span>
+<span class="sd">            tag : str</span>
+<span class="sd">                How to name the transform. Can later be access via:</span>
+<span class="sd">                data[sid].tag()</span>
+
+<span class="sd">        Extra args and kwargs will be forwarded to the transform</span>
+<span class="sd">        instantiation.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registered_transforms</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;class&#39;</span><span class="p">:</span> <span class="n">transform_class</span><span class="p">,</span>
+                                           <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="n">args</span><span class="p">,</span>
+                                           <span class="s">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">}</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.get_environment"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.get_environment">[docs]</a>    <span class="k">def</span> <span class="nf">get_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.add_event"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.add_event">[docs]</a>    <span class="k">def</span> <span class="nf">add_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds an event to the algorithm&#39;s EventManager.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_manager</span><span class="o">.</span><span class="n">add_event</span><span class="p">(</span>
+            <span class="n">zipline</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">callback</span><span class="p">),</span>
+        <span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.schedule_function"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.schedule_function">[docs]</a>    <span class="k">def</span> <span class="nf">schedule_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">func</span><span class="p">,</span>
+                          <span class="n">date_rule</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                          <span class="n">time_rule</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                          <span class="n">half_days</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Schedules a function to be called with some timed rules.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">!=</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IncompatibleScheduleFunctionDataFrequency</span><span class="p">()</span>
+
+        <span class="c"># Defaults to every day 30 minutes before close.</span>
+        <span class="n">date_rule</span> <span class="o">=</span> <span class="n">date_rule</span> <span class="ow">or</span> <span class="n">DateRuleFactory</span><span class="o">.</span><span class="n">every_day</span><span class="p">()</span>
+        <span class="n">time_rule</span> <span class="o">=</span> <span class="n">time_rule</span> <span class="ow">or</span> <span class="n">TimeRuleFactory</span><span class="o">.</span><span class="n">market_close</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_event</span><span class="p">(</span>
+            <span class="n">make_eventrule</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="n">time_rule</span><span class="p">,</span> <span class="n">half_days</span><span class="p">),</span>
+            <span class="n">func</span><span class="p">,</span>
+        <span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.record"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.record">[docs]</a>    <span class="k">def</span> <span class="nf">record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Track and record local variable (i.e. attributes) each day.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Make 2 objects both referencing the same iterator</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">args</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span>
+
+        <span class="c"># Zip generates list entries by calling `next` on each iterator it</span>
+        <span class="c"># receives.  In this case the two iterators are the same object, so the</span>
+        <span class="c"># call to next on args[0] will also advance args[1], resulting in zip</span>
+        <span class="c"># returning (a,b) (c,d) (e,f) rather than (a,a) (b,b) (c,c) etc.</span>
+        <span class="n">positionals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">positionals</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recorded_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.symbol"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.symbol">[docs]</a>    <span class="k">def</span> <span class="nf">symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol_str</span><span class="p">,</span> <span class="n">as_of_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Default symbol lookup for any source that directly maps the</span>
+<span class="sd">        symbol to the identifier (e.g. yahoo finance).</span>
+<span class="sd">        Keyword argument as_of_date is ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">symbol_str</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order">[docs]</a>    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span>
+              <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+              <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+              <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order using the specified parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">round_if_near_integer</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Round a to the nearest integer if that integer is within an epsilon</span>
+<span class="sd">            of a.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">epsilon</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">a</span>
+
+        <span class="c"># Truncate to the integer share count that&#39;s either within .0001 of</span>
+        <span class="c"># amount or closer to zero.</span>
+        <span class="c"># E.g. 3.9999 -&gt; 4.0; 5.5 -&gt; 5.0; -5.5 -&gt; -5.0</span>
+        <span class="n">amount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">round_if_near_integer</span><span class="p">(</span><span class="n">amount</span><span class="p">))</span>
+
+        <span class="c"># Raises a ZiplineError if invalid parameters are detected.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_order_params</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span>
+                                   <span class="n">amount</span><span class="p">,</span>
+                                   <span class="n">limit_price</span><span class="p">,</span>
+                                   <span class="n">stop_price</span><span class="p">,</span>
+                                   <span class="n">style</span><span class="p">)</span>
+
+        <span class="c"># Convert deprecated limit_price and stop_price parameters to use</span>
+        <span class="c"># ExecutionStyle objects.</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span>
+                                                        <span class="n">stop_price</span><span class="p">,</span>
+                                                        <span class="n">style</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">style</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.validate_order_params"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.validate_order_params">[docs]</a>    <span class="k">def</span> <span class="nf">validate_order_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">sid</span><span class="p">,</span>
+                              <span class="n">amount</span><span class="p">,</span>
+                              <span class="n">limit_price</span><span class="p">,</span>
+                              <span class="n">stop_price</span><span class="p">,</span>
+                              <span class="n">style</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper method for validating parameters to the order API function.</span>
+
+<span class="sd">        Raises an UnsupportedOrderParameters if invalid arguments are found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">OrderDuringInitialize</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="s">&quot;order() can only be called from within handle_data()&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">style</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">limit_price</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnsupportedOrderParameters</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="s">&quot;Passing both limit_price and style is not supported.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">stop_price</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnsupportedOrderParameters</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="s">&quot;Passing both stop_price and style is not supported.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">control</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_controls</span><span class="p">:</span>
+            <span class="n">control</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span>
+                             <span class="n">amount</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">updated_portfolio</span><span class="p">(),</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">get_datetime</span><span class="p">(),</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span><span class="o">.</span><span class="n">current_data</span><span class="p">)</span>
+</div>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">,</span> <span class="n">style</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper method for converting deprecated limit_price and stop_price</span>
+<span class="sd">        arguments into ExecutionStyle instances.</span>
+
+<span class="sd">        This function assumes that either style == None or (limit_price,</span>
+<span class="sd">        stop_price) == (None, None).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO_SS: DeprecationWarning for usage of limit_price and stop_price.</span>
+        <span class="k">if</span> <span class="n">style</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">style</span>
+        <span class="k">if</span> <span class="n">limit_price</span> <span class="ow">and</span> <span class="n">stop_price</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">StopLimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">limit_price</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">LimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stop_price</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">StopOrder</span><span class="p">(</span><span class="n">stop_price</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">MarketOrder</span><span class="p">()</span>
+
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order_value"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order_value">[docs]</a>    <span class="k">def</span> <span class="nf">order_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
+                    <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order by desired value rather than desired number of shares.</span>
+<span class="sd">        If the requested sid is found in the universe, the requested value is</span>
+<span class="sd">        divided by its price to imply the number of shares to transact.</span>
+
+<span class="sd">        value &gt; 0 :: Buy/Cover</span>
+<span class="sd">        value &lt; 0 :: Sell/Short</span>
+<span class="sd">        Market order:    order(sid, value)</span>
+<span class="sd">        Limit order:     order(sid, value, limit_price)</span>
+<span class="sd">        Stop order:      order(sid, value, None, stop_price)</span>
+<span class="sd">        StopLimit order: order(sid, value, limit_price, stop_price)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">last_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span><span class="o">.</span><span class="n">current_data</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span><span class="o">.</span><span class="n">price</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">last_price</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">zero_message</span> <span class="o">=</span> <span class="s">&quot;Price of 0 for {psid}; can&#39;t infer value&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">psid</span><span class="o">=</span><span class="n">sid</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">zero_message</span><span class="p">)</span>
+            <span class="c"># Don&#39;t place any order</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">amount</span> <span class="o">=</span> <span class="n">value</span> <span class="o">/</span> <span class="n">last_price</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span>
+                              <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                              <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                              <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="TradingAlgorithm.recorded_vars"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.recorded_vars">[docs]</a>    <span class="k">def</span> <span class="nf">recorded_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recorded_vars</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="TradingAlgorithm.portfolio"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.portfolio">[docs]</a>    <span class="k">def</span> <span class="nf">portfolio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">updated_portfolio</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.updated_portfolio"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.updated_portfolio">[docs]</a>    <span class="k">def</span> <span class="nf">updated_portfolio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_needs_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_portfolio</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">get_portfolio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_portfolio</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="TradingAlgorithm.account"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.account">[docs]</a>    <span class="k">def</span> <span class="nf">account</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">updated_account</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.updated_account"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.updated_account">[docs]</a>    <span class="k">def</span> <span class="nf">updated_account</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">account_needs_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_account</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">get_account</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">account_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_account</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.set_logger"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_logger">[docs]</a>    <span class="k">def</span> <span class="nf">set_logger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.on_dt_changed"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.on_dt_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_dt_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Callback triggered by the simulation loop whenever the current dt</span>
+<span class="sd">        changes.</span>
+
+<span class="sd">        Any logic that should happen exactly once at the start of each datetime</span>
+<span class="sd">        group should happen here.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">datetime</span><span class="p">),</span> \
+            <span class="s">&quot;Attempt to set algorithm&#39;s current time with non-datetime&quot;</span>
+        <span class="k">assert</span> <span class="n">dt</span><span class="o">.</span><span class="n">tzinfo</span> <span class="o">==</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span> \
+            <span class="s">&quot;Algorithm expects a utc datetime&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">set_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">set_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.get_datetime"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.get_datetime">[docs]</a>    <span class="k">def</span> <span class="nf">get_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a copy of the datetime.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">date_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">date_copy</span><span class="o">.</span><span class="n">tzinfo</span> <span class="o">==</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span> \
+            <span class="s">&quot;Algorithm should have a utc datetime&quot;</span>
+        <span class="k">return</span> <span class="n">date_copy</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.set_transact"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_transact">[docs]</a>    <span class="k">def</span> <span class="nf">set_transact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transact</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the method that will be called to create a</span>
+<span class="sd">        transaction from open orders and trade events.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">transact</span> <span class="o">=</span> <span class="n">transact</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.update_dividends"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.update_dividends">[docs]</a>    <span class="k">def</span> <span class="nf">update_dividends</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dividend_frame</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set DataFrame used to process dividends.  DataFrame columns should</span>
+<span class="sd">        contain at least the entries in zp.DIVIDEND_FIELDS.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">update_dividends</span><span class="p">(</span><span class="n">dividend_frame</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_slippage"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_slippage">[docs]</a>    <span class="k">def</span> <span class="nf">set_slippage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slippage</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slippage</span><span class="p">,</span> <span class="n">SlippageModel</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">UnsupportedSlippageModel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">OverrideSlippagePostInit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slippage</span> <span class="o">=</span> <span class="n">slippage</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_commission"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_commission">[docs]</a>    <span class="k">def</span> <span class="nf">set_commission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commission</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">commission</span><span class="p">,</span> <span class="p">(</span><span class="n">PerShare</span><span class="p">,</span> <span class="n">PerTrade</span><span class="p">,</span> <span class="n">PerDollar</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">UnsupportedCommissionModel</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">OverrideCommissionPostInit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commission</span> <span class="o">=</span> <span class="n">commission</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.set_sources"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_sources">[docs]</a>    <span class="k">def</span> <span class="nf">set_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sources</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="o">=</span> <span class="n">sources</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.set_transforms"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_transforms">[docs]</a>    <span class="k">def</span> <span class="nf">set_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transforms</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transforms</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="n">transforms</span>
+
+    <span class="c"># Remain backwards compatibility</span></div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span>
+
+    <span class="nd">@data_frequency.setter</span>
+<div class="viewcode-block" id="TradingAlgorithm.data_frequency"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.data_frequency">[docs]</a>    <span class="k">def</span> <span class="nf">data_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;daily&#39;</span><span class="p">,</span> <span class="s">&#39;minute&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">=</span> <span class="n">value</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order_percent"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order_percent">[docs]</a>    <span class="k">def</span> <span class="nf">order_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">percent</span><span class="p">,</span>
+                      <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order in the specified security corresponding to the given</span>
+<span class="sd">        percent of the current portfolio value.</span>
+
+<span class="sd">        Note that percent must expressed as a decimal (0.50 means 50\%).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">*</span> <span class="n">percent</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_value</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
+                                <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                                <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                                <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order_target"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order_target">[docs]</a>    <span class="k">def</span> <span class="nf">order_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span>
+                     <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order to adjust a position to a target number of shares. If</span>
+<span class="sd">        the position doesn&#39;t already exist, this is equivalent to placing a new</span>
+<span class="sd">        order. If the position does exist, this is equivalent to placing an</span>
+<span class="sd">        order for the difference between the target number of shares and the</span>
+<span class="sd">        current number of shares.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio</span><span class="o">.</span><span class="n">positions</span><span class="p">:</span>
+            <span class="n">current_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span><span class="o">.</span><span class="n">amount</span>
+            <span class="n">req_shares</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="n">current_position</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">req_shares</span><span class="p">,</span>
+                              <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                              <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                              <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span>
+                              <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                              <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                              <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order_target_value"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order_target_value">[docs]</a>    <span class="k">def</span> <span class="nf">order_target_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span>
+                           <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order to adjust a position to a target value. If</span>
+<span class="sd">        the position doesn&#39;t already exist, this is equivalent to placing a new</span>
+<span class="sd">        order. If the position does exist, this is equivalent to placing an</span>
+<span class="sd">        order for the difference between the target value and the</span>
+<span class="sd">        current value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">last_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span><span class="o">.</span><span class="n">current_data</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span><span class="o">.</span><span class="n">price</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">last_price</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="c"># Don&#39;t place an order</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">:</span>
+                <span class="n">zero_message</span> <span class="o">=</span> <span class="s">&quot;Price of 0 for {psid}; can&#39;t infer value&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">zero_message</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">psid</span><span class="o">=</span><span class="n">sid</span><span class="p">))</span>
+            <span class="k">return</span>
+        <span class="n">target_amount</span> <span class="o">=</span> <span class="n">target</span> <span class="o">/</span> <span class="n">last_price</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_target</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">target_amount</span><span class="p">,</span>
+                                 <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                                 <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                                 <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.order_target_percent"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.order_target_percent">[docs]</a>    <span class="k">def</span> <span class="nf">order_target_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span>
+                             <span class="n">limit_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stop_price</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Place an order to adjust a position to a target percent of the</span>
+<span class="sd">        current portfolio value. If the position doesn&#39;t already exist, this is</span>
+<span class="sd">        equivalent to placing a new order. If the position does exist, this is</span>
+<span class="sd">        equivalent to placing an order for the difference between the target</span>
+<span class="sd">        percent and the current percent.</span>
+
+<span class="sd">        Note that target must expressed as a decimal (0.50 means 50\%).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">target_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">*</span> <span class="n">target</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_target_value</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">target_value</span><span class="p">,</span>
+                                       <span class="n">limit_price</span><span class="o">=</span><span class="n">limit_price</span><span class="p">,</span>
+                                       <span class="n">stop_price</span><span class="o">=</span><span class="n">stop_price</span><span class="p">,</span>
+                                       <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.get_open_orders"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.get_open_orders">[docs]</a>    <span class="k">def</span> <span class="nf">get_open_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sid</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">:</span> <span class="p">[</span><span class="n">order</span><span class="o">.</span><span class="n">to_api_obj</span><span class="p">()</span> <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">orders</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">open_orders</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">orders</span>
+            <span class="p">}</span>
+        <span class="k">if</span> <span class="n">sid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">open_orders</span><span class="p">:</span>
+            <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">open_orders</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">order</span><span class="o">.</span><span class="n">to_api_obj</span><span class="p">()</span> <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[]</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.get_order"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.get_order">[docs]</a>    <span class="k">def</span> <span class="nf">get_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">order_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">orders</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="n">order_id</span><span class="p">]</span><span class="o">.</span><span class="n">to_api_obj</span><span class="p">()</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.cancel_order"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.cancel_order">[docs]</a>    <span class="k">def</span> <span class="nf">cancel_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_param</span><span class="p">):</span>
+        <span class="n">order_id</span> <span class="o">=</span> <span class="n">order_param</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order_param</span><span class="p">,</span> <span class="n">zipline</span><span class="o">.</span><span class="n">protocol</span><span class="o">.</span><span class="n">Order</span><span class="p">):</span>
+            <span class="n">order_id</span> <span class="o">=</span> <span class="n">order_param</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="o">.</span><span class="n">cancel</span><span class="p">(</span><span class="n">order_id</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.add_history"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.add_history">[docs]</a>    <span class="k">def</span> <span class="nf">add_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span>
+                    <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">data_frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span>
+        <span class="n">daily_at_midnight</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">)</span>
+
+        <span class="n">history_spec</span> <span class="o">=</span> <span class="n">HistorySpec</span><span class="p">(</span><span class="n">bar_count</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">ffill</span><span class="p">,</span>
+                                   <span class="n">daily_at_midnight</span><span class="o">=</span><span class="n">daily_at_midnight</span><span class="p">,</span>
+                                   <span class="n">data_frequency</span><span class="o">=</span><span class="n">data_frequency</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_specs</span><span class="p">[</span><span class="n">history_spec</span><span class="o">.</span><span class="n">key_str</span><span class="p">]</span> <span class="o">=</span> <span class="n">history_spec</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.history"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.history">[docs]</a>    <span class="k">def</span> <span class="nf">history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">spec_key_str</span> <span class="o">=</span> <span class="n">HistorySpec</span><span class="o">.</span><span class="n">spec_key</span><span class="p">(</span>
+            <span class="n">bar_count</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">ffill</span><span class="p">)</span>
+        <span class="n">history_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_specs</span><span class="p">[</span><span class="n">spec_key_str</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_container</span><span class="o">.</span><span class="n">get_history</span><span class="p">(</span><span class="n">history_spec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+
+    <span class="c">####################</span>
+    <span class="c"># Trading Controls #</span>
+    <span class="c">####################</span>
+</div>
+<div class="viewcode-block" id="TradingAlgorithm.register_trading_control"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.register_trading_control">[docs]</a>    <span class="k">def</span> <span class="nf">register_trading_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a new TradingControl to be checked prior to order calls.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RegisterTradingControlPostInit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_controls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">control</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_max_position_size"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_max_position_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_max_position_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">sid</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                              <span class="n">max_shares</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                              <span class="n">max_notional</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a limit on the number of shares and/or dollar value held for the</span>
+<span class="sd">        given sid. Limits are treated as absolute values and are enforced at</span>
+<span class="sd">        the time that the algo attempts to place an order for sid. This means</span>
+<span class="sd">        that it&#39;s possible to end up with more than the max number of shares</span>
+<span class="sd">        due to splits/dividends, and more than the max notional due to price</span>
+<span class="sd">        improvement.</span>
+
+<span class="sd">        If an algorithm attempts to place an order that would result in</span>
+<span class="sd">        increasing the absolute value of shares/dollar value exceeding one of</span>
+<span class="sd">        these limits, raise a TradingControlException.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">control</span> <span class="o">=</span> <span class="n">MaxPositionSize</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">,</span>
+                                  <span class="n">max_shares</span><span class="o">=</span><span class="n">max_shares</span><span class="p">,</span>
+                                  <span class="n">max_notional</span><span class="o">=</span><span class="n">max_notional</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_trading_control</span><span class="p">(</span><span class="n">control</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_max_order_size"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_max_order_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_max_order_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">max_shares</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">max_notional</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a limit on the number of shares and/or dollar value of any single</span>
+<span class="sd">        order placed for sid.  Limits are treated as absolute values and are</span>
+<span class="sd">        enforced at the time that the algo attempts to place an order for sid.</span>
+
+<span class="sd">        If an algorithm attempts to place an order that would result in</span>
+<span class="sd">        exceeding one of these limits, raise a TradingControlException.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">control</span> <span class="o">=</span> <span class="n">MaxOrderSize</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">,</span>
+                               <span class="n">max_shares</span><span class="o">=</span><span class="n">max_shares</span><span class="p">,</span>
+                               <span class="n">max_notional</span><span class="o">=</span><span class="n">max_notional</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_trading_control</span><span class="p">(</span><span class="n">control</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_max_order_count"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_max_order_count">[docs]</a>    <span class="k">def</span> <span class="nf">set_max_order_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_count</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a limit on the number of orders that can be placed within the given</span>
+<span class="sd">        time interval.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">control</span> <span class="o">=</span> <span class="n">MaxOrderCount</span><span class="p">(</span><span class="n">max_count</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_trading_control</span><span class="p">(</span><span class="n">control</span><span class="p">)</span>
+</div>
+    <span class="nd">@api_method</span>
+<div class="viewcode-block" id="TradingAlgorithm.set_long_only"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.set_long_only">[docs]</a>    <span class="k">def</span> <span class="nf">set_long_only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a rule specifying that this algorithm cannot take short positions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_trading_control</span><span class="p">(</span><span class="n">LongOnly</span><span class="p">())</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TradingAlgorithm.all_api_methods"><a class="viewcode-back" href="../../zipline.html#zipline.algorithm.TradingAlgorithm.all_api_methods">[docs]</a>    <span class="k">def</span> <span class="nf">all_api_methods</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a list of all the TradingAlgorithm API methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">fn</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">itervalues</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s">&#39;is_api_method&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)]</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

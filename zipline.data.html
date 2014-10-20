@@ -1,0 +1,483 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.data subpackage &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="index.html" />
+    <link rel="up" title="zipline Package" href="zipline.html" />
+    <link rel="next" title="zipline.finance subpackage" href="zipline.finance.html" />
+    <link rel="prev" title="zipline Package" href="zipline.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.finance.html" title="zipline.finance subpackage"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="zipline.html" title="zipline Package"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" accesskey="U"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-zipline.data.__init__">
+<span id="zipline-data-subpackage"></span><h1><tt class="xref py py-mod docutils literal"><span class="pre">zipline.data</span></tt> subpackage<a class="headerlink" href="#module-zipline.data.__init__" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="zipline.data.__init__.load_from_yahoo">
+<tt class="descclassname">zipline.data.__init__.</tt><tt class="descname">load_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="headerlink" href="#zipline.data.__init__.load_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads price data from Yahoo into a dataframe for each of the indicated
+securities.  By default, &#8216;price&#8217; is taken from Yahoo&#8217;s &#8216;Adjusted Close&#8217;,
+which removes the impact of splits and dividends. If the argument
+&#8216;adjusted&#8217; is False, then the non-adjusted &#8216;close&#8217; field is used instead.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust the price for splits and dividends.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.__init__.load_bars_from_yahoo">
+<tt class="descclassname">zipline.data.__init__.</tt><tt class="descname">load_bars_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="headerlink" href="#zipline.data.__init__.load_bars_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads data from Yahoo into a panel with the following
+column names for each indicated security:</p>
+<blockquote>
+<div><ul class="simple">
+<li>open</li>
+<li>high</li>
+<li>low</li>
+<li>close</li>
+<li>volume</li>
+<li>price</li>
+</ul>
+</div></blockquote>
+<p>Note that &#8216;price&#8217; is Yahoo&#8217;s &#8216;Adjusted Close&#8217;, which removes the
+impact of splits and dividends. If the argument &#8216;adjusted&#8217; is True, then
+the open, high, low, and close values are adjusted as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust open/high/low/close for splits and dividends.
+The &#8216;price&#8217; field is always adjusted.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="section" id="module-zipline.data.benchmarks">
+<span id="benchmarks-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">benchmarks</span></tt> Module<a class="headerlink" href="#module-zipline.data.benchmarks" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="zipline.data.benchmarks.BenchmarkDataNotFoundError">
+<em class="property">exception </em><tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">BenchmarkDataNotFoundError</tt><a class="reference internal" href="_modules/zipline/data/benchmarks.html#BenchmarkDataNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.benchmarks.BenchmarkDataNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.data.benchmarks.DailyReturn">
+<em class="property">class </em><tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">DailyReturn</tt><a class="headerlink" href="#zipline.data.benchmarks.DailyReturn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">tuple</span></tt></p>
+<p>DailyReturn(date, returns)</p>
+<dl class="attribute">
+<dt id="zipline.data.benchmarks.DailyReturn.date">
+<tt class="descname">date</tt><a class="headerlink" href="#zipline.data.benchmarks.DailyReturn.date" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.data.benchmarks.DailyReturn.returns">
+<tt class="descname">returns</tt><a class="headerlink" href="#zipline.data.benchmarks.DailyReturn.returns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.benchmarks.benchmark_mappings">
+<tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">benchmark_mappings</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/data/benchmarks.html#benchmark_mappings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.benchmarks.benchmark_mappings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.benchmarks.get_benchmark_data">
+<tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">get_benchmark_data</tt><big>(</big><em>symbol</em>, <em>start_date=None</em>, <em>end_date=None</em><big>)</big><a class="reference internal" href="_modules/zipline/data/benchmarks.html#get_benchmark_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.benchmarks.get_benchmark_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Benchmarks from Yahoo.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.benchmarks.get_benchmark_returns">
+<tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">get_benchmark_returns</tt><big>(</big><em>symbol</em>, <em>start_date=None</em>, <em>end_date=None</em><big>)</big><a class="reference internal" href="_modules/zipline/data/benchmarks.html#get_benchmark_returns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.benchmarks.get_benchmark_returns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of return percentages in chronological order.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.benchmarks.get_raw_benchmark_data">
+<tt class="descclassname">zipline.data.benchmarks.</tt><tt class="descname">get_raw_benchmark_data</tt><big>(</big><em>start_date</em>, <em>end_date</em>, <em>symbol</em><big>)</big><a class="reference internal" href="_modules/zipline/data/benchmarks.html#get_raw_benchmark_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.benchmarks.get_raw_benchmark_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-zipline.data.loader">
+<span id="loader-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">loader</span></tt> Module<a class="headerlink" href="#module-zipline.data.loader" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.data.loader.dump_benchmarks">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">dump_benchmarks</tt><big>(</big><em>symbol</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#dump_benchmarks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.dump_benchmarks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dumps data to be used with zipline.</p>
+<p>Puts source treasury and data into zipline.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.dump_treasury_curves">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">dump_treasury_curves</tt><big>(</big><em>module='treasuries'</em>, <em>filename='treasury_curves.csv'</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#dump_treasury_curves"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.dump_treasury_curves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dumps data to be used with zipline.</p>
+<p>Puts source treasury and data into zipline.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.get_benchmark_filename">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">get_benchmark_filename</tt><big>(</big><em>symbol</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#get_benchmark_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.get_benchmark_filename" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.get_cache_filepath">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">get_cache_filepath</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#get_cache_filepath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.get_cache_filepath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.get_data_filepath">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">get_data_filepath</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#get_data_filepath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.get_data_filepath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a handle to data file.</p>
+<p>Creates containing directory, if needed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.load_bars_from_yahoo">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">load_bars_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#load_bars_from_yahoo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.load_bars_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads data from Yahoo into a panel with the following
+column names for each indicated security:</p>
+<blockquote>
+<div><ul class="simple">
+<li>open</li>
+<li>high</li>
+<li>low</li>
+<li>close</li>
+<li>volume</li>
+<li>price</li>
+</ul>
+</div></blockquote>
+<p>Note that &#8216;price&#8217; is Yahoo&#8217;s &#8216;Adjusted Close&#8217;, which removes the
+impact of splits and dividends. If the argument &#8216;adjusted&#8217; is True, then
+the open, high, low, and close values are adjusted as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust open/high/low/close for splits and dividends.
+The &#8216;price&#8217; field is always adjusted.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.load_from_yahoo">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">load_from_yahoo</tt><big>(</big><em>indexes=None</em>, <em>stocks=None</em>, <em>start=None</em>, <em>end=None</em>, <em>adjusted=True</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#load_from_yahoo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.load_from_yahoo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads price data from Yahoo into a dataframe for each of the indicated
+securities.  By default, &#8216;price&#8217; is taken from Yahoo&#8217;s &#8216;Adjusted Close&#8217;,
+which removes the impact of splits and dividends. If the argument
+&#8216;adjusted&#8217; is False, then the non-adjusted &#8216;close&#8217; field is used instead.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>indexes</strong> (<em>dict</em>) &#8211; Financial indexes to load.</li>
+<li><strong>stocks</strong> (<em>list</em>) &#8211; Stock closing prices to load.</li>
+<li><strong>start</strong> (<em>datetime</em>) &#8211; Retrieve prices from start date on.</li>
+<li><strong>end</strong> (<em>datetime</em>) &#8211; Retrieve prices until end date.</li>
+<li><strong>adjusted</strong> (<em>bool</em>) &#8211; Adjust the price for splits and dividends.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.load_market_data">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">load_market_data</tt><big>(</big><em>bm_symbol='^GSPC'</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#load_market_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.load_market_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader.update_benchmarks">
+<tt class="descclassname">zipline.data.loader.</tt><tt class="descname">update_benchmarks</tt><big>(</big><em>symbol</em>, <em>last_date</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader.html#update_benchmarks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader.update_benchmarks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates data in the zipline message pack</p>
+<p>last_date should be a datetime object of the most recent data</p>
+<p>Puts source benchmark into zipline.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-zipline.data.loader_utils">
+<span id="loader-utils-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">loader_utils</span></tt> Module<a class="headerlink" href="#module-zipline.data.loader_utils" title="Permalink to this headline">¶</a></h2>
+<p>Various utilites used by different date loaders.</p>
+<p>Could stand to be broken up more into components.
+e.g. the mapping utilities.</p>
+<dl class="class">
+<dt id="zipline.data.loader_utils.Mapping">
+<em class="property">class </em><tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">Mapping</tt><a class="headerlink" href="#zipline.data.loader_utils.Mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">tuple</span></tt></p>
+<p>Mapping(conversion, source)</p>
+<dl class="attribute">
+<dt id="zipline.data.loader_utils.Mapping.conversion">
+<tt class="descname">conversion</tt><a class="headerlink" href="#zipline.data.loader_utils.Mapping.conversion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.data.loader_utils.Mapping.source">
+<tt class="descname">source</tt><a class="headerlink" href="#zipline.data.loader_utils.Mapping.source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.apply_mapping">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">apply_mapping</tt><big>(</big><em>mapping</em>, <em>row</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#apply_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.apply_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the value of a &#64;mapping for a given &#64;row.</p>
+<p>i.e. the &#64;mapping.source values are extracted from &#64;row and fed
+into the &#64;mapping.conversion method.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.date_conversion">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">date_conversion</tt><big>(</big><em>date_str</em>, <em>date_pattern='%m/%d/%Y'</em>, <em>to_utc=True</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#date_conversion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.date_conversion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert date strings from TickData (or other source) into epoch values.</p>
+<p>Specify to_utc=False if the input date is already UTC (or is naive).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.get_exchange_time_from_utc">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">get_exchange_time_from_utc</tt><big>(</big><em>utc_dt</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#get_exchange_time_from_utc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.get_exchange_time_from_utc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes in result from exchange time.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.get_utc_from_exchange_time">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">get_utc_from_exchange_time</tt><big>(</big><em>naive</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#get_utc_from_exchange_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.get_utc_from_exchange_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.guarded_conversion">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">guarded_conversion</tt><big>(</big><em>conversion</em>, <em>str_val</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#guarded_conversion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.guarded_conversion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the result of applying the &#64;conversion to &#64;str_val</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.make_row_cb">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">make_row_cb</tt><big>(</big><em>mapping</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#make_row_cb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.make_row_cb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a func that can be applied to a dict that returns the
+application of the &#64;mapping, which results in a dict.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.safe_int">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">safe_int</tt><big>(</big><em>str_val</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#safe_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.safe_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>casts the &#64;str_val to a float to handle the occassional
+decimal point in int fields from data providers.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.loader_utils.source_to_records">
+<tt class="descclassname">zipline.data.loader_utils.</tt><tt class="descname">source_to_records</tt><big>(</big><em>mappings</em>, <em>source</em>, <em>source_wrapper=None</em>, <em>records_wrapper=None</em><big>)</big><a class="reference internal" href="_modules/zipline/data/loader_utils.html#source_to_records"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.loader_utils.source_to_records" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-zipline.data.treasuries">
+<span id="treasuries-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">treasuries</span></tt> Module<a class="headerlink" href="#module-zipline.data.treasuries" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.data.treasuries.dataconverter">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">dataconverter</tt><big>(</big><em>s</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#dataconverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.dataconverter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_daily_10yr_treasury_data">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_daily_10yr_treasury_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_daily_10yr_treasury_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_daily_10yr_treasury_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download daily 10 year treasury rates from the Federal Reserve and
+return a pandas.Series.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_localname">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_localname</tt><big>(</big><em>element</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_localname"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_localname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_treasury_data">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_treasury_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_treasury_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_treasury_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_treasury_date">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_treasury_date</tt><big>(</big><em>dstring</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_treasury_date"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_treasury_date" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_treasury_rate">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_treasury_rate</tt><big>(</big><em>string_val</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_treasury_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_treasury_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.get_treasury_source">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">get_treasury_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#get_treasury_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.get_treasury_source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="zipline.data.treasuries.iter_to_stream">
+<em class="property">class </em><tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">iter_to_stream</tt><big>(</big><em>iterable</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#iter_to_stream"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.iter_to_stream" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Exposes an iterable as an i/o stream</p>
+<dl class="method">
+<dt id="zipline.data.treasuries.iter_to_stream.read">
+<tt class="descname">read</tt><big>(</big><em>size</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#iter_to_stream.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.iter_to_stream.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.data.treasuries.treasury_mappings">
+<tt class="descclassname">zipline.data.treasuries.</tt><tt class="descname">treasury_mappings</tt><big>(</big><em>mappings</em><big>)</big><a class="reference internal" href="_modules/zipline/data/treasuries.html#treasury_mappings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.treasuries.treasury_mappings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">zipline.data</span></tt> subpackage</a><ul>
+<li><a class="reference internal" href="#module-zipline.data.benchmarks"><tt class="docutils literal"><span class="pre">benchmarks</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.data.loader"><tt class="docutils literal"><span class="pre">loader</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.data.loader_utils"><tt class="docutils literal"><span class="pre">loader_utils</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-zipline.data.treasuries"><tt class="docutils literal"><span class="pre">treasuries</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="zipline.html"
+                        title="previous chapter"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="zipline.finance.html"
+                        title="next chapter"><tt class="docutils literal"><span class="pre">zipline.finance</span></tt> subpackage</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/zipline.data.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="zipline.finance.html" title="zipline.finance subpackage"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="zipline.html" title="zipline Package"
+             >previous</a> |</li>
+        <li><a href="index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >Packages and Modules</a> &raquo;</li>
+          <li><a href="zipline.html" ><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

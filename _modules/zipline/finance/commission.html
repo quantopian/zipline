@@ -1,0 +1,198 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.finance.commission &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.finance.commission</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2014 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+
+<div class="viewcode-block" id="PerShare"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerShare">[docs]</a><span class="k">class</span> <span class="nc">PerShare</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a commission for a transaction based on a per</span>
+<span class="sd">    share cost with an optional minimum cost per trade.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cost</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">min_trade_cost</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cost parameter is the cost of a trade per-share. $0.03</span>
+<span class="sd">        means three cents per share, which is a very conservative</span>
+<span class="sd">        (quite high) for per share costs.</span>
+<span class="sd">        min_trade_cost parameter is the minimum trade cost</span>
+<span class="sd">        regardless of the number of shares traded (e.g. $1.00).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_trade_cost</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">min_trade_cost</span> <span class="ow">is</span> <span class="bp">None</span>\
+            <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">min_trade_cost</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{class_name}(cost={cost}, min trade cost={min_trade_cost})&quot;</span>\
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">cost</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="p">,</span>
+                    <span class="n">min_trade_cost</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_trade_cost</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PerShare.calculate"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerShare.calculate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns a tuple of:</span>
+<span class="sd">        (per share commission, total transaction commission)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">commission</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">transaction</span><span class="o">.</span><span class="n">amount</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_trade_cost</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="p">,</span> <span class="n">commission</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">commission</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">commission</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_trade_cost</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">commission</span> <span class="o">/</span> <span class="n">transaction</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">commission</span>
+
+</div></div>
+<div class="viewcode-block" id="PerTrade"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerTrade">[docs]</a><span class="k">class</span> <span class="nc">PerTrade</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a commission for a transaction based on a per</span>
+<span class="sd">    trade cost.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cost</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cost parameter is the cost of a trade, regardless of</span>
+<span class="sd">        share count. $5.00 per trade is fairly typical of</span>
+<span class="sd">        discount brokers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Cost needs to be floating point so that calculation using division</span>
+        <span class="c"># logic does not floor to an integer.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PerTrade.calculate"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerTrade.calculate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns a tuple of:</span>
+<span class="sd">        (per share commission, total transaction commission)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">transaction</span><span class="o">.</span><span class="n">amount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost</span> <span class="o">/</span> <span class="n">transaction</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost</span>
+
+</div></div>
+<div class="viewcode-block" id="PerDollar"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerDollar">[docs]</a><span class="k">class</span> <span class="nc">PerDollar</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a commission for a transaction based on a per</span>
+<span class="sd">    dollar cost.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cost</span><span class="o">=</span><span class="mf">0.0015</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cost parameter is the cost of a trade per-dollar. 0.0015</span>
+<span class="sd">        on $1 million means $1,500 commission (=1,000,000 x 0.0015)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{class_name}(cost={cost})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="n">cost</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PerDollar.calculate"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.commission.PerDollar.calculate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns a tuple of:</span>
+<span class="sd">        (per share commission, total transaction commission)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cost_per_share</span> <span class="o">=</span> <span class="n">transaction</span><span class="o">.</span><span class="n">price</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost</span>
+        <span class="k">return</span> <span class="n">cost_per_share</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">transaction</span><span class="o">.</span><span class="n">amount</span><span class="p">)</span> <span class="o">*</span> <span class="n">cost_per_share</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

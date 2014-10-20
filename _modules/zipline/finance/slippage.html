@@ -1,0 +1,352 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>zipline.finance.slippage &mdash; zipline 0.7.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="zipline 0.7.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for zipline.finance.slippage</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2014 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+
+<span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="n">DATASOURCE_TYPE</span>
+
+<span class="n">SELL</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span>
+<span class="n">BUY</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span>
+<span class="n">STOP</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span>
+<span class="n">LIMIT</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span>
+
+
+<div class="viewcode-block" id="check_order_triggers"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.check_order_triggers">[docs]</a><span class="k">def</span> <span class="nf">check_order_triggers</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an order and a trade event, return a tuple of</span>
+<span class="sd">    (stop_reached, limit_reached).</span>
+<span class="sd">    For market orders, will return (False, False).</span>
+<span class="sd">    For stop orders, limit_reached will always be False.</span>
+<span class="sd">    For limit orders, stop_reached will always be False.</span>
+<span class="sd">    For stop limit orders a Boolean is returned to flag</span>
+<span class="sd">    that the stop has been reached.</span>
+
+<span class="sd">    Orders that have been triggered already (price targets reached),</span>
+<span class="sd">    the order&#39;s current values are returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">triggered</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">stop_reached</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">limit_reached</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+    <span class="n">stop_reached</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">limit_reached</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">sl_stop_reached</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="n">order_type</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">amount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">order_type</span> <span class="o">|=</span> <span class="n">BUY</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">order_type</span> <span class="o">|=</span> <span class="n">SELL</span>
+
+    <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">order_type</span> <span class="o">|=</span> <span class="n">STOP</span>
+
+    <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">order_type</span> <span class="o">|=</span> <span class="n">LIMIT</span>
+
+    <span class="k">if</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">BUY</span> <span class="o">|</span> <span class="n">STOP</span> <span class="o">|</span> <span class="n">LIMIT</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&gt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">stop</span><span class="p">:</span>
+            <span class="n">sl_stop_reached</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&lt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+                <span class="n">limit_reached</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">elif</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">SELL</span> <span class="o">|</span> <span class="n">STOP</span> <span class="o">|</span> <span class="n">LIMIT</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&lt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">stop</span><span class="p">:</span>
+            <span class="n">sl_stop_reached</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&gt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+                <span class="n">limit_reached</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">elif</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">BUY</span> <span class="o">|</span> <span class="n">STOP</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&gt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">stop</span><span class="p">:</span>
+            <span class="n">stop_reached</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">elif</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">SELL</span> <span class="o">|</span> <span class="n">STOP</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&lt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">stop</span><span class="p">:</span>
+            <span class="n">stop_reached</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">elif</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">BUY</span> <span class="o">|</span> <span class="n">LIMIT</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&lt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit_reached</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">elif</span> <span class="n">order_type</span> <span class="o">==</span> <span class="n">SELL</span> <span class="o">|</span> <span class="n">LIMIT</span><span class="p">:</span>
+        <span class="c"># This is a SELL LIMIT order</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">&gt;=</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit_reached</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">stop_reached</span><span class="p">,</span> <span class="n">limit_reached</span><span class="p">,</span> <span class="n">sl_stop_reached</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="transact_stub"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.transact_stub">[docs]</a><span class="k">def</span> <span class="nf">transact_stub</span><span class="p">(</span><span class="n">slippage</span><span class="p">,</span> <span class="n">commission</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">open_orders</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is intended to be wrapped in a partial, so that the</span>
+<span class="sd">    slippage and commission models can be enclosed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">order</span><span class="p">,</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="n">slippage</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">open_orders</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">transaction</span> <span class="ow">and</span> <span class="n">transaction</span><span class="o">.</span><span class="n">amount</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">direction</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">transaction</span><span class="o">.</span><span class="n">amount</span><span class="p">)</span>
+            <span class="n">per_share</span><span class="p">,</span> <span class="n">total_commission</span> <span class="o">=</span> <span class="n">commission</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">transaction</span><span class="p">)</span>
+            <span class="n">transaction</span><span class="o">.</span><span class="n">price</span> <span class="o">+=</span> <span class="n">per_share</span> <span class="o">*</span> <span class="n">direction</span>
+            <span class="n">transaction</span><span class="o">.</span><span class="n">commission</span> <span class="o">=</span> <span class="n">total_commission</span>
+        <span class="k">yield</span> <span class="n">order</span><span class="p">,</span> <span class="n">transaction</span>
+
+</div>
+<div class="viewcode-block" id="transact_partial"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.transact_partial">[docs]</a><span class="k">def</span> <span class="nf">transact_partial</span><span class="p">(</span><span class="n">slippage</span><span class="p">,</span> <span class="n">commission</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">transact_stub</span><span class="p">,</span> <span class="n">slippage</span><span class="p">,</span> <span class="n">commission</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Transaction"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.Transaction">[docs]</a><span class="k">class</span> <span class="nc">Transaction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">order_id</span><span class="p">,</span> <span class="n">commission</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sid</span> <span class="o">=</span> <span class="n">sid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amount</span> <span class="o">=</span> <span class="n">amount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="n">price</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_id</span> <span class="o">=</span> <span class="n">order_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commission</span> <span class="o">=</span> <span class="n">commission</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">DATASOURCE_TYPE</span><span class="o">.</span><span class="n">TRANSACTION</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Transaction.to_dict"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.Transaction.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">py</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">py</span>
+
+</div></div>
+<div class="viewcode-block" id="create_transaction"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.create_transaction">[docs]</a><span class="k">def</span> <span class="nf">create_transaction</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">amount</span><span class="p">):</span>
+
+    <span class="c"># floor the amount to protect against non-whole number orders</span>
+    <span class="c"># TODO: Investigate whether we can add a robust check in blotter</span>
+    <span class="c"># and/or tradesimulation, as well.</span>
+    <span class="n">amount_magnitude</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">amount</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">amount_magnitude</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Transaction magnitude must be at least 1.&quot;</span><span class="p">)</span>
+
+    <span class="n">transaction</span> <span class="o">=</span> <span class="n">Transaction</span><span class="p">(</span>
+        <span class="n">sid</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
+        <span class="n">amount</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">amount</span><span class="p">),</span>
+        <span class="n">dt</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+        <span class="n">price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
+        <span class="n">order_id</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">transaction</span>
+
+</div>
+<div class="viewcode-block" id="SlippageModel"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.SlippageModel">[docs]</a><span class="k">class</span> <span class="nc">SlippageModel</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">)):</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="SlippageModel.volume_for_bar"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.SlippageModel.volume_for_bar">[docs]</a>    <span class="k">def</span> <span class="nf">volume_for_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span>
+</div>
+    <span class="nd">@abc.abstractproperty</span>
+<div class="viewcode-block" id="SlippageModel.process_order"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.SlippageModel.process_order">[docs]</a>    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="SlippageModel.simulate"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.SlippageModel.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">current_orders</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">current_orders</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">open_amount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">order</span><span class="o">.</span><span class="n">check_triggers</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">order</span><span class="o">.</span><span class="n">triggered</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">txn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_order</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">txn</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">txn</span><span class="o">.</span><span class="n">amount</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">order</span><span class="p">,</span> <span class="n">txn</span>
+</div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">current_orders</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">current_orders</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="VolumeShareSlippage"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.VolumeShareSlippage">[docs]</a><span class="k">class</span> <span class="nc">VolumeShareSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">volume_limit</span><span class="o">=.</span><span class="mi">25</span><span class="p">,</span>
+                 <span class="n">price_impact</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">=</span> <span class="n">volume_limit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span> <span class="o">=</span> <span class="n">price_impact</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">{class_name}(</span>
+<span class="s">    volume_limit={volume_limit},</span>
+<span class="s">    price_impact={price_impact})</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                   <span class="n">volume_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">,</span>
+                   <span class="n">price_impact</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VolumeShareSlippage.process_order"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.VolumeShareSlippage.process_order">[docs]</a>    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+
+        <span class="n">max_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">*</span> <span class="n">event</span><span class="o">.</span><span class="n">volume</span>
+
+        <span class="c"># price impact accounts for the total volume of transactions</span>
+        <span class="c"># created against the current minute bar</span>
+        <span class="n">remaining_volume</span> <span class="o">=</span> <span class="n">max_volume</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span>
+        <span class="k">if</span> <span class="n">remaining_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c"># we can&#39;t fill any more transactions</span>
+            <span class="k">return</span>
+
+        <span class="c"># the current order amount will be the min of the</span>
+        <span class="c"># volume available in the bar or the open amount.</span>
+        <span class="n">cur_volume</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">remaining_volume</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">open_amount</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">cur_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c"># tally the current amount into our total amount ordered.</span>
+        <span class="c"># total amount will be used to calculate price impact</span>
+        <span class="n">total_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span> <span class="o">+</span> <span class="n">cur_volume</span>
+
+        <span class="n">volume_share</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_volume</span> <span class="o">/</span> <span class="n">event</span><span class="o">.</span><span class="n">volume</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">)</span>
+
+        <span class="n">simulated_impact</span> <span class="o">=</span> <span class="n">volume_share</span> <span class="o">**</span> <span class="mi">2</span> \
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span> \
+            <span class="o">*</span> <span class="n">event</span><span class="o">.</span><span class="n">price</span>
+
+        <span class="k">return</span> <span class="n">create_transaction</span><span class="p">(</span>
+            <span class="n">event</span><span class="p">,</span>
+            <span class="n">order</span><span class="p">,</span>
+            <span class="c"># In the future, we may want to change the next line</span>
+            <span class="c"># for limit pricing</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">+</span> <span class="n">simulated_impact</span><span class="p">,</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">cur_volume</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span>
+        <span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="FixedSlippage"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.FixedSlippage">[docs]</a><span class="k">class</span> <span class="nc">FixedSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use the fixed slippage model, which will just add/subtract</span>
+<span class="sd">        a specified spread spread/2 will be added on buys and subtracted</span>
+<span class="sd">        on sells per share</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">=</span> <span class="n">spread</span>
+
+<div class="viewcode-block" id="FixedSlippage.process_order"><a class="viewcode-back" href="../../../zipline.finance.html#zipline.finance.slippage.FixedSlippage.process_order">[docs]</a>    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">create_transaction</span><span class="p">(</span>
+            <span class="n">event</span><span class="p">,</span>
+            <span class="n">order</span><span class="p">,</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">price</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">),</span>
+            <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">zipline 0.7.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Quantopian Inc.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
