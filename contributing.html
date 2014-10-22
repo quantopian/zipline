@@ -55,6 +55,31 @@
             
   <div class="section" id="contributing-to-the-project">
 <h1>Contributing to the project<a class="headerlink" href="#contributing-to-the-project" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="development-environment">
+<h2>Development Environment<a class="headerlink" href="#development-environment" title="Permalink to this headline">¶</a></h2>
+<p>The following guide assumes your system has [virtualenvwrapper](<a class="reference external" href="https://bitbucket.org/dhellmann/virtualenvwrapper">https://bitbucket.org/dhellmann/virtualenvwrapper</a>)
+and [pip](<a class="reference external" href="http://www.pip-installer.org/en/latest/">http://www.pip-installer.org/en/latest/</a>) already installed.</p>
+<p>You&#8217;ll need to install some C library dependencies:</p>
+<p><a href="#id1"><span class="problematic" id="id2">``</span></a>`
+sudo apt-get install libopenblas-dev liblapack-dev gfortran</p>
+<p>wget <a class="reference external" href="http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz">http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz</a>
+tar -xvzf ta-lib-0.4.0-src.tar.gz
+cd ta-lib/
+./configure &#8211;prefix=/usr
+make
+sudo make install
+<a href="#id3"><span class="problematic" id="id4">``</span></a><a href="#id5"><span class="problematic" id="id6">`</span></a></p>
+<p>Suggested installation of Python library dependencies used for development:</p>
+<p><tt class="docutils literal"><span class="pre">`</span>
+<span class="pre">mkvirtualenv</span> <span class="pre">zipline</span>
+<span class="pre">./etc/ordered_pip.sh</span> <span class="pre">./etc/requirements.txt</span>
+<span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">./etc/requirements_dev.txt</span>
+<span class="pre">`</span></tt></p>
+<p>Finally, install zipline in develop mode (from the zipline source root dir):</p>
+<p><tt class="docutils literal"><span class="pre">`</span>
+<span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">develop</span>
+<span class="pre">`</span></tt></p>
+</div>
 <div class="section" id="style-guide">
 <h2>Style Guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
 <p>To ensure that changes and patches are focused on behavior changes,
@@ -68,12 +93,6 @@ changes pass</p>
 <div class="highlight-python"><div class="highlight"><pre>flake8 zipline tests
 </pre></div>
 </div>
-</div>
-<div class="section" id="discussion-and-help">
-<h2>Discussion and Help<a class="headerlink" href="#discussion-and-help" title="Permalink to this headline">¶</a></h2>
-<p>Discussion of the project is held at the Google Group,
-<a class="reference external" href="mailto:zipline&#37;&#52;&#48;googlegroups&#46;com">mailto:zipline<span>&#64;</span>googlegroups<span>&#46;</span>com</a>,
-<a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">https://groups.google.com/forum/#!forum/zipline</a>.</p>
 </div>
 <div class="section" id="source">
 <h2>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h2>
@@ -95,8 +114,8 @@ changes pass</p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Contributing to the project</a><ul>
+<li><a class="reference internal" href="#development-environment">Development Environment</a></li>
 <li><a class="reference internal" href="#style-guide">Style Guide</a></li>
-<li><a class="reference internal" href="#discussion-and-help">Discussion and Help</a></li>
 <li><a class="reference internal" href="#source">Source</a></li>
 <li><a class="reference internal" href="#contact">Contact</a></li>
 </ul>

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Zipline &mdash; zipline 0.7.0 documentation</title>
+    <title>Contents &mdash; zipline 0.7.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -49,7 +49,68 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="zipline">
+  <div class="section" id="contents">
+<h1>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="manifesto.html">Quantopian Manifesto</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manifesto.html#the-evolution-of-algorithmic-finance">The Evolution of Algorithmic Finance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#charting">Charting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#technical-analysis">Technical Analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manifesto.html#statistical-arbitrage">Statistical Arbitrage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="manifesto.html#algorithmic-investing-and-the-future">Algorithmic Investing and the Future</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#develop">Develop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#tooling-hints">Tooling hints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#mac-os-hints">Mac OS hints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#data-sources">Data Sources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#dual-moving-average-example">Dual-Moving Average Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to the project</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#development-environment">Development Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#style-guide">Style Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#source">Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#contact">Contact</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Packages and Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="zipline.html"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.algorithm"><tt class="docutils literal"><span class="pre">algorithm</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.sources"><tt class="docutils literal"><span class="pre">sources</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.test_algorithms"><tt class="docutils literal"><span class="pre">test_algorithms</span></tt> Module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zipline.html#algorithm-protocol">Algorithm Protocol</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.version"><tt class="docutils literal"><span class="pre">version</span></tt> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zipline.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zipline.data.html"><tt class="docutils literal"><span class="pre">zipline.data</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.finance.html"><tt class="docutils literal"><span class="pre">zipline.finance</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.gens.html"><tt class="docutils literal"><span class="pre">zipline.gens</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.transforms.html"><tt class="docutils literal"><span class="pre">zipline.transforms</span></tt> subpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zipline.utils.html"><tt class="docutils literal"><span class="pre">zipline.utils</span></tt> subpackage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="zipline">
 <h1>Zipline<a class="headerlink" href="#zipline" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://gitter.im/quantopian/zipline?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Gitter" src="https://badges.gitter.im/Join%20Chat.svg" /></a></p>
 <p><a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="version status" src="https://pypip.in/v/zipline/badge.png" /></a> <a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="downloads" src="https://pypip.in/d/zipline/badge.png" /></a> <a class="reference external" href="https://travis-ci.org/quantopian/zipline"><img alt="build status" src="https://travis-ci.org/quantopian/zipline.png?branch=master" /></a> <a class="reference external" href="https://coveralls.io/r/quantopian/zipline"><img alt="Coverage Status" src="https://coveralls.io/repos/quantopian/zipline/badge.png" /></a></p>
@@ -73,6 +134,7 @@ below.</p>
 <p>Discussion of the project is held at the Google Group,
 <a class="reference external" href="mailto:zipline&#37;&#52;&#48;googlegroups&#46;com">zipline<span>&#64;</span>googlegroups<span>&#46;</span>com</a>,
 <a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">https://groups.google.com/forum/#!forum/zipline</a>.</p>
+<p>For other questions, please contact <a class="reference external" href="mailto:opensource&#37;&#52;&#48;quantopian&#46;com">opensource<span>&#64;</span>quantopian<span>&#46;</span>com</a>.</p>
 </div>
 <div class="section" id="features">
 <h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
@@ -198,149 +260,7 @@ and analyze from within python.</p>
 <h1>Contributions<a class="headerlink" href="#contributions" title="Permalink to this headline">¶</a></h1>
 <p>If you would like to contribute, please see our Contribution Requests:
 <a class="reference external" href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">https://github.com/quantopian/zipline/wiki/Contribution-Requests</a></p>
-<div class="section" id="credits">
-<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
-<p>Thank you for all the help so far!</p>
-<ul class="simple">
-<li>&#64;rday for sortino ratio, information ratio, and exponential moving
-average transform</li>
-<li>&#64;snth</li>
-<li>&#64;yinhm for integrating zipline with &#64;yinhm/datafeed</li>
-<li><a class="reference external" href="http://www.lowindata.com">Jeremiah Lowin</a> for teaching us the
-nuances of Sharpe and Sortino Ratios, and for implementing new order
-methods.</li>
-<li>Brian Cappello</li>
-<li>&#64;verdverm (Tony Worm), Order types (stop, limit)</li>
-<li>&#64;benmccann for benchmarking contributions</li>
-<li>&#64;jkp and &#64;bencpeters for bugfixes to benchmark.</li>
-<li>&#64;dstephens for adding Canadian treasury curves.</li>
-<li>&#64;mtrovo for adding BMF&amp;Bovespa calendars.</li>
-<li>&#64;sdrdis for bugfixes.</li>
-<li>&#64;humdings for refactoring the order methods.</li>
-<li>Quantopian Team</li>
-</ul>
-<p>(alert us if we&#8217;ve inadvertantly missed listing you here!)</p>
-</div>
-<div class="section" id="development-environment">
-<h2>Development Environment<a class="headerlink" href="#development-environment" title="Permalink to this headline">¶</a></h2>
-<p>The following guide assumes your system has
-<a class="reference external" href="https://bitbucket.org/dhellmann/virtualenvwrapper">virtualenvwrapper</a>
-and <a class="reference external" href="http://www.pip-installer.org/en/latest/">pip</a> already installed.</p>
-<p>You&#8217;ll need to install some C library dependencies:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install libopenblas-dev liblapack-dev gfortran
-
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-tar -xvzf ta-lib-0.4.0-src.tar.gz
-cd ta-lib/
-./configure --prefix=/usr
-make
-sudo make install
-</pre></div>
-</div>
-<p>Suggested installation of Python library dependencies used for
-development:</p>
-<div class="highlight-python"><div class="highlight"><pre>mkvirtualenv zipline
-./etc/ordered_pip.sh ./etc/requirements.txt
-pip install -r ./etc/requirements_dev.txt
-</pre></div>
-</div>
-<p>Finally, install zipline in develop mode (from the zipline source root
-dir):</p>
-<div class="highlight-python"><div class="highlight"><pre>python setup.py develop
-</pre></div>
-</div>
-</div>
-<div class="section" id="style-guide">
-<h2>Style Guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
-<p>To ensure that changes and patches are focused on behavior changes, the
-zipline codebase adheres to both PEP-8,
-<a class="reference external" href="http://www.python.org/dev/peps/pep-0008/">http://www.python.org/dev/peps/pep-0008/</a>, and pyflakes,
-<a class="reference external" href="https://launchpad.net/pyflakes/">https://launchpad.net/pyflakes/</a>.</p>
-<p>The maintainers check the code using the flake8 script,
-<a class="reference external" href="https://bitbucket.org/tarek/flake8/wiki/Home">https://bitbucket.org/tarek/flake8/wiki/Home</a>, which is included in the
-requirements_dev.txt.</p>
-<p>Before submitting patches or pull requests, please ensure that your
-changes pass <tt class="docutils literal"><span class="pre">flake8</span> <span class="pre">zipline</span> <span class="pre">tests</span></tt> and <tt class="docutils literal"><span class="pre">nosetests</span></tt></p>
-</div>
-</div>
-<div class="section" id="source">
-<h1>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h1>
-<p>The source for Zipline is hosted at
-<a class="reference external" href="https://github.com/quantopian/zipline">https://github.com/quantopian/zipline</a>.</p>
-<div class="section" id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>You can compile the documentation using Sphinx:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-sphinx
-make html
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="contact">
-<h1>Contact<a class="headerlink" href="#contact" title="Permalink to this headline">¶</a></h1>
-<p>For other questions, please contact <a class="reference external" href="mailto:opensource&#37;&#52;&#48;quantopian&#46;com">opensource<span>&#64;</span>quantopian<span>&#46;</span>com</a>.</p>
 <span class="target" id="module-zipline"></span></div>
-<div class="section" id="contents">
-<h1>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="manifesto.html">Quantopian Manifesto</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="manifesto.html#the-evolution-of-algorithmic-finance">The Evolution of Algorithmic Finance</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manifesto.html#charting">Charting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manifesto.html#technical-analysis">Technical Analysis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manifesto.html#statistical-arbitrage">Statistical Arbitrage</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="manifesto.html#algorithmic-investing-and-the-future">Algorithmic Investing and the Future</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#dependencies">Dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#develop">Develop</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="installation.html#tooling-hints">Tooling hints</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#mac-os-hints">Mac OS hints</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="installation.html#data-sources">Data Sources</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#dual-moving-average-example">Dual-Moving Average Example</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to the project</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#style-guide">Style Guide</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#discussion-and-help">Discussion and Help</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#source">Source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#contact">Contact</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Packages and Modules</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="zipline.html"><tt class="docutils literal"><span class="pre">zipline</span></tt> Package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.algorithm"><tt class="docutils literal"><span class="pre">algorithm</span></tt> Module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.sources"><tt class="docutils literal"><span class="pre">sources</span></tt> Module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.test_algorithms"><tt class="docutils literal"><span class="pre">test_algorithms</span></tt> Module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="zipline.html#algorithm-protocol">Algorithm Protocol</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="zipline.html#module-zipline.version"><tt class="docutils literal"><span class="pre">version</span></tt> Module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="zipline.html#subpackages">Subpackages</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="zipline.data.html"><tt class="docutils literal"><span class="pre">zipline.data</span></tt> subpackage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="zipline.finance.html"><tt class="docutils literal"><span class="pre">zipline.finance</span></tt> subpackage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="zipline.gens.html"><tt class="docutils literal"><span class="pre">zipline.gens</span></tt> subpackage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="zipline.transforms.html"><tt class="docutils literal"><span class="pre">zipline.transforms</span></tt> subpackage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="zipline.utils.html"><tt class="docutils literal"><span class="pre">zipline.utils</span></tt> subpackage</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</div>
-</div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
@@ -358,7 +278,8 @@ make html
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Zipline</a></li>
+<li><a class="reference internal" href="#">Contents</a></li>
+<li><a class="reference internal" href="#zipline">Zipline</a></li>
 <li><a class="reference internal" href="#discussion-and-help">Discussion and Help</a></li>
 <li><a class="reference internal" href="#features">Features</a></li>
 <li><a class="reference internal" href="#installation">Installation</a><ul>
@@ -367,18 +288,7 @@ make html
 </ul>
 </li>
 <li><a class="reference internal" href="#quickstart">Quickstart</a></li>
-<li><a class="reference internal" href="#contributions">Contributions</a><ul>
-<li><a class="reference internal" href="#credits">Credits</a></li>
-<li><a class="reference internal" href="#development-environment">Development Environment</a></li>
-<li><a class="reference internal" href="#style-guide">Style Guide</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#source">Source</a><ul>
-<li><a class="reference internal" href="#documentation">Documentation</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#contact">Contact</a></li>
-<li><a class="reference internal" href="#contents">Contents</a></li>
+<li><a class="reference internal" href="#contributions">Contributions</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 
