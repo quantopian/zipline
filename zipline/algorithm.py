@@ -746,13 +746,15 @@ class TradingAlgorithm(object):
         self.blotter.set_date(dt)
 
     @api_method
-    def get_datetime(self):
+    def get_datetime(self, tz=None):
         """
         Returns a copy of the datetime.
         """
         date_copy = copy(self.datetime)
         assert date_copy.tzinfo == pytz.utc, \
             "Algorithm should have a utc datetime"
+        if tz is not None:
+            date_copy = date_copy.tz_convert(tz)
         return date_copy
 
     def set_transact(self, transact):
