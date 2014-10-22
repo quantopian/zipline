@@ -70,7 +70,7 @@ def benchmark_events_in_range(sim_params):
                # We explicitly rely on the behavior that benchmarks sort before
                # any other events.
                'source_id': '1Abenchmarks'})
-        for dt, ret in trading.environment.benchmark_returns.iterkv()
+        for dt, ret in trading.environment.benchmark_returns.iteritems()
         if dt.date() >= sim_params.period_start.date()
         and dt.date() <= sim_params.period_end.date()
     ]

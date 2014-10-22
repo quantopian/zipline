@@ -67,7 +67,7 @@ class DataFrameSource(DataSource):
 
     def raw_data_gen(self):
         for dt, series in self.data.iterrows():
-            for sid, price in series.iterkv():
+            for sid, price in series.iteritems():
                 if sid in self.sids:
                     event = {
                         'dt': dt,
@@ -136,7 +136,7 @@ class DataPanelSource(DataSource):
     def raw_data_gen(self):
         for dt in self.data.major_axis:
             df = self.data.major_xs(dt)
-            for sid, series in df.iterkv():
+            for sid, series in df.iteritems():
                 if sid in self.sids:
                     event = {
                         'dt': dt,
