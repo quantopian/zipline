@@ -59,8 +59,11 @@ conda install -c Quantopian zipline
 ```
 
 Currently supported platforms include:
+
 * Windows 32-bit (can be 64-bit Windows but has to be 32-bit Anaconda)
+
 * OSX 64-bit
+
 * Linux 64-bit
 
 PIP
