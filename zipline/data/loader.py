@@ -227,7 +227,7 @@ Fetching data from {0}
         treasury_curves = saved_curves.tz_localize('UTC')
 
     tr_curves = {}
-    for tr_dt, curve in treasury_curves.T.iterkv():
+    for tr_dt, curve in treasury_curves.T.iteritems():
         # tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,
         #                       tzinfo=pytz.utc)
         tr_curves[tr_dt] = curve.to_dict()

@@ -60,28 +60,28 @@ class TestRisk(unittest.TestCase):
 
     def test_algorithm_volatility_06(self):
         algo_vol_answers = answer_key.RISK_CUMULATIVE.volatility
-        for dt, value in algo_vol_answers.iterkv():
+        for dt, value in algo_vol_answers.iteritems():
             np.testing.assert_almost_equal(
                 self.cumulative_metrics_06.metrics.algorithm_volatility[dt],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_sharpe_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.sharpe.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.sharpe.iteritems():
             np.testing.assert_almost_equal(
                 self.cumulative_metrics_06.metrics.sharpe[dt],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_downside_risk_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.downside_risk.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.downside_risk.iteritems():
             np.testing.assert_almost_equal(
                 value,
                 self.cumulative_metrics_06.metrics.downside_risk[dt],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_sortino_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.sortino.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.sortino.iteritems():
             np.testing.assert_almost_equal(
                 self.cumulative_metrics_06.metrics.sortino[dt],
                 value,
@@ -89,28 +89,28 @@ class TestRisk(unittest.TestCase):
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_information_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.information.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.information.iteritems():
             np.testing.assert_almost_equal(
                 value,
                 self.cumulative_metrics_06.metrics.information[dt],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_alpha_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.alpha.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.alpha.iteritems():
             np.testing.assert_almost_equal(
                 self.cumulative_metrics_06.metrics.alpha[dt],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_beta_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.beta.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.beta.iteritems():
             np.testing.assert_almost_equal(
                 value,
                 self.cumulative_metrics_06.metrics.beta[dt],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_max_drawdown_06(self):
-        for dt, value in answer_key.RISK_CUMULATIVE.max_drawdown.iterkv():
+        for dt, value in answer_key.RISK_CUMULATIVE.max_drawdown.iteritems():
             np.testing.assert_almost_equal(
                 self.cumulative_metrics_06.max_drawdowns[dt],
                 value,

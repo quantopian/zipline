@@ -95,7 +95,7 @@ class RiskMetricsPeriod(object):
             self.algorithm_returns, self.num_trading_days)
         self.mean_algorithm_returns = pd.Series(
             index=self.algorithm_returns.index)
-        for dt, ret in self.algorithm_returns.iterkv():
+        for dt, ret in self.algorithm_returns.iteritems():
             self.mean_algorithm_returns[dt] = (
                 self.algorithm_returns[:dt].sum()
                 /
