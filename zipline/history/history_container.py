@@ -490,7 +490,7 @@ class HistoryContainer(object):
         Store the non-NaN values from our oldest frame in each frequency.
         """
         ffillable = self.ffillable_fields
-        if not ffillable:
+        if len(ffillable) == 0:
             return
 
         for frequency in self.unique_frequencies:
