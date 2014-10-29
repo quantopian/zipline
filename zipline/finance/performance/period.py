@@ -386,6 +386,41 @@ class PerformancePeriod(object):
 
         return rval
 
+    def serialize(self):
+        """
+        Return a serialized version of the performance period.
+        """
+        # Go through and call any custom serialization methods we've added
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        state_dict['_portfolio_store'] = self._portfolio_store
+        state_dict['_account_store'] = self._account_store
+        state_dict['_positions_store'] = self._positions_store
+        
+        return 'PerformancePeriod', state_dict
+
+    def reconstruct(self, saved_state):
+        """
+        Reconstruct this performance period from saved_state.
+        """
+
+        self.__dict__.update(saved_state)
+
+        # # Replace with a position dict
+        # positions = self.positions
+        # self.positions = positiondict()
+        # self.positions.update(positions)
+
+        # # Reconstruct these back into objects from dicts
+        # self._portfolio_store = zp.Portfolio(saved_state=self._portfolio_store)
+        # self._account_store = zp.Account(saved_state=self._account_store)
+        # positions = self._positions_store
+        # self._positions_store = zp.Positions()
+        # self._positions_store.update(positions)
+
     def as_portfolio(self):
         """
         The purpose of this method is to provide a portfolio

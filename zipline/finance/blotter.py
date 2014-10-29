@@ -363,6 +363,26 @@ class Order(object):
 
         return True
 
+    def serialize(self):
+        """
+        Return a serialized version of the order.
+        """
+        # Go through and call any custom serialization methods we've added
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+        
+        state_dict['_status'] = self._status
+
+        return 'Order', state_dict
+
+    def reconstruct(self, saved_state):
+        """
+        Reconstruct this order from saved_state.
+        """
+        self.__dict__.update(saved_state)
+
     @property
     def open_amount(self):
         return self.amount - self.filled

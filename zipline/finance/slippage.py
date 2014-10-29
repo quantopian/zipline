@@ -128,6 +128,12 @@ class Transaction(object):
         del py['type']
         return py
 
+    def serialize(self):
+        return 'Transaction', self.__dict__
+
+    def reconstruct(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 def create_transaction(event, order, price, amount):
 

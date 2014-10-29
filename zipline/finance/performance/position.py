@@ -207,6 +207,12 @@ last_sale_price: {last_sale_price}"
             'last_sale_price': self.last_sale_price
         }
 
+    def serialize(self):
+        return 'Position', self.__dict__
+
+    def reconstruct(saved_state):
+        self.__dict__.update(saved_state)
+
 
 class positiondict(dict):
 

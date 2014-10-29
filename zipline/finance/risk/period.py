@@ -156,6 +156,22 @@ class RiskMetricsPeriod(object):
         return {k: None if check_entry(k, v) else v
                 for k, v in iteritems(rval)}
 
+    def serialize(self):
+        """
+        Return a serialized version of the performance period.
+        """
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')) and (not k == 'treasury_curves'):
+                state_dict[k] = v
+        
+        return 'RiskMetricsPeriod', state_dict
+
+    def reconstruct(self, saved_state):
+        self.__dict__.update(saved_state)
+
+        self.treasury_curves = trading.environment.treasury_curves
+
     def __repr__(self):
         statements = []
         metrics = [
