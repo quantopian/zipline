@@ -165,10 +165,10 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def serialize(self):
+    def _serialize(self):
         return 'Account', self.__dict__
 
-    def reconstruct(self, saved_state):
+    def _reconstruct(self, saved_state):
         self.__dict__.update(saved_state)
 
 
