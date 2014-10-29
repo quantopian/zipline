@@ -168,7 +168,7 @@ class Account(object):
     def _get_state(self):
         return 'Account', self.__dict__
 
-    def _reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 
