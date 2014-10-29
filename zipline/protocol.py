@@ -165,7 +165,7 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def _serialize(self):
+    def _get_state(self):
         return 'Account', self.__dict__
 
     def _reconstruct(self, saved_state):
