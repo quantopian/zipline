@@ -264,7 +264,7 @@ class PerformanceTracker(object):
 
         return _dict
 
-    def serialize(self):
+    def _get_state(self):
         """
         Return a serialized version of the performance tracker.
         """
@@ -275,7 +275,7 @@ class PerformanceTracker(object):
         
         return 'PerformanceTracker', state_dict
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 

@@ -386,7 +386,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def serialize(self):
+    def _get_state(self):
         """
         Return a serialized version of the performance period.
         """
@@ -402,7 +402,7 @@ class PerformancePeriod(object):
         
         return 'PerformancePeriod', state_dict
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         """
         Reconstruct this performance period from saved_state.
         """

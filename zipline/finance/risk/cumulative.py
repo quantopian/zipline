@@ -337,7 +337,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return {k: (None if check_entry(k, v) else v)
                 for k, v in iteritems(rval)}
 
-    def serialize(self):
+    def _get_state(self):
         """
         Uses msgpack to create a serialized version of the object.
         """
@@ -350,24 +350,12 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         
         return 'RiskMetricsCumulative', state_dict
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
         # This are big and we don't need to serialize them
         # pop them back in now
         self.treasury_curves = trading.environment.treasury_curves
-
-
-    # def load_from_saved_state(self, packed_metrics):
-    #     """
-    #     Takes the msgpacked state and reconstructs all the values
-    #     into this object.
-    #     """
-    #     metrics_dict = msgpack.unpackb(
-    #         packed_metrics, object_hook=algo_decode
-    #     )
-    #     self.__dict__.update(packed_metrics)
-
 
     def __repr__(self):
         statements = []

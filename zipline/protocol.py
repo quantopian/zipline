@@ -119,19 +119,16 @@ class Order(Event):
 
 class Portfolio(object):
 
-    def __init__(self, saved_state=None):
-        if saved_state is not None:
-            reconstruct(saved_state)
-        else:
-            self.capital_used = 0.0
-            self.starting_cash = 0.0
-            self.portfolio_value = 0.0
-            self.pnl = 0.0
-            self.returns = 0.0
-            self.cash = 0.0
-            self.positions = Positions()
-            self.start_date = None
-            self.positions_value = 0.0
+    def __init__(self):
+        self.capital_used = 0.0
+        self.starting_cash = 0.0
+        self.portfolio_value = 0.0
+        self.pnl = 0.0
+        self.returns = 0.0
+        self.cash = 0.0
+        self.positions = Positions()
+        self.start_date = None
+        self.positions_value = 0.0
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -139,10 +136,10 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
-    def serialize(self):
+    def _get_state(self):
         state_dict = self.__dict__
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 
@@ -198,10 +195,10 @@ class Position(object):
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
 
-    def serialize(self):
+    def _get_state(self):
         return  'Protocol Position', self.__dict__
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 
@@ -212,10 +209,10 @@ class Positions(dict):
         self[key] = pos
         return pos
 
-    def serialize(self):
+    def _get_state(self):
         return  'Protocol Positions', self.__dict__
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 

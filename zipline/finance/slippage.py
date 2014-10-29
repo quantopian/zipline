@@ -128,10 +128,10 @@ class Transaction(object):
         del py['type']
         return py
 
-    def serialize(self):
+    def _get_state(self):
         return 'Transaction', self.__dict__
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
 

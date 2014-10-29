@@ -363,7 +363,7 @@ class Order(object):
 
         return True
 
-    def serialize(self):
+    def _get_state(self):
         """
         Return a serialized version of the order.
         """
@@ -377,7 +377,7 @@ class Order(object):
 
         return 'Order', state_dict
 
-    def reconstruct(self, saved_state):
+    def _set_state(self, saved_state):
         """
         Reconstruct this order from saved_state.
         """
