@@ -115,11 +115,11 @@ def _td_check(td):
     seconds = td.total_seconds()
 
     # 23400 seconds is 6 hours and 30 minutes.
-    if 0 <= seconds <= 23400:
+    if 60 <= seconds <= 23400:
         return td
     else:
-        raise ValueError('offset must be in between 0 minutes and 6 hours and'
-                         ' 30 minutes')
+        raise ValueError('offset must be in between 1 minute and 6 hours and'
+                         ' 30 minutes inclusive')
 
 
 def _build_offset(offset, kwargs, default):
@@ -323,11 +323,23 @@ class AfterOpen(StatelessRule):
         self.offset = _build_offset(
             offset,
             kwargs,
-            datetime.timedelta(),  # Defaults to the first minute.
+            datetime.timedelta(minutes=1),  # Defaults to the first minute.
         )
 
+        self._dt = None
+
     def should_trigger(self, dt):
-        return self.env.get_open_and_close(dt)[0] + self.offset <= dt
+        return self._get_open(dt) + self.offset <= dt
+
+    def _get_open(self, dt):
+        """
+        Cache the open for each day.
+        """
+        if self._dt is None or (self._dt.date() != dt.date()):
+            self._dt = self.env.get_open_and_close(dt)[0] \
+                - datetime.timedelta(minutes=1)
+
+        return self._dt
 
 
 class BeforeClose(StatelessRule):
@@ -344,8 +356,19 @@ class BeforeClose(StatelessRule):
             datetime.timedelta(minutes=1),  # Defaults to the last minute.
         )
 
+        self._dt = None
+
     def should_trigger(self, dt):
-        return self.env.get_open_and_close(dt)[1] - self.offset < dt
+        return self._get_close(dt) - self.offset < dt
+
+    def _get_close(self, dt):
+        """
+        Cache the close for each day.
+        """
+        if self._dt is None or (self._dt.date() != dt.date()):
+            self._dt = self.env.get_open_and_close(dt)[1]
+
+        return self._dt
 
 
 class NotHalfDay(StatelessRule):

@@ -260,9 +260,14 @@ class TestStatelessRules(RuleTestCase):
     def test_AfterOpen(self):
         should_trigger = AfterOpen(minutes=5, hours=1).should_trigger
         for d in self.trading_days:
-            for m in islice(d, 65):
+            for m in islice(d, 64):
+                # Check the first 64 minutes of data.
+                # We use 64 because the offset is from market open
+                # at 13:30 UTC, meaning the first minute of data has an
+                # offset of 1.
                 self.assertFalse(should_trigger(m))
-            for m in islice(d, 65, None):
+            for m in islice(d, 64, None):
+                # Check the rest of the day.
                 self.assertTrue(should_trigger(m))
 
     def test_BeforeClose(self):
