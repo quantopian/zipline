@@ -272,8 +272,9 @@ must specify stocks or indexes"""
     if stocks is not None:
         for stock in stocks:
             print(stock)
+            stock_pathsafe = stock.replace('/', '--')
             cache_filename = "{stock}-{start}-{end}.csv".format(
-                stock=stock,
+                stock=stock_pathsafe,
                 start=start,
                 end=end).replace(':', '-')
             cache_filepath = get_cache_filepath(cache_filename)
