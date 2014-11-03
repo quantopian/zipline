@@ -207,6 +207,12 @@ class TradingEnvironment(object):
                 (self.trading_days <= end))
         return self.trading_days[mask]
 
+    def opens_in_range(self, start, end):
+        return self.open_and_closes.market_open.loc[start:end]
+
+    def closes_in_range(self, start, end):
+        return self.open_and_closes.market_close.loc[start:end]
+
     def minutes_for_days_in_range(self, start, end):
         """
         Get all market minutes for the days between start and end, inclusive.
