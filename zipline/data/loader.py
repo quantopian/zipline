@@ -272,7 +272,7 @@ must specify stocks or indexes"""
     if stocks is not None:
         for stock in stocks:
             print(stock)
-            stock_pathsafe = stock.replace('/', '--')
+            stock_pathsafe = stock.replace(os.path.sep, '--')
             cache_filename = "{stock}-{start}-{end}.csv".format(
                 stock=stock_pathsafe,
                 start=start,
