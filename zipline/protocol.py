@@ -137,7 +137,7 @@ class Portfolio(object):
         return "Portfolio({0})".format(self.__dict__)
 
     def _get_state(self):
-        state_dict = self.__dict__
+        return 'Portfolio', self.__dict__
 
     def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
@@ -196,7 +196,7 @@ class Position(object):
         return "Position({0})".format(self.__dict__)
 
     def _get_state(self):
-        return  'Protocol Position', self.__dict__
+        return 'Protocol Position', self.__dict__
 
     def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
@@ -210,7 +210,7 @@ class Positions(dict):
         return pos
 
     def _get_state(self):
-        return  'Protocol Positions', self.__dict__
+        return 'Protocol Positions', self.__dict__
 
     def _set_state(self, saved_state):
         self.__dict__.update(saved_state)

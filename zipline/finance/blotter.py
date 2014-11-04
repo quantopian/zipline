@@ -240,6 +240,20 @@ class Blotter(object):
 
             yield txn, order
 
+    def _get_state(self):
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        if '_status' in self.__dict__:
+            state_dict['_status'] = self._status
+
+        return 'Blotter', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
@@ -367,12 +381,11 @@ class Order(object):
         """
         Return a serialized version of the order.
         """
-        # Go through and call any custom serialization methods we've added
         state_dict = {}
         for k, v in self.__dict__.iteritems():
             if (not k.startswith('_')):
                 state_dict[k] = v
-        
+
         state_dict['_status'] = self._status
 
         return 'Order', state_dict

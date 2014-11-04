@@ -50,6 +50,17 @@ class PerShare(object):
             commission = max(commission, self.min_trade_cost)
             return abs(commission / transaction.amount), commission
 
+    def _get_state(self):
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        return 'PerShare', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class PerTrade(object):
     """
@@ -77,6 +88,17 @@ class PerTrade(object):
 
         return abs(self.cost / transaction.amount), self.cost
 
+    def _get_state(self):
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        return 'PerTrade', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class PerDollar(object):
     """
@@ -103,3 +125,14 @@ class PerDollar(object):
         """
         cost_per_share = transaction.price * self.cost
         return cost_per_share, abs(transaction.amount) * cost_per_share
+
+    def _get_state(self):
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        return 'PerDollar', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)

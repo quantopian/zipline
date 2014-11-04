@@ -245,6 +245,12 @@ class VolumeShareSlippage(SlippageModel):
             math.copysign(cur_volume, order.direction)
         )
 
+    def _get_state(self):
+        return 'VolumeShareSlippage', self.__dict__
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class FixedSlippage(SlippageModel):
 
@@ -263,3 +269,9 @@ class FixedSlippage(SlippageModel):
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
+
+    def _get_state(self):
+        return 'FixedSlippage', self.__dict__
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)

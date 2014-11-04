@@ -164,7 +164,7 @@ class RiskMetricsPeriod(object):
         for k, v in self.__dict__.iteritems():
             if (not k.startswith('_')) and (not k == 'treasury_curves'):
                 state_dict[k] = v
-        
+
         return 'RiskMetricsPeriod', state_dict
 
     def _set_state(self, saved_state):

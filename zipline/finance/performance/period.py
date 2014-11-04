@@ -399,7 +399,7 @@ class PerformancePeriod(object):
         state_dict['_portfolio_store'] = self._portfolio_store
         state_dict['_account_store'] = self._account_store
         state_dict['_positions_store'] = self._positions_store
-        
+
         return 'PerformancePeriod', state_dict
 
     def _set_state(self, saved_state):
@@ -408,18 +408,6 @@ class PerformancePeriod(object):
         """
 
         self.__dict__.update(saved_state)
-
-        # # Replace with a position dict
-        # positions = self.positions
-        # self.positions = positiondict()
-        # self.positions.update(positions)
-
-        # # Reconstruct these back into objects from dicts
-        # self._portfolio_store = zp.Portfolio(saved_state=self._portfolio_store)
-        # self._account_store = zp.Account(saved_state=self._account_store)
-        # positions = self._positions_store
-        # self._positions_store = zp.Positions()
-        # self._positions_store.update(positions)
 
     def as_portfolio(self):
         """
