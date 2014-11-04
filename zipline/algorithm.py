@@ -34,7 +34,6 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-    IncompatibleScheduleFunctionDataFrequency,
 )
 
 from zipline.finance import trading
@@ -543,11 +542,11 @@ class TradingAlgorithm(object):
         """
         Schedules a function to be called with some timed rules.
         """
-        if self.sim_params.data_frequency != 'minute':
-            raise IncompatibleScheduleFunctionDataFrequency()
-
         date_rule = date_rule or DateRuleFactory.every_day()
-        time_rule = time_rule or TimeRuleFactory.market_open()
+        time_rule = ((time_rule or TimeRuleFactory.market_open())
+                     if self.sim_params.data_frequency == 'minute' else
+                     # If we are in daily mode the time_rule is ignored.
+                     zipline.utils.events.Always())
 
         self.add_event(
             make_eventrule(date_rule, time_rule, half_days),

@@ -13,16 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-import random
 from itertools import islice
 from six import iteritems
+import random
 from six.moves import range, map
 from nose_parameterized import parameterized
 from unittest import TestCase
 
 import numpy as np
 
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.trading import TradingEnvironment, with_environment
 import zipline.utils.events
 from zipline.utils.events import (
     EventRule,
@@ -185,29 +185,33 @@ class TestEventRule(TestCase):
             super(Always, Always()).should_trigger('a')
 
 
+@with_environment()
+def minutes_for_days(env=None):
+    """
+    500 randomly selected days.
+    This is used to make sure our test coverage is unbaised towards any rules.
+    We use a random sample because testing on all the trading days took
+    around 180 seconds on my laptop, which is far too much for normal unit
+    testing.
+
+    We manually set the seed so that this will be deterministic.
+    Results of multiple runs were compared to make sure that this is actually
+    true.
+
+    This returns a generator of tuples each wrapping a single generator.
+    Iterating over this yeilds a single day, iterating over the day yields
+    the minutes for that day.
+    """
+    random.seed('deterministic')
+    return ((env.market_minutes_for_day(random.choice(env.trading_days)),)
+            for _ in range(500))
+
+
 class RuleTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment.instance()
         cls.class_ = None  # Mark that this is the base class.
-
-    def setUp(self):
-        # Select a random sample of 5 trading days
-        self.trading_days = self._get_random_days(5)
-
-    def _get_random_days(self, n):
-        """
-        Returns a random selection n trading days.
-        """
-        index = random.sample(range(len(self.env.trading_days)), n)
-        test_dts = (self.env.trading_days[i] for i in index)
-        return (self.env.market_minutes_for_day(dt) for dt in test_dts)
-
-    @property
-    def minutes(self):
-        for d in self.trading_days:
-            for m in d:
-                yield m.to_datetime()
 
     def test_completeness(self):
         """
@@ -250,34 +254,37 @@ class TestStatelessRules(RuleTestCase):
             datetime.date(year=2014, month=9, day=26),
         )
 
-    def test_Always(self):
+    @parameterized.expand(minutes_for_days())
+    def test_Always(self, ms):
         should_trigger = Always().should_trigger
-        self.assertTrue(all(map(should_trigger, self.minutes)))
+        self.assertTrue(all(map(should_trigger, ms)))
 
-    def test_Never(self):
+    @parameterized.expand(minutes_for_days())
+    def test_Never(self, ms):
         should_trigger = Never().should_trigger
-        self.assertFalse(any(map(should_trigger, self.minutes)))
+        self.assertFalse(any(map(should_trigger, ms)))
 
-    def test_AfterOpen(self):
+    @parameterized.expand(minutes_for_days())
+    def test_AfterOpen(self, ms):
         should_trigger = AfterOpen(minutes=5, hours=1).should_trigger
-        for d in self.trading_days:
-            for m in islice(d, 64):
-                # Check the first 64 minutes of data.
-                # We use 64 because the offset is from market open
-                # at 13:30 UTC, meaning the first minute of data has an
-                # offset of 1.
-                self.assertFalse(should_trigger(m))
-            for m in islice(d, 64, None):
-                # Check the rest of the day.
-                self.assertTrue(should_trigger(m))
+        for m in islice(ms, 64):
+            # Check the first 64 minutes of data.
+            # We use 64 because the offset is from market open
+            # at 13:30 UTC, meaning the first minute of data has an
+            # offset of 1.
+            self.assertFalse(should_trigger(m))
+        for m in islice(ms, 64, None):
+            # Check the rest of the day.
+            self.assertTrue(should_trigger(m))
 
-    def test_BeforeClose(self):
+    @parameterized.expand(minutes_for_days())
+    def test_BeforeClose(self, ms):
+        ms = list(ms)
         should_trigger = BeforeClose(hours=1, minutes=5).should_trigger
-        for d in self.trading_days:
-            for m in d[0:-65]:
-                self.assertFalse(should_trigger(m))
-            for m in d[-65:]:
-                self.assertTrue(should_trigger(m))
+        for m in ms[0:-65]:
+            self.assertFalse(should_trigger(m))
+        for m in ms[-65:]:
+            self.assertTrue(should_trigger(m))
 
     def test_NotHalfDay(self):
         should_trigger = NotHalfDay().should_trigger
@@ -334,7 +341,8 @@ class TestStatelessRules(RuleTestCase):
                 else:
                     self.assertNotEqual(n_days_before, n)
 
-    def test_ComposedRule(self):
+    @parameterized.expand(minutes_for_days())
+    def test_ComposedRule(self, ms):
         rule1 = Always()
         rule2 = Never()
 
@@ -342,7 +350,7 @@ class TestStatelessRules(RuleTestCase):
         self.assertIsInstance(composed, ComposedRule)
         self.assertIs(composed.first, rule1)
         self.assertIs(composed.second, rule2)
-        self.assertFalse(any(map(composed.should_trigger, self.minutes)))
+        self.assertFalse(any(map(composed.should_trigger, ms)))
 
 
 class TestStatefulRules(RuleTestCase):
@@ -352,7 +360,8 @@ class TestStatefulRules(RuleTestCase):
 
         cls.class_ = StatefulRule
 
-    def test_OncePerDay(self):
+    @parameterized.expand(minutes_for_days())
+    def test_OncePerDay(self, ms):
         class RuleCounter(StatefulRule):
             """
             A rule that counts the number of times another rule triggers
@@ -367,8 +376,7 @@ class TestStatefulRules(RuleTestCase):
                 return st
 
         rule = RuleCounter(OncePerDay())
-        for m in self.minutes:
+        for m in ms:
             rule.should_trigger(m)
 
-        # We are only using 5 trading days.
-        self.assertEqual(rule.count, 5)
+        self.assertEqual(rule.count, 1)

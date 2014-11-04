@@ -69,6 +69,7 @@ from zipline.test_algorithms import (
     record_variables,
 )
 
+import zipline.utils.events
 from zipline.utils.test_utils import (
     assert_single_position,
     drain_zipline,
@@ -223,6 +224,41 @@ class TestMiscellaneousAPI(TestCase):
         algo.run(self.source)
 
         self.assertEqual(algo.func_called, algo.days)
+
+    @parameterized.expand([
+        ('daily',),
+        ('minute'),
+    ])
+    def test_schedule_funtion_rule_creation(self, mode):
+        nop = lambda *args, **kwargs: None
+
+        self.sim_params.data_frequency = mode
+        algo = TradingAlgorithm(
+            initialize=nop, handle_data=nop, sim_params=self.sim_params,
+        )
+
+        # Schedule something for NOT Always.
+        algo.schedule_function(nop, time_rule=zipline.utils.events.Never())
+
+        event_rule = algo.event_manager._events[1].rule
+
+        self.assertIsInstance(event_rule, zipline.utils.events.OncePerDay)
+
+        inner_rule = event_rule.rule
+        self.assertIsInstance(inner_rule, zipline.utils.events.ComposedRule)
+
+        first = inner_rule.first
+        second = inner_rule.second
+        composer = inner_rule.composer
+
+        self.assertIsInstance(first, zipline.utils.events.Always)
+
+        if mode == 'daily':
+            self.assertIsInstance(second, zipline.utils.events.Always)
+        else:
+            self.assertIsInstance(second, zipline.utils.events.Never)
+
+        self.assertIs(composer, zipline.utils.events.ComposedRule.lazy_and)
 
 
 class TestTransformAlgorithm(TestCase):

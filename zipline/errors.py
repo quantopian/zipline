@@ -170,12 +170,3 @@ class IncompatibleHistoryFrequency(ZiplineError):
 Requested history at frequency '{frequency}' cannot be created with data
 at frequency '{data_frequency}'.
 """.strip()
-
-
-class IncompatibleScheduleFunctionDataFrequency(ZiplineError):
-    """
-    Raised when schedule function is used in daily mode.
-    """
-    msg = """
-    schedule_function may only be used in minute mode.
-    """
