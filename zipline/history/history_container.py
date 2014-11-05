@@ -183,7 +183,7 @@ class HistoryContainer(object):
                  initial_sids,
                  initial_dt,
                  data_frequency,
-                 shift_digest=False):
+                 bar_data=None):
         """
         A container to hold a rolling window of historical data within a user's
         algorithm.
@@ -196,10 +196,9 @@ class HistoryContainer(object):
 
           initial_dt (datetime): The datetime to start collecting history from.
 
-          shift_digest (bool): If True, then the digest panels will be created
-            shifted back by one bar, this is to facilitate the creation of a
-            HistoryContainer during a call to handle_data within
-            TradingAlgorithm. This is False by default.
+          bar_data (BarData): If this container is being constructed during
+            handle_data, this is the BarData for the current bar to fill the
+            buffer with. If this is constructed elsewhere, it is None.
 
         Returns:
           An instance of a new HistoryContainer
@@ -227,11 +226,11 @@ class HistoryContainer(object):
         # completed.  When a frequency period rolls over, these minutes are
         # digested using some sort of aggregation call on the panel (e.g. `sum`
         # for volume, `max` for high, `min` for low, etc.).
-        self.buffer_panel = self.create_buffer_panel(initial_dt)
+        self.buffer_panel = self.create_buffer_panel(initial_dt, bar_data)
 
         # Dictionaries with Frequency objects as keys.
         self.digest_panels, self.cur_window_starts, self.cur_window_closes = \
-            self.create_digest_panels(initial_sids, initial_dt, shift_digest)
+            self.create_digest_panels(initial_sids, initial_dt, bar_data)
 
         # Helps prop up the prior day panel against having a nan, when the data
         # has been seen.
@@ -287,7 +286,7 @@ class HistoryContainer(object):
         return iterkeys(self.largest_specs)
 
     @with_environment()
-    def _add_frequency(self, spec, dt, env=None):
+    def _add_frequency(self, spec, dt, data, env=None):
         """
         Adds a new frequency to the container. This reshapes the buffer_panel
         if needed.
@@ -304,7 +303,7 @@ class HistoryContainer(object):
                 # If the data_frequencies are not the same, then we need to
                 # create a fresh buffer.
                 self.buffer_panel = self.create_buffer_panel(
-                    dt, shift_digest=True,
+                    dt, bar_data=data,
                 )
                 new_buffer_len = None
             else:
@@ -495,7 +494,7 @@ class HistoryContainer(object):
 
         return self._create_panel(dt, spec, env=env)
 
-    def ensure_spec(self, spec, dt):
+    def ensure_spec(self, spec, dt, bar_data):
         """
         Ensure that this container has enough space to hold the data for the
         given spec. This returns a HistoryContainerDelta to represent the
@@ -506,7 +505,9 @@ class HistoryContainer(object):
         if spec.field not in self.fields:
             updated['field'] = self._add_field(spec.field)
         if spec.frequency not in self.largest_specs:
-            updated['frequency_delta'] = self._add_frequency(spec, dt)
+            updated['frequency_delta'] = self._add_frequency(
+                spec, dt, bar_data,
+            )
         if spec.bar_count > self.largest_specs[spec.frequency].bar_count:
             updated['length_delta'] = self._add_length(spec, dt)
         return HistoryContainerDelta(**updated)
@@ -550,7 +551,7 @@ class HistoryContainer(object):
     def create_digest_panels(self,
                              initial_sids,
                              initial_dt,
-                             shift_digest,
+                             bar_data,
                              env=None):
         """
         Initialize a RollingPanel for each unique panel frequency being stored
@@ -577,7 +578,7 @@ class HistoryContainer(object):
                 continue
 
             dt = initial_dt
-            if shift_digest:
+            if bar_data is not None:
                 dt = largest_spec.frequency.prev_bar(dt)
 
             rp = self._create_digest_panel(
@@ -592,7 +593,7 @@ class HistoryContainer(object):
 
         return panels, first_window_starts, first_window_closes
 
-    def create_buffer_panel(self, initial_dt):
+    def create_buffer_panel(self, initial_dt, bar_data):
         """
         Initialize a RollingPanel containing enough minutes to service all our
         frequencies.
@@ -609,6 +610,11 @@ class HistoryContainer(object):
             initial_dt, spec,
         )
         self.buffer_spec = spec
+
+        if bar_data:
+            frame = self.frame_from_bardata(bar_data, initial_dt)
+            rp.add_frame(initial_dt, frame)
+
         return rp
 
     def convert_columns(self, values):

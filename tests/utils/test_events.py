@@ -15,6 +15,7 @@
 import datetime
 import random
 from itertools import islice
+from six import iteritems
 from six.moves import range, map
 from nose_parameterized import parameterized
 from unittest import TestCase
@@ -216,7 +217,7 @@ class RuleTestCase(TestCase):
             return  # This is the base class testing, it is always complete.
 
         dem = {
-            k for k, v in vars(zipline.utils.events).iteritems()
+            k for k, v in iteritems(vars(zipline.utils.events))
             if isinstance(v, type)
             and issubclass(v, self.class_)
             and v is not self.class_

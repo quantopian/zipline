@@ -997,7 +997,7 @@ class TestHistoryContainerResize(TestCase):
         )
 
         for spec in to_add:
-            container.ensure_spec(spec, initial_dt)
+            container.ensure_spec(spec, initial_dt, bar_data)
 
             self.assertEqual(
                 container.digest_panels[spec.frequency].window_length,
@@ -1052,7 +1052,7 @@ class TestHistoryContainerResize(TestCase):
             data_frequency=data_frequency,
         )
 
-        container.ensure_spec(new_spec, initial_dt)
+        container.ensure_spec(new_spec, initial_dt, bar_data)
 
         if bar_count > 1:
             digest_panel = container.digest_panels[new_spec.frequency]
@@ -1109,7 +1109,7 @@ class TestHistoryContainerResize(TestCase):
             data_frequency=data_frequency,
         )
 
-        container.ensure_spec(new_spec, initial_dt)
+        container.ensure_spec(new_spec, initial_dt, bar_data)
 
         if bar_count > 1:
             digest_panel = container.digest_panels[new_spec.frequency]

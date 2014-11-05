@@ -238,6 +238,8 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
+        self._most_recent_data = None
+
         # Subclasses that override initialize should only worry about
         # setting self.initialized = True if AUTO_INITIALIZE is
         # is manually set to False.
@@ -261,6 +263,7 @@ class TradingAlgorithm(object):
         self._before_trading_start(self)
 
     def handle_data(self, data):
+        self._most_recent_data = data
         if self.history_container:
             self.history_container.update(data, self.datetime)
 
@@ -924,12 +927,13 @@ class TradingAlgorithm(object):
         self.history_specs[history_spec.key_str] = history_spec
         if self.initialized:
             if self.history_container:
-                self.history_container.ensure_spec(history_spec, self.datetime)
+                self.history_container.ensure_spec(
+                    history_spec, self.datetime, self._most_recent_data,
+                )
             else:
                 self.history_container = self.history_container_class(
-                    self.trade_sources.history_backfill,
                     self.history_specs,
-                    self.multiverse.current_sids,
+                    self.current_universe(),
                     self.sim_params.first_open,
                     self.sim_params.data_frequency,
                 )
@@ -952,9 +956,11 @@ class TradingAlgorithm(object):
                     self.current_universe(),
                     self.datetime,
                     self.sim_params.data_frequency,
-                    shift_digest=True,
+                    bar_data=self._most_recent_data,
                 )
-            self.history_container.ensure_spec(spec, self.datetime)
+            self.history_container.ensure_spec(
+                spec, self.datetime, self._most_recent_data,
+            )
         return self.history_specs[spec_key]
 
     @api_method
