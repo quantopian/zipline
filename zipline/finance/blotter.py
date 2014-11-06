@@ -241,13 +241,11 @@ class Blotter(object):
             yield txn, order
 
     def _get_state(self):
-        state_dict = {}
-        for k, v in self.__dict__.iteritems():
-            if (not k.startswith('_')):
-                state_dict[k] = v
 
-        if '_status' in self.__dict__:
-            state_dict['_status'] = self._status
+        state_to_save = ['new_orders', 'open_orders', 'orders', '_status']
+
+        state_dict = {k: self.__dict__[k] for k in state_to_save
+                      if k in self.__dict__}
 
         return 'Blotter', state_dict
 

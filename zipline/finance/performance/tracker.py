@@ -79,17 +79,7 @@ class PerformanceTracker(object):
 
     def __init__(self, sim_params):
 
-        self.sim_params = sim_params
-
-        self.period_start = self.sim_params.period_start
-        self.period_end = self.sim_params.period_end
-        self.last_close = self.sim_params.last_close
-        first_day = self.sim_params.first_open
-        self.market_open, self.market_close = \
-            trading.environment.get_open_and_close(first_day)
-        self.total_days = self.sim_params.days_in_period
-        self.capital_base = self.sim_params.capital_base
-        self.emission_rate = sim_params.emission_rate
+        self.update_sim_params(sim_params)
 
         all_trading_days = trading.environment.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
@@ -173,6 +163,19 @@ class PerformanceTracker(object):
         self.day_count = 0.0
         self.txn_count = 0
         self.event_count = 0
+
+    def update_sim_params(self, sim_params):
+        self.sim_params = sim_params
+
+        self.period_start = self.sim_params.period_start
+        self.period_end = self.sim_params.period_end
+        self.last_close = self.sim_params.last_close
+        first_day = self.sim_params.first_open
+        self.market_open, self.market_close = \
+            trading.environment.get_open_and_close(first_day)
+        self.total_days = self.sim_params.days_in_period
+        self.capital_base = self.sim_params.capital_base
+        self.emission_rate = sim_params.emission_rate
 
     def __repr__(self):
         return "%s(%r)" % (

@@ -119,7 +119,7 @@ class RiskReport(object):
             if (not k.startswith('_')) or (k == '_dividend_count'):
                 state_dict[k] = v
 
-        return state_dict
+        return 'RiskReport', state_dict
 
     def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
