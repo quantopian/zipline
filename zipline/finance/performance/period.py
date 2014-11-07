@@ -82,6 +82,7 @@ from collections import (
 from six import iteritems, itervalues
 
 import zipline.protocol as zp
+from zipline.utils.state_methods import _defaultdict_list_get_state
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -399,6 +400,15 @@ class PerformancePeriod(object):
         state_dict['_portfolio_store'] = self._portfolio_store
         state_dict['_account_store'] = self._account_store
         state_dict['_positions_store'] = self._positions_store
+        state_dict['_position_amounts'] = self._position_amounts
+        state_dict['_position_last_sale_prices'] =\
+            self._position_last_sale_prices
+
+        # We need to handle the defaultdict specially, otherwise
+        # msgpack will unpack it as a dict, causing KeyError
+        # nastiness.
+        state_dict['processed_transactions'] =\
+            _defaultdict_list_get_state(self.processed_transactions)
 
         return 'PerformancePeriod', state_dict
 
@@ -406,8 +416,8 @@ class PerformancePeriod(object):
         """
         Reconstruct this performance period from saved_state.
         """
-
         self.__dict__.update(saved_state)
+        self.processed_transactions._get_state = _defaultdict_list_get_state
 
     def as_portfolio(self):
         """
