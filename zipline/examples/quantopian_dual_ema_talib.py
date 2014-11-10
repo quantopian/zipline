@@ -27,6 +27,7 @@ momentum).
 # Import exponential moving average from talib wrapper
 from zipline.transforms.ta import EMA
 
+
 def initialize(context):
     context.security = symbol('AAPL')
 
@@ -36,6 +37,7 @@ def initialize(context):
 
     # To keep track of whether we invested in the stock or not
     context.invested = False
+
 
 def handle_data(context, data):
     short_ema = context.short_ema_trans.handle_data(data)
@@ -56,10 +58,10 @@ def handle_data(context, data):
         sell = True
 
     record(AAPL=data[context.security].price,
-                short_ema=short_ema[context.security],
-                long_ema=long_ema[context.security],
-                buy=buy,
-                sell=sell)
+           short_ema=short_ema[context.security],
+           long_ema=long_ema[context.security],
+           buy=buy,
+           sell=sell)
 
 
 if __name__ == '__main__':
