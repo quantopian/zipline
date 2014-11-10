@@ -197,7 +197,9 @@ class TradingAlgorithm(object):
         self.event_manager = EventManager()
 
         if self.algoscript is not None:
-            exec_(self.algoscript, self.namespace)
+            filename = kwargs.pop('algo_filename', '<string>')
+            code = compile(self.algoscript, filename, 'exec')
+            exec_(code, self.namespace)
             self._initialize = self.namespace.get('initialize')
             if 'handle_data' not in self.namespace:
                 raise ValueError('You must define a handle_data function.')
