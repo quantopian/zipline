@@ -31,9 +31,9 @@ apt-get -y install python-pip python-dev g++ make libfreetype6-dev libpng-dev li
 
 # Add ta-lib
 echo "Installing ta-lib integration..."
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz 2>&1 >> "$VAGRANT_LOG"
+wget http://switch.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz 2>&1 "$VAGRANT_LOG"
 tar -xvzf ta-lib-0.4.0-src.tar.gz 2>&1 >> "$VAGRANT_LOG"
-cd ta-lib/ 
+cd ta-lib/
 ./configure --prefix=/usr 2>&1 >> "$VAGRANT_LOG"
 make 2>&1 >> "$VAGRANT_LOG"
 sudo make install 2>&1 >> "$VAGRANT_LOG"
