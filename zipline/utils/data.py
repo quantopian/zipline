@@ -47,7 +47,6 @@ class RollingPanel(object):
         self.minor_axis = _ensure_index(sids)
 
         self.cap_multiple = cap_multiple
-        self.cap = cap_multiple * window
 
         self.dtype = dtype
         self.date_buf = np.empty(self.cap, dtype='M8[ns]') \
@@ -56,14 +55,22 @@ class RollingPanel(object):
         self.buffer = self._create_buffer()
 
     @property
-    def _oldest_frame_idx(self):
+    def cap(self):
+        return self.cap_multiple * self._window
+
+    @property
+    def start_index(self):
         return self._pos - self._window
+
+    @property
+    def start_date(self):
+        return self.date_buf[self.start_index]
 
     def oldest_frame(self):
         """
         Get the oldest frame in the panel.
         """
-        return self.buffer.iloc[:, self._oldest_frame_idx, :]
+        return self.buffer.iloc[:, self.start_index, :]
 
     def set_minor_axis(self, minor_axis):
         self.minor_axis = _ensure_index(minor_axis)
@@ -82,16 +89,19 @@ class RollingPanel(object):
         )
         return panel
 
-    def resize(self, window):
+    def extend_back(self, missing_dts):
         """
         Resizes the buffer to hold a new window with a new cap_multiple.
         If cap_multiple is None, then the old cap_multiple is used.
         """
-        self._window = window
+        delta = len(missing_dts)
 
-        pre = self.cap
-        self.cap = self.cap_multiple * window
-        delta = self.cap - pre
+        if not delta:
+            raise ValueError(
+                'missing_dts must be a non-empty index',
+            )
+
+        self._window += delta
 
         self._pos += delta
 
@@ -104,7 +114,7 @@ class RollingPanel(object):
                 pd.Panel(
                     items=self.items,
                     minor_axis=self.minor_axis,
-                    major_axis=np.arange(delta),
+                    major_axis=np.arange(delta * self.cap_multiple),
                     dtype=self.dtype,
                 ),
                 self.buffer
@@ -112,6 +122,10 @@ class RollingPanel(object):
             axis=1,
         )
         self.buffer.major_axis = pd.Int64Index(range(self.cap))
+
+        # Fill the delta with the dates we calculated.
+        where = slice(self.start_index, self.start_index + delta)
+        self.date_buf[where] = missing_dts
 
     def add_frame(self, tick, frame):
         """
@@ -130,7 +144,7 @@ class RollingPanel(object):
         these objects because internal data might change
         """
 
-        where = slice(self._oldest_frame_idx, self._pos)
+        where = slice(self.start_index, self._pos)
         major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
         return pd.Panel(self.buffer.values[:, where, :], self.items,
                         major_axis, self.minor_axis, dtype=self.dtype)
@@ -141,11 +155,11 @@ class RollingPanel(object):
         passed panel.  The passed panel must have the same indices as the panel
         that would be returned by self.get_current.
         """
-        where = slice(self._oldest_frame_idx, self._pos)
+        where = slice(self.start_index, self._pos)
         self.buffer.values[:, where, :] = panel.values
 
     def current_dates(self):
-        where = slice(self._oldest_frame_idx, self._pos)
+        where = slice(self.start_index, self._pos)
         return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
 
     def _roll_data(self):

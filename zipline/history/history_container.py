@@ -387,24 +387,15 @@ class HistoryContainer(object):
         """
         # This is the oldest datetime that will be shown in the current window
         # of the panel.
-        oldest_idx = panel._oldest_frame_idx
-        oldest_dt = pd.Timestamp(
-            panel.date_buf[oldest_idx], tz='utc',
-        )
-        old_cap = panel.cap
-        panel.resize(size)
+        oldest_dt = pd.Timestamp(panel.start_date, tz='utc',)
+        delta = size - panel.window_length
 
-        delta = (old_cap - oldest_idx) - panel._oldest_frame_idx
-
-        # Backfill the missing dates of the new current window.
+        # Construct the missing dates.
         missing_dts = self._create_window_date_buf(
             delta, freq.unit_str, freq.data_frequency, oldest_dt,
         )
 
-        # Fill the dates in between the new oldest index and adjusted oldest
-        # index.
-        where = slice(panel._oldest_frame_idx, -(old_cap - oldest_idx))
-        panel.date_buf[where] = missing_dts
+        panel.extend_back(missing_dts)
 
     @with_environment()
     def _create_window_date_buf(self,
