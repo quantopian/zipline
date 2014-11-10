@@ -16,7 +16,6 @@
 
 import sys
 
-import zipline
 from zipline.utils import parse_args, run_pipeline
 
 if __name__ == "__main__":
