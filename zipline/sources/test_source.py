@@ -52,25 +52,42 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     return trade
 
 
+@with_environment()
 def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
              delta=timedelta(minutes=1),
              count=100,
-             repeats=None):
+             repeats=None,
+             env=None):
     """
     Utility to generate a stream of dates.
     """
-    one_day = timedelta(days=1)
+    daily_delta = not (delta.total_seconds()
+                       % timedelta(days=1).total_seconds())
     cur = start
-    if delta == one_day:
+    if daily_delta:
         # if we are producing daily timestamps, we
         # use midnight
         cur = cur.replace(hour=0, minute=0, second=0,
                           microsecond=0)
 
+    def advance_current(cur):
+        """
+        Advances the current dt skipping non market days and minutes.
+        """
+        cur = cur + delta
+
+        if not (env.is_trading_day
+                if daily_delta
+                else env.is_market_hours)(cur):
+            if daily_delta:
+                return env.next_trading_day(cur)
+            else:
+                return env.next_open_and_close
+        else:
+            return cur
+
     # yield count trade events, all on trading days, and
     # during trading hours.
-    # NB: Being inside of trading hours is currently dependent upon the
-    # count parameter being less than the number of trading minutes in a day
     for i in range(count):
         if repeats:
             for j in range(repeats):
@@ -78,14 +95,7 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
         else:
             yield cur
 
-        cur = cur + delta
-        cur_midnight = cur.replace(hour=0, minute=0, second=0, microsecond=0)
-        # skip over any non-trading days
-        while cur_midnight not in trading_days:
-            cur = cur + one_day
-            cur_midnight = cur.replace(hour=0, minute=0, second=0,
-                                       microsecond=0)
-            cur = cur.replace(day=cur_midnight.day)
+        cur = advance_current(cur)
 
 
 def mock_prices(count):
