@@ -188,18 +188,31 @@ class TradingEnvironment(object):
         return None
 
     def add_trading_days(self, n, date):
-        if n > 0:
-            return reduce(
-                lambda a, b: self.next_trading_day(a),
-                range(n),
-                date,
-            )
-        else:
-            return reduce(
-                lambda a, b: self.previous_trading_day(a),
-                range(abs(n)),
-                date,
-            )
+        """
+        Adds n trading days to date. If this would fall outside of the
+        trading calendar, a NoFurtherDataError is raised.
+
+        :Arguments:
+            n : int
+                The number of days to add to date, this can be positive or
+                negative.
+            date : datetime
+                The date to add to.
+
+        :Returns:
+            new_date : datetime
+                n trading days added to date.
+        """
+        if n == 1:
+            return self.next_trading_day(date)
+        if n == -1:
+            return self.previous_trading_day(date)
+
+        idx = self.get_index(date) + n
+        if idx < 0 or idx >= len(self.trading_days):
+            raise NoFurtherDataError('Cannot add %d days to %s' % (n, date))
+
+        return self.trading_days[idx]
 
     def days_in_range(self, start, end):
         mask = ((self.trading_days >= start) &
