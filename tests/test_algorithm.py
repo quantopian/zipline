@@ -81,7 +81,6 @@ from zipline.sources import (SpecificEquityTrades,
                              DataPanelSource,
                              RandomWalkSource)
 
-from zipline.transforms import MovingAverage
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
@@ -334,19 +333,6 @@ class TestTransformAlgorithm(TestCase):
         res2 = algo.run(self.df)
 
         np.testing.assert_array_equal(res1, res2)
-
-    def test_transform_registered(self):
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            sids=[133]
-        )
-
-        algo.run(self.source)
-        assert 'mavg' in algo.registered_transforms
-        assert algo.registered_transforms['mavg']['args'] == (['price'],)
-        assert algo.registered_transforms['mavg']['kwargs'] == \
-            {'window_length': 2, 'market_aware': True}
-        assert algo.registered_transforms['mavg']['class'] is MovingAverage
 
     def test_data_frequency_setting(self):
         self.sim_params.data_frequency = 'daily'

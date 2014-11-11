@@ -304,5 +304,6 @@ class AlgorithmSimulator(object):
         try:
             sid_data = self.current_data[event.sid]
         except KeyError:
-            sid_data = self.current_data[event.sid] = SIDData()
+            sid_data = self.current_data[event.sid] = SIDData(event.sid)
+
         sid_data.__dict__.update(event.__dict__)

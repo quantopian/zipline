@@ -14,18 +14,9 @@
 # limitations under the License.
 
 from functools import wraps
+
 import zipline.api
-
-import threading
-context = threading.local()
-
-
-def get_algo_instance():
-    return getattr(context, 'algorithm', None)
-
-
-def set_algo_instance(algo):
-    context.algorithm = algo
+from zipline.utils.algo_instance import get_algo_instance, set_algo_instance
 
 
 class ZiplineAPI(object):

@@ -31,7 +31,7 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
-from zipline.utils.tradingcalendar import trading_days
+from zipline.finance.trading import with_environment
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):

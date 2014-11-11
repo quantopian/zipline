@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,331 +12,203 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import pytz
-import numpy as np
-
-from datetime import timedelta, datetime
-from itertools import chain
+from datetime import timedelta
+from functools import wraps
+from itertools import product
+from nose_parameterized import parameterized
+import operator
+import random
+from six import itervalues
+from six.moves import map
 from unittest import TestCase
 
-from nose_parameterized import parameterized
-from six.moves import range
+import numpy as np
+from numpy.testing import assert_allclose
 
-from zipline.utils.test_utils import setup_logger
-
-from zipline.protocol import (
-    DATASOURCE_TYPE,
-    Event,
-)
-from zipline.sources import SpecificEquityTrades
-from zipline.transforms.utils import StatefulTransform, EventWindow
-from zipline.transforms import MovingVWAP
-from zipline.transforms import MovingAverage
-from zipline.transforms import MovingStandardDev
-from zipline.transforms import Returns
+from zipline.algorithm import TradingAlgorithm
 import zipline.utils.factory as factory
+from zipline.api import add_transform, get_datetime
 
 
-def to_dt(msg):
-    return Event({'dt': msg})
+def handle_data_wrapper(f):
+    @wraps(f)
+    def wrapper(context, data):
+        dt = get_datetime()
+        if dt.date() != context.current_date:
+            context.warmup -= 1
+            context.mins_for_days.append(1)
+            context.current_date = dt.date()
+        else:
+            context.mins_for_days[-1] += 1
+
+        for n in (1, 2, 3):
+            if n in data:
+                if data[n].dt == dt:
+                    context.vol_bars[n].append(data[n].volume)
+                else:
+                    context.vol_bars[n].append(0)
+
+                context.price_bars[n].append(data[n].price)
+            else:
+                context.price_bars[n].append(np.nan)
+                context.vol_bars[n].append(0)
+
+            context.last_close_prices[n] = context.price_bars[n][-2]
+
+        if context.warmup < 0:
+            return f(context, data)
+
+    return wrapper
 
 
-class NoopEventWindow(EventWindow):
-    """
-    A no-op EventWindow subclass for testing the base EventWindow logic.
-    Keeps lists of all added and dropped events.
-    """
-    def __init__(self, market_aware, days, delta):
-        EventWindow.__init__(self, market_aware, days, delta)
+def initialize_with(test_case, tfm_name, days):
+    def initalize(context):
+        context.test_case = test_case
+        context.days = days
+        context.mins_for_days = []
+        context.price_bars = (None, [np.nan], [np.nan], [np.nan])
+        context.vol_bars = (None, [np.nan], [np.nan], [np.nan])
+        if context.days:
+            context.warmup = days + 1
+        else:
+            context.warmup = 2
 
-        self.added = []
-        self.removed = []
-        self._fields = []
+        context.current_date = None
 
-    @property
-    def fields(self):
-        return self._fields
+        context.last_close_prices = [np.nan, np.nan, np.nan, np.nan]
+        add_transform(tfm_name, days)
 
-    def handle_add(self, event):
-        self.added.append(event)
-
-    def handle_remove(self, event):
-        self.removed.append(event)
+    return initalize
 
 
-class TestEventWindow(TestCase):
-    def setUp(self):
-        self.sim_params = factory.create_simulation_parameters()
+def windows_with_frequencies(*args):
+    args = args or (None,)
+    return product(('daily', 'minute'), args)
 
-        setup_logger(self)
 
-        self.monday = datetime(2012, 7, 9, 16, tzinfo=pytz.utc)
-        self.eleven_normal_days = [self.monday + i * timedelta(days=1)
-                                   for i in range(11)]
+def with_algo(f):
+    name = f.__name__
+    if not name.startswith('test_'):
+        raise ValueError('This must decorate a test case')
 
-        # Modify the end of the period slightly to exercise the
-        # incomplete day logic.
-        self.eleven_normal_days[-1] -= timedelta(minutes=1)
-        self.eleven_normal_days.append(self.monday +
-                                       timedelta(days=11, seconds=1))
+    tfm_name = name[len('test_'):]
 
-        # Second set of dates to test holiday handling.
-        self.jul4_monday = datetime(2012, 7, 2, 16, tzinfo=pytz.utc)
-        self.week_of_jul4 = [self.jul4_monday + i * timedelta(days=1)
-                             for i in range(5)]
+    @wraps(f)
+    def wrapper(self, data_frequency, days=None):
+        sim_params, source = self.sim_and_source[data_frequency]
 
-    def test_market_aware_window_normal_week(self):
-        window = NoopEventWindow(
-            market_aware=True,
-            delta=None,
-            days=3
+        algo = TradingAlgorithm(
+            initialize=initialize_with(self, tfm_name, days),
+            handle_data=handle_data_wrapper(f),
+            sim_params=sim_params,
         )
-        events = [to_dt(date) for date in self.eleven_normal_days]
-        lengths = []
-        # Run the events.
-        for event in events:
-            window.update(event)
-            # Record the length of the window after each event.
-            lengths.append(len(window.ticks))
+        algo.run(source)
 
-        # The window stretches out during the weekend because we wait
-        # to drop events until the weekend ends. The last window is
-        # briefly longer because it doesn't complete a full day.  The
-        # window then shrinks once the day completes
-        self.assertEquals(lengths, [1, 2, 3, 3, 3, 4, 5, 5, 5, 3, 4, 3])
-        self.assertEquals(window.added, events)
-        self.assertEquals(window.removed, events[:-3])
+    return wrapper
 
-    def test_market_aware_window_holiday(self):
-        window = NoopEventWindow(
-            market_aware=True,
-            delta=None,
-            days=2
+
+class TransformTestCase(TestCase):
+    """
+    Tests the simple transforms by running them through a zipline.
+    """
+    @classmethod
+    def setUpClass(cls):
+        random.seed(0)
+        cls.sids = (1, 2, 3)
+
+        minute_sim_ps = factory.create_simulation_parameters(
+            num_days=3,
+            sids=cls.sids,
+            data_frequency='minute',
+            emission_rate='minute',
         )
-        events = [to_dt(date) for date in self.week_of_jul4]
-        lengths = []
-
-        # Run the events.
-        for event in events:
-            window.update(event)
-            # Record the length of the window after each event.
-            lengths.append(len(window.ticks))
-
-        self.assertEquals(lengths, [1, 2, 3, 3, 2])
-        self.assertEquals(window.added, events)
-        self.assertEquals(window.removed, events[:-2])
+        daily_sim_ps = factory.create_simulation_parameters(
+            num_days=30,
+            sids=cls.sids,
+            data_frequency='daily',
+            emission_rate='daily',
+        )
+        cls.sim_and_source = {
+            'minute': (minute_sim_ps, factory.create_minutely_trade_source(
+                cls.sids,
+                trade_count=45,
+                sim_params=minute_sim_ps,
+            )),
+            'daily': (daily_sim_ps, factory.create_trade_source(
+                cls.sids,
+                trade_count=90,
+                trade_time_increment=timedelta(days=1),
+                sim_params=daily_sim_ps,
+            )),
+        }
 
     def tearDown(self):
-        setup_logger(self)
-
-
-class TestFinanceTransforms(TestCase):
-
-    def setUp(self):
-        self.sim_params = factory.create_simulation_parameters()
-        setup_logger(self)
-
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params
-        )
-        self.source = trade_history
-
-    def intersperse_custom_events(self, events):
         """
-        Take a stream of events and return the same stream with a minimal event
-        of type CUSTOM following each trade event.  Used to test graceful
-        handling of CUSTOM events that are missing required transform fields.
+        Each test consumes a source, we need to rewind it.
         """
-        return list(
-            chain.from_iterable(
-                (
-                    event,
-                    Event(
-                        initial_values={
-                            'dt': event.dt,
-                            'sid': event.sid,
-                            'source_id': "fake_custom_source",
-                            'type': DATASOURCE_TYPE.CUSTOM
-                        }
-                    )
-                )
-                for event in events
+        for _, source in itervalues(self.sim_and_source):
+            source.rewind()
+
+    @parameterized.expand(windows_with_frequencies(1, 2, 3, 4))
+    @with_algo
+    def test_mavg(context, data):
+        """
+        Tests the mavg transform by manually keeping track of the prices
+        in a naiive way and asserting that our mean is the same.
+        """
+        mins = sum(context.mins_for_days[-context.days:])
+
+        for sid in data:
+            assert_allclose(
+                data[sid].mavg(context.days),
+                np.mean(context.price_bars[sid][-mins:]),
             )
-        )
 
-    def tearDown(self):
-        self.log_handler.pop_application()
+    @parameterized.expand(windows_with_frequencies(2, 3, 4))
+    @with_algo
+    def test_stddev(context, data):
+        """
+        Tests the stddev transform by manually keeping track of the prices
+        in a naiive way and asserting that our stddev is the same.
+        This accounts for the corrected ddof.
+        """
+        mins = sum(context.mins_for_days[-context.days:])
 
-    @parameterized.expand([
-        ('with_custom', True),
-        ('without_custom', False),
-    ])
-    def test_vwap(self, name, add_custom_events):
-        vwap = MovingVWAP(
-            market_aware=True,
-            window_length=2
-        )
+        for sid in data:
+            assert_allclose(
+                data[sid].stddev(context.days),
+                np.std(context.price_bars[sid][-mins:], ddof=1),
+            )
 
-        if add_custom_events:
-            self.source = self.intersperse_custom_events(self.source)
+    @parameterized.expand(windows_with_frequencies(2, 3, 4))
+    @with_algo
+    def test_vwap(context, data):
+        """
+        Tests the vwap transform by manually keeping track of the prices
+        and volumes in a naiive way and asserting that our hand-rolled vwap is
+        the same
+        """
+        mins = sum(context.mins_for_days[-context.days:])
+        for sid in data:
+            prices = context.price_bars[sid][-mins:]
+            vols = context.vol_bars[sid][-mins:]
+            manual_vwap = sum(
+                map(operator.mul, np.nan_to_num(np.array(prices)), vols),
+            ) / sum(vols)
 
-        transformed = list(vwap.transform(self.source))
+            assert_allclose(
+                data[sid].vwap(context.days),
+                manual_vwap,
+            )
 
-        # Output values.  Unprocessed custom events will not have a field
-        # corresponding to the transform hash.
-        tnfm_vals = [message[vwap.get_hash()] for message in transformed
-                     if message.type != DATASOURCE_TYPE.CUSTOM]
-        # "Hand calculated" values.
-        expected = [
-            (10.0 * 100) / 100.0,
-            ((10.0 * 100) + (10.0 * 100)) / (200.0),
-            # We should drop the first event here.
-            ((10.0 * 100) + (11.0 * 100)) / (200.0),
-            # We should drop the second event here.
-            ((11.0 * 100) + (11.0 * 300)) / (400.0)
-        ]
+    @parameterized.expand(windows_with_frequencies())
+    @with_algo
+    def test_returns(context, data):
+        for sid in data:
+            last_close = context.last_close_prices[sid]
+            returns = (data[sid].price - last_close) / last_close
 
-        # Output should match the expected.
-        self.assertEquals(tnfm_vals, expected)
-
-    @parameterized.expand([
-        ('with_custom', True),
-        ('without_custom', False),
-    ])
-    def test_returns(self, name, add_custom_events):
-        # Daily returns.
-        returns = Returns(1)
-
-        if add_custom_events:
-            self.source = self.intersperse_custom_events(self.source)
-
-        transformed = list(returns.transform(self.source))
-        tnfm_vals = [message[returns.get_hash()] for message in transformed
-                     if message.type != DATASOURCE_TYPE.CUSTOM]
-
-        # No returns for the first event because we don't have a
-        # previous close.
-        expected = [0.0, 0.0, 0.1, 0.0]
-
-        self.assertEquals(tnfm_vals, expected)
-
-        # Two-day returns.  An extra kink here is that the
-        # factory will automatically skip a weekend for the
-        # last event. Results shouldn't notice this blip.
-
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 15.0, 13.0, 12.0, 13.0],
-            [100, 100, 100, 300, 100],
-            timedelta(days=1),
-            self.sim_params
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history)
-
-        returns = StatefulTransform(Returns, 2)
-
-        transformed = list(returns.transform(self.source))
-        tnfm_vals = [message[returns.get_hash()] for message in transformed]
-
-        expected = [
-            0.0,
-            0.0,
-            (13.0 - 10.0) / 10.0,
-            (12.0 - 15.0) / 15.0,
-            (13.0 - 13.0) / 13.0
-        ]
-
-        self.assertEquals(tnfm_vals, expected)
-
-    @parameterized.expand([
-        ('with_custom', True),
-        ('without_custom', False),
-    ])
-    def test_moving_average(self, name, add_custom_events):
-
-        mavg = MovingAverage(
-            market_aware=True,
-            fields=['price', 'volume'],
-            window_length=2
-        )
-
-        if add_custom_events:
-            self.source = self.intersperse_custom_events(self.source)
-
-        transformed = list(mavg.transform(self.source))
-        # Output values.
-        tnfm_prices = [message[mavg.get_hash()].price
-                       for message in transformed
-                       if message.type != DATASOURCE_TYPE.CUSTOM]
-        tnfm_volumes = [message[mavg.get_hash()].volume
-                        for message in transformed
-                        if message.type != DATASOURCE_TYPE.CUSTOM]
-
-        # "Hand-calculated" values
-        expected_prices = [
-            ((10.0) / 1.0),
-            ((10.0 + 10.0) / 2.0),
-            # First event should get dropped here.
-            ((10.0 + 11.0) / 2.0),
-            # Second event should get dropped here.
-            ((11.0 + 11.0) / 2.0)
-        ]
-        expected_volumes = [
-            ((100.0) / 1.0),
-            ((100.0 + 100.0) / 2.0),
-            # First event should get dropped here.
-            ((100.0 + 100.0) / 2.0),
-            # Second event should get dropped here.
-            ((100.0 + 300.0) / 2.0)
-        ]
-
-        self.assertEquals(tnfm_prices, expected_prices)
-        self.assertEquals(tnfm_volumes, expected_volumes)
-
-    @parameterized.expand([
-        ('with_custom', True),
-        ('without_custom', False),
-    ])
-    def test_moving_stddev(self, name, add_custom_events):
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 15.0, 13.0, 12.0],
-            [100, 100, 100, 100],
-            timedelta(days=1),
-            self.sim_params
-        )
-
-        stddev = MovingStandardDev(
-            market_aware=True,
-            window_length=3,
-        )
-
-        self.source = SpecificEquityTrades(event_list=trade_history)
-        if add_custom_events:
-            self.source = self.intersperse_custom_events(self.source)
-
-        transformed = list(stddev.transform(self.source))
-
-        vals = [message[stddev.get_hash()] for message in transformed
-                if message.type != DATASOURCE_TYPE.CUSTOM]
-
-        expected = [
-            None,
-            np.std([10.0, 15.0], ddof=1),
-            np.std([10.0, 15.0, 13.0], ddof=1),
-            np.std([15.0, 13.0, 12.0], ddof=1),
-        ]
-
-        # np has odd rounding behavior, cf.
-        # http://docs.scipy.org/doc/np/reference/generated/np.std.html
-        for v1, v2 in zip(vals, expected):
-
-            if v1 is None:
-                self.assertIsNone(v2)
-                continue
-            self.assertEquals(round(v1, 5), round(v2, 5))
+            assert_allclose(
+                data[sid].returns(),
+                returns,
+            )

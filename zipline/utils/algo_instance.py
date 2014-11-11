@@ -1,5 +1,5 @@
 #
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import threading
+context = threading.local()
 
-from . batch_transform import BatchTransform, batch_transform
 
-__all__ = [
-    'BatchTransform',
-    'batch_transform'
-]
+def get_algo_instance():
+    return getattr(context, 'algorithm', None)
+
+
+def set_algo_instance(algo):
+    context.algorithm = algo

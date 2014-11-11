@@ -443,15 +443,10 @@ class SetLongOnlyAlgorithm(TradingAlgorithm):
 
 
 from zipline.transforms import BatchTransform, batch_transform
-from zipline.transforms import MovingAverage
 
 
 class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.add_transform(MovingAverage, 'mavg', ['price'],
-                           market_aware=True,
-                           window_length=2)
-
         self.set_slippage(FixedSlippage())
 
     def handle_data(self, data):

@@ -505,23 +505,44 @@ class TradingAlgorithm(object):
 
         return daily_stats
 
-    def add_transform(self, transform_class, tag, *args, **kwargs):
-        """Add a single-sid, sequential transform to the model.
+    @api_method
+    def add_transform(self, transform, days=None):
+        """
+        Ensures that the history container will have enough size to service
+        a simple transform.
 
         :Arguments:
-            transform_class : class
-                Which transform to use. E.g. mavg.
-            tag : str
-                How to name the transform. Can later be access via:
-                data[sid].tag()
-
-        Extra args and kwargs will be forwarded to the transform
-        instantiation.
-
+            transform : string
+                The transform to add. must be an element of:
+                {'mavg', 'stddev', 'vwap', 'returns'}.
+            days : int <default=None>
+                The maximum amount of days you will want for this transform.
+                This is not needed for 'returns'.
         """
-        self.registered_transforms[tag] = {'class': transform_class,
-                                           'args': args,
-                                           'kwargs': kwargs}
+        if transform not in {'mavg', 'stddev', 'vwap', 'returns'}:
+            raise ValueError('Invalid transform')
+
+        if transform == 'returns':
+            if days is not None:
+                raise ValueError('returns does use days')
+
+            self.add_history(2, '1d', 'price')
+            return
+        elif days is None:
+            raise ValueError('no number of days specified')
+
+        if self.sim_params.data_frequency == 'daily':
+            mult = 1
+            freq = '1d'
+        else:
+            mult = 390
+            freq = '1m'
+
+        bars = mult * days
+        self.add_history(bars, freq, 'price')
+
+        if transform == 'vwap':
+            self.add_history(bars, freq, 'volume')
 
     @api_method
     def get_environment(self):

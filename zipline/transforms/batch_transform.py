@@ -447,7 +447,14 @@ class BatchTransform(object):
         # with CUSTOM data events, there may be different fields
         # per sid. So the allowable keys are the union of all events.
         union = set.union(*sid_keys)
-        unwanted_fields = set(['portfolio', 'sid', 'dt', 'type', 'source_id'])
+        unwanted_fields = {
+            'portfolio',
+            'sid',
+            'dt',
+            'type',
+            'source_id',
+            '_initial_len',
+        }
         return union - unwanted_fields
 
     def _get_field_names(self, event):

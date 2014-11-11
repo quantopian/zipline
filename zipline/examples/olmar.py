@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.transforms import MovingAverage
 from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
@@ -19,99 +18,97 @@ zipline_logging.push_application()
 STOCKS = ['AMD', 'CERN', 'COST', 'DELL', 'GPS', 'INTC', 'MMM']
 
 
-class OLMAR(TradingAlgorithm):
-    """
-    On-Line Portfolio Moving Average Reversion
+# On-Line Portfolio Moving Average Reversion
 
-    More info can be found in the corresponding paper:
-    http://icml.cc/2012/papers/168.pdf
-    """
-    def initialize(self, eps=1, window_length=5):
-        self.stocks = STOCKS
-        self.m = len(self.stocks)
-        self.price = {}
-        self.b_t = np.ones(self.m) / self.m
-        self.last_desired_port = np.ones(self.m) / self.m
-        self.eps = eps
-        self.init = True
-        self.days = 0
-        self.window_length = window_length
-        self.add_transform(MovingAverage, 'mavg', ['price'],
-                           window_length=window_length)
+# More info can be found in the corresponding paper:
+# http://icml.cc/2012/papers/168.pdf
+def initialize(algo, eps=1, window_length=5):
+    algo.stocks = STOCKS
+    algo.m = len(algo.stocks)
+    algo.price = {}
+    algo.b_t = np.ones(algo.m) / algo.m
+    algo.last_desired_port = np.ones(algo.m) / algo.m
+    algo.eps = eps
+    algo.init = True
+    algo.days = 0
+    algo.window_length = window_length
+    algo.add_transform('mavg', 5)
 
-        self.set_commission(commission.PerShare(cost=0))
+    algo.set_commission(commission.PerShare(cost=0))
 
-    def handle_data(self, data):
-        self.days += 1
-        if self.days < self.window_length:
-            return
 
-        if self.init:
-            self.rebalance_portfolio(data, self.b_t)
-            self.init = False
-            return
+def handle_data(algo, data):
+    algo.days += 1
+    if algo.days < algo.window_length:
+        return
 
-        m = self.m
+    if algo.init:
+        rebalance_portfolio(algo, data, algo.b_t)
+        algo.init = False
+        return
 
-        x_tilde = np.zeros(m)
-        b = np.zeros(m)
+    m = algo.m
 
-        # find relative moving average price for each security
-        for i, stock in enumerate(self.stocks):
-            price = data[stock].price
-            # Relative mean deviation
-            x_tilde[i] = data[stock]['mavg']['price'] / price
+    x_tilde = np.zeros(m)
+    b = np.zeros(m)
 
-        ###########################
-        # Inside of OLMAR (algo 2)
-        x_bar = x_tilde.mean()
+    # find relative moving average price for each security
+    for i, stock in enumerate(algo.stocks):
+        price = data[stock].price
+        # Relative mean deviation
+        x_tilde[i] = data[stock].mavg(algo.window_length) / price
 
-        # market relative deviation
-        mark_rel_dev = x_tilde - x_bar
+    ###########################
+    # Inside of OLMAR (algo 2)
+    x_bar = x_tilde.mean()
 
-        # Expected return with current portfolio
-        exp_return = np.dot(self.b_t, x_tilde)
-        weight = self.eps - exp_return
-        variability = (np.linalg.norm(mark_rel_dev)) ** 2
+    # market relative deviation
+    mark_rel_dev = x_tilde - x_bar
 
-        # test for divide-by-zero case
-        if variability == 0.0:
-            step_size = 0
-        else:
-            step_size = max(0, weight / variability)
+    # Expected return with current portfolio
+    exp_return = np.dot(algo.b_t, x_tilde)
+    weight = algo.eps - exp_return
+    variability = (np.linalg.norm(mark_rel_dev)) ** 2
 
-        b = self.b_t + step_size * mark_rel_dev
-        b_norm = simplex_projection(b)
-        np.testing.assert_almost_equal(b_norm.sum(), 1)
+    # test for divide-by-zero case
+    if variability == 0.0:
+        step_size = 0
+    else:
+        step_size = max(0, weight / variability)
 
-        self.rebalance_portfolio(data, b_norm)
+    b = algo.b_t + step_size * mark_rel_dev
+    b_norm = simplex_projection(b)
+    np.testing.assert_almost_equal(b_norm.sum(), 1)
 
-        # update portfolio
-        self.b_t = b_norm
+    rebalance_portfolio(algo, data, b_norm)
 
-    def rebalance_portfolio(self, data, desired_port):
-        # rebalance portfolio
-        desired_amount = np.zeros_like(desired_port)
-        current_amount = np.zeros_like(desired_port)
-        prices = np.zeros_like(desired_port)
+    # update portfolio
+    algo.b_t = b_norm
 
-        if self.init:
-            positions_value = self.portfolio.starting_cash
-        else:
-            positions_value = self.portfolio.positions_value + \
-                self.portfolio.cash
 
-        for i, stock in enumerate(self.stocks):
-            current_amount[i] = self.portfolio.positions[stock].amount
-            prices[i] = data[stock].price
+def rebalance_portfolio(algo, data, desired_port):
+    # rebalance portfolio
+    desired_amount = np.zeros_like(desired_port)
+    current_amount = np.zeros_like(desired_port)
+    prices = np.zeros_like(desired_port)
 
-        desired_amount = np.round(desired_port * positions_value / prices)
+    if algo.init:
+        positions_value = algo.portfolio.starting_cash
+    else:
+        positions_value = algo.portfolio.positions_value + \
+            algo.portfolio.cash
 
-        self.last_desired_port = desired_port
-        diff_amount = desired_amount - current_amount
+    for i, stock in enumerate(algo.stocks):
+        current_amount[i] = algo.portfolio.positions[stock].amount
+        prices[i] = data[stock].price
 
-        for i, stock in enumerate(self.stocks):
-            self.order(stock, diff_amount[i])
+    desired_amount = np.round(desired_port * positions_value / prices)
+
+    algo.last_desired_port = desired_port
+    diff_amount = desired_amount - current_amount
+
+    for i, stock in enumerate(algo.stocks):
+        algo.order(stock, diff_amount[i])
 
 
 def simplex_projection(v, b=1):
@@ -155,10 +152,9 @@ if __name__ == '__main__':
     import pylab as pl
     start = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
-    data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start,
-                           end=end)
+    data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
     data = data.dropna()
-    olmar = OLMAR()
+    olmar = TradingAlgorithm(handle_data=handle_data, initialize=initialize)
     results = olmar.run(data)
     results.portfolio_value.plot()
     pl.show()

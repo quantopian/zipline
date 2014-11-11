@@ -18,6 +18,9 @@ import pandas as pd
 
 from . utils.protocol_utils import Enum
 
+from zipline.finance.trading import with_environment
+from zipline.utils.algo_instance import get_algo_instance
+
 # Datasource type should completely determine the other fields of a
 # message with its type.
 DATASOURCE_TYPE = Enum(
@@ -196,10 +199,29 @@ class Positions(dict):
 
 
 class SIDData(object):
+    # Cache some data on the class so that this is shared for all instances of
+    # siddata.
+    _history_cache_dt = None
+    _history_cache = {}
+    _returns_cache_dt = None
+    _returns_cache = None
+    _minute_bar_cache_dt = None
+    _minute_bar_cache = {}
 
-    def __init__(self, initial_values=None):
+    def __init__(self, sid, initial_values=None):
+        self._sid = sid
+
+        self._freqstr = None
+
+        # To check if we have data, we use the __len__ which depends on the
+        # __dict__. Because we are foward defining the attributes needed, we
+        # need to account for their entrys in the __dict__.
+        # We will add 1 because we need to account for the _initial_len entry
+        # itself.
+        self._initial_len = len(self.__dict__) + 1
+
         if initial_values:
-            self.__dict__ = initial_values
+            self.__dict__.update(initial_values)
 
     @property
     def datetime(self):
@@ -226,13 +248,102 @@ class SIDData(object):
         self.__dict__[name] = value
 
     def __len__(self):
-        return len(self.__dict__)
+        return len(self.__dict__) - self._initial_len
 
     def __contains__(self, name):
         return name in self.__dict__
 
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
+
+    def _get_buffer(self, bars, field='price'):
+        cls = self.__class__
+        algo = get_algo_instance()
+
+        now = algo.datetime
+        if now != cls._history_cache_dt:
+            cls._history_cache_dt = now
+            cls._history_cache = {}
+
+        if field not in self._history_cache \
+           or bars > len(cls._history_cache[field].index):
+            hst = algo.history(
+                bars, self._freqstr, field, ffill=True,
+            )
+            # Assert that the column holds ints, not security objects.
+            if not isinstance(self._sid, str):
+                hst.columns = hst.columns.astype(int)
+            self._history_cache[field] = hst
+
+        return cls._history_cache[field][self._sid][-bars:]
+
+    def _get_bars(self, days):
+        """
+        Gets the number of bars needed for the current number of days.
+
+        Figures this out based on the algo datafrequency and caches the result.
+        """
+        def daily_get_bars(days):
+            return days
+
+        @with_environment()
+        def minute_get_bars(days, env=None):
+            cls = self.__class__
+
+            now = get_algo_instance().datetime
+            if now != cls._minute_bar_cache_dt:
+                cls._minute_bar_cache_dt = now
+                cls._minute_bar_cache = {}
+
+            if days not in cls._minute_bar_cache:
+                # Cache this calculation to happen once per bar, even if we
+                # use another transform with the same number of days.
+                prev = env.previous_trading_day(now)
+                ds = env.days_in_range(
+                    env.add_trading_days(-days + 2, prev),
+                    prev,
+                )
+                ms = sum(210 if d in env.early_closes else 390 for d in ds)
+                ms += \
+                    (now - env.get_open_and_close(now)[0]).total_seconds() / 60
+
+                cls._minute_bar_cache[days] = ms + 1  # Account for this minute
+
+            return cls._minute_bar_cache[days]
+
+        if get_algo_instance().sim_params.data_frequency == 'daily':
+            self._freqstr = '1d'
+            self._get_bars = daily_get_bars
+        else:
+            self._freqstr = '1m'
+            self._get_bars = minute_get_bars
+
+        # Not actually recursive.
+        return self._get_bars(days)
+
+    def mavg(self, days):
+        return self._get_buffer(self._get_bars(days)).mean()
+
+    def stddev(self, days):
+        return self._get_buffer(self._get_bars(days)).std(ddof=1)
+
+    def vwap(self, days):
+        bars = self._get_bars(days)
+        prices = self._get_buffer(bars)
+        vols = self._get_buffer(bars, field='volume')
+
+        return (prices * vols).sum() / vols.sum()
+
+    def returns(self):
+        algo = get_algo_instance()
+
+        now = algo.datetime
+        if now != self._returns_cache_dt:
+            self._returns_cache_dt = now
+            self._returns_cache = algo.history(2, '1d', 'price', ffill=True)
+
+        hst = self._returns_cache[self._sid]
+        return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
 
 
 class BarData(object):
