@@ -201,11 +201,24 @@ class Positions(dict):
 class SIDData(object):
     # Cache some data on the class so that this is shared for all instances of
     # siddata.
+
+    # The dt where we cached the history.
     _history_cache_dt = None
+    # _history_cache is a a dict mapping fields to pd.DataFrames. This is the
+    # most data we have for a given field for the _history_cache_dt.
     _history_cache = {}
+
+    # This is the cache that is used for returns. This will have a different
+    # structure than the other history cache as this is always daily.
     _returns_cache_dt = None
     _returns_cache = None
+
+    # The last dt that we needed to cache the number of minutes.
     _minute_bar_cache_dt = None
+    # If we are in minute mode, there is some cost associated with computing
+    # the number of minutes that we need to pass to the bar count of history.
+    # This will remain constant for a given bar and day count.
+    # This maps days to number of minutes.
     _minute_bar_cache = {}
 
     def __init__(self, sid, initial_values=None):
@@ -257,16 +270,26 @@ class SIDData(object):
         return "SIDData({0})".format(self.__dict__)
 
     def _get_buffer(self, bars, field='price'):
+        """
+        Gets the result of history for the given number of bars and field.
+
+        This will cache the results internally.
+        """
         cls = self.__class__
         algo = get_algo_instance()
 
         now = algo.datetime
         if now != cls._history_cache_dt:
+            # For a given dt, the history call for this field will not change.
+            # We have a new dt, so we should reset the cache.
             cls._history_cache_dt = now
             cls._history_cache = {}
 
         if field not in self._history_cache \
            or bars > len(cls._history_cache[field].index):
+            # If we have never cached this field OR the amount of bars that we
+            # need for this field is greater than the amount we have cached,
+            # then we need to get more history.
             hst = algo.history(
                 bars, self._freqstr, field, ffill=True,
             )
@@ -275,6 +298,9 @@ class SIDData(object):
                 hst.columns = hst.columns.astype(int)
             self._history_cache[field] = hst
 
+        # Slice of only the bars needed. This is because we strore the LARGEST
+        # amount of history for the field, and we might request less than the
+        # largest from the cache.
         return cls._history_cache[field][self._sid][-bars:]
 
     def _get_bars(self, days):
@@ -282,6 +308,10 @@ class SIDData(object):
         Gets the number of bars needed for the current number of days.
 
         Figures this out based on the algo datafrequency and caches the result.
+        This caches the result by replacing this function on the object.
+        This means that after the first call to _get_bars, this method will
+        point to a new function object.
+
         """
         def daily_get_bars(days):
             return days
@@ -303,7 +333,11 @@ class SIDData(object):
                     env.add_trading_days(-days + 2, prev),
                     prev,
                 )
+                # compute the number of minutes in the (days - 1) days before
+                # today.
+                # 210 minutes in a an early close and 390 in a full day.
                 ms = sum(210 if d in env.early_closes else 390 for d in ds)
+                # Add the number of minutes for today.
                 ms += \
                     (now - env.get_open_and_close(now)[0]).total_seconds() / 60
 
@@ -313,12 +347,14 @@ class SIDData(object):
 
         if get_algo_instance().sim_params.data_frequency == 'daily':
             self._freqstr = '1d'
+            # update this method to point to the daily variant.
             self._get_bars = daily_get_bars
         else:
             self._freqstr = '1m'
+            # update this method to point to the minute variant.
             self._get_bars = minute_get_bars
 
-        # Not actually recursive.
+        # Not actually recursive because we have already cached the new method.
         return self._get_bars(days)
 
     def mavg(self, days):
