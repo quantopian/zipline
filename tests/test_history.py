@@ -935,6 +935,102 @@ def handle_data(context, data):
             ' HistorySpec',
         )
 
+    @parameterized.expand([
+        (1,),
+        (2,),
+    ])
+    def test_history_grow_length_inter_bar(self, incr):
+        """
+        Tests growing the length of a digest panel with different date_buf
+        deltas once per bar.
+        """
+        algo_text = dedent(
+            """\
+            from zipline.api import history
+
+
+            def initialize(context):
+                context.bar_count = 1
+
+
+            def handle_data(context, data):
+                prices = history(context.bar_count, '1d', 'price')
+                context.test_case.assertEqual(len(prices), context.bar_count)
+                context.bar_count += {incr}
+            """
+        ).format(incr=incr)
+        start = pd.Timestamp('2007-04-05', tz='UTC')
+        end = pd.Timestamp('2007-04-10', tz='UTC')
+
+        sim_params = SimulationParameters(
+            period_start=start,
+            period_end=end,
+            capital_base=float("1.0e5"),
+            data_frequency='minute',
+            emission_rate='daily'
+        )
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params
+        )
+        test_algo.test_case = self
+
+        source = RandomWalkSource(start=start, end=end)
+
+        self.assertIsNone(test_algo.history_container)
+        test_algo.run(source)
+
+    @parameterized.expand([
+        (1,),
+        (2,),
+    ])
+    def test_history_grow_length_intra_bar(self, incr):
+        """
+        Tests growing the length of a digest panel with different date_buf
+        deltas in a single bar.
+        """
+        algo_text = dedent(
+            """\
+            from zipline.api import history
+
+
+            def initialize(context):
+                context.bar_count = 1
+
+
+            def handle_data(context, data):
+                prices = history(context.bar_count, '1d', 'price')
+                context.test_case.assertEqual(len(prices), context.bar_count)
+                context.bar_count += {incr}
+                prices = history(context.bar_count, '1d', 'price')
+                context.test_case.assertEqual(len(prices), context.bar_count)
+            """
+        ).format(incr=incr)
+        start = pd.Timestamp('2007-04-05', tz='UTC')
+        end = pd.Timestamp('2007-04-10', tz='UTC')
+
+        sim_params = SimulationParameters(
+            period_start=start,
+            period_end=end,
+            capital_base=float("1.0e5"),
+            data_frequency='minute',
+            emission_rate='daily'
+        )
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params
+        )
+        test_algo.test_case = self
+
+        source = RandomWalkSource(start=start, end=end)
+
+        self.assertIsNone(test_algo.history_container)
+        test_algo.run(source)
+
 
 class TestHistoryContainerResize(TestCase):
     @parameterized.expand(

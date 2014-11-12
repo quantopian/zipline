@@ -187,7 +187,8 @@ def run_pipeline(print_algo=True, **kwargs):
 
     algo = zipline.TradingAlgorithm(script=algo_text,
                                     namespace=kwargs.get('namespace', {}),
-                                    capital_base=float(kwargs['capital_base']))
+                                    capital_base=float(kwargs['capital_base']),
+                                    algo_filename=kwargs.get('algofile'))
 
     perf = algo.run(source)
 
