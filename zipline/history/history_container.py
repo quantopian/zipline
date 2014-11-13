@@ -439,24 +439,19 @@ class HistoryContainer(object):
 
         window = spec.bar_count - 1
 
-        # everything after dt is going to be filled from calling update, no
-        # need to precompute these dates.
-        second = np.empty(window, dtype='datetime64[ns]')
-        date_buf = np.hstack(
-            (self._create_window_date_buf(
-                window,
-                spec.frequency.unit_str,
-                spec.frequency.data_frequency,
-                dt,
-                env=env,
-            ), second),
+        date_buf = self._create_window_date_buf(
+            window,
+            spec.frequency.unit_str,
+            spec.frequency.data_frequency,
+            dt,
+            env=env,
         )
 
         panel = RollingPanel(
             window=window,
             items=self.fields,
             sids=self.sids,
-            date_buf=date_buf,
+            initial_dates=date_buf,
         )
 
         return panel

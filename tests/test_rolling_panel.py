@@ -22,7 +22,73 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from zipline.utils.data import MutableIndexRollingPanel
+from zipline.utils.data import MutableIndexRollingPanel, RollingPanel
+from zipline.finance.trading import with_environment
+
+
+class TestRollingPanel(unittest.TestCase):
+    @with_environment()
+    def test_alignment(self, env):
+        items = ('a', 'b')
+        sids = (1, 2)
+
+        dts = env.market_minute_window(
+            env.open_and_closes.market_open[0], 4,
+        ).values
+        rp = RollingPanel(2, items, sids, initial_dates=dts[1:-1])
+
+        frame = pd.DataFrame(
+            data=np.arange(4).reshape((2, 2)),
+            columns=sids,
+            index=items,
+        )
+
+        nan_arr = np.empty((2, 6))
+        nan_arr.fill(np.nan)
+
+        rp.add_frame(dts[-1], frame)
+
+        cur = rp.get_current()
+        data = np.array((((np.nan, np.nan),
+                          (0, 1)),
+                         ((np.nan, np.nan),
+                          (2, 3))),
+                        float)
+        expected = pd.Panel(
+            data,
+            major_axis=dts[2:],
+            minor_axis=sids,
+            items=items,
+        )
+        expected.major_axis = expected.major_axis.tz_localize('utc')
+        tm.assert_panel_equal(
+            cur,
+            expected,
+        )
+
+        rp.extend_back(dts[:-2])
+
+        cur = rp.get_current()
+        data = np.array((((np.nan, np.nan),
+                          (np.nan, np.nan),
+                          (np.nan, np.nan),
+                          (0, 1)),
+                         ((np.nan, np.nan),
+                          (np.nan, np.nan),
+                          (np.nan, np.nan),
+                          (2, 3))),
+                        float)
+        expected = pd.Panel(
+            data,
+            major_axis=dts,
+            minor_axis=sids,
+            items=items,
+        )
+        expected.major_axis = expected.major_axis.tz_localize('utc')
+        tm.assert_panel_equal(
+            cur,
+            expected,
+        )
 
 
 class TestMutableIndexRollingPanel(unittest.TestCase):
