@@ -82,7 +82,7 @@ def date_gen(start=datetime(2006, 6, 6, 12, tzinfo=pytz.utc),
             if daily_delta:
                 return env.next_trading_day(cur)
             else:
-                return env.next_open_and_close
+                return env.next_open_and_close(cur)[0]
         else:
             return cur
 
