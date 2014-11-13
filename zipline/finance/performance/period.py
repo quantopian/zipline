@@ -140,15 +140,20 @@ class PerformancePeriod(object):
         self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
 
-    def ensure_position_index(self, sid):
+    def set_position_amount(self, sid, amount):
         try:
-            self._position_amounts[sid]
-            self._position_last_sale_prices[sid]
+            self._position_amounts[sid] = amount
         except (KeyError, IndexError):
             self._position_amounts = \
-                self._position_amounts.append(pd.Series({sid: 0.0}))
+                self._position_amounts.append(pd.Series({sid: amount}))
+
+    def set_position_last_sale_price(self, sid, last_sale_price):
+        try:
+            self._position_last_sale_prices[sid] = last_sale_price
+        except (KeyError, IndexError):
             self._position_last_sale_prices = \
-                self._position_last_sale_prices.append(pd.Series({sid: 0.0}))
+                self._position_last_sale_prices.append(
+                    pd.Series({sid: last_sale_price}))
 
     def handle_split(self, split):
         if split.sid in self.positions:
@@ -156,9 +161,9 @@ class PerformancePeriod(object):
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
             leftover_cash = position.handle_split(split)
-            self._position_amounts[split.sid] = position.amount
-            self._position_last_sale_prices[split.sid] = \
-                position.last_sale_price
+            self.set_position_amount(split.sid, position.amount)
+            self.set_position_last_sale_price(split.sid,
+                                              position.last_sale_price)
 
             if leftover_cash > 0:
                 self.handle_cash_payment(leftover_cash)
@@ -219,10 +224,9 @@ class PerformancePeriod(object):
             position = self.positions[stock]
 
             position.amount += share_count
-            self.ensure_position_index(stock)
-            self._position_amounts[stock] = position.amount
-            self._position_last_sale_prices[stock] = \
-                position.last_sale_price
+            self.set_position_amount(stock, position.amount)
+            self.set_position_last_sale_price(stock,
+                                              position.last_sale_price)
 
         # Recalculate performance after applying dividend benefits.
         self.calculate_performance()
@@ -285,14 +289,13 @@ class PerformancePeriod(object):
     def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):
         pos = self.positions[sid]
-        self.ensure_position_index(sid)
 
         if amount is not None:
             pos.amount = amount
-            self._position_amounts[sid] = amount
+            self.set_position_amount(sid, amount)
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
-            self._position_last_sale_prices[sid] = last_sale_price
+            self.set_position_last_sale_price(sid, last_sale_price)
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -306,9 +309,8 @@ class PerformancePeriod(object):
         # an empty position if one does not already exist.
         position = self.positions[txn.sid]
         position.update(txn)
-        self.ensure_position_index(txn.sid)
-        self._position_amounts[txn.sid] = position.amount
-        self._position_last_sale_prices[txn.sid] = position.last_sale_price
+        self.set_position_amount(txn.sid, position.amount)
+        self.set_position_last_sale_price(txn.sid, position.last_sale_price)
 
         self.period_cash_flow -= txn.price * txn.amount
 
