@@ -82,7 +82,10 @@ from collections import (
 from six import iteritems, itervalues
 
 import zipline.protocol as zp
-from zipline.utils.state_methods import _defaultdict_list_get_state
+from zipline.utils.state_methods import (
+    _defaultdict_list_get_state,
+    _defaultdict_ordered_get_state
+)
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -409,6 +412,8 @@ class PerformancePeriod(object):
         # nastiness.
         state_dict['processed_transactions'] =\
             _defaultdict_list_get_state(self.processed_transactions)
+        state_dict['orders_by_modified'] =\
+            _defaultdict_ordered_get_state(self.orders_by_modified)
 
         return 'PerformancePeriod', state_dict
 
@@ -417,7 +422,6 @@ class PerformancePeriod(object):
         Reconstruct this performance period from saved_state.
         """
         self.__dict__.update(saved_state)
-        self.processed_transactions._get_state = _defaultdict_list_get_state
 
     def as_portfolio(self):
         """
