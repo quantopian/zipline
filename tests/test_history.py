@@ -874,7 +874,11 @@ def handle_data(context, data):
         np.testing.assert_almost_equal(recorded_ma,
                                        159.76304468946876)
 
-    def test_history_container_constructed_at_runtime(self):
+    @parameterized.expand([
+        ('daily',),
+        ('minute',),
+    ])
+    def test_history_container_constructed_at_runtime(self, data_freq):
         algo_text = dedent(
             """\
             from zipline.api import history
@@ -889,17 +893,17 @@ def handle_data(context, data):
             period_start=start,
             period_end=end,
             capital_base=float("1.0e5"),
-            data_frequency='minute',
-            emission_rate='daily'
+            data_frequency=data_freq,
+            emission_rate=data_freq
         )
 
         test_algo = TradingAlgorithm(
             script=algo_text,
-            data_frequency='minute',
+            data_frequency=data_freq,
             sim_params=sim_params
         )
 
-        source = RandomWalkSource(start=start, end=end)
+        source = RandomWalkSource(start=start, end=end, freq=data_freq)
 
         self.assertIsNone(test_algo.history_container)
         test_algo.run(source)
@@ -909,13 +913,6 @@ def handle_data(context, data):
         )
 
         container = test_algo.history_container
-        self.assertEqual(
-            container.buffer_panel.window_length,
-            Frequency.MAX_MINUTES['d'],
-            msg='HistoryContainer.buffer_panel was not large enough to service'
-            ' the given HistorySpec',
-        )
-
         self.assertEqual(
             len(container.digest_panels),
             1,

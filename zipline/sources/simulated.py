@@ -18,6 +18,7 @@ import six
 
 import numpy as np
 from datetime import timedelta
+import pandas as pd
 
 from zipline.sources.data_source import DataSource
 from zipline.utils import tradingcalendar as calendar_nyse
@@ -141,7 +142,8 @@ class RandomWalkSource(DataSource):
                     current_dt += timedelta(minutes=1)
             elif self.freq == 'daily':
                 # Emit one signal per day at close
-                for event in self._gen_events(cur_prices, close_dt):
+                for event in self._gen_events(
+                        cur_prices, pd.tslib.normalize_date(close_dt)):
                     yield event
 
     @property

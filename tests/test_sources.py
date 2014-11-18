@@ -125,6 +125,4 @@ class TestRandomWalkSource(TestCase):
             self.assertLess(event.dt, end)
             self.assertGreater(event.price, 0,
                                "price should never go negative.")
-            self.assertTrue(13 <= event.dt.hour <= 21,
-                            "event.dt.hour == %i, not during market \
-                            hours." % event.dt.hour)
+            self.assertEqual(event.dt.hour, 0)
