@@ -359,7 +359,7 @@ class BeforeClose(StatelessRule):
         self._dt = None
 
     def should_trigger(self, dt):
-        return self._get_close(dt) - self.offset < dt
+        return self._get_close(dt) - self.offset <= dt
 
     def _get_close(self, dt):
         """

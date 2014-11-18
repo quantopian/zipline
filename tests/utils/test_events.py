@@ -281,9 +281,9 @@ class TestStatelessRules(RuleTestCase):
     def test_BeforeClose(self, ms):
         ms = list(ms)
         should_trigger = BeforeClose(hours=1, minutes=5).should_trigger
-        for m in ms[0:-65]:
+        for m in ms[0:-66]:
             self.assertFalse(should_trigger(m))
-        for m in ms[-65:]:
+        for m in ms[-66:]:
             self.assertTrue(should_trigger(m))
 
     def test_NotHalfDay(self):
