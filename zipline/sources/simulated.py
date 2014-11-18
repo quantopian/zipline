@@ -31,6 +31,8 @@ class RandomWalkSource(DataSource):
     user-defined frequencies (e.g. minutely).
 
     """
+    VALID_FREQS = frozenset(('daily', 'minute'))
+
     def __init__(self, start_prices=None, freq='minute', start=None,
                  end=None, calendar=calendar_nyse):
         """
@@ -40,7 +42,7 @@ class RandomWalkSource(DataSource):
                  Default: {0: 100, 1: 500}
             freq : str <default='minute'>
                  Emits events according to freq.
-                 Can be 'day' or 'minute'
+                 Can be 'daily' or 'minute'
             start : datetime <default=start of calendar>
                  Start dt to emit events.
             end : datetime <default=end of calendar>
@@ -60,6 +62,9 @@ class RandomWalkSource(DataSource):
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(start_prices, freq, start, end,
                                     calendar.__name__)
+
+        if freq not in self.VALID_FREQS:
+            raise ValueError('%s not in %s' % (freq, self.VALID_FREQS))
 
         self.freq = freq
         if start_prices is None:
@@ -134,7 +139,7 @@ class RandomWalkSource(DataSource):
                     for event in self._gen_events(cur_prices, current_dt):
                         yield event
                     current_dt += timedelta(minutes=1)
-            elif self.freq == 'day':
+            elif self.freq == 'daily':
                 # Emit one signal per day at close
                 for event in self._gen_events(cur_prices, close_dt):
                     yield event

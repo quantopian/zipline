@@ -113,7 +113,7 @@ class TestRandomWalkSource(TestCase):
         end = pd.Timestamp('1992-01-01', tz='UTC')
         source = RandomWalkSource(start_prices=start_prices,
                                   calendar=calendar_nyse, start=start,
-                                  end=end, freq='day')
+                                  end=end, freq='daily')
         self.assertIsInstance(source.start, pd.lib.Timestamp)
         self.assertIsInstance(source.end, pd.lib.Timestamp)
 
