@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 
-from zipline.history import history, Frequency
+from zipline.history import history
 from zipline.history.history_container import HistoryContainer
 from zipline.protocol import BarData
 import zipline.utils.factory as factory

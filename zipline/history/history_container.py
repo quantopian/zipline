@@ -594,7 +594,7 @@ class HistoryContainer(object):
         )
         self.buffer_spec = spec
 
-        if bar_data:
+        if bar_data is not None:
             frame = self.frame_from_bardata(bar_data, initial_dt)
             rp.add_frame(initial_dt, frame)
 
