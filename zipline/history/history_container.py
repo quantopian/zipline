@@ -230,7 +230,7 @@ class HistoryContainer(object):
 
         # Dictionaries with Frequency objects as keys.
         self.digest_panels, self.cur_window_starts, self.cur_window_closes = \
-            self.create_digest_panels(initial_sids, initial_dt, bar_data)
+            self.create_digest_panels(initial_sids, initial_dt)
 
         # Helps prop up the prior day panel against having a nan, when the data
         # has been seen.
@@ -537,7 +537,6 @@ class HistoryContainer(object):
     def create_digest_panels(self,
                              initial_sids,
                              initial_dt,
-                             bar_data,
                              env=None):
         """
         Initialize a RollingPanel for each unique panel frequency being stored
@@ -564,8 +563,6 @@ class HistoryContainer(object):
                 continue
 
             dt = initial_dt
-            if bar_data is not None:
-                dt = largest_spec.frequency.prev_bar(dt)
 
             rp = self._create_digest_panel(
                 dt,
