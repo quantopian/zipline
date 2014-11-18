@@ -338,8 +338,9 @@ class SIDData(object):
                 # 210 minutes in a an early close and 390 in a full day.
                 ms = sum(210 if d in env.early_closes else 390 for d in ds)
                 # Add the number of minutes for today.
-                ms += \
+                ms += int(
                     (now - env.get_open_and_close(now)[0]).total_seconds() / 60
+                )
 
                 cls._minute_bar_cache[days] = ms + 1  # Account for this minute
 
