@@ -784,7 +784,7 @@ class TradingAlgorithm(object):
         assert date_copy.tzinfo == pytz.utc, \
             "Algorithm should have a utc datetime"
         if tz is not None:
-            date_copy = date_copy.tz_convert(tz)
+            date_copy = date_copy.astimezone(tz)
         return date_copy
 
     def set_transact(self, transact):
