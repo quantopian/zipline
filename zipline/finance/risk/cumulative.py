@@ -211,9 +211,6 @@ class RiskMetricsCumulative(object):
         self.algorithm_cumulative_returns[dt] = \
             self.calculate_cumulative_returns(self.algorithm_returns)
 
-        algo_cumulative_returns_to_date = \
-            self.algorithm_cumulative_returns[:dt]
-
         self.mean_returns_cont[dt] = \
             self.algorithm_returns[:dt].mean()
 
