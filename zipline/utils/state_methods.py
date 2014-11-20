@@ -4,6 +4,7 @@ def _defaultdict_list_get_state(d):
         'as_dict': dict(d)
     }
 
+
 def _defaultdict_ordered_get_state(d):
     return {
         '__defaultdict_ordered__': True,

@@ -281,6 +281,13 @@ class PerformanceTracker(object):
     def _set_state(self, saved_state):
         self.__dict__.update(saved_state)
 
+        # We have to restore the references to the objects,
+        # as the perf periods have been reconstructed as different objects
+        # with the same values.
+        self.perf_periods[0] = self.minute_performance
+        self.perf_periods[1] = self.cumulative_performance
+        self.perf_periods[2] = self.todays_performance
+
     def process_event(self, event):
         self.event_count += 1
 
