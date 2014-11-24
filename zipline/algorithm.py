@@ -23,7 +23,11 @@ from datetime import datetime
 
 from itertools import groupby, chain
 from six.moves import filter
-from six import iteritems, exec_
+from six import (
+    exec_,
+    iteritems,
+    string_types,
+)
 from operator import attrgetter
 
 from zipline.errors import (
@@ -784,7 +788,7 @@ class TradingAlgorithm(object):
         assert date_copy.tzinfo == pytz.utc, \
             "Algorithm should have a utc datetime"
         if tz is not None:
-            if isinstance(tz, basestring):
+            if isinstance(tz, string_types):
                 tz = pytz.timezone(tz)
             date_copy = date_copy.astimezone(tz)
         return date_copy
