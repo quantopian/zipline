@@ -209,12 +209,6 @@ class Positions(dict):
         self[key] = pos
         return pos
 
-    def _get_state(self):
-        return 'Protocol Positions', self.__dict__
-
-    def _set_state(self, saved_state):
-        self.__dict__.update(saved_state)
-
 
 class SIDData(object):
     # Cache some data on the class so that this is shared for all instances of

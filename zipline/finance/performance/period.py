@@ -84,7 +84,9 @@ from six import iteritems, itervalues
 import zipline.protocol as zp
 from zipline.utils.state_methods import (
     _defaultdict_list_get_state,
-    _defaultdict_ordered_get_state
+    _defaultdict_ordered_get_state,
+    _positiondict_get_state,
+    _positions_get_state
 )
 from . position import positiondict
 
@@ -402,18 +404,21 @@ class PerformancePeriod(object):
 
         state_dict['_portfolio_store'] = self._portfolio_store
         state_dict['_account_store'] = self._account_store
-        state_dict['_positions_store'] = self._positions_store
         state_dict['_position_amounts'] = self._position_amounts
-        state_dict['_position_last_sale_prices'] =\
+        state_dict['_position_last_sale_prices'] = \
             self._position_last_sale_prices
 
         # We need to handle the defaultdict specially, otherwise
         # msgpack will unpack it as a dict, causing KeyError
         # nastiness.
-        state_dict['processed_transactions'] =\
+        state_dict['processed_transactions'] = \
             _defaultdict_list_get_state(self.processed_transactions)
-        state_dict['orders_by_modified'] =\
+        state_dict['orders_by_modified'] = \
             _defaultdict_ordered_get_state(self.orders_by_modified)
+        state_dict['positions'] = \
+            _positiondict_get_state(self.positions)
+        state_dict['_positions_store'] = \
+            _positions_get_state(self._positions_store)
 
         return 'PerformancePeriod', state_dict
 

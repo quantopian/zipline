@@ -34,6 +34,7 @@ from zipline.finance.commission import PerShare
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
+from zipline.utils.state_methods import _defaultdict_list_get_state
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -242,10 +243,14 @@ class Blotter(object):
 
     def _get_state(self):
 
-        state_to_save = ['new_orders', 'open_orders', 'orders', '_status']
+        state_to_save = ['new_orders', 'orders', '_status']
 
         state_dict = {k: self.__dict__[k] for k in state_to_save
                       if k in self.__dict__}
+
+        # Have to handle defaultdicts specially
+        state_dict['open_orders'] = \
+            _defaultdict_list_get_state(self.open_orders)
 
         return 'Blotter', state_dict
 
