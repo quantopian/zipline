@@ -34,6 +34,7 @@ from zipline.finance.commission import PerShare
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
+from zipline.utils.state_methods import _defaultdict_list_get_state
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -240,6 +241,22 @@ class Blotter(object):
 
             yield txn, order
 
+    def _get_state(self):
+
+        state_to_save = ['new_orders', 'orders', '_status']
+
+        state_dict = {k: self.__dict__[k] for k in state_to_save
+                      if k in self.__dict__}
+
+        # Have to handle defaultdicts specially
+        state_dict['open_orders'] = \
+            _defaultdict_list_get_state(self.open_orders)
+
+        return 'Blotter', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
@@ -362,6 +379,25 @@ class Order(object):
             return False
 
         return True
+
+    def _get_state(self):
+        """
+        Return a serialized version of the order.
+        """
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')):
+                state_dict[k] = v
+
+        state_dict['_status'] = self._status
+
+        return 'Order', state_dict
+
+    def _set_state(self, saved_state):
+        """
+        Reconstruct this order from saved_state.
+        """
+        self.__dict__.update(saved_state)
 
     @property
     def open_amount(self):

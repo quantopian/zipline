@@ -136,6 +136,12 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
+    def _get_state(self):
+        return 'Portfolio', self.__dict__
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
 
 class Account(object):
     '''
@@ -188,6 +194,12 @@ class Position(object):
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
+
+    def _get_state(self):
+        return 'Protocol Position', self.__dict__
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
 
 
 class Positions(dict):

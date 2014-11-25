@@ -110,6 +110,20 @@ class RiskReport(object):
             'twelve_month': [x.to_dict() for x in self.year_periods],
         }
 
+    def _get_state(self):
+        """
+        Return a serialized version of the report.
+        """
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')) or (k == '_dividend_count'):
+                state_dict[k] = v
+
+        return 'RiskReport', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
     def periods_in_range(self, months_per, start, end):
         one_day = datetime.timedelta(days=1)
         ends = []

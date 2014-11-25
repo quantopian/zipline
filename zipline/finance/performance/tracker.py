@@ -79,17 +79,7 @@ class PerformanceTracker(object):
 
     def __init__(self, sim_params):
 
-        self.sim_params = sim_params
-
-        self.period_start = self.sim_params.period_start
-        self.period_end = self.sim_params.period_end
-        self.last_close = self.sim_params.last_close
-        first_day = self.sim_params.first_open
-        self.market_open, self.market_close = \
-            trading.environment.get_open_and_close(first_day)
-        self.total_days = self.sim_params.days_in_period
-        self.capital_base = self.sim_params.capital_base
-        self.emission_rate = sim_params.emission_rate
+        self.update_sim_params(sim_params)
 
         all_trading_days = trading.environment.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
@@ -173,6 +163,19 @@ class PerformanceTracker(object):
         self.day_count = 0.0
         self.txn_count = 0
         self.event_count = 0
+
+    def update_sim_params(self, sim_params):
+        self.sim_params = sim_params
+
+        self.period_start = self.sim_params.period_start
+        self.period_end = self.sim_params.period_end
+        self.last_close = self.sim_params.last_close
+        first_day = self.sim_params.first_open
+        self.market_open, self.market_close = \
+            trading.environment.get_open_and_close(first_day)
+        self.total_days = self.sim_params.days_in_period
+        self.capital_base = self.sim_params.capital_base
+        self.emission_rate = sim_params.emission_rate
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -263,6 +266,27 @@ class PerformanceTracker(object):
             })
 
         return _dict
+
+    def _get_state(self):
+        """
+        Return a serialized version of the performance tracker.
+        """
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')) or (k == '_dividend_count'):
+                state_dict[k] = v
+
+        return 'PerformanceTracker', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
+        # We have to restore the references to the objects,
+        # as the perf periods have been reconstructed as different objects
+        # with the same values.
+        self.perf_periods[0] = self.minute_performance
+        self.perf_periods[1] = self.cumulative_performance
+        self.perf_periods[2] = self.todays_performance
 
     def process_event(self, event):
         self.event_count += 1

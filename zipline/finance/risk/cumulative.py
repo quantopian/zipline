@@ -24,6 +24,7 @@ import zipline.utils.math_utils as zp_math
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
+
 from six import iteritems
 
 from . risk import (
@@ -334,6 +335,26 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         return {k: (None if check_entry(k, v) else v)
                 for k, v in iteritems(rval)}
+
+    def _get_state(self):
+        """
+        Uses msgpack to create a serialized version of the object.
+        """
+
+        # Go through and call any custom serialization methods we've added
+        state_dict = {}
+        for k, v in self.__dict__.iteritems():
+            if (not k.startswith('_')) and (not k == 'treasury_curves'):
+                state_dict[k] = v
+
+        return 'RiskMetricsCumulative', state_dict
+
+    def _set_state(self, saved_state):
+        self.__dict__.update(saved_state)
+
+        # This are big and we don't need to serialize them
+        # pop them back in now
+        self.treasury_curves = trading.environment.treasury_curves
 
     def __repr__(self):
         statements = []
