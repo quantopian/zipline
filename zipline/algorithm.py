@@ -469,15 +469,14 @@ class TradingAlgorithm(object):
         # create transforms and zipline
         self.gen = self._create_generator(self.sim_params)
 
-        with ZiplineAPI(self):
-            # loop through simulated_trading, each iteration returns a
-            # perf dictionary
-            perfs = []
-            for perf in self.gen:
-                perfs.append(perf)
+        # loop through simulated_trading, each iteration returns a
+        # perf dictionary
+        perfs = []
+        for perf in self.gen:
+            perfs.append(perf)
 
-            # convert perf dict to pandas dataframe
-            daily_stats = self._create_daily_stats(perfs)
+        # convert perf dict to pandas dataframe
+        daily_stats = self._create_daily_stats(perfs)
 
         self.analyze(daily_stats)
 
