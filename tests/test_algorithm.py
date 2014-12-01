@@ -23,6 +23,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.api import get_datetime
 from zipline.utils.test_utils import (
     nullctx,
     setup_logger
@@ -70,6 +71,10 @@ from zipline.test_algorithms import (
 )
 
 import zipline.utils.events
+from zipline.utils.events import (
+    date_rules,
+    time_rules,
+)
 from zipline.utils.test_utils import (
     assert_single_position,
     drain_zipline,
@@ -224,11 +229,39 @@ class TestMiscellaneousAPI(TestCase):
 
         self.assertEqual(algo.func_called, algo.days)
 
+    def test_schedule_function_zipline_api(self):
+        """
+        Tests that the zipline api is used for functions scheduled with
+        `schedule_function`.
+        """
+        def func(context, data):
+            context.called = True
+            context.mavg = get_datetime()
+
+        def initialize(context):
+            context.called = False
+            context.schedule_function(
+                func=func,
+                date_rule=date_rules.every_day(),
+                time_rule=time_rules.market_open(),
+            )
+
+        def handle_data(context, data):
+            pass
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            sim_params=self.sim_params,
+        )
+        algo.run(self.source)
+        self.assertTrue(algo.called)
+
     @parameterized.expand([
         ('daily',),
         ('minute'),
     ])
-    def test_schedule_funtion_rule_creation(self, mode):
+    def test_schedule_function_rule_creation(self, mode):
         nop = lambda *args, **kwargs: None
 
         self.sim_params.data_frequency = mode
