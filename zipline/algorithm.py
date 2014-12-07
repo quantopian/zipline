@@ -545,8 +545,19 @@ class TradingAlgorithm(object):
             self.add_history(bars, freq, 'volume')
 
     @api_method
-    def get_environment(self):
-        return self._environment
+    def get_environment(self, field='platform'):
+        env = {
+            'arena': self.sim_params.arena,
+            'data_frequency': self.sim_params.data_frequency,
+            'start': self.sim_params.first_open,
+            'end': self.sim_params.last_close,
+            'capital_base': self.sim_params.capital_base,
+            'platform': self._environment
+        }
+        if field == '*':
+            return env
+        else:
+            return env[field]
 
     def add_event(self, rule=None, callback=None):
         """
