@@ -503,11 +503,11 @@ class TestAlgoScript(TestCase):
         algo.run(self.df)
 
     def test_api_get_environment(self):
-        environment = 'zipline'
+        platform = 'zipline'
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                environment=environment)
+                                platform=platform)
         algo.run(self.df)
-        self.assertEqual(algo.environment, environment)
+        self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
         algo = TradingAlgorithm(script=api_symbol_algo)

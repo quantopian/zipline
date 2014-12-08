@@ -148,7 +148,7 @@ class TradingAlgorithm(object):
         self._recorded_vars = {}
         self.namespace = kwargs.get('namespace', {})
 
-        self._environment = kwargs.pop('environment', 'zipline')
+        self._platform = kwargs.pop('platform', 'zipline')
 
         self.logger = None
 
@@ -552,7 +552,7 @@ class TradingAlgorithm(object):
             'start': self.sim_params.first_open,
             'end': self.sim_params.last_close,
             'capital_base': self.sim_params.capital_base,
-            'platform': self._environment
+            'platform': self._platform
         }
         if field == '*':
             return env
