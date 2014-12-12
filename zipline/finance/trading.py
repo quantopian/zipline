@@ -396,6 +396,9 @@ class SimulationParameters(object):
         self.data_frequency = data_frequency
         self.sids = sids
 
+        # copied to algorithm's environment for runtime access
+        self.arena = 'backtest'
+
         self._update_internal()
 
     def _update_internal(self):

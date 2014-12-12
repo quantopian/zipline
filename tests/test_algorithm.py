@@ -136,6 +136,28 @@ class TestMiscellaneousAPI(TestCase):
             concurrent=True,
         )
 
+    def test_get_environment(self):
+        expected_env = {
+            'arena': 'backtest',
+            'data_frequency': 'minute',
+            'start': pd.Timestamp('2006-01-03 14:31:00+0000', tz='UTC'),
+            'end': pd.Timestamp('2006-01-04 21:00:00+0000', tz='UTC'),
+            'capital_base': 100000.0,
+            'platform': 'zipline'
+        }
+
+        def initialize(algo):
+            self.assertEqual('zipline', algo.get_environment())
+            self.assertEqual(expected_env, algo.get_environment('*'))
+
+        def handle_data(algo, data):
+            pass
+
+        algo = TradingAlgorithm(initialize=initialize,
+                                handle_data=handle_data,
+                                sim_params=self.sim_params)
+        algo.run(self.source)
+
     def test_get_open_orders(self):
 
         def initialize(algo):
@@ -481,11 +503,11 @@ class TestAlgoScript(TestCase):
         algo.run(self.df)
 
     def test_api_get_environment(self):
-        environment = 'zipline'
+        platform = 'zipline'
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                environment=environment)
+                                platform=platform)
         algo.run(self.df)
-        self.assertEqual(algo.environment, environment)
+        self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
         algo = TradingAlgorithm(script=api_symbol_algo)
