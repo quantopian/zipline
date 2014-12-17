@@ -3,7 +3,7 @@ python:
   - "2.7"
   - "3.3"
 before_install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.0.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh; fi
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then export PATH=/home/travis/miniconda/bin:$PATH; else export PATH=/home/travis/miniconda3/bin:$PATH; fi
