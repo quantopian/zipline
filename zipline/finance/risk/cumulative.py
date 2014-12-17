@@ -163,7 +163,8 @@ class RiskMetricsCumulative(object):
         self.latest_dt = cont_index[0]
 
         self.metrics = pd.DataFrame(index=cont_index,
-                                    columns=self.METRIC_NAMES)
+                                    columns=self.METRIC_NAMES,
+                                    dtype=float)
 
         self.drawdowns = pd.Series(index=cont_index)
         self.max_drawdowns = pd.Series(index=cont_index)
