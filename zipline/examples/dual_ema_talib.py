@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,70 +14,71 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import matplotlib.pyplot as plt
 
-from zipline.algorithm import TradingAlgorithm
-from zipline.utils.factory import load_from_yahoo
+"""Dual Moving Average Crossover algorithm.
+
+This algorithm buys apple once its short moving average crosses
+its long moving average (indicating upwards momentum) and sells
+its shares once the averages cross again (indicating downwards
+momentum).
+
+"""
 
 # Import exponential moving average from talib wrapper
 from zipline.transforms.ta import EMA
 
-from datetime import datetime
-import pytz
+
+def initialize(context):
+    context.security = symbol('AAPL')
+
+    # Add 2 mavg transforms, one with a long window, one with a short window.
+    context.short_ema_trans = EMA(timeperiod=20)
+    context.long_ema_trans = EMA(timeperiod=40)
+
+    # To keep track of whether we invested in the stock or not
+    context.invested = False
 
 
-class DualEMATaLib(TradingAlgorithm):
+def handle_data(context, data):
+    short_ema = context.short_ema_trans.handle_data(data)
+    long_ema = context.long_ema_trans.handle_data(data)
+    if short_ema is None or long_ema is None:
+        return
 
-    """Dual Moving Average Crossover algorithm.
+    buy = False
+    sell = False
 
-    This algorithm buys apple once its short moving average crosses
-    its long moving average (indicating upwards momentum) and sells
-    its shares once the averages cross again (indicating downwards
-    momentum).
+    if (short_ema > long_ema).all() and not context.invested:
+        order(context.security, 100)
+        context.invested = True
+        buy = True
+    elif (short_ema < long_ema).all() and context.invested:
+        order(context.security, -100)
+        context.invested = False
+        sell = True
 
-    """
+    record(AAPL=data[context.security].price,
+           short_ema=short_ema[context.security],
+           long_ema=long_ema[context.security],
+           buy=buy,
+           sell=sell)
 
-    def initialize(self, short_window=20, long_window=40):
-        # Add 2 mavg transforms, one with a long window, one
-        # with a short window.
-        self.short_ema_trans = EMA(timeperiod=short_window)
-        self.long_ema_trans = EMA(timeperiod=long_window)
-
-        # To keep track of whether we invested in the stock or not
-        self.invested = False
-
-    def handle_data(self, data):
-        self.short_ema = self.short_ema_trans.handle_data(data)
-        self.long_ema = self.long_ema_trans.handle_data(data)
-        if self.short_ema is None or self.long_ema is None:
-            return
-
-        self.buy = False
-        self.sell = False
-
-        if (self.short_ema > self.long_ema).all() and not self.invested:
-            self.order('AAPL', 100)
-            self.invested = True
-            self.buy = True
-        elif (self.short_ema < self.long_ema).all() and self.invested:
-            self.order('AAPL', -100)
-            self.invested = False
-            self.sell = True
-
-        self.record(AAPL=data['AAPL'].price,
-                    short_ema=self.short_ema['AAPL'],
-                    long_ema=self.long_ema['AAPL'],
-                    buy=self.buy,
-                    sell=self.sell)
 
 if __name__ == '__main__':
-    start = datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(1991, 1, 1, 0, 0, 0, 0, pytz.utc)
+    from datetime import datetime
+    import matplotlib.pyplot as plt
+    import pytz
+    from zipline.algorithm import TradingAlgorithm
+    from zipline.api import order, record, symbol
+    from zipline.utils.factory import load_from_yahoo
+
+    start = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2014, 11, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
                            end=end)
 
-    dma = DualEMATaLib()
-    results = dma.run(data).dropna()
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
+    results = algo.run(data).dropna()
 
     fig = plt.figure()
     ax1 = fig.add_subplot(211, ylabel='portfolio value')
@@ -92,3 +93,4 @@ if __name__ == '__main__':
              'v', markersize=10, color='k')
     plt.legend(loc=0)
     plt.gcf().set_size_inches(18, 8)
+    plt.show()
