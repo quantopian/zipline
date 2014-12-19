@@ -160,6 +160,7 @@ class Account(object):
         self.cushion = 0.0
         self.day_trades_remaining = float('inf')
         self.leverage = 0.0
+        self.net_leverage = 0.0
         self.net_liquidation = 0.0
 
     def __getitem__(self, key):
