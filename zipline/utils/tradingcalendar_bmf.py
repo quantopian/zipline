@@ -238,6 +238,9 @@ def get_non_trading_days(start, end):
 
     non_trading_days = non_trading_ruleset.between(start, end, inc=True)
 
+    # World Cup 2014 Opening
+    non_trading_days.append(datetime(2014, 6, 12, tzinfo=pytz.utc))
+
     non_trading_days.sort()
     return pd.DatetimeIndex(non_trading_days)
 
