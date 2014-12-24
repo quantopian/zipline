@@ -53,6 +53,41 @@ oneday = timedelta(days=1)
 tradingday = timedelta(hours=6, minutes=30)
 
 
+def check_account(account,
+                  settled_cash,
+                  equity_with_loan,
+                  total_positions_value,
+                  regt_equity,
+                  available_funds,
+                  excess_liquidity,
+                  cushion,
+                  leverage,
+                  net_leverage,
+                  net_liquidation):
+    # this is a long only portfolio that is only partially invested
+    # so net and gross leverage are equal.
+
+    np.testing.assert_allclose(settled_cash,
+                               account['settled_cash'], rtol=1e-3)
+    np.testing.assert_allclose(equity_with_loan,
+                               account['equity_with_loan'], rtol=1e-3)
+    np.testing.assert_allclose(total_positions_value,
+                               account['total_positions_value'], rtol=1e-3)
+    np.testing.assert_allclose(regt_equity,
+                               account['regt_equity'], rtol=1e-3)
+    np.testing.assert_allclose(available_funds,
+                               account['available_funds'], rtol=1e-3)
+    np.testing.assert_allclose(excess_liquidity,
+                               account['excess_liquidity'], rtol=1e-3)
+    np.testing.assert_allclose(cushion,
+                               account['cushion'], rtol=1e-3)
+    np.testing.assert_allclose(leverage, account['leverage'], rtol=1e-3)
+    np.testing.assert_allclose(net_leverage,
+                               account['net_leverage'], rtol=1e-3)
+    np.testing.assert_allclose(net_liquidation,
+                               account['net_liquidation'], rtol=1e-3)
+
+
 def create_txn(trade_event, price, amount):
     """
     Create a fake transaction to be filled and processed prior to the execution
@@ -222,7 +257,10 @@ class TestSplitPerformance(unittest.TestCase):
         # Validate that the account attributes were updated.
         account = results[1]['account']
         self.assertEqual(float('inf'), account['day_trades_remaining'])
+        # this is a long only portfolio that is only partially invested
+        # so net and gross leverage are equal.
         np.testing.assert_allclose(0.198, account['leverage'], rtol=1e-3)
+        np.testing.assert_allclose(0.198, account['net_leverage'], rtol=1e-3)
         np.testing.assert_allclose(8020, account['regt_equity'], rtol=1e-3)
         self.assertEqual(float('inf'), account['regt_margin'])
         np.testing.assert_allclose(8020, account['available_funds'], rtol=1e-3)
@@ -791,6 +829,136 @@ class TestPositionPerformance(unittest.TestCase):
 
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
+    def test_long_short_positions(self):
+        """
+        start with $1000
+        buy 100 stock1 shares at $10
+        sell short 100 stock2 shares at $10
+        stock1 then goes down to $9
+        stock2 goes to $11
+        """
+
+        trades_1 = factory.create_trade_history(
+            1,
+            [10, 10, 10, 9],
+            [100, 100, 100, 100],
+            onesec,
+            self.sim_params
+        )
+
+        trades_2 = factory.create_trade_history(
+            2,
+            [10, 10, 10, 11],
+            [100, 100, 100, 100],
+            onesec,
+            self.sim_params
+        )
+
+        txn1 = create_txn(trades_1[1], 10.0, 100)
+        txn2 = create_txn(trades_2[1], 10.0, -100)
+        pp = perf.PerformancePeriod(1000.0)
+        pp.execute_transaction(txn1)
+        pp.execute_transaction(txn2)
+
+        for trade in itertools.chain(trades_1[:-2], trades_2[:-2]):
+            pp.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=1000.0,
+                      equity_with_loan=1000.0,
+                      total_positions_value=0.0,
+                      regt_equity=1000.0,
+                      available_funds=1000.0,
+                      excess_liquidity=1000.0,
+                      cushion=1.0,
+                      leverage=2.0,
+                      net_leverage=0.0,
+                      net_liquidation=1000.0)
+
+        # now simulate stock1 going to $9
+        pp.update_last_sale(trades_1[-1])
+        # and stock2 going to $11
+        pp.update_last_sale(trades_2[-1])
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+
+        check_account(account,
+                      settled_cash=1000.0,
+                      equity_with_loan=800.0,
+                      total_positions_value=-200.0,
+                      regt_equity=1000.0,
+                      available_funds=1000.0,
+                      excess_liquidity=1000.0,
+                      cushion=1.25,
+                      leverage=2.5,
+                      net_leverage=-0.25,
+                      net_liquidation=800.0)
+
+    def test_levered_long_position(self):
+        """
+            start with $1,000, then buy 1000 shares at $10.
+            price goes to $11
+        """
+        # post some trades in the market
+        trades = factory.create_trade_history(
+            1,
+            [10, 10, 10, 11],
+            [100, 100, 100, 100],
+            onesec,
+            self.sim_params
+        )
+
+        txn = create_txn(trades[1], 10.0, 1000)
+        pp = perf.PerformancePeriod(1000.0)
+
+        pp.execute_transaction(txn)
+
+        for trade in trades[:-2]:
+            pp.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=-9000.0,
+                      equity_with_loan=1000.0,
+                      total_positions_value=10000.0,
+                      regt_equity=-9000.0,
+                      available_funds=-9000.0,
+                      excess_liquidity=-9000.0,
+                      cushion=-9.0,
+                      leverage=10.0,
+                      net_leverage=10.0,
+                      net_liquidation=1000.0)
+
+        # now simulate a price jump to $11
+        pp.update_last_sale(trades[-1])
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+
+        check_account(account,
+                      settled_cash=-9000.0,
+                      equity_with_loan=2000.0,
+                      total_positions_value=11000.0,
+                      regt_equity=-9000.0,
+                      available_funds=-9000.0,
+                      excess_liquidity=-9000.0,
+                      cushion=-4.5,
+                      leverage=5.5,
+                      net_leverage=5.5,
+                      net_liquidation=2000.0)
+
     def test_long_position(self):
         """
             verify that the performance period calculates properly for a
@@ -870,6 +1038,20 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         self.assertEqual(pp.pnl, 100, "gain of 1 on 100 shares should be 100")
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=0.0,
+                      equity_with_loan=1100.0,
+                      total_positions_value=1100.0,
+                      regt_equity=0.0,
+                      available_funds=0.0,
+                      excess_liquidity=0.0,
+                      cushion=0.0,
+                      leverage=1.0,
+                      net_leverage=1.0,
+                      net_liquidation=1100.0)
 
     def test_short_position(self):
         """verify that the performance period calculates properly for a \
@@ -1060,6 +1242,20 @@ cost of sole txn in test"
             "drop of 1 on -100 shares should be 100"
         )
 
+        # Validate that the account attributes.
+        account = ppTotal.as_account()
+        check_account(account,
+                      settled_cash=2000.0,
+                      equity_with_loan=1100.0,
+                      total_positions_value=-900.0,
+                      regt_equity=2000.0,
+                      available_funds=2000.0,
+                      excess_liquidity=2000.0,
+                      cushion=1.8181,
+                      leverage=0.8181,
+                      net_leverage=-0.8181,
+                      net_liquidation=1100.0)
+
     def test_covering_short(self):
         """verify performance where short is bought and covered, and shares \
 trade after cover"""
@@ -1140,6 +1336,19 @@ shares in position"
             300,
             "gain of 1 on 100 shares should be 300"
         )
+
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=1300.0,
+                      equity_with_loan=1300.0,
+                      total_positions_value=0.0,
+                      regt_equity=1300.0,
+                      available_funds=1300.0,
+                      excess_liquidity=1300.0,
+                      cushion=1.0,
+                      leverage=0.0,
+                      net_leverage=0.0,
+                      net_liquidation=1300.0)
 
     def test_cost_basis_calc(self):
         history_args = (

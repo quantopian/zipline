@@ -320,6 +320,38 @@ class PerformancePeriod(object):
     def calculate_positions_value(self):
         return np.dot(self._position_amounts, self._position_last_sale_prices)
 
+    def _long_value(self):
+        pos_values = self._position_amounts * self._position_last_sale_prices
+        longs = pos_values[pos_values > 0]
+        return longs.sum()
+
+    def _short_value(self):
+        pos_values = self._position_amounts * self._position_last_sale_prices
+        shorts = pos_values[pos_values < 0]
+        return shorts.sum()
+
+    def _gross_exposure(self):
+        return self._long_value() + abs(self._short_value())
+
+    def _net_exposure(self):
+        return self.calculate_positions_value()
+
+    def _net_liquidation_value(self):
+        lv = self.ending_cash + self._long_value() + self._short_value()
+        return lv
+
+    def _gross_leverage(self):
+        if self._net_liquidation_value != 0:
+            return self._gross_exposure() / self._net_liquidation_value()
+
+        return pd.inf
+
+    def _net_leverage(self):
+        if self._net_liquidation_value != 0:
+            return self._net_exposure() / self._net_liquidation_value()
+
+        return pd.inf
+
     def update_last_sale(self, event):
         if event.sid not in self.positions:
             return
@@ -345,7 +377,8 @@ class PerformancePeriod(object):
             'pnl': self.pnl,
             'returns': self.returns,
             'period_open': self.period_open,
-            'period_close': self.period_close
+            'period_close': self.period_close,
+            'gross_leverage': self._gross_leverage()
         }
 
         return rval
@@ -451,11 +484,10 @@ class PerformancePeriod(object):
         account.day_trades_remaining = \
             getattr(self, 'day_trades_remaining', float('inf'))
         account.leverage = \
-            getattr(self, 'leverage',
-                    self.ending_value / (self.ending_value + self.ending_cash))
+            getattr(self, 'leverage', self._gross_leverage())
+        account.net_leverage = self._net_leverage()
         account.net_liquidation = \
-            getattr(self, 'net_liquidation',
-                    self.ending_cash + self.ending_value)
+            getattr(self, 'net_liquidation', self._net_liquidation_value())
         return account
 
     def get_positions(self):
