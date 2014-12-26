@@ -134,7 +134,8 @@ class TradingAlgorithm(object):
     AUTO_INITIALIZE = True
 
     def __init__(self, *args, **kwargs):
-        """Initialize sids and other state variables.
+        """
+Initialize sids and other state variables.
 
         :Arguments:
         :Optional:
@@ -155,7 +156,11 @@ class TradingAlgorithm(object):
                Whether to fill orders immediately or on next bar.
             environment : str <default: 'zipline'>
                The environment that this algorithm is running in.
-        """
+
+        :Note:
+            All other *args and **kwargs passed will be forwarded to the
+            user-defined initialize() function.
+"""
         self.datetime = None
 
         self.registered_transforms = {}
@@ -166,7 +171,7 @@ class TradingAlgorithm(object):
         self.trading_controls = []
 
         self._recorded_vars = {}
-        self.namespace = kwargs.get('namespace', {})
+        self.namespace = kwargs.pop('namespace', {})
 
         self._platform = kwargs.pop('platform', 'zipline')
 
@@ -277,13 +282,13 @@ class TradingAlgorithm(object):
         functions.
         """
         with ZiplineAPI(self):
-            self._initialize(self)
+            self._initialize(self, *args, **kwargs)
 
-    def before_trading_start(self):
+    def before_trading_start(self, *args, **kwargs):
         if self._before_trading_start is None:
             return
 
-        self._before_trading_start(self)
+        self._before_trading_start(self, *args, **kwargs)
 
     def handle_data(self, data):
         self._most_recent_data = data
