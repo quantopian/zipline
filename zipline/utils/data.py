@@ -144,13 +144,17 @@ class RollingPanel(object):
         where = slice(self._start_index, self._start_index + delta)
         self.date_buf[where] = missing_dts
 
-    def add_frame(self, tick, frame):
+    def add_frame(self, tick, frame, minor_axis=None, items=None):
         """
         """
         if self._pos == self.cap:
             self._roll_data()
 
-        self.buffer.loc[:, self._pos, :] = frame.T.astype(self.dtype)
+        values = frame
+        if isinstance(frame, pd.DataFrame):
+            values = frame.values
+
+        self.buffer.values[:, self._pos, :] = values.astype(self.dtype)
         self.date_buf[self._pos] = tick
 
         self._pos += 1
@@ -277,17 +281,22 @@ class MutableIndexRollingPanel(object):
         self.date_buf[:self._window] = self.date_buf[-self._window:]
         self._pos = self._window
 
-    def add_frame(self, tick, frame):
+    def add_frame(self, tick, frame, minor_axis=None, items=None):
         """
         """
         if self._pos == self.cap:
             self._roll_data()
 
-        if set(frame.columns).difference(set(self.minor_axis)) or \
-                set(frame.index).difference(set(self.items)):
+        if isinstance(frame, pd.DataFrame):
+            minor_axis = frame.columns
+            items = frame.index
+
+        if set(columns).difference(set(self.minor_axis)) or \
+                set(index).difference(set(self.items)):
             self._update_buffer(frame)
 
-        self.buffer.loc[:, self._pos, :] = frame.T.astype(self.dtype)
+        vals = frame.T.astype(self.dtype)
+        self.buffer.loc[:, self._pos, :] = vals
         self.date_buf[self._pos] = tick
 
         self._pos += 1
