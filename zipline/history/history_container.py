@@ -729,9 +729,12 @@ class HistoryContainer(object):
                 if digest_panel is not None:
                     # Create a digest from minutes_to_process and add it to
                     # digest_panel.
+                    digest_frame = self.create_new_digest_frame(minutes_to_process)
                     digest_panel.add_frame(
                         latest_minute,
-                        self.create_new_digest_frame(minutes_to_process)
+                        digest_frame,
+                        self.fields,
+                        minutes_to_process.minor_axis
                     )
 
                 # Update panel start/close for this frequency.
@@ -778,11 +781,52 @@ class HistoryContainer(object):
             columns=ohlcv_panel.minor_axis,
         )
 
+    def frame_to_series2(self, field, frame):
+        """
+        Convert a frame with a DatetimeIndex and sid columns into a series with
+        a sid index, using the aggregator defined by the given field.
+        """
+        if not len(frame):
+            return pd.Series(
+                data=(0 if field == 'volume' else np.nan),
+                index=frame.columns,
+            )
+
+        if field in ['price', 'close_price']:
+            # shortcircuit for full last row
+            vals = frame[-1]
+            if ~np.all(np.isnan(vals)):
+                return vals
+            return frame.ffill().iloc[-1].values
+        elif field == 'open_price':
+            return frame.bfill().iloc[0].values
+        elif field == 'volume':
+            return np.nansum(frame, axis=0)
+        elif field == 'high':
+            return np.nanmax(frame, axis=0)
+        elif field == 'low':
+            return np.nanmax(frame, axis=0)
+        else:
+            raise ValueError("Unknown field {}".format(field))
+
+    def aggregate_ohlcv_panel2(self, fields, ohlcv_panel):
+        """
+        Convert an OHLCV Panel into a DataFrame by aggregating each field's
+        frame into a Series.
+        """
+        vals = ohlcv_panel.values
+        items = ohlcv_panel.items
+        data = [
+            self.frame_to_series2(field, vals[items.get_loc(field)])
+            for field in fields
+        ]
+        return np.array(data)
+
     def create_new_digest_frame(self, buffer_minutes):
         """
         Package up minutes in @buffer_minutes into a single digest frame.
         """
-        return self.aggregate_ohlcv_panel(
+        return self.aggregate_ohlcv_panel2(
             self.fields,
             buffer_minutes,
         )
