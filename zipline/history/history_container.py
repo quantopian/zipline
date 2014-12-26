@@ -846,11 +846,18 @@ class HistoryContainer(object):
             else:
                 oldest_known_values = self.buffer_panel.oldest_frame()
 
+            oldest_vals = oldest_known_values.values
+            oldest_columns = oldest_known_values.columns
             for field in ffillable:
-                non_nan_sids = oldest_known_values[field].notnull()
-                self.last_known_prior_values.loc[
-                    (frequency.freq_str, field), non_nan_sids
-                ] = oldest_known_values[field].dropna()
+                f_idx = oldest_columns.get_loc(field)
+                field_vals = oldest_vals[f_idx]
+                # isnan would be fast, possible to use?
+                non_nan_sids = np.where(pd.notnull(field_vals))
+                key = (frequency.freq_str, field)
+                key_loc = self.last_known_prior_values.index.get_loc(key)
+                self.last_known_prior_values.values[
+                    key_loc, non_nan_sids
+                ] = field_vals[non_nan_sids]
 
     def get_history(self, history_spec, algo_dt):
         """
