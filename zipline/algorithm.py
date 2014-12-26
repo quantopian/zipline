@@ -100,7 +100,7 @@ class TradingAlgorithm(object):
         context.sid = 'AAPL'
         context.amount = 100
 
-    def handle_data(self, data):
+    def handle_data(context, data):
         sid = context.sid
         amount = context.amount
         order(sid, amount)
