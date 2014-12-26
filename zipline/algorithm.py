@@ -94,10 +94,10 @@ class TradingAlgorithm(object):
 
     A new algorithm could look like this:
     ```
-    from zipline.api import order
+    from zipline.api import order, symbol
 
     def initialize(context):
-        context.sid = 'AAPL'
+        context.sid = symbol('AAPL')
         context.amount = 100
 
     def handle_data(context, data):
