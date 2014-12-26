@@ -25,6 +25,7 @@ from . history import HistorySpec
 
 from zipline.finance.trading import with_environment
 from zipline.utils.data import RollingPanel, _ensure_index
+from zipline.utils.munge import ffill, bfill
 
 logger = logbook.Logger('History Container')
 
@@ -38,25 +39,39 @@ def ffill_buffer_from_prior_values(freq,
                                    field,
                                    buffer_frame,
                                    digest_frame,
-                                   pv_frame):
+                                   pv_frame,
+                                   raw=False):
     """
     Forward-fill a buffer frame, falling back to the end-of-period values of a
     digest frame if the buffer frame has leading NaNs.
     """
-    nan_sids = buffer_frame.iloc[0].isnull()
-    if any(nan_sids) and len(digest_frame):
+    # convert to ndarray if necessary
+    digest_values = digest_frame
+    if raw and isinstance(digest_frame, pd.DataFrame):
+        digest_values = digest_frame.values
+
+    buffer_values = buffer_frame
+    if raw and isinstance(buffer_frame, pd.DataFrame):
+        buffer_values = buffer_frame.values
+
+    nan_sids = pd.isnull(buffer_values[0])
+    if np.any(nan_sids) and len(digest_values):
         # If we have any leading nans in the buffer and we have a non-empty
         # digest frame, use the oldest digest values as the initial buffer
         # values.
-        buffer_frame.ix[0, nan_sids] = digest_frame.ix[-1, nan_sids]
+        buffer_values[0, nan_sids] = digest_values[-1, nan_sids]
 
-    nan_sids = buffer_frame.iloc[0].isnull()
-    if any(nan_sids):
+    nan_sids = pd.isnull(buffer_values[0])
+    if np.any(nan_sids):
         # If we still have leading nans, fall back to the last known values
         # from before the digest.
-        buffer_frame.ix[0, nan_sids] = pv_frame.loc[
-            (freq.freq_str, field), nan_sids
-        ]
+        key_loc = pv_frame.index.get_loc((freq.freq_str, field))
+        filler = pv_frame.values[key_loc, nan_sids]
+        buffer_values[0, nan_sids] = filler
+
+    if raw:
+        filled = ffill(buffer_values)
+        return filled
 
     return buffer_frame.ffill()
 
@@ -64,18 +79,28 @@ def ffill_buffer_from_prior_values(freq,
 def ffill_digest_frame_from_prior_values(freq,
                                          field,
                                          digest_frame,
-                                         pv_frame):
+                                         pv_frame,
+                                         raw=False):
     """
     Forward-fill a digest frame, falling back to the last known prior values if
     necessary.
     """
-    nan_sids = digest_frame.iloc[0].isnull()
-    if any(nan_sids):
+    # convert to ndarray if necessary
+    values = digest_frame
+    if raw and isinstance(digest_frame, pd.DataFrame):
+        values = digest_frame.values
+
+    nan_sids = pd.isnull(values[0])
+    if np.any(nan_sids):
         # If we have any leading nans in the frame, use values from pv_frame to
         # seed values for those sids.
-        digest_frame.ix[0, nan_sids] = pv_frame.loc[
-            (freq.freq_str, field), nan_sids
-        ]
+        key_loc = pv_frame.index.get_loc((freq.freq_str, field))
+        filler = pv_frame.values[key_loc, nan_sids]
+        values[0, nan_sids] = filler
+
+    if raw:
+        filled = ffill(values)
+        return filled
 
     return digest_frame.ffill()
 
@@ -247,9 +272,14 @@ class HistoryContainer(object):
             dtype=np.float64,
         )
 
+    _ffillable_fields = None
+
     @property
     def ffillable_fields(self):
-        return self.fields.intersection(HistorySpec.FORWARD_FILLABLE)
+        if self._ffillable_fields is None:
+            fillables = self.fields.intersection(HistorySpec.FORWARD_FILLABLE)
+            self._ffillable_fields = fillables
+        return self._ffillable_fields
 
     @property
     def prior_values_index(self):
@@ -344,6 +374,8 @@ class HistoryContainer(object):
         ls = list(self.fields)
         insort_left(ls, field)
         self.fields = pd.Index(ls)
+        # unset fillable fields cache
+        self._ffillable_fields = None
 
         self._realign_fields()
         self.last_known_prior_values = self.last_known_prior_values.reindex(
@@ -616,32 +648,39 @@ class HistoryContainer(object):
         if bar_count == 1:
             # slicing with [1 - bar_count:] doesn't work when bar_count == 1,
             # so special-casing this.
-            return pd.DataFrame(index=[], columns=self.sids)
+            res = pd.DataFrame(index=[], columns=self.sids)
+            return res.values, res.index
 
         field = history_spec.field
 
         # Panel axes are (field, dates, sids).  We want just the entries for
         # the requested field, the last (bar_count - 1) data points, and all
         # sids.
-        panel = self.digest_panels[history_spec.frequency].get_current()
+        digest_panel = self.digest_panels[history_spec.frequency]
+        frame = digest_panel.get_current(field, raw=True)
         if do_ffill:
             # Do forward-filling *before* truncating down to the requested
             # number of bars.  This protects us from losing data if an illiquid
             # stock has a gap in its price history.
-            return ffill_digest_frame_from_prior_values(
+            filled = ffill_digest_frame_from_prior_values(
                 history_spec.frequency,
                 history_spec.field,
-                panel.loc[field],
+                frame,
                 self.last_known_prior_values,
+                raw=True
                 # Truncate only after we've forward-filled
-            ).iloc[1 - bar_count:]
+            )
+            indexer = slice(1 - bar_count, None)
+            return filled[indexer], digest_panel.current_dates()[indexer]
         else:
-            return panel.ix[field, 1 - bar_count:, :]
+            indexer = slice(1 - bar_count, None)
+            return frame[indexer, :], digest_panel.current_dates()[indexer]
 
     def buffer_panel_minutes(self,
                              buffer_panel,
                              earliest_minute=None,
-                             latest_minute=None):
+                             latest_minute=None,
+                             raw=False):
         """
         Get the minutes in @buffer_panel between @earliest_minute and
         @latest_minute, inclusive.
@@ -657,8 +696,10 @@ class HistoryContainer(object):
         the latest minute.
         """
         if isinstance(buffer_panel, RollingPanel):
-            buffer_panel = buffer_panel.get_current()
-
+            buffer_panel = buffer_panel.get_current(start=earliest_minute,
+                                                    end=latest_minute,
+                                                    raw=raw)
+            return buffer_panel
         # Using .ix here rather than .loc because loc requires that the keys
         # are actually in the index, whereas .ix returns all the values between
         # earliest_minute and latest_minute, which is what we want.
@@ -724,14 +765,22 @@ class HistoryContainer(object):
                     buffer_panel,
                     earliest_minute=earliest_minute,
                     latest_minute=latest_minute,
+                    raw=True
                 )
 
                 if digest_panel is not None:
                     # Create a digest from minutes_to_process and add it to
                     # digest_panel.
+                    digest_frame = self.create_new_digest_frame(
+                        minutes_to_process,
+                        self.fields,
+                        self.sids
+                    )
                     digest_panel.add_frame(
                         latest_minute,
-                        self.create_new_digest_frame(minutes_to_process)
+                        digest_frame,
+                        self.fields,
+                        self.sids
                     )
 
                 # Update panel start/close for this frequency.
@@ -740,51 +789,73 @@ class HistoryContainer(object):
                 self.cur_window_closes[frequency] = \
                     frequency.window_close(self.cur_window_starts[frequency])
 
-    def frame_to_series(self, field, frame):
+    def frame_to_series(self, field, frame, columns=None):
         """
         Convert a frame with a DatetimeIndex and sid columns into a series with
         a sid index, using the aggregator defined by the given field.
         """
+        if isinstance(frame, pd.DataFrame):
+            columns = frame.columns
+            frame = frame.values
+
         if not len(frame):
             return pd.Series(
                 data=(0 if field == 'volume' else np.nan),
-                index=frame.columns,
-            )
+                index=columns,
+            ).values
 
         if field in ['price', 'close_price']:
-            return frame.ffill().iloc[-1].values
+            # shortcircuit for full last row
+            vals = frame[-1]
+            if np.all(~np.isnan(vals)):
+                return vals
+            return ffill(frame)[-1]
         elif field == 'open_price':
-            return frame.bfill().iloc[0].values
+            return bfill(frame)[0]
         elif field == 'volume':
-            return frame.sum().values
+            return np.nansum(frame, axis=0)
         elif field == 'high':
-            return frame.max().values
+            return np.nanmax(frame, axis=0)
         elif field == 'low':
-            return frame.min().values
+            return np.nanmin(frame, axis=0)
         else:
             raise ValueError("Unknown field {}".format(field))
 
-    def aggregate_ohlcv_panel(self, fields, ohlcv_panel):
+    def aggregate_ohlcv_panel(self,
+                              fields,
+                              ohlcv_panel,
+                              items=None,
+                              minor_axis=None):
         """
         Convert an OHLCV Panel into a DataFrame by aggregating each field's
         frame into a Series.
         """
-        return pd.DataFrame(
-            [
-                self.frame_to_series(field, ohlcv_panel.loc[field])
-                for field in fields
-            ],
-            index=fields,
-            columns=ohlcv_panel.minor_axis,
-        )
+        vals = ohlcv_panel
+        if isinstance(ohlcv_panel, pd.Panel):
+            vals = ohlcv_panel.values
+            items = ohlcv_panel.items
+            minor_axis = ohlcv_panel.minor_axis
 
-    def create_new_digest_frame(self, buffer_minutes):
+        data = [
+            self.frame_to_series(
+                field,
+                vals[items.get_loc(field)],
+                minor_axis
+            )
+            for field in fields
+        ]
+        return np.array(data)
+
+    def create_new_digest_frame(self, buffer_minutes, items=None,
+                                minor_axis=None):
         """
         Package up minutes in @buffer_minutes into a single digest frame.
         """
         return self.aggregate_ohlcv_panel(
             self.fields,
             buffer_minutes,
+            items=items,
+            minor_axis=minor_axis
         )
 
     def update_last_known_values(self):
@@ -798,15 +869,22 @@ class HistoryContainer(object):
         for frequency in self.unique_frequencies:
             digest_panel = self.digest_panels.get(frequency, None)
             if digest_panel:
-                oldest_known_values = digest_panel.oldest_frame()
+                oldest_known_values = digest_panel.oldest_frame(raw=True)
             else:
-                oldest_known_values = self.buffer_panel.oldest_frame()
+                oldest_known_values = self.buffer_panel.oldest_frame(raw=True)
 
+            oldest_vals = oldest_known_values
+            oldest_columns = self.fields
             for field in ffillable:
-                non_nan_sids = oldest_known_values[field].notnull()
-                self.last_known_prior_values.loc[
-                    (frequency.freq_str, field), non_nan_sids
-                ] = oldest_known_values[field].dropna()
+                f_idx = oldest_columns.get_loc(field)
+                field_vals = oldest_vals[f_idx]
+                # isnan would be fast, possible to use?
+                non_nan_sids = np.where(pd.notnull(field_vals))
+                key = (frequency.freq_str, field)
+                key_loc = self.last_known_prior_values.index.get_loc(key)
+                self.last_known_prior_values.values[
+                    key_loc, non_nan_sids
+                ] = field_vals[non_nan_sids]
 
     def get_history(self, history_spec, algo_dt):
         """
@@ -819,14 +897,16 @@ class HistoryContainer(object):
         do_ffill = history_spec.ffill
 
         # Get our stored values from periods prior to the current period.
-        digest_frame = self.digest_bars(history_spec, do_ffill)
+        digest_frame, index = self.digest_bars(history_spec, do_ffill)
 
         # Get minutes from our buffer panel to build the last row of the
         # returned frame.
-        buffer_frame = self.buffer_panel_minutes(
+        buffer_panel = self.buffer_panel_minutes(
             self.buffer_panel,
             earliest_minute=self.cur_window_starts[history_spec.frequency],
-        )[field]
+            raw=True
+        )
+        buffer_frame = buffer_panel[self.fields.get_loc(field)]
 
         if do_ffill:
             buffer_frame = ffill_buffer_from_prior_values(
@@ -835,30 +915,45 @@ class HistoryContainer(object):
                 buffer_frame,
                 digest_frame,
                 self.last_known_prior_values,
+                raw=True
             )
-        last_period = self.frame_to_series(field, buffer_frame)
-        return fast_build_history_output(digest_frame, last_period, algo_dt)
+        last_period = self.frame_to_series(field, buffer_frame, self.sids)
+        return fast_build_history_output(digest_frame,
+                                         last_period,
+                                         algo_dt,
+                                         index=index,
+                                         columns=self.sids)
 
 
-def fast_build_history_output(buffer_frame, last_period, algo_dt):
+def fast_build_history_output(buffer_frame,
+                              last_period,
+                              algo_dt,
+                              index=None,
+                              columns=None):
     """
     Optimized concatenation of DataFrame and Series for use in
     HistoryContainer.get_history.
 
     Relies on the fact that the input arrays have compatible shapes.
     """
+    buffer_values = buffer_frame
+    if isinstance(buffer_frame, pd.DataFrame):
+        buffer_values = buffer_frame.values
+        index = buffer_frame.index
+        columns = buffer_frame.columns
+
     return pd.DataFrame(
         data=np.vstack(
             [
-                buffer_frame.values,
+                buffer_values,
                 last_period,
             ]
         ),
         index=fast_append_date_to_index(
-            buffer_frame.index,
+            index,
             pd.Timestamp(algo_dt)
         ),
-        columns=buffer_frame.columns,
+        columns=columns,
     )
 
 
