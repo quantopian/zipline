@@ -78,10 +78,12 @@ class RollingPanel(object):
     def start_date(self):
         return self.date_buf[self._start_index]
 
-    def oldest_frame(self):
+    def oldest_frame(self, raw=False):
         """
         Get the oldest frame in the panel.
         """
+        if raw:
+            return self.buffer.values[:, self._start_index, :]
         return self.buffer.iloc[:, self._start_index, :]
 
     def set_minor_axis(self, minor_axis):
@@ -240,10 +242,12 @@ class MutableIndexRollingPanel(object):
     def _oldest_frame_idx(self):
         return max(self._pos - self._window, 0)
 
-    def oldest_frame(self):
+    def oldest_frame(self, raw=False):
         """
         Get the oldest frame in the panel.
         """
+        if raw:
+            return self.buffer.values[:, self._oldest_frame_idx(), :]
         return self.buffer.iloc[:, self._oldest_frame_idx(), :]
 
     def set_sids(self, sids):
