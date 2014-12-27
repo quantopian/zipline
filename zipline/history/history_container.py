@@ -624,7 +624,7 @@ class HistoryContainer(object):
         # the requested field, the last (bar_count - 1) data points, and all
         # sids.
         digest_panel = self.digest_panels[history_spec.frequency]
-        frame = .get_current(field, raw=True)
+        frame = digest_panel.get_current(field, raw=False)
         if do_ffill:
             # Do forward-filling *before* truncating down to the requested
             # number of bars.  This protects us from losing data if an illiquid
@@ -731,7 +731,9 @@ class HistoryContainer(object):
                 if digest_panel is not None:
                     # Create a digest from minutes_to_process and add it to
                     # digest_panel.
-                    digest_frame = self.create_new_digest_frame(minutes_to_process)
+                    digest_frame = self.create_new_digest_frame(
+                        minutes_to_process
+                    )
                     digest_panel.add_frame(
                         latest_minute,
                         digest_frame,

@@ -176,7 +176,7 @@ class RollingPanel(object):
 
         major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
         if values.ndim == 3:
-            return pd.Panel(values, self.items, major_axis, self.minor_axis, 
+            return pd.Panel(values, self.items, major_axis, self.minor_axis,
                             dtype=self.dtype)
 
         elif values.ndim == 2:
@@ -304,8 +304,8 @@ class MutableIndexRollingPanel(object):
             minor_axis = frame.columns
             items = frame.index
 
-        if set(columns).difference(set(self.minor_axis)) or \
-                set(index).difference(set(self.items)):
+        if set(minor_axis).difference(set(self.minor_axis)) or \
+                set(items).difference(set(self.items)):
             self._update_buffer(frame)
 
         vals = frame.T.astype(self.dtype)
