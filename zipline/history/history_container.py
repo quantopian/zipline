@@ -623,20 +623,22 @@ class HistoryContainer(object):
         # Panel axes are (field, dates, sids).  We want just the entries for
         # the requested field, the last (bar_count - 1) data points, and all
         # sids.
-        panel = self.digest_panels[history_spec.frequency].get_current()
+        digest_panel = self.digest_panels[history_spec.frequency]
+        frame = .get_current(field, raw=True)
         if do_ffill:
             # Do forward-filling *before* truncating down to the requested
             # number of bars.  This protects us from losing data if an illiquid
             # stock has a gap in its price history.
-            return ffill_digest_frame_from_prior_values(
+            filled = ffill_digest_frame_from_prior_values(
                 history_spec.frequency,
                 history_spec.field,
-                panel.loc[field],
+                frame,
                 self.last_known_prior_values,
                 # Truncate only after we've forward-filled
-            ).iloc[1 - bar_count:]
+            )
+            return filled.iloc[1 - bar_count:]
         else:
-            return panel.ix[field, 1 - bar_count:, :]
+            return frame.ix[1 - bar_count:, :]
 
     def buffer_panel_minutes(self,
                              buffer_panel,
