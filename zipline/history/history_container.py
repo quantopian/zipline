@@ -670,7 +670,8 @@ class HistoryContainer(object):
     def buffer_panel_minutes(self,
                              buffer_panel,
                              earliest_minute=None,
-                             latest_minute=None):
+                             latest_minute=None,
+                             raw=False):
         """
         Get the minutes in @buffer_panel between @earliest_minute and
         @latest_minute, inclusive.
@@ -686,8 +687,10 @@ class HistoryContainer(object):
         the latest minute.
         """
         if isinstance(buffer_panel, RollingPanel):
-            buffer_panel = buffer_panel.get_current()
-
+            buffer_panel = buffer_panel.get_current(start=earliest_minute,
+                                                    end=latest_minute,
+                                                    raw=raw)
+            return buffer_panel
         # Using .ix here rather than .loc because loc requires that the keys
         # are actually in the index, whereas .ix returns all the values between
         # earliest_minute and latest_minute, which is what we want.
@@ -753,19 +756,22 @@ class HistoryContainer(object):
                     buffer_panel,
                     earliest_minute=earliest_minute,
                     latest_minute=latest_minute,
+                    raw=True
                 )
 
                 if digest_panel is not None:
                     # Create a digest from minutes_to_process and add it to
                     # digest_panel.
                     digest_frame = self.create_new_digest_frame(
-                        minutes_to_process
+                        minutes_to_process,
+                        self.fields,
+                        self.sids
                     )
                     digest_panel.add_frame(
                         latest_minute,
                         digest_frame,
                         self.fields,
-                        minutes_to_process.minor_axis
+                        self.sids
                     )
 
                 # Update panel start/close for this frequency.
@@ -844,27 +850,34 @@ class HistoryContainer(object):
         else:
             raise ValueError("Unknown field {}".format(field))
 
-    def aggregate_ohlcv_panel2(self, fields, ohlcv_panel):
+    def aggregate_ohlcv_panel2(self, fields, ohlcv_panel, items=None,
+                               minor_axis=None):
         """
         Convert an OHLCV Panel into a DataFrame by aggregating each field's
         frame into a Series.
         """
-        vals = ohlcv_panel.values
-        items = ohlcv_panel.items
-        minor_axis = ohlcv_panel.minor_axis
+        vals = ohlcv_panel
+        if isinstance(ohlcv_panel, pd.Panel):
+            vals = ohlcv_panel.values
+            items = ohlcv_panel.items
+            minor_axis = ohlcv_panel.minor_axis
+
         data = [
             self.frame_to_series2(field, vals[items.get_loc(field)], minor_axis)
             for field in fields
         ]
         return np.array(data)
 
-    def create_new_digest_frame(self, buffer_minutes):
+    def create_new_digest_frame(self, buffer_minutes, items=None, 
+                                minor_axis=None):
         """
         Package up minutes in @buffer_minutes into a single digest frame.
         """
         return self.aggregate_ohlcv_panel2(
             self.fields,
             buffer_minutes,
+            items=items,
+            minor_axis=minor_axis
         )
 
     def update_last_known_values(self):
@@ -878,12 +891,12 @@ class HistoryContainer(object):
         for frequency in self.unique_frequencies:
             digest_panel = self.digest_panels.get(frequency, None)
             if digest_panel:
-                oldest_known_values = digest_panel.oldest_frame()
+                oldest_known_values = digest_panel.oldest_frame(raw=True)
             else:
-                oldest_known_values = self.buffer_panel.oldest_frame()
+                oldest_known_values = self.buffer_panel.oldest_frame(raw=True)
 
-            oldest_vals = oldest_known_values.values
-            oldest_columns = oldest_known_values.columns
+            oldest_vals = oldest_known_values
+            oldest_columns = self.fields
             for field in ffillable:
                 f_idx = oldest_columns.get_loc(field)
                 field_vals = oldest_vals[f_idx]
