@@ -841,8 +841,11 @@ class HistoryContainer(object):
         else:
             raise ValueError("Unknown field {}".format(field))
 
-    def aggregate_ohlcv_panel(self, fields, ohlcv_panel, items=None,
-                               minor_axis=None):
+    def aggregate_ohlcv_panel(self,
+                              fields,
+                              ohlcv_panel,
+                              items=None,
+                              minor_axis=None):
         """
         Convert an OHLCV Panel into a DataFrame by aggregating each field's
         frame into a Series.
@@ -942,7 +945,9 @@ class HistoryContainer(object):
                                          columns=self.sids)
 
 
-def fast_build_history_output(buffer_frame, last_period, algo_dt, 
+def fast_build_history_output(buffer_frame,
+                              last_period,
+                              algo_dt,
                               index=None,
                               columns=None):
     """
