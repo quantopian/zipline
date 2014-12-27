@@ -267,9 +267,14 @@ class HistoryContainer(object):
             dtype=np.float64,
         )
 
+    _ffillable_fields = None
+
     @property
     def ffillable_fields(self):
-        return self.fields.intersection(HistorySpec.FORWARD_FILLABLE)
+        if self._ffillable_fields is None:
+            fillables = self.fields.intersection(HistorySpec.FORWARD_FILLABLE)
+            self._ffillable_fields = fillables
+        return self._ffillable_fields
 
     @property
     def prior_values_index(self):
@@ -364,6 +369,8 @@ class HistoryContainer(object):
         ls = list(self.fields)
         insort_left(ls, field)
         self.fields = pd.Index(ls)
+        # unset fillable fields cache
+        self._ffillable_fields = None
 
         self._realign_fields()
         self.last_known_prior_values = self.last_known_prior_values.reindex(
