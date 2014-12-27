@@ -290,9 +290,9 @@ Last successful date: %s" % self.last_trading_day)
         return self.previous_open_and_close(start)[1]
 
     def get_open_and_close(self, day):
-        todays_minutes = self.open_and_closes.loc[day.date()]
-
-        return todays_minutes['market_open'], todays_minutes['market_close']
+        index = self.open_and_closes.index.get_loc(day.date())
+        todays_minutes = self.open_and_closes.values[index]
+        return todays_minutes[0], todays_minutes[1]
 
     def market_minutes_for_day(self, stamp):
         market_open, market_close = self.get_open_and_close(stamp)
