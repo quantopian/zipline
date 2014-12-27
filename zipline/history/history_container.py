@@ -860,7 +860,7 @@ class HistoryContainer(object):
             return pd.Series(
                 data=(0 if field == 'volume' else np.nan),
                 index=columns,
-            )
+            ).values
 
         if field in ['price', 'close_price']:
             # shortcircuit for full last row
