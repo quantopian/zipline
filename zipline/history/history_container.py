@@ -87,7 +87,7 @@ def ffill_buffer_from_prior_values(freq,
         # from before the digest.
         key_loc = pv_frame.index.get_loc((freq.freq_str, field))
         filler = pv_frame.values[key_loc, nan_sids]
-        buffer_frame.ix[0, nan_sids] = filler
+        buffer_values[0, nan_sids] = filler
 
     if raw:
         filled = ffill(buffer_values)
