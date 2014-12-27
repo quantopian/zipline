@@ -34,6 +34,7 @@ logger = logbook.Logger('History Container')
 # allow both for price rollover logic etc.
 CLOSING_PRICE_FIELDS = frozenset({'price', 'close_price'})
 
+
 def _interpolate(values, method, axis=None):
     if values.ndim == 1:
         axis = 0
@@ -863,12 +864,16 @@ class HistoryContainer(object):
             minor_axis = ohlcv_panel.minor_axis
 
         data = [
-            self.frame_to_series2(field, vals[items.get_loc(field)], minor_axis)
+            self.frame_to_series2(
+                field,
+                vals[items.get_loc(field)],
+                minor_axis
+            )
             for field in fields
         ]
         return np.array(data)
 
-    def create_new_digest_frame(self, buffer_minutes, items=None, 
+    def create_new_digest_frame(self, buffer_minutes, items=None,
                                 minor_axis=None):
         """
         Package up minutes in @buffer_minutes into a single digest frame.

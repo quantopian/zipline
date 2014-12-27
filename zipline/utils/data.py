@@ -186,7 +186,8 @@ class RollingPanel(object):
         if end:
             if isinstance(end, pd.Timestamp):
                 end = end.asm8
-            end_index -= len(current_dates) - current_dates.searchsorted(end, 'right')
+            _end = current_dates.searchsorted(end, 'right')
+            end_index -= len(current_dates) - _end
 
         where = slice(start_index, end_index)
 
