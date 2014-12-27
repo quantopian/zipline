@@ -19,6 +19,7 @@ from itertools import groupby, product
 import logbook
 import numpy as np
 import pandas as pd
+import pandas.core.common as com
 from six import itervalues, iteritems, iterkeys
 
 from . history import HistorySpec
@@ -32,6 +33,25 @@ logger = logbook.Logger('History Container')
 # The closing price is referred to by multiple names,
 # allow both for price rollover logic etc.
 CLOSING_PRICE_FIELDS = frozenset({'price', 'close_price'})
+
+def _interpolate(values, method, axis=None):
+    if values.ndim == 1:
+        axis = 0
+    elif values.ndim == 2:
+        axis = 1
+    else:
+        raise Exception("Cannot interpolate array with more than 2 dims")
+    values = values.copy()
+    values = com.interpolate_2d(values, method, axis=axis)
+    return values
+
+
+def ffill(values, axis=None):
+    return _interpolate(values, 'pad', axis=axis)
+
+
+def bfill(values, axis=None):
+    return _interpolate(values, 'bfill', axis=axis)
 
 
 def ffill_buffer_from_prior_values(freq,
@@ -792,6 +812,7 @@ class HistoryContainer(object):
         """
         if isinstance(frame, pd.DataFrame):
             columns = frame.columns
+            frame = frame.values
 
         if not len(frame):
             return pd.Series(
@@ -804,9 +825,9 @@ class HistoryContainer(object):
             vals = frame[-1]
             if ~np.all(np.isnan(vals)):
                 return vals
-            return frame.ffill().iloc[-1].values
+            return ffill(frame)[-1]
         elif field == 'open_price':
-            return frame.bfill().iloc[0].values
+            return bfill(frame)[0]
         elif field == 'volume':
             return np.nansum(frame, axis=0)
         elif field == 'high':
@@ -882,10 +903,11 @@ class HistoryContainer(object):
 
         # Get minutes from our buffer panel to build the last row of the
         # returned frame.
-        buffer_frame = self.buffer_panel_minutes(
+        buffer_panel = self.buffer_panel_minutes(
             self.buffer_panel,
             earliest_minute=self.cur_window_starts[history_spec.frequency],
-        )[field]
+        )
+        buffer_frame = buffer_panel[field]
 
         if do_ffill:
             buffer_frame = ffill_buffer_from_prior_values(
