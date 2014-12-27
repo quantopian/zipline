@@ -161,7 +161,7 @@ class RollingPanel(object):
 
         self._pos += 1
 
-    def get_current(self, item=None, raw=False):
+    def get_current(self, item=None, raw=False, start=None, end=None):
         """
         Get a Panel that is the current data in view. It is not safe to persist
         these objects because internal data might change
@@ -170,13 +170,31 @@ class RollingPanel(object):
         if item:
             item_indexer = self.items.get_loc(item)
 
-        where = slice(self._start_index, self._pos)
+        start_index = self._start_index
+        end_index = self._pos
+
+        # get inital date window
+        where = slice(start_index, end_index)
+        current_dates = self.date_buf[where]
+
+        # constrict further by date
+        if start:
+            start = np.datetime64(start)
+            start_index += current_dates.searchsorted(start)
+
+        if end:
+            end = np.datetime64(end)
+            end_index -= len(current_dates) - current_dates.searchsorted(end, 'right')
+
+        where = slice(start_index, end_index)
+
         values = self.buffer.values[item_indexer, where, :]
+        current_dates = self.date_buf[where]
 
         if raw:
             return values
 
-        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz='utc')
         if values.ndim == 3:
             return pd.Panel(values, self.items, major_axis, self.minor_axis,
                             dtype=self.dtype)
