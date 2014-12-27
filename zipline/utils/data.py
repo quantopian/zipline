@@ -179,11 +179,13 @@ class RollingPanel(object):
 
         # constrict further by date
         if start:
-            start = np.datetime64(start)
+            if isinstance(start, pd.Timestamp):
+                start = start.asm8
             start_index += current_dates.searchsorted(start)
 
         if end:
-            end = np.datetime64(end)
+            if isinstance(end, pd.Timestamp):
+                end = end.asm8
             end_index -= len(current_dates) - current_dates.searchsorted(end, 'right')
 
         where = slice(start_index, end_index)
