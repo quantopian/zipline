@@ -59,25 +59,39 @@ def ffill_buffer_from_prior_values(freq,
                                    field,
                                    buffer_frame,
                                    digest_frame,
-                                   pv_frame):
+                                   pv_frame,
+                                   raw=False):
     """
     Forward-fill a buffer frame, falling back to the end-of-period values of a
     digest frame if the buffer frame has leading NaNs.
     """
-    nan_sids = buffer_frame.iloc[0].isnull()
-    if any(nan_sids) and len(digest_frame):
+    # convert to ndarray if necessary
+    digest_values = digest_frame
+    if raw and isinstance(digest_frame, pd.DataFrame):
+        digest_values = digest_frame.values
+
+    buffer_values = buffer_frame
+    if raw and isinstance(buffer_frame, pd.DataFrame):
+        buffer_values = buffer_frame.values
+
+    nan_sids = pd.isnull(buffer_values[0])
+    if np.any(nan_sids) and len(digest_values):
         # If we have any leading nans in the buffer and we have a non-empty
         # digest frame, use the oldest digest values as the initial buffer
         # values.
-        buffer_frame.ix[0, nan_sids] = digest_frame.ix[-1, nan_sids]
+        buffer_values[0, nan_sids] = digest_values[-1, nan_sids]
 
-    nan_sids = buffer_frame.iloc[0].isnull()
-    if any(nan_sids):
+    nan_sids = pd.isnull(buffer_values[0])
+    if np.any(nan_sids):
         # If we still have leading nans, fall back to the last known values
         # from before the digest.
-        buffer_frame.ix[0, nan_sids] = pv_frame.loc[
-            (freq.freq_str, field), nan_sids
-        ]
+        key_loc = pv_frame.index.get_loc((freq.freq_str, field))
+        filler = pv_frame.values[key_loc, nan_sids]
+        buffer_frame.ix[0, nan_sids] = filler
+
+    if raw:
+        filled = ffill(buffer_values)
+        return filled
 
     return buffer_frame.ffill()
 
@@ -85,18 +99,28 @@ def ffill_buffer_from_prior_values(freq,
 def ffill_digest_frame_from_prior_values(freq,
                                          field,
                                          digest_frame,
-                                         pv_frame):
+                                         pv_frame,
+                                         raw=False):
     """
     Forward-fill a digest frame, falling back to the last known prior values if
     necessary.
     """
-    nan_sids = digest_frame.iloc[0].isnull()
-    if any(nan_sids):
+    # convert to ndarray if necessary
+    values = digest_frame
+    if raw and isinstance(digest_frame, pd.DataFrame):
+        values = digest_frame.values
+
+    nan_sids = pd.isnull(values[0])
+    if np.any(nan_sids):
         # If we have any leading nans in the frame, use values from pv_frame to
         # seed values for those sids.
-        digest_frame.ix[0, nan_sids] = pv_frame.loc[
-            (freq.freq_str, field), nan_sids
-        ]
+        key_loc = pv_frame.index.get_loc((freq.freq_str, field))
+        filler = pv_frame.values[key_loc, nan_sids]
+        values[0, nan_sids] = filler
+
+    if raw:
+        filled = ffill(values)
+        return filled
 
     return digest_frame.ffill()
 
@@ -644,7 +668,8 @@ class HistoryContainer(object):
         if bar_count == 1:
             # slicing with [1 - bar_count:] doesn't work when bar_count == 1,
             # so special-casing this.
-            return pd.DataFrame(index=[], columns=self.sids)
+            res = pd.DataFrame(index=[], columns=self.sids)
+            return res.values, res.index
 
         field = history_spec.field
 
@@ -652,7 +677,7 @@ class HistoryContainer(object):
         # the requested field, the last (bar_count - 1) data points, and all
         # sids.
         digest_panel = self.digest_panels[history_spec.frequency]
-        frame = digest_panel.get_current(field, raw=False)
+        frame = digest_panel.get_current(field, raw=True)
         if do_ffill:
             # Do forward-filling *before* truncating down to the requested
             # number of bars.  This protects us from losing data if an illiquid
@@ -662,11 +687,14 @@ class HistoryContainer(object):
                 history_spec.field,
                 frame,
                 self.last_known_prior_values,
+                raw=True
                 # Truncate only after we've forward-filled
             )
-            return filled.iloc[1 - bar_count:]
+            indexer = slice(1 - bar_count, None)
+            return filled[indexer], digest_panel.current_dates()[indexer]
         else:
-            return frame.ix[1 - bar_count:, :]
+            indexer = slice(1 - bar_count, None)
+            return frame[indexer, :], digest_panel.current_dates()[indexer]
 
     def buffer_panel_minutes(self,
                              buffer_panel,
@@ -924,15 +952,16 @@ class HistoryContainer(object):
         do_ffill = history_spec.ffill
 
         # Get our stored values from periods prior to the current period.
-        digest_frame = self.digest_bars(history_spec, do_ffill)
+        digest_frame, index = self.digest_bars(history_spec, do_ffill)
 
         # Get minutes from our buffer panel to build the last row of the
         # returned frame.
         buffer_panel = self.buffer_panel_minutes(
             self.buffer_panel,
             earliest_minute=self.cur_window_starts[history_spec.frequency],
+            raw=True
         )
-        buffer_frame = buffer_panel[field]
+        buffer_frame = buffer_panel[self.fields.get_loc(field)]
 
         if do_ffill:
             buffer_frame = ffill_buffer_from_prior_values(
@@ -941,30 +970,43 @@ class HistoryContainer(object):
                 buffer_frame,
                 digest_frame,
                 self.last_known_prior_values,
+                raw=True
             )
-        last_period = self.frame_to_series(field, buffer_frame)
-        return fast_build_history_output(digest_frame, last_period, algo_dt)
+        last_period = self.frame_to_series2(field, buffer_frame, self.sids)
+        return fast_build_history_output(digest_frame,
+                                         last_period,
+                                         algo_dt,
+                                         index=index,
+                                         columns=self.sids)
 
 
-def fast_build_history_output(buffer_frame, last_period, algo_dt):
+def fast_build_history_output(buffer_frame, last_period, algo_dt, 
+                              index=None,
+                              columns=None):
     """
     Optimized concatenation of DataFrame and Series for use in
     HistoryContainer.get_history.
 
     Relies on the fact that the input arrays have compatible shapes.
     """
+    buffer_values = buffer_frame
+    if isinstance(buffer_frame, pd.DataFrame):
+        buffer_values = buffer_frame.values
+        index = buffer_frame.index
+        columns = buffer_frame.columns
+
     return pd.DataFrame(
         data=np.vstack(
             [
-                buffer_frame.values,
+                buffer_values,
                 last_period,
             ]
         ),
         index=fast_append_date_to_index(
-            buffer_frame.index,
+            index,
             pd.Timestamp(algo_dt)
         ),
-        columns=buffer_frame.columns,
+        columns=columns,
     )
 
 
