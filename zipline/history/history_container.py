@@ -785,15 +785,18 @@ class HistoryContainer(object):
             columns=ohlcv_panel.minor_axis,
         )
 
-    def frame_to_series2(self, field, frame):
+    def frame_to_series2(self, field, frame, columns=None):
         """
         Convert a frame with a DatetimeIndex and sid columns into a series with
         a sid index, using the aggregator defined by the given field.
         """
+        if isinstance(frame, pd.DataFrame):
+            columns = frame.columns
+
         if not len(frame):
             return pd.Series(
                 data=(0 if field == 'volume' else np.nan),
-                index=frame.columns,
+                index=columns,
             )
 
         if field in ['price', 'close_price']:
@@ -820,8 +823,9 @@ class HistoryContainer(object):
         """
         vals = ohlcv_panel.values
         items = ohlcv_panel.items
+        minor_axis = ohlcv_panel.minor_axis
         data = [
-            self.frame_to_series2(field, vals[items.get_loc(field)])
+            self.frame_to_series2(field, vals[items.get_loc(field)], minor_axis)
             for field in fields
         ]
         return np.array(data)
