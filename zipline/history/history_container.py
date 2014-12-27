@@ -809,45 +809,7 @@ class HistoryContainer(object):
                 self.cur_window_closes[frequency] = \
                     frequency.window_close(self.cur_window_starts[frequency])
 
-    def frame_to_series(self, field, frame):
-        """
-        Convert a frame with a DatetimeIndex and sid columns into a series with
-        a sid index, using the aggregator defined by the given field.
-        """
-        if not len(frame):
-            return pd.Series(
-                data=(0 if field == 'volume' else np.nan),
-                index=frame.columns,
-            )
-
-        if field in ['price', 'close_price']:
-            return frame.ffill().iloc[-1].values
-        elif field == 'open_price':
-            return frame.bfill().iloc[0].values
-        elif field == 'volume':
-            return frame.sum().values
-        elif field == 'high':
-            return frame.max().values
-        elif field == 'low':
-            return frame.min().values
-        else:
-            raise ValueError("Unknown field {}".format(field))
-
-    def aggregate_ohlcv_panel(self, fields, ohlcv_panel):
-        """
-        Convert an OHLCV Panel into a DataFrame by aggregating each field's
-        frame into a Series.
-        """
-        return pd.DataFrame(
-            [
-                self.frame_to_series(field, ohlcv_panel.loc[field])
-                for field in fields
-            ],
-            index=fields,
-            columns=ohlcv_panel.minor_axis,
-        )
-
-    def frame_to_series2(self, field, frame, columns=None):
+    def frame_to_series(self, field, frame, columns=None):
         """
         Convert a frame with a DatetimeIndex and sid columns into a series with
         a sid index, using the aggregator defined by the given field.
@@ -875,11 +837,11 @@ class HistoryContainer(object):
         elif field == 'high':
             return np.nanmax(frame, axis=0)
         elif field == 'low':
-            return np.nanmax(frame, axis=0)
+            return np.nanmin(frame, axis=0)
         else:
             raise ValueError("Unknown field {}".format(field))
 
-    def aggregate_ohlcv_panel2(self, fields, ohlcv_panel, items=None,
+    def aggregate_ohlcv_panel(self, fields, ohlcv_panel, items=None,
                                minor_axis=None):
         """
         Convert an OHLCV Panel into a DataFrame by aggregating each field's
@@ -892,7 +854,7 @@ class HistoryContainer(object):
             minor_axis = ohlcv_panel.minor_axis
 
         data = [
-            self.frame_to_series2(
+            self.frame_to_series(
                 field,
                 vals[items.get_loc(field)],
                 minor_axis
@@ -906,7 +868,7 @@ class HistoryContainer(object):
         """
         Package up minutes in @buffer_minutes into a single digest frame.
         """
-        return self.aggregate_ohlcv_panel2(
+        return self.aggregate_ohlcv_panel(
             self.fields,
             buffer_minutes,
             items=items,
@@ -972,7 +934,8 @@ class HistoryContainer(object):
                 self.last_known_prior_values,
                 raw=True
             )
-        last_period = self.frame_to_series2(field, buffer_frame, self.sids)
+        last_period = self.frame_to_series(field, buffer_frame, self.sids)
+        print(last_period)
         return fast_build_history_output(digest_frame,
                                          last_period,
                                          algo_dt,
