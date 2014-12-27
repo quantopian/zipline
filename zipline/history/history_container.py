@@ -935,7 +935,6 @@ class HistoryContainer(object):
                 raw=True
             )
         last_period = self.frame_to_series(field, buffer_frame, self.sids)
-        print(last_period)
         return fast_build_history_output(digest_frame,
                                          last_period,
                                          algo_dt,
