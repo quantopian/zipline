@@ -26,6 +26,10 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
 )
 
+from zipline.utils.events import (
+    date_rules,
+    time_rules
+)
 
 batch_transform = zipline.transforms.BatchTransform
 
@@ -37,5 +41,7 @@ __all__ = [
     'math_utils',
     'batch_transform',
     'FixedSlippage',
-    'VolumeShareSlippage'
+    'VolumeShareSlippage',
+    'date_rules',
+    'time_rules'
 ]
