@@ -608,13 +608,20 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     @api_method
-    def symbol(self, symbol_str, as_of_date=None):
+    def symbol(self, symbol_str):
         """
         Default symbol lookup for any source that directly maps the
         symbol to the identifier (e.g. yahoo finance).
-        Keyword argument as_of_date is ignored.
         """
         return symbol_str
+
+    @api_method
+    def symbols(self, *args):
+        """
+        Default symbols lookup for any source that directly maps the
+        symbol to the identifier (e.g. yahoo finance).
+        """
+        return args
 
     @api_method
     def order(self, sid, amount,
