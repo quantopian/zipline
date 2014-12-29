@@ -336,19 +336,21 @@ class PerformancePeriod(object):
     def _net_exposure(self):
         return self.calculate_positions_value()
 
+    @property
     def _net_liquidation_value(self):
-        lv = self.ending_cash + self._long_value() + self._short_value()
-        return lv
+        return self.ending_cash + self._long_value() + self._short_value()
 
     def _gross_leverage(self):
-        if self._net_liquidation_value != 0:
-            return self._gross_exposure() / self._net_liquidation_value()
+        net_liq = self._net_liquidation_value
+        if net_liq != 0:
+            return self._gross_exposure() / net_liq
 
         return pd.inf
 
     def _net_leverage(self):
-        if self._net_liquidation_value != 0:
-            return self._net_exposure() / self._net_liquidation_value()
+        net_liq = self._net_liquidation_value
+        if net_liq != 0:
+            return self._net_exposure() / net_liq
 
         return pd.inf
 
@@ -487,7 +489,7 @@ class PerformancePeriod(object):
             getattr(self, 'leverage', self._gross_leverage())
         account.net_leverage = self._net_leverage()
         account.net_liquidation = \
-            getattr(self, 'net_liquidation', self._net_liquidation_value())
+            getattr(self, 'net_liquidation', self._net_liquidation_value)
         return account
 
     def get_positions(self):
