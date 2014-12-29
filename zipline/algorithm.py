@@ -281,8 +281,10 @@ Initialize sids and other state variables.
         Call self._initialize with `self` made available to Zipline API
         functions.
         """
+        initialize_params = kwargs.pop('initialize_params', {})
+
         with ZiplineAPI(self):
-            self._initialize(self, *args, **kwargs)
+            self._initialize(self, **initialize_params)
 
     def before_trading_start(self, *args, **kwargs):
         if self._before_trading_start is None:
