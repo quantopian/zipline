@@ -345,14 +345,14 @@ class PerformancePeriod(object):
         if net_liq != 0:
             return self._gross_exposure() / net_liq
 
-        return pd.inf
+        return np.inf
 
     def _net_leverage(self):
         net_liq = self._net_liquidation_value
         if net_liq != 0:
             return self._net_exposure() / net_liq
 
-        return pd.inf
+        return np.inf
 
     def update_last_sale(self, event):
         if event.sid not in self.positions:
