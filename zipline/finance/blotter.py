@@ -187,7 +187,9 @@ class Blotter(object):
             order.handle_split(split_event)
 
     def process_trade(self, trade_event):
-        if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
+        if trade_event.type not in (
+                zp.DATASOURCE_TYPE.TRADE,
+                zp.DATASOURCE_TYPE.LIQUIDATION):
             return
 
         if trade_event.sid not in self.open_orders:

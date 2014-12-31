@@ -101,7 +101,8 @@ def transact_stub(slippage, commission, event, open_orders):
             direction = math.copysign(1, transaction.amount)
             per_share, total_commission = commission.calculate(transaction)
             transaction.price += per_share * direction
-            transaction.commission = total_commission
+            if event.type != DATASOURCE_TYPE.LIQUIDATION:
+                transaction.commission = total_commission
         yield order, transaction
 
 
@@ -173,7 +174,15 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if not order.triggered:
                 continue
 
-            txn = self.process_order(event, order)
+            # liquidations are filled without slippage
+            if event.type == DATASOURCE_TYPE.LIQUIDATION:
+                txn = create_transaction(
+                    event,
+                    order,
+                    event.price,
+                    order.amount)
+            else:
+                txn = self.process_order(event, order)
 
             if txn:
                 self._volume_for_bar += abs(txn.amount)

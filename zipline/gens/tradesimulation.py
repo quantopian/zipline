@@ -225,6 +225,20 @@ class AlgorithmSimulator(object):
             elif event.type == DATASOURCE_TYPE.SPLIT:
                 self.algo.blotter.process_split(event)
 
+            elif event.type == DATASOURCE_TYPE.LIQUIDATION:
+                # cancel all open orders, if applicable
+                if event.sid in self.algo.blotter.open_orders:
+                    for order in self.algo.blotter.open_orders[event.sid]:
+                        self.algo.blotter.cancel(order.id)
+
+                # create new liquidation order, if applicable
+                if event.sid in self.algo.portfolio.positions:
+                    held_shares = self.algo.portfolio.positions[event.sid]
+                    self.algo.order(event.sid, -1 * held_shares)
+
+                self.update_universe(event)
+                any_trade_occurred = True
+
             if not instant_fill:
                 self.process_event(event)
             else:
