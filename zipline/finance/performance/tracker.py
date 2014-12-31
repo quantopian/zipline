@@ -307,7 +307,7 @@ class PerformanceTracker(object):
                 # Minute data benchmarks should have a timestamp of market
                 # close, so that calculations are triggered at the right time.
                 # However, risk module uses midnight as the 'day'
-                # marker for returns, so adjust back to midgnight.
+                # marker for returns, so adjust back to midnight.
                 midnight = pd.tseries.tools.normalize_date(event.dt)
             else:
                 midnight = event.dt
