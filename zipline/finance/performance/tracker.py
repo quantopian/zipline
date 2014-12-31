@@ -267,7 +267,8 @@ class PerformanceTracker(object):
     def process_event(self, event):
         self.event_count += 1
 
-        if event.type == zp.DATASOURCE_TYPE.TRADE:
+        if event.type in (
+                zp.DATASOURCE_TYPE.TRADE, zp.DATASOURCE_TYPE.LIQUIDATION):
             # update last sale
             for perf_period in self.perf_periods:
                 perf_period.update_last_sale(event)

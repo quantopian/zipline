@@ -356,7 +356,8 @@ class PerformancePeriod(object):
         if event.sid not in self.positions:
             return
 
-        if event.type != zp.DATASOURCE_TYPE.TRADE:
+        if event.type not in (
+                zp.DATASOURCE_TYPE.TRADE, zp.DATASOURCE_TYPE.LIQUIDATION):
             return
 
         if not pd.isnull(event.price):
