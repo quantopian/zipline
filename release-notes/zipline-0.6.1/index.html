@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+
+        <title>Zipline 0.6.1 - Zipline</title>
+
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../../css/highlight.css">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="../..">Zipline</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tutorial <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li >
+                                <a href="../../tutorial">Getting started</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Release notes <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li >
+                                <a href="../zipline-0.7.1">Zipline 0.7.1</a>
+                            </li>
+                        
+                            <li >
+                                <a href="../zipline-0.7.0">Zipline 0.7.0</a>
+                            </li>
+                        
+                            <li class="active">
+                                <a href=".">Zipline 0.6.1</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                </ul>
+            
+
+            
+            <!-- Search, Navigation and Repo links -->
+            <ul class="nav navbar-nav navbar-right">
+                
+                
+                <li >
+                    <a rel="next" href="../zipline-0.7.0">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li class="disabled">
+                    <a rel="prev" >
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    <a href="https://github.com/quantopian/zipline">
+                        
+                            <i class="fa fa-github"></i>
+                        
+                        GitHub
+                    </a>
+                </li>
+                
+            </ul>
+            
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#zipline-061-release-notes">Zipline 0.6.1 Release Notes</a></li>
+        
+            <li><a href="#enhancements-enh">Enhancements (ENH)</a></li>
+        
+            <li><a href="#bug-fixes-bug">Bug Fixes (BUG)</a></li>
+        
+            <li><a href="#performance-perf">Performance (PERF)</a></li>
+        
+            <li><a href="#maintenance-and-refactorings-maint">Maintenance and Refactorings (MAINT)</a></li>
+        
+            <li><a href="#build-bld">Build (BLD)</a></li>
+        
+    
+        <li class="main "><a href="#contributors">Contributors</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="zipline-061-release-notes">Zipline 0.6.1 Release Notes</h1>
+<p><strong>Highlights</strong></p>
+<ul>
+<li><strong>Major fixes to risk calculations, see BUG section.</strong></li>
+<li><strong>Port of <code>history()</code> function, see ENH section</strong></li>
+<li><strong>Start of support for Quantopian algorithm script-syntax, see ENH section.</strong></li>
+<li><strong>conda package manager support, see BLD section.</strong></li>
+</ul>
+<h2 id="enhancements-enh">Enhancements (ENH)</h2>
+<h3 id="always-process-new-orders">Always process new orders.</h3>
+<p>i.e. on bars where <code>handle_data</code> isn't called, but there is 'clock' data e.g. a
+consistent benchmark, process orders.</p>
+<h3 id="empty-positions-are-now-filtered-from-the-portfolio-container">Empty positions are now filtered from the portfolio container.</h3>
+<p>To help prevent algorithms from operating on positions that are not in the
+existing universe of stocks.</p>
+<p>Formerly, iterating over positions would return positions for stocks which had
+zero shares held. (Where an explicit check in algorithm code for <code>pos.amount !=
+0</code> could prevent from using a non-existent position.)</p>
+<h3 id="add-trading-calendar-for-bmfbovespa">Add trading calendar for BMF&amp;Bovespa.</h3>
+<h3 id="add-beginning-of-algo-script-support">Add beginning of algo script support.</h3>
+<p>Starts on the path of parity with the script syntax in Quantopian's IDE on
+<a href="https://quantopian.com">https://quantopian.com</a></p>
+<p>Example:
+    from datetime import datetime
+    import pytz</p>
+<pre><code>from zipline import TradingAlgorithm
+from zipline.utils.factory import load_from_yahoo
+
+from zipline.api import order
+
+def initialize(context):
+    context.test = 10
+
+def handle_date(context, data):
+    order('AAPL', 10)
+    print(context.test)
+
+if __name__ == '__main__':
+    import pylab as pl
+    start = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_from_yahoo(
+        stocks=['AAPL'],
+        indexes={},
+        start=start,
+        end=end)
+    data = data.dropna()
+    algo = TradingAlgorithm(
+        initialize=initialize,
+        handle_data=handle_date)
+    results = algo.run(data)
+    results.portfolio_value.plot()
+    pl.show()
+</code></pre>
+<h3 id="add-hdf5-and-csv-sources">Add HDF5 and CSV sources.</h3>
+<h3 id="limit-handle_data-to-times-with-market-data">Limit <code>handle_data</code> to times with market data.</h3>
+<p>To prevent cases where custom data types had unaligned timestamps, only call
+<code>handle_data</code> when market data passes through.</p>
+<p>Custom data that comes before market data will still update the data bar. But
+the handling of that data will only be done when there is actionable market
+data.</p>
+<h3 id="extended-commission-pershare-method-to-allow-a-minimum-cost-per-trade">Extended commission PerShare method to allow a minimum cost per trade.</h3>
+<h3 id="add-symbol-api-function">Add symbol api function</h3>
+<p>A <code>symbol()</code> lookup feature was added to Quantopian. By adding the same API
+function to zipline we can make copy&amp;pasting of a Zipline algo to Quantopian
+easier.</p>
+<h3 id="add-simulated-random-trade-source">Add simulated random trade source.</h3>
+<p>Added a new data source that emits events with certain user-specified
+frequency (minute or daily).</p>
+<p>This allows users to backtest and debug an algorithm in minute mode to
+provide a cleaner path towards Quantopian.</p>
+<h3 id="remove-dependency-on-benchmark-for-trading-day-calendar">Remove dependency on benchmark for trading day calendar.</h3>
+<p>Instead of the benchmarks' index, the trading calendar is now used to populate
+the environment's trading days.</p>
+<p>Remove <code>extra_date</code> field, since unlike the benchmarks list, the trading
+calendar can generate future dates, so dates for current day trading do not need
+to be appended.</p>
+<p>Motivations:</p>
+<ul>
+<li>The source for the open and close/early close calendar and the trading day
+  calendar is now the same, which should help prevent potential issues due to
+  misalignment.</li>
+<li>Allows configurations where the benchmark is provided as a generator based
+  data source to need to supply a second benchmark list just to populate dates.</li>
+</ul>
+<h3 id="port-history-api-method-from-quantopian">Port <code>history()</code> API method from Quantopian.</h3>
+<p>Opens the core of the <code>history()</code> function that was previously only available on
+the Quantopian platform.</p>
+<p>The history method is analoguous to the <code>batch_transform</code> function/decorator,
+but with a hopefully more precise specification of the frequency and period of
+the previous bar data that is captured.</p>
+<p>Example usage:</p>
+<pre><code>from zipline.api import history, add_history
+
+def initialize(context):
+    add_history(bar_count=2, frequency='1d', field='price')
+
+def handle_data(context, data):
+    prices = history(bar_count=2, frequency='1d', field='price')
+    context.last_prices = prices
+</code></pre>
+<p>N.B. this version of history lacks the backfilling capability that allows the
+return a full DataFrame on the first bar.</p>
+<h2 id="bug-fixes-bug">Bug Fixes (BUG)</h2>
+<h3 id="adjust-benchmark-events-to-match-market-hours-241">Adjust benchmark events to match market hours (#241)</h3>
+<p>Previously benchmark events were emitted at 0:00 on the day the
+benchmark related to: in 'minute' emission mode this meant that
+the benchmarks were emitted before any intra-day trades were
+processed.</p>
+<h3 id="ensure-perf-stats-are-generated-for-all-days">Ensure perf stats are generated for all days</h3>
+<p>When running with minutely emissions the simulator would report to the
+user that it simulated 'n - 1' days (where n is the number of days
+specified in the simulation params).  Now the correct number of trading
+days are reported as being simulated.</p>
+<h3 id="fix-repr-for-cumulative-risk-metrics">Fix repr for cumulative risk metrics.</h3>
+<p>The <code>__repr__</code> for RiskMetricsCumulative was referring to an older structure of
+the class, causing an exception when printed.</p>
+<p>Also, now prints the last values in the metrics DataFrame.</p>
+<h3 id="prevent-minute-emission-from-crashing-at-end-of-available-data">Prevent minute emission from crashing at end of available data.</h3>
+<p>The next day calculation was causing an error when a minute emission algorithm
+reached the end of available data.</p>
+<p>Instead of a generic exception when available data is reached, raise and catch a
+named exception so that the tradesimulation loop can skip over, since the next
+market close is not needed at the end.</p>
+<h3 id="fix-pandas-indexing-in-trading-calendar">Fix pandas indexing in trading calendar.</h3>
+<p>This could alternatively be filed under PERF. Index using loc instead of the
+inefficient index-ing of day, then time.</p>
+<h3 id="prevent-crash-in-vwap-transform-due-to-non-existent-member">Prevent crash in vwap transform due to non-existent member.</h3>
+<p>The WrongDataForTransform was referencing a <code>self.fields</code> member,
+which did not exist.</p>
+<p>Add a self.fields member set to <code>price</code> and <code>volume</code> and use
+it to iterate over during the check.</p>
+<h3 id="fix-max-drawdown-calculation">Fix max drawdown calculation.</h3>
+<p>The input into max drawdown was incorrect, causing the bad results.  i.e. the
+<code>compounded_log_returns</code> were not values representative of the algorithms total
+return at a given time, though <code>calculate_max_drawdown</code> was treating the values
+as if they were.  Instead, the <code>algorithm_period_returns</code> series is now used,
+which does provide the total return.</p>
+<h3 id="fix-cost-basis-calculation">Fix cost basis calculation.</h3>
+<p>Cost basis calculation now takes direction of txn into account.</p>
+<p>Closing a long position or covering a short shouldn't affect the cost basis.</p>
+<h3 id="fix-floating-point-error-in-order">Fix floating point error in order()</h3>
+<p>Where order amounts that were near an integer could accidentally be floored or
+ceilinged (depending on being postive or negative) to the wrong integer.</p>
+<p>e.g. an amount stored internally as -27.99999 was converted to -27 instead of
+-28.</p>
+<h3 id="update-perf-period-state-when-positions-are-changed-by-splits">Update perf period state when positions are changed by splits</h3>
+<p>Otherwise, <code>self._position_amounts</code> will be out of sync with position.amount,
+etc.</p>
+<h3 id="fix-misalignment-of-downside-series-calc-when-using-exact-dates">Fix misalignment of downside series calc when using exact dates.</h3>
+<p>An oddity that was exposed while working on making the return series passed to
+the risk module more exact, the series comparison between the returns and mean
+returns was unbalanced, because the mean returns were not masked down to the
+downside data points; however, in most, if not all cases this was papered over
+by the call to <code>.valid()</code> which was removed in this change set.</p>
+<h3 id="check-that-selflogger-exists-before-using-it">Check that self.logger exists before using it.</h3>
+<p><code>self.logger</code> is initialized as <code>None</code> and there is no guarantee that users have
+set it, so check that it exists before trying to pass messages to it.</p>
+<h3 id="prevent-out-of-sync-market-closes-in-performance-tracker">Prevent out of sync market closes in performance tracker.</h3>
+<p>In situations where the performance tracker has been reset or patched to handle
+state juggling with warming up live data, the <code>market_close</code> member of the
+performance tracker could end up out of sync with the current algo time as
+determined by the</p>
+<p>The symptom was dividends never triggering, because the end of day checks would
+not match the current time.</p>
+<p>Fix by having the tradesimulation loop be responsible, in minute/minute mode,
+for advancing the market close and passing that value to the performance
+tracker, instead of having the market close advanced by the performance tracker
+as well.</p>
+<h3 id="fix-numerous-cumulative-and-period-risk-calculations">Fix numerous cumulative and period risk calculations.</h3>
+<p>The calculations that are expected to change are:
+-   cumulative.beta
+-   cumulative.alpha
+-   cumulative.information
+-   cumulative.sharpe
+-   period.sortino</p>
+<h4 id="how-risk-calculations-are-changing">How Risk Calculations Are Changing</h4>
+<h5 id="risk-fixes-for-both-period-and-cumulative">Risk Fixes for Both Period and Cumulative</h5>
+<h6 id="downside-risk">Downside Risk</h6>
+<p>Use sample instead of population for standard deviation.</p>
+<p>Add a rounding factor, so that if the two values are close for a given dt, that
+they do not count as a downside value, which would throw off the denominator of
+the standard deviation of the downside diffs.</p>
+<h6 id="standard-deviation-type">Standard Deviation Type</h6>
+<p>Across the board the standard deviation has been standardized to using a
+'sample' calculation, whereas before cumulative risk was mostly using
+'population'. Using <code>ddof=1</code> with <code>np.std</code> calculates as if the values are a
+sample.</p>
+<h5 id="cumulative-risk-fixes">Cumulative Risk Fixes</h5>
+<h6 id="beta">Beta</h6>
+<p>Use the daily algorithm returns and benchmarks instead of annualized mean
+returns.</p>
+<h6 id="volatility">Volatility</h6>
+<p>Use sample instead of population with standard deviation.</p>
+<p>The volatility is an input to other calculations so this change affects Sharpe
+and Information ratio calculations.</p>
+<h6 id="information-ratio">Information Ratio</h6>
+<p>The benchmark returns input is changed from annualized benchmark returns to the
+annualized mean returns.</p>
+<h6 id="alpha">Alpha</h6>
+<p>The benchmark returns input is changed from annualized benchmark returns to the
+annualized mean returns.</p>
+<h5 id="period-risk-fixes">Period Risk Fixes</h5>
+<h6 id="sortino">Sortino</h6>
+<p>Now uses the downside risk of the daily return vs. the mean algorithm returns
+for the minimum acceptable return instead of the treasury return.</p>
+<p>The above required adding the calculation of the mean algorithm returns for
+period risk.</p>
+<p>Also, uses <code>algorithm_period_returns</code> and <code>tresaury_period_return</code> as the
+cumulative Sortino does, instead of using algorithm returns for both inputs into
+the Sortino calculation.</p>
+<h2 id="performance-perf">Performance (PERF)</h2>
+<h3 id="removed-alias_dt-transform-in-favor-of-property-on-siddata">Removed <code>alias_dt</code> transform in favor of property on SIDData.</h3>
+<p>Adding a copy of the Event's dt field as datetime via the <code>alias_dt</code> generator,
+so that the API was forgiving and allowed both datetime and dt on a SIDData
+object, was creating noticeable overhead, even on an noop algorithms.</p>
+<p>Instead of incurring the cost of copying the datetime value and assigning it
+to the Event object on every event that is passed through the system, add a
+property to SIDData which acts as an alias <code>datetime</code> to <code>dt</code>.</p>
+<p>Eventually support for <code>data['foo'].datetime</code> may be removed, and could be
+considered deprecated.</p>
+<h3 id="remove-the-drop-of-null-return-from-cumulative-returns">Remove the drop of 'null return' from cumulative returns.</h3>
+<p>The check of existence of the null return key, and the drop of said return
+on every single bar was adding unneeded CPU time when an algorithm was run
+with minute emissions.</p>
+<p>Instead, add the 0.0 return with an index of the trading day before the
+start date.</p>
+<p>The removal of the <code>null return</code> was mainly in place so that the period
+calculation was not crashing on a non-date index value; with the index as a
+date, the period return can also approximate volatility (even though the
+that volatility has high noise-to-signal strength because it uses only two
+values as an input.)</p>
+<h2 id="maintenance-and-refactorings-maint">Maintenance and Refactorings (MAINT)</h2>
+<h3 id="allow-sim_params-to-provide-data-frequency-for-the-algorithm">Allow <code>sim_params</code> to provide data frequency for the algorithm.</h3>
+<p>In the case that <code>data_frequency</code> of the algorithm is None, allow the
+<code>sim_params</code> to provide the <code>data_frequency</code>.</p>
+<p>Also, defer to the algorithms data frequency, if provided.</p>
+<h2 id="build-bld">Build (BLD)</h2>
+<h3 id="added-support-for-building-and-releasing-via-conda">Added support for building and releasing via conda</h3>
+<p>For those who prefer building with <a href="http://conda.pydata.org/">http://conda.pydata.org/</a> to compiling
+locally with pip.</p>
+<p>The following should install Zipline on many systems.</p>
+<pre><code>conda install -c quantopian zipline
+</code></pre>
+<h1 id="contributors">Contributors</h1>
+<ul>
+<li>Eddie Hebert \&lt;ehebert@quantopian.com>, @ehebert, 49</li>
+<li>Thomas Wiecki \&lt;thomas.wiecki@gmail.com>, @twiecki, 28</li>
+<li>Richard Frank  \&lt;rich@quantopian.com>, @richafrank, 11</li>
+<li>Jamie Kirkpatrick \&lt;jkp@spotify.com>, @jkp, 2</li>
+<li>Jeremiah Lowin \&lt;jlowin@gmail.com>, @jlowin, 2</li>
+<li>Colin Alexander \&lt;colin.1.alexander@gmail.com>, @colin1alexander, 1</li>
+<li>Michael Schatzow \&lt;michael.schatzow@gmail.com>, @MichaelWS, 1</li>
+<li>Moises Trovo \&lt;moises.trovo@gmail.com>, @mtrovo, 1</li>
+<li>Suminda Dharmasena \&lt;sirinath1978m@gmail.com>, @sirinath, 1</li>
+</ul>
+</div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        
+
+        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/prettify-1.0.min.js"></script>
+        <script src="../../js/highlight.pack.js"></script>
+        <script src="../../js/base.js"></script>
+    </body>
+</html>

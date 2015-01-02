@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+
+        <title>Zipline 0.7.0 - Zipline</title>
+
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../../css/highlight.css">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="../..">Zipline</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tutorial <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li >
+                                <a href="../../tutorial">Getting started</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Release notes <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li >
+                                <a href="../zipline-0.7.1">Zipline 0.7.1</a>
+                            </li>
+                        
+                            <li class="active">
+                                <a href=".">Zipline 0.7.0</a>
+                            </li>
+                        
+                            <li >
+                                <a href="../zipline-0.6.1">Zipline 0.6.1</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                </ul>
+            
+
+            
+            <!-- Search, Navigation and Repo links -->
+            <ul class="nav navbar-nav navbar-right">
+                
+                
+                <li >
+                    <a rel="next" href="../zipline-0.7.1">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li >
+                    <a rel="prev" href="../zipline-0.6.1">
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    <a href="https://github.com/quantopian/zipline">
+                        
+                            <i class="fa fa-github"></i>
+                        
+                        GitHub
+                    </a>
+                </li>
+                
+            </ul>
+            
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#zipline-070-release-notes">Zipline 0.7.0 Release Notes</a></li>
+        
+            <li><a href="#enhancements-enh">Enhancements (ENH)</a></li>
+        
+            <li><a href="#bug-fixes-bug">Bug Fixes (BUG)</a></li>
+        
+            <li><a href="#performance-perf">Performance (PERF)</a></li>
+        
+            <li><a href="#maintenance-and-refactorings-maint">Maintenance and Refactorings (MAINT)</a></li>
+        
+            <li><a href="#build-bld">Build (BLD)</a></li>
+        
+    
+        <li class="main "><a href="#contributors">Contributors</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="zipline-070-release-notes">Zipline 0.7.0 Release Notes</h1>
+<p><strong>Highlights</strong></p>
+<ul>
+<li>
+<p>Command line interface to run algorithms directly.</p>
+</li>
+<li>
+<p>IPython Magic %%zipline that runs algorithm defined in an IPython
+  notebook cell.</p>
+</li>
+<li>
+<p>API methods for building safeguards against runaway ordering and undesired
+  short positions.</p>
+</li>
+<li>
+<p>New history() function to get a moving DataFrame of past market data
+  (replaces BatchTransform).</p>
+</li>
+<li>
+<p>A new <a href="http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb">beginner tutorial</a>.</p>
+</li>
+</ul>
+<h2 id="enhancements-enh">Enhancements (ENH)</h2>
+<ul>
+<li>CLI: Adds a CLI and IPython magic for zipline. <a href="https://github.com/quantopian/zipline/pull/325">PR325</a></li>
+</ul>
+<blockquote>
+<p>Example:</p>
+<p><code>python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle</code></p>
+<p>Grabs the data from yahoo finance, runs the file
+  dual_moving_avg.py (and looks for <code>dual_moving_avg_analyze.py</code>
+  which, if found, will be executed after the algorithm has been run),
+  and outputs the perf <code>DataFrame</code> to <code>dma.pickle</code>.</p>
+</blockquote>
+<ul>
+<li>IPython magic command (at the top of an IPython notebook cell). <a href="https://github.com/quantopian/zipline/pull/325">PR325</a></li>
+</ul>
+<blockquote>
+<p><code>%%zipline --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o perf</code></p>
+<p>Does the same as above except instead of executing the file looks
+for the algorithm in the cell and instead of outputting the perf df
+to a file, creates a variable in the namespace called perf.</p>
+</blockquote>
+<ul>
+<li>Adds Trading Controls to the algorithm API. <a href="https://github.com/quantopian/zipline/pull/329">PR329</a></li>
+</ul>
+<blockquote>
+<p>The following functions are now available on <code>TradingAlgorithm</code> and for algo scripts:
+  - <code>set_max_order_size(self, sid=None, max_shares=None, max_notional=None)</code>
+           - Set a limit on the absolute magnitude, in shares and/or total
+             dollar value, of any single order placed by this algorithm for a
+             given sid. If <code>sid</code> is None, then the rule is applied to any order
+             placed by the algorithm.
+           - Example:</p>
+</blockquote>
+<pre><code>                 def initialize(context):
+                      # Algorithm will raise an exception if we attempt to place an
+                      # order which would cause us to hold more than 10 shares
+                      # or 1000 dollars worth of sid(24).
+                      set_max_order_size(sid(24), max_shares=10, max_notional=1000.0)
+</code></pre>
+<blockquote>
+<ul>
+<li><code>set_max_position_size(self, sid=None, max_shares=None, max_notional=None)</code>
+           - Set a limit on the absolute magnitude, in either shares or dollar
+             value, of any position held by the algorithm for a given sid. If <code>sid</code>
+             is None, then the rule is applied to any position held by the
+             algorithm.
+           - Example:</li>
+</ul>
+</blockquote>
+<pre><code>                 def initialize(context):
+                     # Algorithm will raise an exception if we attempt to order more than
+                     # 10 shares or 1000 dollars worth of sid(24) in a single order.
+                     set_max_order_size(sid(24), max_shares=10, max_notional=1000.0)
+</code></pre>
+<blockquote>
+<ul>
+<li><code>set_max_order_count(self, max_count)</code>
+           - Set a limit on the number of orders that can be placed by the
+             algorithm in a single trading day.
+           - Example:</li>
+</ul>
+</blockquote>
+<pre><code>                 def initialize(context):
+                     # Algorithm will raise an exception if more than 50 orders are placed in a day.
+                     set_max_order_count(50)
+</code></pre>
+<blockquote>
+<ul>
+<li><code>set_long_only(self)</code>
+           - Set a rule specifying that the algorithm may not hold short positions.
+           - Example:</li>
+</ul>
+</blockquote>
+<pre><code>                 def initialize(context):
+                     # Algorithm will raise an exception if it attempts to place
+                     # an order that would cause it to hold a short position.
+                     set_long_only()
+</code></pre>
+<ul>
+<li>
+<p>Adds an <code>all_api_methods</code> classmethod on <code>TradingAlgorithm</code> that returns a
+  list of all <code>TradingAlgorithm</code> API methods. <a href="https://github.com/quantopian/zipline/pull/333">PR333</a></p>
+</li>
+<li>
+<p>Expanded record() functionality for dynamic naming. <a href="https://github.com/quantopian/zipline/pull/355">PR325</a></p>
+</li>
+</ul>
+<blockquote>
+<p>The record() function can now take positional args before the kwargs.
+All original usage and functionality is the same, but now these
+extra usages will work:
+</p>
+</blockquote>
+<pre><code>                 name = 'Dynamically_Generated_String'
+                 record( name, value, ... )
+                 record( name, value1, 'name2', value2, name3=value3, name4=value4 )
+</code></pre>
+<blockquote>
+<p>The requirements are simply that the poritional args occur only before the
+kwargs.</p>
+</blockquote>
+<ul>
+<li>
+<p>history() has been ported from Quantopian to Zipline and provides moving window of market data. <a href="https://github.com/quantopian/zipline/pull/345">PR345</a> and <a href="https://github.com/quantopian/zipline/pull/357">PR357</a></p>
+<blockquote>
+<p>history() replaces BatchTransform. It is faster, works for minute level data and has a superior interface.
+To use it, call <code>add_history()</code> inside of <code>initialize()</code> and then receive a pandas <code>DataFrame</code> by calling
+history() from inside <code>handle_data()</code>. Check out the <a href="http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb">tutorial</a> and an <a href="https://github.com/quantopian/zipline/blob/master/zipline/examples/dual_moving_average.py">example</a>.</p>
+</blockquote>
+</li>
+<li>
+<p>history() now supports <code>1m</code> window lengths <a href="https://github.com/quantopian/zipline/pull/345">PR345</a></p>
+</li>
+</ul>
+<h2 id="bug-fixes-bug">Bug Fixes (BUG)</h2>
+<ul>
+<li>
+<p>Fix alignment of trading days and open and closes in trading environment.
+  <a href="https://github.com/quantopian/zipline/pull/331">PR331</a></p>
+</li>
+<li>
+<p>RollingPanel fix when adding/dropping new fields <a href="https://github.com/quantopian/zipline/pull/349">PR349</a></p>
+</li>
+</ul>
+<h2 id="performance-perf">Performance (PERF)</h2>
+<h2 id="maintenance-and-refactorings-maint">Maintenance and Refactorings (MAINT)</h2>
+<ul>
+<li>
+<p>Removed undocumented and untested HDF5 and CSV data sources. <a href="https://github.com/quantopian/zipline/issues/267">PR267</a></p>
+</li>
+<li>
+<p>Refactor sim_params <a href="https://github.com/quantopian/zipline/pull/352">PR352</a></p>
+</li>
+<li>
+<p>Refactoring of history <a href="https://github.com/quantopian/zipline/pull/340">PR340</a></p>
+</li>
+</ul>
+<h2 id="build-bld">Build (BLD)</h2>
+<ul>
+<li>The following dependencies have been updated (zipline might work with other versions too):</li>
+</ul>
+<pre><code class="diff">-pytz==2013.9
+-numpy==1.8.0
++pytz==2014.4
++numpy==1.8.1
+
++scipy==0.12.0
++patsy==0.2.1
++statsmodels==0.5.0
+-six==1.5.2
++six==1.6.1
+
+-Cython==0.20
+-TA-Lib==0.4.8
++Cython==0.20.1
++Cython==0.20.1
++--allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
+
+-requests==2.2.0
++requests==2.3.0
+
+-nose==1.3.0
++nose==1.3.3
+-xlrd==0.9.2
++xlrd==0.9.3
+
+-pep8==1.4.6
+-pyflakes==0.7.3
+-pip-tools==0.3.4
++pep8==1.5.7
++pyflakes==0.8.1
+
+-scipy==0.13.2
+-tornado==3.2
+-pyparsing==2.0.1
+-patsy==0.2.1
+-statsmodels==0.4.3
++tornado==3.2.1
++pyparsing==2.0.2
+
+q-Markdown==2.3.1
++Markdown==2.4.1
+</code></pre>
+
+<h1 id="contributors">Contributors</h1>
+<pre><code>38  Scott Sanderson
+29  Thomas Wiecki
+26  Eddie Hebert
+ 6  Delaney Granizo-Mackenzie
+ 3  David Edwards
+ 3  Richard Frank
+ 2  Jonathan Kamens
+ 1  Pankaj Garg
+ 1  Tony Lambiris
+ 1  fawce
+</code></pre>
+</div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        
+
+        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/prettify-1.0.min.js"></script>
+        <script src="../../js/highlight.pack.js"></script>
+        <script src="../../js/base.js"></script>
+    </body>
+</html>

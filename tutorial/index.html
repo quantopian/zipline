@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+        <title>Getting started - Zipline</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">Zipline</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tutorial <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li class="active">
+                                <a href=".">Getting started</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Release notes <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            <li >
+                                <a href="../release-notes/zipline-0.7.1">Zipline 0.7.1</a>
+                            </li>
+                        
+                            <li >
+                                <a href="../release-notes/zipline-0.7.0">Zipline 0.7.0</a>
+                            </li>
+                        
+                            <li >
+                                <a href="../release-notes/zipline-0.6.1">Zipline 0.6.1</a>
+                            </li>
+                        
+                        </ul>
+                    </li>
+                
+                
+                </ul>
+            
+
+            
+            <!-- Search, Navigation and Repo links -->
+            <ul class="nav navbar-nav navbar-right">
+                
+                
+                <li >
+                    <a rel="next" href="..">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li >
+                    <a rel="prev" href="../release-notes/zipline-0.7.1">
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li>
+                
+                
+                <li>
+                    <a href="https://github.com/quantopian/zipline">
+                        
+                            <i class="fa fa-github"></i>
+                        
+                        GitHub
+                    </a>
+                </li>
+                
+            </ul>
+            
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#zipline-beginner-tutorial">Zipline beginner tutorial</a></li>
+        
+            <li><a href="#basics">Basics</a></li>
+        
+            <li><a href="#my-first-algorithm">My first algorithm</a></li>
+        
+            <li><a href="#running-the-algorithm">Running the algorithm</a></li>
+        
+            <li><a href="#access-to-previous-prices-using-history">Access to previous prices using history</a></li>
+        
+    
+        <li class="main "><a href="#conclusions">Conclusions</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="zipline-beginner-tutorial">Zipline beginner tutorial</h1>
+<h2 id="basics">Basics</h2>
+<p>Zipline is an open-source algorithmic trading simulator written in Python.</p>
+<p>The source can be found at: https://github.com/quantopian/zipline</p>
+<p>Some benefits include:</p>
+<ul>
+<li>Realistic: slippage, transaction costs, order delays.</li>
+<li>Stream-based: Process each event individually, avoids look-ahead bias.</li>
+<li>Batteries included: Common transforms (moving average) as well as common risk calculations (Sharpe).</li>
+<li>Developed and continuously updated by <a href="https://www.quantopian.com">Quantopian</a> which provides an easy-to-use web-interface to Zipline, 10 years of minute-resolution historical US stock data, and live-trading capabilities. This tutorial is directed at users wishing to use Zipline without using Quantopian. If you instead want to get started on Quantopian, see <a href="https://www.quantopian.com/faq#get-started">here</a>.</li>
+</ul>
+<p>This tutorial assumes that you have zipline correctly installed, see the <a href="https://github.com/quantopian/zipline#installation">installation instructions</a> if you haven't set up zipline yet.</p>
+<p>Every <code>zipline</code> algorithm consists of two functions you have to define:
+<em> <code>initialize(context)</code>
+</em> <code>handle_data(context, data)</code></p>
+<p>Before the start of the algorithm, <code>zipline</code> calls the <code>initialize()</code> function and passes in a <code>context</code> variable. <code>context</code> is a persistent namespace for you to store variables you need to access from one algorithm iteration to the next.</p>
+<p>After the algorithm has been initialized, <code>zipline</code> calls the <code>handle_data()</code> function once for each event. At every call, it passes the same <code>context</code> variable and an event-frame called <code>data</code> containing the current trading bar with open, high, low, and close (OHLC) prices as well as volume for each stock in your universe. For more information on these functions, see the <a href="https://www.quantopian.com/help#api-toplevel">relevant part of the Quantopian docs</a>.</p>
+<h2 id="my-first-algorithm">My first algorithm</h2>
+<p>Lets take a look at a very simple algorithm from the <code>examples</code> directory, <code>buyapple.py</code>:</p>
+<pre><code>!tail ../zipline/examples/buyapple.py
+
+from zipline.api import order, record, symbol
+
+
+def initialize(context):
+    pass
+
+
+def handle_data(context, data):
+    order(symbol('AAPL'), 10)
+    record(AAPL=data[symbol('AAPL')].price)
+</code></pre>
+<p>As you can see, we first have to import some functions we would like to use. All functions commonly used in your algorithm can be found in <code>zipline.api</code>. Here we are using <code>order()</code> which takes two arguments -- a security object, and a number specifying how many stocks you would like to order (if negative, <code>order()</code> will sell/short stocks). In this case we want to order 10 shares of Apple at each iteration. For more documentation on <code>order()</code>, see the <a href="https://www.quantopian.com/help#api-order">Quantopian docs</a>.</p>
+<p>You don't have to use the <code>symbol()</code> function and could just pass in <code>AAPL</code> directly but it is good practice as this way your code will be Quantopian compatible.</p>
+<p>Finally, the <code>record()</code> function allows you to save the value of a variable at each iteration. You provide it with a name for the variable together with the variable itself: <code>varname=var</code>. After the algorithm finished running you will have access to each variable value you tracked with <code>record()</code> under the name you provided (we will see this further below). You also see how we can access the current price data of the AAPL stock in the <code>data</code> event frame (for more information see <a href="https://www.quantopian.com/help#api-event-properties">here</a>.</p>
+<h2 id="running-the-algorithm">Running the algorithm</h2>
+<p>To now test this algorithm on financial data, <code>zipline</code> provides two interfaces. A command-line interface and an <code>IPython Notebook</code> interface.</p>
+<h3 id="command-line-interface">Command line interface</h3>
+<p>After you installed zipline you should be able to execute the following from your command line (e.g. <code>cmd.exe</code> on Windows, or the Terminal app on OSX):</p>
+<pre><code>!run_algo.py --help
+
+usage: run_algo.py [-h] [-c FILE] [--algofile ALGOFILE] [--data-frequency {minute,daily}] [--start START] [--end END]
+                   [--capital_base CAPITAL_BASE] [--source {yahoo}] [--symbols SYMBOLS] [--output OUTPUT]
+
+Zipline version 0.6.1.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c FILE, --conf_file FILE
+                        Specify config file
+  --algofile ALGOFILE, -f ALGOFILE
+  --data-frequency {minute,daily}
+  --start START, -s START
+  --end END, -e END
+  --capital_base CAPITAL_BASE
+  --source {yahoo}
+  --symbols SYMBOLS
+  --output OUTPUT, -o OUTPUT
+</code></pre>
+<p>Note that you have to omit the preceding '!' when you call <code>run_algo.py</code>, this is only required by the IPython Notebook in which this tutorial was written.</p>
+<p>As you can see there are a couple of flags that specify where to find your algorithm (<code>-f</code>) as well as parameters specifying which stock data to load from Yahoo! finance (<code>--symbols</code>) and the time-range (<code>--start</code> and <code>--end</code>). Finally, you'll want to save the performance metrics of your algorithm so that you can analyze how it performed. This is done via the <code>--output</code> flag and will cause it to write the performance <code>DataFrame</code> in the pickle Python file format. Note that you can also define a configuration file with these parameters that you can then conveniently pass to the <code>-c</code> option so that you don't have to supply the command line args all the time (see the .conf files in the examples directory).</p>
+<p>Thus, to execute our algorithm from above and save the results to <code>buyapple_out.pickle</code> we would call <code>run_algo.py</code> as follows:</p>
+<pre><code>!run_algo.py -f ../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o buyapple_out.pickle
+
+AAPL
+[37m#!/usr/bin/env python[39;49;00m
+[37m#[39;49;00m
+[37m# Copyright 2014 Quantopian, Inc.[39;49;00m
+[37m#[39;49;00m
+[37m# Licensed under the Apache License, Version 2.0 (the "License");[39;49;00m
+[37m# you may not use this file except in compliance with the License.[39;49;00m
+[37m# You may obtain a copy of the License at[39;49;00m
+[37m#[39;49;00m
+[37m#     http://www.apache.org/licenses/LICENSE-2.0[39;49;00m
+[37m#[39;49;00m
+[37m# Unless required by applicable law or agreed to in writing, software[39;49;00m
+[37m# distributed under the License is distributed on an "AS IS" BASIS,[39;49;00m
+[37m# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.[39;49;00m
+[37m# See the License for the specific language governing permissions and[39;49;00m
+[37m# limitations under the License.[39;49;00m
+
+[34mfrom[39;49;00m [39;49;00m[04m[36mzipline.api[39;49;00m [39;49;00m[34mimport[39;49;00m [39;49;00morder[39;49;00m,[39;49;00m [39;49;00mrecord[39;49;00m,[39;49;00m [39;49;00msymbol[39;49;00m
+
+
+[34mdef[39;49;00m [39;49;00m[32minitialize[39;49;00m([39;49;00mcontext[39;49;00m)[39;49;00m:[39;49;00m
+    [39;49;00m[34mpass[39;49;00m
+
+
+[34mdef[39;49;00m [39;49;00m[32mhandle_data[39;49;00m([39;49;00mcontext[39;49;00m,[39;49;00m [39;49;00mdata[39;49;00m)[39;49;00m:[39;49;00m
+    [39;49;00morder[39;49;00m([39;49;00msymbol[39;49;00m([39;49;00m[33m'[39;49;00m[33mAAPL[39;49;00m[33m'[39;49;00m)[39;49;00m,[39;49;00m [39;49;00m[34m10[39;49;00m)[39;49;00m
+    [39;49;00mrecord[39;49;00m([39;49;00mAAPL[39;49;00m=[39;49;00mdata[39;49;00m[[39;49;00msymbol[39;49;00m([39;49;00m[33m'[39;49;00m[33mAAPL[39;49;00m[33m'[39;49;00m)[39;49;00m][39;49;00m.[39;49;00mprice[39;49;00m)[39;49;00m
+[34mimport[39;49;00m [39;49;00m[04m[36mmatplotlib.pyplot[39;49;00m [39;49;00m[34mas[39;49;00m [39;49;00m[04m[36mplt[39;49;00m
+
+
+[34mdef[39;49;00m [39;49;00m[32manalyze[39;49;00m([39;49;00mcontext[39;49;00m,[39;49;00m [39;49;00mperf[39;49;00m)[39;49;00m:[39;49;00m
+    [39;49;00max1[39;49;00m [39;49;00m=[39;49;00m [39;49;00mplt[39;49;00m.[39;49;00msubplot[39;49;00m([39;49;00m[34m211[39;49;00m)[39;49;00m
+    [39;49;00mperf[39;49;00m.[39;49;00mportfolio_value[39;49;00m.[39;49;00mplot[39;49;00m([39;49;00max[39;49;00m=[39;49;00max1[39;49;00m)[39;49;00m
+    [39;49;00max2[39;49;00m [39;49;00m=[39;49;00m [39;49;00mplt[39;49;00m.[39;49;00msubplot[39;49;00m([39;49;00m[34m212[39;49;00m,[39;49;00m [39;49;00msharex[39;49;00m=[39;49;00max1[39;49;00m)[39;49;00m
+    [39;49;00mperf[39;49;00m.[39;49;00mAAPL[39;49;00m.[39;49;00mplot[39;49;00m([39;49;00max[39;49;00m=[39;49;00max2[39;49;00m)[39;49;00m
+    [39;49;00mplt[39;49;00m.[39;49;00mgcf[39;49;00m([39;49;00m)[39;49;00m.[39;49;00mset_size_inches[39;49;00m([39;49;00m[34m18[39;49;00m,[39;49;00m [39;49;00m[34m8[39;49;00m)[39;49;00m
+    [39;49;00mplt[39;49;00m.[39;49;00mshow[39;49;00m([39;49;00m)[39;49;00m
+[2014-07-25 17:50] INFO: Performance: Simulated 3521 trading days out of 3521.
+[2014-07-25 17:50] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
+[2014-07-25 17:50] INFO: Performance: last close: 2013-12-31 21:00:00+00:00
+</code></pre>
+<p><code>run_algo.py</code> first outputs the algorithm contents. It then fetches historical price and volume data of Apple from Yahoo! finance in the desired time range, calls the <code>initialize()</code> function, and then streams the historical stock price day-by-day through <code>handle_data()</code>. After each call to <code>handle_data()</code> we instruct <code>zipline</code> to order 10 stocks of AAPL. After the call of the <code>order()</code> function, <code>zipline</code> enters the ordered stock and amount in the order book. After the <code>handle_data()</code> function has finished, <code>zipline</code> looks for any open orders and tries to fill them. If the trading volume is high enough for this stock, the order is executed after adding the commission and applying the slippage model which models the influence of your order on the stock price, so your algorithm will be charged more than just the stock price * 10. (Note, that you can also change the commission and slippage model that <code>zipline</code> uses, see the <a href="https://www.quantopian.com/help#ide-slippage">Quantopian docs</a> for more information).</p>
+<p>Note that there is also an <code>analyze()</code> function printed. <code>run_algo.py</code> will try and look for a file with the ending with <code>_analyze.py</code> and the same name of the algorithm (so <code>buyapple_analyze.py</code>) or an <code>analyze()</code> function directly in the script. If an <code>analyze()</code> function is found it will be called <em>after</em> the simulation has finished and passed in the performance <code>DataFrame</code>. (The reason for allowing specification of an <code>analyze()</code> function in a separate file is that this way <code>buyapple.py</code> remains a valid Quantopian algorithm that you can copy&amp;paste to the platform).</p>
+<p>Lets take a quick look at the performance <code>DataFrame</code>. For this, we use <code>pandas</code> from inside the IPython Notebook and print the first ten rows. Note that <code>zipline</code> makes heavy usage of <code>pandas</code>, especially for data input and outputting so it's worth spending some time to learn it.</p>
+<pre><code>import pandas as pd
+perf = pd.read_pickle('buyapple_out.pickle') # read in perf DataFrame
+perf.head()
+</code></pre>
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>AAPL</th>
+      <th>capital_used</th>
+      <th>ending_cash</th>
+      <th>ending_value</th>
+      <th>orders</th>
+      <th>period_close</th>
+      <th>period_open</th>
+      <th>pnl</th>
+      <th>portfolio_value</th>
+      <th>positions</th>
+      <th>returns</th>
+      <th>starting_cash</th>
+      <th>starting_value</th>
+      <th>transactions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2000-01-03 21:00:00</th>
+      <td> 3.82</td>
+      <td>  0.0</td>
+      <td> 10000000.0</td>
+      <td>   0.0</td>
+      <td> [{u'status': 0, u'limit_reached': False, u'cre...</td>
+      <td> 2000-01-03 21:00:00+00:00</td>
+      <td> 2000-01-03 14:31:00+00:00</td>
+      <td> 0.0</td>
+      <td> 10000000.0</td>
+      <td>                                                []</td>
+      <td> 0.000000e+00</td>
+      <td> 10000000.0</td>
+      <td>  0.0</td>
+      <td>                                                []</td>
+    </tr>
+    <tr>
+      <th>2000-01-04 21:00:00</th>
+      <td> 3.50</td>
+      <td>-35.3</td>
+      <td>  9999964.7</td>
+      <td>  35.0</td>
+      <td> [{u'status': 1, u'limit_reached': False, u'cre...</td>
+      <td> 2000-01-04 21:00:00+00:00</td>
+      <td> 2000-01-04 14:31:00+00:00</td>
+      <td>-0.3</td>
+      <td>  9999999.7</td>
+      <td> [{u'amount': 10, u'last_sale_price': 3.5, u'co...</td>
+      <td>-3.000000e-08</td>
+      <td> 10000000.0</td>
+      <td>  0.0</td>
+      <td> [{u'order_id': u'a52893c358834d60a09c7865d6779...</td>
+    </tr>
+    <tr>
+      <th>2000-01-05 21:00:00</th>
+      <td> 3.55</td>
+      <td>-35.8</td>
+      <td>  9999928.9</td>
+      <td>  71.0</td>
+      <td> [{u'status': 1, u'limit_reached': False, u'cre...</td>
+      <td> 2000-01-05 21:00:00+00:00</td>
+      <td> 2000-01-05 14:31:00+00:00</td>
+      <td> 0.2</td>
+      <td>  9999999.9</td>
+      <td> [{u'amount': 20, u'last_sale_price': 3.55, u'c...</td>
+      <td> 2.000000e-08</td>
+      <td>  9999964.7</td>
+      <td> 35.0</td>
+      <td> [{u'order_id': u'0e6af58f1f6b4cc9b55f896b05532...</td>
+    </tr>
+    <tr>
+      <th>2000-01-06 21:00:00</th>
+      <td> 3.24</td>
+      <td>-32.7</td>
+      <td>  9999896.2</td>
+      <td>  97.2</td>
+      <td> [{u'status': 1, u'limit_reached': False, u'cre...</td>
+      <td> 2000-01-06 21:00:00+00:00</td>
+      <td> 2000-01-06 14:31:00+00:00</td>
+      <td>-6.5</td>
+      <td>  9999993.4</td>
+      <td> [{u'amount': 30, u'last_sale_price': 3.24, u'c...</td>
+      <td>-6.500000e-07</td>
+      <td>  9999928.9</td>
+      <td> 71.0</td>
+      <td> [{u'order_id': u'f27eb86362e641b7a7ba2b8e76e33...</td>
+    </tr>
+    <tr>
+      <th>2000-01-07 21:00:00</th>
+      <td> 3.40</td>
+      <td>-34.3</td>
+      <td>  9999861.9</td>
+      <td> 136.0</td>
+      <td> [{u'status': 1, u'limit_reached': False, u'cre...</td>
+      <td> 2000-01-07 21:00:00+00:00</td>
+      <td> 2000-01-07 14:31:00+00:00</td>
+      <td> 4.5</td>
+      <td>  9999997.9</td>
+      <td> [{u'amount': 40, u'last_sale_price': 3.4, u'co...</td>
+      <td> 4.500003e-07</td>
+      <td>  9999896.2</td>
+      <td> 97.2</td>
+      <td> [{u'order_id': u'9e5ef91c4c3c40cdbb49220e10dd5...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>As you can see, there is a row for each trading day, starting on the first business day of 2000. In the columns you can find various information about the state of your algorithm. The very first column <code>AAPL</code> was placed there by the <code>record()</code> function mentioned earlier and allows us to plot the price of apple. For example, we could easily examine now how our portfolio value changed over time compared to the AAPL stock price.</p>
+<pre><code>%pylab inline
+figsize(12, 12)
+import matplotlib.pyplot as plt
+
+ax1 = plt.subplot(211)
+perf.portfolio_value.plot(ax=ax1)
+ax1.set_ylabel('portfolio value')
+ax2 = plt.subplot(212, sharex=ax1)
+perf.AAPL.plot(ax=ax2)
+ax2.set_ylabel('AAPL stock price')
+
+Populating the interactive namespace from numpy and matplotlib
+
+
+
+
+
+&lt;matplotlib.text.Text at 0x7f6ab416b250&gt;
+</code></pre>
+<p><img alt="png" src="../tutorial._files/tutorial._11_2.png" /></p>
+<p>As you can see, our algorithm performance as assessed by the <code>portfolio_value</code> closely matches that of the AAPL stock price. This is not surprising as our algorithm only bought AAPL every chance it got.</p>
+<h3 id="ipython-notebook">IPython Notebook</h3>
+<p>The <a href="http://ipython.org/notebook.html">IPython Notebook</a> is a very powerful browser-based interface to a Python interpreter (this tutorial was written in it). As it is already the de-facto interface for most quantitative researchers <code>zipline</code> provides an easy way to run your algorithm inside the Notebook without requiring you to use the CLI. </p>
+<p>To use it you have to write your algorithm in a cell and let <code>zipline</code> know that it is supposed to run this algorithm. This is done via the <code>%%zipline</code> IPython magic command that is available after you <code>import zipline</code> from within the IPython Notebook. This magic takes the same arguments as the command line interface described above. Thus to run the algorithm from above with the same parameters we just have to execute the following cell after importing <code>zipline</code> to register the magic.</p>
+<pre><code>import zipline
+
+
+%%zipline --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o perf_ipython
+
+from zipline.api import symbol, order, record
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(symbol('AAPL'), 10)
+    record(AAPL=data[symbol('AAPL')].price)
+
+[2014-07-25 17:11] INFO: Performance: Simulated 3019 trading days out of 3019.
+[2014-07-25 17:11] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
+[2014-07-25 17:11] INFO: Performance: last close: 2011-12-30 21:00:00+00:00
+
+
+AAPL
+</code></pre>
+<p>Note that we did not have to specify an input file as above since the magic will use the contents of the cell and look for your algorithm functions there. Also, instead of defining an output file we are specifying a variable name with <code>-o</code> that will be created in the name space and contain the performance <code>DataFrame</code> we looked at above.</p>
+<pre><code>perf_ipython.head()
+</code></pre>
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>AAPL</th>
+      <th>capital_used</th>
+      <th>ending_cash</th>
+      <th>ending_value</th>
+      <th>orders</th>
+      <th>period_close</th>
+      <th>period_open</th>
+      <th>pnl</th>
+      <th>portfolio_value</th>
+      <th>positions</th>
+      <th>returns</th>
+      <th>starting_cash</th>
+      <th>starting_value</th>
+      <th>transactions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2000-01-03 21:00:00</th>
+      <td> 26.75</td>
+      <td>   0.0</td>
+      <td> 10000000.0</td>
+      <td>   0.0</td>
+      <td> [{u'status': 0, u'created': 2000-01-03 00:00:0...</td>
+      <td> 2000-01-03 21:00:00+00:00</td>
+      <td> 2000-01-03 14:31:00+00:00</td>
+      <td>  0.0</td>
+      <td> 10000000.0</td>
+      <td>                                                []</td>
+      <td> 0.000000e+00</td>
+      <td> 10000000.0</td>
+      <td>   0.0</td>
+      <td>                                                []</td>
+    </tr>
+    <tr>
+      <th>2000-01-04 21:00:00</th>
+      <td> 24.49</td>
+      <td>-245.2</td>
+      <td>  9999754.8</td>
+      <td> 244.9</td>
+      <td> [{u'status': 1, u'created': 2000-01-03 00:00:0...</td>
+      <td> 2000-01-04 21:00:00+00:00</td>
+      <td> 2000-01-04 14:31:00+00:00</td>
+      <td> -0.3</td>
+      <td>  9999999.7</td>
+      <td> [{u'amount': 10, u'last_sale_price': 24.49, u'...</td>
+      <td>-3.000000e-08</td>
+      <td> 10000000.0</td>
+      <td>   0.0</td>
+      <td> [{u'commission': 0.3, u'amount': 10, u'sid': u...</td>
+    </tr>
+    <tr>
+      <th>2000-01-05 21:00:00</th>
+      <td> 24.85</td>
+      <td>-248.8</td>
+      <td>  9999506.0</td>
+      <td> 497.0</td>
+      <td> [{u'status': 1, u'created': 2000-01-04 00:00:0...</td>
+      <td> 2000-01-05 21:00:00+00:00</td>
+      <td> 2000-01-05 14:31:00+00:00</td>
+      <td>  3.3</td>
+      <td> 10000003.0</td>
+      <td> [{u'amount': 20, u'last_sale_price': 24.85, u'...</td>
+      <td> 3.300000e-07</td>
+      <td>  9999754.8</td>
+      <td> 244.9</td>
+      <td> [{u'commission': 0.3, u'amount': 10, u'sid': u...</td>
+    </tr>
+    <tr>
+      <th>2000-01-06 21:00:00</th>
+      <td> 22.70</td>
+      <td>-227.3</td>
+      <td>  9999278.7</td>
+      <td> 681.0</td>
+      <td> [{u'status': 1, u'created': 2000-01-05 00:00:0...</td>
+      <td> 2000-01-06 21:00:00+00:00</td>
+      <td> 2000-01-06 14:31:00+00:00</td>
+      <td>-43.3</td>
+      <td>  9999959.7</td>
+      <td> [{u'amount': 30, u'last_sale_price': 22.7, u'c...</td>
+      <td>-4.329999e-06</td>
+      <td>  9999506.0</td>
+      <td> 497.0</td>
+      <td> [{u'commission': 0.3, u'amount': 10, u'sid': u...</td>
+    </tr>
+    <tr>
+      <th>2000-01-07 21:00:00</th>
+      <td> 23.78</td>
+      <td>-238.1</td>
+      <td>  9999040.6</td>
+      <td> 951.2</td>
+      <td> [{u'status': 1, u'created': 2000-01-06 00:00:0...</td>
+      <td> 2000-01-07 21:00:00+00:00</td>
+      <td> 2000-01-07 14:31:00+00:00</td>
+      <td> 32.1</td>
+      <td>  9999991.8</td>
+      <td> [{u'amount': 40, u'last_sale_price': 23.78, u'...</td>
+      <td> 3.210013e-06</td>
+      <td>  9999278.7</td>
+      <td> 681.0</td>
+      <td> [{u'commission': 0.3, u'amount': 10, u'sid': u...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="manual-advanced">Manual (advanced)</h3>
+<p>If you are happy with either way above you can safely skip this passage. To provide a closer look at how <code>zipline</code> actually works it is instructive to see how we run an algorithm without any of the interfaces demonstrated above which hide the actual <code>zipline</code> API.</p>
+<pre><code>import pytz
+from datetime import datetime
+
+from zipline.algorithm import TradingAlgorithm
+from zipline.utils.factory import load_bars_from_yahoo
+
+# Load data manually from Yahoo! finance
+start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
+end = datetime(2012, 1, 1, 0, 0, 0, 0, pytz.utc)
+data = load_bars_from_yahoo(stocks=['AAPL'], start=start,
+                            end=end)
+
+# Define algorithm
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(symbol('AAPL'), 10)
+    record(AAPL=data[symbol('AAPL')].price)
+
+# Create algorithm object passing in initialize and
+# handle_data functions
+algo_obj = TradingAlgorithm(initialize=initialize, 
+                            handle_data=handle_data)
+
+# Run algorithm
+perf_manual = algo_obj.run(data)
+
+[2014-07-25 17:12] INFO: Performance: Simulated 3019 trading days out of 3019.
+[2014-07-25 17:12] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
+[2014-07-25 17:12] INFO: Performance: last close: 2011-12-30 21:00:00+00:00
+
+
+AAPL
+</code></pre>
+<p>As you can see, we again define the functions as above but we manually pass them to the <code>TradingAlgorithm</code> class which is the main <code>zipline</code> class for running algorithms. We also manually load the data using <code>load_bars_from_yahoo()</code> and pass it to the <code>TradingAlgorithm.run()</code> method which kicks off the backtest simulation.</p>
+<h2 id="access-to-previous-prices-using-history">Access to previous prices using <code>history</code></h2>
+<h3 id="working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</h3>
+<p>The Dual Moving Average (DMA) is a classic momentum strategy. It's probably not used by any serious trader anymore but is still very instructive. The basic idea is that we compute two rolling or moving averages (mavg) -- one with a longer window that is supposed to capture long-term trends and one shorter window that is supposed to capture short-term trends. Once the short-mavg crosses the long-mavg from below we assume that the stock price has upwards momentum and long the stock. If the short-mavg crosses from above we exit the positions as we assume the stock to go down further.</p>
+<p>As we need to have access to previous prices to implement this strategy we need a new concept: History</p>
+<p><code>history()</code> is a convenience function that keeps a rolling window of data for you. The first argument is the number of bars you want to collect, the second argument is the unit (either <code>'1d'</code> for <code>'1m'</code> but note that you need to have minute-level data for using <code>1m</code>). For a more detailed description <code>history()</code>'s features, see the <a href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>. While you can directly use the <code>history()</code> function on Quantopian, in <code>zipline</code> you have to register each history container you want to use with <code>add_history()</code> and pass it the same arguments as the history function below. Lets look at the strategy which should make this clear:</p>
+<pre><code>%%zipline --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o perf_dma
+
+
+from zipline.api import order_target, record, symbol, history, add_history
+import numpy as np
+
+def initialize(context):
+    # Register 2 histories that track daily prices,
+    # one with a 100 window and one with a 300 day window
+    add_history(100, '1d', 'price')
+    add_history(300, '1d', 'price')
+
+    context.i = 0
+
+
+def handle_data(context, data):
+    # Skip first 300 days to get full windows
+    context.i += 1
+    if context.i &lt; 300:
+        return
+
+    # Compute averages
+    # history() has to be called with the same params
+    # from above and returns a pandas dataframe.
+    short_mavg = history(100, '1d', 'price').mean()
+    long_mavg = history(300, '1d', 'price').mean()
+
+    # Trading logic
+    if short_mavg[0] &gt; long_mavg[0]:
+        # order_target orders as many shares as needed to
+        # achieve the desired number of shares.
+        order_target(symbol('AAPL'), 100)
+    elif short_mavg[0] &lt; long_mavg[0]:
+        order_target(symbol('AAPL'), 0)
+
+    # Save values for later inspection
+    record(AAPL=data[symbol('AAPL')].price,
+           short_mavg=short_mavg[0],
+           long_mavg=long_mavg[0])
+
+
+def analyze(context, perf):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    perf.portfolio_value.plot(ax=ax1)
+    ax1.set_ylabel('portfolio value in $')
+
+    ax2 = fig.add_subplot(212)
+    perf['AAPL'].plot(ax=ax2)
+    perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
+
+    perf_trans = perf.ix[[t != [] for t in perf.transactions]]
+    buys = perf_trans.ix[[t[0]['amount'] &gt; 0 for t in perf_trans.transactions]]
+    sells = perf_trans.ix[
+        [t[0]['amount'] &lt; 0 for t in perf_trans.transactions]]
+    ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
+             '^', markersize=10, color='m')
+    ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
+             'v', markersize=10, color='k')
+    ax2.set_ylabel('price in $')
+    plt.legend(loc=0)
+    plt.show()
+
+[2014-07-25 17:59] INFO: Performance: Simulated 3521 trading days out of 3521.
+[2014-07-25 17:59] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
+[2014-07-25 17:59] INFO: Performance: last close: 2013-12-31 21:00:00+00:00
+
+
+AAPL
+</code></pre>
+<p><img alt="png" src="../tutorial._files/tutorial._22_2.png" /></p>
+<p>Here we are explicitly defining an <code>analyze()</code> function that gets automatically called once the backtest is done (this is not possible on Quantopian currently).</p>
+<p>Although it might not be directly apparent, the power of <code>history()</code> (pun intended) can not be under-estimated as most algorithms make use of prior market developments in one form or another. You could easily devise a strategy that trains a classifier with <a href="http://scikit-learn.org/stable/"><code>scikit-learn</code></a> which tries to predict future market movements based on past prices (note, that most of the <code>scikit-learn</code> functions require <code>numpy.ndarray</code>s rather than <code>pandas.DataFrame</code>s, so you can simply pass the underlying <code>ndarray</code> of a <code>DataFrame</code> via <code>.values</code>).</p>
+<p>We also used the <code>order_target()</code> function above. This and other functions like it can make order management and portfolio rebalancing much easier. See the <a href="https://www.quantopian.com/help#api-order-methods">Quantopian documentation on order functions</a> fore more details.</p>
+<h1 id="conclusions">Conclusions</h1>
+<p>We hope that this tutorial gave you a little insight into the architecture, API, and features of <code>zipline</code>. For next steps, check out some of the <a href="https://github.com/quantopian/zipline/tree/master/zipline/examples">examples</a>.</p>
+<p>Feel free to ask questions on <a href="https://groups.google.com/forum/#!forum/zipline">our mailing list</a>, report problems on our <a href="https://github.com/quantopian/zipline/issues?state=open">GitHub issue tracker</a>, <a href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">get involved</a>, and <a href="https://quantopian.com">checkout Quantopian</a>.</p>
+</div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        
+
+        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/prettify-1.0.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script src="../js/base.js"></script>
+    </body>
+</html>
