@@ -1,7 +1,6 @@
 Zipline
 =======
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 [![version status](https://pypip.in/v/zipline/badge.png)](https://pypi.python.org/pypi/zipline)
 [![downloads](https://pypip.in/d/zipline/badge.png)](https://pypi.python.org/pypi/zipline)
 [![build status](https://travis-ci.org/quantopian/zipline.png?branch=master)](https://travis-ci.org/quantopian/zipline)
@@ -9,27 +8,17 @@ Zipline
 
 Zipline is a Pythonic algorithmic trading library.  The system is
 fundamentally event-driven and a close approximation of how
-live-trading systems operate.  Currently, backtesting is well
-supported, but the intent is to develop the library for both paper and
-live trading, so that the same logic used for backtesting can be
-applied to the market.
+live-trading systems operate.
 
 Zipline is currently used in production as the backtesting engine
 powering Quantopian (https://www.quantopian.com) -- a free,
 community-centered platform that allows development and real-time
 backtesting of trading algorithms in the web browser.
 
+[*Join our community!*](https://groups.google.com/forum/#!forum/zipline)
+
 Want to contribute? See our [open requests](https://github.com/quantopian/zipline/wiki/Contribution-Requests)
 and our [general guidelines](https://github.com/quantopian/zipline#contributions) below.
-
-Discussion and Help
-===================
-
-Discussion of the project is held at the Google Group,
-<zipline@googlegroups.com>,
-<https://groups.google.com/forum/#!forum/zipline>.
-
-For other questions, please contact <opensource@quantopian.com>.
 
 Features
 ========
@@ -103,7 +92,7 @@ Dependencies
 Quickstart
 ==========
 
-See our [tutorial](http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb) to get started.
+See our [getting started tutorial](tutorial.md).
 
 The following code implements a simple dual moving average algorithm.
 
