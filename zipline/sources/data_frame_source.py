@@ -1,6 +1,5 @@
-
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,11 +25,11 @@ from zipline.sources.data_source import DataSource
 
 class DataFrameSource(DataSource):
     """
-    Yields all events in event_list that match the given sid_filter.
-    If no event_list is specified, generates an internal stream of events
-    to filter.  Returns all events if filter is None.
+    Data source that yields from a pandas DataFrame.
 
-    Configuration options:
+    :Axis layout:
+        * columns : sids
+        * index : datetime
 
     sids   : list of values representing simulated internal sids
     start  : start date
@@ -88,11 +87,12 @@ class DataFrameSource(DataSource):
 
 class DataPanelSource(DataSource):
     """
-    Yields all events in event_list that match the given sid_filter.
-    If no event_list is specified, generates an internal stream of events
-    to filter.  Returns all events if filter is None.
+    Data source that yields from a pandas Panel.
 
-    Configuration options:
+    :Axis layout:
+        * items : sids
+        * major_axis : datetime
+        * minor_axis : price, volume, ...
 
     sids   : list of values representing simulated internal sids
     start  : start date
