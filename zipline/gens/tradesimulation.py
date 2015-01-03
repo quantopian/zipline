@@ -233,8 +233,8 @@ class AlgorithmSimulator(object):
 
                 # create new liquidation order, if applicable
                 if event.sid in self.algo.portfolio.positions:
-                    held_shares = self.algo.portfolio.positions[event.sid]
-                    self.algo.order(event.sid, -1 * held_shares)
+                    amt = self.algo.portfolio.positions[event.sid].amount
+                    self.algo.order(event.sid, -1 * amt)
 
                 self.update_universe(event)
                 any_trade_occurred = True
