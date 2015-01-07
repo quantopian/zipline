@@ -320,25 +320,33 @@ class PerformancePeriod(object):
     def calculate_positions_value(self):
         return np.dot(self._position_amounts, self._position_last_sale_prices)
 
-    def _long_value(self):
+    def _longs_count(self):
+        longs = self._position_amounts[self._position_amounts > 0]
+        return longs.count()
+
+    def _long_exposure(self):
         pos_values = self._position_amounts * self._position_last_sale_prices
         longs = pos_values[pos_values > 0]
         return longs.sum()
 
-    def _short_value(self):
+    def _shorts_count(self):
+        shorts = self._position_amounts[self._position_amounts < 0]
+        return shorts.count()
+
+    def _short_exposure(self):
         pos_values = self._position_amounts * self._position_last_sale_prices
         shorts = pos_values[pos_values < 0]
         return shorts.sum()
 
     def _gross_exposure(self):
-        return self._long_value() + abs(self._short_value())
+        return self._long_exposure() + abs(self._short_exposure())
 
     def _net_exposure(self):
         return self.calculate_positions_value()
 
     @property
     def _net_liquidation_value(self):
-        return self.ending_cash + self._long_value() + self._short_value()
+        return self.ending_cash + self._long_exposure() + self._short_exposure()
 
     def _gross_leverage(self):
         net_liq = self._net_liquidation_value
@@ -380,7 +388,12 @@ class PerformancePeriod(object):
             'returns': self.returns,
             'period_open': self.period_open,
             'period_close': self.period_close,
-            'gross_leverage': self._gross_leverage()
+            'gross_leverage': self._gross_leverage(),
+            'net_leverage': self._net_leverage(),
+            'short_exposure': self._short_exposure(),
+            'long_exposure': self._long_exposure(),
+            'longs_count': self._longs_count(),
+            'shorts_count': self._shorts_count()
         }
 
         return rval
