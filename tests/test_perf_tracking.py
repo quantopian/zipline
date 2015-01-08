@@ -53,6 +53,29 @@ oneday = timedelta(days=1)
 tradingday = timedelta(hours=6, minutes=30)
 
 
+def check_perf_period(pp,
+                      gross_leverage,
+                      net_leverage,
+                      long_exposure,
+                      longs_count,
+                      short_exposure,
+                      shorts_count):
+
+    perf_data = pp.to_dict()
+    np.testing.assert_allclose(
+        gross_leverage, perf_data['gross_leverage'], rtol=1e-3)
+    np.testing.assert_allclose(
+        net_leverage, perf_data['net_leverage'], rtol=1e-3)
+    np.testing.assert_allclose(
+        long_exposure, perf_data['long_exposure'], rtol=1e-3)
+    np.testing.assert_allclose(
+        longs_count, perf_data['longs_count'], rtol=1e-3)
+    np.testing.assert_allclose(
+        short_exposure, perf_data['short_exposure'], rtol=1e-3)
+    np.testing.assert_allclose(
+        shorts_count, perf_data['shorts_count'], rtol=1e-3)
+
+
 def check_account(account,
                   settled_cash,
                   equity_with_loan,
@@ -865,6 +888,14 @@ class TestPositionPerformance(unittest.TestCase):
 
         pp.calculate_performance()
 
+        check_perf_period(
+            pp,
+            gross_leverage=2.0,
+            net_leverage=0.0,
+            long_exposure=1000.0,
+            longs_count=1,
+            short_exposure=-1000.0,
+            shorts_count=1)
         # Validate that the account attributes were updated.
         account = pp.as_account()
         check_account(account,
@@ -888,6 +919,15 @@ class TestPositionPerformance(unittest.TestCase):
 
         # Validate that the account attributes were updated.
         account = pp.as_account()
+
+        check_perf_period(
+            pp,
+            gross_leverage=2.5,
+            net_leverage=-0.25,
+            long_exposure=900.0,
+            longs_count=1,
+            short_exposure=-1100.0,
+            shorts_count=1)
 
         check_account(account,
                       settled_cash=1000.0,
@@ -925,6 +965,15 @@ class TestPositionPerformance(unittest.TestCase):
 
         pp.calculate_performance()
 
+        check_perf_period(
+            pp,
+            gross_leverage=10.0,
+            net_leverage=10.0,
+            long_exposure=10000.0,
+            longs_count=1,
+            short_exposure=0.0,
+            shorts_count=0)
+
         # Validate that the account attributes were updated.
         account = pp.as_account()
         check_account(account,
@@ -943,6 +992,15 @@ class TestPositionPerformance(unittest.TestCase):
         pp.update_last_sale(trades[-1])
 
         pp.calculate_performance()
+
+        check_perf_period(
+            pp,
+            gross_leverage=5.5,
+            net_leverage=5.5,
+            long_exposure=11000.0,
+            longs_count=1,
+            short_exposure=0.0,
+            shorts_count=0)
 
         # Validate that the account attributes were updated.
         account = pp.as_account()
@@ -1038,6 +1096,15 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         self.assertEqual(pp.pnl, 100, "gain of 1 on 100 shares should be 100")
+
+        check_perf_period(
+            pp,
+            gross_leverage=1.0,
+            net_leverage=1.0,
+            long_exposure=1100.0,
+            longs_count=1,
+            short_exposure=0.0,
+            shorts_count=0)
 
         # Validate that the account attributes were updated.
         account = pp.as_account()
@@ -1242,6 +1309,15 @@ cost of sole txn in test"
             "drop of 1 on -100 shares should be 100"
         )
 
+        check_perf_period(
+            pp,
+            gross_leverage=0.8181,
+            net_leverage=-0.8181,
+            long_exposure=0.0,
+            longs_count=0,
+            short_exposure=-900.0,
+            shorts_count=1)
+
         # Validate that the account attributes.
         account = ppTotal.as_account()
         check_account(account,
@@ -1336,6 +1412,15 @@ shares in position"
             300,
             "gain of 1 on 100 shares should be 300"
         )
+
+        check_perf_period(
+            pp,
+            gross_leverage=0.0,
+            net_leverage=0.0,
+            long_exposure=0.0,
+            longs_count=0,
+            short_exposure=0.0,
+            shorts_count=0)
 
         account = pp.as_account()
         check_account(account,
