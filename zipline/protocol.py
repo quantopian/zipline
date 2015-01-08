@@ -199,6 +199,16 @@ class Positions(dict):
         return pos
 
 
+class Lot(object):
+    def __init__(self, sid):
+        self.sid = sid
+        self.amount = 0
+        self.cost_basis = 0.0
+        self.last_sale_price = 0.0
+        self.closed = False
+        self.close_dt = None
+
+
 class SIDData(object):
     # Cache some data on the class so that this is shared for all instances of
     # siddata.
