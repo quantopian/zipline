@@ -49,3 +49,16 @@
   > # The standard deviation of the price in the last 3 days.
   > data[security].stdev(3)
   > ```
+
+* New fields in Performance Period
+[PR464](https://github.com/quantopian/zipline/pull/464)
+
+  > Performance Period has new fields accessible in return value of to_dict:
+
+  > - gross leverage
+  > - net leverage
+  > - short exposure
+  > - long exposure
+  > - shorts count
+  > - longs count
+
