@@ -346,7 +346,9 @@ class PerformancePeriod(object):
 
     @property
     def _net_liquidation_value(self):
-        return self.ending_cash + self._long_exposure() + self._short_exposure()
+        return self.ending_cash + \
+            self._long_exposure() + \
+            self._short_exposure()
 
     def _gross_leverage(self):
         net_liq = self._net_liquidation_value
