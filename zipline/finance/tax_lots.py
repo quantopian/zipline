@@ -34,7 +34,10 @@ from math import (
 )
 
 import logbook
+import numpy as np
 import zipline.protocol as zp
+
+
 log = logbook.Logger('Lot')
 
 
@@ -94,7 +97,7 @@ class Lot(object):
             must be smaller in absolute value)
         :param price: the close price
         """
-        if copysign(1, amount) == copysign(1, self.amount):
+        if np.sign(amount) == np.sign(self.amount):
             raise ValueError(
                 'Close amount {new_amt} can not have the same sign as'
                 'Lot amount {amt}.'.format(new_amt=amount, amt=self.amount))
@@ -219,8 +222,8 @@ class LotMethod(object):
 
     def close_lots(self, amount, dt, price, open_lots):
         # get lots with opposite signs from amount
-        sgn = copysign(1, -amount)
-        lots = (l for l in open_lots if copysign(1, l.amount) == sgn)
+        lot_sgn = -np.sign(amount)
+        lots = (l for l in open_lots if copysign(1, l.amount) == lot_sgn)
 
         # sort lots
         sorted_lots = iter(self.sort_lots(lots))
