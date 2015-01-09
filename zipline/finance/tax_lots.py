@@ -262,8 +262,11 @@ class LIFO(LotMethod):
 
 
 class SpecificLots(LotMethod):
+    def __init__(self, lots):
+        self.lots = lots
+
     def sort_lots(self, lots):
-        return lots
+        return self.lots
 
 
 
