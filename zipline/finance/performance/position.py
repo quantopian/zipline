@@ -74,7 +74,7 @@ class Position_OLD(object):
         # cash dividend
         if dividend['net_amount']:
             out['cash_amount'] = self.amount * dividend['net_amount']
-        elif dividend['gross_amvount']:
+        elif dividend['gross_amount']:
             out['cash_amount'] = self.amount * dividend['gross_amount']
 
         payment_owed = zp.dividend_payment(out)
