@@ -107,7 +107,7 @@ class Lot(object):
                 'Tried to close {new_amt} shares but this lot only '
                 'contains {amt}.'.format(new_amt=amount, amt=self.amount))
 
-        self.amount -= amount
+        self.amount += amount
 
         if self.amount == 0:
             closed_lot = self
