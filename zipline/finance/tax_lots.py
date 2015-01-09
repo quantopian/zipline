@@ -149,8 +149,8 @@ class Lot(object):
     def handle_split(self, split):
         """
         Update the lot by the split ratio. If the split creates fractional
-        shares, return them to be turned into cash. If the Lot already contained
-        fractional shares, then they are maintained.
+        shares, return them to be turned into cash. If the Lot already
+        contained fractional shares, then they are maintained.
 
         Returns the unused cash.
 

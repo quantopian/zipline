@@ -328,9 +328,7 @@ class Position(object):
         :param dt: date
         :param price: price
         """
-        #FIXME Add commissions
-
-        total_amount = self.amount + amount
+        # FIXME Add commissions
 
         # new position
         if self.amount == 0:
@@ -372,6 +370,7 @@ class Position(object):
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price
         }
+
 
 class positiondict(dict):
 
