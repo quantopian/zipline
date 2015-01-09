@@ -22,6 +22,7 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
+from zipline.utils.api_support import ZiplineAPI
 
 log = Logger('Trade Simulation')
 
@@ -252,11 +253,12 @@ class AlgorithmSimulator(object):
         Call the user's handle_data, returning any orders placed by the algo
         during the call.
         """
-        self.algo.event_manager.handle_data(
-            self.algo,
-            self.current_data,
-            self.simulation_dt,
-        )
+        with ZiplineAPI(self.algo):
+            self.algo.event_manager.handle_data(
+                self.algo,
+                self.current_data,
+                self.simulation_dt,
+            )
         orders = self.algo.blotter.new_orders
         self.algo.blotter.new_orders = []
         return orders
