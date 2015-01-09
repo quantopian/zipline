@@ -286,27 +286,15 @@ class PerformancePeriod(object):
                 del self.orders_by_id[order.id]
             self.orders_by_id[order.id] = order
 
-    def update_position(self, sid, amount=None, last_sale_price=None,
-                        last_sale_date=None, cost_basis=None):
+    def update_position(self, sid, amount=None,
+                        last_sale_price=None, last_sale_date=None):
         pos = self.positions[sid]
 
         if amount is not None:
-            pos.amount = amount
             self.set_position_amount(sid, amount)
-        if last_sale_price is not None:
-            pos.last_sale_price = last_sale_price
+        if last_sale_price is not None and last_sale_date is not None:
+            pos.update_last_sale(last_sale_date, last_sale_price)
             self.set_position_last_sale_price(sid, last_sale_price)
-        if last_sale_date is not None:
-            pos.last_sale_date = last_sale_date
-        if cost_basis is not None:
-            pos.cost_basis = cost_basis
-
-    def update_position(self, sid, amount=None, last_sale_price=None,
-                        last_sale_date=None, cost_basis=None):
-        pos = self.positions[sid]
-        pos.update(amount=amount, dt=last_sale_date, price=last_sale_price)
-        self.set_position_amount(sid, amount)
-
 
     def execute_transaction(self, txn):
         # Update Position
