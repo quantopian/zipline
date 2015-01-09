@@ -78,8 +78,9 @@ class Lot(object):
     def pnl(self):
         return self.amount * (self.last_sale_price - self.cost_basis)
 
-    def update_last_sale_price(self, price):
+    def update_last_sale(self, dt, price):
         self.last_sale_price = price
+        self.last_sale_date = dt
 
     def close(self, dt, amount, price):
         """
