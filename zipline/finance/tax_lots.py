@@ -216,7 +216,7 @@ class Lot(object):
         }
 
 
-class LotMethod(object):
+class LotInstructions(object):
     def sort_lots(self, lots):
         raise NotImplementedError()
 
@@ -245,32 +245,41 @@ class LotMethod(object):
         return closed_lots
 
 
-class FIFO(LotMethod):
+class FIFO(LotInstructions):
+    """
+    First In First Out
+    """
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.dt)
 
 
-class LIFO(LotMethod):
+class LIFO(LotInstructions):
+    """
+    Last In First Out
+    """
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.dt, reverse=True)
 
 
-class HIFO(LotMethod):
+class HIFO(LotInstructions):
+    """
+    Highest-cost In First Out
+    """
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.cost_basis)
 
 
-class LIFO(LotMethod):
+class LOFO(LotInstructions):
+    """
+    LOwest-cost in First Out
+    """
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.cost_basis, reverse=True)
 
 
-class SpecificLots(LotMethod):
+class SpecificLots(LotInstructions):
     def __init__(self, lots):
         self.lots = lots
 
     def sort_lots(self, lots):
         return self.lots
-
-
-

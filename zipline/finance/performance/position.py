@@ -234,14 +234,14 @@ class cached_property(object):
 class Position(object):
     def __init__(self, sid, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None,
-                 default_lot_method=None):
+                 default_lot_instructions=None):
 
         self.sid = sid
         self.lots = set()
-        if default_lot_method is None:
-            default_lot_method = tax_lots.FIFO()
-        assert not isinstance(default_lot_method, tax_lots.SpecificLots)
-        self.default_lot_method = default_lot_method
+        if default_lot_instructions is None:
+            default_lot_instructions = tax_lots.FIFO()
+        assert not isinstance(default_lot_instructions, tax_lots.SpecificLots)
+        self.default_lot_instructions = default_lot_instructions
         self._cache = {}
 
         if amount != 0:
@@ -282,15 +282,15 @@ class Position(object):
         else:
             return self.market_value / self.amount
 
-    def close(self, amount, dt, price, method=None, lots=None):
+    def close(self, amount, dt, price, instructions=None, lots=None):
 
         if lots is None:
             lots = self.open_lots
 
-        if method is None:
-            method = self.default_lot_method
+        if instructions is None:
+            instructions = self.default_lot_instructions
 
-        closed_lots = method.close_lots(
+        closed_lots = instructions.close_lots(
             dt=dt, amount=amount, price=price, open_lots=lots)
 
         self.lots.update(closed_lots)
