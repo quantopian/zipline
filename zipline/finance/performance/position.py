@@ -252,11 +252,11 @@ class Position(object):
 
     @cached_property
     def closed_lots(self):
-        return filter(lambda l: l.closed, self.lots)
+        return set(filter(lambda l: l.closed, self.lots))
 
     @cached_property
     def open_lots(self):
-        return filter(lambda l: not l.closed, self.lots)
+        return set(filter(lambda l: not l.closed, self.lots))
 
     @cached_property
     def amount(self):
