@@ -72,6 +72,10 @@ from . period import PerformancePeriod
 log = logbook.Logger('Performance')
 
 
+TRADE_OR_LIQUIDATION = (
+    zp.DATASOURCE_TYPE.TRADE, zp.DATASOURCE_TYPE.LIQUIDATION)
+
+
 class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
@@ -267,8 +271,7 @@ class PerformanceTracker(object):
     def process_event(self, event):
         self.event_count += 1
 
-        if event.type in (
-                zp.DATASOURCE_TYPE.TRADE, zp.DATASOURCE_TYPE.LIQUIDATION):
+        if event.type in TRADE_OR_LIQUIDATION:
             # update last sale
             for perf_period in self.perf_periods:
                 perf_period.update_last_sale(event)
