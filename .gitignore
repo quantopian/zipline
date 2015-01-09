@@ -58,3 +58,6 @@ benchmarks.db
 
 # Vagrant temp folder
 .vagrant
+
+# PyCharm
+.idea*
