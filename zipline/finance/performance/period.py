@@ -301,6 +301,13 @@ class PerformancePeriod(object):
         if cost_basis is not None:
             pos.cost_basis = cost_basis
 
+    def update_position(self, sid, amount=None, last_sale_price=None,
+                        last_sale_date=None, cost_basis=None):
+        pos = self.positions[sid]
+        pos.update(amount=amount, dt=last_sale_date, price=last_sale_price)
+        self.set_position_amount(sid, amount)
+
+
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
