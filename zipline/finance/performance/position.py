@@ -39,6 +39,7 @@ from math import (
 )
 
 import logbook
+import numpy as np
 import pandas as pd
 import zipline.protocol as zp
 import zipline.finance.tax_lots as tax_lots
@@ -311,6 +312,10 @@ class Position(object):
     def handle_split(self, split):
         return sum(l.handle_split(split) for l in self.open_lots)
 
+    def update_last_sale(self, dt, price):
+        for lot in self.open_lots:
+            lot.update_last_sale(dt, price)
+
     def update(self, txn):
         if self.sid != txn.sid:
             raise Exception('updating position with txn for a '
@@ -318,28 +323,33 @@ class Position(object):
         self._update(txn.amount, txn.dt, txn.price)
 
     def _update(self, amount, dt, price):
+        """
+        :param amount: INCREMENTAL amount
+        :param dt: date
+        :param price: price
+        """
         #FIXME Add commissions
 
-        total_shares = self.amount + amount
+        total_amount = self.amount + amount
 
-        # close the entire position
-        if total_shares == 0:
-            self.close(amount=amount, dt=dt, price=price)
+        # new position
+        if self.amount == 0:
+            self.open(amount=amount, dt=dt, price=price)
 
         else:
-            prev_direction = copysign(1, self.amount)
-            txn_direction = copysign(1, amount)
+            prev_direction = np.sign(self.amount)
+            txn_direction = np.sign(amount)
 
             # closing lots
             if prev_direction != txn_direction:
 
                 # partial close
-                if abs(amount) < abs(self.amount):
+                if abs(amount) <= abs(self.amount):
                     self.close(amount=amount, dt=dt, price=price)
 
                 # full close and reopen in opposite direction
                 else:
-                    self.close(amount=self.amount, dt=txn.dt, price=price)
+                    self.close(amount=self.amount, dt=dt, price=price)
                     self.open(amount=self.amount - amount, dt=dt, price=price)
 
             # opening lots
