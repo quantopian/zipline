@@ -225,6 +225,10 @@ class cached_property(object):
             instance._cache[self._method_name] = self._method(instance)
         return instance._cache[self._method_name]
 
+    def __set__(self, instance, val):
+        raise AttributeError(
+            'Can not set property values: {}'.format(self._method_name))
+
 
 class Position(object):
     def __init__(self, sid, amount=0, cost_basis=0.0,
