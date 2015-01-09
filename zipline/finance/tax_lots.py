@@ -251,12 +251,12 @@ class LIFO(LotMethod):
         return sorted(lots, key=lambda l: l.dt, reverse=True)
 
 
-class HighCost(LotMethod):
+class HIFO(LotMethod):
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.cost_basis)
 
 
-class LowCost(LotMethod):
+class LIFO(LotMethod):
     def sort_lots(self, lots):
         return sorted(lots, key=lambda l: l.cost_basis, reverse=True)
 
