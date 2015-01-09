@@ -351,6 +351,17 @@ class Position(object):
     def adjust_commission_cost_basis(self, commission):
         raise NotImplementedError
 
+    def to_dict(self):
+        """
+        Creates a dictionary representing the state of this position.
+        Returns a dict object of the form:
+        """
+        return {
+            'sid': self.sid,
+            'amount': self.amount,
+            'cost_basis': self.cost_basis,
+            'last_sale_price': self.last_sale_price
+        }
 
 class positiondict(dict):
 
