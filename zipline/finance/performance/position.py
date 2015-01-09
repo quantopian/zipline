@@ -276,7 +276,10 @@ class Position(object):
 
     @cached_property
     def last_sale_price(self):
-        return next(iter(self.open_lots)).last_sale_price
+        if self.amount == 0:
+            return 0
+        else:
+            return self.market_value / self.amount
 
     def close(self, amount, dt, price, method=None, lots=None):
 
