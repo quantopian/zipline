@@ -212,7 +212,7 @@ class Lot(object):
             'last_sale_price': self.last_sale_price,
             'market_value': self.market_value,
             'closed': self.closed,
-            'closed_dt': self.closed_dt
+            'close_dt': self.close_dt
         }
 
 
