@@ -246,6 +246,7 @@ Initialize sids and other state variables.
             self._handle_data = kwargs.pop('handle_data')
             self._before_trading_start = kwargs.pop('before_trading_start',
                                                     None)
+            self._analyze = kwargs.pop('analyze', None)
 
         self.event_manager.add_event(
             zipline.utils.events.Event(
