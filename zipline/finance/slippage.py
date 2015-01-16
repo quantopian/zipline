@@ -101,8 +101,7 @@ def transact_stub(slippage, commission, event, open_orders):
             direction = math.copysign(1, transaction.amount)
             per_share, total_commission = commission.calculate(transaction)
             transaction.price += per_share * direction
-            if event.type != DATASOURCE_TYPE.LIQUIDATION:
-                transaction.commission = total_commission
+            transaction.commission = total_commission
         yield order, transaction
 
 
