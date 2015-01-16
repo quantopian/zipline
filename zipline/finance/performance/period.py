@@ -82,6 +82,7 @@ from collections import (
 from six import iteritems, itervalues
 
 import zipline.protocol as zp
+import zipline.finance.slippage as slippage
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -317,6 +318,28 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
+    def handle_liquidation(self, event):
+
+        if event.type != zp.DATASOURCE_TYPE.LIQUIDATION:
+            return
+
+        # if no position is held, skip
+        if event.sid not in self.positions:
+            return
+
+        # create a transaction to liquidate the position
+        txn = slippage.Transaction(
+            sid=event.sid,
+            amount=-self.positions[event.sid].amount,
+            dt=event.dt,
+            price=event.price,
+            order_id='liquidation_{sid}_{dt}_{price}'.format(
+                sid=event.sid, dt=event.dt, price=event.price)
+        )
+
+        # execute transaction
+        self.execute_transaction(txn)
+
     def calculate_positions_value(self):
         return np.dot(self._position_amounts, self._position_last_sale_prices)
 
@@ -356,8 +379,7 @@ class PerformancePeriod(object):
         if event.sid not in self.positions:
             return
 
-        if event.type not in (
-                zp.DATASOURCE_TYPE.TRADE, zp.DATASOURCE_TYPE.LIQUIDATION):
+        if event.type != zp.DATASOURCE_TYPE.TRADE:
             return
 
         if not pd.isnull(event.price):
