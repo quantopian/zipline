@@ -16,6 +16,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
+import pytz
 from six.moves import range
 from textwrap import dedent
 from unittest import TestCase
@@ -86,6 +87,7 @@ from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
 from zipline.utils.events import DateRuleFactory, TimeRuleFactory
 from zipline.algorithm import TradingAlgorithm
+from zipline.protocol import Event, DATASOURCE_TYPE
 
 
 class TestRecordAlgorithm(TestCase):
@@ -1095,3 +1097,173 @@ class TestTradingControls(TestCase):
                                 handle_data=handle_data)
         algo.run(self.source)
         self.source.rewind()
+
+
+class BuyAndHoldAlgorithm(TradingAlgorithm):
+
+    SID_TO_BUY_AND_HOLD = 1
+
+    def initialize(self):
+        self.holding = False
+
+    def handle_data(self, data):
+        if not self.holding:
+            self.order(self.SID_TO_BUY_AND_HOLD, 100)
+            self.holding = True
+
+
+class TestLiquidation(TestCase):
+
+    def setUp(self):
+
+        self.sim_params = SimulationParameters(
+            period_start=datetime.datetime(2006, 1, 1, tzinfo=pytz.utc),
+            period_end=datetime.datetime(2006, 1, 31, tzinfo=pytz.utc),
+            emission_rate='daily',
+            data_frequency='daily')
+
+        # create benchmark data
+        self.benchmark_data = [
+            Event({
+                'returns': 0.1,
+                'dt': datetime.datetime(2006, 1, 3, tzinfo=pytz.utc),
+                'source_id': 'test-benchmark',
+                'type': DATASOURCE_TYPE.BENCHMARK
+            }),
+            Event({
+                'returns': 0.2,
+                'dt': datetime.datetime(2006, 1, 4, tzinfo=pytz.utc),
+                'source_id': 'test-benchmark',
+                'type': DATASOURCE_TYPE.BENCHMARK
+            }),
+            Event({
+                'returns': 0.1,
+                'dt': datetime.datetime(2006, 1, 5, tzinfo=pytz.utc),
+                'source_id': 'test-benchmark',
+                'type': DATASOURCE_TYPE.BENCHMARK
+            }),
+            Event({
+                'returns': -0.1,
+                'dt': datetime.datetime(2006, 1, 6, tzinfo=pytz.utc),
+                'source_id': 'test-benchmark',
+                'type': DATASOURCE_TYPE.BENCHMARK
+            }),
+        ]
+
+        # create security data
+        self.security_data = [
+            Event({
+                'price': 100.0,
+                'dt': datetime.datetime(2006, 1, 3, tzinfo=pytz.utc),
+                'source_id': 'test-data',
+                'volume': 1000,
+                'sid': 1,
+                'type': DATASOURCE_TYPE.TRADE
+            }),
+            Event({
+                'price': 100.0,
+                'dt': datetime.datetime(2006, 1, 4, tzinfo=pytz.utc),
+                'source_id': 'test-data',
+                'volume': 1000,
+                'sid': 1,
+                'type': DATASOURCE_TYPE.TRADE
+            }),
+            Event({
+                'price': 110.0,
+                'dt': datetime.datetime(2006, 1, 5, tzinfo=pytz.utc),
+                'source_id': 'test-data',
+                'volume': 1000,
+                'sid': 1,
+                'type': DATASOURCE_TYPE.TRADE
+            }),
+            Event({
+                'price': 120.0,
+                'dt': datetime.datetime(2006, 1, 6, tzinfo=pytz.utc),
+                'source_id': 'test-data',
+                'volume': 1000,
+                'sid': 1,
+                'type': DATASOURCE_TYPE.TRADE
+            }),
+        ]
+
+    def create_liquidation(self, dt, price):
+        return [
+            Event({
+                'price': price,
+                'dt': dt,
+                'source_id': 'test-liquidation',
+                'sid': 1,
+                'type': DATASOURCE_TYPE.LIQUIDATION
+                }
+            )
+        ]
+
+    def test_liquidation_control(self):
+        """
+        Control test to make sure algorithm is working as expected. This
+        doesn't involve any liquidation events.
+        """
+        algo = BuyAndHoldAlgorithm(sim_params=self.sim_params)
+        result = algo.run(
+            benchmark_return_source=self.benchmark_data,
+            source=[self.security_data]
+        )
+
+        # algorithm should have a position
+        self.assertEqual(len(result.positions[-1]), 1)
+        # algorithm should have made money
+        self.assertGreater(result.portfolio_value[-1], 1000)
+
+    def test_liquidation(self):
+        """
+        Causes liquidation near the end of the simulation
+        """
+        liquidation = self.create_liquidation(
+            dt=datetime.datetime(2006, 1, 18, tzinfo=pytz.utc), price=100)
+
+        algo = BuyAndHoldAlgorithm(sim_params=self.sim_params)
+        result = algo.run(
+            benchmark_return_source=self.benchmark_data,
+            source=[self.security_data, liquidation]
+        )
+
+        # algorithm should have had a position for 9 days
+        self.assertEqual(len(result.positions.nonzero()[0]), 9)
+        # algorithm should have made money
+        self.assertGreater(result.portfolio_value[-1], 1000)
+
+    def test_liquidation_middle(self):
+        """
+        Test that liquidation events are responded to even if they occur in the
+        middle of otherwise valid trade events
+        """
+        liquidation = self.create_liquidation(
+            dt=datetime.datetime(2006, 1, 5, tzinfo=pytz.utc), price=100)
+
+        algo = BuyAndHoldAlgorithm(sim_params=self.sim_params)
+        result = algo.run(
+            benchmark_return_source=self.benchmark_data,
+            source=[self.security_data, liquidation]
+        )
+        # algorithm should have had a position for 1 day
+        self.assertEqual(len(result.positions.nonzero()[0]), 1)
+
+        # algorithm should have made money
+        self.assertGreater(result.portfolio_value[-1], 1000)
+
+    def test_liquidation_middle_zero(self):
+        """
+        Same as test_liquidation_middle, but the liquidation price is zero.
+        """
+        liquidation = self.create_liquidation(
+            dt=datetime.datetime(2006, 1, 5, tzinfo=pytz.utc), price=0)
+
+        algo = BuyAndHoldAlgorithm(sim_params=self.sim_params)
+        result = algo.run(
+            benchmark_return_source=self.benchmark_data,
+            source=[self.security_data, liquidation]
+        )
+        # algorithm should have had a position for 1 day
+        self.assertEqual(len(result.positions.nonzero()[0]), 1)
+        # algorithm should have lost all its money (+ commissions/slippage)
+        self.assertLessEqual(result.portfolio_value[-1], 0)
