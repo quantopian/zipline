@@ -174,15 +174,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if not order.triggered:
                 continue
 
-            # liquidations are filled without slippage
-            if event.type == DATASOURCE_TYPE.LIQUIDATION:
-                txn = create_transaction(
-                    event,
-                    order,
-                    event.price,
-                    order.amount)
-            else:
-                txn = self.process_order(event, order)
+            txn = self.process_order(event, order)
 
             if txn:
                 self._volume_for_bar += abs(txn.amount)
