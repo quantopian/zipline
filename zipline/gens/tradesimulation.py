@@ -232,9 +232,6 @@ class AlgorithmSimulator(object):
                     for order in self.algo.blotter.open_orders[event.sid]:
                         self.algo.blotter.cancel(order.id)
 
-                self.update_universe(event)
-                any_trade_occurred = True
-
             if not instant_fill:
                 self.process_event(event)
             else:
