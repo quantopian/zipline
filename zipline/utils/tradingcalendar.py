@@ -402,3 +402,31 @@ def get_open_and_closes(trading_days, early_closes):
     return open_and_closes
 
 open_and_closes = get_open_and_closes(trading_days, early_closes)
+
+
+def get_trading_minutes(start, end, trading_day=trading_day):
+    """
+    Takes as input two minute resolution tz-aware datetimes and returns a
+    DatetimeIndex of all the trading minutes between those two datetimes.
+    """
+    minutes = None
+
+    trading_days_in_range = get_trading_days(start, end)
+
+    for day in trading_days_in_range:
+        # Add the trading minutes for each day in the range
+        market_open, market_close = get_open_and_close(day, early_closes)
+
+        first_minute = max(start, market_open)
+        last_minute = min(end, market_close)
+
+        todays_minutes = pd.date_range(start=first_minute,
+                                       end=last_minute,
+                                       freq='Min')
+
+        if minutes is None:
+            minutes = todays_minutes
+        else:
+            minutes = minutes.append(todays_minutes)
+
+    return minutes

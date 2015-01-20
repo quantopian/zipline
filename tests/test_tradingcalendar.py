@@ -22,6 +22,7 @@ import pytz
 import datetime
 from zipline.finance.trading import TradingEnvironment
 from nose.tools import nottest
+import pandas as pd
 
 
 class TestTradingCalendar(TestCase):
@@ -264,3 +265,57 @@ If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
         friday_after = datetime.datetime(2013, 7, 5, tzinfo=pytz.utc)
         self.assertIn(wednesday_before, early_closes)
         self.assertNotIn(friday_after, early_closes)
+
+    def test_trading_minutes_with_early_close(self):
+        start = pd.datetime(2013, 7, 3, tzinfo=pytz.UTC)
+        end = pd.datetime(2013, 7, 3, 20, tzinfo=pytz.UTC)
+
+        correct_minutes = pd.date_range(
+            pd.datetime(2013, 7, 3, 13, 31, tzinfo=pytz.UTC),
+            pd.datetime(2013, 7, 3, 17, tzinfo=pytz.UTC),
+            freq='Min')
+
+        minutes = tradingcalendar.get_trading_minutes(start, end)
+
+        self.assertTrue(minutes.equals(correct_minutes))
+
+    def test_trading_minutes_with_multiple_days(self):
+        start = pd.datetime(2013, 6, 20, tzinfo=pytz.UTC)
+        end = pd.datetime(2013, 6, 21, 17, 35, tzinfo=pytz.UTC)
+
+        correct_minutes = pd.date_range(
+            pd.datetime(2013, 6, 20, 13, 31, tzinfo=pytz.UTC),
+            pd.datetime(2013, 6, 20, 20, 00, tzinfo=pytz.UTC),
+            freq='Min')
+
+        correct_minutes = correct_minutes.append(
+            pd.date_range(
+                pd.datetime(2013, 6, 21, 13, 31, tzinfo=pytz.UTC),
+                pd.datetime(2013, 6, 21, 17, 35, tzinfo=pytz.UTC),
+                freq='Min')
+        )
+
+        minutes = tradingcalendar.get_trading_minutes(start, end)
+
+        self.assertTrue(minutes.equals(correct_minutes))
+
+    def test_trading_minutes_with_midday_endpoints(self):
+        start = pd.datetime(2013, 6, 20, 14, tzinfo=pytz.UTC)
+        end = pd.datetime(2013, 6, 20, 15, tzinfo=pytz.UTC)
+
+        correct_minutes = pd.date_range(
+            pd.datetime(2013, 6, 20, 14, tzinfo=pytz.UTC),
+            pd.datetime(2013, 6, 20, 15, tzinfo=pytz.UTC),
+            freq='Min')
+
+        minutes = tradingcalendar.get_trading_minutes(start, end)
+
+        self.assertTrue(minutes.equals(correct_minutes))
+
+    def test_empty_trading_minutes(self):
+        start = pd.datetime(2013, 6, 20, tzinfo=pytz.UTC)
+        # end = pd.datetime(2013, 6, 20, tzinfo=pytz.UTC)
+
+        minutes = tradingcalendar.get_trading_minutes(start, start)
+
+        self.assertEqual(len(minutes), 0)
