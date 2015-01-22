@@ -39,12 +39,15 @@ from math import (
 )
 
 import logbook
+import numpy as np
+import pandas as pd
 import zipline.protocol as zp
+import zipline.finance.tax_lots as tax_lots
 
 log = logbook.Logger('Performance')
 
 
-class Position(object):
+class Position_OLD(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None):
@@ -194,6 +197,167 @@ last_sale_price: {last_sale_price}"
             cost_basis=self.cost_basis,
             last_sale_price=self.last_sale_price
         )
+
+    def to_dict(self):
+        """
+        Creates a dictionary representing the state of this position.
+        Returns a dict object of the form:
+        """
+        return {
+            'sid': self.sid,
+            'amount': self.amount,
+            'cost_basis': self.cost_basis,
+            'last_sale_price': self.last_sale_price
+        }
+
+
+class cached_property(object):
+    """
+    Descriptor for caching property values in an instance's '_cache'.
+    """
+    def __init__(self, method):
+        self._method_name = method.__name__
+        self._method = method
+
+    def __get__(self, instance, owner):
+        if not hasattr(instance, '_cache'):
+            instance._cache = {}
+        if self._method_name not in instance._cache:
+            instance._cache[self._method_name] = self._method(instance)
+        return instance._cache[self._method_name]
+
+    def __set__(self, instance, val):
+        raise AttributeError(
+            'Can not set property values: {}'.format(self._method_name))
+
+
+class Position(object):
+    def __init__(self, sid, amount=0, cost_basis=0.0,
+                 last_sale_price=0.0, last_sale_date=None,
+                 default_lot_instructions=None):
+
+        self.sid = sid
+        self.lots = set()
+        if default_lot_instructions is None:
+            default_lot_instructions = tax_lots.FIFO()
+        assert not isinstance(default_lot_instructions, tax_lots.SpecificLots)
+        self.default_lot_instructions = default_lot_instructions
+        self._cache = {}
+
+        if amount != 0:
+            self.open(amount=amount, dt=last_sale_date, price=cost_basis)
+            list(self.lots)[0].update_last_sale_price(last_sale_price)
+
+    def clear_cache(self):
+        self._cache.clear()
+
+    @cached_property
+    def closed_lots(self):
+        return set(filter(lambda l: l.closed, self.lots))
+
+    @cached_property
+    def open_lots(self):
+        return set(filter(lambda l: not l.closed, self.lots))
+
+    @cached_property
+    def amount(self):
+        return sum(l.amount for l in self.open_lots)
+
+    @cached_property
+    def total_cost(self):
+        return sum(l.total_cost for l in self.open_lots)
+
+    @cached_property
+    def cost_basis(self):
+        return self.total_cost / self.amount
+
+    @cached_property
+    def market_value(self):
+        return sum(l.market_value for l in self.open_lots)
+
+    @cached_property
+    def last_sale_price(self):
+        if self.amount == 0:
+            return 0
+        else:
+            return self.market_value / self.amount
+
+    def close(self, amount, dt, price, instructions=None, lots=None):
+
+        if lots is None:
+            lots = self.open_lots
+
+        if instructions is None:
+            instructions = self.default_lot_instructions
+
+        closed_lots = instructions.close_lots(
+            dt=dt, amount=amount, price=price, open_lots=lots)
+
+        self.lots.update(closed_lots)
+        self.clear_cache()
+
+    def open(self, amount, dt, price):
+        lot = tax_lots.Lot(
+            sid=self.sid,
+            dt=dt,
+            amount=amount,
+            cost_basis=price
+        )
+        self.lots.add(lot)
+        self.clear_cache()
+
+    def earn_dividend(self, dividend):
+        return pd.concat([l.earn_dividend(dividend) for l in self.open_lots])
+
+    def handle_split(self, split):
+        return sum(l.handle_split(split) for l in self.open_lots)
+
+    def update_last_sale(self, dt, price):
+        for lot in self.open_lots:
+            lot.update_last_sale(dt, price)
+
+    def update(self, txn):
+        if self.sid != txn.sid:
+            raise Exception('updating position with txn for a '
+                            'different sid')
+        self._update(txn.amount, txn.dt, txn.price)
+
+    def _update(self, amount, dt, price):
+        """
+        :param amount: INCREMENTAL amount
+        :param dt: date
+        :param price: price
+        """
+        # FIXME Add commissions
+
+        # new position
+        if self.amount == 0:
+            self.open(amount=amount, dt=dt, price=price)
+
+        else:
+            prev_direction = np.sign(self.amount)
+            txn_direction = np.sign(amount)
+
+            # closing lots
+            if prev_direction != txn_direction:
+
+                # partial close
+                if abs(amount) <= abs(self.amount):
+                    self.close(amount=amount, dt=dt, price=price)
+
+                # full close and reopen in opposite direction
+                else:
+                    self.close(amount=self.amount, dt=dt, price=price)
+                    self.open(amount=self.amount - amount, dt=dt, price=price)
+
+            # opening lots
+            else:
+                self.open(amount=amount, dt=dt, price=price)
+
+        self.clear_cache()
+
+    def adjust_commission_cost_basis(self, commission):
+        raise NotImplementedError
 
     def to_dict(self):
         """
