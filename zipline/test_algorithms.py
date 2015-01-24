@@ -430,6 +430,12 @@ class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
                                 max_notional=max_notional)
 
 
+class SetDoNotOrderListAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, restricted_list=None):
+        self.order_count = 0
+        self.set_do_not_order_list(restricted_list)
+
+
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0

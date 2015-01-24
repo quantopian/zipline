@@ -99,6 +99,30 @@ class MaxOrderCount(TradingControl):
         self.orders_placed += 1
 
 
+class RestrictedListOrder(TradingControl):
+    """
+    TradingControl representing a restricted list of securities that
+    cannot be ordered by the algorithm.
+    """
+
+    def __init__(self, restricted_list):
+
+        super(RestrictedListOrder, self).__init__()
+        self.restricted_list = set(restricted_list)
+
+    def validate(self,
+                 sid,
+                 amount,
+                 _portfolio,
+                 _algo_datetime,
+                 _algo_current_data):
+        """
+        Fail if the sid is in the restricted_list.
+        """
+        if sid in self.restricted_list:
+            self.fail(sid, amount)
+
+
 class MaxOrderSize(TradingControl):
     """
     TradingControl representing a limit on the magnitude of any single order
