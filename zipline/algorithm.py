@@ -499,6 +499,7 @@ class TradingAlgorithm(object):
                 perf['daily_perf'].update(
                     perf['daily_perf'].pop('recorded_vars')
                 )
+                perf['daily_perf'].update(perf['cumulative_risk_metrics'])
                 daily_perfs.append(perf['daily_perf'])
             else:
                 self.risk_report = perf
