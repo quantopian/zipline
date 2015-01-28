@@ -45,11 +45,14 @@ from zipline.test_algorithms import (
     TestOrderAlgorithm,
     TestOrderInstantAlgorithm,
     TestOrderPercentAlgorithm,
+    TestOrderPercentAlgorithmPercentOf,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
     TestRegisterTransformAlgorithm,
     TestTargetAlgorithm,
+    TestTargetAlgorithm_NonInt,
     TestTargetPercentAlgorithm,
+    TestTargetPercentAlgorithmPercentOf,
     TestTargetValueAlgorithm,
     SetLongOnlyAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -303,6 +306,9 @@ class TestTransformAlgorithm(TestCase):
         self.panel_source, self.panel = \
             factory.create_test_panel_source(self.sim_params)
 
+        self.df_large = pd.concat([self.df] * 10, 1)
+        self.df_large.columns = range(10)
+
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
@@ -374,6 +380,7 @@ class TestTransformAlgorithm(TestCase):
         AlgoClasses = [TestOrderAlgorithm,
                        TestOrderValueAlgorithm,
                        TestTargetAlgorithm,
+                       TestTargetAlgorithm_NonInt,
                        TestOrderPercentAlgorithm,
                        TestTargetPercentAlgorithm,
                        TestTargetValueAlgorithm]
@@ -383,6 +390,16 @@ class TestTransformAlgorithm(TestCase):
                 sim_params=self.sim_params,
             )
             algo.run(self.df)
+
+        AlgoClasses2 = [
+            TestOrderPercentAlgorithmPercentOf,
+            TestTargetPercentAlgorithmPercentOf]
+
+        for AlgoClass in AlgoClasses2:
+            algo = AlgoClass(
+                sim_params=self.sim_params,
+            )
+            algo.run(self.df_large)
 
     def test_order_method_style_forwarding(self):
 
