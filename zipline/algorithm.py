@@ -917,14 +917,31 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_percent(self, sid, percent,
-                      limit_price=None, stop_price=None, style=None):
+                      limit_price=None,
+                      stop_price=None,
+                      style=None,
+                      percent_of=None,
+                      percent_of_fn=None):
         """
         Place an order in the specified security corresponding to the given
-        percent of the current portfolio value.
+        percent of some market value. If no market value is specified (via
+        `percent_of`) then the net portfolio value is used.
+
+        Options for percent_of are:
+            portfolio (default): net portfolio value
+            cash:                available cash
+            ex-cash:             net invested capital, ex-cash
+            longs:               long invested capital
+            shorts:              short invested capital
+
+        Alternatively, a percent_of_fn can be supplied. The percent_of_fn
+        should accept a Position and return True if that Position's
+        market_value should be included in the total and False otherwise.
 
         Note that percent must expressed as a decimal (0.50 means 50\%).
         """
-        value = self.portfolio.portfolio_value * percent
+        mv = self.get_market_value(mv_type=percent_of, filter_fn=percent_of_fn)
+        value = percent * mv
         return self.order_value(sid, value,
                                 limit_price=limit_price,
                                 stop_price=stop_price,
@@ -978,17 +995,34 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_percent(self, sid, target,
-                             limit_price=None, stop_price=None, style=None):
+                             limit_price=None,
+                             stop_price=None,
+                             style=None,
+                             percent_of=None,
+                             percent_of_fn=None):
         """
-        Place an order to adjust a position to a target percent of the
-        current portfolio value. If the position doesn't already exist, this is
+        Place an order to adjust a position to a target percent of some market
+        value. If no market value is specified (via `percent_of`) then the net
+        portfolio value is used. If the position doesn't already exist, this is
         equivalent to placing a new order. If the position does exist, this is
         equivalent to placing an order for the difference between the target
         percent and the current percent.
 
+        Options for percent_of are:
+            portfolio (default): net portfolio value
+            cash:                available cash
+            ex-cash:             net invested capital, ex-cash
+            longs:               long invested capital
+            shorts:              short invested capital
+
+        Alternatively, a percent_of_fn can be supplied. The percent_of_fn
+        should accept a Position and return True if that Position's
+        market_value should be included in the total and False otherwise.
+
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        target_value = self.portfolio.portfolio_value * target
+        mv = self.get_market_value(mv_type=percent_of, filter_fn=percent_of_fn)
+        target_value = target * mv
         return self.order_target_value(sid, target_value,
                                        limit_price=limit_price,
                                        stop_price=stop_price,
