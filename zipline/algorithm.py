@@ -868,9 +868,10 @@ class TradingAlgorithm(object):
         Options for mv_type are:
             portfolio (default): net portfolio value
             cash:                available cash
-            ex-cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            shorts:              short invested capital
+            ex_cash:             net invested capital, ex-cash
+            longs:               long invested capital plus cash
+            longs_only:          long invested capital, ex-cash
+            shorts:              short invested capital, ex-cash
 
         Alternatively, a filter_fn can be supplied. The filter_fn
         should accept a Position and return True if that Position's
@@ -892,11 +893,18 @@ class TradingAlgorithm(object):
             mv = self.portfolio.cash
 
         # net invested capital
-        elif mv_type == 'ex-cash':
+        elif mv_type == 'ex_cash':
             mv = self.portfolio.portfolio_value - self.portfolio.cash
 
-        # long invested capital
+        # long invested capital plus cash
         elif mv_type == 'longs':
+            mv = sum(
+                p.amount * p.last_sale_price
+                for p in self.portfolio.positions.values()
+                if p.amount > 0) + self.portfolio.cash
+
+        # long invested capital, excluding cash
+        elif mv_type == 'longs_only':
             mv = sum(
                 p.amount * p.last_sale_price
                 for p in self.portfolio.positions.values()
@@ -931,8 +939,9 @@ class TradingAlgorithm(object):
             portfolio (default): net portfolio value
             cash:                available cash
             ex-cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            shorts:              short invested capital
+            longs:               long invested capital plus cash
+            longs_only:          long invested capital, ex-cash
+            shorts:              short invested capital, ex-cash
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
@@ -1011,9 +1020,10 @@ class TradingAlgorithm(object):
         Options for percent_of are:
             portfolio (default): net portfolio value
             cash:                available cash
-            ex-cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            shorts:              short invested capital
+            ex_cash:             net invested capital, ex-cash
+            longs:               long invested capital plus cash
+            longs_only:          long invested capital, ex-cash
+            shorts:              short invested capital, ex-cash
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
