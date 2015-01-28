@@ -861,6 +861,60 @@ class TradingAlgorithm(object):
         assert value in ('daily', 'minute')
         self.sim_params.data_frequency = value
 
+    def get_market_value(self, mv_type=None, filter_fn=None):
+        """
+        Returns the requested market value.
+
+        Options for mv_type are:
+            portfolio (default): net portfolio value
+            cash:                available cash
+            ex-cash:             net invested capital, ex-cash
+            longs:               long invested capital
+            shorts:              short invested capital
+
+        Alternatively, a filter_fn can be supplied. The filter_fn
+        should accept a Position and return True if that Position's
+        market_value should be included in the total and False otherwise.
+        """
+        # first try the filter_fn, if supplied
+        if filter_fn is not None:
+            mv = sum(
+                p.amount * p.last_sale_price
+                for p in self.portfolio.positions.values()
+                if filter_fn(p))
+
+        # net portfolio value
+        elif mv_type is None or mv_type == 'portfolio':
+            mv = self.portfolio.portfolio_value
+
+        # portfolio cash
+        elif mv_type == 'cash':
+            mv = self.portfolio.cash
+
+        # net invested capital
+        elif mv_type == 'ex-cash':
+            mv = self.portfolio.portfolio_value - self.portfolio.cash
+
+        # long invested capital
+        elif mv_type == 'longs':
+            mv = sum(
+                p.amount * p.last_sale_price
+                for p in self.portfolio.positions.values()
+                if p.amount > 0)
+
+        # short invested capital
+        elif mv_type == 'shorts':
+            mv = sum(
+                p.amount * p.last_sale_price
+                for p in self.portfolio.positions.values()
+                if p.amount < 0)
+
+        else:
+            raise ValueError(
+                'Unrecognized value for "mv_type": {}'.format(mv_type))
+
+        return mv
+
     @api_method
     def order_percent(self, sid, percent,
                       limit_price=None, stop_price=None, style=None):
