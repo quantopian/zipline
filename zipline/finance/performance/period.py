@@ -131,6 +131,8 @@ class PerformancePeriod(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
 
+        self.loc_map = {}
+
     def rollover(self):
         self.starting_value = self.ending_value
         self.starting_cash = self.ending_cash
@@ -149,11 +151,16 @@ class PerformancePeriod(object):
 
     def set_position_last_sale_price(self, sid, last_sale_price):
         try:
-            self._position_last_sale_prices[sid] = last_sale_price
+            i = self.loc_map[sid]
+            self._position_last_sale_prices.values[i] = \
+                last_sale_price
         except (KeyError, IndexError):
             self._position_last_sale_prices = \
                 self._position_last_sale_prices.append(
                     pd.Series({sid: last_sale_price}))
+            self.loc_map = dict(
+                zip(self._position_last_sale_prices.index,
+                    range(len(self._position_last_sale_prices))))
 
     def handle_split(self, split):
         if split.sid in self.positions:
