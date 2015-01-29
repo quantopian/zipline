@@ -958,17 +958,19 @@ class TestTradingControls(TestCase):
 
     def test_set_do_not_order_list(self):
         # set the restricted list to be the sid, and fail.
-        algo = SetDoNotOrderListAlgorithm(sid=self.sid,
+        algo = SetDoNotOrderListAlgorithm(
+            sid=self.sid,
             restricted_list=[self.sid])
 
         def handle_data(algo, data):
             algo.order(self.sid, 100)
             algo.order_count += 1
-            
+
         self.check_algo_fails(algo, handle_data, 0)
 
         # set the restricted list to exclude the sid, and succeed
-        algo = SetDoNotOrderListAlgorithm(sid=self.sid,
+        algo = SetDoNotOrderListAlgorithm(
+            sid=self.sid,
             restricted_list=[134, 135, 136])
 
         def handle_data(algo, data):
