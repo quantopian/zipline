@@ -938,10 +938,10 @@ class TradingAlgorithm(object):
         Options for percent_of are:
             portfolio (default): net portfolio value
             cash:                available cash
-            ex-cash:             net invested capital, ex-cash
-            longs:               long invested capital plus cash
-            longs_only:          long invested capital, ex-cash
-            shorts:              short invested capital, ex-cash
+            ex_cash:             net invested capital, ex-cash
+            longs:               long invested capital
+            longs_cash:          long invested capital plus cash
+            shorts:              short invested capital
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
@@ -1021,9 +1021,9 @@ class TradingAlgorithm(object):
             portfolio (default): net portfolio value
             cash:                available cash
             ex_cash:             net invested capital, ex-cash
-            longs:               long invested capital plus cash
-            longs_only:          long invested capital, ex-cash
-            shorts:              short invested capital, ex-cash
+            longs:               long invested capital
+            longs_cash:          long invested capital plus cash
+            shorts:              short invested capital
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
