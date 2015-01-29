@@ -87,6 +87,28 @@ from . position import positiondict
 log = logbook.Logger('Performance')
 
 
+class FastSeries(object):
+    def __init__(self, *args, **kwargs):
+        super(FastSeries, self).__init__(*args, **kwargs)
+
+        self._loc_map = {}
+        self.series = pd.Series([])
+        self.values = self.series.values
+
+    def __setitem__(self, key, value):
+        try:
+            i = self._loc_map[key]
+            self.values[i] = value
+        except (KeyError, IndexError):
+            self.series = \
+                self.series.append(
+                    pd.Series({key: value}))
+            self._loc_map = dict(
+                zip(self.series.index,
+                    range(len(self.series))))
+            self.values = self.series.values
+
+
 class PerformancePeriod(object):
 
     def __init__(
@@ -114,8 +136,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self._position_amounts = pd.Series()
-        self._position_last_sale_prices = pd.Series()
+        self.position_amounts = FastSeries()
+        self.position_last_sale_prices = FastSeries()
 
         self.calculate_performance()
 
@@ -131,6 +153,8 @@ class PerformancePeriod(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
 
+        self.loc_map = {}
+
     def rollover(self):
         self.starting_value = self.ending_value
         self.starting_cash = self.ending_cash
@@ -141,19 +165,10 @@ class PerformancePeriod(object):
         self.orders_by_id = OrderedDict()
 
     def set_position_amount(self, sid, amount):
-        try:
-            self._position_amounts[sid] = amount
-        except (KeyError, IndexError):
-            self._position_amounts = \
-                self._position_amounts.append(pd.Series({sid: amount}))
+        self.position_amounts[sid] = amount
 
     def set_position_last_sale_price(self, sid, last_sale_price):
-        try:
-            self._position_last_sale_prices[sid] = last_sale_price
-        except (KeyError, IndexError):
-            self._position_last_sale_prices = \
-                self._position_last_sale_prices.append(
-                    pd.Series({sid: last_sale_price}))
+        self.position_last_sale_prices[sid] = last_sale_price
 
     def handle_split(self, split):
         if split.sid in self.positions:
@@ -161,9 +176,9 @@ class PerformancePeriod(object):
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
             leftover_cash = position.handle_split(split)
-            self.set_position_amount(split.sid, position.amount)
-            self.set_position_last_sale_price(split.sid,
-                                              position.last_sale_price)
+            self.position_amounts[split.sid] = position.amount
+            self.position_last_sale_prices[split.sid] = \
+                position.last_sale_price
 
             if leftover_cash > 0:
                 self.handle_cash_payment(leftover_cash)
@@ -224,9 +239,8 @@ class PerformancePeriod(object):
             position = self.positions[stock]
 
             position.amount += share_count
-            self.set_position_amount(stock, position.amount)
-            self.set_position_last_sale_price(stock,
-                                              position.last_sale_price)
+            self.position_amounts[stock] = position.amount
+            self.position_last_sale_prices[stock] = position.last_sale_price
 
         # Recalculate performance after applying dividend benefits.
         self.calculate_performance()
@@ -295,7 +309,7 @@ class PerformancePeriod(object):
             self.set_position_amount(sid, amount)
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
-            self.set_position_last_sale_price(sid, last_sale_price)
+            self.position_last_sale_prices[sid] = last_sale_price
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -309,8 +323,8 @@ class PerformancePeriod(object):
         # an empty position if one does not already exist.
         position = self.positions[txn.sid]
         position.update(txn)
-        self.set_position_amount(txn.sid, position.amount)
-        self.set_position_last_sale_price(txn.sid, position.last_sale_price)
+        self.position_amounts[txn.sid] = position.amount
+        self.position_last_sale_prices[txn.sid] = position.last_sale_price
 
         self.period_cash_flow -= txn.price * txn.amount
 
@@ -318,23 +332,26 @@ class PerformancePeriod(object):
             self.processed_transactions[txn.dt].append(txn)
 
     def calculate_positions_value(self):
-        return np.dot(self._position_amounts, self._position_last_sale_prices)
+        return np.dot(self.position_amounts.series,
+                      self.position_last_sale_prices.series)
 
     def _longs_count(self):
-        longs = self._position_amounts[self._position_amounts > 0]
+        longs = self.position_amounts.series[self.position_amounts.series > 0]
         return longs.count()
 
     def _long_exposure(self):
-        pos_values = self._position_amounts * self._position_last_sale_prices
+        pos_values = self.position_amounts.series * \
+            self.position_last_sale_prices.series
         longs = pos_values[pos_values > 0]
         return longs.sum()
 
     def _shorts_count(self):
-        shorts = self._position_amounts[self._position_amounts < 0]
+        shorts = self.position_amounts.series[self.position_amounts.series < 0]
         return shorts.count()
 
     def _short_exposure(self):
-        pos_values = self._position_amounts * self._position_last_sale_prices
+        pos_values = self.position_amounts.series * \
+            self.position_last_sale_prices.series
         shorts = pos_values[pos_values < 0]
         return shorts.sum()
 
