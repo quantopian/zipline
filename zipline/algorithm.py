@@ -869,9 +869,9 @@ class TradingAlgorithm(object):
             portfolio (default): net portfolio value
             cash:                available cash
             ex_cash:             net invested capital, ex-cash
-            longs:               long invested capital plus cash
-            longs_only:          long invested capital, ex-cash
-            shorts:              short invested capital, ex-cash
+            longs:               long invested capital
+            longs_cash:          long invested capital plus cash
+            shorts:              short invested capital
 
         Alternatively, a filter_fn can be supplied. The filter_fn
         should accept a Position and return True if that Position's
@@ -896,19 +896,19 @@ class TradingAlgorithm(object):
         elif mv_type == 'ex_cash':
             mv = self.portfolio.portfolio_value - self.portfolio.cash
 
-        # long invested capital plus cash
+        # long invested capital
         elif mv_type == 'longs':
             mv = sum(
                 p.amount * p.last_sale_price
                 for p in self.portfolio.positions.values()
-                if p.amount > 0) + self.portfolio.cash
+                if p.amount > 0)
 
-        # long invested capital, excluding cash
-        elif mv_type == 'longs_only':
+        # long invested capital, plus cash
+        elif mv_type == 'longs_cash':
             mv = sum(
                 p.amount * p.last_sale_price
                 for p in self.portfolio.positions.values()
-                if p.amount > 0)
+                if p.amount > 0) + self.portfolio.cash
 
         # short invested capital
         elif mv_type == 'shorts':
