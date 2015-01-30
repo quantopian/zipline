@@ -92,21 +92,21 @@ class FastSeries(object):
         super(FastSeries, self).__init__(*args, **kwargs)
 
         self._loc_map = {}
-        self._series = pd.Series([])
-        self.values = self._series.values
+        self.series = pd.Series([])
+        self.values = self.series.values
 
     def __setitem__(self, key, value):
         try:
             i = self._loc_map[key]
-            self._values[i] = value
+            self.values[i] = value
         except (KeyError, IndexError):
-            self._series = \
-                self._series.append(
+            self.series = \
+                self.series.append(
                     pd.Series({key: value}))
             self._loc_map = dict(
-                zip(self._series.index,
-                    range(len(self._series))))
-            self._values = self._series.values
+                zip(self.series.index,
+                    range(len(self.series))))
+            self.values = self.series.values
 
 
 class PerformancePeriod(object):
@@ -332,26 +332,26 @@ class PerformancePeriod(object):
             self.processed_transactions[txn.dt].append(txn)
 
     def calculate_positions_value(self):
-        return np.dot(self.position_amounts.values,
-                      self.position_last_sale_prices.values)
+        return np.dot(self.position_amounts.series,
+                      self.position_last_sale_prices.series)
 
     def _longs_count(self):
-        longs = self.position_amounts.values[self.position_amounts.values > 0]
+        longs = self.position_amounts.series[self.position_amounts.series > 0]
         return longs.count()
 
     def _long_exposure(self):
-        pos_values = self.position_amounts.values * \
-            self.position_last_sale_prices.values
+        pos_values = self.position_amounts.series * \
+            self.position_last_sale_prices.series
         longs = pos_values[pos_values > 0]
         return longs.sum()
 
     def _shorts_count(self):
-        shorts = self.position_amounts.values[self.position_amounts.values < 0]
+        shorts = self.position_amounts.series[self.position_amounts.series < 0]
         return shorts.count()
 
     def _short_exposure(self):
-        pos_values = self.position_amounts.values * \
-            self.position_last_sale_prices.values
+        pos_values = self.position_amounts.series * \
+            self.position_last_sale_prices.series
         shorts = pos_values[pos_values < 0]
         return shorts.sum()
 
