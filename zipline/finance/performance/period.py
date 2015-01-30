@@ -87,6 +87,31 @@ from . position import positiondict
 log = logbook.Logger('Performance')
 
 
+class FastSeries(pd.Series):
+    def __init__(self, *args, **kwargs):
+        super(FastSeries, self).__init__(*args, **kwargs)
+
+        self._loc_map = {}
+        self._series = pd.Series([])
+        self._values = self._series.values
+
+    def __setitem__(self, key, value):
+        try:
+            i = self._loc_map[key]
+            self._values[i] = value
+        except (KeyError, IndexError):
+            self._series = \
+                self._series.append(
+                    pd.Series({key: value}))
+            self._loc_map = dict(
+                zip(self._series.index,
+                    range(len(self._series))))
+            self._values = self._series.values
+
+    def __array__(self, results=None):
+        return self._values
+
+
 class PerformancePeriod(object):
 
     def __init__(
@@ -114,8 +139,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self._position_amounts = pd.Series()
-        self._position_last_sale_prices = pd.Series()
+        self._position_amounts = FastSeries()
+        self._position_last_sale_prices = FastSeries()
 
         self.calculate_performance()
 
@@ -143,24 +168,10 @@ class PerformancePeriod(object):
         self.orders_by_id = OrderedDict()
 
     def set_position_amount(self, sid, amount):
-        try:
-            self._position_amounts[sid] = amount
-        except (KeyError, IndexError):
-            self._position_amounts = \
-                self._position_amounts.append(pd.Series({sid: amount}))
+        self._position_amounts[sid] = amount
 
     def set_position_last_sale_price(self, sid, last_sale_price):
-        try:
-            i = self.loc_map[sid]
-            self._position_last_sale_prices.values[i] = \
-                last_sale_price
-        except (KeyError, IndexError):
-            self._position_last_sale_prices = \
-                self._position_last_sale_prices.append(
-                    pd.Series({sid: last_sale_price}))
-            self.loc_map = dict(
-                zip(self._position_last_sale_prices.index,
-                    range(len(self._position_last_sale_prices))))
+        self._position_last_sale_prices[sid] = last_sale_price
 
     def handle_split(self, split):
         if split.sid in self.positions:
