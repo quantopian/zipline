@@ -34,7 +34,7 @@ from . import api
 try:
     ip = get_ipython()  # flake8: noqa
     ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
-except:
+except NameError:
     pass
 
 __all__ = [
