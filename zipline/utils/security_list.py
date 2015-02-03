@@ -7,7 +7,7 @@ from os import listdir
 DATE_FORMAT = "%Y%m%d"
 import zipline
 zipline_dir = os.path.join(*zipline.__path__)
-SECURITY_LISTS_DIR = os.path.join(zipline_dir, '..', 'security_lists')
+SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
 
 def loopback(symbol, *args, **kwargs):
@@ -25,7 +25,7 @@ class SecurityListSet(object):
         self._leveraged_etf = None
 
     @property
-    def LEVERAGED_ETF_LIST(self):
+    def leveraged_etf_list(self):
         if self._leveraged_etf is None:
             self._leveraged_etf = SecurityList(
                 self.lookup_func,
@@ -53,7 +53,7 @@ class SecurityList(object):
         self._knowledge_dates = self.make_knowledge_dates(self.data)
         self.current_date = current_date_func
         self.count = 0
-        self._list = set()
+        self._current_set = set()
 
     def make_knowledge_dates(self, data):
         knowledge_dates = sorted(
@@ -61,39 +61,45 @@ class SecurityList(object):
         return knowledge_dates
 
     def __iter__(self):
-        return iter(self.get_restricted_list())
+        return iter(self.restricted_list)
 
     def __contains__(self, item):
-        rl = self.get_restricted_list()
-        return rl.__contains__(item)
+        return item in self.restricted_list
 
-    def get_restricted_list(self):
+    @property
+    def restricted_list(self):
 
         cd = self.current_date()
         for kd in self._knowledge_dates:
             if cd < kd:
                 break
             if kd in self._cache:
-                self._list = self._cache[kd]
+                self._current_set = self._cache[kd]
                 continue
 
             for effective_date, changes in self.data[kd].iteritems():
-                for symbol in changes['add']:
-                    sid = self.lookup_func(
-                        symbol,
-                        as_of_date=effective_date
-                    )
-                    self._list.add(sid)
-                for symbol in changes['delete']:
-                    sid = self.lookup_func(
-                        symbol,
-                        as_of_date=effective_date
-                    )
-                    if sid in self._list:
-                        self._list.remove(sid)
+                self.update_current(
+                    effective_date,
+                    changes['add'],
+                    self._current_set.add
+                )
 
-            self._cache[kd] = self._list
-        return self._list
+                self.update_current(
+                    effective_date,
+                    changes['delete'],
+                    self._current_set.remove
+                )
+
+            self._cache[kd] = self._current_set
+        return self._current_set
+
+    def update_current(self, effective_date, symbols, change_func):
+        for symbol in symbols:
+            sid = self.lookup_func(
+                symbol,
+                as_of_date=effective_date
+            )
+            change_func(sid)
 
 
 def load_from_directory(list_name):
@@ -115,13 +121,13 @@ def load_from_directory(list_name):
        {add: [symbol list], 'delete': [symbol list]}
     """
     data = {}
-    dir_path = SECURITY_LISTS_DIR + "/" + list_name
+    dir_path = os.path.join(SECURITY_LISTS_DIR, list_name)
     for kd_name in listdir(dir_path):
         kd = datetime.strptime(kd_name, DATE_FORMAT).replace(
             tzinfo=pytz.utc)
         data[kd] = {}
         kd_path = os.path.join(dir_path, kd_name)
-        for ld_name in listdir(dir_path + '/' + kd_name):
+        for ld_name in listdir(os.path.join(dir_path, kd_name)):
             ld = datetime.strptime(kd_name, DATE_FORMAT).replace(
                 tzinfo=pytz.utc)
             data[kd][ld] = {}
@@ -130,5 +136,6 @@ def load_from_directory(list_name):
                 fpath = os.path.join(ld_path, fname)
                 with open(fpath) as f:
                     symbols = f.read().splitlines()
-                    data[kd][ld][fname.split('.')[0]] = symbols
+                    data[kd][ld][fname] = symbols
+
     return data

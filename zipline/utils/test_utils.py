@@ -1,10 +1,13 @@
 from contextlib import contextmanager
 from logbook import FileHandler
 from zipline.finance.blotter import ORDER_STATUS
+from zipline.utils.security_list import SECURITY_LISTS_DIR
 
 from six import itervalues
 
+import os
 import pandas as pd
+import shutil
 
 
 def to_utc(time_str):
@@ -129,3 +132,30 @@ def nullctx():
         do_stuff()
     """
     yield
+
+
+def add_security_data(adds, deletes):
+    directory = os.path.join(
+        SECURITY_LISTS_DIR,
+        "leveraged_etf_list/20150127/20150125"
+    )
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    del_path = os.path.join(directory, "delete")
+    with open(del_path, 'w') as f:
+        for sym in deletes:
+            f.write(sym)
+            f.write('\n')
+    add_path = os.path.join(directory, "add")
+    with open(add_path, 'w') as f:
+        for sym in adds:
+            f.write(sym)
+            f.write('\n')
+
+
+def remove_security_data_directory():
+    directory = os.path.join(
+        SECURITY_LISTS_DIR,
+        "leveraged_etf_list/20150127/"
+    )
+    shutil.rmtree(directory)

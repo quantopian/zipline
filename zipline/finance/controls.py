@@ -107,8 +107,8 @@ class RestrictedListOrder(TradingControl):
 
     def __init__(self, restricted_list):
         """
-        restricted list can be an iterable, or
-        an object that implements __contains__ for dynamic
+        restricted list can be an iterable or a
+        container (implements __contains__) for dynamic
         restrictions.
         """
 
