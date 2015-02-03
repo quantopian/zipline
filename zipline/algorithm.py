@@ -201,7 +201,9 @@ class TradingAlgorithm(object):
         self.event_manager = EventManager()
 
         if self.algoscript is not None:
-            filename = kwargs.pop('algo_filename', '<string>')
+            filename = kwargs.pop('algo_filename')
+            if filename is None:
+                filename = '<string>'
             code = compile(self.algoscript, filename, 'exec')
             exec_(code, self.namespace)
             self._initialize = self.namespace.get('initialize')
