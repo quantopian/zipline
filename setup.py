@@ -48,6 +48,7 @@ setup(
     author_email='opensource@quantopian.com',
     packages=find_packages(),
     scripts=['scripts/run_algo.py'],
+    include_package_data=True,
     long_description=LONG_DESCRIPTION,
     license='Apache 2.0',
     classifiers=[
