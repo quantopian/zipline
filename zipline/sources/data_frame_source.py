@@ -25,6 +25,7 @@ from zipline.sources.data_source import DataSource
 
 params = {'ds_volume': 1000}
 
+
 class DataFrameSource(DataSource):
     """
     Yields all events in event_list that match the given sid_filter.
