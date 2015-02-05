@@ -48,6 +48,7 @@ from zipline.finance.controls import (
     MaxOrderCount,
     MaxOrderSize,
     MaxPositionSize,
+    RestrictedListOrder
 )
 from zipline.finance.execution import (
     LimitOrder,
@@ -1078,6 +1079,14 @@ class TradingAlgorithm(object):
         time interval.
         """
         control = MaxOrderCount(max_count)
+        self.register_trading_control(control)
+
+    @api_method
+    def set_do_not_order_list(self, restricted_list):
+        """
+        Set a restriction on which sids can be ordered.
+        """
+        control = RestrictedListOrder(restricted_list)
         self.register_trading_control(control)
 
     @api_method
