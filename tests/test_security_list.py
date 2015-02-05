@@ -68,7 +68,7 @@ class SecurityListTestCase(TestCase):
 
     def test_iterate_over_rl(self):
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0], num_days=4)
+            start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
 
         trade_history = factory.create_trade_history(
             'BZQ',
@@ -87,7 +87,7 @@ class SecurityListTestCase(TestCase):
         # set the knowledge date to the first day of the
         # leveraged etf knowledge date.
         def get_datetime():
-            return LEVERAGED_ETFS.keys()[0]
+            return list(LEVERAGED_ETFS.keys())[0]
 
         rl = SecurityListSet(get_datetime)
         # assert that a sample from the leveraged list are in restricted
@@ -127,7 +127,7 @@ class SecurityListTestCase(TestCase):
 
     def test_algo_without_rl_violation_via_check(self):
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0], num_days=4)
+            start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
 
         trade_history = factory.create_trade_history(
             'BZQ',
@@ -143,7 +143,7 @@ class SecurityListTestCase(TestCase):
 
     def test_algo_without_rl_violation(self):
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0], num_days=4)
+            start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
 
         trade_history = factory.create_trade_history(
             'AAPL',
@@ -158,7 +158,7 @@ class SecurityListTestCase(TestCase):
 
     def test_algo_with_rl_violation(self):
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0], num_days=4)
+            start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
 
         trade_history = factory.create_trade_history(
             'BZQ',
@@ -199,7 +199,8 @@ class SecurityListTestCase(TestCase):
 
     def test_algo_with_rl_violation_after_knowledge_date(self):
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0] + timedelta(days=7), num_days=5)
+            start=list(
+                LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=5)
 
         trade_history = factory.create_trade_history(
             'BZQ',
@@ -222,7 +223,8 @@ class SecurityListTestCase(TestCase):
         set is still disallowed.
         """
         sim_params = factory.create_simulation_parameters(
-            start=LEVERAGED_ETFS.keys()[0] + timedelta(days=7), num_days=4)
+            start=list(
+                LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=4)
 
         try:
             add_security_data(['AAPL'], [])

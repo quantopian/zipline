@@ -77,7 +77,7 @@ class SecurityList(object):
                 self._current_set = self._cache[kd]
                 continue
 
-            for effective_date, changes in self.data[kd].iteritems():
+            for effective_date, changes in iter(self.data[kd].items()):
                 self.update_current(
                     effective_date,
                     changes['add'],
