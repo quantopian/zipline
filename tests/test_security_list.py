@@ -94,6 +94,7 @@ class SecurityListTestCase(TestCase):
 
         self.assertIn("BZQ", rl.leveraged_etf_list)
         self.assertIn("URTY", rl.leveraged_etf_list)
+        self.assertIn("JFT", rl.leveraged_etf_list)
 
         # assert that a sample of allowed stocks are not in restricted
         # AAPL
@@ -173,6 +174,26 @@ class SecurityListTestCase(TestCase):
             factory.create_test_df_source(sim_params)
 
         algo = RestrictedAlgoWithoutCheck(sid='BZQ', sim_params=sim_params)
+        with self.assertRaises(TradingControlViolation) as ctx:
+            algo.run(self.source)
+
+        self.check_algo_exception(algo, ctx, 0)
+
+        # repeat with a symbol from a different lookup date
+
+        trade_history = factory.create_trade_history(
+            'JFT',
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
+            sim_params
+        )
+        self.source = SpecificEquityTrades(event_list=trade_history)
+
+        self.df_source, self.df = \
+            factory.create_test_df_source(sim_params)
+
+        algo = RestrictedAlgoWithoutCheck(sid='JFT', sim_params=sim_params)
         with self.assertRaises(TradingControlViolation) as ctx:
             algo.run(self.source)
 

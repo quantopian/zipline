@@ -127,8 +127,8 @@ def load_from_directory(list_name):
             tzinfo=pytz.utc)
         data[kd] = {}
         kd_path = os.path.join(dir_path, kd_name)
-        for ld_name in listdir(os.path.join(dir_path, kd_name)):
-            ld = datetime.strptime(kd_name, DATE_FORMAT).replace(
+        for ld_name in listdir(kd_path):
+            ld = datetime.strptime(ld_name, DATE_FORMAT).replace(
                 tzinfo=pytz.utc)
             data[kd][ld] = {}
             ld_path = os.path.join(kd_path, ld_name)
