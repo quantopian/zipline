@@ -4,7 +4,7 @@ matrix:
   - python: 2.7
     env:
       - PANDAS_VERSION=0.12.0
-      - NUMPY_VERSION=1.7.0
+      - NUMPY_VERSION=1.7.1
   - python: 3.3
     env:
       - PANDAS_VERSION=0.15.2
