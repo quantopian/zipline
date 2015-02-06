@@ -90,6 +90,44 @@ class TestRollingPanel(unittest.TestCase):
             expected,
         )
 
+    @with_environment()
+    def test_alignment(self, env):
+        """
+        In old get_current, each call the get_current would copy the data. Thus
+        changing that object would have no side effects. 
+
+        To keep the same api, make sure that the raw option returns a copy too.
+        """
+        data_id = lambda values: values.__array_interface__['data']
+
+        items = ('a', 'b')
+        sids = (1, 2)
+
+        dts = env.market_minute_window(
+            env.open_and_closes.market_open[0], 4,
+        ).values
+        rp = RollingPanel(2, items, sids, initial_dates=dts[1:-1])
+
+        frame = pd.DataFrame(
+            data=np.arange(4).reshape((2, 2)),
+            columns=sids,
+            index=items,
+        )
+
+        nan_arr = np.empty((2, 6))
+        nan_arr.fill(np.nan)
+
+        rp.add_frame(dts[-1], frame)
+
+        # each get_current call makea a copy
+        cur = rp.get_current()
+        cur2 = rp.get_current()
+        assert data_id(cur.values) != data_id(cur2.values)
+
+        # make sure raw follow same logic
+        raw = rp.get_current(raw=True)
+        raw2 = rp.get_current(raw=True)
+        assert data_id(raw) != data_id(raw2)
 
 class TestMutableIndexRollingPanel(unittest.TestCase):
 
