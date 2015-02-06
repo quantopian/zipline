@@ -195,7 +195,8 @@ class RollingPanel(object):
         current_dates = self.date_buf[where]
 
         if raw:
-            return values
+            # return copy so we can change it without side effects here
+            return values.copy()
 
         major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz='utc')
         if values.ndim == 3:
