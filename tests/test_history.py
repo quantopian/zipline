@@ -220,6 +220,58 @@ class TestHistoryContainer(TestCase):
                     check_frame_type=True,
                 )
 
+    def test_multiple_specs_on_same_bar(self):
+        """
+        Test that a ffill and non ffill spec both get
+        the correct results when called on the same tick
+        """
+        spec = history.HistorySpec(
+            bar_count=3,
+            frequency='1m',
+            field='price',
+            ffill=True,
+            data_frequency='minute'
+        )
+        no_fill_spec = history.HistorySpec(
+            bar_count=3,
+            frequency='1m',
+            field='price',
+            ffill=False,
+            data_frequency='minute'
+        )
+
+        specs = {spec.key_str: spec, no_fill_spec.key_str: no_fill_spec}
+        initial_sids = [1, ]
+        initial_dt = pd.Timestamp(
+            '2013-06-28 9:31AM', tz='US/Eastern').tz_convert('UTC')
+
+        container = HistoryContainer(
+            specs, initial_sids, initial_dt, 'minute'
+        )
+
+        bar_data = BarData()
+        container.update(bar_data, initial_dt)
+        # Add data on bar two of first day.
+        second_bar_dt = pd.Timestamp(
+            '2013-06-28 9:32AM', tz='US/Eastern').tz_convert('UTC')
+        bar_data[1] = {
+            'price': 10,
+            'dt': second_bar_dt
+        }
+        container.update(bar_data, second_bar_dt)
+
+        third_bar_dt = pd.Timestamp(
+            '2013-06-28 9:33AM', tz='US/Eastern').tz_convert('UTC')
+
+        del bar_data[1]
+
+        # add nan for 3rd bar
+        container.update(bar_data, third_bar_dt)
+        prices = container.get_history(spec, third_bar_dt)
+        no_fill_prices = container.get_history(no_fill_spec, third_bar_dt)
+        self.assertTrue(np.isnan(no_fill_prices.values[-1]),
+                        "Last price should be np.nan")
+
     def test_container_nans_and_daily_roll(self):
 
         spec = history.HistorySpec(
