@@ -269,6 +269,7 @@ class TestHistoryContainer(TestCase):
         container.update(bar_data, third_bar_dt)
         prices = container.get_history(spec, third_bar_dt)
         no_fill_prices = container.get_history(no_fill_spec, third_bar_dt)
+        self.assertEqual(prices.values[-1], 10)
         self.assertTrue(np.isnan(no_fill_prices.values[-1]),
                         "Last price should be np.nan")
 

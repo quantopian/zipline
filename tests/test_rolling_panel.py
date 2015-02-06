@@ -91,10 +91,10 @@ class TestRollingPanel(unittest.TestCase):
         )
 
     @with_environment()
-    def test_alignment(self, env):
+    def test_get_current_multiple_call_same_tick(self, env):
         """
         In old get_current, each call the get_current would copy the data. Thus
-        changing that object would have no side effects. 
+        changing that object would have no side effects.
 
         To keep the same api, make sure that the raw option returns a copy too.
         """
@@ -128,6 +128,7 @@ class TestRollingPanel(unittest.TestCase):
         raw = rp.get_current(raw=True)
         raw2 = rp.get_current(raw=True)
         assert data_id(raw) != data_id(raw2)
+
 
 class TestMutableIndexRollingPanel(unittest.TestCase):
 
