@@ -4,7 +4,7 @@ matrix:
   - python: 2.7
     env:
       - PANDAS_VERSION=0.12.0
-      - NUMPY_VERSION=1.7.1
+      - NUMPY_VERSION=1.8.0
   - python: 3.3
     env:
       - PANDAS_VERSION=0.15.2
@@ -18,7 +18,7 @@ before_install:
 install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
-  - conda install --yes -c https://conda.binstar.org/twiecki numpy=$NUMPY_VERSION scipy nose matplotlib pandas=$PANDAS_VERSION Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
+  - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy nose matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
   - grep pyflakes== etc/requirements_dev.txt | xargs pip install
   - grep pep8== etc/requirements_dev.txt | xargs pip install
   - grep mccabe== etc/requirements_dev.txt | xargs pip install
