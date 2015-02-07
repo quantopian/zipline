@@ -79,7 +79,7 @@ from nose.tools import assert_raises
 from six.moves import range
 from six import itervalues
 
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import TradingAlgorithm, round_shares
 from zipline.api import FixedSlippage
 from zipline.errors import UnsupportedOrderParameters
 from zipline.finance.execution import (
@@ -372,14 +372,15 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
+        self.exp_value = 0
 
     def handle_data(self, data):
         if self.target_shares == 0:
             assert 0 not in self.portfolio.positions
             self.target_shares = 1
         else:
-            assert np.round(self.portfolio.portfolio_value * 0.002) == \
-                self.portfolio.positions[0]['amount'] * self.sale_price, \
+            value = self.portfolio.positions[0]['amount'] * self.sale_price
+            assert abs(value - self.exp_value) <= self.sale_price, \
                 "Orders not filled correctly."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
@@ -406,7 +407,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
 
         self.order_target_value(0, 20)
-        self.target_shares = np.round(20 / data[0].price)
+        self.target_shares = round_shares(20 / data[0].price)
 
 
 ############################

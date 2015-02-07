@@ -973,7 +973,7 @@ class TradingAlgorithm(object):
         """
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
-            req_shares = target - current_position
+            req_shares = round_shares(target) - current_position
             return self.order(sid, req_shares,
                               limit_price=limit_price,
                               stop_price=stop_price,
