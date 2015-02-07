@@ -368,6 +368,48 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
                                        / data[0].price)
 
 
+class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
+    def initialize(self):
+        self.target_shares = dict([(i, 0) for i in range(6)])
+
+    def handle_data(self, data):
+        for sid, target_shares in self.target_shares.items():
+            position = self.portfolio.positions[sid]
+            assert target_shares == position.amount
+
+        # reduce sizes due to volume limitiations
+        full = 0.001
+        half = 0.0005
+
+        pos_values = {}
+        for i in range(6):
+            pos_values[i] = (
+                self.portfolio.positions[i].amount
+                * self.portfolio.positions[i].last_sale_price)
+
+        port = self.portfolio.portfolio_value
+        cash = self.portfolio.cash
+        longs = sum(v for sid, v in pos_values.items() if v > 0)
+        shorts = sum(v for sid, v in pos_values.items() if v < 0)
+
+        def expected_shares(sid, value):
+            return round_shares(value / data[sid].price)
+
+        self.order_percent(0, full, percent_of='portfolio')
+        self.order_percent(1, -half, percent_of='cash')
+        self.order_percent(2, half, percent_of='ex_cash')
+        self.order_percent(3, half, percent_of='longs')
+        self.order_percent(4, half, percent_of='longs_cash')
+        self.order_percent(5, half, percent_of='shorts')
+
+        self.target_shares[0] += expected_shares(0, full * port)
+        self.target_shares[1] += expected_shares(1, -half * cash)
+        self.target_shares[2] += expected_shares(2, half * (port - cash))
+        self.target_shares[3] += expected_shares(3, half * longs)
+        self.target_shares[4] += expected_shares(4, half * (longs + cash))
+        self.target_shares[5] += expected_shares(5, half * shorts)
+
+
 class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
@@ -386,6 +428,50 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
         self.sale_price = data[0].price
         self.order_target_percent(0, .002)
+        self.exp_value = self.portfolio.portfolio_value * 0.002
+
+
+class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
+    def initialize(self):
+        self.target_shares = dict([(i, 0) for i in range(6)])
+
+    def handle_data(self, data):
+
+        for sid, target_shares in self.target_shares.items():
+            position = self.portfolio.positions[sid]
+            assert target_shares == position.amount
+
+        # reduce sizes due to volume limitiations
+        full = 0.001
+        half = 0.0005
+
+        pos_values = {}
+        for i in range(6):
+            pos_values[i] = (
+                self.portfolio.positions[i].amount
+                * self.portfolio.positions[i].last_sale_price)
+
+        port = self.portfolio.portfolio_value
+        cash = self.portfolio.cash
+        longs = sum(v for sid, v in pos_values.items() if v > 0)
+        shorts = sum(v for sid, v in pos_values.items() if v < 0)
+
+        def expected_shares(sid, value):
+            return round_shares(value / data[sid].price)
+
+        self.order_target_percent(0, full, percent_of='portfolio')
+        self.order_target_percent(1, -half, percent_of='cash')
+        self.order_target_percent(2, half, percent_of='ex_cash')
+        self.order_target_percent(3, half, percent_of='longs')
+        self.order_target_percent(4, half, percent_of='longs_cash')
+        self.order_target_percent(5, half, percent_of='shorts')
+
+        self.target_shares[0] = expected_shares(0, full * port)
+        self.target_shares[1] = expected_shares(1, -half * cash)
+        self.target_shares[2] = expected_shares(2, half * (port - cash))
+        self.target_shares[3] = expected_shares(3, half * longs)
+        self.target_shares[4] = expected_shares(4, half * (longs + cash))
+        self.target_shares[5] = expected_shares(5, half * shorts)
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):

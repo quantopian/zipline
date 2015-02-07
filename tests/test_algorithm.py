@@ -45,11 +45,13 @@ from zipline.test_algorithms import (
     TestOrderAlgorithm,
     TestOrderInstantAlgorithm,
     TestOrderPercentAlgorithm,
+    TestOrderPercentAlgorithmPercentOf,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
     TestRegisterTransformAlgorithm,
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
+    TestTargetPercentAlgorithmPercentOf,
     TestTargetValueAlgorithm,
     SetLongOnlyAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -302,6 +304,9 @@ class TestTransformAlgorithm(TestCase):
         self.panel_source, self.panel = \
             factory.create_test_panel_source(self.sim_params)
 
+        self.df_2 = pd.concat([self.df] * 6, 1)
+        self.df_2.columns = range(6)
+
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
@@ -382,6 +387,16 @@ class TestTransformAlgorithm(TestCase):
                 sim_params=self.sim_params,
             )
             algo.run(self.df)
+
+        AlgoClasses2 = [
+            TestOrderPercentAlgorithmPercentOf,
+            TestTargetPercentAlgorithmPercentOf]
+
+        for AlgoClass in AlgoClasses2:
+            algo = AlgoClass(
+                sim_params=self.sim_params,
+            )
+            algo.run(self.df_2)
 
     def test_order_method_style_forwarding(self):
 
