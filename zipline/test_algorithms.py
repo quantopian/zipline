@@ -345,6 +345,33 @@ class TestTargetAlgorithm(TradingAlgorithm):
         self.order_target(0, self.target_shares)
 
 
+class TestTargetAlgorithm_NonInt(TradingAlgorithm):
+    def initialize(self):
+        self.target_shares = 0
+        self.sale_price = None
+        self.i = 0
+
+    def handle_data(self, data):
+        if self.target_shares == 0:
+            assert 0 not in self.portfolio.positions
+        else:
+            assert self.portfolio.positions[0]['amount'] == \
+                self.target_shares, "Orders not filled correctly."
+            assert self.portfolio.positions[0]['last_sale_price'] == \
+                data[0].price, "Orders not filled at current price."
+
+        if self.i == 0:
+            self.target_shares = 5
+            self.order_target(0, 5.1)
+        elif self.i == 1:
+            self.target_shares = 10
+            self.order_target(0, 10.1)
+        elif self.i == 2:
+            self.target_shares = 5
+            self.order_target(0, 5.1)
+        self.i += 1
+
+
 class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0

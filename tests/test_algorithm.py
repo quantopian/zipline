@@ -50,6 +50,7 @@ from zipline.test_algorithms import (
     TestOrderValueAlgorithm,
     TestRegisterTransformAlgorithm,
     TestTargetAlgorithm,
+    TestTargetAlgorithm_NonInt,
     TestTargetPercentAlgorithm,
     TestTargetPercentAlgorithmPercentOf,
     TestTargetValueAlgorithm,
@@ -378,6 +379,7 @@ class TestTransformAlgorithm(TestCase):
         AlgoClasses = [TestOrderAlgorithm,
                        TestOrderValueAlgorithm,
                        TestTargetAlgorithm,
+                       TestTargetAlgorithm_NonInt,
                        TestOrderPercentAlgorithm,
                        TestTargetPercentAlgorithm,
                        TestTargetValueAlgorithm]
