@@ -87,6 +87,21 @@ from zipline.history.history_container import HistoryContainer
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
+def round_if_near_integer(a, epsilon=1e-4):
+    """
+    Round a to the nearest integer if that integer is within an epsilon
+    of a.
+    """
+    if abs(a - round(a)) <= epsilon:
+        return round(a)
+    else:
+        return a
+
+
+def round_shares(shares):
+    return int(round_if_near_integer(shares))
+
+
 class TradingAlgorithm(object):
     """
     Base class for trading algorithms. Inherit and overload
@@ -633,20 +648,10 @@ class TradingAlgorithm(object):
         Place an order using the specified parameters.
         """
 
-        def round_if_near_integer(a, epsilon=1e-4):
-            """
-            Round a to the nearest integer if that integer is within an epsilon
-            of a.
-            """
-            if abs(a - round(a)) <= epsilon:
-                return round(a)
-            else:
-                return a
-
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = int(round_if_near_integer(amount))
+        amount = round_shares(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(sid,
