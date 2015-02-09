@@ -14,27 +14,6 @@ def loopback(symbol, *args, **kwargs):
     return symbol
 
 
-class SecurityListSet(object):
-
-    def __init__(self, current_date_func, lookup_func=None):
-        if lookup_func is None:
-            self.lookup_func = loopback
-        else:
-            self.lookup_func = lookup_func
-        self.current_date_func = current_date_func
-        self._leveraged_etf = None
-
-    @property
-    def leveraged_etf_list(self):
-        if self._leveraged_etf is None:
-            self._leveraged_etf = SecurityList(
-                self.lookup_func,
-                load_from_directory('leveraged_etf_list'),
-                self.current_date_func
-            )
-        return self._leveraged_etf
-
-
 class SecurityList(object):
 
     def __init__(self, lookup_func, data, current_date_func):
@@ -100,6 +79,30 @@ class SecurityList(object):
                 as_of_date=effective_date
             )
             change_func(sid)
+
+
+class SecurityListSet(object):
+
+    def __init__(self, current_date_func, lookup_func=None):
+        # provide a cut point to substitute other security
+        # list implementations.
+        self.sl_constructor = SecurityList
+        if lookup_func is None:
+            self.lookup_func = loopback
+        else:
+            self.lookup_func = lookup_func
+        self.current_date_func = current_date_func
+        self._leveraged_etf = None
+
+    @property
+    def leveraged_etf_list(self):
+        if self._leveraged_etf is None:
+            self._leveraged_etf = self.sl_constructor(
+                self.lookup_func,
+                load_from_directory('leveraged_etf_list'),
+                self.current_date_func
+            )
+        return self._leveraged_etf
 
 
 def load_from_directory(list_name):
