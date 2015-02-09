@@ -439,7 +439,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         self.target_shares[3] += expected_shares(3, half * longs)
         self.target_shares[4] += expected_shares(4, half * (longs + cash))
         self.target_shares[5] += expected_shares(5, half * shorts)
-        self.target_shares[6] += expected_shares(5, half * group_val)
+        self.target_shares[6] += expected_shares(6, half * group_val)
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
@@ -508,7 +508,7 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         self.target_shares[3] = expected_shares(3, half * longs)
         self.target_shares[4] = expected_shares(4, half * (longs + cash))
         self.target_shares[5] = expected_shares(5, half * shorts)
-        self.target_shares[6] = expected_shares(5, half * group_val)
+        self.target_shares[6] = expected_shares(6, half * group_val)
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
