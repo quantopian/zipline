@@ -1,11 +1,13 @@
-import os.path
-import pytz
-import pandas as pd
 from datetime import datetime
 from os import listdir
+import os.path
+
+import pandas as pd
+import pytz
+import zipline
+
 
 DATE_FORMAT = "%Y%m%d"
-import zipline
 zipline_dir = os.path.join(*zipline.__path__)
 SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
