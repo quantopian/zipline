@@ -882,45 +882,40 @@ class TradingAlgorithm(object):
         should accept a Position and return True if that Position's
         market_value should be included in the total and False otherwise.
         """
+
+        period = self.perf_tracker.cumulative_performance
+
         # first try the filter_fn, if supplied
         if filter_fn is not None:
+            positions = period.get_positions()
             mv = sum(
                 p.amount * p.last_sale_price
-                for p in self.portfolio.positions.values()
+                for p in positions.values()
                 if filter_fn(p))
 
         # net portfolio value
         elif mv_type is None or mv_type == 'portfolio':
-            mv = self.portfolio.portfolio_value
+            mv = period.ending_value + period.ending_cash
 
         # portfolio cash
         elif mv_type == 'cash':
-            mv = self.portfolio.cash
+            mv = period.ending_cash
 
         # net invested capital
         elif mv_type == 'ex_cash':
-            mv = self.portfolio.portfolio_value - self.portfolio.cash
+            mv = period.ending_value
 
         # long invested capital
         elif mv_type == 'longs':
-            mv = sum(
-                p.amount * p.last_sale_price
-                for p in self.portfolio.positions.values()
-                if p.amount > 0)
+            mv = period._long_exposure()
 
         # long invested capital, plus cash
         elif mv_type == 'longs_cash':
-            mv = sum(
-                p.amount * p.last_sale_price
-                for p in self.portfolio.positions.values()
-                if p.amount > 0) + self.portfolio.cash
+            mv = period._long_exposure() + period.ending_cash
 
         # short invested capital
         elif mv_type == 'shorts':
-            mv = sum(
-                p.amount * p.last_sale_price
-                for p in self.portfolio.positions.values()
-                if p.amount < 0)
+            mv = period._short_exposure()
 
         else:
             raise ValueError(
