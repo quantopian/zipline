@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
+
 import numpy as np
 import pandas as pd
 from copy import deepcopy
@@ -177,15 +179,20 @@ class RollingPanel(object):
         where = slice(start_index, end_index)
         current_dates = self.date_buf[where]
 
+        def convert_datelike_to_long(dt):
+            if isinstance(dt, pd.Timestamp):
+                return dt.asm8
+            if isinstance(dt, datetime.datetime):
+                return np.datetime64(dt)
+            return dt
+
         # constrict further by date
         if start:
-            if isinstance(start, pd.Timestamp):
-                start = start.asm8
+            start = convert_datelike_to_long(start)
             start_index += current_dates.searchsorted(start)
 
         if end:
-            if isinstance(end, pd.Timestamp):
-                end = end.asm8
+            end = convert_datelike_to_long(end)
             _end = current_dates.searchsorted(end, 'right')
             end_index -= len(current_dates) - _end
 
