@@ -397,7 +397,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
 
 class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(6)])
+        self.target_shares = dict([(i, 0) for i in range(7)])
 
     def handle_data(self, data):
         for sid, target_shares in self.target_shares.items():
@@ -409,7 +409,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         half = 0.0005
 
         pos_values = {}
-        for i in range(6):
+        for i in range(7):
             pos_values[i] = (
                 self.portfolio.positions[i].amount
                 * self.portfolio.positions[i].last_sale_price)
@@ -465,7 +465,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
 
 class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(6)])
+        self.target_shares = dict([(i, 0) for i in range(7)])
 
     def handle_data(self, data):
 
@@ -478,7 +478,7 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         half = 0.0005
 
         pos_values = {}
-        for i in range(6):
+        for i in range(7):
             pos_values[i] = (
                 self.portfolio.positions[i].amount
                 * self.portfolio.positions[i].last_sale_price)
