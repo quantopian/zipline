@@ -517,7 +517,6 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         self.target_shares[7] = expected_shares(7, full * gross)
 
 
-
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
