@@ -305,8 +305,8 @@ class TestTransformAlgorithm(TestCase):
         self.panel_source, self.panel = \
             factory.create_test_panel_source(self.sim_params)
 
-        self.df_2 = pd.concat([self.df] * 7, 1)
-        self.df_2.columns = range(7)
+        self.df_large = pd.concat([self.df] * 10, 1)
+        self.df_large.columns = range(10)
 
     def test_source_as_input(self):
         algo = TestRegisterTransformAlgorithm(
@@ -398,7 +398,7 @@ class TestTransformAlgorithm(TestCase):
             algo = AlgoClass(
                 sim_params=self.sim_params,
             )
-            algo.run(self.df_2)
+            algo.run(self.df_large)
 
     def test_order_method_style_forwarding(self):
 

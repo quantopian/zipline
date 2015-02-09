@@ -397,7 +397,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
 
 class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(7)])
+        self.target_shares = dict([(i, 0) for i in range(8)])
 
     def handle_data(self, data):
         for sid, target_shares in self.target_shares.items():
@@ -409,7 +409,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         half = 0.0005
 
         pos_values = {}
-        for i in range(7):
+        for i in range(len(data.keys())):
             pos_values[i] = (
                 self.portfolio.positions[i].amount
                 * self.portfolio.positions[i].last_sale_price)
@@ -418,6 +418,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         cash = self.portfolio.cash
         longs = sum(v for v in pos_values.values() if v > 0)
         shorts = sum(v for v in pos_values.values() if v < 0)
+        gross = sum(abs(v) for v in pos_values.values())
         group = [0, 1, 2]
         group_val = sum(v for sid, v in pos_values.items() if sid in group)
 
@@ -432,6 +433,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         self.order_percent(5, half, percent_of='shorts')
         self.order_percent(
             6, half, percent_of_fn=lambda p: p.sid in group)
+        self.order_percent(7, full, percent_of='gross')
 
         self.target_shares[0] += expected_shares(0, full * port)
         self.target_shares[1] += expected_shares(1, -half * cash)
@@ -440,6 +442,7 @@ class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
         self.target_shares[4] += expected_shares(4, half * (longs + cash))
         self.target_shares[5] += expected_shares(5, half * shorts)
         self.target_shares[6] += expected_shares(6, half * group_val)
+        self.target_shares[7] += expected_shares(7, full * gross)
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
@@ -465,7 +468,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
 
 class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(7)])
+        self.target_shares = dict([(i, 0) for i in range(8)])
 
     def handle_data(self, data):
 
@@ -478,7 +481,7 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         half = 0.0005
 
         pos_values = {}
-        for i in range(7):
+        for i in range(len(data.keys())):
             pos_values[i] = (
                 self.portfolio.positions[i].amount
                 * self.portfolio.positions[i].last_sale_price)
@@ -487,6 +490,7 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         cash = self.portfolio.cash
         longs = sum(v for v in pos_values.values() if v > 0)
         shorts = sum(v for v in pos_values.values() if v < 0)
+        gross = sum(abs(v) for v in pos_values.values())
         group = [0, 1, 2]
         group_val = sum(v for sid, v in pos_values.items() if sid in group)
 
@@ -501,6 +505,7 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         self.order_target_percent(5, half, percent_of='shorts')
         self.order_target_percent(
             6, half, percent_of_fn=lambda p: p.sid in group)
+        self.order_target_percent(5, full, percent_of='gross')
 
         self.target_shares[0] = expected_shares(0, full * port)
         self.target_shares[1] = expected_shares(1, -half * cash)
@@ -509,6 +514,8 @@ class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
         self.target_shares[4] = expected_shares(4, half * (longs + cash))
         self.target_shares[5] = expected_shares(5, half * shorts)
         self.target_shares[6] = expected_shares(6, half * group_val)
+        self.target_shares[7] = expected_shares(7, full * gross)
+
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):

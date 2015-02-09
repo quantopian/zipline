@@ -871,12 +871,14 @@ class TradingAlgorithm(object):
         Returns the requested market value.
 
         Options for mv_type are:
-            portfolio (default): net portfolio value
-            cash:                available cash
-            ex_cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            longs_cash:          long invested capital plus cash
-            shorts:              short invested capital
+            portfolio [default]:    net exposure or portfolio value
+            net:                    net exposure or portfolio value
+            gross:                  gross exposure
+            cash:                   available cash
+            ex_cash:                net invested capital, ex-cash
+            longs:                  long invested capital
+            longs_cash:             long invested capital plus cash
+            shorts:                 short invested capital
 
         Alternatively, a filter_fn can be supplied. The filter_fn
         should accept a Position and return True if that Position's
@@ -894,8 +896,11 @@ class TradingAlgorithm(object):
                 if filter_fn(p))
 
         # net portfolio value
-        elif mv_type is None or mv_type == 'portfolio':
+        elif mv_type is None or mv_type == 'portfolio' or mv_type == 'net':
             mv = period.ending_value + period.ending_cash
+
+        elif mv_type == 'gross':
+            mv = period._gross_exposure()
 
         # portfolio cash
         elif mv_type == 'cash':
@@ -936,12 +941,14 @@ class TradingAlgorithm(object):
         `percent_of`) then the net portfolio value is used.
 
         Options for percent_of are:
-            portfolio (default): net portfolio value
-            cash:                available cash
-            ex_cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            longs_cash:          long invested capital plus cash
-            shorts:              short invested capital
+            portfolio [default]:    net exposure or portfolio value
+            net:                    net exposure or portfolio value
+            gross:                  gross exposure
+            cash:                   available cash
+            ex_cash:                net invested capital, ex-cash
+            longs:                  long invested capital
+            longs_cash:             long invested capital plus cash
+            shorts:                 short invested capital
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
@@ -1018,12 +1025,14 @@ class TradingAlgorithm(object):
         percent and the current percent.
 
         Options for percent_of are:
-            portfolio (default): net portfolio value
-            cash:                available cash
-            ex_cash:             net invested capital, ex-cash
-            longs:               long invested capital
-            longs_cash:          long invested capital plus cash
-            shorts:              short invested capital
+            portfolio [default]:    net exposure or portfolio value
+            net:                    net exposure or portfolio value
+            gross:                  gross exposure
+            cash:                   available cash
+            ex_cash:                net invested capital, ex-cash
+            longs:                  long invested capital
+            longs_cash:             long invested capital plus cash
+            shorts:                 short invested capital
 
         Alternatively, a percent_of_fn can be supplied. The percent_of_fn
         should accept a Position and return True if that Position's
