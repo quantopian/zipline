@@ -86,7 +86,7 @@ class SecurityListSet(object):
     def __init__(self, current_date_func, lookup_func=None):
         # provide a cut point to substitute other security
         # list implementations.
-        self.sl_constructor = SecurityList
+        self.security_list_type = SecurityList
         if lookup_func is None:
             self.lookup_func = loopback
         else:
@@ -97,7 +97,7 @@ class SecurityListSet(object):
     @property
     def leveraged_etf_list(self):
         if self._leveraged_etf is None:
-            self._leveraged_etf = self.sl_constructor(
+            self._leveraged_etf = self.security_list_type(
                 self.lookup_func,
                 load_from_directory('leveraged_etf_list'),
                 self.current_date_func
