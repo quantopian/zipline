@@ -84,11 +84,11 @@ class SecurityList(object):
 
 
 class SecurityListSet(object):
+    # provide a cut point to substitute other security
+    # list implementations.
+    security_list_type = SecurityList
 
     def __init__(self, current_date_func, lookup_func=None):
-        # provide a cut point to substitute other security
-        # list implementations.
-        self.security_list_type = SecurityList
         if lookup_func is None:
             self.lookup_func = loopback
         else:
