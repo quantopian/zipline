@@ -807,7 +807,7 @@ class HistoryContainer(object):
         if field in ['price', 'close_price']:
             # shortcircuit for full last row
             vals = frame[-1]
-            if ~np.all(np.isnan(vals)):
+            if np.all(~np.isnan(vals)):
                 return vals
             return ffill(frame)[-1]
         elif field == 'open_price':
