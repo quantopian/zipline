@@ -6,6 +6,7 @@ Zipline
 [![downloads](https://pypip.in/d/zipline/badge.png)](https://pypi.python.org/pypi/zipline)
 [![build status](https://travis-ci.org/quantopian/zipline.png?branch=master)](https://travis-ci.org/quantopian/zipline)
 [![Coverage Status](https://coveralls.io/repos/quantopian/zipline/badge.png)](https://coveralls.io/r/quantopian/zipline)
+[![Code quality](https://scrutinizer-ci.com/g/quantopian/zipline/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/quantopian/zipline/)
 
 Zipline is a Pythonic algorithmic trading library.  The system is
 fundamentally event-driven and a close approximation of how
