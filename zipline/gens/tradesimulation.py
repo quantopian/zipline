@@ -83,12 +83,11 @@ class AlgorithmSimulator(object):
         return self.EMISSION_TO_PERF_KEY_MAP[
             self.algo.perf_tracker.emission_rate]
 
-    def process_event(self, event):
-        process_trade = self.algo.blotter.process_trade
-        for txn, order in process_trade(event):
-            self.algo.perf_tracker.process_event(txn)
-            self.algo.perf_tracker.process_event(order)
-        self.algo.perf_tracker.process_event(event)
+    def process_event(self, blotter_process_trade, perf_process_event, event):
+        for txn, order in blotter_process_trade(event):
+            perf_process_event(txn)
+            perf_process_event(order)
+        perf_process_event(event)
 
     def transform(self, stream_in):
         """
@@ -210,6 +209,15 @@ class AlgorithmSimulator(object):
         if instant_fill:
             events_to_be_processed = []
 
+        # Assign process events to variables to avoid attribute access in
+        # innermost loops.
+        #
+        # Done here, to allow for perf_tracker or blotter to be swapped out
+        # or changed in between snapshots.
+        perf_process_event = self.algo.perf_tracker.process_event
+        blotter_process_trade = self.algo.blotter.process_trade
+        process_event = self.process_event
+
         for event in snapshot:
 
             if event.type == DATASOURCE_TYPE.TRADE:
@@ -223,24 +231,30 @@ class AlgorithmSimulator(object):
                 self.update_universe(event)
 
             elif event.type == DATASOURCE_TYPE.SPLIT:
+                # process_split is not assigned to a variable since it is
+                # called rarely compared to the other event processors.
                 self.algo.blotter.process_split(event)
 
             if not instant_fill:
-                self.process_event(event)
+                process_event(blotter_process_trade,
+                              perf_process_event,
+                              event)
             else:
                 events_to_be_processed.append(event)
 
         if any_trade_occurred:
             new_orders = self._call_handle_data()
             for order in new_orders:
-                self.algo.perf_tracker.process_event(order)
+                perf_process_event(order)
 
         if instant_fill:
             # Now that handle_data has been called and orders have been placed,
             # process the event stream to fill user orders based on the events
             # from this snapshot.
             for event in events_to_be_processed:
-                self.process_event(event)
+                process_event(blotter_process_trade,
+                              perf_process_event,
+                              event)
 
         if benchmark_event_occurred:
             return self.get_message(dt)
