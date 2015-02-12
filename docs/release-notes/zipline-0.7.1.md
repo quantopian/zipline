@@ -62,3 +62,29 @@
   > - shorts count
   > - longs count
 
+* Allow order_percent to work with various market values (by Jeremiah Lowin)
+[PR477](https://github.com/quantopian/zipline/pull/477)
+
+    > Currently, `order_percent()` and `order_target_percent()` both operate as a percentage of `self.portfolio.portfolio_value`. This PR lets them operate as percentages of other important MVs.
+
+    > Also adds `context.get_market_value()`, which enables this functionality.
+
+    > For example:
+    > ```python
+    > # this is how it works today (and this still works)
+    > # put 50% of my portfolio in AAPL
+    > order_percent('AAPL', 0.5)
+    > # note that if this were a fully invested portfolio, it would become 150% levered.
+
+    > # take half of my available cash and buy AAPL
+    > order_percent('AAPL', 0.5, percent_of='cash')
+
+    > # rebalance my short position, as a percentage of my current short book
+    > order_target_percent('MSFT', 0.1, percent_of='shorts')
+
+    > # rebalance within a custom group of stocks
+    > tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
+    > tech_filter = lambda p: p.sid in tech_stocks
+    > for stock in tech_stocks:
+    >    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+    > ```
