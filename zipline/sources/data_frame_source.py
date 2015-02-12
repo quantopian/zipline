@@ -23,6 +23,8 @@ from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
 
+params = {'ds_volume': 1000}
+
 
 class DataFrameSource(DataSource):
     """
@@ -73,7 +75,7 @@ class DataFrameSource(DataSource):
                         'dt': dt,
                         'sid': sid,
                         'price': price,
-                        'volume': 1000,
+                        'volume': params['ds_volume'],
                     }
                     yield event
 
