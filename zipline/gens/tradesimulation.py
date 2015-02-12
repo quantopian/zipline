@@ -83,7 +83,7 @@ class AlgorithmSimulator(object):
         return self.EMISSION_TO_PERF_KEY_MAP[
             self.algo.perf_tracker.emission_rate]
 
-    def process_event(self, blotter_process_trade, perf_process_event, event):
+    def _process_event(self, blotter_process_trade, perf_process_event, event):
         for txn, order in blotter_process_trade(event):
             perf_process_event(txn)
             perf_process_event(order)
@@ -216,7 +216,7 @@ class AlgorithmSimulator(object):
         # or changed in between snapshots.
         perf_process_event = self.algo.perf_tracker.process_event
         blotter_process_trade = self.algo.blotter.process_trade
-        process_event = self.process_event
+        process_event = self._process_event
 
         for event in snapshot:
 
