@@ -2,13 +2,11 @@
 
 ## Bug Fixes (BUG)
 
-* Fix a bug where the reported returns could sharply dip for random periods of
-  time. [PR378](https://github.com/quantopian/zipline/pull/378)
+### Fix a bug where the reported returns could sharply dip for random periods of time. [PR378](https://github.com/quantopian/zipline/pull/378)
 
 ## Enhancements (ENH)
 
-* Account object: Adds an account object to conext to track information about
-  the trading account. [PR396](https://github.com/quantopian/zipline/pull/396)
+### Account object: Adds an account object to conext to track information about the trading account. [PR396](https://github.com/quantopian/zipline/pull/396)
 
   > Example:
 
@@ -19,8 +17,7 @@
   > Returns the settled cash value that is stored on the account object. This
   > value is updated accordingly as the algorithm is run.
 
-* HistoryContainer can now grow
-  dynamically. [PR412](https://github.com/quantopian/zipline/pull/412)
+### HistoryContainer can now grow dynamically. [PR412](https://github.com/quantopian/zipline/pull/412)
 
   > Calls to `history` will now be able to increase the size or change the shape
   > of the history container to be able to service the call. `add_history` now
@@ -28,8 +25,7 @@
   > container. This change is backwards compatible with `history`, all existing
   > algorithms should continue to work as intended.
 
-* Simple transforms ported from quantopian and use history.
-  [PR429](https://github.com/quantopian/zipline/pull/429)
+### Simple transforms ported from quantopian and use history. [PR429](https://github.com/quantopian/zipline/pull/429)
 
   > SIDData now has methods for:
 
@@ -45,13 +41,12 @@
   > return the daily returns of the given security.
 
   > Example:
-  > ```
-  > # The standard deviation of the price in the last 3 days.
-  > data[security].stdev(3)
-  > ```
+```python
+# The standard deviation of the price in the last 3 days.
+data[security].stdev(3)
+```
 
-* New fields in Performance Period
-[PR464](https://github.com/quantopian/zipline/pull/464)
+### New fields in Performance Period [PR464](https://github.com/quantopian/zipline/pull/464)
 
   > Performance Period has new fields accessible in return value of to_dict:
 
@@ -62,29 +57,29 @@
   > - shorts count
   > - longs count
 
-* Allow order_percent to work with various market values (by Jeremiah Lowin)
-[PR477](https://github.com/quantopian/zipline/pull/477)
 
-    > Currently, `order_percent()` and `order_target_percent()` both operate as a percentage of `self.portfolio.portfolio_value`. This PR lets them operate as percentages of other important MVs.
+### Allow order_percent to work with various market values (by Jeremiah Lowin) [PR477](https://github.com/quantopian/zipline/pull/477)
 
-    > Also adds `context.get_market_value()`, which enables this functionality.
+  > Currently, `order_percent()` and `order_target_percent()` both operate as a percentage of `self.portfolio.portfolio_value`. This PR lets them operate as percentages of other important MVs.
 
-    > For example:
-    > ```python
-    > # this is how it works today (and this still works)
-    > # put 50% of my portfolio in AAPL
-    > order_percent('AAPL', 0.5)
-    > # note that if this were a fully invested portfolio, it would become 150% levered.
+  > Also adds `context.get_market_value()`, which enables this functionality.
 
-    > # take half of my available cash and buy AAPL
-    > order_percent('AAPL', 0.5, percent_of='cash')
+  > For example:
+```python
+# this is how it works today (and this still works)
+# put 50% of my portfolio in AAPL
+order_percent('AAPL', 0.5)
+# note that if this were a fully invested portfolio, it would become 150% levered.
 
-    > # rebalance my short position, as a percentage of my current short book
-    > order_target_percent('MSFT', 0.1, percent_of='shorts')
+# take half of my available cash and buy AAPL
+order_percent('AAPL', 0.5, percent_of='cash')
 
-    > # rebalance within a custom group of stocks
-    > tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
-    > tech_filter = lambda p: p.sid in tech_stocks
-    > for stock in tech_stocks:
-    >    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
-    > ```
+# rebalance my short position, as a percentage of my current short book
+order_target_percent('MSFT', 0.1, percent_of='shorts')
+
+# rebalance within a custom group of stocks
+tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
+tech_filter = lambda p: p.sid in tech_stocks
+for stock in tech_stocks:
+   order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+```
