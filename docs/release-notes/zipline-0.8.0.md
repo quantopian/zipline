@@ -1,5 +1,11 @@
 # Zipline 0.8.0 Release Notes
 
+## Highlights
+
+  * New documentation system with a new website at [zipline.io](http://www.zipline.io)
+  * Major performance enhancements.
+  * Dynamic history.
+
 ## Bug Fixes (BUG)
 
 ### Fix a bug where the reported returns could sharply dip for random periods of time. [PR378](https://github.com/quantopian/zipline/pull/378)
