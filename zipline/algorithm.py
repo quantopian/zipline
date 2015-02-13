@@ -809,16 +809,18 @@ class TradingAlgorithm(object):
     @api_method
     def get_datetime(self, tz=None):
         """
-        Returns a copy of the datetime.
+        Returns the simulation datetime.
         """
-        date_copy = copy(self.datetime)
-        assert date_copy.tzinfo == pytz.utc, \
-            "Algorithm should have a utc datetime"
+        dt = self.datetime
+        assert dt.tzinfo == pytz.utc, "Algorithm should have a utc datetime"
+
         if tz is not None:
+            # Convert to the given timezone passed as a string or tzinfo.
             if isinstance(tz, string_types):
                 tz = pytz.timezone(tz)
-            date_copy = date_copy.astimezone(tz)
-        return date_copy
+            dt = dt.astimezone(tz)
+
+        return dt  # datetime.datetime objects are immutable.
 
     def set_transact(self, transact):
         """
