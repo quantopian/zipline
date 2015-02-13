@@ -1,4 +1,4 @@
-# Zipline 0.7.1 Release Notes
+# Zipline 0.8.0 Release Notes
 
 ## Bug Fixes (BUG)
 
@@ -82,4 +82,67 @@ tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
 tech_filter = lambda p: p.sid in tech_stocks
 for stock in tech_stocks:
    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+```
+
+### Major performance enhancements to history (by Dale Jung) [PR488](https://github.com/quantopian/zipline/commit/38e8d5214d46f089020703712dc6b3f4f6ee084d)
+
+## Contributors
+
+The following people have contributed to this release, ordered by numbers of commit:
+```
+   349  Eddie Hebert
+   213  Thomas Wiecki
+   134  fawce
+   119  Jeremiah Lowin
+    97  Dale Jung
+    52  David Edwards
+    45  Joe Jevnik
+    45  Scott Sanderson
+    32  Delaney Granizo-Mackenzie
+    30  Richard Frank
+    27  Ryan Day
+    22  Ben McCann
+    22  Jonathan Kamens
+    19  twiecki
+    14  Colin Alexander
+    11  Tony Worm
+    10  John Ricklefs
+     8  Brian Cappello
+     7  Brian Fink
+     7  Moises Trovo
+     7  Wes McKinney
+     6  David Stephens
+     6  Mete Atamel
+     5  Elektra58
+     5  Seong Lee
+     4  Jason Kölker
+     4  Mark Dunne
+     4  Suminda Dharmasena
+     4  Tobias Brandt
+     4  llllllllll
+     3  Chen Huang
+     3  Jamie Kirkpatrick
+     3  Jean Bredeche
+     3  Luke Schiefelbein
+     3  Matti Hanninen
+     3  Nicholas Pezolano
+     2  Aidan
+     2  Martin Dengler
+     2  Peter Cawthron
+     2  Philipp Kosel
+     2  jbredeche
+     2  stanh
+     1  Aaron Marz
+     1  Ben
+     1  Corey Farwell
+     1  Ian Levesque
+     1  Jeremi Joslin
+     1  Justin Graves
+     1  Michael Schatzow
+     1  Pankaj Garg
+     1  Stan
+     1  Sébastien Drouyer
+     1  The Gitter Badger
+     1  Tony Lambiris
+     1  cowmoo
 ```
