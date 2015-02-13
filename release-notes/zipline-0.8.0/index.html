@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../../img/favicon.ico">
 
-        <title>Zipline 0.7.1 - Zipline</title>
+        <title>Zipline 0.8.0 - Zipline</title>
 
         <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../../css/font-awesome-4.0.3.css" rel="stylesheet">
@@ -71,7 +71,7 @@
                         <ul class="dropdown-menu">
                         
                             <li class="active">
-                                <a href=".">Zipline 0.7.1</a>
+                                <a href=".">Zipline 0.8.0</a>
                             </li>
                         
                             <li >
@@ -126,38 +126,31 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#zipline-071-release-notes">Zipline 0.7.1 Release Notes</a></li>
+        <li class="main active"><a href="#zipline-080-release-notes">Zipline 0.8.0 Release Notes</a></li>
         
             <li><a href="#bug-fixes-bug">Bug Fixes (BUG)</a></li>
         
             <li><a href="#enhancements-enh">Enhancements (ENH)</a></li>
+        
+            <li><a href="#contributors">Contributors</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="zipline-071-release-notes">Zipline 0.7.1 Release Notes</h1>
+<h1 id="zipline-080-release-notes">Zipline 0.8.0 Release Notes</h1>
 <h2 id="bug-fixes-bug">Bug Fixes (BUG)</h2>
-<ul>
-<li>Fix a bug where the reported returns could sharply dip for random periods of
-  time. <a href="https://github.com/quantopian/zipline/pull/378">PR378</a></li>
-</ul>
+<h3 id="fix-a-bug-where-the-reported-returns-could-sharply-dip-for-random-periods-of-time-pr378">Fix a bug where the reported returns could sharply dip for random periods of time. <a href="https://github.com/quantopian/zipline/pull/378">PR378</a></h3>
 <h2 id="enhancements-enh">Enhancements (ENH)</h2>
-<ul>
-<li>Account object: Adds an account object to conext to track information about
-  the trading account. <a href="https://github.com/quantopian/zipline/pull/396">PR396</a></li>
-</ul>
+<h3 id="account-object-adds-an-account-object-to-conext-to-track-information-about-the-trading-account-pr396">Account object: Adds an account object to conext to track information about the trading account. <a href="https://github.com/quantopian/zipline/pull/396">PR396</a></h3>
 <blockquote>
 <p>Example:</p>
 <p><code>context.account.settled_cash</code></p>
 <p>Returns the settled cash value that is stored on the account object. This
 value is updated accordingly as the algorithm is run.</p>
 </blockquote>
-<ul>
-<li>HistoryContainer can now grow
-  dynamically. <a href="https://github.com/quantopian/zipline/pull/412">PR412</a></li>
-</ul>
+<h3 id="historycontainer-can-now-grow-dynamically-pr412">HistoryContainer can now grow dynamically. <a href="https://github.com/quantopian/zipline/pull/412">PR412</a></h3>
 <blockquote>
 <p>Calls to <code>history</code> will now be able to increase the size or change the shape
 of the history container to be able to service the call. <code>add_history</code> now
@@ -165,10 +158,7 @@ acts as a preformance hint to pre-allocate sufficient space in the
 container. This change is backwards compatible with <code>history</code>, all existing
 algorithms should continue to work as intended.</p>
 </blockquote>
-<ul>
-<li>Simple transforms ported from quantopian and use history.
-  <a href="https://github.com/quantopian/zipline/pull/429">PR429</a></li>
-</ul>
+<h3 id="simple-transforms-ported-from-quantopian-and-use-history-pr429">Simple transforms ported from quantopian and use history. <a href="https://github.com/quantopian/zipline/pull/429">PR429</a></h3>
 <blockquote>
 <p>SIDData now has methods for:</p>
 <ul>
@@ -188,10 +178,7 @@ return the daily returns of the given security.</p>
 data[security].stdev(3)
 </code></pre>
 
-<ul>
-<li>New fields in Performance Period
-<a href="https://github.com/quantopian/zipline/pull/464">PR464</a></li>
-</ul>
+<h3 id="new-fields-in-performance-period-pr464">New fields in Performance Period <a href="https://github.com/quantopian/zipline/pull/464">PR464</a></h3>
 <blockquote>
 <p>Performance Period has new fields accessible in return value of to_dict:</p>
 <ul>
@@ -203,17 +190,12 @@ data[security].stdev(3)
 <li>longs count</li>
 </ul>
 </blockquote>
-<ul>
-<li>
-<p>Allow order_percent to work with various market values (by Jeremiah Lowin)
-<a href="https://github.com/quantopian/zipline/pull/477">PR477</a></p>
+<h3 id="allow-order_percent-to-work-with-various-market-values-by-jeremiah-lowin-pr477">Allow order_percent to work with various market values (by Jeremiah Lowin) <a href="https://github.com/quantopian/zipline/pull/477">PR477</a></h3>
 <blockquote>
 <p>Currently, <code>order_percent()</code> and <code>order_target_percent()</code> both operate as a percentage of <code>self.portfolio.portfolio_value</code>. This PR lets them operate as percentages of other important MVs.</p>
 <p>Also adds <code>context.get_market_value()</code>, which enables this functionality.</p>
 <p>For example:</p>
 </blockquote>
-</li>
-</ul>
 <pre><code class="python"># this is how it works today (and this still works)
 # put 50% of my portfolio in AAPL
 order_percent('AAPL', 0.5)
@@ -230,6 +212,66 @@ tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
 tech_filter = lambda p: p.sid in tech_stocks
 for stock in tech_stocks:
    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+</code></pre>
+
+<h3 id="major-performance-enhancements-to-history-by-dale-jung-pr488">Major performance enhancements to history (by Dale Jung) <a href="https://github.com/quantopian/zipline/commit/38e8d5214d46f089020703712dc6b3f4f6ee084d">PR488</a></h3>
+<h2 id="contributors">Contributors</h2>
+<p>The following people have contributed to this release, ordered by numbers of commit:</p>
+<pre><code>   349  Eddie Hebert
+   213  Thomas Wiecki
+   134  fawce
+   119  Jeremiah Lowin
+    97  Dale Jung
+    52  David Edwards
+    45  Joe Jevnik
+    45  Scott Sanderson
+    32  Delaney Granizo-Mackenzie
+    30  Richard Frank
+    27  Ryan Day
+    22  Ben McCann
+    22  Jonathan Kamens
+    19  twiecki
+    14  Colin Alexander
+    11  Tony Worm
+    10  John Ricklefs
+     8  Brian Cappello
+     7  Brian Fink
+     7  Moises Trovo
+     7  Wes McKinney
+     6  David Stephens
+     6  Mete Atamel
+     5  Elektra58
+     5  Seong Lee
+     4  Jason Kölker
+     4  Mark Dunne
+     4  Suminda Dharmasena
+     4  Tobias Brandt
+     4  llllllllll
+     3  Chen Huang
+     3  Jamie Kirkpatrick
+     3  Jean Bredeche
+     3  Luke Schiefelbein
+     3  Matti Hanninen
+     3  Nicholas Pezolano
+     2  Aidan
+     2  Martin Dengler
+     2  Peter Cawthron
+     2  Philipp Kosel
+     2  jbredeche
+     2  stanh
+     1  Aaron Marz
+     1  Ben
+     1  Corey Farwell
+     1  Ian Levesque
+     1  Jeremi Joslin
+     1  Justin Graves
+     1  Michael Schatzow
+     1  Pankaj Garg
+     1  Stan
+     1  Sébastien Drouyer
+     1  The Gitter Badger
+     1  Tony Lambiris
+     1  cowmoo
 </code></pre>
 
 </div>
