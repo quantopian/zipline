@@ -88,3 +88,24 @@
     > for stock in tech_stocks:
     >    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
     > ```
+
+* Forward arguments from __init__ to the user-defined initialize().
+  [PR456](https://github.com/quantopian/zipline/pull/456)
+
+  >  If you used the new way of creating an algorithm by defining an
+  `initialize()` and a `handle_data()` function that you pass to
+  `TradingAlgorithm` it was not possible to externally set variables in `initialize`. This is quite an impediment to parameter optimization where you want to be able to run the `TradingAlgorithm` many times passing in different parameter values that you set in `initialize()`.
+
+  > Example:
+  > ```python
+  > def initialize(context, param=0):
+  >     context.param = param
+  > def handle_data(context, data):
+  >     # use param in some way
+  >     ...
+  > # Instantiate algorithm, setting param to 3.
+  > algo = zipline.TradingAlgorithm(initialize,
+                                    handle_data,
+                                    param=3)
+  > perf = algo.run(data)
+  > ```

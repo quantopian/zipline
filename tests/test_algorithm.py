@@ -774,6 +774,23 @@ def handle_data(context, data):
 
         output, _ = drain_zipline(self, zipline)
 
+    def test_passing_of_args(self):
+        """Test that passing of args and kwargs to initialize via __init__ works
+        as expected."""
+        test_algo = TradingAlgorithm(
+            script="""
+def initialize(context, kwarg=False):
+    context.kwarg = kwarg
+
+def handle_data(context, data):
+    pass""",
+            sim_params=self.sim_params,
+            initialize_params={'kwarg': True}
+        )
+        set_algo_instance(test_algo)
+
+        self.assertEqual(test_algo.kwarg, True)
+
 
 class TestHistory(TestCase):
     @classmethod
