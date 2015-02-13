@@ -169,12 +169,6 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def _get_state(self):
-        return 'Account', self.__dict__
-
-    def _set_state(self, saved_state):
-        self.__dict__.update(saved_state)
-
 
 class Position(object):
 
