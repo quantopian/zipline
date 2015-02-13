@@ -133,9 +133,6 @@
             <li><a href="#enhancements-enh">Enhancements (ENH)</a></li>
         
     
-        <li class="main "><a href="#the-standard-deviation-of-the-price-in-the-last-3-days">The standard deviation of the price in the last 3 days.</a></li>
-        
-    
         <li class="main "><a href="#this-is-how-it-works-today-and-this-still-works">this is how it works today (and this still works)</a></li>
         
     
@@ -203,12 +200,12 @@ running with minute data, then this will calculate the number of minutes in
 those days, accounting for early closes and the current time and apply the
 transform over the set of minutes. <code>returns</code> takes no parameters and will
 return the daily returns of the given security.</p>
-<p>Example:
-```</p>
-<h1 id="the-standard-deviation-of-the-price-in-the-last-3-days">The standard deviation of the price in the last 3 days.</h1>
-<p>data[security].stdev(3)
-```</p>
+<p>Example:</p>
 </blockquote>
+<pre><code class="python"># The standard deviation of the price in the last 3 days.
+data[security].stdev(3)
+</code></pre>
+
 <ul>
 <li>New fields in Performance Period
 <a href="https://github.com/quantopian/zipline/pull/464">PR464</a></li>
@@ -233,6 +230,7 @@ return the daily returns of the given security.</p>
 <p>Also adds <code>context.get_market_value()</code>, which enables this functionality.</p>
 <p>For example:
 ```python</p>
+</blockquote>
 <h1 id="this-is-how-it-works-today-and-this-still-works">this is how it works today (and this still works)</h1>
 <h1 id="put-50-of-my-portfolio-in-aapl">put 50% of my portfolio in AAPL</h1>
 <p>order_percent('AAPL', 0.5)</p>
@@ -247,7 +245,6 @@ tech_filter = lambda p: p.sid in tech_stocks
 for stock in tech_stocks:
    order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
 ```</p>
-</blockquote>
 </li>
 </ul>
 </div>
