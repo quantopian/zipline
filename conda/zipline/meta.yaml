@@ -5,7 +5,7 @@ package:
 source:
   fn: zipline-0.8.0rc1.tar.gz
   url: https://pypi.python.org/packages/source/z/zipline/zipline-0.8.0rc1.tar.gz
-  md5: 62d45c3c0d9a624e787b7e413937f7b4
+  md5: f23bdd0a8671b3b297072391fc817097
 
 requirements:
   build:
