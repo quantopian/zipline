@@ -387,7 +387,7 @@ Populating the interactive namespace from numpy and matplotlib
 
 &lt;matplotlib.text.Text at 0x7f6ab416b250&gt;
 </code></pre>
-<p><img alt="png" src="../tutorial._files/tutorial._11_2.png" /></p>
+<p><img alt="png" src="../tutorial_files/tutorial_11_2.png" /></p>
 <p>As you can see, our algorithm performance as assessed by the <code>portfolio_value</code> closely matches that of the AAPL stock price. This is not surprising as our algorithm only bought AAPL every chance it got.</p>
 <h3 id="ipython-notebook">IPython Notebook</h3>
 <p>The <a href="http://ipython.org/notebook.html">IPython Notebook</a> is a very powerful browser-based interface to a Python interpreter (this tutorial was written in it). As it is already the de-facto interface for most quantitative researchers <code>zipline</code> provides an easy way to run your algorithm inside the Notebook without requiring you to use the CLI. </p>
@@ -640,7 +640,7 @@ def analyze(context, perf):
 
 AAPL
 </code></pre>
-<p><img alt="png" src="../tutorial._files/tutorial._22_2.png" /></p>
+<p><img alt="png" src="../tutorial_files/tutorial_22_2.png" /></p>
 <p>Here we are explicitly defining an <code>analyze()</code> function that gets automatically called once the backtest is done (this is not possible on Quantopian currently).</p>
 <p>Although it might not be directly apparent, the power of <code>history()</code> (pun intended) can not be under-estimated as most algorithms make use of prior market developments in one form or another. You could easily devise a strategy that trains a classifier with <a href="http://scikit-learn.org/stable/"><code>scikit-learn</code></a> which tries to predict future market movements based on past prices (note, that most of the <code>scikit-learn</code> functions require <code>numpy.ndarray</code>s rather than <code>pandas.DataFrame</code>s, so you can simply pass the underlying <code>ndarray</code> of a <code>DataFrame</code> via <code>.values</code>).</p>
 <p>We also used the <code>order_target()</code> function above. This and other functions like it can make order management and portfolio rebalancing much easier. See the <a href="https://www.quantopian.com/help#api-order-methods">Quantopian documentation on order functions</a> fore more details.</p>

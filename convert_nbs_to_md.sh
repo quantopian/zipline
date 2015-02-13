@@ -6,5 +6,5 @@ for fullfile in $NBDIR/*.ipynb; do
     filename=$(basename "$fullfile")
     extension="${filename##*.}"
     filename="${filename%.*}"
-    ipython nbconvert $fullfile --to markdown --output $filename.
+    ipython nbconvert $fullfile --to markdown --output $filename
 done

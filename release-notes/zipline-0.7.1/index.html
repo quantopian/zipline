@@ -136,6 +136,24 @@
         <li class="main "><a href="#the-standard-deviation-of-the-price-in-the-last-3-days">The standard deviation of the price in the last 3 days.</a></li>
         
     
+        <li class="main "><a href="#this-is-how-it-works-today-and-this-still-works">this is how it works today (and this still works)</a></li>
+        
+    
+        <li class="main "><a href="#put-50-of-my-portfolio-in-aapl">put 50% of my portfolio in AAPL</a></li>
+        
+    
+        <li class="main "><a href="#note-that-if-this-were-a-fully-invested-portfolio-it-would-become-150-levered">note that if this were a fully invested portfolio, it would become 150% levered.</a></li>
+        
+    
+        <li class="main "><a href="#take-half-of-my-available-cash-and-buy-aapl">take half of my available cash and buy AAPL</a></li>
+        
+    
+        <li class="main "><a href="#rebalance-my-short-position-as-a-percentage-of-my-current-short-book">rebalance my short position, as a percentage of my current short book</a></li>
+        
+    
+        <li class="main "><a href="#rebalance-within-a-custom-group-of-stocks">rebalance within a custom group of stocks</a></li>
+        
+    
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
@@ -191,6 +209,47 @@ return the daily returns of the given security.</p>
 <p>data[security].stdev(3)
 ```</p>
 </blockquote>
+<ul>
+<li>New fields in Performance Period
+<a href="https://github.com/quantopian/zipline/pull/464">PR464</a></li>
+</ul>
+<blockquote>
+<p>Performance Period has new fields accessible in return value of to_dict:</p>
+<ul>
+<li>gross leverage</li>
+<li>net leverage</li>
+<li>short exposure</li>
+<li>long exposure</li>
+<li>shorts count</li>
+<li>longs count</li>
+</ul>
+</blockquote>
+<ul>
+<li>
+<p>Allow order_percent to work with various market values (by Jeremiah Lowin)
+<a href="https://github.com/quantopian/zipline/pull/477">PR477</a></p>
+<blockquote>
+<p>Currently, <code>order_percent()</code> and <code>order_target_percent()</code> both operate as a percentage of <code>self.portfolio.portfolio_value</code>. This PR lets them operate as percentages of other important MVs.</p>
+<p>Also adds <code>context.get_market_value()</code>, which enables this functionality.</p>
+<p>For example:
+```python</p>
+<h1 id="this-is-how-it-works-today-and-this-still-works">this is how it works today (and this still works)</h1>
+<h1 id="put-50-of-my-portfolio-in-aapl">put 50% of my portfolio in AAPL</h1>
+<p>order_percent('AAPL', 0.5)</p>
+<h1 id="note-that-if-this-were-a-fully-invested-portfolio-it-would-become-150-levered">note that if this were a fully invested portfolio, it would become 150% levered.</h1>
+<h1 id="take-half-of-my-available-cash-and-buy-aapl">take half of my available cash and buy AAPL</h1>
+<p>order_percent('AAPL', 0.5, percent_of='cash')</p>
+<h1 id="rebalance-my-short-position-as-a-percentage-of-my-current-short-book">rebalance my short position, as a percentage of my current short book</h1>
+<p>order_target_percent('MSFT', 0.1, percent_of='shorts')</p>
+<h1 id="rebalance-within-a-custom-group-of-stocks">rebalance within a custom group of stocks</h1>
+<p>tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
+tech_filter = lambda p: p.sid in tech_stocks
+for stock in tech_stocks:
+   order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+```</p>
+</blockquote>
+</li>
+</ul>
 </div>
             
         </div>
