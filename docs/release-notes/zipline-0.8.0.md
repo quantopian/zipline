@@ -97,14 +97,13 @@ for stock in tech_stocks:
 The following people have contributed to this release, ordered by numbers of commit:
 ```
     39  Thomas Wiecki
-    32  Joe Jevnik
-    26  fawce
+    36  Joe Jevnik
+    26  John Fawcett
     24  Scott Sanderson
     11  Delaney Granizo-Mackenzie
      8  John Ricklefs
      5  Brian Fink
      5  Eddie Hebert
-     4  llllllllll
      2  Dale Jung
      2  Jeremiah Lowin
      2  Jonathan Kamens
