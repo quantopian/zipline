@@ -185,10 +185,16 @@ def run_pipeline(print_algo=True, **kwargs):
         else:
             print_(algo_text)
 
-    algo = zipline.TradingAlgorithm(script=algo_text,
-                                    namespace=kwargs.get('namespace', {}),
-                                    capital_base=float(kwargs['capital_base']),
-                                    algo_filename=kwargs.get('algofile'))
+    algo_filename = kwargs.get('algofile')
+    if algo_filename is None:
+        algo_filename = '<string>'
+
+    algo = zipline.TradingAlgorithm(
+        script=algo_text,
+        namespace=kwargs.get('namespace', {}),
+        capital_base=float(kwargs['capital_base']),
+        algo_filename=algo_filename,
+    )
 
     perf = algo.run(source)
 
