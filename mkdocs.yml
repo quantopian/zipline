@@ -5,6 +5,6 @@ site_author: Quantopian Inc.
 pages:
 - ['index.md', 'Overview']
 - ['tutorial.md', 'Tutorial', 'Getting started']
-- ['release-notes/zipline-0.7.1.md', 'Release notes']
+- ['release-notes/zipline-0.8.0.md', 'Release notes']
 - ['release-notes/zipline-0.7.0.md', 'Release notes']
 - ['release-notes/zipline-0.6.1.md', 'Release notes']
