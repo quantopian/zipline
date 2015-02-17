@@ -25,7 +25,6 @@ setup(
     packages=find_packages(),
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
-    long_description=LONG_DESCRIPTION,
     license='Apache 2.0',
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -51,5 +50,5 @@ setup(
     extras_require = {
         'talib':  ["talib"],
     },
-    url="https://github.com/quantopian/zipline"
+    url="http://zipline.io"
 )
