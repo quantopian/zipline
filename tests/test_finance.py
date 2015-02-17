@@ -307,11 +307,9 @@ class FinanceTestCase(TestCase):
         cumulative_pos = tracker.cumulative_performance.positions[sid]
         self.assertEqual(total_volume, cumulative_pos.amount)
 
-        # the open orders should now be empty
+        # the open orders should not contain sid.
         oo = blotter.open_orders
-        self.assertTrue(sid in oo)
-        order_list = oo[sid]
-        self.assertEqual(0, len(order_list))
+        self.assertNotIn(sid, oo, "Entry is removed when no open orders")
 
     def test_blotter_processes_splits(self):
         sim_params = factory.create_simulation_parameters()

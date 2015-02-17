@@ -210,10 +210,15 @@ class Blotter(object):
             yield txn, order
 
         # update the open orders for the trade_event's sid
-        self.open_orders[trade_event.sid] = \
+        updated_orders = \
             [order for order
-             in self.open_orders[trade_event.sid]
-             if order.open]
+                in self.open_orders[trade_event.sid]
+                if order.open]
+
+        if updated_orders:
+            self.open_orders[trade_event.sid] = updated_orders
+        else:
+            del self.open_orders[trade_event.sid]
 
     def process_transactions(self, trade_event, current_orders):
         for order, txn in self.transact(trade_event, current_orders):
