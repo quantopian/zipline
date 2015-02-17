@@ -34,3 +34,6 @@ Cython==0.20.1
 # However, this is backwards incompatible change, since previous
 # versions of pip do not support that flag.
 --allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
+
+# faster OrderedDict
+cyordereddict==0.2.2

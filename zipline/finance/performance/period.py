@@ -72,41 +72,28 @@ omitted).
 
 from __future__ import division
 import logbook
+from operator import mul
 
 import numpy as np
 import pandas as pd
+from pandas.lib import checknull
 from collections import (
     defaultdict,
-    OrderedDict,
 )
+
+try:
+    # optional cython based OrderedDict
+    from cyordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
 from six import iteritems, itervalues
 
 import zipline.protocol as zp
 from . position import positiondict
 
 log = logbook.Logger('Performance')
-
-
-class FastSeries(object):
-    def __init__(self, *args, **kwargs):
-        super(FastSeries, self).__init__(*args, **kwargs)
-
-        self._loc_map = {}
-        self.series = pd.Series([])
-        self.values = self.series.values
-
-    def __setitem__(self, key, value):
-        try:
-            i = self._loc_map[key]
-            self.values[i] = value
-        except (KeyError, IndexError):
-            self.series = \
-                self.series.append(
-                    pd.Series({key: value}))
-            self._loc_map = dict(
-                zip(self.series.index,
-                    range(len(self.series))))
-            self.values = self.series.values
+TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
 class PerformancePeriod(object):
@@ -136,8 +123,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self.position_amounts = FastSeries()
-        self.position_last_sale_prices = FastSeries()
+        self.position_amounts = OrderedDict()
+        self.position_last_sale_prices = OrderedDict()
 
         self.calculate_performance()
 
@@ -306,7 +293,7 @@ class PerformancePeriod(object):
 
         if amount is not None:
             pos.amount = amount
-            self.set_position_amount(sid, amount)
+            self.position_amounts[sid] = amount
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
             self.position_last_sale_prices[sid] = last_sale_price
@@ -321,39 +308,45 @@ class PerformancePeriod(object):
 
         # NOTE: self.positions has defaultdict semantics, so this will create
         # an empty position if one does not already exist.
-        position = self.positions[txn.sid]
+        sid = txn.sid
+        position = self.positions[sid]
         position.update(txn)
-        self.position_amounts[txn.sid] = position.amount
-        self.position_last_sale_prices[txn.sid] = position.last_sale_price
+        self.position_amounts[sid] = position.amount
+
+        self.position_last_sale_prices[sid] = position.last_sale_price
 
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
+    @property
+    def position_amounts_values(self):
+        return list(self.position_amounts.values())
+
+    @property
+    def position_last_sale_prices_values(self):
+        return list(self.position_last_sale_prices.values())
+
     def calculate_positions_value(self):
-        return np.dot(self.position_amounts.series,
-                      self.position_last_sale_prices.series)
+        return np.dot(self.position_amounts_values,
+                      self.position_last_sale_prices_values)
 
     def _longs_count(self):
-        longs = self.position_amounts.series[self.position_amounts.series > 0]
-        return longs.count()
+        return sum(map(lambda x: x > 0, self.position_amounts_values))
 
     def _long_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        longs = pos_values[pos_values > 0]
-        return longs.sum()
+        pos_values = map(mul, self.position_amounts_values,
+                         self.position_last_sale_prices_values)
+        return sum(filter(lambda x: x > 0, pos_values))
 
     def _shorts_count(self):
-        shorts = self.position_amounts.series[self.position_amounts.series < 0]
-        return shorts.count()
+        return sum(map(lambda x: x < 0, self.position_amounts_values))
 
     def _short_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        shorts = pos_values[pos_values < 0]
-        return shorts.sum()
+        pos_values = map(mul, self.position_amounts_values,
+                         self.position_last_sale_prices_values)
+        return sum(filter(lambda x: x < 0, pos_values))
 
     def _gross_exposure(self):
         return self._long_exposure() + abs(self._short_exposure())
@@ -385,10 +378,10 @@ class PerformancePeriod(object):
         if event.sid not in self.positions:
             return
 
-        if event.type != zp.DATASOURCE_TYPE.TRADE:
+        if event.type != TRADE_TYPE:
             return
 
-        if not pd.isnull(event.price):
+        if not checknull(event.price):
             # isnan check will keep the last price if its not present
             self.update_position(event.sid, last_sale_price=event.price,
                                  last_sale_date=event.dt)
