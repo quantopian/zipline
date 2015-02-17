@@ -88,21 +88,6 @@ from zipline.history.history_container import HistoryContainer
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
-def round_if_near_integer(a, epsilon=1e-4):
-    """
-    Round a to the nearest integer if that integer is within an epsilon
-    of a.
-    """
-    if abs(a - round(a)) <= epsilon:
-        return round(a)
-    else:
-        return a
-
-
-def round_shares(shares):
-    return int(round_if_near_integer(shares))
-
-
 class TradingAlgorithm(object):
     """
     Base class for trading algorithms. Inherit and overload
@@ -651,10 +636,20 @@ class TradingAlgorithm(object):
         Place an order using the specified parameters.
         """
 
+        def round_if_near_integer(a, epsilon=1e-4):
+            """
+            Round a to the nearest integer if that integer is within an epsilon
+            of a.
+            """
+            if abs(a - round(a)) <= epsilon:
+                return round(a)
+            else:
+                return a
+
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = round_shares(amount)
+        amount = int(round_if_near_integer(amount))
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(sid,
@@ -871,98 +866,16 @@ class TradingAlgorithm(object):
         assert value in ('daily', 'minute')
         self.sim_params.data_frequency = value
 
-    def get_market_value(self, mv_type=None, filter_fn=None):
-        """
-        Returns the requested market value.
-
-        Options for mv_type are:
-            portfolio [default]:    net exposure or portfolio value
-            net:                    net exposure or portfolio value
-            gross:                  gross exposure
-            cash:                   available cash
-            ex_cash:                net invested capital, ex-cash
-            longs:                  long invested capital
-            longs_cash:             long invested capital plus cash
-            shorts:                 short invested capital
-
-        Alternatively, a filter_fn can be supplied. The filter_fn
-        should accept a Position and return True if that Position's
-        market_value should be included in the total and False otherwise.
-        """
-
-        period = self.perf_tracker.cumulative_performance
-
-        # first try the filter_fn, if supplied
-        if filter_fn is not None:
-            positions = period.get_positions()
-            mv = sum(
-                p.amount * p.last_sale_price
-                for p in positions.values()
-                if filter_fn(p))
-
-        # net portfolio value
-        elif mv_type is None or mv_type == 'portfolio' or mv_type == 'net':
-            mv = period.ending_value + period.ending_cash
-
-        elif mv_type == 'gross':
-            mv = period._gross_exposure()
-
-        # portfolio cash
-        elif mv_type == 'cash':
-            mv = period.ending_cash
-
-        # net invested capital
-        elif mv_type == 'ex_cash':
-            mv = period.ending_value
-
-        # long invested capital
-        elif mv_type == 'longs':
-            mv = period._long_exposure()
-
-        # long invested capital, plus cash
-        elif mv_type == 'longs_cash':
-            mv = period._long_exposure() + period.ending_cash
-
-        # short invested capital
-        elif mv_type == 'shorts':
-            mv = period._short_exposure()
-
-        else:
-            raise ValueError(
-                'Unrecognized value for "mv_type": {}'.format(mv_type))
-
-        return mv
-
     @api_method
     def order_percent(self, sid, percent,
-                      limit_price=None,
-                      stop_price=None,
-                      style=None,
-                      percent_of=None,
-                      percent_of_fn=None):
+                      limit_price=None, stop_price=None, style=None):
         """
         Place an order in the specified security corresponding to the given
-        percent of some market value. If no market value is specified (via
-        `percent_of`) then the net portfolio value is used.
-
-        Options for percent_of are:
-            portfolio [default]:    net exposure or portfolio value
-            net:                    net exposure or portfolio value
-            gross:                  gross exposure
-            cash:                   available cash
-            ex_cash:                net invested capital, ex-cash
-            longs:                  long invested capital
-            longs_cash:             long invested capital plus cash
-            shorts:                 short invested capital
-
-        Alternatively, a percent_of_fn can be supplied. The percent_of_fn
-        should accept a Position and return True if that Position's
-        market_value should be included in the total and False otherwise.
+        percent of the current portfolio value.
 
         Note that percent must expressed as a decimal (0.50 means 50\%).
         """
-        mv = self.get_market_value(mv_type=percent_of, filter_fn=percent_of_fn)
-        value = percent * mv
+        value = self.portfolio.portfolio_value * percent
         return self.order_value(sid, value,
                                 limit_price=limit_price,
                                 stop_price=stop_price,
@@ -980,7 +893,7 @@ class TradingAlgorithm(object):
         """
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
-            req_shares = round_shares(target) - current_position
+            req_shares = target - current_position
             return self.order(sid, req_shares,
                               limit_price=limit_price,
                               stop_price=stop_price,
@@ -1016,37 +929,17 @@ class TradingAlgorithm(object):
 
     @api_method
     def order_target_percent(self, sid, target,
-                             limit_price=None,
-                             stop_price=None,
-                             style=None,
-                             percent_of=None,
-                             percent_of_fn=None):
+                             limit_price=None, stop_price=None, style=None):
         """
-        Place an order to adjust a position to a target percent of some market
-        value. If no market value is specified (via `percent_of`) then the net
-        portfolio value is used. If the position doesn't already exist, this is
+        Place an order to adjust a position to a target percent of the
+        current portfolio value. If the position doesn't already exist, this is
         equivalent to placing a new order. If the position does exist, this is
         equivalent to placing an order for the difference between the target
         percent and the current percent.
 
-        Options for percent_of are:
-            portfolio [default]:    net exposure or portfolio value
-            net:                    net exposure or portfolio value
-            gross:                  gross exposure
-            cash:                   available cash
-            ex_cash:                net invested capital, ex-cash
-            longs:                  long invested capital
-            longs_cash:             long invested capital plus cash
-            shorts:                 short invested capital
-
-        Alternatively, a percent_of_fn can be supplied. The percent_of_fn
-        should accept a Position and return True if that Position's
-        market_value should be included in the total and False otherwise.
-
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        mv = self.get_market_value(mv_type=percent_of, filter_fn=percent_of_fn)
-        target_value = target * mv
+        target_value = self.portfolio.portfolio_value * target
         return self.order_target_value(sid, target_value,
                                        limit_price=limit_price,
                                        stop_price=stop_price,

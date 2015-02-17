@@ -79,7 +79,7 @@ from nose.tools import assert_raises
 from six.moves import range
 from six import itervalues
 
-from zipline.algorithm import TradingAlgorithm, round_shares
+from zipline.algorithm import TradingAlgorithm
 from zipline.api import FixedSlippage
 from zipline.errors import UnsupportedOrderParameters
 from zipline.finance.execution import (
@@ -345,33 +345,6 @@ class TestTargetAlgorithm(TradingAlgorithm):
         self.order_target(0, self.target_shares)
 
 
-class TestTargetAlgorithm_NonInt(TradingAlgorithm):
-    def initialize(self):
-        self.target_shares = 0
-        self.sale_price = None
-        self.i = 0
-
-    def handle_data(self, data):
-        if self.target_shares == 0:
-            assert 0 not in self.portfolio.positions
-        else:
-            assert self.portfolio.positions[0]['amount'] == \
-                self.target_shares, "Orders not filled correctly."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
-
-        if self.i == 0:
-            self.target_shares = 5
-            self.order_target(0, 5.1)
-        elif self.i == 1:
-            self.target_shares = 10
-            self.order_target(0, 10.1)
-        elif self.i == 2:
-            self.target_shares = 5
-            self.order_target(0, 5.1)
-        self.i += 1
-
-
 class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
@@ -395,126 +368,23 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
                                        / data[0].price)
 
 
-class TestOrderPercentAlgorithmPercentOf(TradingAlgorithm):
-    def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(8)])
-
-    def handle_data(self, data):
-        for sid, target_shares in self.target_shares.items():
-            position = self.portfolio.positions[sid]
-            assert target_shares == position.amount
-
-        # reduce sizes due to volume limitiations
-        full = 0.001
-        half = 0.0005
-
-        pos_values = {}
-        for i in range(len(data.keys())):
-            pos_values[i] = (
-                self.portfolio.positions[i].amount
-                * self.portfolio.positions[i].last_sale_price)
-
-        port = self.portfolio.portfolio_value
-        cash = self.portfolio.cash
-        longs = sum(v for v in pos_values.values() if v > 0)
-        shorts = sum(v for v in pos_values.values() if v < 0)
-        gross = sum(abs(v) for v in pos_values.values())
-        group = [0, 1, 2]
-        group_val = sum(v for sid, v in pos_values.items() if sid in group)
-
-        def expected_shares(sid, value):
-            return round_shares(value / data[sid].price)
-
-        self.order_percent(0, full, percent_of='portfolio')
-        self.order_percent(1, -half, percent_of='cash')
-        self.order_percent(2, half, percent_of='ex_cash')
-        self.order_percent(3, half, percent_of='longs')
-        self.order_percent(4, half, percent_of='longs_cash')
-        self.order_percent(5, half, percent_of='shorts')
-        self.order_percent(
-            6, half, percent_of_fn=lambda p: p.sid in group)
-        self.order_percent(7, full, percent_of='gross')
-
-        self.target_shares[0] += expected_shares(0, full * port)
-        self.target_shares[1] += expected_shares(1, -half * cash)
-        self.target_shares[2] += expected_shares(2, half * (port - cash))
-        self.target_shares[3] += expected_shares(3, half * longs)
-        self.target_shares[4] += expected_shares(4, half * (longs + cash))
-        self.target_shares[5] += expected_shares(5, half * shorts)
-        self.target_shares[6] += expected_shares(6, half * group_val)
-        self.target_shares[7] += expected_shares(7, full * gross)
-
-
 class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.target_shares = 0
         self.sale_price = None
-        self.exp_value = 0
 
     def handle_data(self, data):
         if self.target_shares == 0:
             assert 0 not in self.portfolio.positions
             self.target_shares = 1
         else:
-            value = self.portfolio.positions[0]['amount'] * self.sale_price
-            assert abs(value - self.exp_value) <= self.sale_price, \
+            assert np.round(self.portfolio.portfolio_value * 0.002) == \
+                self.portfolio.positions[0]['amount'] * self.sale_price, \
                 "Orders not filled correctly."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
         self.sale_price = data[0].price
         self.order_target_percent(0, .002)
-        self.exp_value = self.portfolio.portfolio_value * 0.002
-
-
-class TestTargetPercentAlgorithmPercentOf(TradingAlgorithm):
-    def initialize(self):
-        self.target_shares = dict([(i, 0) for i in range(8)])
-
-    def handle_data(self, data):
-
-        for sid, target_shares in self.target_shares.items():
-            position = self.portfolio.positions[sid]
-            assert target_shares == position.amount
-
-        # reduce sizes due to volume limitiations
-        full = 0.001
-        half = 0.0005
-
-        pos_values = {}
-        for i in range(len(data.keys())):
-            pos_values[i] = (
-                self.portfolio.positions[i].amount
-                * self.portfolio.positions[i].last_sale_price)
-
-        port = self.portfolio.portfolio_value
-        cash = self.portfolio.cash
-        longs = sum(v for v in pos_values.values() if v > 0)
-        shorts = sum(v for v in pos_values.values() if v < 0)
-        gross = sum(abs(v) for v in pos_values.values())
-        group = [0, 1, 2]
-        group_val = sum(v for sid, v in pos_values.items() if sid in group)
-
-        def expected_shares(sid, value):
-            return round_shares(value / data[sid].price)
-
-        self.order_target_percent(0, full, percent_of='portfolio')
-        self.order_target_percent(1, -half, percent_of='cash')
-        self.order_target_percent(2, half, percent_of='ex_cash')
-        self.order_target_percent(3, half, percent_of='longs')
-        self.order_target_percent(4, half, percent_of='longs_cash')
-        self.order_target_percent(5, half, percent_of='shorts')
-        self.order_target_percent(
-            6, half, percent_of_fn=lambda p: p.sid in group)
-        self.order_target_percent(5, full, percent_of='gross')
-
-        self.target_shares[0] = expected_shares(0, full * port)
-        self.target_shares[1] = expected_shares(1, -half * cash)
-        self.target_shares[2] = expected_shares(2, half * (port - cash))
-        self.target_shares[3] = expected_shares(3, half * longs)
-        self.target_shares[4] = expected_shares(4, half * (longs + cash))
-        self.target_shares[5] = expected_shares(5, half * shorts)
-        self.target_shares[6] = expected_shares(6, half * group_val)
-        self.target_shares[7] = expected_shares(7, full * gross)
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
@@ -536,7 +406,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
 
         self.order_target_value(0, 20)
-        self.target_shares = round_shares(20 / data[0].price)
+        self.target_shares = np.round(20 / data[0].price)
 
 
 ############################
