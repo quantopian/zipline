@@ -19,3 +19,8 @@ six==1.6.1
 
 # For fetching remote data
 requests==2.5.1
+
+Cython==0.20.1
+
+# faster OrderedDict
+cyordereddict==0.2.2
