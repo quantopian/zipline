@@ -47,13 +47,15 @@ log = logbook.Logger('Performance')
 class Position(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
-                 last_sale_price=0.0, last_sale_date=None):
+                 last_sale_price=0.0, last_sale_date=None,
+                 position_tracker=None):
 
         self.sid = sid
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
         self.last_sale_date = last_sale_date
+        self.position_tracker = position_tracker
 
     def earn_dividend(self, dividend):
         """
@@ -209,8 +211,14 @@ last_sale_price: {last_sale_price}"
 
 
 class positiondict(dict):
+    def __init__(self, position_tracker):
+        self.position_tracker = position_tracker
 
-    def __missing__(self, key):
-        pos = Position(key)
-        self[key] = pos
-        return pos
+    def get_default(self, key):
+        """ Like setdefault, except we define the default value """
+        try:
+            return self[key]
+        except KeyError:
+            pos = Position(key, position_tracker=self.position_tracker)
+            self[key] = pos
+            return pos
