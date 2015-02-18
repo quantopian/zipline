@@ -87,10 +87,17 @@ from . position import positiondict
 log = logbook.Logger('Performance')
 
 
-class FastSeries(object):
-    def __init__(self, *args, **kwargs):
-        super(FastSeries, self).__init__(*args, **kwargs)
+class CachedLocSeriesContainer(object):
+    """
+    Series container with fast item access.
 
+    This class stores a pandas.Series object as self.series. It also caches the
+    index so that changing an existing item is faster. For faster access to the
+    underlying data there is also self.values which caches
+    pandas.Series.values.
+    """
+
+    def __init__(self):
         self._loc_map = {}
         self.series = pd.Series([])
         self.values = self.series.values
@@ -100,6 +107,7 @@ class FastSeries(object):
             i = self._loc_map[key]
             self.values[i] = value
         except (KeyError, IndexError):
+            # Update cached objects
             self.series = \
                 self.series.append(
                     pd.Series({key: value}))
@@ -136,8 +144,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self.position_amounts = FastSeries()
-        self.position_last_sale_prices = FastSeries()
+        self.position_amounts = CachedLocSeriesContainer()
+        self.position_last_sale_prices = CachedLocSeriesContainer()
 
         self.calculate_performance()
 
@@ -153,8 +161,6 @@ class PerformancePeriod(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
 
-        self.loc_map = {}
-
     def rollover(self):
         self.starting_value = self.ending_value
         self.starting_cash = self.ending_cash
@@ -163,12 +169,6 @@ class PerformancePeriod(object):
         self.processed_transactions = defaultdict(list)
         self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
-
-    def set_position_amount(self, sid, amount):
-        self.position_amounts[sid] = amount
-
-    def set_position_last_sale_price(self, sid, last_sale_price):
-        self.position_last_sale_prices[sid] = last_sale_price
 
     def handle_split(self, split):
         if split.sid in self.positions:
