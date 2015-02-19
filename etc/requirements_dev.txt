@@ -28,8 +28,6 @@ pyparsing==2.0.2
 
 Markdown==2.4.1
 
-# Cython is required for TA-Lib
-Cython==0.20.1
 # This --allow syntax is for compatibility with pip >= 1.5
 # However, this is backwards incompatible change, since previous
 # versions of pip do not support that flag.
