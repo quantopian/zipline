@@ -161,9 +161,11 @@ class PerformancePeriod(object):
 
     def set_position_amount(self, sid, amount):
         self._position_amounts[sid] = amount
+        self._position_values = None  # invalidate cache
 
     def set_position_last_sale_price(self, sid, last_sale_price):
         self._position_last_sale_prices[sid] = last_sale_price
+        self._position_values = None  # invalidate cache
 
     def handle_split(self, split):
         if split.sid in self.positions:
@@ -237,6 +239,7 @@ class PerformancePeriod(object):
             position.amount += share_count
             self._position_amounts[stock] = position.amount
             self._position_last_sale_prices[stock] = position.last_sale_price
+            self._position_values = None  # invalidate cache
 
         # Recalculate performance after applying dividend benefits.
         self.calculate_performance()
