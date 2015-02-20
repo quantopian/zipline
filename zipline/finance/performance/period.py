@@ -123,8 +123,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self.position_amounts = OrderedDict()
-        self.position_last_sale_prices = OrderedDict()
+        self._position_amounts = OrderedDict()
+        self._position_last_sale_prices = OrderedDict()
 
         self.calculate_performance()
 
@@ -142,6 +142,14 @@ class PerformancePeriod(object):
 
         self.loc_map = {}
 
+    def set_positions(self, positions):
+        self.positions = positions
+        for sid, pos in positions.iteritems():
+            self._position_amounts[sid] = pos.amount
+            self._position_last_sale_prices[sid] = pos.last_sale_price
+            # Invalidate cache.
+            self._position_values = None  # invalidate cache
+
     def rollover(self):
         self.starting_value = self.ending_value
         self.starting_cash = self.ending_cash
@@ -152,10 +160,10 @@ class PerformancePeriod(object):
         self.orders_by_id = OrderedDict()
 
     def set_position_amount(self, sid, amount):
-        self.position_amounts[sid] = amount
+        self._position_amounts[sid] = amount
 
     def set_position_last_sale_price(self, sid, last_sale_price):
-        self.position_last_sale_prices[sid] = last_sale_price
+        self._position_last_sale_prices[sid] = last_sale_price
 
     def handle_split(self, split):
         if split.sid in self.positions:
@@ -163,8 +171,8 @@ class PerformancePeriod(object):
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
             leftover_cash = position.handle_split(split)
-            self.position_amounts[split.sid] = position.amount
-            self.position_last_sale_prices[split.sid] = \
+            self._position_amounts[split.sid] = position.amount
+            self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
             self._position_values = None  # invalidate cache
 
@@ -227,8 +235,8 @@ class PerformancePeriod(object):
             position = self.positions[stock]
 
             position.amount += share_count
-            self.position_amounts[stock] = position.amount
-            self.position_last_sale_prices[stock] = position.last_sale_price
+            self._position_amounts[stock] = position.amount
+            self._position_last_sale_prices[stock] = position.last_sale_price
 
         # Recalculate performance after applying dividend benefits.
         self.calculate_performance()
@@ -294,11 +302,11 @@ class PerformancePeriod(object):
 
         if amount is not None:
             pos.amount = amount
-            self.position_amounts[sid] = amount
+            self._position_amounts[sid] = amount
             self._position_values = None  # invalidate cache
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
-            self.position_last_sale_prices[sid] = last_sale_price
+            self._position_last_sale_prices[sid] = last_sale_price
             self._position_values = None  # invalidate cache
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
@@ -314,9 +322,9 @@ class PerformancePeriod(object):
         sid = txn.sid
         position = self.positions[sid]
         position.update(txn)
-        self.position_amounts[sid] = position.amount
+        self._position_amounts[sid] = position.amount
 
-        self.position_last_sale_prices[sid] = position.last_sale_price
+        self._position_last_sale_prices[sid] = position.last_sale_price
         self._position_values = None  # invalidate cache
 
         self.period_cash_flow -= txn.price * txn.amount
@@ -329,12 +337,12 @@ class PerformancePeriod(object):
     @property
     def position_values(self):
         """
-        Invalidate any time self.position_amounts or
-        self.position_last_sale_prices is changed.
+        Invalidate any time self._position_amounts or
+        self._position_last_sale_prices is changed.
         """
         if self._position_values is None:
-            vals = list(map(mul, self.position_amounts.values(),
-                        self.position_last_sale_prices.values()))
+            vals = list(map(mul, self._position_amounts.values(),
+                        self._position_last_sale_prices.values()))
             self._position_values = vals
         return self._position_values
 
@@ -395,7 +403,7 @@ class PerformancePeriod(object):
             pos = self.positions[sid]
             pos.last_sale_date = event.dt
             pos.last_sale_price = price
-            self.position_last_sale_prices[sid] = price
+            self._position_last_sale_prices[sid] = price
             self._position_values = None  # invalidate cache
 
     def __core_dict(self):
