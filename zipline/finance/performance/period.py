@@ -166,6 +166,7 @@ class PerformancePeriod(object):
             self.position_amounts[split.sid] = position.amount
             self.position_last_sale_prices[split.sid] = \
                 position.last_sale_price
+            self._position_values = None  # invalidate cache
 
             if leftover_cash > 0:
                 self.handle_cash_payment(leftover_cash)
@@ -294,9 +295,11 @@ class PerformancePeriod(object):
         if amount is not None:
             pos.amount = amount
             self.position_amounts[sid] = amount
+            self._position_values = None  # invalidate cache
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
             self.position_last_sale_prices[sid] = last_sale_price
+            self._position_values = None  # invalidate cache
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -314,39 +317,44 @@ class PerformancePeriod(object):
         self.position_amounts[sid] = position.amount
 
         self.position_last_sale_prices[sid] = position.last_sale_price
+        self._position_values = None  # invalidate cache
 
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
-    @property
-    def position_amounts_values(self):
-        return list(self.position_amounts.values())
+    _position_values = None
 
     @property
-    def position_last_sale_prices_values(self):
-        return list(self.position_last_sale_prices.values())
+    def position_values(self):
+        """
+        Invalidate any time self.position_amounts or
+        self.position_last_sale_prices is changed.
+        """
+        if self._position_values is None:
+            vals = list(map(mul, self.position_amounts.values(),
+                        self.position_last_sale_prices.values()))
+            self._position_values = vals
+        return self._position_values
 
     def calculate_positions_value(self):
-        return np.dot(self.position_amounts_values,
-                      self.position_last_sale_prices_values)
+        if len(self.position_values) == 0:
+            return 0
+
+        return sum(self.position_values)
 
     def _longs_count(self):
-        return sum(map(lambda x: x > 0, self.position_amounts_values))
+        return sum(map(lambda x: x > 0, self.position_values))
 
     def _long_exposure(self):
-        pos_values = map(mul, self.position_amounts_values,
-                         self.position_last_sale_prices_values)
-        return sum(filter(lambda x: x > 0, pos_values))
+        return sum(filter(lambda x: x > 0, self.position_values))
 
     def _shorts_count(self):
-        return sum(map(lambda x: x < 0, self.position_amounts_values))
+        return sum(map(lambda x: x < 0, self.position_values))
 
     def _short_exposure(self):
-        pos_values = map(mul, self.position_amounts_values,
-                         self.position_last_sale_prices_values)
-        return sum(filter(lambda x: x < 0, pos_values))
+        return sum(filter(lambda x: x < 0, self.position_values))
 
     def _gross_exposure(self):
         return self._long_exposure() + abs(self._short_exposure())
@@ -375,16 +383,20 @@ class PerformancePeriod(object):
         return np.inf
 
     def update_last_sale(self, event):
-        if event.sid not in self.positions:
+        sid = event.sid
+        if sid not in self.positions:
             return
 
         if event.type != TRADE_TYPE:
             return
 
-        if not checknull(event.price):
-            # isnan check will keep the last price if its not present
-            self.update_position(event.sid, last_sale_price=event.price,
-                                 last_sale_date=event.dt)
+        price = event.price
+        if not checknull(price):
+            pos = self.positions[sid]
+            pos.last_sale_date = event.dt
+            pos.last_sale_price = price
+            self.position_last_sale_prices[sid] = price
+            self._position_values = None  # invalidate cache
 
     def __core_dict(self):
         rval = {
