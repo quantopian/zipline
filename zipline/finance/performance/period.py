@@ -351,7 +351,7 @@ class PerformancePeriod(object):
 
     def calculate_positions_value(self):
         if len(self.position_values) == 0:
-            return 0
+            return np.float64(0)
 
         return sum(self.position_values)
 
