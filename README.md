@@ -93,7 +93,7 @@ Dependencies
 Quickstart
 ==========
 
-See our [getting started tutorial](tutorial.md).
+See our [getting started tutorial](http://www.zipline.io/#quickstart).
 
 The following code implements a simple dual moving average algorithm.
 
