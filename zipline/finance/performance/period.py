@@ -72,41 +72,28 @@ omitted).
 
 from __future__ import division
 import logbook
+from operator import mul
 
 import numpy as np
 import pandas as pd
+from pandas.lib import checknull
 from collections import (
     defaultdict,
-    OrderedDict,
 )
+
+try:
+    # optional cython based OrderedDict
+    from cyordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
 from six import iteritems, itervalues
 
 import zipline.protocol as zp
 from . position import positiondict
 
 log = logbook.Logger('Performance')
-
-
-class FastSeries(object):
-    def __init__(self, *args, **kwargs):
-        super(FastSeries, self).__init__(*args, **kwargs)
-
-        self._loc_map = {}
-        self.series = pd.Series([])
-        self.values = self.series.values
-
-    def __setitem__(self, key, value):
-        try:
-            i = self._loc_map[key]
-            self.values[i] = value
-        except (KeyError, IndexError):
-            self.series = \
-                self.series.append(
-                    pd.Series({key: value}))
-            self._loc_map = dict(
-                zip(self.series.index,
-                    range(len(self.series))))
-            self.values = self.series.values
+TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
 class PerformancePeriod(object):
@@ -136,8 +123,8 @@ class PerformancePeriod(object):
         self.keep_orders = keep_orders
 
         # Arrays for quick calculations of positions value
-        self.position_amounts = FastSeries()
-        self.position_last_sale_prices = FastSeries()
+        self.position_amounts = OrderedDict()
+        self.position_last_sale_prices = OrderedDict()
 
         self.calculate_performance()
 
@@ -179,6 +166,7 @@ class PerformancePeriod(object):
             self.position_amounts[split.sid] = position.amount
             self.position_last_sale_prices[split.sid] = \
                 position.last_sale_price
+            self._position_values = None  # invalidate cache
 
             if leftover_cash > 0:
                 self.handle_cash_payment(leftover_cash)
@@ -306,10 +294,12 @@ class PerformancePeriod(object):
 
         if amount is not None:
             pos.amount = amount
-            self.set_position_amount(sid, amount)
+            self.position_amounts[sid] = amount
+            self._position_values = None  # invalidate cache
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
             self.position_last_sale_prices[sid] = last_sale_price
+            self._position_values = None  # invalidate cache
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -321,39 +311,50 @@ class PerformancePeriod(object):
 
         # NOTE: self.positions has defaultdict semantics, so this will create
         # an empty position if one does not already exist.
-        position = self.positions[txn.sid]
+        sid = txn.sid
+        position = self.positions[sid]
         position.update(txn)
-        self.position_amounts[txn.sid] = position.amount
-        self.position_last_sale_prices[txn.sid] = position.last_sale_price
+        self.position_amounts[sid] = position.amount
+
+        self.position_last_sale_prices[sid] = position.last_sale_price
+        self._position_values = None  # invalidate cache
 
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
+    _position_values = None
+
+    @property
+    def position_values(self):
+        """
+        Invalidate any time self.position_amounts or
+        self.position_last_sale_prices is changed.
+        """
+        if self._position_values is None:
+            vals = list(map(mul, self.position_amounts.values(),
+                        self.position_last_sale_prices.values()))
+            self._position_values = vals
+        return self._position_values
+
     def calculate_positions_value(self):
-        return np.dot(self.position_amounts.series,
-                      self.position_last_sale_prices.series)
+        if len(self.position_values) == 0:
+            return 0
+
+        return sum(self.position_values)
 
     def _longs_count(self):
-        longs = self.position_amounts.series[self.position_amounts.series > 0]
-        return longs.count()
+        return sum(map(lambda x: x > 0, self.position_values))
 
     def _long_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        longs = pos_values[pos_values > 0]
-        return longs.sum()
+        return sum(filter(lambda x: x > 0, self.position_values))
 
     def _shorts_count(self):
-        shorts = self.position_amounts.series[self.position_amounts.series < 0]
-        return shorts.count()
+        return sum(map(lambda x: x < 0, self.position_values))
 
     def _short_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        shorts = pos_values[pos_values < 0]
-        return shorts.sum()
+        return sum(filter(lambda x: x < 0, self.position_values))
 
     def _gross_exposure(self):
         return self._long_exposure() + abs(self._short_exposure())
@@ -382,16 +383,20 @@ class PerformancePeriod(object):
         return np.inf
 
     def update_last_sale(self, event):
-        if event.sid not in self.positions:
+        sid = event.sid
+        if sid not in self.positions:
             return
 
-        if event.type != zp.DATASOURCE_TYPE.TRADE:
+        if event.type != TRADE_TYPE:
             return
 
-        if not pd.isnull(event.price):
-            # isnan check will keep the last price if its not present
-            self.update_position(event.sid, last_sale_price=event.price,
-                                 last_sale_date=event.dt)
+        price = event.price
+        if not checknull(price):
+            pos = self.positions[sid]
+            pos.last_sale_date = event.dt
+            pos.last_sale_price = price
+            self.position_last_sale_prices[sid] = price
+            self._position_values = None  # invalidate cache
 
     def __core_dict(self):
         rval = {
