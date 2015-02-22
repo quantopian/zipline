@@ -68,6 +68,7 @@ import zipline.protocol as zp
 import zipline.finance.risk as risk
 from zipline.finance import trading
 from . period import PerformancePeriod
+from . position_tracker import PositionTracker
 
 from zipline.finance.trading import with_environment
 
@@ -102,6 +103,8 @@ class PerformanceTracker(object):
 
         self.dividend_frame = pd.DataFrame()
         self._dividend_count = 0
+
+        self.position_tracker = PositionTracker()
 
         self.perf_periods = []
 
@@ -139,7 +142,8 @@ class PerformanceTracker(object):
                 keep_transactions=False,
                 keep_orders=False,
                 # don't serialize positions for cumualtive period
-                serialize_positions=False
+                serialize_positions=False,
+                position_tracker=self.position_tracker
             )
             self.perf_periods.append(self.minute_performance)
 
@@ -156,7 +160,8 @@ class PerformanceTracker(object):
             keep_transactions=False,
             keep_orders=False,
             # don't serialize positions for cumualtive period
-            serialize_positions=False
+            serialize_positions=False,
+            position_tracker=self.position_tracker
         )
         self.perf_periods.append(self.cumulative_performance)
 
@@ -169,7 +174,8 @@ class PerformanceTracker(object):
             self.market_close,
             keep_transactions=True,
             keep_orders=True,
-            serialize_positions=True
+            serialize_positions=True,
+            position_tracker=self.position_tracker
         )
         self.perf_periods.append(self.todays_performance)
 
@@ -275,29 +281,32 @@ class PerformanceTracker(object):
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale
-            for perf_period in self.perf_periods:
-                perf_period.update_last_sale(event)
+            self.position_tracker.update_last_sale(event)
 
         elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
             # Trade simulation always follows a transaction with the
             # TRADE event that was used to simulate it, so we don't
             # check for end of day rollover messages here.
             self.txn_count += 1
+            self.position_tracker.execute_transaction(event)
             for perf_period in self.perf_periods:
-                perf_period.execute_transaction(event)
+                perf_period.handle_execution(event)
 
         elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
             log.info("Ignoring DIVIDEND event.")
 
         elif event.type == zp.DATASOURCE_TYPE.SPLIT:
-            for perf_period in self.perf_periods:
-                perf_period.handle_split(event)
+            leftover_cash = self.position_tracker.handle_split(event)
+            if leftover_cash > 0:
+                for perf_period in self.perf_periods:
+                    perf_period.handle_cash_payment(leftover_cash)
 
         elif event.type == zp.DATASOURCE_TYPE.ORDER:
             for perf_period in self.perf_periods:
                 perf_period.record_order(event)
 
         elif event.type == zp.DATASOURCE_TYPE.COMMISSION:
+            self.position_tracker.handle_commission(event)
             for perf_period in self.perf_periods:
                 perf_period.handle_commission(event)
 
@@ -363,17 +372,18 @@ class PerformanceTracker(object):
         pay_date_mask = (self.dividend_frame['pay_date'] == next_trading_day)
         dividends_payable = self.dividend_frame[pay_date_mask]
 
-        for period in self.perf_periods:
-            # TODO SS: There's no reason we should have to duplicate this
-            #          computation, but we do it currently because each perf
-            #          period maintains its own separate positiondict.  We
-            #          should eventually remove this duplication and give each
-            #          period a (preferably read-only) DataFrame of positions.
-            if len(dividends_earnable):
-                period.earn_dividends(dividends_earnable)
+        position_tracker = self.position_tracker
+        if len(dividends_earnable):
+            position_tracker.earn_dividends(dividends_earnable)
 
-            if len(dividends_payable):
-                period.pay_dividends(dividends_payable)
+        if not len(dividends_payable):
+            return
+
+        net_cash_payment = position_tracker.pay_dividends(dividends_payable)
+
+        for period in self.perf_periods:
+            # notify periods to update their stats
+            period.handle_dividends_paid(net_cash_payment)
 
     def handle_minute_close(self, dt):
         self.update_performance()
