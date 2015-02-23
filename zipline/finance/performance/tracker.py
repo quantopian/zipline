@@ -58,11 +58,13 @@ Performance Tracking
 """
 
 from __future__ import division
+import pickle
 import logbook
 
 import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+from six import iteritems
 
 import zipline.protocol as zp
 import zipline.finance.risk as risk
@@ -484,3 +486,29 @@ class PerformanceTracker(object):
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict
+
+    def __getstate__(self):
+        state = {k: v for k, v in iteritems(self.__dict__)
+                 if not k.startswith('_')}
+
+        del state['perf_periods']
+        state['dividend_frame'] = pickle.dumps(self.dividend_frame)
+        state['_dividend_count'] = self._dividend_count
+        return state
+
+    def __setstate__(self, state):
+        # unpickle dataframe.
+        state['dividend_frame'] = pickle.loads(state['dividend_frame'])
+
+        self.__dict__.update(state)
+
+        # properly setup the perf periods
+        self.perf_periods = []
+        p_types = ['minute', 'cumulative', 'todays']
+        for p_type in p_types:
+            name = p_type + '_performance'
+            period = getattr(self, name, None)
+            if period is None:
+                continue
+            period._position_tracker = self.position_tracker
+            self.perf_periods.append(period)

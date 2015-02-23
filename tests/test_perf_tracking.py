@@ -15,6 +15,7 @@
 
 from __future__ import division
 
+import pickle
 import collections
 from datetime import (
     datetime,
@@ -25,6 +26,7 @@ import operator
 
 import unittest
 from nose_parameterized import parameterized
+import nose.tools as nt
 import pytz
 import itertools
 
@@ -51,6 +53,10 @@ logger = logging.getLogger('Test Perf Tracking')
 onesec = timedelta(seconds=1)
 oneday = timedelta(days=1)
 tradingday = timedelta(hours=6, minutes=30)
+
+# nose.tools changed name in python 3
+if not hasattr(nt, 'assert_count_equal'):
+    nt.assert_count_equal = nt.assert_items_equal
 
 
 def check_perf_period(pp,
@@ -213,6 +219,34 @@ def calculate_results(host,
             results.append(msg)
             bm_updated = False
     return results
+
+
+def check_perf_tracker_serialization(perf_tracker):
+    scalar_keys = [
+        'emission_rate',
+        'txn_count',
+        'market_open',
+        'last_close',
+        '_dividend_count',
+        'period_start',
+        'event_count',
+        'day_count',
+        'capital_base',
+        'market_close',
+        'saved_dt',
+        'period_end',
+        'total_days',
+    ]
+
+    p_string = pickle.dumps(perf_tracker)
+
+    test = pickle.loads(p_string)
+
+    for k in scalar_keys:
+        nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
+
+    for period in test.perf_periods:
+        nt.assert_true(hasattr(period, '_position_tracker'))
 
 
 class TestSplitPerformance(unittest.TestCase):
@@ -1746,6 +1780,8 @@ class TestPerformanceTracker(unittest.TestCase):
             self.assertEqual(len(perf_messages),
                              sim_params.days_in_period)
 
+        check_perf_tracker_serialization(perf_tracker)
+
     def trades_with_txns(self, events, no_txn_dt):
         for event in events:
 
@@ -1871,6 +1907,43 @@ class TestPerformanceTracker(unittest.TestCase):
             self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
             self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
 
+            check_perf_tracker_serialization(tracker)
+
+    def test_serialization(self):
+        start_dt = datetime(year=2008,
+                            month=10,
+                            day=9,
+                            tzinfo=pytz.utc)
+        end_dt = datetime(year=2008,
+                          month=10,
+                          day=16,
+                          tzinfo=pytz.utc)
+
+        sim_params = SimulationParameters(
+            period_start=start_dt,
+            period_end=end_dt
+        )
+
+        perf_tracker = perf.PerformanceTracker(
+            sim_params
+        )
+        check_perf_tracker_serialization(perf_tracker)
+
+
+class TestPosition(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_serialization(self):
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos = perf.Position(10, amount=np.float64(120.0), last_sale_date=dt,
+                            last_sale_price=3.4)
+
+        p_string = pickle.dumps(pos)
+
+        test = pickle.loads(p_string)
+        nt.assert_dict_equal(test.__dict__, pos.__dict__)
+
 
 class TestPositionTracker(unittest.TestCase):
     def setUp(self):
@@ -1899,3 +1972,46 @@ class TestPositionTracker(unittest.TestCase):
             val = meth()
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
+
+    def test_serializaition(self):
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position('AAPL', amount=np.float64(120.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pos2 = perf.Position('IBM', amount=np.float64(100.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+
+        pt.update_positions({'AAPL': pos1, 'IBM': pos2})
+        p_string = pickle.dumps(pt)
+        test = pickle.loads(p_string)
+        nt.assert_dict_equal(test._position_amounts, pt._position_amounts)
+        nt.assert_dict_equal(test._position_last_sale_prices,
+                             pt._position_last_sale_prices)
+        nt.assert_count_equal(test.positions.keys(), pt.positions.keys())
+        for sid in pt.positions:
+            nt.assert_dict_equal(test.positions[sid].__dict__,
+                                 pt.positions[sid].__dict__)
+
+
+class TestPerformancePeriod(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_serialization(self):
+        pt = perf.PositionTracker()
+        pp = perf.PerformancePeriod(100, position_tracker=pt)
+
+        p_string = pickle.dumps(pp)
+        test = pickle.loads(p_string)
+
+        correct = pp.__dict__.copy()
+        del correct['_position_tracker']
+
+        nt.assert_count_equal(test.__dict__.keys(), correct.keys())
+
+        equal_keys = correct.keys()
+        equal_keys.remove('_account_store')
+        equal_keys.remove('_portfolio_store')
+
+        for k in equal_keys:
+            nt.assert_equal(test.__dict__[k], correct[k])

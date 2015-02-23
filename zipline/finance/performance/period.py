@@ -84,7 +84,7 @@ try:
 except ImportError:
     from collections import OrderedDict
 
-from six import itervalues
+from six import itervalues, iteritems
 
 import zipline.protocol as zp
 
@@ -95,7 +95,7 @@ TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 def position_proxy(func):
     def _proxied(self, *args, **kwargs):
         meth_name = func.__name__
-        meth = getattr(self.position_tracker, meth_name)
+        meth = getattr(self._position_tracker, meth_name)
         return meth(*args, **kwargs)
     return _proxied
 
@@ -137,7 +137,7 @@ class PerformancePeriod(object):
 
         if position_tracker is None:
             raise ValueError("position_tracker can not be None")
-        self.position_tracker = position_tracker
+        self._position_tracker = position_tracker
 
         self.calculate_performance()
 
@@ -210,15 +210,15 @@ class PerformancePeriod(object):
     # backwards compat. TODO: remove
     @property
     def positions(self):
-        return self.position_tracker.positions
+        return self._position_tracker.positions
 
     @property
     def position_amounts(self):
-        return self.position_tracker.position_amounts
+        return self._position_tracker.position_amounts
 
     @property
     def position_last_sale_prices(self):
-        return self.position_tracker.position_last_sale_prices
+        return self._position_tracker.position_last_sale_prices
 
     @position_proxy
     def calculate_positions_value(self):
@@ -410,3 +410,24 @@ class PerformancePeriod(object):
     @position_proxy
     def get_positions_list(self):
         raise ProxyError()
+
+    def __getstate__(self):
+        state = {k: v for k, v in iteritems(self.__dict__)
+                 if not k.startswith('_')}
+
+        state['_portfolio_store'] = self._portfolio_store
+        state['_account_store'] = self._account_store
+
+        # We need to handle the defaultdict specially, otherwise
+        # msgpack will unpack it as a dict, causing KeyError
+        # nastiness.
+        state['processed_transactions'] = self.processed_transactions
+        state['orders_by_modified'] = self.orders_by_modified
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.processed_transactions = defaultdict(list)
+        self.orders_by_modified = defaultdict(OrderedDict)
+        self.processed_transactions.update(state['processed_transactions'])
+        self.orders_by_modified.update(state['orders_by_modified'])

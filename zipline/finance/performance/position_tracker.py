@@ -48,9 +48,10 @@ class PositionTracker(object):
         sid = event.sid
         price = event.price
 
-    def set_positions(self, positions):
-        self.positions = positions
-        for sid, pos in positions.iteritems():
+    def update_positions(self, positions):
+        # update positions in batch
+        self.positions.update(positions)
+        for sid, pos in iteritems(positions):
             self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
             # Invalidate cache.
@@ -243,3 +244,28 @@ class PositionTracker(object):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
+
+    def __getstate__(self):
+        state = {}
+
+        state['positions'] = self.positions
+        state['unpaid_dividends'] = self._unpaid_dividends
+        state['version'] = 1
+        return state
+
+    def __setstate__(self, state):
+        if state['version'] != 1:
+            raise Exception("Unknown serialization version")
+
+        self.positions = positiondict()
+        # note that positions_store is temporary and gets regened from
+        # .positions
+        self._positions_store = zp.Positions()
+
+        self._unpaid_dividends = state['unpaid_dividends']
+
+        # Arrays for quick calculations of positions value
+        self._position_amounts = OrderedDict()
+        self._position_last_sale_prices = OrderedDict()
+
+        self.update_positions(state['positions'])
