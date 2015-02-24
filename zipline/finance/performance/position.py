@@ -207,6 +207,12 @@ last_sale_price: {last_sale_price}"
             'last_sale_price': self.last_sale_price
         }
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+
 
 class positiondict(dict):
 
