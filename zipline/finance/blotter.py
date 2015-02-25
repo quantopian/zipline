@@ -20,6 +20,7 @@ from logbook import Logger
 from collections import defaultdict
 
 from six import text_type
+from six.moves import filter
 
 import zipline.errors
 import zipline.protocol as zp
@@ -199,7 +200,6 @@ class Blotter(object):
             return
 
         orders = self.open_orders[trade_event.sid]
-        orders = sorted(orders, key=lambda o: o.dt)
         # Only use orders for the current day or before
         current_orders = filter(
             lambda o: o.dt <= trade_event.dt,
