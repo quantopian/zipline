@@ -150,6 +150,10 @@ def create_transaction(event, order, price, amount):
     return transaction
 
 
+class LiquidityExceeded(Exception):
+    pass
+
+
 class SlippageModel(with_metaclass(abc.ABCMeta)):
 
     @property
@@ -173,7 +177,10 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if not order.triggered:
                 continue
 
-            txn = self.process_order(event, order)
+            try:
+                txn = self.process_order(event, order)
+            except LiquidityExceeded:
+                break
 
             if txn:
                 self._volume_for_bar += abs(txn.amount)
@@ -210,7 +217,7 @@ class VolumeShareSlippage(SlippageModel):
         remaining_volume = max_volume - self.volume_for_bar
         if remaining_volume < 1:
             # we can't fill any more transactions
-            return
+            raise LiquidityExceeded()
 
         # the current order amount will be the min of the
         # volume available in the bar or the open amount.
