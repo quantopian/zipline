@@ -22,6 +22,7 @@ from . utils.math_utils import nanstd, nanmean, nansum
 
 from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
+from zipline.utils.serialization_utils import SerializeableZiplineObject
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -119,7 +120,7 @@ class Order(Event):
     pass
 
 
-class Portfolio(object):
+class Portfolio(SerializeableZiplineObject):
 
     def __init__(self):
         self.capital_used = 0.0
@@ -138,8 +139,11 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
+    def __getstate__(self):
+        return self.__dict__
 
-class Account(object):
+
+class Account(SerializeableZiplineObject):
     '''
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
@@ -171,14 +175,11 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def _get_state(self):
-        return 'Account', self.__dict__
-
-    def _set_state(self, saved_state):
-        self.__dict__.update(saved_state)
+    def __getstate__(self):
+        return self.__dict__
 
 
-class Position(object):
+class Position(SerializeableZiplineObject):
 
     def __init__(self, sid):
         self.sid = sid
@@ -191,6 +192,9 @@ class Position(object):
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
+
+    def __getstate__(self):
+        return self.__dict__
 
 
 class Positions(dict):
