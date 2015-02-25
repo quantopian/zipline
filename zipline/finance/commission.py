@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
 
-class PerShare(object):
+
+class PerShare(SerializeableZiplineObject):
     """
     Calculates a commission for a transaction based on a per
     share cost with an optional minimum cost per trade.
@@ -51,7 +53,7 @@ class PerShare(object):
             return abs(commission / transaction.amount), commission
 
 
-class PerTrade(object):
+class PerTrade(SerializeableZiplineObject):
     """
     Calculates a commission for a transaction based on a per
     trade cost.
@@ -78,7 +80,7 @@ class PerTrade(object):
         return abs(self.cost / transaction.amount), self.cost
 
 
-class PerDollar(object):
+class PerDollar(SerializeableZiplineObject):
     """
     Calculates a commission for a transaction based on a per
     dollar cost.

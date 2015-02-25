@@ -24,6 +24,7 @@ from functools import partial
 from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils.serialization_utils import SerializeableZiplineObject
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -109,7 +110,7 @@ def transact_partial(slippage, commission):
     return partial(transact_stub, slippage, commission)
 
 
-class Transaction(object):
+class Transaction(SerializeableZiplineObject):
 
     def __init__(self, sid, amount, dt, price, order_id, commission=None):
         self.sid = sid
@@ -127,6 +128,9 @@ class Transaction(object):
         py = copy(self.__dict__)
         del py['type']
         return py
+
+    def __getstate__(self):
+        return self.__dict__
 
 
 def create_transaction(event, order, price, amount):
@@ -183,7 +187,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self.simulate(event, current_orders, **kwargs)
 
 
-class VolumeShareSlippage(SlippageModel):
+class VolumeShareSlippage(SlippageModel, SerializeableZiplineObject):
 
     def __init__(self,
                  volume_limit=.25,
@@ -239,8 +243,14 @@ class VolumeShareSlippage(SlippageModel):
             math.copysign(cur_volume, order.direction)
         )
 
+    def __getstate__(self):
+        return self.__dict__
 
-class FixedSlippage(SlippageModel):
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+
+class FixedSlippage(SlippageModel, SerializeableZiplineObject):
 
     def __init__(self, spread=0.0):
         """
@@ -257,3 +267,9 @@ class FixedSlippage(SlippageModel):
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

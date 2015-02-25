@@ -92,11 +92,13 @@ from six import iteritems, itervalues
 import zipline.protocol as zp
 from . position import positiondict
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
+
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
-class PerformancePeriod(object):
+class PerformancePeriod(SerializeableZiplineObject):
 
     def __init__(
             self,
@@ -574,3 +576,28 @@ class PerformancePeriod(object):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
+
+    def __getstate__(self):
+        state_dict = super(PerformancePeriod, self).__getstate__()
+
+        state_dict['_portfolio_store'] = self._portfolio_store
+        state_dict['_account_store'] = self._account_store
+
+        # We need to handle the defaultdict specially, otherwise
+        # msgpack will unpack it as a dict, causing KeyError
+        # nastiness.
+        state_dict['processed_transactions'] = \
+            self._defaultdict_list_get_state(self.processed_transactions)
+        state_dict['orders_by_modified'] = \
+            self._defaultdict_ordered_get_state(self.orders_by_modified)
+        state_dict['positions'] = \
+            self._positiondict_get_state(self.positions)
+        state_dict['_positions_store'] = \
+            self._positions_get_state(self._positions_store)
+
+        return state_dict
+
+    def __setstate__(self, state):
+        super(PerformancePeriod, self).__setstate__(state)
+
+        self.initialize_position_calc_arrays()
