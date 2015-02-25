@@ -205,19 +205,20 @@ class Blotter(object):
             lambda o: o.dt <= trade_event.dt,
             orders)
 
+        processed_orders = []
         for txn, order in self.process_transactions(trade_event,
                                                     current_orders):
+            processed_orders.append(order)
             yield txn, order
 
-        # update the open orders for the trade_event's sid
-        updated_orders = \
-            [order for order
-                in self.open_orders[trade_event.sid]
-                if order.open]
+        # remove closed orders. we should only have to check
+        # processed orders
+        not_open = lambda order: not order.open
+        closed_orders = filter(not_open, processed_orders)
+        for order in closed_orders:
+            orders.remove(order)
 
-        if updated_orders:
-            self.open_orders[trade_event.sid] = updated_orders
-        else:
+        if len(orders) == 0:
             del self.open_orders[trade_event.sid]
 
     def process_transactions(self, trade_event, current_orders):
