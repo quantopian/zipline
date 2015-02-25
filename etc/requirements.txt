@@ -24,3 +24,7 @@ Cython==0.20.1
 
 # faster OrderedDict
 cyordereddict==0.2.2
+
+# faster array ops. Note once numpy gets to 1.9.1 we
+# we can bump to 1.0.0
+bottleneck==0.8.0
