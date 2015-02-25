@@ -253,7 +253,7 @@ class FinanceTestCase(TestCase):
         oo = blotter.open_orders
         self.assertEqual(len(oo), 1)
         self.assertTrue(sid in oo)
-        order_list = oo[sid]
+        order_list = oo[sid][:]  # make copy
         self.assertEqual(order_count, len(order_list))
 
         for i in range(order_count):
