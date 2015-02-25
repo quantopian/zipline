@@ -122,9 +122,7 @@ class PerformancePeriod(object):
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
 
-        # Arrays for quick calculations of positions value
-        self._position_amounts = OrderedDict()
-        self._position_last_sale_prices = OrderedDict()
+        self.initialize_position_calc_arrays()
 
         self.calculate_performance()
 
@@ -141,6 +139,11 @@ class PerformancePeriod(object):
         )
 
         self.loc_map = {}
+
+    def initialize_position_calc_arrays(self):
+        # Arrays for quick calculations of positions value.
+        self._position_amounts = OrderedDict()
+        self._position_last_sale_prices = OrderedDict()
 
     def set_positions(self, positions):
         self.positions = positions
