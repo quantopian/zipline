@@ -61,10 +61,12 @@ from dateutil.relativedelta import relativedelta
 
 from . period import RiskMetricsPeriod
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
+
 log = logbook.Logger('Risk Report')
 
 
-class RiskReport(object):
+class RiskReport(SerializeableZiplineObject):
     def __init__(self, algorithm_returns, sim_params, benchmark_returns=None):
         """
         algorithm_returns needs to be a list of daily_return objects
@@ -138,3 +140,11 @@ class RiskReport(object):
             cur_start = cur_start + relativedelta(months=1)
 
         return ends
+
+    def __getstate__(self):
+        state_dict = super(RiskReport, self).__getstate__()
+
+        if '_dividend_count' in dir(self):
+            state_dict['_dividend_count'] = self._dividend_count
+
+        return state_dict

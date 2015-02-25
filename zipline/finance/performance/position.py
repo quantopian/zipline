@@ -41,10 +41,12 @@ from math import (
 import logbook
 import zipline.protocol as zp
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
+
 log = logbook.Logger('Performance')
 
 
-class Position(object):
+class Position(SerializeableZiplineObject):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None):
@@ -206,6 +208,9 @@ last_sale_price: {last_sale_price}"
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price
         }
+
+    def __getstate__(self):
+        return self.__dict__
 
 
 class positiondict(dict):

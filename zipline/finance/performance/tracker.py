@@ -59,6 +59,7 @@ Performance Tracking
 
 from __future__ import division
 import logbook
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -70,11 +71,12 @@ from zipline.finance import trading
 from . period import PerformancePeriod
 
 from zipline.finance.trading import with_environment
+from zipline.utils.serialization_utils import SerializeableZiplineObject
 
 log = logbook.Logger('Performance')
 
 
-class PerformanceTracker(object):
+class PerformanceTracker(SerializeableZiplineObject):
     """
     Tracks the performance of the algorithm.
     """
@@ -483,3 +485,25 @@ class PerformanceTracker(object):
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict
+
+    def __getstate__(self):
+        state_dict = super(PerformanceTracker, self).__getstate__()
+
+        state_dict['dividend_frame'] = pickle.dumps(self.dividend_frame)
+
+        state_dict['_dividend_count'] = self._dividend_count
+
+        return state_dict
+
+    def __setstate__(self, state):
+        super(PerformanceTracker, self).__setstate__(state)
+
+        # Handle the dividend frame specially
+        self.dividend_frame = pickle.loads(state['dividend_frame'])
+
+        # We have to restore the references to the objects,
+        # as the perf periods have been reconstructed as different objects
+        # with the same values.
+        self.perf_periods[0] = self.minute_performance
+        self.perf_periods[1] = self.cumulative_performance
+        self.perf_periods[2] = self.todays_performance

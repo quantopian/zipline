@@ -35,6 +35,7 @@ from zipline.finance.commission import PerShare
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
+from zipline.utils.serialization_utils import SerializeableZiplineObject
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -45,7 +46,7 @@ ORDER_STATUS = Enum(
 )
 
 
-class Blotter(object):
+class Blotter(SerializeableZiplineObject):
 
     def __init__(self):
         self.transact = transact_partial(VolumeShareSlippage(), PerShare())
@@ -247,8 +248,21 @@ class Blotter(object):
 
             yield txn, order
 
+    def __getstate__(self):
 
-class Order(object):
+        state_to_save = ['new_orders', 'orders', '_status']
+
+        state_dict = {k: self.__dict__[k] for k in state_to_save
+                      if k in self.__dict__}
+
+        # Have to handle defaultdicts specially
+        state_dict['open_orders'] = \
+            self._defaultdict_list_get_state(self.open_orders)
+
+        return state_dict
+
+
+class Order(SerializeableZiplineObject):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
                  commission=None, id=None):
         """
@@ -385,3 +399,10 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
+
+    def __getstate__(self):
+        state_dict = super(Order, self).__getstate__()
+
+        state_dict['_status'] = self._status
+
+        return state_dict

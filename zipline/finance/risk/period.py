@@ -36,13 +36,15 @@ from . risk import (
     sortino_ratio,
 )
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
+
 log = logbook.Logger('Risk Period')
 
 choose_treasury = functools.partial(risk.choose_treasury,
                                     risk.select_treasury_duration)
 
 
-class RiskMetricsPeriod(object):
+class RiskMetricsPeriod(SerializeableZiplineObject):
     def __init__(self, start_date, end_date, returns,
                  benchmark_returns=None):
 
@@ -304,3 +306,15 @@ class RiskMetricsPeriod(object):
             return 0.0
 
         return 1.0 - math.exp(max_drawdown)
+
+    def __getstate__(self):
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems() if
+             (not k.startswith('_') and not k == 'treasury_curves')}
+
+        return state_dict
+
+    def __setstate__(self, state):
+        super(RiskMetricsPeriod, self).__setstate__(state)
+
+        self.treasury_curves = trading.environment.treasury_curves

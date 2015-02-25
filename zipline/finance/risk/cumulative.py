@@ -35,6 +35,8 @@ from . risk import (
     sortino_ratio,
 )
 
+from zipline.utils.serialization_utils import SerializeableZiplineObject
+
 log = logbook.Logger('Risk Cumulative')
 
 
@@ -71,7 +73,7 @@ def information_ratio(algo_volatility, algorithm_return, benchmark_return):
         / algo_volatility)
 
 
-class RiskMetricsCumulative(object):
+class RiskMetricsCumulative(SerializeableZiplineObject):
     """
     :Usage:
         Instantiate RiskMetricsCumulative once.
@@ -454,3 +456,17 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         beta = algorithm_covariance / benchmark_variance
 
         return beta
+
+    def __getstate__(self):
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems() if
+                (not k.startswith('_') and not k == 'treasury_curves')}
+
+        return state_dict
+
+    def __setstate__(self, state):
+        super(RiskMetricsCumulative, self).__setstate__(state)
+
+        # This are big and we don't need to serialize them
+        # pop them back in now
+        self.treasury_curves = trading.environment.treasury_curves
