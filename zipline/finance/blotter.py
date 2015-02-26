@@ -34,7 +34,10 @@ from zipline.finance.commission import PerShare
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -257,7 +260,20 @@ class Blotter(SerializeableZiplineObject):
         state_dict['open_orders'] = \
             self._defaultdict_list_get_state(self.open_orders)
 
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
         return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Blotter saved is state too old.")
+
+        super(Blotter, self).__setstate__(state)
 
 
 class Order(SerializeableZiplineObject):
@@ -399,8 +415,22 @@ class Order(SerializeableZiplineObject):
         return text_type(repr(self))
 
     def __getstate__(self):
+
         state_dict = super(Order, self).__getstate__()
 
         state_dict['_status'] = self._status
 
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
         return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Order saved state is too old.")
+
+        super(Order, self).__setstate__(state)

@@ -20,7 +20,10 @@ from . utils.protocol_utils import Enum
 
 from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -138,7 +141,23 @@ class Portfolio(SerializeableZiplineObject):
         return "Portfolio({0})".format(self.__dict__)
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Portfolio saved state is too old.")
+
+        super(Portfolio, self).__setstate__(state)
 
 
 class Account(SerializeableZiplineObject):
@@ -174,7 +193,23 @@ class Account(SerializeableZiplineObject):
         return "Account({0})".format(self.__dict__)
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Account saved state is too old.")
+
+        super(Account, self).__setstate__(state)
 
 
 class Position(SerializeableZiplineObject):
@@ -192,7 +227,23 @@ class Position(SerializeableZiplineObject):
         return "Position({0})".format(self.__dict__)
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Protocol Position saved state is too old.")
+
+        super(Position, self).__setstate__(state)
 
 
 class Positions(dict):

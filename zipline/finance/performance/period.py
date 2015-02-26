@@ -92,7 +92,10 @@ from six import iteritems, itervalues
 import zipline.protocol as zp
 from . position import positiondict
 
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
@@ -595,9 +598,19 @@ class PerformancePeriod(SerializeableZiplineObject):
         state_dict['_positions_store'] = \
             self._positions_get_state(self._positions_store)
 
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
         return state_dict
 
     def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("PerformancePeriod saved state is too old.")
+
         super(PerformancePeriod, self).__setstate__(state)
 
         self.initialize_position_calc_arrays()

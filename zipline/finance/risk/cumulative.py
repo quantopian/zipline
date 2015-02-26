@@ -35,7 +35,10 @@ from . risk import (
     sortino_ratio,
 )
 
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Risk Cumulative')
 
@@ -462,9 +465,20 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             {k: v for k, v in self.__dict__.iteritems() if
                 (not k.startswith('_') and not k == 'treasury_curves')}
 
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
         return state_dict
 
     def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("RiskMetricsCumulative \
+                    saved state is too old.")
+
         super(RiskMetricsCumulative, self).__setstate__(state)
 
         # This are big and we don't need to serialize them
