@@ -1,3 +1,8 @@
+# Label for the serialization version field in the state returned by
+# __getstate__.
+VERSION_LABEL = '_stateversion_'
+
+
 class SerializeableZiplineObject(object):
     """
     This class implements the basic set and get state methods used for

@@ -36,7 +36,10 @@ from . risk import (
     sortino_ratio,
 )
 
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Risk Period')
 
@@ -312,9 +315,20 @@ class RiskMetricsPeriod(SerializeableZiplineObject):
             {k: v for k, v in self.__dict__.iteritems() if
              (not k.startswith('_') and not k == 'treasury_curves')}
 
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
         return state_dict
 
     def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("RiskMetricsPeriod saved state \
+                    is too old.")
+
         super(RiskMetricsPeriod, self).__setstate__(state)
 
         self.treasury_curves = trading.environment.treasury_curves
