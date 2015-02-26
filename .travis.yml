@@ -21,6 +21,11 @@ matrix:
       - PANDAS_VERSION=0.15.2
       - NUMPY_VERSION=1.9.0
       - USE_CYORDEREDDICT=yes
+  - python: 3.4
+    env:
+      - PANDAS_VERSION=0.15.2
+      - NUMPY_VERSION=1.9.1
+      - USE_CYORDEREDDICT=yes
 before_install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
   - chmod +x miniconda.sh
