@@ -24,7 +24,10 @@ from functools import partial
 from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
-from zipline.utils.serialization_utils import SerializeableZiplineObject
+from zipline.utils.serialization_utils import (
+    SerializeableZiplineObject,
+    VERSION_LABEL
+)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -130,7 +133,23 @@ class Transaction(SerializeableZiplineObject):
         return py
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Transaction saved state is too old.")
+
+        super(Transaction, self).__setstate__(state)
 
 
 def create_transaction(event, order, price, amount):
@@ -251,9 +270,22 @@ class VolumeShareSlippage(SlippageModel, SerializeableZiplineObject):
         )
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
 
     def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("VolumeShareSlippage saved state is too old.")
+
         self.__dict__.update(state)
 
 
@@ -276,7 +308,20 @@ class FixedSlippage(SlippageModel, SerializeableZiplineObject):
         )
 
     def __getstate__(self):
-        return self.__dict__
+
+        state_dict = self.__dict__
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
 
     def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("FixedSlippage saved state is too old.")
+
         self.__dict__.update(state)
