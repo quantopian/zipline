@@ -321,6 +321,14 @@ class SIDData(object):
         point to a new function object.
 
         """
+        def daily_get_max_bars(days):
+            return days
+
+        def minute_get_max_bars(days):
+            # max number of minute. regardless of current days or short
+            # sessions
+            return days * 390
+
         def daily_get_bars(days):
             return days
 
@@ -358,28 +366,33 @@ class SIDData(object):
             self._freqstr = '1d'
             # update this method to point to the daily variant.
             self._get_bars = daily_get_bars
+            self._get_max_bars = daily_get_max_bars
         else:
             self._freqstr = '1m'
             # update this method to point to the minute variant.
             self._get_bars = minute_get_bars
+            self._get_max_bars = minute_get_max_bars
 
         # Not actually recursive because we have already cached the new method.
         return self._get_bars(days)
 
     def mavg(self, days):
         bars = self._get_bars(days)
-        prices = self._get_buffer(bars, raw=True)
+        max_bars = self._get_max_bars(days)
+        prices = self._get_buffer(max_bars, raw=True)[-bars:]
         return nanmean(prices)
 
     def stddev(self, days):
         bars = self._get_bars(days)
-        prices = self._get_buffer(bars, raw=True)
+        max_bars = self._get_max_bars(days)
+        prices = self._get_buffer(max_bars, raw=True)[-bars:]
         return nanstd(prices, ddof=1)
 
     def vwap(self, days):
         bars = self._get_bars(days)
-        prices = self._get_buffer(bars, raw=True)
-        vols = self._get_buffer(bars, field='volume', raw=True)
+        max_bars = self._get_max_bars(days)
+        prices = self._get_buffer(max_bars, raw=True)[-bars:]
+        vols = self._get_buffer(max_bars, field='volume', raw=True)[-bars:]
 
         vol_sum = nansum(vols)
         try:
