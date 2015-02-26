@@ -648,7 +648,7 @@ class HistoryContainer(object):
         if bar_count == 1:
             # slicing with [1 - bar_count:] doesn't work when bar_count == 1,
             # so special-casing this.
-            res = pd.DataFrame(index=[], columns=self.sids)
+            res = pd.DataFrame(index=[], columns=self.sids, dtype=float)
             return res.values, res.index
 
         field = history_spec.field
