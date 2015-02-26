@@ -319,10 +319,13 @@ class PerformanceTracker(object):
                 midnight = event.dt
 
             if midnight not in self.all_benchmark_returns.index:
-                raise AssertionError(("Date %s not allocated in  "
-                                      "all_benchmark_returns. Calendar "
-                                      "seems to mismatch with benchmark."
-                                      % midnight))
+                raise AssertionError(
+                    ("Date %s not allocated in all_benchmark_returns. "
+                     "Calendar seems to mismatch with benchmark."
+                     "Benchmark container is=%s" %
+                     (midnight,
+                      self.all_benchmark_returns.index)))
+
             self.all_benchmark_returns[midnight] = event.returns
 
     def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
