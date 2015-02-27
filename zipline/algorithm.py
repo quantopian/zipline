@@ -507,13 +507,14 @@ Initialize sids and other state variables.
                 perfs.append(perf)
 
             # convert perf dict to pandas dataframe
-            daily_stats = self._create_daily_stats(perfs)
+            daily_stats, risk_cumulative, risk_report = \
+                self._create_perf_and_risk_reports(perfs)
 
         self.analyze(daily_stats)
 
-        return daily_stats
+        return daily_stats, risk_cumulative, risk_report
 
-    def _create_daily_stats(self, perfs):
+    def _create_perf_and_risk_reports(self, perfs):
         # create daily and cumulative stats dataframe
         daily_perfs = []
         # TODO: the loop here could overwrite expected properties
@@ -528,13 +529,16 @@ Initialize sids and other state variables.
                 perf['daily_perf'].update(perf['cumulative_risk_metrics'])
                 daily_perfs.append(perf['daily_perf'])
             else:
-                self.risk_report = perf
+                risk_report = perf
+
+        risk_cumulative = \
+            pd.Series(self.perf_tracker.cumulative_risk_metrics.to_dict())
 
         daily_dts = [np.datetime64(perf['period_close'], utc=True)
                      for perf in daily_perfs]
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
-        return daily_stats
+        return daily_stats, risk_cumulative, risk_report
 
     @api_method
     def add_transform(self, transform, days=None):
