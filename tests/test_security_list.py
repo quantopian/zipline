@@ -199,25 +199,6 @@ class SecurityListTestCase(TestCase):
 
         self.check_algo_exception(algo, ctx, 0)
 
-    def test_algo_with_rl_violation_on_knowledge_date(self):
-
-        sim_params = factory.create_simulation_parameters(
-            start=self.trading_day_before_first_kd, num_days=4)
-        trade_history = factory.create_trade_history(
-            'BZQ',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history)
-
-        algo = RestrictedAlgoWithoutCheck(sid='BZQ', sim_params=sim_params)
-        with self.assertRaises(TradingControlViolation) as ctx:
-            algo.run(self.source)
-
-        self.check_algo_exception(algo, ctx, 1)
-
     def test_algo_with_rl_violation_after_knowledge_date(self):
         sim_params = factory.create_simulation_parameters(
             start=list(
