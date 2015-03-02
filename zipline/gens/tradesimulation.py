@@ -19,7 +19,6 @@ from zipline.finance import trading
 from zipline.protocol import (
     DATASOURCE_TYPE
 )
-from zipline.dataverse import Dataverse
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -57,7 +56,7 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
-        self.dataverse = Dataverse()
+        self.dataverse = algo.dataverse
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.

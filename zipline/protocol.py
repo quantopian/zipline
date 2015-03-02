@@ -492,6 +492,7 @@ class BarData(object):
     def __init__(self, data=None, siddata_class=SIDData):
         self._data = data or {}
         self._contains_override = None
+        self._siddata_class = siddata_class
 
     def __contains__(self, name):
         if self._contains_override:
@@ -511,9 +512,9 @@ class BarData(object):
 
     def get_default(self, name):
         try:
-            sid_data = self.current_data[name]
+            sid_data = self[name]
         except KeyError:
-            sid_data = self.current_data[name] = self.siddata_class(name)
+            sid_data = self[name] = self._siddata_class(name)
         return sid_data
 
     def update_sid(self, event):

@@ -186,7 +186,7 @@ class TradingAlgorithm(object):
         self._account = None
 
         self.dataverse = kwargs.pop(
-            'dataverse', Dataverse,
+            'dataverse', Dataverse(),
         )
 
         self.history_container_class = kwargs.pop(
