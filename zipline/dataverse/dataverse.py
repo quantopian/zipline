@@ -1,7 +1,7 @@
 import zipline.protocol as zp
 
 
-class DataVerse(object):
+class BaseDataverse(object):
     """
     Cross-sectional logic that handles all universe and data activities.
     This includes things like:
@@ -21,3 +21,5 @@ class DataVerse(object):
 
     def get_bar_data(self):
         return self.bardata_cls()
+
+Dataverse = BaseDataverse

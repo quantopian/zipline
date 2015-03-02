@@ -26,7 +26,7 @@ class SIDData(object):
         self.obj[name] = value
 
     def __len__(self):
-        return len(self.obj) - self._initial_len
+        return len(self.obj)
 
     def __contains__(self, name):
         return name in self.obj
