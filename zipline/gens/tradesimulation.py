@@ -17,9 +17,9 @@ from pandas.tslib import normalize_date
 
 from zipline.finance import trading
 from zipline.protocol import (
-    BarData,
     DATASOURCE_TYPE
 )
+from zipline.dataverse import Dataverse
 from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
@@ -57,10 +57,11 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
+        self.dataverse = Dataverse()
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.current_data = BarData()
+        self.current_data = self.dataverse.get_bar_data()
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
