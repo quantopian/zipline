@@ -517,6 +517,7 @@ class PerformanceTracker(SerializeableZiplineObject):
         # We have to restore the references to the objects,
         # as the perf periods have been reconstructed as different objects
         # with the same values.
-        self.perf_periods[0] = self.minute_performance
-        self.perf_periods[1] = self.cumulative_performance
-        self.perf_periods[2] = self.todays_performance
+        self.perf_periods[0] = self.cumulative_performance
+        self.perf_periods[1] = self.todays_performance
+        if self.sim_params.emission_rate == 'minute':
+            self.perf_periods[2] = self.minute_performance
