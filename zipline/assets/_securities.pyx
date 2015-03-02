@@ -21,18 +21,12 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-from qexec.algo.repr_ import (
-    repr_qdb,
-    make_repr_qdb_node,
-    node_subset,
-    update_visited,
-)
-
 
 # IMPORTANT NOTE: You must change this template if you change
 # Security.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
 CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v3.cache'
+
 
 cdef class Security:
 
@@ -46,7 +40,6 @@ cdef class Security:
     # TODO: Maybe declare as pandas Timestamp?
     cdef readonly object start_date
     cdef readonly object end_date
-    # This attribute is currently set in Algoproxy.lookup_security.
     cdef public object first_traded
 
     cdef readonly object exchange
@@ -93,8 +86,8 @@ cdef class Security:
 
     def __richcmp__(self, other, int op):
         """
-        Cython rich comparison method.  This is used in place of various equality
-        checkers in pure python.
+        Cython rich comparison method.  This is used in place of various
+        equality checkers in pure python.
 
         <	0
         <=	1
@@ -150,25 +143,6 @@ cdef class Security:
         params = ', '.join(strings)
         return 'Security(%d, %s)' % (self.sid, params)
 
-    def _repr_qdb(self, visited=None):
-        visited = update_visited(self, visited)
-        return make_repr_qdb_node(
-            self,
-            visited,
-            node=node_subset(
-                self,
-                visited, {
-                    'sid',
-                    'symbol',
-                    'security_name',
-                    'exchange',
-                    'start_date',
-                    'end_date',
-                    'first_traded',
-                }
-            )
-        )
-
     cpdef __reduce__(self):
         """
         Function used by pickle to determine how to serialize/deserialize this
@@ -186,6 +160,27 @@ cdef class Security:
                                  self.end_date,
                                  self.first_traded,
                                  self.exchange,))
+
+    cpdef to_dict(self):
+        """
+        Convert to a python dict.
+        """
+        return {
+            'sid': self.sid,
+            'symbol': self.symbol,
+            'security_name': self.security_name,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'first_traded': self.first_traded,
+            'exchange': self.exchange,
+        }
+
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Build a Security instance from a dict.
+        """
+        return Security(**dict_)
 
 
 def make_security_array(int size, Security security):
