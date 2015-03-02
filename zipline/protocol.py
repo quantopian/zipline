@@ -299,7 +299,10 @@ class SIDData(object):
         self._initial_len = len(self.__dict__) + 1
 
         if initial_values:
-            self.__dict__.update(initial_values)
+            self.update(initial_values)
+
+    def update(self, *args, **kwargs):
+        self.__dict__.update(*args, **kwargs)
 
     @property
     def datetime(self):
