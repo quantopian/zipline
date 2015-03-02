@@ -41,26 +41,50 @@ from zipline.finance.trading import SimulationParameters
 
 from zipline.utils import factory
 
-DEFAULT_TIMEOUT = 15  # seconds
-EXTENDED_TIMEOUT = 90
+sim_params_daily = SimulationParameters(
+    datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
+    datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
+    10000,
+    emission_rate='daily')
+sim_params_minute = SimulationParameters(
+    datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
+    datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
+    10000,
+    emission_rate='minute')
+returns = factory.create_returns_from_list(
+    [1.0], sim_params_daily)
 
 
 class SerializationTestCase(TestCase):
 
     @parameterized.expand([
-        (Order, (datetime.datetime(2013, 6, 19), 8554, 100)),
-        (PerShare, ()),
-        (PerTrade, ()),
-        (PerDollar, ()),
-        (Position, (8554,)),
-        (FixedSlippage, ()),
-        (Transaction, (8554, 10, datetime.datetime(2013, 6, 19), 100, "0000")),
-        (VolumeShareSlippage, ()),
-        (Account, ()),
-        (Portfolio, ()),
-        (ProtocolPosition, (8554,))
+        (Blotter, (), 'repr'),
+        (Order, (datetime.datetime(2013, 6, 19), 8554, 100), 'dict'),
+        (PerShare, (), 'dict'),
+        (PerTrade, (), 'dict'),
+        (PerDollar, (), 'dict'),
+        (PerformancePeriod, (10000,), 'to_dict'),
+        (Position, (8554,), 'dict'),
+        (PerformanceTracker, (sim_params_daily,), 'to_dict'),
+        (PerformanceTracker, (sim_params_minute,), 'to_dict'),
+        (RiskMetricsCumulative, (sim_params_daily,), 'to_dict'),
+        (RiskMetricsCumulative, (sim_params_minute,), 'to_dict'),
+        (RiskMetricsPeriod,
+            (returns.index[0], returns.index[0], returns), 'to_dict'),
+        (RiskReport, (returns, sim_params_daily), 'to_dict'),
+        (RiskReport, (returns, sim_params_minute), 'to_dict'),
+        (FixedSlippage, (), 'dict'),
+        (Transaction,
+            (8554, 10, datetime.datetime(2013, 6, 19), 100, "0000"), 'dict'),
+        (VolumeShareSlippage, (), 'dict'),
+        (Account, (), 'dict'),
+        (Portfolio, (), 'dict'),
+        (ProtocolPosition, (8554,), 'dict')
     ])
-    def test_object_serialization(self, cls, initargs):
+    def test_object_serialization(self,
+                                  cls,
+                                  initargs,
+                                  comparison_method='dict'):
 
         obj = cls(*initargs)
         state = obj.__getstate__()
@@ -68,117 +92,22 @@ class SerializationTestCase(TestCase):
             initargs = obj.__getinitargs__()
         else:
             initargs = None
+        if hasattr(obj, '__getnewargs__'):
+            newargs = obj.__getnewargs__()
+        else:
+            newargs = None
 
-        obj2 = cls.__new__(cls)
+        if newargs is not None:
+            obj2 = cls.__new__(cls, *newargs)
+        else:
+            obj2 = cls.__new__(cls)
         if initargs is not None:
             obj2.__init__(*initargs)
         obj2.__setstate__(state)
 
-        self.assertEqual(obj.__dict__, obj2.__dict__)
-
-    # Need special handling to compare equality for some objects
-
-    def test_perf_period_serialization(self):
-
-        obj = PerformancePeriod(10000)
-        state = obj.__getstate__()
-
-        obj2 = PerformancePeriod.__new__(PerformancePeriod)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.to_dict(), obj2.to_dict())
-
-    def test_blotter_serialization(self):
-
-        obj = Blotter()
-        state = obj.__getstate__()
-        initargs = obj.__getinitargs__()
-
-        obj2 = Blotter.__new__(Blotter)
-        obj2.__init__(*initargs)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.__repr__(), obj2.__repr__())
-
-    @parameterized.expand([
-        ('daily',),
-        ('minute',),
-    ])
-    def test_perf_tracker_serialization(self, emission_rate):
-
-        sim_params = SimulationParameters(
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            10000,
-            emission_rate=emission_rate)
-
-        obj = PerformanceTracker(sim_params)
-        state = obj.__getstate__()
-
-        obj2 = PerformanceTracker.__new__(PerformanceTracker)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.to_dict(), obj2.to_dict())
-
-    @parameterized.expand([
-        ('daily',),
-        ('minute',),
-    ])
-    def test_risk_metrics_cumulative_serialization(self, emission_rate):
-        sim_params = SimulationParameters(
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            10000,
-            emission_rate=emission_rate)
-
-        obj = RiskMetricsCumulative(sim_params)
-        state = obj.__getstate__()
-
-        obj2 = RiskMetricsCumulative.__new__(RiskMetricsCumulative)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.to_dict(), obj2.to_dict())
-
-    @parameterized.expand([
-        ('daily',),
-        ('minute',),
-    ])
-    def test_risk_metrics_period_serialization(self, emission_rate):
-
-        sim_params = SimulationParameters(
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            10000,
-            emission_rate=emission_rate)
-
-        returns = factory.create_returns_from_list(
-            [1.0], sim_params)
-        obj = RiskMetricsPeriod(returns.index[0], returns.index[0], returns)
-        state = obj.__getstate__()
-
-        obj2 = RiskMetricsPeriod.__new__(RiskMetricsPeriod)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.to_dict(), obj2.to_dict())
-
-    @parameterized.expand([
-        ('daily',),
-        ('minute',),
-    ])
-    def test_risk_report_serialization(self, emission_rate):
-
-        sim_params = SimulationParameters(
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
-            10000,
-            emission_rate=emission_rate)
-
-        returns = factory.create_returns_from_list(
-            [1.0], sim_params)
-        obj = RiskReport(returns, sim_params)
-        state = obj.__getstate__()
-
-        obj2 = RiskReport.__new__(RiskReport)
-        obj2.__setstate__(state)
-
-        self.assertEqual(obj.to_dict(), obj2.to_dict())
+        if comparison_method == 'repr':
+            self.assertEqual(obj.__repr__(), obj2.__repr__())
+        elif comparison_method == 'to_dict':
+            self.assertEqual(obj.to_dict(), obj2.to_dict())
+        else:
+            self.assertEqual(obj.__dict__, obj2.__dict__)
