@@ -1,4 +1,5 @@
 import zipline.protocol as zp
+from zipline.history.history_container import HistoryContainer
 
 
 class BaseDataverse(object):
@@ -16,10 +17,14 @@ class BaseDataverse(object):
 
     OBVs this is a work in progresss.
     """
-    siddata_cls = zp.SIDData
-    bardata_cls = zp.BarData
+    siddata_class = zp.SIDData
+    bardata_class = zp.BarData
+    history_container_class = HistoryContainer
 
     def get_bar_data(self):
-        return self.bardata_cls()
+        return self.bardata_class()
+
+    def get_history_container(self, *args, **kwargs):
+        return self.history_container_class(*args, **kwargs)
 
 Dataverse = BaseDataverse

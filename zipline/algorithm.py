@@ -83,7 +83,7 @@ import zipline.protocol
 from zipline.protocol import Event
 
 from zipline.history import HistorySpec
-from zipline.history.history_container import HistoryContainer
+from zipline.dataverse import Dataverse
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -185,8 +185,12 @@ class TradingAlgorithm(object):
         self._portfolio = None
         self._account = None
 
+        self.dataverse = kwargs.pop(
+            'dataverse', Dataverse,
+        )
+
         self.history_container_class = kwargs.pop(
-            'history_container_class', HistoryContainer,
+            'history_container_class', self.dataverse.get_history_container,
         )
         self.history_container = None
         self.history_specs = {}
