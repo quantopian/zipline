@@ -40,31 +40,3 @@ class SerializeableZiplineObject(object):
         Many objects require only this code.
         """
         self.__dict__.update(state)
-
-    # =====================================================
-    # These are helper methods for some problem data types.
-    # =====================================================
-
-    def _defaultdict_list_get_state(self, d):
-        return {
-            '__original.type__': 'encoded.defaultdict_list',
-            'as_dict': dict(d)
-        }
-
-    def _defaultdict_ordered_get_state(self, d):
-        return {
-            '__original.type__': 'encoded.defaultdict_ordered',
-            'as_dict': dict(d)
-        }
-
-    def _positiondict_get_state(self, d):
-        return {
-            '__original.type__': 'encoded.positiondict',
-            'as_dict': dict(d)
-        }
-
-    def _positions_get_state(self, d):
-        return {
-            '__original.type__': 'encoded.Positions',
-            'as_dict': dict(d)
-        }

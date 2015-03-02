@@ -590,13 +590,13 @@ class PerformancePeriod(SerializeableZiplineObject):
         # msgpack will unpack it as a dict, causing KeyError
         # nastiness.
         state_dict['processed_transactions'] = \
-            self._defaultdict_list_get_state(self.processed_transactions)
+            dict(self.processed_transactions)
         state_dict['orders_by_modified'] = \
-            self._defaultdict_ordered_get_state(self.orders_by_modified)
+            dict(self.orders_by_modified)
         state_dict['positions'] = \
-            self._positiondict_get_state(self.positions)
+            dict(self.positions)
         state_dict['_positions_store'] = \
-            self._positions_get_state(self._positions_store)
+            dict(self._positions_store)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -610,6 +610,23 @@ class PerformancePeriod(SerializeableZiplineObject):
 
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerformancePeriod saved state is too old.")
+
+        processed_transactions = defaultdict(list)
+        processed_transactions.update(state.pop('processed_transactions'))
+
+        orders_by_modified = defaultdict(OrderedDict)
+        orders_by_modified.update(state.pop('orders_by_modified'))
+
+        positions = positiondict()
+        positions.update(state.pop('positions'))
+
+        _positions_store = zp.Positions()
+        _positions_store.update(state.pop('_positions_store'))
+
+        self.processed_transactions = processed_transactions
+        self.orders_by_modified = orders_by_modified
+        self.positions = positions
+        self._positions_store = _positions_store
 
         super(PerformancePeriod, self).__setstate__(state)
 

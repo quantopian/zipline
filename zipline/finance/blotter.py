@@ -251,6 +251,10 @@ class Blotter(SerializeableZiplineObject):
 
             yield txn, order
 
+    def __getinitargs__(self):
+        # Ensure that init is called on deserialization
+        return ()
+
     def __getstate__(self):
 
         state_to_save = ['new_orders', 'orders', '_status']
@@ -259,8 +263,7 @@ class Blotter(SerializeableZiplineObject):
                       if k in self.__dict__}
 
         # Have to handle defaultdicts specially
-        state_dict['open_orders'] = \
-            self._defaultdict_list_get_state(self.open_orders)
+        state_dict['open_orders'] = dict(self.open_orders)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -274,6 +277,10 @@ class Blotter(SerializeableZiplineObject):
 
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Blotter saved is state too old.")
+
+        open_orders = defaultdict(list)
+        open_orders.update(state.pop('open_orders'))
+        self.open_orders = open_orders
 
         super(Blotter, self).__setstate__(state)
 
