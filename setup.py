@@ -56,7 +56,8 @@ setup(
         'requests',
         'numpy',
         'pandas',
-        'six'
+        'six',
+        'Cython==0.20.1'
     ],
     extras_require = {
         'talib':  ["talib"],
