@@ -15,6 +15,16 @@
 # limitations under the License.
 
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+import numpy as np
+
+ext_modules = [
+    Extension(
+        'zipline.assets._securities',
+        ['zipline/assets/_securities.pyx'],
+        include_dirs=[np.get_include()],
+    ),
+]
 
 setup(
     name='zipline',
@@ -23,6 +33,7 @@ setup(
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages(),
+    ext_modules=cythonize(ext_modules),
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
     license='Apache 2.0',
