@@ -489,7 +489,7 @@ class BarData(object):
     usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, siddata_class=SIDData):
         self._data = data or {}
         self._contains_override = None
 
@@ -508,6 +508,20 @@ class BarData(object):
         compatibility with existing algorithms.
         """
         return name in self
+
+    def get_default(self, name):
+        try:
+            sid_data = self.current_data[name]
+        except KeyError:
+            sid_data = self.current_data[name] = self.siddata_class(name)
+        return sid_data
+
+    def update_sid(self, event):
+        # Update our knowledge of this event's sid
+        # rather than use if event.sid in ..., just trying
+        # and handling the exception is significantly faster
+        sid_data = self.get_default(event.sid)
+        sid_data.update(event.__dict__)
 
     def __setitem__(self, name, value):
         self._data[name] = value
