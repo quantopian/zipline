@@ -15,7 +15,7 @@
 import pandas as pd
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import rrule
 from functools import partial
 
