@@ -14,12 +14,11 @@
 # limitations under the License.
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
 
-class PerShare(SerializeableZiplineObject):
+class PerShare(object):
     """
     Calculates a commission for a transaction based on a per
     share cost with an optional minimum cost per trade.
@@ -57,7 +56,9 @@ class PerShare(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = super(PerShare, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -72,10 +73,10 @@ class PerShare(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerShare saved state is too old.")
 
-        super(PerShare, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
-class PerTrade(SerializeableZiplineObject):
+class PerTrade(object):
     """
     Calculates a commission for a transaction based on a per
     trade cost.
@@ -103,7 +104,9 @@ class PerTrade(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = super(PerTrade, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -118,10 +121,10 @@ class PerTrade(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerTrade saved state is too old.")
 
-        super(PerTrade, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
-class PerDollar(SerializeableZiplineObject):
+class PerDollar(object):
     """
     Calculates a commission for a transaction based on a per
     dollar cost.
@@ -149,7 +152,9 @@ class PerDollar(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = super(PerDollar, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -164,4 +169,4 @@ class PerDollar(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerDollar saved state is too old.")
 
-        super(PerDollar, self).__setstate__(state)
+        self.__dict__.update(state)

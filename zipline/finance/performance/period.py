@@ -93,7 +93,6 @@ import zipline.protocol as zp
 from . position import positiondict
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
@@ -101,7 +100,7 @@ log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
-class PerformancePeriod(SerializeableZiplineObject):
+class PerformancePeriod(object):
 
     def __init__(
             self,
@@ -581,7 +580,9 @@ class PerformancePeriod(SerializeableZiplineObject):
         return positions
 
     def __getstate__(self):
-        state_dict = super(PerformancePeriod, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         state_dict['_portfolio_store'] = self._portfolio_store
         state_dict['_account_store'] = self._account_store
@@ -628,6 +629,6 @@ class PerformancePeriod(SerializeableZiplineObject):
         self.positions = positions
         self._positions_store = _positions_store
 
-        super(PerformancePeriod, self).__setstate__(state)
+        self.__dict__.update(state)
 
         self.initialize_position_calc_arrays()

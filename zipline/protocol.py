@@ -23,7 +23,6 @@ from . utils.protocol_utils import Enum
 from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
@@ -123,7 +122,7 @@ class Order(Event):
     pass
 
 
-class Portfolio(SerializeableZiplineObject):
+class Portfolio(object):
 
     def __init__(self):
         self.capital_used = 0.0
@@ -159,10 +158,10 @@ class Portfolio(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Portfolio saved state is too old.")
 
-        super(Portfolio, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
-class Account(SerializeableZiplineObject):
+class Account(object):
     '''
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
@@ -211,10 +210,10 @@ class Account(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Account saved state is too old.")
 
-        super(Account, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
-class Position(SerializeableZiplineObject):
+class Position(object):
 
     def __init__(self, sid):
         self.sid = sid
@@ -245,7 +244,7 @@ class Position(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Protocol Position saved state is too old.")
 
-        super(Position, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
 class Positions(dict):

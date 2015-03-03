@@ -37,7 +37,6 @@ from . risk import (
 )
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
@@ -47,7 +46,7 @@ choose_treasury = functools.partial(risk.choose_treasury,
                                     risk.select_treasury_duration)
 
 
-class RiskMetricsPeriod(SerializeableZiplineObject):
+class RiskMetricsPeriod(object):
     def __init__(self, start_date, end_date, returns,
                  benchmark_returns=None):
 
@@ -329,6 +328,6 @@ class RiskMetricsPeriod(SerializeableZiplineObject):
             raise BaseException("RiskMetricsPeriod saved state \
                     is too old.")
 
-        super(RiskMetricsPeriod, self).__setstate__(state)
+        self.__dict__.update(state)
 
         self.treasury_curves = trading.environment.treasury_curves
