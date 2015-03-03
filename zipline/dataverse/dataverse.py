@@ -26,5 +26,3 @@ class BaseDataverse(object):
 
     def get_history_container(self, *args, **kwargs):
         return self.history_container_class(*args, **kwargs)
-
-Dataverse = BaseDataverse
