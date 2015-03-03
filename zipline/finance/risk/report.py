@@ -62,14 +62,13 @@ from dateutil.relativedelta import relativedelta
 from . period import RiskMetricsPeriod
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
 log = logbook.Logger('Risk Report')
 
 
-class RiskReport(SerializeableZiplineObject):
+class RiskReport(object):
     def __init__(self, algorithm_returns, sim_params, benchmark_returns=None):
         """
         algorithm_returns needs to be a list of daily_return objects
@@ -145,7 +144,9 @@ class RiskReport(SerializeableZiplineObject):
         return ends
 
     def __getstate__(self):
-        state_dict = super(RiskReport, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         if '_dividend_count' in dir(self):
             state_dict['_dividend_count'] = self._dividend_count
@@ -163,4 +164,4 @@ class RiskReport(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("RiskReport saved state is too old.")
 
-        super(RiskReport, self).__setstate__(state)
+        self.__dict__.update(state)

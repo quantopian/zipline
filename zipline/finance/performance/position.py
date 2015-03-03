@@ -44,14 +44,13 @@ import logbook
 import zipline.protocol as zp
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
 log = logbook.Logger('Performance')
 
 
-class Position(SerializeableZiplineObject):
+class Position(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None):
@@ -231,7 +230,7 @@ last_sale_price: {last_sale_price}"
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Position saved state is too old.")
 
-        super(Position, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
 class positiondict(dict):

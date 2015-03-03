@@ -72,14 +72,13 @@ from . period import PerformancePeriod
 
 from zipline.finance.trading import with_environment
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
 log = logbook.Logger('Performance')
 
 
-class PerformanceTracker(SerializeableZiplineObject):
+class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
@@ -490,7 +489,9 @@ class PerformanceTracker(SerializeableZiplineObject):
         return risk_dict
 
     def __getstate__(self):
-        state_dict = super(PerformanceTracker, self).__getstate__()
+        state_dict = \
+            {k: v for k, v in self.__dict__.iteritems()
+                if not k.startswith('_')}
 
         state_dict['dividend_frame'] = pickle.dumps(self.dividend_frame)
 
@@ -509,7 +510,7 @@ class PerformanceTracker(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerformanceTracker saved state is too old.")
 
-        super(PerformanceTracker, self).__setstate__(state)
+        self.__dict__.update(state)
 
         # Handle the dividend frame specially
         self.dividend_frame = pickle.loads(state['dividend_frame'])

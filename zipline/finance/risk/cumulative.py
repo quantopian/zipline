@@ -36,7 +36,6 @@ from . risk import (
 )
 
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
@@ -76,7 +75,7 @@ def information_ratio(algo_volatility, algorithm_return, benchmark_return):
         / algo_volatility)
 
 
-class RiskMetricsCumulative(SerializeableZiplineObject):
+class RiskMetricsCumulative(object):
     """
     :Usage:
         Instantiate RiskMetricsCumulative once.
@@ -479,7 +478,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             raise BaseException("RiskMetricsCumulative \
                     saved state is too old.")
 
-        super(RiskMetricsCumulative, self).__setstate__(state)
+        self.__dict__.update(state)
 
         # This are big and we don't need to serialize them
         # pop them back in now
