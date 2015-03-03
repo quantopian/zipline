@@ -59,7 +59,7 @@ setup(
         'six',
         'Cython==0.20.1'
     ],
-    extras_require = {
+    extras_require={
         'talib':  ["talib"],
     },
     url="http://zipline.io"

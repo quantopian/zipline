@@ -21,6 +21,7 @@ from unittest import TestCase
 
 from zipline.assets._securities import Security
 
+
 class SecurityTestCase(TestCase):
 
     def test_security_object(self):
