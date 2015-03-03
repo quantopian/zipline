@@ -25,7 +25,6 @@ from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.serialization_utils import (
-    SerializeableZiplineObject,
     VERSION_LABEL
 )
 
@@ -113,7 +112,7 @@ def transact_partial(slippage, commission):
     return partial(transact_stub, slippage, commission)
 
 
-class Transaction(SerializeableZiplineObject):
+class Transaction(object):
 
     def __init__(self, sid, amount, dt, price, order_id, commission=None):
         self.sid = sid
@@ -149,7 +148,7 @@ class Transaction(SerializeableZiplineObject):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Transaction saved state is too old.")
 
-        super(Transaction, self).__setstate__(state)
+        self.__dict__.update(state)
 
 
 def create_transaction(event, order, price, amount):
@@ -213,7 +212,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self.simulate(event, current_orders, **kwargs)
 
 
-class VolumeShareSlippage(SlippageModel, SerializeableZiplineObject):
+class VolumeShareSlippage(SlippageModel):
 
     def __init__(self,
                  volume_limit=.25,
@@ -289,7 +288,7 @@ class VolumeShareSlippage(SlippageModel, SerializeableZiplineObject):
         self.__dict__.update(state)
 
 
-class FixedSlippage(SlippageModel, SerializeableZiplineObject):
+class FixedSlippage(SlippageModel):
 
     def __init__(self, spread=0.0):
         """
