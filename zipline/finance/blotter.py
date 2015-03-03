@@ -251,10 +251,6 @@ class Blotter(SerializeableZiplineObject):
 
             yield txn, order
 
-    def __getinitargs__(self):
-        # Ensure that init is called on deserialization
-        return ()
-
     def __getstate__(self):
 
         state_to_save = ['new_orders', 'orders', '_status']
@@ -271,6 +267,8 @@ class Blotter(SerializeableZiplineObject):
         return state_dict
 
     def __setstate__(self, state):
+
+        self.__init__()
 
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)
