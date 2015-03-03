@@ -38,6 +38,8 @@ from math import (
     floor,
 )
 
+from copy import copy
+
 import logbook
 import zipline.protocol as zp
 
@@ -214,7 +216,7 @@ last_sale_price: {last_sale_price}"
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION

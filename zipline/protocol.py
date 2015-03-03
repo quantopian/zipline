@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import copy
+
 from six import iteritems, iterkeys
 import pandas as pd
 
@@ -142,7 +144,7 @@ class Portfolio(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -194,7 +196,7 @@ class Account(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -228,7 +230,7 @@ class Position(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION

@@ -134,7 +134,7 @@ class Transaction(SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -264,7 +264,7 @@ class VolumeShareSlippage(SlippageModel, SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -302,7 +302,7 @@ class FixedSlippage(SlippageModel, SerializeableZiplineObject):
 
     def __getstate__(self):
 
-        state_dict = self.__dict__
+        state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
