@@ -315,6 +315,9 @@ class AlgorithmSimulator(object):
         # Update our knowledge of this event's sid
         # rather than use if event.sid in ..., just trying
         # and handling the exception is significantly faster
+        if not event.__dict__:
+            return
+
         try:
             sid_data = self.current_data[event.sid]
         except KeyError:
