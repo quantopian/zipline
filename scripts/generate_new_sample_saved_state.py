@@ -75,12 +75,9 @@ argument_list = [
     (PerDollar, ()),
     (PerformancePeriod, (10000,)),
     (Position, (8554,)),
-    (PerformanceTracker, (sim_params_daily,)),
     (PerformanceTracker, (sim_params_minute,)),
-    (RiskMetricsCumulative, (sim_params_daily,)),
     (RiskMetricsCumulative, (sim_params_minute,)),
     (RiskMetricsPeriod, (returns.index[0], returns.index[0], returns)),
-    (RiskReport, (returns, sim_params_daily)),
     (RiskReport, (returns, sim_params_minute)),
     (FixedSlippage, ()),
     (Transaction, (8554, 10, datetime.datetime(2013, 6, 19), 100, "0000")),
@@ -91,7 +88,7 @@ argument_list = [
 ]
 
 
-def write_state_to_disk(cls, state):
+def write_state_to_disk(cls, state, emission_rate=None):
     state_dir = cls.__module__ + cls.__name__
 
     full_dir = base_state_dir + '/' + state_dir
@@ -99,7 +96,11 @@ def write_state_to_disk(cls, state):
     if not os.path.exists(full_dir):
         os.makedirs(full_dir)
 
-    name = 'State_Version_' + str(state['obj_state'][VERSION_LABEL])
+    if emission_rate is not None:
+        name = 'State_Version_' + emission_rate + \
+            str(state['obj_state'][VERSION_LABEL])
+    else:
+        name = 'State_Version_' + str(state['obj_state'][VERSION_LABEL])
 
     full_path = full_dir + '/' + name
 
