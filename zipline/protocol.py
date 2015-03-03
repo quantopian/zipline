@@ -15,8 +15,10 @@
 
 from six import iteritems, iterkeys
 import pandas as pd
+import numpy as np
 
 from . utils.protocol_utils import Enum
+from . utils.math_utils import nanstd, nanmean, nansum
 
 from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
@@ -270,7 +272,7 @@ class SIDData(object):
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
 
-    def _get_buffer(self, bars, field='price'):
+    def _get_buffer(self, bars, field='price', raw=False):
         """
         Gets the result of history for the given number of bars and field.
 
@@ -287,7 +289,7 @@ class SIDData(object):
             cls._history_cache = {}
 
         if field not in self._history_cache \
-           or bars > len(cls._history_cache[field].index):
+           or bars > len(cls._history_cache[field][0].index):
             # If we have never cached this field OR the amount of bars that we
             # need for this field is greater than the amount we have cached,
             # then we need to get more history.
@@ -297,12 +299,17 @@ class SIDData(object):
             # Assert that the column holds ints, not security objects.
             if not isinstance(self._sid, str):
                 hst.columns = hst.columns.astype(int)
-            self._history_cache[field] = hst
+            self._history_cache[field] = (hst, hst.values, hst.columns)
 
         # Slice of only the bars needed. This is because we strore the LARGEST
         # amount of history for the field, and we might request less than the
         # largest from the cache.
-        return cls._history_cache[field][self._sid][-bars:]
+        buffer_, values, columns = cls._history_cache[field]
+        if raw:
+            sid_index = columns.get_loc(self._sid)
+            return values[-bars:, sid_index]
+        else:
+            return buffer_[self._sid][-bars:]
 
     def _get_bars(self, days):
         """
@@ -360,17 +367,27 @@ class SIDData(object):
         return self._get_bars(days)
 
     def mavg(self, days):
-        return self._get_buffer(self._get_bars(days)).mean()
+        bars = self._get_bars(days)
+        prices = self._get_buffer(bars, raw=True)
+        return nanmean(prices)
 
     def stddev(self, days):
-        return self._get_buffer(self._get_bars(days)).std(ddof=1)
+        bars = self._get_bars(days)
+        prices = self._get_buffer(bars, raw=True)
+        return nanstd(prices, ddof=1)
 
     def vwap(self, days):
         bars = self._get_bars(days)
-        prices = self._get_buffer(bars)
-        vols = self._get_buffer(bars, field='volume')
+        prices = self._get_buffer(bars, raw=True)
+        vols = self._get_buffer(bars, field='volume', raw=True)
 
-        return (prices * vols).sum() / vols.sum()
+        vol_sum = nansum(vols)
+        try:
+            ret = nansum(prices * vols) / vol_sum
+        except ZeroDivisionError:
+            ret = np.nan
+
+        return ret
 
     def returns(self):
         algo = get_algo_instance()
