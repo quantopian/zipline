@@ -18,3 +18,17 @@ import math
 
 def tolerant_equals(a, b, atol=10e-7, rtol=10e-7):
     return math.fabs(a - b) <= (atol + rtol * math.fabs(b))
+
+
+try:
+    # fast versions
+    import bottleneck as bn
+    nanmean = bn.nanmean
+    nanstd = bn.nanstd
+    nansum = bn.nansum
+except ImportError:
+    # slower numpy
+    import numpy as np
+    nanmean = np.nanmean
+    nanstd = np.nanstd
+    nansum = np.nansum
