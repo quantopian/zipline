@@ -41,6 +41,7 @@ install:
   - grep nose-ignore-docstring== etc/requirements_dev.txt | xargs pip install
   - pip install coveralls
   - pip install nose-timer
+  - python setup.py build_ext --inplace
 before_script:
   - "flake8 zipline tests"
 script:
