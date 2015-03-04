@@ -58,13 +58,18 @@ returns = factory.create_returns_from_list(
 
 base_state_dir = 'tests/resources/saved_state_archive'
 
+BASE_STATE_DIR = os.path.join(
+    os.path.dirname(__file__),
+    'resources',
+    'saved_state_archive')
+
 
 class VersioningTestCase(TestCase):
 
     def load_state_from_disk(self, cls):
-        state_dir = cls.__module__ + cls.__name__
+        state_dir = cls.__module__ + '.' + cls.__name__
 
-        full_dir = base_state_dir + '/' + state_dir
+        full_dir = BASE_STATE_DIR + '/' + state_dir
 
         state_files = \
             [f for f in os.listdir(full_dir) if 'State_Version_' in f]
