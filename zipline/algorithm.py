@@ -439,9 +439,9 @@ class TradingAlgorithm(object):
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
             if hasattr(source, 'start'):
-                self.sim_params.period_start = source.start
+                self.sim_params.period_start = source.start.tz_convert("UTC")
             if hasattr(source, 'end'):
-                self.sim_params.period_end = source.end
+                self.sim_params.period_end = source.end.tz_convert("UTC")
             all_sids = [sid for s in self.sources for sid in s.sids]
             self.sim_params.sids = set(all_sids)
             # Changing period_start and period_close might require updating
