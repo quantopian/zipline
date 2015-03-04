@@ -1,38 +1,19 @@
-import os.path
-import pytz
-import pandas as pd
 from datetime import datetime
 from os import listdir
+import os.path
+
+import pandas as pd
+import pytz
+import zipline
+
 
 DATE_FORMAT = "%Y%m%d"
-import zipline
 zipline_dir = os.path.join(*zipline.__path__)
 SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
 
 def loopback(symbol, *args, **kwargs):
     return symbol
-
-
-class SecurityListSet(object):
-
-    def __init__(self, current_date_func, lookup_func=None):
-        if lookup_func is None:
-            self.lookup_func = loopback
-        else:
-            self.lookup_func = lookup_func
-        self.current_date_func = current_date_func
-        self._leveraged_etf = None
-
-    @property
-    def leveraged_etf_list(self):
-        if self._leveraged_etf is None:
-            self._leveraged_etf = SecurityList(
-                self.lookup_func,
-                load_from_directory('leveraged_etf_list'),
-                self.current_date_func
-            )
-        return self._leveraged_etf
 
 
 class SecurityList(object):
@@ -100,6 +81,30 @@ class SecurityList(object):
                 as_of_date=effective_date
             )
             change_func(sid)
+
+
+class SecurityListSet(object):
+    # provide a cut point to substitute other security
+    # list implementations.
+    security_list_type = SecurityList
+
+    def __init__(self, current_date_func, lookup_func=None):
+        if lookup_func is None:
+            self.lookup_func = loopback
+        else:
+            self.lookup_func = lookup_func
+        self.current_date_func = current_date_func
+        self._leveraged_etf = None
+
+    @property
+    def leveraged_etf_list(self):
+        if self._leveraged_etf is None:
+            self._leveraged_etf = self.security_list_type(
+                self.lookup_func,
+                load_from_directory('leveraged_etf_list'),
+                self.current_date_func
+            )
+        return self._leveraged_etf
 
 
 def load_from_directory(list_name):

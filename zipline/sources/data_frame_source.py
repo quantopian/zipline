@@ -73,7 +73,9 @@ class DataFrameSource(DataSource):
                         'dt': dt,
                         'sid': sid,
                         'price': price,
-                        'volume': 1000,
+                        # Just chose something large
+                        # if no volume available.
+                        'volume': 1e9,
                     }
                     yield event
 

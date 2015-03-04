@@ -23,7 +23,6 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
 
 
 log = logbook.Logger('Trading')
@@ -123,8 +122,8 @@ class TradingEnvironment(object):
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
 
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
+        self.early_closes = env_trading_calendar.get_early_closes(
+            self.first_trading_day, self.last_trading_day)
 
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
@@ -290,9 +289,9 @@ Last successful date: %s" % self.last_trading_day)
         return self.previous_open_and_close(start)[1]
 
     def get_open_and_close(self, day):
-        todays_minutes = self.open_and_closes.loc[day.date()]
-
-        return todays_minutes['market_open'], todays_minutes['market_close']
+        index = self.open_and_closes.index.get_loc(day.date())
+        todays_minutes = self.open_and_closes.values[index]
+        return todays_minutes[0], todays_minutes[1]
 
     def market_minutes_for_day(self, stamp):
         market_open, market_close = self.get_open_and_close(stamp)

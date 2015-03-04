@@ -20,7 +20,7 @@ Zipline
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
 
-__version__ = "0.7.0"
+__version__ = "0.8.0rc1"
 
 from . import data
 from . import finance
@@ -34,7 +34,7 @@ from . import api
 try:
     ip = get_ipython()  # flake8: noqa
     ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
-except:
+except NameError:
     pass
 
 __all__ = [

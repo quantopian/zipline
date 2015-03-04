@@ -69,6 +69,8 @@ import zipline.finance.risk as risk
 from zipline.finance import trading
 from . period import PerformancePeriod
 
+from zipline.finance.trading import with_environment
+
 log = logbook.Logger('Performance')
 
 
@@ -77,7 +79,8 @@ class PerformanceTracker(object):
     Tracks the performance of the algorithm.
     """
 
-    def __init__(self, sim_params):
+    @with_environment()
+    def __init__(self, sim_params, env=None):
 
         self.sim_params = sim_params
 
@@ -110,9 +113,12 @@ class PerformanceTracker(object):
                 risk.RiskMetricsCumulative(self.sim_params)
 
         elif self.emission_rate == 'minute':
-            self.all_benchmark_returns = pd.Series(index=pd.date_range(
-                self.sim_params.first_open, self.sim_params.last_close,
-                freq='Min'))
+            self.all_benchmark_returns = pd.Series(
+                index=env.minutes_for_days_in_range(
+                    self.sim_params.first_open,
+                    self.sim_params.last_close
+                )
+            )
             self.intraday_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params)
 
@@ -312,6 +318,11 @@ class PerformanceTracker(object):
             else:
                 midnight = event.dt
 
+            if midnight not in self.all_benchmark_returns.index:
+                raise AssertionError(("Date %s not allocated in  "
+                                      "all_benchmark_returns. Calendar "
+                                      "seems to mismatch with benchmark."
+                                      % midnight))
             self.all_benchmark_returns[midnight] = event.returns
 
     def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
