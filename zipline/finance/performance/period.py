@@ -592,6 +592,8 @@ class PerformancePeriod(object):
         # nastiness.
         state_dict['processed_transactions'] = \
             dict(self.processed_transactions)
+        state_dict['orders_by_id'] = \
+            dict(self.orders_by_id)
         state_dict['orders_by_modified'] = \
             dict(self.orders_by_modified)
         state_dict['positions'] = \
@@ -615,6 +617,9 @@ class PerformancePeriod(object):
         processed_transactions = defaultdict(list)
         processed_transactions.update(state.pop('processed_transactions'))
 
+        orders_by_id = OrderedDict()
+        orders_by_id.update(state.pop('orders_by_id'))
+
         orders_by_modified = defaultdict(OrderedDict)
         orders_by_modified.update(state.pop('orders_by_modified'))
 
@@ -625,6 +630,7 @@ class PerformancePeriod(object):
         _positions_store.update(state.pop('_positions_store'))
 
         self.processed_transactions = processed_transactions
+        self.orders_by_id = orders_by_id
         self.orders_by_modified = orders_by_modified
         self.positions = positions
         self._positions_store = _positions_store
