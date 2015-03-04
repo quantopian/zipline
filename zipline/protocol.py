@@ -147,6 +147,9 @@ class Portfolio(object):
 
         state_dict = copy(self.__dict__)
 
+        # Have to convert to primitive dict
+        state_dict['positions'] = dict(self.positions)
+
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
 
@@ -159,6 +162,9 @@ class Portfolio(object):
 
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("Portfolio saved state is too old.")
+
+        self.positions = Positions()
+        self.positions.update(state.pop('positions'))
 
         self.__dict__.update(state)
 
