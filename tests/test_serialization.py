@@ -41,6 +41,8 @@ from zipline.finance.trading import SimulationParameters
 
 from zipline.utils import factory
 
+from six import iteritems
+
 sim_params_daily = SimulationParameters(
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
@@ -55,9 +57,32 @@ returns = factory.create_returns_from_list(
     [1.0], sim_params_daily)
 
 
-class SerializationTestCase(TestCase):
+def gather_bad_dicts(state):
+    bad = []
+    for k, v in iteritems(state):
+        if not isinstance(v, dict):
+            continue
+        if type(v) != dict:
+            bad.append((k, v))
+        bad.extend(gather_bad_dicts(v))
+    return bad
 
-    @parameterized.expand([
+
+def stringify_cases(cases, func=None):
+    # get better test case names
+    results = []
+    if func is None:
+        func = lambda case: case[0].__name__
+    for case in cases:
+        new_case = list(case)
+        key = func(case)
+        new_case.insert(0, key)
+        results.append(new_case)
+    return results
+
+
+class SerializationTestCase(TestCase):
+    object_serialization_cases = stringify_cases([
         (Blotter, (), 'repr'),
         (Order, (datetime.datetime(2013, 6, 19), 8554, 100), 'dict'),
         (PerShare, (), 'dict'),
@@ -80,14 +105,24 @@ class SerializationTestCase(TestCase):
         (Account, (), 'dict'),
         (Portfolio, (), 'dict'),
         (ProtocolPosition, (8554,), 'dict')
-    ])
+        ])
+
+    @parameterized.expand(object_serialization_cases)
     def test_object_serialization(self,
+                                  _,
                                   cls,
                                   initargs,
                                   comparison_method='dict'):
 
         obj = cls(*initargs)
         state = obj.__getstate__()
+        bad_dicts = gather_bad_dicts(state)
+        bad_template = "type({0}) == {1}".format
+        bad_msgs = [bad_template(k, type(v)) for k, v in bad_dicts]
+        msg = "Only support bare dicts. " + ', '.join(bad_msgs)
+        self.assertEqual(len(bad_dicts), 0, msg)
+        # no state should have a dict subclass. Only regular PyDict
+
         if hasattr(obj, '__getinitargs__'):
             initargs = obj.__getinitargs__()
         else:
