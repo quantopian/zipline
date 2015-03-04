@@ -89,7 +89,7 @@ argument_list = [
 
 
 def write_state_to_disk(cls, state, emission_rate=None):
-    state_dir = cls.__module__ + cls.__name__
+    state_dir = cls.__module__ + '.' + cls.__name__
 
     full_dir = base_state_dir + '/' + state_dir
 
