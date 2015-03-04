@@ -23,7 +23,6 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
 
 
 log = logbook.Logger('Trading')
