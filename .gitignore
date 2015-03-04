@@ -58,6 +58,3 @@ benchmarks.db
 
 # Vagrant temp folder
 .vagrant
-
-#Ta-lib folder
-ta-lib/*
