@@ -123,7 +123,7 @@ class TradingEnvironment(object):
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
 
-        self.early_closes = get_early_closes(self.first_trading_day,
+        self.early_closes = env_trading_calendar.get_early_closes(self.first_trading_day,
                                              self.last_trading_day)
 
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
