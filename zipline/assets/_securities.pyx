@@ -99,7 +99,7 @@ cdef class Security:
             retvals = [True, True, False, True, False, False]
             return retvals[op]
 
-        compared = cmp(self.sid, other_as_int)
+        compared = self.sid - other_as_int
 
         # Handle == and != first because they're significantly more common
         # operations.
@@ -111,16 +111,16 @@ cdef class Security:
             return compared != 0
         elif op == 0:
             # <
-            return compared == -1
+            return compared < 0
         elif op == 1:
             # <=
-            return compared == -1 or compared == 0
+            return compared <= 0
         elif op == 4:
             # >
-            return compared == 1
+            return compared > 0
         elif op == 5:
             # >=
-            return compared == 1 or compared == 0
+            return compared >= 0
 
     def __str__(self):
         if self.symbol:
