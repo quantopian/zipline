@@ -60,6 +60,7 @@ Performance Tracking
 from __future__ import division
 import logbook
 import pickle
+from six import iteritems
 
 import numpy as np
 import pandas as pd
@@ -490,7 +491,7 @@ class PerformanceTracker(object):
 
     def __getstate__(self):
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         state_dict['dividend_frame'] = pickle.dumps(self.dividend_frame)

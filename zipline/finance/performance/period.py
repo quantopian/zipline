@@ -581,7 +581,7 @@ class PerformancePeriod(object):
 
     def __getstate__(self):
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         state_dict['_portfolio_store'] = self._portfolio_store

@@ -461,7 +461,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
     def __getstate__(self):
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems() if
+            {k: v for k, v in iteritems(self.__dict__) if
                 (not k.startswith('_') and not k == 'treasury_curves')}
 
         STATE_VERSION = 1
