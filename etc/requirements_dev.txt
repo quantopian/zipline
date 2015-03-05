@@ -7,9 +7,9 @@ mock==1.0.1
 
 # Linting
 
-flake8==2.1.0
-mccabe==0.2.1
-pep8==1.5.7
+flake8==2.3.0
+mccabe==0.3
+pep8==1.6.2
 pyflakes==0.8.1
 
 # Documentation Conversion

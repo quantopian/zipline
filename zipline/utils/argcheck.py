@@ -79,10 +79,10 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
 
     def _defaults_match(self, arg):
         return any(map(Argument.ignore_default, [self, arg])) \
-            or (self.default is Argument.any_default
-                and arg.default is not Argument.no_default) \
-            or (arg.default is Argument.any_default
-                and self.default is not Argument.no_default) \
+            or (self.default is Argument.any_default and
+                arg.default is not Argument.no_default) \
+            or (arg.default is Argument.any_default and
+                self.default is not Argument.no_default) \
             or self.default == arg.default
 
     def _names_match(self, arg):

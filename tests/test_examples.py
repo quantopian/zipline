@@ -19,7 +19,6 @@
 # Disable plotting
 #
 import matplotlib
-matplotlib.use('Agg')
 
 import os
 from os import path
@@ -32,6 +31,8 @@ except ImportError:
 
 import fnmatch
 import imp
+
+matplotlib.use('Agg')
 
 
 def test_examples():

@@ -179,9 +179,9 @@ class HistoryContainerDelta(HistoryContainerDeltaSuper):
         """
         Checks if the delta is empty.
         """
-        return (self.field is None
-                and self.frequency_delta is None
-                and self.length_delta is None)
+        return (self.field is None and
+                self.frequency_delta is None and
+                self.length_delta is None)
 
 
 def normalize_to_data_freq(data_frequency, dt):

@@ -62,17 +62,15 @@ def information_ratio(algo_volatility, algorithm_return, benchmark_return):
     if zp_math.tolerant_equals(algo_volatility, 0):
         return np.nan
 
-    return (
-        (algorithm_return - benchmark_return)
-        # The square of the annualization factor is in the volatility,
-        # because the volatility is also annualized,
-        # i.e. the sqrt(annual factor) is in the volatility's numerator.
-        # So to have the the correct annualization factor for the
-        # Sharpe value's numerator, which should be the sqrt(annual factor).
-        # The square of the sqrt of the annual factor, i.e. the annual factor
-        # itself, is needed in the numerator to factor out the division by
-        # its square root.
-        / algo_volatility)
+    # The square of the annualization factor is in the volatility,
+    # because the volatility is also annualized,
+    # i.e. the sqrt(annual factor) is in the volatility's numerator.
+    # So to have the the correct annualization factor for the
+    # Sharpe value's numerator, which should be the sqrt(annual factor).
+    # The square of the sqrt of the annual factor, i.e. the annual factor
+    # itself, is needed in the numerator to factor out the division by
+    # its square root.
+    return (algorithm_return - benchmark_return) / algo_volatility
 
 
 class RiskMetricsCumulative(object):
@@ -297,8 +295,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.daily_treasury[treasury_end] = treasury_period_return
         self.treasury_period_return = self.daily_treasury[treasury_end]
         self.excess_returns[self.latest_dt] = (
-            self.algorithm_cumulative_returns[self.latest_dt]
-            -
+            self.algorithm_cumulative_returns[self.latest_dt] -
             self.treasury_period_return)
         self.metrics.beta[dt] = self.calculate_beta()
         self.metrics.alpha[dt] = self.calculate_alpha()
@@ -376,8 +373,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # exceed the previous max_drawdown iff the current return is lower than
         # the previous low in the current drawdown window.
         cur_drawdown = 1.0 - (
-            (1.0 + self.algorithm_cumulative_returns[self.latest_dt])
-            /
+            (1.0 + self.algorithm_cumulative_returns[self.latest_dt]) /
             (1.0 + self.current_max))
 
         self.drawdowns[self.latest_dt] = cur_drawdown
