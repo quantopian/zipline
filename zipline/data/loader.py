@@ -180,7 +180,10 @@ Fetching data from Yahoo Finance.
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(days_up_to_now) - last_bm_date_offset > 1:
+    # We're doing "> 2" rather than "> 1" because we're subtracting an array
+    # _length_ from an array _index_, and therefore even if we had data up to
+    # and including the current day, the difference would still be 1.
+    if len(days_up_to_now) - last_bm_date_offset > 2:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
         if (
             benchmark_returns.index.tz is None
@@ -221,7 +224,8 @@ Fetching data from {0}
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(days_up_to_now) - last_tr_date_offset > 1:
+    # Comment above explains why this is "> 2".
+    if len(days_up_to_now) - last_tr_date_offset > 2:
         treasury_curves = dump_treasury_curves(module, filename)
     else:
         treasury_curves = saved_curves.tz_localize('UTC')
