@@ -58,6 +58,7 @@ Risk Report
 import logbook
 import datetime
 from dateutil.relativedelta import relativedelta
+from six import iteritems
 
 from . period import RiskMetricsPeriod
 
@@ -145,7 +146,7 @@ class RiskReport(object):
 
     def __getstate__(self):
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         if '_dividend_count' in dir(self):

@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from six import iteritems
+
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -57,7 +59,7 @@ class PerShare(object):
     def __getstate__(self):
 
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         STATE_VERSION = 1
@@ -105,7 +107,7 @@ class PerTrade(object):
     def __getstate__(self):
 
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         STATE_VERSION = 1
@@ -153,7 +155,7 @@ class PerDollar(object):
     def __getstate__(self):
 
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         STATE_VERSION = 1

@@ -19,7 +19,7 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
-from six import text_type
+from six import text_type, iteritems
 from six.moves import filter
 
 import zipline.errors
@@ -423,7 +423,7 @@ class Order(object):
     def __getstate__(self):
 
         state_dict = \
-            {k: v for k, v in self.__dict__.iteritems()
+            {k: v for k, v in iteritems(self.__dict__)
                 if not k.startswith('_')}
 
         state_dict['_status'] = self._status
