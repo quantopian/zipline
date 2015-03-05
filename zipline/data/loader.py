@@ -31,11 +31,10 @@ from six import iteritems
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.finance.trading import environment
-
-trading_day=environment.trading_day
-trading_days=environment.trading_days
-
+from zipline.utils.tradingcalendar import (
+        trading_day,
+        trading_days
+)
 
 logger = logbook.Logger('Loader')
 
