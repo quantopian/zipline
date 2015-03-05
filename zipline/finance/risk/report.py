@@ -58,8 +58,13 @@ Risk Report
 import logbook
 import datetime
 from dateutil.relativedelta import relativedelta
+from six import iteritems
 
 from . period import RiskMetricsPeriod
+
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Risk Report')
 
@@ -138,3 +143,26 @@ class RiskReport(object):
             cur_start = cur_start + relativedelta(months=1)
 
         return ends
+
+    def __getstate__(self):
+        state_dict = \
+            {k: v for k, v in iteritems(self.__dict__)
+                if not k.startswith('_')}
+
+        if '_dividend_count' in dir(self):
+            state_dict['_dividend_count'] = self._dividend_count
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("RiskReport saved state is too old.")
+
+        self.__dict__.update(state)

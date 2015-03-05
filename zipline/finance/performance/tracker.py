@@ -59,6 +59,8 @@ Performance Tracking
 
 from __future__ import division
 import logbook
+import pickle
+from six import iteritems
 
 import numpy as np
 import pandas as pd
@@ -70,6 +72,9 @@ from zipline.finance import trading
 from . period import PerformancePeriod
 
 from zipline.finance.trading import with_environment
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Performance')
 
@@ -483,3 +488,38 @@ class PerformanceTracker(object):
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict
+
+    def __getstate__(self):
+        state_dict = \
+            {k: v for k, v in iteritems(self.__dict__)
+                if not k.startswith('_')}
+
+        state_dict['dividend_frame'] = pickle.dumps(self.dividend_frame)
+
+        state_dict['_dividend_count'] = self._dividend_count
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("PerformanceTracker saved state is too old.")
+
+        self.__dict__.update(state)
+
+        # Handle the dividend frame specially
+        self.dividend_frame = pickle.loads(state['dividend_frame'])
+
+        # We have to restore the references to the objects,
+        # as the perf periods have been reconstructed as different objects
+        # with the same values.
+        self.perf_periods[0] = self.cumulative_performance
+        self.perf_periods[1] = self.todays_performance
+        if self.sim_params.emission_rate == 'minute':
+            self.perf_periods[2] = self.minute_performance

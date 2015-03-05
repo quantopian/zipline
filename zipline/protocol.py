@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import copy
+
 from six import iteritems, iterkeys
 import pandas as pd
 import numpy as np
@@ -22,6 +24,9 @@ from . utils.math_utils import nanstd, nanmean, nansum
 
 from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -138,6 +143,31 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        # Have to convert to primitive dict
+        state_dict['positions'] = dict(self.positions)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Portfolio saved state is too old.")
+
+        self.positions = Positions()
+        self.positions.update(state.pop('positions'))
+
+        self.__dict__.update(state)
+
 
 class Account(object):
     '''
@@ -171,11 +201,24 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def _get_state(self):
-        return 'Account', self.__dict__
+    def __getstate__(self):
 
-    def _set_state(self, saved_state):
-        self.__dict__.update(saved_state)
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Account saved state is too old.")
+
+        self.__dict__.update(state)
 
 
 class Position(object):
@@ -191,6 +234,25 @@ class Position(object):
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
+
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Protocol Position saved state is too old.")
+
+        self.__dict__.update(state)
 
 
 class Positions(dict):

@@ -92,6 +92,10 @@ from six import iteritems, itervalues
 import zipline.protocol as zp
 from . position import positiondict
 
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
+
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
@@ -574,3 +578,63 @@ class PerformancePeriod(object):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
+
+    def __getstate__(self):
+        state_dict = \
+            {k: v for k, v in iteritems(self.__dict__)
+                if not k.startswith('_')}
+
+        state_dict['_portfolio_store'] = self._portfolio_store
+        state_dict['_account_store'] = self._account_store
+
+        # We need to handle the defaultdict specially, otherwise
+        # msgpack will unpack it as a dict, causing KeyError
+        # nastiness.
+        state_dict['processed_transactions'] = \
+            dict(self.processed_transactions)
+        state_dict['orders_by_id'] = \
+            dict(self.orders_by_id)
+        state_dict['orders_by_modified'] = \
+            dict(self.orders_by_modified)
+        state_dict['positions'] = \
+            dict(self.positions)
+        state_dict['_positions_store'] = \
+            dict(self._positions_store)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("PerformancePeriod saved state is too old.")
+
+        processed_transactions = defaultdict(list)
+        processed_transactions.update(state.pop('processed_transactions'))
+
+        orders_by_id = OrderedDict()
+        orders_by_id.update(state.pop('orders_by_id'))
+
+        orders_by_modified = defaultdict(OrderedDict)
+        orders_by_modified.update(state.pop('orders_by_modified'))
+
+        positions = positiondict()
+        positions.update(state.pop('positions'))
+
+        _positions_store = zp.Positions()
+        _positions_store.update(state.pop('_positions_store'))
+
+        self.processed_transactions = processed_transactions
+        self.orders_by_id = orders_by_id
+        self.orders_by_modified = orders_by_modified
+        self.positions = positions
+        self._positions_store = _positions_store
+
+        self.__dict__.update(state)
+
+        self.initialize_position_calc_arrays()

@@ -24,6 +24,9 @@ from functools import partial
 from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -127,6 +130,25 @@ class Transaction(object):
         py = copy(self.__dict__)
         del py['type']
         return py
+
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Transaction saved state is too old.")
+
+        self.__dict__.update(state)
 
 
 def create_transaction(event, order, price, amount):
@@ -246,6 +268,25 @@ class VolumeShareSlippage(SlippageModel):
             math.copysign(cur_volume, order.direction)
         )
 
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("VolumeShareSlippage saved state is too old.")
+
+        self.__dict__.update(state)
+
 
 class FixedSlippage(SlippageModel):
 
@@ -264,3 +305,22 @@ class FixedSlippage(SlippageModel):
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
+
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("FixedSlippage saved state is too old.")
+
+        self.__dict__.update(state)

@@ -19,7 +19,7 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
-from six import text_type
+from six import text_type, iteritems
 from six.moves import filter
 
 import zipline.errors
@@ -35,6 +35,9 @@ from zipline.finance.commission import PerShare
 log = Logger('Blotter')
 
 from zipline.utils.protocol_utils import Enum
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -247,6 +250,37 @@ class Blotter(object):
 
             yield txn, order
 
+    def __getstate__(self):
+
+        state_to_save = ['new_orders', 'orders', '_status']
+
+        state_dict = {k: self.__dict__[k] for k in state_to_save
+                      if k in self.__dict__}
+
+        # Have to handle defaultdicts specially
+        state_dict['open_orders'] = dict(self.open_orders)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        self.__init__()
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Blotter saved is state too old.")
+
+        open_orders = defaultdict(list)
+        open_orders.update(state.pop('open_orders'))
+        self.open_orders = open_orders
+
+        self.__dict__.update(state)
+
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
@@ -385,3 +419,26 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
+
+    def __getstate__(self):
+
+        state_dict = \
+            {k: v for k, v in iteritems(self.__dict__)
+                if not k.startswith('_')}
+
+        state_dict['_status'] = self._status
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Order saved state is too old.")
+
+        self.__dict__.update(state)

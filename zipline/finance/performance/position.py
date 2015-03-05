@@ -38,8 +38,14 @@ from math import (
     floor,
 )
 
+from copy import copy
+
 import logbook
 import zipline.protocol as zp
+
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 log = logbook.Logger('Performance')
 
@@ -206,6 +212,25 @@ last_sale_price: {last_sale_price}"
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price
         }
+
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Position saved state is too old.")
+
+        self.__dict__.update(state)
 
 
 class positiondict(dict):
