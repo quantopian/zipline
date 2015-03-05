@@ -325,11 +325,13 @@ class TradingAlgorithm(object):
 
         if self.benchmark_return_source is None:
             env = trading.environment
-            if (sim_params.data_frequency == 'minute'
-                    or sim_params.emission_rate == 'minute'):
-                update_time = lambda date: env.get_open_and_close(date)[1]
+            if sim_params.data_frequency == 'minute' or \
+               sim_params.emission_rate == 'minute':
+                def update_time(date):
+                    return env.get_open_and_close(date)[1]
             else:
-                update_time = lambda date: date
+                def update_time(date):
+                    return date
             benchmark_return_source = [
                 Event({'dt': update_time(dt),
                        'returns': ret,
@@ -337,8 +339,8 @@ class TradingAlgorithm(object):
                        'source_id': 'benchmarks'})
                 for dt, ret in
                 trading.environment.benchmark_returns.iteritems()
-                if dt.date() >= sim_params.period_start.date()
-                and dt.date() <= sim_params.period_end.date()
+                if dt.date() >= sim_params.period_start.date() and
+                dt.date() <= sim_params.period_end.date()
             ]
         else:
             benchmark_return_source = self.benchmark_return_source

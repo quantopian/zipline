@@ -259,8 +259,8 @@ class ComposedRule(StatelessRule):
     expected.
     """
     def __init__(self, first, second, composer):
-        if not (isinstance(first, StatelessRule)
-                and isinstance(second, StatelessRule)):
+        if not (isinstance(first, StatelessRule) and
+                isinstance(second, StatelessRule)):
             raise ValueError('Only two StatelessRules can be composed')
 
         self.first = first
