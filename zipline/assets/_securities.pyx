@@ -120,7 +120,7 @@ cdef class Security:
             return compared == 1
         elif op == 5:
             # >=
-            return compared == -1 or compared == 0
+            return compared == 1 or compared == 0
 
     def __str__(self):
         if self.symbol:
