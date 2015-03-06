@@ -180,22 +180,17 @@ Fetching data from Yahoo Finance.
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(days_up_to_now) - last_bm_date_offset > 1:
+    if len(days_up_to_now) - 1 - last_bm_date_offset > 1:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
-        if (
-            benchmark_returns.index.tz is None
-            or
-            benchmark_returns.index.tz.zone != 'UTC'
-        ):
-            benchmark_returns = benchmark_returns.tz_localize('UTC')
     else:
         benchmark_returns = saved_benchmarks
-        if (
-            benchmark_returns.index.tz is None
-            or
-            benchmark_returns.index.tz.zone != 'UTC'
-        ):
-            benchmark_returns = benchmark_returns.tz_localize('UTC')
+
+    if (
+        benchmark_returns.index.tz is None
+        or
+        benchmark_returns.index.tz.zone != 'UTC'
+    ):
+        benchmark_returns = benchmark_returns.tz_localize('UTC')
 
     # Get treasury curve module, filename & source from mapping.
     # Default to USA.
@@ -221,7 +216,7 @@ Fetching data from {0}
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
-    if len(days_up_to_now) - last_tr_date_offset > 1:
+    if len(days_up_to_now) - 1 - last_tr_date_offset > 1:
         treasury_curves = dump_treasury_curves(module, filename)
     else:
         treasury_curves = saved_curves.tz_localize('UTC')
