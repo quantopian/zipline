@@ -11,6 +11,7 @@ requirements:
   build:
     - python
     - setuptools
+    - cython
   run:
     - python
     - pytz
