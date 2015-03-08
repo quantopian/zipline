@@ -16,9 +16,11 @@
 from . tracker import PerformanceTracker
 from . period import PerformancePeriod
 from . position import Position
+from . position_tracker import PositionTracker
 
 __all__ = [
     'PerformanceTracker',
     'PerformancePeriod',
     'Position',
+    'PositionTracker',
 ]

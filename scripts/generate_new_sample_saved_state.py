@@ -25,6 +25,7 @@ from zipline.finance.blotter import Blotter, Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.performance.period import PerformancePeriod
 from zipline.finance.performance.position import Position
+from zipline.finance.performance.position_tracker import PositionTracker
 from zipline.finance.performance.tracker import PerformanceTracker
 from zipline.finance.risk.cumulative import RiskMetricsCumulative
 from zipline.finance.risk.period import RiskMetricsPeriod
@@ -75,6 +76,7 @@ argument_list = [
     (PerDollar, ()),
     (PerformancePeriod, (10000,)),
     (Position, (8554,)),
+    (PositionTracker, ()),
     (PerformanceTracker, (sim_params_minute,)),
     (RiskMetricsCumulative, (sim_params_minute,)),
     (RiskMetricsPeriod, (returns.index[0], returns.index[0], returns)),
