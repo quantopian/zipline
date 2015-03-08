@@ -21,7 +21,6 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-
 cdef class Security:
 
     cdef readonly int sid
@@ -99,28 +98,26 @@ cdef class Security:
             retvals = [True, True, False, True, False, False]
             return retvals[op]
 
-        compared = cmp(self.sid, other_as_int)
-
         # Handle == and != first because they're significantly more common
         # operations.
         if op == 2:
             # Equality
-            return compared == 0
+            return self.sid == other_as_int
         elif op == 3:
             # Non-equality
-            return compared != 0
+            return self.sid != other_as_int
         elif op == 0:
             # <
-            return compared == -1
+            return self.sid < other_as_int
         elif op == 1:
             # <=
-            return compared == -1 or compared == 0
+            return self.sid <= other_as_int
         elif op == 4:
             # >
-            return compared == 1
+            return self.sid > other_as_int
         elif op == 5:
             # >=
-            return compared == -1 or compared == 0
+            return self.sid >= other_as_int
 
     def __str__(self):
         if self.symbol:
