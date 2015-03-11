@@ -1,5 +1,12 @@
+import warnings
+
+import pandas as pd
 import zipline.protocol as zp
 from zipline.history.history_container import HistoryContainer
+from zipline.sources.data_frame_source import (
+    DataFrameSource,
+    DataPanelSource
+)
 
 
 class BaseDataverse(object):
@@ -26,3 +33,17 @@ class BaseDataverse(object):
 
     def get_history_container(self, *args, **kwargs):
         return self.history_container_class(*args, **kwargs)
+
+    def get_source(self, source, overwrite_sim_params=True):
+        if isinstance(source, list):
+            if overwrite_sim_params:
+                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
+ dates. Make sure to set the correct fields in sim_params passed to
+ __init__().""", UserWarning)
+                overwrite_sim_params = False
+        elif isinstance(source, pd.DataFrame):
+            # if DataFrame provided, wrap in DataFrameSource
+            source = DataFrameSource(source)
+        elif isinstance(source, pd.Panel):
+            source = DataPanelSource(source)
+        return source

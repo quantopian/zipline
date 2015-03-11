@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-import warnings
 
 import pytz
 import pandas as pd
@@ -67,7 +66,6 @@ from zipline.gens.composites import (
     sequential_transforms,
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.transforms.utils import StatefulTransform
 from zipline.utils.api_support import ZiplineAPI, api_method
 import zipline.utils.events
@@ -423,17 +421,7 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if isinstance(source, list):
-            if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
-                overwrite_sim_params = False
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, wrap in DataFrameSource
-            source = DataFrameSource(source)
-        elif isinstance(source, pd.Panel):
-            source = DataPanelSource(source)
+        source = self.get_source(source, overwrite_sim_params)
 
         if isinstance(source, list):
             self.set_sources(source)

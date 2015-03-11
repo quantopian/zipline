@@ -6,10 +6,12 @@ from zipline.history.history_container import HistoryContainer
 class BacktestHistoryContainer(HistoryContainer):
     def get_history(self, history_spec, algo_dt):
         return super(BacktestHistoryContainer, self).get_history(history_spec,
-                                                           algo_dt)
+                                                                 algo_dt)
+
 
 class BacktestDataverse(BaseDataverse):
     history_container_class = BacktestHistoryContainer
+
 
 class SIDData(object):
     def __init__(self, sid, dataverse=None, initial_values=None):
