@@ -421,7 +421,7 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        source = self.get_source(source, overwrite_sim_params)
+        source = self.dataverse.get_source(source, overwrite_sim_params)
 
         if isinstance(source, list):
             self.set_sources(source)
