@@ -78,7 +78,7 @@ cdef class Security:
         def __get__(self):
             return self.end_date
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(x, y, int op):
         """
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
@@ -90,16 +90,23 @@ cdef class Security:
         >	4
         >=	5
         """
-        cdef int other_as_int
-        if isinstance(other, Security):
-            other_as_int = other.sid
-        elif isinstance(other, int):
-            other_as_int = other
-        else:
-            retvals = [True, True, False, True, False, False]
-            return retvals[op]
+        cdef int x_as_int, y_as_int
 
-        compared = self.sid - other_as_int
+        if isinstance(x, Security):
+            x_as_int = x.sid
+        elif isinstance(x, int):
+            x_as_int = x
+        else:
+            return NotImplemented
+
+        if isinstance(y, Security):
+            y_as_int = y.sid
+        elif isinstance(y, int):
+            y_as_int = y
+        else:
+            return NotImplemented
+
+        compared = x_as_int - y_as_int
 
         # Handle == and != first because they're significantly more common
         # operations.

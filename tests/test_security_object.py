@@ -27,3 +27,7 @@ class TestSecurityRichCmp(TestCase):
         self.assertFalse(Security(3) > Security(4))
         self.assertFalse(Security(4) > Security(4))
         self.assertTrue(Security(5) > Security(4))
+
+    def test_type_mismatch(self):
+        self.assertIsNotNone(Security(3) < 'a')
+        self.assertIsNotNone('a' < Security(3))
