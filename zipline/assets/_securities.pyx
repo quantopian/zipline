@@ -97,14 +97,14 @@ cdef class Security:
         elif isinstance(x, int):
             x_as_int = x
         else:
-            return NotImplemented
+            return False
 
         if isinstance(y, Security):
             y_as_int = y.sid
         elif isinstance(y, int):
             y_as_int = y
         else:
-            return NotImplemented
+            return False
 
         compared = x_as_int - y_as_int
 
