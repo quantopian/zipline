@@ -114,39 +114,52 @@ class DataPanelSource(DataSource):
 
         self._raw_data = None
 
+    _mapping = None
+
     @property
     def mapping(self):
-        mapping = {
-            'dt': (lambda x: x, 'dt'),
-            'sid': (lambda x: x, 'sid'),
-            'price': (float, 'price'),
-            'volume': (int, 'volume'),
-        }
+        # cache the mapping
+        if self._mapping is None:
+            mapping = {
+                'price': (float, 'price'),
+                'volume': (int, 'volume'),
+            }
+            self._mapping = mapping
 
-        # Add additional fields.
-        for field_name in self.data.minor_axis:
-            if field_name in ['price', 'volume', 'dt', 'sid']:
-                continue
-            mapping[field_name] = (lambda x: x, field_name)
+        return self._mapping
 
-        return mapping
+    def apply_mapping(self, raw_row):
+        """
+        Override this to hand craft conversion of row.
+        """
+        row = raw_row.copy()
+        for target, (mapping_func, source_key) in self.mapping.items():
+            row[target] = mapping_func(raw_row[source_key])
+
+        row['source_id'] = self.get_hash()
+        row['type'] = self.event_type
+        return row
 
     @property
     def instance_hash(self):
         return self.arg_string
 
     def raw_data_gen(self):
-        for dt in self.data.major_axis:
-            df = self.data.major_xs(dt)
-            for sid, series in df.iteritems():
+        values = self.data.values
+        major_axis = self.data.major_axis
+        minor_axis = self.data.minor_axis
+        items = self.data.items
+
+        for i, dt in enumerate(major_axis):
+            df = values[:, i, :]
+            for k, sid in enumerate(items):
                 if sid in self.sids:
                     event = {
                         'dt': dt,
-                        'sid': sid,
+                        'sid': sid
                     }
-                    for field_name, value in series.iteritems():
-                        event[field_name] = value
-
+                    series = df[k]
+                    event.update(dict(zip(minor_axis, series)))
                     yield event
 
     @property
