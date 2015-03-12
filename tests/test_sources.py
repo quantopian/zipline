@@ -16,6 +16,7 @@ import pandas as pd
 import pytz
 from itertools import cycle
 import numpy as np
+from math import isnan
 
 from six import integer_types
 
@@ -101,6 +102,8 @@ class TestRandomWalkSource(TestCase):
             self.assertLess(event.dt, end)
             self.assertGreater(event.price, 0,
                                "price should never go negative.")
+            self.assertTrue(isnan(event.price),"price at %s is NaN."
+                            % event.dt)
             self.assertTrue(13 <= event.dt.hour <= 21,
                             "event.dt.hour == %i, not during market \
                             hours." % event.dt.hour)
@@ -125,4 +128,7 @@ class TestRandomWalkSource(TestCase):
             self.assertLess(event.dt, end)
             self.assertGreater(event.price, 0,
                                "price should never go negative.")
+            self.assertTrue(isnan(event.price),"price at %s is NaN."
+                            % event.dt)
             self.assertEqual(event.dt.hour, 0)
+
