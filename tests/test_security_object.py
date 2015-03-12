@@ -1,3 +1,4 @@
+import sys
 from unittest import TestCase
 from zipline.assets._securities import Security
 
@@ -29,5 +30,11 @@ class TestSecurityRichCmp(TestCase):
         self.assertTrue(Security(5) > Security(4))
 
     def test_type_mismatch(self):
-        self.assertIsNotNone(Security(3) < 'a')
-        self.assertIsNotNone('a' < Security(3))
+        if sys.version_info.major < 3:
+            self.assertIsNotNone(Security(3) < 'a')
+            self.assertIsNotNone('a' < Security(3))
+        else:
+            with self.assertRaises(TypeError):
+                Security(3) < 'a'
+            with self.assertRaises(TypeError):
+                'a' < Security(3)
