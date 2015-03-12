@@ -22,6 +22,7 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
+from qcommons.date_utils import utcnow
 
 log = Logger('Trade Simulation')
 
@@ -52,6 +53,7 @@ class AlgorithmSimulator(object):
         # Algo Setup
         # ==============
         self.algo = algo
+        self.algo.call_handle_data_duration = []
         self.algo_start = normalize_date(self.sim_params.first_open)
 
         # ==============
@@ -266,11 +268,14 @@ class AlgorithmSimulator(object):
         Call the user's handle_data, returning any orders placed by the algo
         during the call.
         """
+        time_start = utcnow()
         self.algo.event_manager.handle_data(
             self.algo,
             self.current_data,
             self.simulation_dt,
         )
+        time_end = utcnow()
+        self.algo.call_handle_data_duration.append((time_end-time_start).total_seconds()*1000)
         orders = self.algo.blotter.new_orders
         self.algo.blotter.new_orders = []
         return orders
