@@ -7,4 +7,5 @@ Dataverse = BacktestDataverse
 
 __all__ = [
     'Dataverse',
+    'BaseDataverse',
 ]
