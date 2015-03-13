@@ -124,8 +124,7 @@ class AlgorithmSimulator(object):
                 else:
                     message = self._process_snapshot(
                         date,
-                        snapshot,
-                        self.algo.instant_fill,
+                        snapshot
                     )
                     # Perf messages are only emitted if the snapshot contained
                     # a benchmark event.
@@ -182,21 +181,10 @@ class AlgorithmSimulator(object):
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
 
-    def _process_snapshot(self, dt, snapshot, instant_fill):
+    def _process_snapshot(self, dt, snapshot):
         """
         Process a stream of events corresponding to a single datetime, possibly
         returning a perf message to be yielded.
-
-        If @instant_fill = True, we delay processing of events until after the
-        user's call to handle_data, and we process the user's placed orders
-        before the snapshot's events.  Note that this introduces a lookahead
-        bias, since the user effectively is effectively placing orders that are
-        filled based on trades that happened prior to the call the handle_data.
-
-        If @instant_fill = False, we process Trade events before calling
-        handle_data.  This means that orders are filled based on trades
-        occurring in the next snapshot.  This is the more conservative model,
-        and as such it is the default behavior in TradingAlgorithm.
         """
 
         # Flags indicating whether we saw any events of type TRADE and type
@@ -205,9 +193,6 @@ class AlgorithmSimulator(object):
         # snapshot.
         any_trade_occurred = False
         benchmark_event_occurred = False
-
-        if instant_fill:
-            events_to_be_processed = []
 
         # Assign process events to variables to avoid attribute access in
         # innermost loops.
@@ -235,26 +220,14 @@ class AlgorithmSimulator(object):
                 # called rarely compared to the other event processors.
                 self.algo.blotter.process_split(event)
 
-            if not instant_fill:
-                process_event(blotter_process_trade,
-                              perf_process_event,
-                              event)
-            else:
-                events_to_be_processed.append(event)
+            process_event(blotter_process_trade,
+                            perf_process_event,
+                            event)
 
         if any_trade_occurred:
             new_orders = self._call_handle_data()
             for order in new_orders:
                 perf_process_event(order)
-
-        if instant_fill:
-            # Now that handle_data has been called and orders have been placed,
-            # process the event stream to fill user orders based on the events
-            # from this snapshot.
-            for event in events_to_be_processed:
-                process_event(blotter_process_trade,
-                              perf_process_event,
-                              event)
 
         if benchmark_event_occurred:
             return self.get_message(dt)

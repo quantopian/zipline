@@ -134,8 +134,6 @@ class TradingAlgorithm(object):
                The duration of the bars.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
-            instant_fill : bool <default: False>
-               Whether to fill orders immediately or on next bar.
             environment : str <default: 'zipline'>
                The environment that this algorithm is running in.
         """
@@ -160,8 +158,6 @@ class TradingAlgorithm(object):
         # default components for transact
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
-
-        self.instant_fill = kwargs.pop('instant_fill', False)
 
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
