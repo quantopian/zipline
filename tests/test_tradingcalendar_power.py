@@ -6,7 +6,7 @@ from zipline.finance.trading import TradingEnvironment
 from unittest import TestCase
 
 
-class TestTradingCalendarPowerline(TestCase):
+class TestTradingCalendarPower(TestCase):
 
     def test_calendar_vs_environment_eex(self):
         env = TradingEnvironment(
