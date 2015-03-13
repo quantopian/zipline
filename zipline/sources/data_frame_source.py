@@ -22,7 +22,14 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
+from zipline.protocol import Event
+from zipline.protocol import DATASOURCE_TYPE
 
+class TradeEvent(Event):
+    type = DATASOURCE_TYPE.TRADE
+
+class WideTradeEvent(TradeEvent):
+    pass
 
 class DataFrameSource(DataSource):
     """
@@ -111,59 +118,40 @@ class DataPanelSource(DataSource):
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
-
-        self._raw_data = None
-
-    _mapping = None
-
-    @property
-    def mapping(self):
-        # cache the mapping
-        if self._mapping is None:
-            mapping = {
-                'price': (float, 'price'),
-                'volume': (int, 'volume'),
-            }
-            self._mapping = mapping
-
-        return self._mapping
-
-    def apply_mapping(self, raw_row):
-        """
-        Override this to hand craft conversion of row.
-        """
-        row = raw_row.copy()
-        for target, (mapping_func, source_key) in self.mapping.items():
-            row[target] = mapping_func(raw_row[source_key])
-
-        row['source_id'] = self.get_hash()
-        row['type'] = self.event_type
-        return row
+        self.it = self.mapped_data
 
     @property
     def instance_hash(self):
         return self.arg_string
 
-    def raw_data_gen(self):
+    def raw_data(self):
+        # treat yoself
+        pass
+
+    @property
+    def mapped_data(self):
         values = self.data.values
         major_axis = self.data.major_axis
         minor_axis = self.data.minor_axis
         items = self.data.items
+        event_type = self.event_type
+        source_id = self.get_hash()
 
+        evt = WideTradeEvent()
         for i, dt in enumerate(major_axis):
             df = values[:, i, :]
-            for k, sid in enumerate(items):
-                if sid in self.sids:
-                    event = {
-                        'dt': dt,
-                        'sid': sid
-                    }
-                    series = df[k]
-                    event.update(dict(zip(minor_axis, series)))
-                    yield event
+            evt.vals = df
+            evt.sids = items
+            evt.columns = minor_axis
+            evt.dt = dt
+            evt.source_id = source_id
+            yield evt
 
-    @property
-    def raw_data(self):
-        if not self._raw_data:
-            self._raw_data = self.raw_data_gen()
-        return self._raw_data
+    def __iter__(self):
+        return self.it
+
+    def next(self):
+        return self.it.next()
+
+    def __next__(self):
+        return next(self.it)
