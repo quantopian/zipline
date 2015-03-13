@@ -123,6 +123,8 @@ class DataPanelSource(DataSource):
 
     @property
     def mapped_data(self):
+        # currently volume is same dtype as prices, float64
+        # do i care?
         values = self.data.values
         major_axis = self.data.major_axis
         minor_axis = self.data.minor_axis
@@ -131,11 +133,13 @@ class DataPanelSource(DataSource):
         source_id = self.get_hash()
 
         evt = WideTradeEvent()
+        evt.sids = items
+        evt.sids_set = set(items)
+        evt.columns = minor_axis
+
         for i, dt in enumerate(major_axis):
             df = values[:, i, :]
             evt.vals = df
-            evt.sids = items
-            evt.columns = minor_axis
             evt.dt = dt
             evt.source_id = source_id
             yield evt
