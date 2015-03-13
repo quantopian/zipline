@@ -43,7 +43,6 @@ class HistoryChunker(object):
         index = self.index
         get_loc = index.get_loc
         window = self.window
-        last_dt = index[-1]
 
         if self.ffill:
             values = ffill(values)
@@ -111,7 +110,7 @@ class BacktestHistoryContainer(HistoryContainer):
             chunker = iter(chunker)
 
             self.chunker_cache[history_spec] = chunker
-            chunker.send(None) #  warmup
+            chunker.send(None)  # warmup
             return chunker.send(algo_dt)
 
     def ensure_spec(self, spec, dt, bar_data):

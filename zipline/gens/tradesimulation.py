@@ -154,7 +154,7 @@ class AlgorithmSimulator(object):
                         try:
                             mkt_open, mkt_close = \
                                 trading.environment \
-                                        .next_open_and_close(mkt_close)
+                                .next_open_and_close(mkt_close)
 
                         except trading.NoFurtherDataError:
                             # If at the end of backtest history,
@@ -163,9 +163,9 @@ class AlgorithmSimulator(object):
                         if (self.algo.perf_tracker.emission_rate
                                 == 'minute'):
                             self.algo.perf_tracker\
-                                        .handle_intraday_market_close(
-                                            mkt_open,
-                                            mkt_close)
+                                .handle_intraday_market_close(
+                                    mkt_open,
+                                    mkt_close)
 
                         if before_last_close:
                             self._call_before_trading_start(mkt_open)
@@ -225,8 +225,8 @@ class AlgorithmSimulator(object):
                 self.algo.blotter.process_split(event)
 
             process_event(blotter_process_trade,
-                            perf_process_event,
-                            event)
+                          perf_process_event,
+                          event)
 
         if any_trade_occurred:
             new_orders = self._call_handle_data()

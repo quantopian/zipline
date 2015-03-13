@@ -22,7 +22,8 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
-from zipline.protocol import TradeEvent, WideTradeEvent
+from zipline.protocol import WideTradeEvent
+
 
 class DataFrameSource(DataSource):
     """
@@ -129,7 +130,6 @@ class DataPanelSource(DataSource):
         major_axis = self.data.major_axis
         minor_axis = self.data.minor_axis
         items = self.data.items
-        event_type = self.event_type
         source_id = self.get_hash()
 
         evt = WideTradeEvent()
