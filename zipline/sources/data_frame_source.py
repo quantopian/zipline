@@ -22,14 +22,7 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
-from zipline.protocol import Event
-from zipline.protocol import DATASOURCE_TYPE
-
-class TradeEvent(Event):
-    type = DATASOURCE_TYPE.TRADE
-
-class WideTradeEvent(TradeEvent):
-    pass
+from zipline.protocol import TradeEvent, WideTradeEvent
 
 class DataFrameSource(DataSource):
     """

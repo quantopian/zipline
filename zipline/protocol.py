@@ -120,6 +120,14 @@ class Event(object):
         return pd.Series(self.__dict__, index=index)
 
 
+class TradeEvent(Event):
+    type = DATASOURCE_TYPE.TRADE
+
+
+class WideTradeEvent(TradeEvent):
+    pass
+
+
 class Order(Event):
     pass
 
