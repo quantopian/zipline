@@ -194,8 +194,12 @@ class Blotter(object):
         if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
             return
 
-        matches = set(trade_event.sids).intersection(self.open_orders)
-        if not matches:
+        try:
+            matched = trade_event.sids_set.intersection(self.positions)
+        except:
+            matched = [trade_event.sid]
+
+        if not matched:
             return
 
         if trade_event.volume < 1:

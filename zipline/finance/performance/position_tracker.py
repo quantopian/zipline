@@ -38,19 +38,21 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        sid = event.sid
-        if sid not in self.positions:
-            return
+        try:
+            matched = event.sids_set.intersection(self.positions)
+        except:
+            matched = [event.sid]
 
-        price = event.price
-        if not checknull(price):
-            pos = self.positions[sid]
-            pos.last_sale_date = event.dt
-            pos.last_sale_price = price
-            self._position_last_sale_prices[sid] = price
-            self._position_values = None  # invalidate cache
-        sid = event.sid
-        price = event.price
+        for sid in matched:
+            price = event.price
+            if not checknull(price):
+                pos = self.positions[sid]
+                pos.last_sale_date = event.dt
+                pos.last_sale_price = price
+                self._position_last_sale_prices[sid] = price
+                self._position_values = None  # invalidate cache
+            sid = event.sid
+            price = event.price
 
     def update_positions(self, positions):
         # update positions in batch
