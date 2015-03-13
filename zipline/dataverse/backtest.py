@@ -124,6 +124,7 @@ class BacktestHistoryContainer(HistoryContainer):
         return HistoryContainerDelta(**updated)
 
     def update(self, data, algo_dt):
+        # no need to update history container
         pass
 
 
@@ -139,6 +140,7 @@ class BacktestDataverse(BaseDataverse):
         return super(BacktestDataverse, self).get_source(source)
 
     def update_universe(self, event):
+        # we do not update universe i.e. BarData
         pass
 
 

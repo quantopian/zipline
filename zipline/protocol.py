@@ -125,7 +125,16 @@ class TradeEvent(Event):
 
 
 class WideTradeEvent(TradeEvent):
-    pass
+    _trade_event = TradeEvent()
+
+    # backward compat. eventually remove
+    def sid_ohlcv(self, sid):
+        sid_loc = self.sids.get_loc(sid)
+        data = dict(zip(self.columns, self.vals[sid_loc]))
+        data['dt'] = self.dt
+        data['sid'] = sid
+        WideTradeEvent._trade_event.__dict__ = data
+        return WideTradeEvent._trade_event
 
 
 class Order(Event):
