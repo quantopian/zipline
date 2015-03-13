@@ -1,12 +1,13 @@
 __author__ = 'warren'
 
 
-
 from zipline.utils import tradingcalendar_eex as tradingcalendar_eex
 from zipline.finance.trading import TradingEnvironment
 from unittest import TestCase
 
+
 class TestTradingCalendarPowerline(TestCase):
+
     def test_calendar_vs_environment_eex(self):
         env = TradingEnvironment(
             bm_symbol='^EEX',
@@ -32,4 +33,3 @@ class TestTradingCalendarPowerline(TestCase):
             0,
             "{diff} should be empty".format(diff=diff2)
         )
-

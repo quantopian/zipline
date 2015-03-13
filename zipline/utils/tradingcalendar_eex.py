@@ -17,13 +17,10 @@ import pytz
 
 from datetime import datetime
 from dateutil import rrule
-from functools import partial
 
 from zipline.utils.tradingcalendar import end, canonicalize_datetime
 
 start = datetime(2002, 1, 1, tzinfo=pytz.utc)
-
-
 
 
 def get_non_trading_days(start, end):
@@ -48,7 +45,6 @@ def get_non_trading_days(start, end):
         dtstart=start,
         until=end
     )
-    
     non_trading_rules.append(new_year)
     # Good Friday
     good_friday = rrule.rrule(
@@ -118,13 +114,9 @@ def get_non_trading_days(start, end):
         until=end
     )
     non_trading_rules.append(newyears_eve)
-    
     non_trading_ruleset = rrule.rruleset()
-    
-    
     for rule in non_trading_rules:
         non_trading_ruleset.rrule(rule)
-    
     non_trading_days = non_trading_ruleset.between(start, end, inc=True)
 
     non_trading_days.sort()
@@ -143,7 +135,7 @@ trading_days = get_trading_days(start, end)
 
 
 def get_early_closes(start, end):
-   return []
+    return []
 
 early_closes = get_early_closes(start, end)
 
