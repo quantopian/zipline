@@ -57,6 +57,7 @@ class AlgorithmSimulator(object):
         # ==============
 
         self.dataverse = algo.dataverse
+        self.update_universe = self.dataverse.update_universe
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
@@ -306,9 +307,3 @@ class AlgorithmSimulator(object):
             perf_message = self.algo.perf_tracker.to_dict()
             perf_message['minute_perf']['recorded_vars'] = rvars
             return perf_message
-
-    def update_universe(self, event):
-        """
-        Update the universe with new event information.
-        """
-        self.current_data.update_sid(event)

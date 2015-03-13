@@ -28,8 +28,11 @@ class BaseDataverse(object):
     bardata_class = zp.BarData
     history_container_class = HistoryContainer
 
+    def __init__(self):
+        self.current_data = self.bardata_class()
+
     def get_bar_data(self):
-        return self.bardata_class()
+        return self.current_data
 
     def get_history_container(self, *args, **kwargs):
         return self.history_container_class(*args, **kwargs)
@@ -47,3 +50,6 @@ class BaseDataverse(object):
         elif isinstance(source, pd.Panel):
             source = DataPanelSource(source)
         return source
+
+    def update_universe(self, event):
+        self.current_data.update_sid(event)
