@@ -194,6 +194,7 @@ class Blotter(object):
         if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
             return
 
+        # try WideTradeBar first
         try:
             sids_set = trade_event.sids_set
             sid_ohlcv = trade_event.sid_ohlcv

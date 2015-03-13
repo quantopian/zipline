@@ -38,21 +38,29 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
+        # try WideTradeBar first
         try:
-            matched = event.sids_set.intersection(self.positions)
+            sids_set = event.sids_set
+            sid_ohlcv = event.sid_ohlcv
         except:
-            matched = [event.sid]
+            sids_set = {event.sid}
+            sid_ohlcv = lambda sid: event
 
+        matched = sids_set.intersection(self.positions)
+
+        # TODO this loop can be cythonized, though for backtest
+        # dataverse it shouldn't even run.
+        # TODO, still need to figure out cleanest way for Dataverse
+        # to override this method
         for sid in matched:
-            price = event.price
+            ohlcv = sid_ohlcv(sid)
+            price = ohlcv.price
             if not checknull(price):
                 pos = self.positions[sid]
-                pos.last_sale_date = event.dt
+                pos.last_sale_date = ohlcv.dt
                 pos.last_sale_price = price
                 self._position_last_sale_prices[sid] = price
                 self._position_values = None  # invalidate cache
-            sid = event.sid
-            price = event.price
 
     def update_positions(self, positions):
         # update positions in batch
