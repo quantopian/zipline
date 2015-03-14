@@ -567,6 +567,7 @@ class TradingAlgorithm(object):
         else:
             return env[field]
 
+    @api_method
     def add_event(self, rule=None, callback=None):
         """
         Adds an event to the algorithm's EventManager.
