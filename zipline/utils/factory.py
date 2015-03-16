@@ -28,7 +28,7 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource,
-                            )
+                             )
 from zipline.sources.sql_source import SqlSource
 from zipline.finance.trading import SimulationParameters
 from zipline.finance import trading
