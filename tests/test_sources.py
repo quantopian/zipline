@@ -24,7 +24,9 @@ from unittest import TestCase
 import zipline.utils.factory as factory
 from zipline.sources import (DataFrameSource,
                              DataPanelSource,
-                             RandomWalkSource)
+                             RandomWalkSource
+                             )
+from zipline.sources.sql_source import SqlSource
 from zipline.utils import tradingcalendar as calendar_nyse
 
 
@@ -78,6 +80,25 @@ class TestDataFrameSource(TestCase):
                 self.assertIn(check_field, event)
             self.assertTrue(isinstance(event['volume'], (integer_types)))
             self.assertEqual(next(stocks_iter), event['sid'])
+
+
+class TestSqlSource(TestCase):
+    def test_sql_source(self):
+        source, df = factory.create_test_sql_source()
+        assert isinstance(source.start, pd.lib.Timestamp)
+        assert isinstance(source.end, pd.lib.Timestamp)
+
+        for expected_dt, expected_price in df.iterrows():
+            sid0 = next(source)
+
+            assert expected_dt == sid0.dt
+            assert expected_price[0] == sid0.price
+
+    def test_sql_sid_filtering(self):
+        source, df = factory.create_test_sql_source()
+        source = SqlSource(source.engine, source.table, sids=[0])
+        assert 1 not in [event.sid for event in source], \
+            "DataFrameSource should only stream selected sid 0, not sid 1."
 
 
 class TestRandomWalkSource(TestCase):

@@ -27,7 +27,9 @@ from datetime import datetime, timedelta
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
-                             DataPanelSource)
+                             DataPanelSource,
+                            )
+from zipline.sources.sql_source import SqlSource
 from zipline.finance.trading import SimulationParameters
 from zipline.finance import trading
 from zipline.sources.test_source import create_trade
@@ -36,6 +38,8 @@ from zipline.sources.test_source import create_trade
 # For backwards compatibility
 from zipline.data.loader import (load_from_yahoo,
                                  load_bars_from_yahoo)
+
+from sqlalchemy import create_engine
 
 __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
@@ -344,6 +348,13 @@ def create_test_panel_source(sim_params=None):
     panel = pd.Panel.from_dict({0: df})
 
     return DataPanelSource(panel), panel
+
+
+def create_test_sql_source():
+    engine = create_engine('sqlite:///:memory:')
+    source, df = create_test_df_source()
+    df.to_sql('test_table', engine)
+    return SqlSource(engine=engine, table='test_table'), df
 
 
 def create_test_panel_ohlc_source(sim_params=None):
