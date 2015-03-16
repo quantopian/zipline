@@ -20,8 +20,8 @@ import numpy as np
 
 ext_modules = [
     Extension(
-        'zipline.assets._securities',
-        ['zipline/assets/_securities.pyx'],
+        'zipline.assets._assets',
+        ['zipline/assets/_assets.pyx'],
         include_dirs=[np.get_include()],
     ),
 ]

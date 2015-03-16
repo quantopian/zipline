@@ -17,33 +17,58 @@
 Tests for the zipline.assets package
 """
 
+import sys
 from unittest import TestCase
 
-from zipline.assets._securities import Security
+from zipline.assets._assets import Asset
 
 
-class SecurityTestCase(TestCase):
+class AssetTestCase(TestCase):
 
-    def test_security_object(self):
-        self.assertEquals({5061: 'foo'}[Security(5061)], 'foo')
-        self.assertEquals(Security(5061), 5061)
-        self.assertEquals(5061, Security(5061))
+    def test_asset_object(self):
+        self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
+        self.assertEquals(Asset(5061), 5061)
+        self.assertEquals(5061, Asset(5061))
 
-        self.assertEquals(Security(5061), Security(5061))
-        self.assertEquals(int(Security(5061)), 5061)
+        self.assertEquals(Asset(5061), Asset(5061))
+        self.assertEquals(int(Asset(5061)), 5061)
 
-        self.assertEquals(str(Security(5061)), 'Security(5061)')
+        self.assertEquals(str(Asset(5061)), 'Asset(5061)')
 
-        # TODO: we can't provide this property while subclassing
-        # int. Need to subclass object to fix all the following
-        # cases.
-        # assert Security(5061) != 5061.0
 
-        # with self.assertRaises(TypeError):
-        #    assert Security(5061) + Security(5061)
+class TestSecurityRichCmp(TestCase):
 
-        # with self.assertRaises(TypeError):
-        #    print float(Security(5061))
+    def test_lt(self):
+        self.assertTrue(Asset(3) < Asset(4))
+        self.assertFalse(Asset(4) < Asset(4))
+        self.assertFalse(Asset(5) < Asset(4))
 
-        # with self.assertRaises(TypeError):
-        #    print float(Security(5061))
+    def test_le(self):
+        self.assertTrue(Asset(3) <= Asset(4))
+        self.assertTrue(Asset(4) <= Asset(4))
+        self.assertFalse(Asset(5) <= Asset(4))
+
+    def test_eq(self):
+        self.assertFalse(Asset(3) == Asset(4))
+        self.assertTrue(Asset(4) == Asset(4))
+        self.assertFalse(Asset(5) == Asset(4))
+
+    def test_ge(self):
+        self.assertFalse(Asset(3) >= Asset(4))
+        self.assertTrue(Asset(4) >= Asset(4))
+        self.assertTrue(Asset(5) >= Asset(4))
+
+    def test_gt(self):
+        self.assertFalse(Asset(3) > Asset(4))
+        self.assertFalse(Asset(4) > Asset(4))
+        self.assertTrue(Asset(5) > Asset(4))
+
+    def test_type_mismatch(self):
+        if sys.version_info.major < 3:
+            self.assertIsNotNone(Asset(3) < 'a')
+            self.assertIsNotNone('a' < Asset(3))
+        else:
+            with self.assertRaises(TypeError):
+                Asset(3) < 'a'
+            with self.assertRaises(TypeError):
+                'a' < Asset(3)

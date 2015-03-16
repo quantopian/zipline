@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Cythonized Security object.
+Cythonized Asset object.
 """
 cimport cython
 
@@ -22,14 +22,14 @@ import numpy as np
 cimport numpy as np
 
 
-cdef class Security:
+cdef class Asset:
 
     cdef readonly int sid
     # Cached hash of self.sid
     cdef int sid_hash
 
     cdef readonly object symbol
-    cdef readonly object security_name
+    cdef readonly object asset_name
 
     # TODO: Maybe declare as pandas Timestamp?
     cdef readonly object start_date
@@ -41,7 +41,7 @@ cdef class Security:
     def __cinit__(self,
                   int sid, # sid is required
                   object symbol="",
-                  object security_name="",
+                  object asset_name="",
                   object start_date=None,
                   object end_date=None,
                   object first_traded=None,
@@ -50,7 +50,7 @@ cdef class Security:
         self.sid           = sid
         self.sid_hash = hash(sid)
         self.symbol        = symbol
-        self.security_name = security_name
+        self.asset_name    = asset_name
         self.exchange      = exchange
         self.start_date    = start_date
         self.end_date      = end_date
@@ -62,7 +62,7 @@ cdef class Security:
     def __hash__(self):
         return self.sid_hash
 
-    property security_start_date:
+    property asset_start_date:
         """
         Alias for start_date to disambiguate from other `start_date`s in the
         system.
@@ -70,7 +70,7 @@ cdef class Security:
         def __get__(self):
             return self.start_date
 
-    property security_end_date:
+    property asset_end_date:
         """
         Alias for end_date to disambiguate from other `end_date`s in the
         system.
@@ -92,14 +92,14 @@ cdef class Security:
         """
         cdef int x_as_int, y_as_int
 
-        if isinstance(x, Security):
+        if isinstance(x, Asset):
             x_as_int = x.sid
         elif isinstance(x, int):
             x_as_int = x
         else:
             return NotImplemented
 
-        if isinstance(y, Security):
+        if isinstance(y, Asset):
             y_as_int = y.sid
         elif isinstance(y, int):
             y_as_int = y
@@ -131,12 +131,12 @@ cdef class Security:
 
     def __str__(self):
         if self.symbol:
-            return 'Security(%d [%s])' % (self.sid, self.symbol)
+            return 'Asset(%d [%s])' % (self.sid, self.symbol)
         else:
-            return 'Security(%d)' % self.sid
+            return 'Asset(%d)' % self.sid
 
     def __repr__(self):
-        attrs = ('symbol', 'security_name', 'exchange',
+        attrs = ('symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
@@ -153,7 +153,7 @@ cdef class Security:
         """
         return (self.__class__, (self.sid,
                                  self.symbol,
-                                 self.security_name,
+                                 self.asset_name,
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
@@ -166,7 +166,7 @@ cdef class Security:
         return {
             'sid': self.sid,
             'symbol': self.symbol,
-            'security_name': self.security_name,
+            'asset_name': self.asset_name,
             'start_date': self.start_date,
             'end_date': self.end_date,
             'first_traded': self.first_traded,
@@ -176,6 +176,6 @@ cdef class Security:
     @staticmethod
     def from_dict(dict_):
         """
-        Build a Security instance from a dict.
+        Build an Asset instance from a dict.
         """
-        return Security(**dict_)
+        return Asset(**dict_)
