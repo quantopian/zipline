@@ -51,6 +51,9 @@ Risk Report
     |                 | for the portfolio returns between self.start_date  |
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
+    | max_leverage    | The largest gross leverage between self.start_date |
+    |                 | and self.end_date                                  |
+    +-----------------+----------------------------------------------------+
 
 
 """

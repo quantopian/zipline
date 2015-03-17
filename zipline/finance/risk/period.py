@@ -48,7 +48,7 @@ choose_treasury = functools.partial(risk.choose_treasury,
 
 class RiskMetricsPeriod(object):
     def __init__(self, start_date, end_date, returns,
-                 benchmark_returns=None):
+                 benchmark_returns=None, algorithm_leverages=None):
 
         treasury_curves = trading.environment.treasury_curves
         if treasury_curves.index[-1] >= start_date:
@@ -71,6 +71,8 @@ class RiskMetricsPeriod(object):
 
         self.algorithm_returns = self.mask_returns_to_period(returns)
         self.benchmark_returns = self.mask_returns_to_period(benchmark_returns)
+        self.algorithm_leverages = algorithm_leverages
+
         self.calculate_metrics()
 
     def calculate_metrics(self):
@@ -131,6 +133,7 @@ class RiskMetricsPeriod(object):
         self.excess_return = self.algorithm_period_returns - \
             self.treasury_period_return
         self.max_drawdown = self.calculate_max_drawdown()
+        self.max_leverage = self.calculate_max_leverage()
 
     def to_dict(self):
         """
@@ -152,6 +155,7 @@ class RiskMetricsPeriod(object):
             'alpha': self.alpha,
             'excess_return': self.excess_return,
             'max_drawdown': self.max_drawdown,
+            'max_leverage': self.max_leverage,
             'period_label': period_label
         }
 
@@ -175,6 +179,7 @@ class RiskMetricsPeriod(object):
             "beta",
             "alpha",
             "max_drawdown",
+            "max_leverage",
             "algorithm_returns",
             "benchmark_returns",
             "condition_number",
@@ -284,12 +289,13 @@ class RiskMetricsPeriod(object):
         for r in self.algorithm_returns:
             try:
                 cur_return += math.log(1.0 + r)
-            # this is a guard for a single day returning -100%
+            # this is a guard for a single day returning -100%, if returns are 
+            # greater than -1.0 it will throw an error because you cannot take
+            # the log of a negative number
             except ValueError:
                 log.debug("{cur} return, zeroing the returns".format(
                     cur=cur_return))
                 cur_return = 0.0
-                # BUG? Shouldn't this be set to log(1.0 + 0) ?
             compounded_returns.append(cur_return)
 
         cur_max = None
@@ -306,6 +312,9 @@ class RiskMetricsPeriod(object):
             return 0.0
 
         return 1.0 - math.exp(max_drawdown)
+
+    def calculate_max_leverage(self):
+        return max(self.algorithm_leverages.values)
 
     def __getstate__(self):
         state_dict = \
