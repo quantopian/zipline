@@ -38,8 +38,13 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        sids_set = event.sids_set
-        sid_ohlcv = event.sid_ohlcv
+        try:
+            sids_set = event.sids_set
+            sid_ohlcv = event.sid_ohlcv
+        except:
+            # handle any Event classes
+            sids_set = {event.sid}
+            sid_ohlcv = lambda sid: event
 
         matched = sids_set.intersection(self.positions)
 
