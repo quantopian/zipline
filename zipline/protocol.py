@@ -27,6 +27,7 @@ from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
+import zipline.lib as lib
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -564,10 +565,12 @@ class BarData(object):
             sids_set = {event.sid}
             sid_ohlcv = lambda sid: event
 
-        for sid in sids_set:
-            ohlcv = sid_ohlcv(sid)
+        for sid in sids_set.difference(self._data):
+            # prepopulate
             sid_data = self.get_default(sid)
-            sid_data.update(ohlcv)
+
+        lib.update_sid(self._data, event.columns.values,
+                       event.sids.values, event.vals, event.dt)
 
     def __setitem__(self, name, value):
         self._data[name] = value
