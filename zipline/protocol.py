@@ -523,7 +523,8 @@ class BarData(object):
     usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self, data=None, siddata_class=SIDData):
+    def __init__(self, dataverse, data=None, siddata_class=SIDData):
+        self._dataverse = dataverse
         self._data = data or {}
         self._contains_override = None
         self._siddata_class = siddata_class

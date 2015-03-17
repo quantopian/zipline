@@ -29,7 +29,7 @@ class BaseDataverse(object):
     history_container_class = HistoryContainer
 
     def __init__(self):
-        self.current_data = self.bardata_class()
+        self.current_data = self.bardata_class(self)
 
     def get_bar_data(self):
         return self.current_data
