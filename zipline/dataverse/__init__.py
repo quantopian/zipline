@@ -7,6 +7,7 @@ Dataverse = BaseDataverse
 BacktestDataverse = backtest.BacktestDataverse
 Dataverse = BacktestDataverse
 
+
 class ProxyDataverse(object):
     """
     ProxyDataverse waits until source is set to determine which Dataverse
@@ -25,8 +26,9 @@ class ProxyDataverse(object):
             self.dataverse = BacktestDataverse()
         else:
             self.dataverse = BaseDataverse()
-        return self.dataverse.get_source(source, overwrite_sim_params=\
-                                         overwrite_sim_params)
+        return self.dataverse.get_source(
+            source, overwrite_sim_params=overwrite_sim_params
+        )
 
     def get_history_container(self, *args, **kwargs):
         # Special case this method call since it is accessed in Algorithm
