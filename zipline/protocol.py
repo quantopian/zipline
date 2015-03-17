@@ -554,23 +554,17 @@ class BarData(object):
         return sid_data
 
     def update_sid(self, event):
-        # Update our knowledge of this event's sid
-        # rather than use if event.sid in ..., just trying
-        # and handling the exception is significantly faster
-        try:
+        if isinstance(event, WideTradeEvent):
             sids_set = event.sids_set
-            sid_ohlcv = event.sid_ohlcv
-        except:
-            # handle any Event classes
-            sids_set = {event.sid}
-            sid_ohlcv = lambda sid: event
+            for sid in sids_set.difference(self._data):
+                # prepopulate
+                self.get_default(sid)
 
-        for sid in sids_set.difference(self._data):
-            # prepopulate
-            sid_data = self.get_default(sid)
-
-        lib.update_sid(self._data, event.columns.values,
-                       event.sids.values, event.vals, event.dt)
+            lib.update_sid(self._data, event.columns.values,
+                           event.sids.values, event.vals, event.dt)
+        else:
+            sid_data = self.get_default(event.sid)
+            sid_data.update(event.__dict__)
 
     def __setitem__(self, name, value):
         self._data[name] = value
