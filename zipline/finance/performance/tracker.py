@@ -398,14 +398,16 @@ class PerformanceTracker(object):
         # returns for the bench and the algo
         self.intraday_risk_metrics.update(dt,
                                           minute_returns,
-                                          self.all_benchmark_returns[dt])
+                                          self.all_benchmark_returns[dt],
+                                          self.get_account(True))
 
         bench_since_open = \
             self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
 
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
-                                            bench_since_open)
+                                            bench_since_open,
+                                            self.get_account(True))
 
         # if this is the close, save the returns objects for cumulative risk
         # calculations and update dividends for the next day.
@@ -418,7 +420,6 @@ class PerformanceTracker(object):
         Function called at market close only when emitting at minutely
         frequency.
         """
-
         # update_performance should have been called in handle_minute_close
         # so it is not repeated here.
         self.intraday_risk_metrics = \
@@ -443,7 +444,8 @@ class PerformanceTracker(object):
         self.cumulative_risk_metrics.update(
             completed_date,
             self.todays_performance.returns,
-            self.all_benchmark_returns[completed_date])
+            self.all_benchmark_returns[completed_date],
+            self.get_account(True))
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -486,10 +488,12 @@ class PerformanceTracker(object):
 
         bms = self.cumulative_risk_metrics.benchmark_returns
         ars = self.cumulative_risk_metrics.algorithm_returns
+        acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
         self.risk_report = risk.RiskReport(
             ars,
             self.sim_params,
-            benchmark_returns=bms)
+            benchmark_returns=bms,
+            algorithm_leverages=acl)
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict

@@ -51,7 +51,9 @@ Risk Report
     |                 | for the portfolio returns between self.start_date  |
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
-
+    | max_leverage    | The largest gross leverage between self.start_date |
+    |                 | and self.end_date                                  |
+    +-----------------+----------------------------------------------------+
 
 """
 
@@ -70,15 +72,19 @@ log = logbook.Logger('Risk Report')
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params, benchmark_returns=None):
+    def __init__(self, algorithm_returns, sim_params, benchmark_returns=None, algorithm_leverages=None):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
+
+        account needs to be a list of account objects sorted in date
+        ascending order
         """
 
         self.algorithm_returns = algorithm_returns
         self.sim_params = sim_params
         self.benchmark_returns = benchmark_returns
+        self.algorithm_leverages = algorithm_leverages
 
         if len(self.algorithm_returns) == 0:
             start_date = self.sim_params.period_start
@@ -136,7 +142,8 @@ class RiskReport(object):
                 start_date=cur_start,
                 end_date=cur_end,
                 returns=self.algorithm_returns,
-                benchmark_returns=self.benchmark_returns
+                benchmark_returns=self.benchmark_returns,
+                algorithm_leverages = self.algorithm_leverages,
             )
 
             ends.append(cur_period_metrics)

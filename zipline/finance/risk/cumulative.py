@@ -93,7 +93,8 @@ class RiskMetricsCumulative(object):
 
     def __init__(self, sim_params,
                  returns_frequency=None,
-                 create_first_day_stats=False):
+                 create_first_day_stats=False,
+                 account=None):
         """
         - @returns_frequency allows for configuration of the whether
         the benchmark and algorithm returns are in units of minutes or days,
@@ -143,6 +144,7 @@ class RiskMetricsCumulative(object):
 
         self.algorithm_returns_cont = pd.Series(index=cont_index)
         self.benchmark_returns_cont = pd.Series(index=cont_index)
+        self.algorithm_cumulative_leverages_cont = pd.Series(index=cont_index)
         self.mean_returns_cont = pd.Series(index=cont_index)
         self.annualized_mean_returns_cont = pd.Series(index=cont_index)
         self.mean_benchmark_returns_cont = pd.Series(index=cont_index)
@@ -160,6 +162,7 @@ class RiskMetricsCumulative(object):
 
         self.algorithm_cumulative_returns = pd.Series(index=cont_index)
         self.benchmark_cumulative_returns = pd.Series(index=cont_index)
+        self.algorithm_cumulative_leverages = pd.Series(index=cont_index)
         self.excess_returns = pd.Series(index=cont_index)
 
         self.latest_dt = cont_index[0]
@@ -171,6 +174,8 @@ class RiskMetricsCumulative(object):
         self.drawdowns = pd.Series(index=cont_index)
         self.max_drawdowns = pd.Series(index=cont_index)
         self.max_drawdown = 0
+        self.max_leverages = pd.Series(index=cont_index)
+        self.max_leverage = 0
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.trading_days)
         self.treasury_period_return = np.nan
@@ -195,7 +200,7 @@ class RiskMetricsCumulative(object):
     def get_daily_index(self):
         return self.trading_days
 
-    def update(self, dt, algorithm_returns, benchmark_returns):
+    def update(self, dt, algorithm_returns, benchmark_returns, account):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
@@ -261,6 +266,15 @@ class RiskMetricsCumulative(object):
         self.annualized_mean_benchmark_returns = \
             self.annualized_mean_benchmark_returns_cont[:dt]
 
+        self.algorithm_cumulative_leverages_cont[dt] = account['leverage']
+        self.algorithm_cumulative_leverages = self.algorithm_cumulative_leverages_cont[:dt]
+
+        if self.create_first_day_stats:
+            if len(self.algorithm_cumulative_leverages) == 1:
+                self.algorithm_cumulative_leverages = pd.Series(
+                    {self.day_before_start: 0.0}).append(
+                    self.algorithm_cumulative_leverages)
+
         if not self.algorithm_returns.index.equals(
             self.benchmark_returns.index
         ):
@@ -305,6 +319,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
         self.max_drawdowns[dt] = self.max_drawdown
+        self.max_leverage = self.calculate_max_leverage()
+        self.max_leverages[dt] = self.max_leverage
 
     def to_dict(self):
         """
@@ -331,6 +347,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'information': self.metrics.information[dt],
             'excess_return': self.excess_returns[dt],
             'max_drawdown': self.max_drawdown,
+            'max_leverage': self.max_leverage,
             'period_label': period_label
         }
 
@@ -382,6 +399,17 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             return cur_drawdown
         else:
             return self.max_drawdown
+
+    def calculate_max_leverage(self):
+        # The leverage is defined as: the gross_exposure/net_liquidation
+        # gross_exposure = long_exposure + abs(short_exposure)
+        # net_liquidation = ending_cash + long_exposure + short_exposure
+        cur_leverage = self.algorithm_cumulative_leverages[self.latest_dt]
+
+        if cur_leverage is None or self.max_leverage > cur_leverage:
+            return self.max_leverage
+        else:
+            return cur_leverage
 
     def calculate_sharpe(self):
         """
