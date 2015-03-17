@@ -467,6 +467,8 @@ class TradingAlgorithm(object):
         # create transforms and zipline
         self.gen = self._create_generator(self.sim_params)
 
+        self.dataverse.pre_simulation()
+
         with ZiplineAPI(self):
             # loop through simulated_trading, each iteration returns a
             # perf dictionary

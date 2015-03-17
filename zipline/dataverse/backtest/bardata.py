@@ -88,7 +88,7 @@ class BacktestBarData(zp.BarData):
         try:
             sid_data = self[name]
         except KeyError:
-            sid_data = self[name] = self._siddata_class(name, self.dataverse)
+            sid_data = self[name] = self._siddata_class(name, self._dataverse)
         return sid_data
 
     def __setitem__(self, name, value):

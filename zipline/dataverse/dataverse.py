@@ -53,3 +53,9 @@ class BaseDataverse(object):
 
     def update_universe(self, event):
         self.current_data.update_sid(event)
+
+    def pre_simulation(self):
+        pass
+
+    def on_dt_changed(self, dt):
+        pass

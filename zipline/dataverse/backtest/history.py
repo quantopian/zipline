@@ -61,7 +61,7 @@ class BacktestHistoryContainer(HistoryContainer):
         self.dataverse = kwargs.pop('dataverse')
         # need to make this cache easier to update
         # maybe move to chunking?
-        source = self.dataverse.source
+        source = self.dataverse.raw_source
         values = source.values
         self.values = values
         self.source = source

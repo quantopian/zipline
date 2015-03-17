@@ -259,6 +259,7 @@ class AlgorithmSimulator(object):
         self.algo.before_trading_start()
 
     def on_dt_changed(self, dt):
+        self.dataverse.on_dt_changed(dt)
         if self.algo.datetime != dt:
             self.algo.on_dt_changed(dt)
 
