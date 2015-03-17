@@ -1,30 +1,30 @@
 # Logging
-Logbook==0.6.0
+Logbook==0.9.0
 
 # Scientific Libraries
 
-pytz==2014.4
-numpy==1.8.1
+pytz==2014.10
+numpy==1.9.2
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
-scipy==0.12.0
+scipy==0.15.1
 pandas==0.15.2
 # Needed for parts of pandas.stats
-patsy==0.2.1
-statsmodels==0.5.0
+patsy==0.3.0
+statsmodels==0.6.1
 
-python-dateutil==2.2
-six==1.6.1
+# Don't use 2.4.0.
+python-dateutil==2.4.1
+six==1.9.0
 
 # For fetching remote data
-requests==2.5.1
+requests==2.5.3
 
-Cython==0.20.1
+Cython==0.22
 
 # faster OrderedDict
 cyordereddict==0.2.2
 
-# faster array ops. Note once numpy gets to 1.9.1 we
-# we can bump to 1.0.0
-bottleneck==0.8.0
+# faster array ops.
+bottleneck==1.0.0
