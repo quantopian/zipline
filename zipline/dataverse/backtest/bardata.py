@@ -50,8 +50,11 @@ class BacktestSIDData(object):
 
 
 class BacktestBarData(zp.BarData):
-    def __init__(self, dataverse, data=None, siddata_class=BacktestSIDData):
-        self.dataverse = dataverse
+    def __init__(self, data=None, siddata_class=BacktestSIDData,
+                 dataverse=None):
+        if dataverse is None:
+            raise TypeError("dataverse cannot be None for BacktestBarData")
+        self._dataverse = dataverse
         self._data = data or {}
         self._contains_override = None
         self._siddata_class = siddata_class
