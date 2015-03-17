@@ -21,6 +21,9 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
+cdef enum AssetType:
+    EQUITY = 1
+    FUTURE = 2
 
 cdef class Asset:
 
@@ -30,6 +33,7 @@ cdef class Asset:
 
     cdef readonly object symbol
     cdef readonly object asset_name
+    cdef readonly AssetType asset_type
 
     # TODO: Maybe declare as pandas Timestamp?
     cdef readonly object start_date
@@ -45,10 +49,12 @@ cdef class Asset:
                   object start_date=None,
                   object end_date=None,
                   object first_traded=None,
-                  object exchange=""):
+                  object exchange="",
+                  *args,
+                  **kwargs):
 
         self.sid           = sid
-        self.sid_hash = hash(sid)
+        self.sid_hash      = hash(sid)
         self.symbol        = symbol
         self.asset_name    = asset_name
         self.exchange      = exchange
@@ -142,7 +148,7 @@ cdef class Asset:
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
         params = ', '.join(strings)
-        return 'Security(%d, %s)' % (self.sid, params)
+        return 'Asset(%d, %s)' % (self.sid, params)
 
     cpdef __reduce__(self):
         """
@@ -179,3 +185,57 @@ cdef class Asset:
         Build an Asset instance from a dict.
         """
         return Asset(**dict_)
+
+
+cdef class Equity(Asset):
+
+    def __cinit__(self,
+                  int sid, # sid is required
+                  object symbol="",
+                  object asset_name="",
+                  object start_date=None,
+                  object end_date=None,
+                  object first_traded=None,
+                  object exchange=""):
+
+        self.asset_type = EQUITY
+
+    def __repr__(self):
+        attrs = ('symbol', 'asset_name', 'exchange',
+                 'start_date', 'end_date', 'first_traded')
+        tuples = ((attr, repr(getattr(self, attr, None)))
+                  for attr in attrs)
+        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
+        params = ', '.join(strings)
+        return 'Equity(%d, %s)' % (self.sid, params)
+
+
+cdef class Future(Asset):
+
+    cdef readonly object notice_date
+    cdef readonly object expiration_date
+
+    def __cinit__(self,
+                  int sid, # sid is required
+                  object symbol="",
+                  object asset_name="",
+                  object start_date=None,
+                  object end_date=None,
+                  object notice_date=None,
+                  object expiration_date=None,
+                  object first_traded=None,
+                  object exchange=""):
+
+        self.asset_type       = FUTURE
+        self.notice_date      = notice_date
+        self.expiration_date  = expiration_date
+
+    def __repr__(self):
+        attrs = ('symbol', 'asset_name', 'exchange',
+                 'start_date', 'end_date', 'first_traded', 'notice_date',
+                 'expiration_date')
+        tuples = ((attr, repr(getattr(self, attr, None)))
+                  for attr in attrs)
+        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
+        params = ', '.join(strings)
+        return 'Future(%d, %s)' % (self.sid, params)

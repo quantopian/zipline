@@ -20,7 +20,7 @@ Tests for the zipline.assets package
 import sys
 from unittest import TestCase
 
-from zipline.assets._assets import Asset
+from zipline.assets._assets import Asset, Future
 
 
 class AssetTestCase(TestCase):
@@ -36,7 +36,7 @@ class AssetTestCase(TestCase):
         self.assertEquals(str(Asset(5061)), 'Asset(5061)')
 
 
-class TestSecurityRichCmp(TestCase):
+class TestAssetRichCmp(TestCase):
 
     def test_lt(self):
         self.assertTrue(Asset(3) < Asset(4))
@@ -72,3 +72,18 @@ class TestSecurityRichCmp(TestCase):
                 Asset(3) < 'a'
             with self.assertRaises(TypeError):
                 'a' < Asset(3)
+
+
+class testFuture(TestCase):
+
+    def test_repr(self):
+
+        future = Future(2468,
+                        notice_date='2014-01-20',
+                        expiration_date='2014-02-20')
+        rep = future.__repr__()
+
+        self.assertTrue("Future" in rep)
+        self.assertTrue("2468" in rep)
+        self.assertTrue("notice_date='2014-01-20'" in rep)
+        self.assertTrue("expiration_date='2014-02-20'" in rep)
