@@ -3,9 +3,9 @@ import pandas as pd
 from .dataverse import BaseDataverse
 from . import backtest
 
-Dataverse = BaseDataverse
 BacktestDataverse = backtest.BacktestDataverse
 Dataverse = BacktestDataverse
+Dataverse = BaseDataverse
 
 
 class ProxyDataverse(object):
@@ -19,13 +19,14 @@ class ProxyDataverse(object):
     """
 
     def __init__(self):
-        self.dataverse = None
+        self.dataverse = BaseDataverse()
 
     def get_source(self, source, overwrite_sim_params=True):
+        # note, we default to BaseDataverse because things like simfactory
+        # call set_sources instead of run.
         if isinstance(source, (pd.Panel, pd.DataFrame)):
             self.dataverse = BacktestDataverse()
-        else:
-            self.dataverse = BaseDataverse()
+
         return self.dataverse.get_source(
             source, overwrite_sim_params=overwrite_sim_params
         )

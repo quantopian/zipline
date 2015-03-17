@@ -555,8 +555,15 @@ class BarData(object):
         # Update our knowledge of this event's sid
         # rather than use if event.sid in ..., just trying
         # and handling the exception is significantly faster
-        sid_ohlcv = event.sid_ohlcv
-        for sid in event.sids_set:
+        try:
+            sids_set = event.sids_set
+            sid_ohlcv = event.sid_ohlcv
+        except:
+            # handle any Event classes
+            sids_set = {event.sid}
+            sid_ohlcv = lambda sid: event
+
+        for sid in sids_set:
             ohlcv = sid_ohlcv(sid)
             sid_data = self.get_default(sid)
             sid_data.update(ohlcv)
