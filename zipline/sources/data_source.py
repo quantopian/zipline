@@ -6,7 +6,7 @@ from abc import (
 from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
-from zipline.protocol import Event
+from zipline.protocol import TradeEvent
 
 
 class DataSource(with_metaclass(ABCMeta)):
@@ -55,7 +55,7 @@ class DataSource(with_metaclass(ABCMeta)):
     @property
     def mapped_data(self):
         for row in self.raw_data:
-            yield Event(self.apply_mapping(row))
+            yield TradeEvent(self.apply_mapping(row))
 
     def __iter__(self):
         return self

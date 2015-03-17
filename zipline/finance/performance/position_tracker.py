@@ -38,13 +38,8 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        # try WideTradeBar first
-        try:
-            sids_set = event.sids_set
-            sid_ohlcv = event.sid_ohlcv
-        except:
-            sids_set = {event.sid}
-            sid_ohlcv = lambda sid: event
+        sids_set = event.sids_set
+        sid_ohlcv = event.sid_ohlcv
 
         matched = sids_set.intersection(self.positions)
 

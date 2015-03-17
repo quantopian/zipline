@@ -123,8 +123,25 @@ class Event(object):
 class TradeEvent(Event):
     type = DATASOURCE_TYPE.TRADE
 
+    def sid_ohlcv(self, sid):
+        return self
 
-class WideTradeEvent(TradeEvent):
+    @property
+    def sids_set(self):
+        return set([self.sid])
+
+
+class WideTradeEvent(Event):
+    """
+    Instead of a single-sid TradeEvent, WideTradeEvent contains the data
+    for all sids at a certain point in time. The implicit ordering of
+    TradeEvent's is artificial and inefficient.
+
+    The eventual goal is to remove the concept of single-sid TradeEvent and
+    replace those usecases with a 1-sid WideTradeEvent. For now the
+    consuming API is a bit disjointed.
+    """
+    type = DATASOURCE_TYPE.TRADE
     _trade_event = TradeEvent()
 
     # backward compat. eventually remove
@@ -538,8 +555,11 @@ class BarData(object):
         # Update our knowledge of this event's sid
         # rather than use if event.sid in ..., just trying
         # and handling the exception is significantly faster
-        sid_data = self.get_default(event.sid)
-        sid_data.update(event.__dict__)
+        sid_ohlcv = event.sid_ohlcv
+        for sid in event.sids_set:
+            ohlcv = sid_ohlcv(sid)
+            sid_data = self.get_default(sid)
+            sid_data.update(ohlcv)
 
     def __setitem__(self, name, value):
         self._data[name] = value
