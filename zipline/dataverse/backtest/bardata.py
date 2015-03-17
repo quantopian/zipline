@@ -4,7 +4,7 @@ from six import iteritems, iterkeys
 
 
 class BacktestSIDData(object):
-    def __init__(self, sid, dataverse=None, initial_values=None):
+    def __init__(self, sid, dataverse, initial_values=None):
         self.sid = sid
         self.dataverse = dataverse
         self.obj = zp.SIDData(sid)
@@ -50,7 +50,8 @@ class BacktestSIDData(object):
 
 
 class BacktestBarData(zp.BarData):
-    def __init__(self, data=None, siddata_class=BacktestSIDData):
+    def __init__(self, dataverse, data=None, siddata_class=BacktestSIDData):
+        self.dataverse = dataverse
         self._data = data or {}
         self._contains_override = None
         self._siddata_class = siddata_class
@@ -84,7 +85,7 @@ class BacktestBarData(zp.BarData):
         try:
             sid_data = self[name]
         except KeyError:
-            sid_data = self[name] = self._siddata_class(name)
+            sid_data = self[name] = self._siddata_class(name, self.dataverse)
         return sid_data
 
     def __setitem__(self, name, value):
