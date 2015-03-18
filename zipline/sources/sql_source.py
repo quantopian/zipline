@@ -19,22 +19,32 @@ import pandas as pd
 
 from zipline.gens.utils import hash_args
 
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
+
 
 class SqlSource(DataSource):
 
-    def __init__(self, engine, table, **kwargs):
+    def __init__(self, engine, object_orm, **kwargs):
 
         self.engine = engine
-        self.table = table
+        self.object_orm = object_orm
+        Session = sessionmaker(bind=engine)
+        session = Session()
 
-        self.data = pd.read_sql_table(table, engine, index_col='index')
-        self.data = self.data.tz_localize('UTC')
-        self.sids = kwargs.get('sids', self.data.columns)
-        self.start = self.data.index[0]
-        self.end = self.data.index[-1]
+        self.ssion = session.query(object_orm)
+
+        qry = session.query(func.min(object_orm.index).label('start'),
+                             func.max(object_orm.index).label('end'))
+        res = qry.one()
+        self.sids = kwargs.get('sids', self.object_orm.price.key)
+        self.start = pd.Timestamp(res.start).tz_localize('UTC')
+        #self.start = pd.Timestamp(self.session.order_by(object_orm.index.asc())
+        #                         .first().index).tz_localize('UTC')
+        self.end = pd.Timestamp(res.end).tz_localize('UTC')
 
         # Hash_value for downstream sorting.
-        self.arg_string = hash_args(engine, table, **kwargs)
+        self.arg_string = hash_args(engine, object, **kwargs)
 
         self._raw_data = None
 
@@ -52,18 +62,19 @@ class SqlSource(DataSource):
         return self.arg_string
 
     def raw_data_gen(self):
-        for dt, series in self.data.iterrows():
-            for sid, price in series.iteritems():
-                if sid in self.sids:
-                    event = {
-                        'dt': dt,
-                        'sid': sid,
-                        'price': price,
-                        # Just chose something large
-                        # if no volume available.
-                        'volume': 1e9,
-                    }
-                    yield event
+        for sid in self.sids:
+            query = self.ssion.query.filter_by(key=sid)
+        for row in query:
+
+            event = {
+                'dt': pd.Timestamp(row.index).tz_localize('UTC'),
+                'sid': sid,
+                'price': row.price,
+                # Just chose something large
+                # if no volume available.
+                'volume': 1e9
+                }
+            yield event
 
     @property
     def raw_data(self):

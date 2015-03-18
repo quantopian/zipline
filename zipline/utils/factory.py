@@ -28,8 +28,10 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource,
+                             SqlSource,
                              )
-from zipline.sources.sql_source import SqlSource
+import zipline.sources.test_orm as test_orm
+from zipline.sources.test_orm import TestOrm
 from zipline.finance.trading import SimulationParameters
 from zipline.finance import trading
 from zipline.sources.test_source import create_trade
@@ -40,6 +42,7 @@ from zipline.data.loader import (load_from_yahoo,
                                  load_bars_from_yahoo)
 
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
@@ -352,9 +355,21 @@ def create_test_panel_source(sim_params=None):
 
 def create_test_sql_source():
     engine = create_engine('sqlite:///:memory:')
-    source, df = create_test_df_source()
-    df.to_sql('test_table', engine)
-    return SqlSource(engine=engine, table='test_table'), df
+    test_orm.Base.metadata.create_all(engine)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    _, df = create_test_df_source()
+    for index, price in df.iterrows():
+        t_orm = TestOrm(
+            index = index,
+            price = price[0])
+        session.merge(t_orm)
+
+    session.commit()
+
+    return SqlSource(engine=engine, object_orm=TestOrm), df
 
 
 def create_test_panel_ohlc_source(sim_params=None):

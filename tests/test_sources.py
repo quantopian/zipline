@@ -24,9 +24,9 @@ from unittest import TestCase
 import zipline.utils.factory as factory
 from zipline.sources import (DataFrameSource,
                              DataPanelSource,
-                             RandomWalkSource
+                             RandomWalkSource,
+                             SqlSource
                              )
-from zipline.sources.sql_source import SqlSource
 from zipline.utils import tradingcalendar as calendar_nyse
 
 
@@ -96,7 +96,7 @@ class TestSqlSource(TestCase):
 
     def test_sql_sid_filtering(self):
         source, df = factory.create_test_sql_source()
-        source = SqlSource(source.engine, source.table, sids=[0])
+        source = SqlSource(source.engine, source.object_orm, sids=[0])
         assert 1 not in [event.sid for event in source], \
             "DataFrameSource should only stream selected sid 0, not sid 1."
 
