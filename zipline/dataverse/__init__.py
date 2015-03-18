@@ -4,8 +4,9 @@ from .dataverse import BaseDataverse
 from . import backtest
 
 BacktestDataverse = backtest.BacktestDataverse
-Dataverse = BacktestDataverse
-Dataverse = BaseDataverse
+HistoryDataverse = backtest.HistoryDataverse
+
+CurrentBacktestDataverse = HistoryDataverse
 
 
 class ProxyDataverse(object):
@@ -25,7 +26,7 @@ class ProxyDataverse(object):
         # note, we default to BaseDataverse because things like simfactory
         # call set_sources instead of run.
         if isinstance(source, (pd.Panel, pd.DataFrame)):
-            self.dataverse = BacktestDataverse()
+            self.dataverse = CurrentBacktestDataverse()
 
         return self.dataverse.get_source(
             source, overwrite_sim_params=overwrite_sim_params
@@ -45,6 +46,7 @@ class ProxyDataverse(object):
 __all__ = [
     'BaseDataverse',
     'BacktestDataverse',
-    'Dataverse',
+    'CurrentBacktestDataverse',
+    'HistoryDataverse',
     'ProxyDataverse'
 ]

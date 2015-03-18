@@ -20,10 +20,9 @@ class BacktestSIDData(object):
 
     def __getattr__(self, name):
         try:
-            return self.dataverse.get_sid_data(self.sid, name):
+            return self.dataverse.get_sid_data(self.sid, name)
         except:
             return getattr(self.obj, name)
-
 
     def get(self, name, default=None):
         return self.obj.get(name, default)
@@ -35,7 +34,9 @@ class BacktestSIDData(object):
         self.obj[name] = value
 
     def __len__(self):
-        return len(self.obj)
+        # hack for now. Need to figure out how the magic SIDData will
+        # handle this
+        return max(len(self.obj), 1)
 
     def __contains__(self, name):
         return name in self.obj
@@ -82,7 +83,7 @@ class BacktestBarData(zp.BarData):
     @property
     def _keys_cache(self):
         if self._keys_cache_ is None:
-            keys = self._data
+            keys = self._data.keys()
             if self._contains_override:
                 keys = list(filter(self._contains_override, keys))
             self._keys_cache_ = keys

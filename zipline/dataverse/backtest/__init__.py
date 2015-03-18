@@ -4,7 +4,37 @@ from .history import BacktestHistoryContainer
 from .bardata import BacktestBarData, BacktestSIDData
 
 
+class HistoryDataverse(BaseDataverse):
+    """
+    Dataverse that uses HistoryChunker
+    """
+    history_container_class = BacktestHistoryContainer
+
+    def __init__(self):
+        self.current_data = self.bardata_class(dataverse=self)
+        self.datetime = None
+
+    def asset_finder(self, sid):
+        return sid
+
+    def get_history_container(self, *args, **kwargs):
+        kwargs['dataverse'] = self
+        return self.history_container_class(*args, **kwargs)
+
+    def get_source(self, source, overwrite_sim_params=True):
+        self.raw_source = source
+        source = super(HistoryDataverse, self).get_source(source)
+        self.source = source
+        return source
+
+    def on_dt_changed(self, dt):
+        self.datetime = dt
+
+
 class BacktestDataverse(BaseDataverse):
+    """
+    Precog. This dataverse is a work in progress
+    """
     history_container_class = BacktestHistoryContainer
     siddata_class = BacktestSIDData
     bardata_class = BacktestBarData
