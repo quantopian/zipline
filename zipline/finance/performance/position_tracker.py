@@ -46,6 +46,7 @@ class PositionTracker(object):
                                   self._position_last_sale_prices)
         else:
             price = event.price
+            sid = event.sid
             if not checknull(price):
                 pos = self.positions[sid]
                 pos.last_sale_date = event.dt
