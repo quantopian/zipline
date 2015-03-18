@@ -38,3 +38,6 @@ class BacktestDataverse(BaseDataverse):
 
     def on_dt_changed(self, dt):
         self.datetime = dt
+
+    def get_sid_data(self, sid, name):
+        pass

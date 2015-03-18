@@ -16,7 +16,14 @@ class BacktestSIDData(object):
 
     @property
     def datetime(self):
-        return self.obj.update
+        return self.obj.dt
+
+    def __getattr__(self, name):
+        try:
+            return self.dataverse.get_sid_data(self.sid, name):
+        except:
+            return getattr(self.obj, name)
+
 
     def get(self, name, default=None):
         return self.obj.get(name, default)
