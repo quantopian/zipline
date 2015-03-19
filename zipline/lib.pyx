@@ -8,25 +8,24 @@ from pandas.tslib import Timestamp
 from numpy cimport *
 from cpython.dict cimport PyDict_Clear, PyDict_DelItem, PyDict_SetItem
 
+
 def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
                float64_t[:, :] vals, object dt):
     cdef:
         float64_t[:] row
         dict siddata
-        int sid, i
+        int sid, i, num_cols
 
+    num_cols = len(columns)
     for i in range(len(sids)):
         sid = sids[i]
         row = vals[i]
         siddata = bardata[sid].__dict__
 
-        siddata['open'] = row[0]
-        siddata['high'] = row[1]
-        siddata['low'] = row[2]
-        siddata['close'] = row[3]
-        siddata['price'] = row[3]
-        siddata['volume'] = row[4]
+        for k in range(num_cols):
+            siddata[columns[k]] = row[k]
         siddata['dt'] = dt
+
 
 def update_last_sales(object positions, int64_t[:] sids, float64_t[:, :] vals,
                      object dt, object position_last_sales):
