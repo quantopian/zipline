@@ -65,7 +65,7 @@ class BacktestHistoryContainer(HistoryContainer):
         values = source.values
         self.values = values
         self.source = source
-        self.index = source.major_axis
+        self.index = source._stat_axis
         self.container_cache = {}
         self.chunker_cache = {}
         self.chunk_size = kwargs.pop('chunksize', 390)
