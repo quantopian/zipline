@@ -25,7 +25,7 @@ class ProxyDataverse(object):
     def get_source(self, source, overwrite_sim_params=True):
         # note, we default to BaseDataverse because things like simfactory
         # call set_sources instead of run.
-        if isinstance(source, (pd.Panel, pd.DataFrame)):
+        if isinstance(source, (pd.Panel)):
             self.dataverse = CurrentBacktestDataverse()
 
         return self.dataverse.get_source(
