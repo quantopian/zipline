@@ -151,11 +151,8 @@ def information_ratio(algorithm_returns, benchmark_returns):
 
     relative_deviation = relative_returns.std(ddof=1)
 
-    if (
-        zp_math.tolerant_equals(relative_deviation, 0)
-        or
-        np.isnan(relative_deviation)
-    ):
+    if zp_math.tolerant_equals(relative_deviation, 0) or \
+       np.isnan(relative_deviation):
         return 0.0
 
     return np.mean(relative_returns) / relative_deviation

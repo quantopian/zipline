@@ -98,7 +98,8 @@ class TestRollingPanel(unittest.TestCase):
 
         To keep the same api, make sure that the raw option returns a copy too.
         """
-        data_id = lambda values: values.__array_interface__['data']
+        def data_id(values):
+            return values.__array_interface__['data']
 
         items = ('a', 'b')
         sids = (1, 2)

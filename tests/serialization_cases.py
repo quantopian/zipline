@@ -32,7 +32,8 @@ def stringify_cases(cases, func=None):
     # get better test case names
     results = []
     if func is None:
-        func = lambda case: case[0].__name__
+        def func(case):
+            return case[0].__name__
     for case in cases:
         new_case = list(case)
         key = func(case)

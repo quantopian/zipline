@@ -101,10 +101,8 @@ class RiskMetricsPeriod(object):
             index=self.algorithm_returns.index)
         for dt, ret in self.algorithm_returns.iteritems():
             self.mean_algorithm_returns[dt] = (
-                self.algorithm_returns[:dt].sum()
-                /
-                self.trading_day_counts[dt]
-            )
+                self.algorithm_returns[:dt].sum() /
+                self.trading_day_counts[dt])
 
         self.benchmark_volatility = self.calculate_volatility(
             self.benchmark_returns)
