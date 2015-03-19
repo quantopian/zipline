@@ -1107,7 +1107,7 @@ class TestHistoryContainerResize(TestCase):
         specs = {spec.key_str: spec}
         initial_sids = [1]
         initial_dt = pd.Timestamp(
-            '2013-06-28 13:31AM'
+            '2013-06-28 13:31'
             if data_frequency == 'minute'
             else '2013-06-28 12:00AM',
             tz='UTC',
@@ -1172,7 +1172,7 @@ class TestHistoryContainerResize(TestCase):
         specs = {spec.key_str: spec}
         initial_sids = [1]
         initial_dt = pd.Timestamp(
-            '2013-06-28 13:31AM'
+            '2013-06-28 13:31'
             if data_frequency == 'minute'
             else '2013-06-28 12:00AM',
             tz='UTC',
@@ -1229,7 +1229,7 @@ class TestHistoryContainerResize(TestCase):
         specs = {spec.key_str: spec}
         initial_sids = [1]
         initial_dt = pd.Timestamp(
-            '2013-06-28 13:31AM'
+            '2013-06-28 13:31'
             if data_frequency == 'minute'
             else '2013-06-28 12:00AM',
             tz='UTC',
