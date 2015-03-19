@@ -41,8 +41,11 @@ class PositionTracker(object):
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
         if isinstance(event, zp.WideTradeEvent):
-            lib.update_last_sales(self.positions, event.sids.values,
-                                  event.vals, event.dt,
+            lib.update_last_sales(self.positions,
+                                  event.columns.values,
+                                  event.sids.values,
+                                  event.vals,
+                                  event.dt,
                                   self._position_last_sale_prices)
         else:
             price = event.price

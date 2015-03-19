@@ -15,6 +15,7 @@ def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
         float64_t[:] row
         dict siddata
         int sid, i, num_cols
+        str col
 
     num_cols = len(columns)
     for i in range(len(sids)):
@@ -23,21 +24,30 @@ def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
         siddata = bardata[sid].__dict__
 
         for k in range(num_cols):
-            siddata[columns[k]] = row[k]
+            col = columns[k]
+            siddata[col] = row[k]
         siddata['dt'] = dt
 
 
-def update_last_sales(object positions, int64_t[:] sids, float64_t[:, :] vals,
-                     object dt, object position_last_sales):
+def update_last_sales(object positions, object[:] columns, int64_t[:] sids,
+                      float64_t[:, :] vals, object dt, object position_last_sales):
 
     cdef:
         object pos
-        int sid
+        int sid, price_idx = -1
         float64_t price
+
+    for i in range(len(columns)):
+        if columns[i] == 'price':
+            price_idx = i
+            break
+
+    if price_idx == -1:
+        raise Exception("WideTradeEvent must have a price column")
 
     for i in range(len(sids)):
         sid = sids[i]
-        price = vals[i][3] # 3 is close
+        price = vals[i][price_idx] # 3 is close
         if price == price:
             # note that positions is a defaultdict, bleh
             pos = positions[sid]
