@@ -30,21 +30,20 @@ class SqlSource(DataSource):
         self.engine = engine
         self.object_orm = object_orm
         Session = sessionmaker(bind=engine)
-        session = Session()
+        self.session = Session()
 
-        self.ssion = session.query(object_orm)
+        sid_query = self.session.query(object_orm.sid).distinct().all()
+        sids = [int(i.sid) for i in sid_query]
+        self.sids = kwargs.get('sids', sids)
 
-        qry = session.query(func.min(object_orm.index).label('start'),
-                             func.max(object_orm.index).label('end'))
+        qry = self.session.query(func.min(object_orm.index).label('start'),
+                                 func.max(object_orm.index).label('end'))
         res = qry.one()
-        self.sids = kwargs.get('sids', self.object_orm.price.key)
         self.start = pd.Timestamp(res.start).tz_localize('UTC')
-        #self.start = pd.Timestamp(self.session.order_by(object_orm.index.asc())
-        #                         .first().index).tz_localize('UTC')
         self.end = pd.Timestamp(res.end).tz_localize('UTC')
 
         # Hash_value for downstream sorting.
-        self.arg_string = hash_args(engine, object, **kwargs)
+        self.arg_string = hash_args(engine, object_orm, **kwargs)
 
         self._raw_data = None
 
@@ -63,18 +62,17 @@ class SqlSource(DataSource):
 
     def raw_data_gen(self):
         for sid in self.sids:
-            query = self.ssion.query.filter_by(key=sid)
-        for row in query:
-
-            event = {
-                'dt': pd.Timestamp(row.index).tz_localize('UTC'),
-                'sid': sid,
-                'price': row.price,
-                # Just chose something large
-                # if no volume available.
-                'volume': 1e9
-                }
-            yield event
+            qry = self.session.query(self.object_orm).filter_by(sid=sid)
+            for row in qry:
+                event = {
+                    'dt': pd.Timestamp(row.index).tz_localize('UTC'),
+                    'sid': row.sid,
+                    'price': row.price,
+                    # Just chose something large
+                    # if no volume available.
+                    'volume': 1e9
+                    }
+                yield event
 
     @property
     def raw_data(self):

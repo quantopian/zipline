@@ -28,6 +28,8 @@ from zipline.sources import (DataFrameSource,
                              SqlSource
                              )
 from zipline.utils import tradingcalendar as calendar_nyse
+from nose.tools import nottest
+
 
 
 class TestDataFrameSource(TestCase):
@@ -99,7 +101,6 @@ class TestSqlSource(TestCase):
         source = SqlSource(source.engine, source.object_orm, sids=[0])
         assert 1 not in [event.sid for event in source], \
             "DataFrameSource should only stream selected sid 0, not sid 1."
-
 
 class TestRandomWalkSource(TestCase):
     def test_minute(self):
