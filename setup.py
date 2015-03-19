@@ -24,6 +24,11 @@ ext_modules = [
         ['zipline/assets/_assets.pyx'],
         include_dirs=[np.get_include()],
     ),
+    Extension(
+        'zipline.lib',
+        ['zipline/lib.pyx'],
+        include_dirs=[np.get_include()],
+    ),
 ]
 
 setup(

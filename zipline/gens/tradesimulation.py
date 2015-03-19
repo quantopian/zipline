@@ -17,8 +17,6 @@ from pandas.tslib import normalize_date
 
 from zipline.finance import trading
 from zipline.protocol import (
-    BarData,
-    SIDData,
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
@@ -58,10 +56,12 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
+        self.dataverse = algo.dataverse
+        self.update_universe = self.dataverse.update_universe
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.current_data = BarData()
+        self.current_data = self.dataverse.get_bar_data()
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -89,6 +89,19 @@ class AlgorithmSimulator(object):
             perf_process_event(order)
         perf_process_event(event)
 
+    def warmup(self, date, snapshot):
+        # If we're still in the warmup period.  Use the event to
+        # update our universe, but don't yield any perf messages,
+        # and don't send a snapshot to handle_data.
+        for event in snapshot:
+            if event.type == DATASOURCE_TYPE.SPLIT:
+                self.algo.blotter.process_split(event)
+
+            elif event.type in (DATASOURCE_TYPE.TRADE,
+                                DATASOURCE_TYPE.CUSTOM):
+                self.update_universe(event)
+            self.algo.perf_tracker.process_event(event)
+
     def transform(self, stream_in):
         """
         Main generator work loop.
@@ -109,94 +122,73 @@ class AlgorithmSimulator(object):
                 self.simulation_dt = date
                 self.on_dt_changed(date)
 
-                # If we're still in the warmup period.  Use the event to
-                # update our universe, but don't yield any perf messages,
-                # and don't send a snapshot to handle_data.
                 if date < self.algo_start:
-                    for event in snapshot:
-                        if event.type == DATASOURCE_TYPE.SPLIT:
-                            self.algo.blotter.process_split(event)
+                    self.warmup(date, snapshot)
+                    continue
 
-                        elif event.type in (DATASOURCE_TYPE.TRADE,
-                                            DATASOURCE_TYPE.CUSTOM):
-                            self.update_universe(event)
-                        self.algo.perf_tracker.process_event(event)
-                else:
-                    message = self._process_snapshot(
-                        date,
-                        snapshot,
-                        self.algo.instant_fill,
-                    )
-                    # Perf messages are only emitted if the snapshot contained
-                    # a benchmark event.
-                    if message is not None:
-                        yield message
+                message = self._process_snapshot(
+                    date,
+                    snapshot
+                )
+                # Perf messages are only emitted if the snapshot contained
+                # a benchmark event.
+                if message is not None:
+                    yield message
 
-                    # When emitting minutely, we re-iterate the day as a
-                    # packet with the entire days performance rolled up.
-                    if date == mkt_close:
-                        if self.algo.perf_tracker.emission_rate == 'minute':
-                            daily_rollup = self.algo.perf_tracker.to_dict(
-                                emission_type='daily'
-                            )
-                            daily_rollup['daily_perf']['recorded_vars'] = \
-                                self.algo.recorded_vars
-                            yield daily_rollup
-                            tp = self.algo.perf_tracker.todays_performance
-                            tp.rollover()
+                # When emitting minutely, we re-iterate the day as a
+                # packet with the entire days performance rolled up.
+                if date == mkt_close:
+                    if self.algo.perf_tracker.emission_rate == 'minute':
+                        daily_rollup = self.algo.perf_tracker.to_dict(
+                            emission_type='daily'
+                        )
+                        daily_rollup['daily_perf']['recorded_vars'] = \
+                            self.algo.recorded_vars
+                        yield daily_rollup
+                        tp = self.algo.perf_tracker.todays_performance
+                        tp.rollover()
 
-                        if mkt_close <= self.algo.perf_tracker.last_close:
-                            before_last_close = \
-                                mkt_close < self.algo.perf_tracker.last_close
-                            try:
-                                mkt_open, mkt_close = \
-                                    trading.environment \
-                                           .next_open_and_close(mkt_close)
+                    if mkt_close <= self.algo.perf_tracker.last_close:
+                        before_last_close = \
+                            mkt_close < self.algo.perf_tracker.last_close
+                        try:
+                            mkt_open, mkt_close = \
+                                trading.environment \
+                                .next_open_and_close(mkt_close)
 
-                            except trading.NoFurtherDataError:
-                                # If at the end of backtest history,
-                                # skip advancing market close.
-                                pass
-                            if (self.algo.perf_tracker.emission_rate
-                                    == 'minute'):
-                                self.algo.perf_tracker\
-                                         .handle_intraday_market_close(
-                                             mkt_open,
-                                             mkt_close)
+                        except trading.NoFurtherDataError:
+                            # If at the end of backtest history,
+                            # skip advancing market close.
+                            pass
+                        if (self.algo.perf_tracker.emission_rate
+                                == 'minute'):
+                            self.algo.perf_tracker\
+                                .handle_intraday_market_close(
+                                    mkt_open,
+                                    mkt_close)
 
-                            if before_last_close:
-                                self._call_before_trading_start(mkt_open)
+                        if before_last_close:
+                            self._call_before_trading_start(mkt_open)
 
-                    elif data_frequency == 'daily':
-                        next_day = trading.environment.next_trading_day(date)
+                elif data_frequency == 'daily':
+                    next_day = trading.environment.next_trading_day(date)
 
-                        if (next_day is not None
-                                and next_day
-                                < self.algo.perf_tracker.last_close):
-                            self._call_before_trading_start(next_day)
+                    if (next_day is not None
+                            and next_day
+                            < self.algo.perf_tracker.last_close):
+                        self._call_before_trading_start(next_day)
 
-                    self.algo.portfolio_needs_update = True
-                    self.algo.account_needs_update = True
-                    self.algo.performance_needs_update = True
+                self.algo.portfolio_needs_update = True
+                self.algo.account_needs_update = True
+                self.algo.performance_needs_update = True
 
             risk_message = self.algo.perf_tracker.handle_simulation_end()
             yield risk_message
 
-    def _process_snapshot(self, dt, snapshot, instant_fill):
+    def _process_snapshot(self, dt, snapshot):
         """
         Process a stream of events corresponding to a single datetime, possibly
         returning a perf message to be yielded.
-
-        If @instant_fill = True, we delay processing of events until after the
-        user's call to handle_data, and we process the user's placed orders
-        before the snapshot's events.  Note that this introduces a lookahead
-        bias, since the user effectively is effectively placing orders that are
-        filled based on trades that happened prior to the call the handle_data.
-
-        If @instant_fill = False, we process Trade events before calling
-        handle_data.  This means that orders are filled based on trades
-        occurring in the next snapshot.  This is the more conservative model,
-        and as such it is the default behavior in TradingAlgorithm.
         """
 
         # Flags indicating whether we saw any events of type TRADE and type
@@ -205,9 +197,6 @@ class AlgorithmSimulator(object):
         # snapshot.
         any_trade_occurred = False
         benchmark_event_occurred = False
-
-        if instant_fill:
-            events_to_be_processed = []
 
         # Assign process events to variables to avoid attribute access in
         # innermost loops.
@@ -235,26 +224,14 @@ class AlgorithmSimulator(object):
                 # called rarely compared to the other event processors.
                 self.algo.blotter.process_split(event)
 
-            if not instant_fill:
-                process_event(blotter_process_trade,
-                              perf_process_event,
-                              event)
-            else:
-                events_to_be_processed.append(event)
+            process_event(blotter_process_trade,
+                          perf_process_event,
+                          event)
 
         if any_trade_occurred:
             new_orders = self._call_handle_data()
             for order in new_orders:
                 perf_process_event(order)
-
-        if instant_fill:
-            # Now that handle_data has been called and orders have been placed,
-            # process the event stream to fill user orders based on the events
-            # from this snapshot.
-            for event in events_to_be_processed:
-                process_event(blotter_process_trade,
-                              perf_process_event,
-                              event)
 
         if benchmark_event_occurred:
             return self.get_message(dt)
@@ -282,6 +259,7 @@ class AlgorithmSimulator(object):
         self.algo.before_trading_start()
 
     def on_dt_changed(self, dt):
+        self.dataverse.on_dt_changed(dt)
         if self.algo.datetime != dt:
             self.algo.on_dt_changed(dt)
 
@@ -307,17 +285,3 @@ class AlgorithmSimulator(object):
             perf_message = self.algo.perf_tracker.to_dict()
             perf_message['minute_perf']['recorded_vars'] = rvars
             return perf_message
-
-    def update_universe(self, event):
-        """
-        Update the universe with new event information.
-        """
-        # Update our knowledge of this event's sid
-        # rather than use if event.sid in ..., just trying
-        # and handling the exception is significantly faster
-        try:
-            sid_data = self.current_data[event.sid]
-        except KeyError:
-            sid_data = self.current_data[event.sid] = SIDData(event.sid)
-
-        sid_data.__dict__.update(event.__dict__)

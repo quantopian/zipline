@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-import warnings
 
 import pytz
 import pandas as pd
@@ -67,7 +66,6 @@ from zipline.gens.composites import (
     sequential_transforms,
 )
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.transforms.utils import StatefulTransform
 from zipline.utils.api_support import ZiplineAPI, api_method
 import zipline.utils.events
@@ -83,7 +81,7 @@ import zipline.protocol
 from zipline.protocol import Event
 
 from zipline.history import HistorySpec
-from zipline.history.history_container import HistoryContainer
+from zipline.dataverse import ProxyDataverse
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -136,8 +134,6 @@ class TradingAlgorithm(object):
                The duration of the bars.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
-            instant_fill : bool <default: False>
-               Whether to fill orders immediately or on next bar.
             environment : str <default: 'zipline'>
                The environment that this algorithm is running in.
         """
@@ -163,8 +159,6 @@ class TradingAlgorithm(object):
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
 
-        self.instant_fill = kwargs.pop('instant_fill', False)
-
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
 
@@ -185,8 +179,15 @@ class TradingAlgorithm(object):
         self._portfolio = None
         self._account = None
 
+        self.dataverse = kwargs.pop(
+            'dataverse', None
+        )
+
+        if self.dataverse is None:
+            self.dataverse = ProxyDataverse()
+
         self.history_container_class = kwargs.pop(
-            'history_container_class', HistoryContainer,
+            'history_container_class', self.dataverse.get_history_container,
         )
         self.history_container = None
         self.history_specs = {}
@@ -419,17 +420,7 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if isinstance(source, list):
-            if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
-                overwrite_sim_params = False
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, wrap in DataFrameSource
-            source = DataFrameSource(source)
-        elif isinstance(source, pd.Panel):
-            source = DataPanelSource(source)
+        source = self.dataverse.get_source(source, overwrite_sim_params)
 
         if isinstance(source, list):
             self.set_sources(source)
@@ -475,6 +466,8 @@ class TradingAlgorithm(object):
 
         # create transforms and zipline
         self.gen = self._create_generator(self.sim_params)
+
+        self.dataverse.pre_simulation()
 
         with ZiplineAPI(self):
             # loop through simulated_trading, each iteration returns a

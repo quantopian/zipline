@@ -43,7 +43,6 @@ from zipline.test_algorithms import (
     InvalidOrderAlgorithm,
     RecordAlgorithm,
     TestOrderAlgorithm,
-    TestOrderInstantAlgorithm,
     TestOrderPercentAlgorithm,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
@@ -396,27 +395,9 @@ class TestTransformAlgorithm(TestCase):
         for name in method_names_to_test:
             algo = TestOrderStyleForwardingAlgorithm(
                 sim_params=self.sim_params,
-                instant_fill=False,
                 method_name=name
             )
             algo.run(self.df)
-
-    def test_order_instant(self):
-        algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
-                                         instant_fill=True)
-
-        algo.run(self.df)
-
-    def test_minute_data(self):
-        source = RandomWalkSource(freq='minute',
-                                  start=pd.Timestamp('2000-1-3',
-                                                     tz='UTC'),
-                                  end=pd.Timestamp('2000-1-4',
-                                                   tz='UTC'))
-        self.sim_params.data_frequency = 'minute'
-        algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
-                                         instant_fill=True)
-        algo.run(source)
 
 
 class TestPositions(TestCase):
