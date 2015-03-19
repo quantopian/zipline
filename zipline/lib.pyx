@@ -47,6 +47,9 @@ def update_last_sales(object positions, object[:] columns, int64_t[:] sids,
 
     for i in range(len(sids)):
         sid = sids[i]
+        if sid not in positions:
+            continue
+
         price = vals[i][price_idx] # 3 is close
         if price == price:
             # note that positions is a defaultdict, bleh
