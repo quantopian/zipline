@@ -48,6 +48,11 @@ ORDER_STATUS = Enum(
 )
 
 
+def identity(obj):
+    # new flake8 rules about lambdas...
+    return obj
+
+
 class Blotter(object):
 
     def __init__(self):
@@ -200,7 +205,7 @@ class Blotter(object):
         except:
             # handle any Event classes
             sids_set = {trade_event.sid}
-            sid_ohlcv = lambda sid: trade_event
+            sid_ohlcv = identity
 
         matched = sids_set.intersection(self.open_orders)
         if not matched:
