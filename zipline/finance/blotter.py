@@ -194,37 +194,49 @@ class Blotter(object):
         if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
             return
 
-        if trade_event.sid not in self.open_orders:
+        try:
+            sids_set = trade_event.sids_set
+            sid_ohlcv = trade_event.sid_ohlcv
+        except:
+            # handle any Event classes
+            sids_set = {trade_event.sid}
+            sid_ohlcv = lambda sid: trade_event
+
+        matched = sids_set.intersection(self.open_orders)
+        if not matched:
             return
 
-        if trade_event.volume < 1:
-            # there are zero volume trade_events bc some stocks trade
-            # less frequently than once per minute.
-            return
+        # TODO move this to cython
+        dt = trade_event.dt
+        for sid in matched:
+            ohlcv = sid_ohlcv(sid)
+            if ohlcv.volume < 1:
+                # there are zero volume trade_events bc some stocks trade
+                # less frequently than once per minute.
+                return
 
-        orders = self.open_orders[trade_event.sid]
-        orders.sort(key=lambda o: o.dt)
-        # Only use orders for the current day or before
-        current_orders = filter(
-            lambda o: o.dt <= trade_event.dt,
-            orders)
+            orders = self.open_orders[sid]
+            orders.sort(key=lambda o: o.dt)
+            # Only use orders for the current day or before
+            current_orders = filter(
+                lambda o: o.dt <= dt,
+                orders)
 
-        processed_orders = []
-        for txn, order in self.process_transactions(trade_event,
-                                                    current_orders):
-            processed_orders.append(order)
-            yield txn, order
+            processed_orders = []
+            for txn, order in self.process_transactions(ohlcv,
+                                                        current_orders):
+                processed_orders.append(order)
+                yield txn, order
 
-        # remove closed orders. we should only have to check
-        # processed orders
-        def not_open(order):
-            return not order.open
-        closed_orders = filter(not_open, processed_orders)
-        for order in closed_orders:
-            orders.remove(order)
+            # remove closed orders. we should only have to check
+            # processed orders
+            not_open = lambda order: not order.open
+            closed_orders = filter(not_open, processed_orders)
+            for order in closed_orders:
+                orders.remove(order)
 
-        if len(orders) == 0:
-            del self.open_orders[trade_event.sid]
+            if len(orders) == 0:
+                del self.open_orders[sid]
 
     def process_transactions(self, trade_event, current_orders):
         for order, txn in self.transact(trade_event, current_orders):
