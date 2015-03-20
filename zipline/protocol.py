@@ -559,8 +559,8 @@ class BarData(object):
                 # prepopulate
                 self.get_default(sid)
 
-            lib.update_sid(self._data, event.columns.values,
-                           event.sids.values, event.vals, event.dt)
+            lib.update_sid(self._data, np.asarray(event.columns),
+                           np.asarray(event.sids), event.vals, event.dt)
         else:
             sid_data = self.get_default(event.sid)
             sid_data.update(event.__dict__)

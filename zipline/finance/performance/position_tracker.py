@@ -41,8 +41,8 @@ class PositionTracker(object):
         # NOTE, PerformanceTracker already vetted as TRADE type
         if isinstance(event, zp.WideTradeEvent):
             lib.update_last_sales(self.positions,
-                                  event.columns.values,
-                                  event.sids.values,
+                                  np.asarray(event.columns),
+                                  np.asarray(event.sids),
                                   event.vals,
                                   event.dt,
                                   self._position_last_sale_prices,
