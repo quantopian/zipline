@@ -27,6 +27,7 @@ from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
+import zipline.lib as lib
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -118,6 +119,40 @@ class Event(object):
 
     def to_series(self, index=None):
         return pd.Series(self.__dict__, index=index)
+
+
+class TradeEvent(Event):
+    type = DATASOURCE_TYPE.TRADE
+
+    def sid_ohlcv(self, sid):
+        return self
+
+    @property
+    def sids_set(self):
+        return set([self.sid])
+
+
+class WideTradeEvent(Event):
+    """
+    Instead of a single-sid TradeEvent, WideTradeEvent contains the data
+    for all sids at a certain point in time. The implicit ordering of
+    TradeEvent's is artificial and inefficient.
+
+    The eventual goal is to remove the concept of single-sid TradeEvent and
+    replace those usecases with a 1-sid WideTradeEvent. For now the
+    consuming API is a bit disjointed.
+    """
+    type = DATASOURCE_TYPE.TRADE
+    _trade_event = TradeEvent()
+
+    # backward compat. eventually remove
+    def sid_ohlcv(self, sid):
+        sid_loc = self.sids.get_loc(sid)
+        data = dict(zip(self.columns, self.vals[sid_loc]))
+        data['dt'] = self.dt
+        data['sid'] = sid
+        WideTradeEvent._trade_event.__dict__ = data
+        return WideTradeEvent._trade_event
 
 
 class Order(Event):
@@ -299,7 +334,10 @@ class SIDData(object):
         self._initial_len = len(self.__dict__) + 1
 
         if initial_values:
-            self.__dict__.update(initial_values)
+            self.update(initial_values)
+
+    def update(self, *args, **kwargs):
+        self.__dict__.update(*args, **kwargs)
 
     @property
     def datetime(self):
@@ -486,9 +524,10 @@ class BarData(object):
     usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, siddata_class=SIDData):
         self._data = data or {}
         self._contains_override = None
+        self._siddata_class = siddata_class
 
     def __contains__(self, name):
         if self._contains_override:
@@ -505,6 +544,26 @@ class BarData(object):
         compatibility with existing algorithms.
         """
         return name in self
+
+    def get_default(self, name):
+        try:
+            sid_data = self[name]
+        except KeyError:
+            sid_data = self[name] = self._siddata_class(name)
+        return sid_data
+
+    def update_sid(self, event):
+        if isinstance(event, WideTradeEvent):
+            sids_set = event.sids_set
+            for sid in sids_set.difference(self._data):
+                # prepopulate
+                self.get_default(sid)
+
+            lib.update_sid(self._data, event.columns.values,
+                           event.sids.values, event.vals, event.dt)
+        else:
+            sid_data = self.get_default(event.sid)
+            sid_data.update(event.__dict__)
 
     def __setitem__(self, name, value):
         self._data[name] = value
