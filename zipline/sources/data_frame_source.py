@@ -22,6 +22,7 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
+from zipline.protocol import WideTradeEvent
 
 
 class DataFrameSource(DataSource):
@@ -112,45 +113,42 @@ class DataPanelSource(DataSource):
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
 
-        self._raw_data = None
-
-    @property
-    def mapping(self):
-        mapping = {
-            'dt': (lambda x: x, 'dt'),
-            'sid': (lambda x: x, 'sid'),
-            'price': (float, 'price'),
-            'volume': (int, 'volume'),
-        }
-
-        # Add additional fields.
-        for field_name in self.data.minor_axis:
-            if field_name in ['price', 'volume', 'dt', 'sid']:
-                continue
-            mapping[field_name] = (lambda x: x, field_name)
-
-        return mapping
+        self.it = self.mapped_data
 
     @property
     def instance_hash(self):
         return self.arg_string
 
-    def raw_data_gen(self):
-        for dt in self.data.major_axis:
-            df = self.data.major_xs(dt)
-            for sid, series in df.iteritems():
-                if sid in self.sids:
-                    event = {
-                        'dt': dt,
-                        'sid': sid,
-                    }
-                    for field_name, value in series.iteritems():
-                        event[field_name] = value
-
-                    yield event
-
     @property
     def raw_data(self):
-        if not self._raw_data:
-            self._raw_data = self.raw_data_gen()
-        return self._raw_data
+        pass
+
+    @property
+    def mapped_data(self):
+        # currently volume is same dtype as prices, float64
+        values = self.data.values
+        major_axis = self.data.major_axis
+        minor_axis = self.data.minor_axis
+        items = self.data.items
+        source_id = self.get_hash()
+
+        evt = WideTradeEvent()
+        evt.sids = items
+        evt.sids_set = set(items)
+        evt.columns = minor_axis
+
+        for i, dt in enumerate(major_axis):
+            df = values[:, i, :]
+            evt.vals = df
+            evt.dt = dt
+            evt.source_id = source_id
+            yield evt
+
+    def __iter__(self):
+        return self.it
+
+    def next(self):
+        return self.it.next()
+
+    def __next__(self):
+        return next(self.it)
