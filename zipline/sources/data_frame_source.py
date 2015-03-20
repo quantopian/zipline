@@ -143,7 +143,7 @@ class DataPanelSource(DataSource):
 
         for i, dt in enumerate(major_axis):
             df = values[:, i, :]
-            evt.vals = df
+            evt.values = df
             evt.dt = dt
             evt.source_id = source_id
             yield evt

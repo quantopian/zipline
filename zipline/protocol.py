@@ -148,7 +148,7 @@ class WideTradeEvent(Event):
     # backward compat. eventually remove
     def sid_ohlcv(self, sid):
         sid_loc = self.sids.get_loc(sid)
-        data = dict(zip(self.columns, self.vals[sid_loc]))
+        data = dict(zip(self.columns, self.values[sid_loc]))
         data['dt'] = self.dt
         data['sid'] = sid
         WideTradeEvent._trade_event.__dict__ = data
@@ -560,7 +560,7 @@ class BarData(object):
                 self.get_default(sid)
 
             lib.update_sid(self._data, np.asarray(event.columns),
-                           np.asarray(event.sids), event.vals, event.dt)
+                           np.asarray(event.sids), event.values, event.dt)
         else:
             sid_data = self.get_default(event.sid)
             sid_data.update(event.__dict__)

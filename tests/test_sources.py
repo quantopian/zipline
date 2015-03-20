@@ -56,7 +56,7 @@ class TestDataFrameSource(TestCase):
                 self.assertTrue('sids' in event)
                 self.assertTrue('arbitrary' in event.columns)
                 arbitrary_idx = event.columns.get_loc('arbitrary')
-                self.assertEquals(event.vals[0][arbitrary_idx], 1.)
+                self.assertEquals(event.values[0][arbitrary_idx], 1.)
                 self.assertEquals(event.sids[0], 0)
             else:
                 self.assertTrue('sid' in event)

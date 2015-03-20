@@ -43,7 +43,7 @@ class PositionTracker(object):
             lib.update_last_sales(self.positions,
                                   np.asarray(event.columns),
                                   np.asarray(event.sids),
-                                  event.vals,
+                                  event.values,
                                   event.dt,
                                   self._position_last_sale_prices,
                                   event.price_loc)
