@@ -192,9 +192,9 @@ class Frequency(object):
         """
         if self.unit_str == 'd':
             if self.data_frequency == 'minute':
-                func = lambda dt: env.get_open_and_close(
-                    env.previous_trading_day(dt),
-                )[1]
+                def func(dt):
+                    return env.get_open_and_close(
+                        env.previous_trading_day(dt))[1]
             else:
                 func = env.previous_trading_day
         else:

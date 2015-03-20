@@ -20,8 +20,8 @@ import numpy as np
 
 ext_modules = [
     Extension(
-        'zipline.assets._securities',
-        ['zipline/assets/_securities.pyx'],
+        'zipline.assets._assets',
+        ['zipline/assets/_assets.pyx'],
         include_dirs=[np.get_include()],
     ),
 ]
@@ -57,7 +57,11 @@ setup(
         'numpy',
         'pandas',
         'six',
+<<<<<<< HEAD
         'Cython'
+=======
+        'Cython',
+>>>>>>> 9cedbdd1c9361d08f596f787e682cdadd8cbf623
     ],
     extras_require={
         'talib':  ["talib"],

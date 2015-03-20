@@ -214,7 +214,6 @@ last_sale_price: {last_sale_price}"
         }
 
     def __getstate__(self):
-
         state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1

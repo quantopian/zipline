@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''
+Tools to connect with an SQL databank.
+'''
+
 
 from zipline.sources.data_source import DataSource
 import pandas as pd
@@ -25,25 +29,24 @@ from sqlalchemy import func
 
 class SqlSource(DataSource):
 
-    def __init__(self, engine, object_orm, **kwargs):
-
+    def __init__(self, engine, data_obj, **kwargs):
         self.engine = engine
-        self.object_orm = object_orm
+        self.data_obj = data_obj
         Session = sessionmaker(bind=engine)
         self.session = Session()
 
-        sid_query = self.session.query(object_orm.sid).distinct().all()
-        sids = [int(i.sid) for i in sid_query]
+        sid_query = self.session.query(data_obj.sid).distinct().all()
+        sids = [i.sid for i in sid_query]
         self.sids = kwargs.get('sids', sids)
 
-        qry = self.session.query(func.min(object_orm.index).label('start'),
-                                 func.max(object_orm.index).label('end'))
+        qry = self.session.query(func.min(data_obj.index).label('start'),
+                                 func.max(data_obj.index).label('end'))
         res = qry.one()
         self.start = pd.Timestamp(res.start).tz_localize('UTC')
         self.end = pd.Timestamp(res.end).tz_localize('UTC')
 
         # Hash_value for downstream sorting.
-        self.arg_string = hash_args(engine, object_orm, **kwargs)
+        self.arg_string = hash_args(engine, data_obj, **kwargs)
 
         self._raw_data = None
 
@@ -62,7 +65,7 @@ class SqlSource(DataSource):
 
     def raw_data_gen(self):
         for sid in self.sids:
-            qry = self.session.query(self.object_orm).filter_by(sid=sid)
+            qry = self.session.query(self.data_obj).filter_by(sid=sid)
             for row in qry:
                 event = {
                     'dt': pd.Timestamp(row.index).tz_localize('UTC'),

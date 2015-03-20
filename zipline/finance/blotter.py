@@ -31,13 +31,13 @@ from zipline.finance.slippage import (
     check_order_triggers
 )
 from zipline.finance.commission import PerShare
-
-log = Logger('Blotter')
-
 from zipline.utils.protocol_utils import Enum
+
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
+
+log = Logger('Blotter')
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -217,7 +217,8 @@ class Blotter(object):
 
         # remove closed orders. we should only have to check
         # processed orders
-        not_open = lambda order: not order.open
+        def not_open(order):
+            return not order.open
         closed_orders = filter(not_open, processed_orders)
         for order in closed_orders:
             orders.remove(order)
@@ -241,8 +242,8 @@ class Blotter(object):
 
                 order.filled += txn.amount
                 if txn.commission is not None:
-                    order.commission = ((order.commission or 0.0)
-                                        + txn.commission)
+                    order.commission = ((order.commission or 0.0) +
+                                        txn.commission)
 
             # mark the date of the order to match the transaction
             # that is filling it.

@@ -252,7 +252,8 @@ class TestMiscellaneousAPI(TestCase):
         ('minute'),
     ])
     def test_schedule_funtion_rule_creation(self, mode):
-        nop = lambda *args, **kwargs: None
+        def nop(*args, **kwargs):
+            return None
 
         self.sim_params.data_frequency = mode
         algo = TradingAlgorithm(

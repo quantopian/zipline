@@ -157,8 +157,8 @@ class AlgorithmSimulator(object):
                                 # If at the end of backtest history,
                                 # skip advancing market close.
                                 pass
-                            if (self.algo.perf_tracker.emission_rate
-                                    == 'minute'):
+                            if self.algo.perf_tracker.emission_rate == \
+                               'minute':
                                 self.algo.perf_tracker\
                                          .handle_intraday_market_close(
                                              mkt_open,
@@ -170,9 +170,8 @@ class AlgorithmSimulator(object):
                     elif data_frequency == 'daily':
                         next_day = trading.environment.next_trading_day(date)
 
-                        if (next_day is not None
-                                and next_day
-                                < self.algo.perf_tracker.last_close):
+                        if next_day is not None and \
+                           next_day < self.algo.perf_tracker.last_close:
                             self._call_before_trading_start(next_day)
 
                     self.algo.portfolio_needs_update = True

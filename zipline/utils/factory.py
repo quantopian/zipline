@@ -363,15 +363,15 @@ def create_test_sql_source():
     _, df = create_test_df_source()
     for index, price in df.iterrows():
         t_orm = TestOrm(
-                index=index,
-                price=price[0],
-                sid=0
-                )
+            index=index,
+            price=price[0],
+            sid=0
+            )
         session.merge(t_orm)
 
     session.commit()
 
-    return SqlSource(engine=engine, object_orm=TestOrm), df
+    return SqlSource(engine=engine, data_obj=TestOrm), df
 
 
 def create_test_panel_ohlc_source(sim_params=None):
