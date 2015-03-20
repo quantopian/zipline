@@ -130,10 +130,9 @@ class StatefulTransform(object):
         # messages should only manipulate copies.
         for message in stream_in:
             # we only handle TRADE and CUSTOM events.
-            if (hasattr(message, 'type')
-                    and message.type not in (
-                        DATASOURCE_TYPE.TRADE,
-                        DATASOURCE_TYPE.CUSTOM)):
+            if hasattr(message, 'type') and \
+               message.type not in (DATASOURCE_TYPE.TRADE,
+                                    DATASOURCE_TYPE.CUSTOM):
                 yield message
                 continue
             # allow upstream generators to yield None to avoid

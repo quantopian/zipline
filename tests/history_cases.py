@@ -576,10 +576,10 @@ HISTORY_CONTAINER_TEST_CASES = {
                 )
                 for key in [spec.key_str for spec in MIXED_FIELDS_SPECS
                             if spec.field not in HistorySpec.FORWARD_FILLABLE]
-            ]
+            ] +
 
-            +  # Concatenate the expected results for non-ffillable with
-               # expected result for ffillable.
+            # Concatenate the expected results for non-ffillable with
+            # expected result for ffillable.
             [
                 (
                     # Forward-fillable fields

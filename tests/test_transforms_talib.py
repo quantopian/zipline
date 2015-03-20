@@ -44,8 +44,8 @@ class TestTALIB(TestCase):
         BLACKLIST = ['make_transform', 'BatchTransform',
                      # TODO: Figure out why MAVP generates a KeyError
                      'MAVP']
-        names = [name for name in dir(ta) if name[0].isupper()
-                 and name not in BLACKLIST]
+        names = [name for name in dir(ta)
+                 if name[0].isupper() and name not in BLACKLIST]
 
         for name in names:
             print(name)
@@ -81,8 +81,8 @@ class TestTALIB(TestCase):
                 expected_result = np.array([e[-1] for e in expected_result])
             else:
                 expected_result = np.array(expected_result[-1])
-            if not (np.all(np.isnan(zipline_result))
-                    and np.all(np.isnan(expected_result))):
+            if not (np.all(np.isnan(zipline_result)) and
+                    np.all(np.isnan(expected_result))):
                 self.assertTrue(np.allclose(zipline_result, expected_result))
             else:
                 print('--- NAN')

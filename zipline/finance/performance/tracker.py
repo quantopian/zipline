@@ -317,11 +317,8 @@ class PerformanceTracker(object):
             pass
 
         elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-            if (
-                self.sim_params.data_frequency == 'minute'
-                and
-                self.sim_params.emission_rate == 'daily'
-            ):
+            if self.sim_params.data_frequency == 'minute' and \
+               self.sim_params.emission_rate == 'daily':
                 # Minute data benchmarks should have a timestamp of market
                 # close, so that calculations are triggered at the right time.
                 # However, risk module uses midnight as the 'day'

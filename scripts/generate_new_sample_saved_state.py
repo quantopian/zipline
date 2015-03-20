@@ -19,7 +19,7 @@ import pickle
 import pytz
 
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, '.')  # noqa
 
 from zipline.finance.blotter import Blotter, Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar

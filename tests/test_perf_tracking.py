@@ -135,8 +135,8 @@ def benchmark_events_in_range(sim_params):
                # any other events.
                'source_id': '1Abenchmarks'})
         for dt, ret in trading.environment.benchmark_returns.iteritems()
-        if dt.date() >= sim_params.period_start.date()
-        and dt.date() <= sim_params.period_end.date()
+        if dt.date() >= sim_params.period_start.date() and
+        dt.date() <= sim_params.period_end.date()
     ]
 
 
