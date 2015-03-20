@@ -20,6 +20,11 @@ def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
     num_cols = len(columns)
     for i in range(len(sids)):
         sid = sids[i]
+
+        # -1 is a sentinel for sid removal
+        if sid == -1:
+            continue
+
         row = vals[i]
         siddata = bardata[sid].__dict__
 
@@ -40,6 +45,11 @@ def update_last_sales(object positions, object[:] columns, int64_t[:] sids,
 
     for i in range(len(sids)):
         sid = sids[i]
+
+        # -1 is a sentinel for sid removal
+        if sid == -1:
+            continue
+
         if sid not in positions:
             continue
 
@@ -50,3 +60,17 @@ def update_last_sales(object positions, object[:] columns, int64_t[:] sids,
             pos.last_sale_date = dt
             pos.last_sale_price = price
             position_last_sales[sid] = price
+
+def unset_sids(int64_t[:] sids, set missing):
+    """
+    Utility function to replace missing sids with a missing sid 
+    sentinel
+    """
+    cdef:
+        int sid
+
+    for i in range(len(sids)):
+        sid = sids[i]
+        # unset with sentinel
+        if sid in missing:
+            sids[i] = -1
