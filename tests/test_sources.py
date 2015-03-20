@@ -33,25 +33,27 @@ from zipline.utils import tradingcalendar as calendar_nyse
 class TestDataFrameSource(TestCase):
     def test_df_source(self):
         source, df = factory.create_test_df_source()
-        assert isinstance(source.start, pd.lib.Timestamp)
-        assert isinstance(source.end, pd.lib.Timestamp)
+        self.assertIsInstance(source.start, pd.lib.Timestamp)
+        self.assertIsInstance(source.end, pd.lib.Timestamp)
 
         for expected_dt, expected_price in df.iterrows():
             sid0 = next(source)
 
-            assert expected_dt == sid0.dt
-            assert expected_price[0] == sid0.price
+            self.assertEqual(expected_dt, sid0.dt)
+            self.assertEqual(expected_price[0], sid0.price)
 
     def test_df_sid_filtering(self):
         _, df = factory.create_test_df_source()
         source = DataFrameSource(df, sids=[0])
-        assert 1 not in [event.sid for event in source], \
-            "DataFrameSource should only stream selected sid 0, not sid 1."
+        for event in source:
+            self.assertNotEquals(event.sid, 1,
+                                 "DataFrameSource should only stream"
+                                 " selected sid 0, not sid 1.")
 
     def test_panel_source(self):
         source, panel = factory.create_test_panel_source()
-        assert isinstance(source.start, pd.lib.Timestamp)
-        assert isinstance(source.end, pd.lib.Timestamp)
+        self.assertIsInstance(source.start, pd.lib.Timestamp)
+        self.assertIsInstance(source.end, pd.lib.Timestamp)
         for event in source:
             self.assertTrue('sid' in event)
             self.assertTrue('arbitrary' in event)
@@ -85,20 +87,22 @@ class TestDataFrameSource(TestCase):
 class TestSqlSource(TestCase):
     def test_sql_source(self):
         source, df = factory.create_test_sql_source()
-        assert isinstance(source.start, pd.lib.Timestamp)
-        assert isinstance(source.end, pd.lib.Timestamp)
+        self.assertIsInstance(source.start, pd.lib.Timestamp)
+        self.assertIsInstance(source.end, pd.lib.Timestamp)
 
         for expected_dt, expected_price in df.iterrows():
             sid0 = next(source)
 
-            assert expected_dt == sid0.dt
-            assert expected_price[0] == sid0.price
+            self.assertEqual(expected_dt, sid0.dt)
+            self.assertEqual(expected_price[0], sid0.price)
 
     def test_sql_sid_filtering(self):
         source, df = factory.create_test_sql_source()
         source = SqlSource(source.engine, source.data_obj, sids=[0])
-        assert 1 not in [event.sid for event in source], \
-            "SqlSource should only stream selected sid 0, not sid 1."
+        for event in source:
+            self.assertNotEquals(event.sid, 1,
+                                 "SqlSource should only stream "
+                                 "selected sid 0, not sid 1.")
 
 
 class TestRandomWalkSource(TestCase):
