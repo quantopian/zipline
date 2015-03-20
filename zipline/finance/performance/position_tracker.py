@@ -19,6 +19,7 @@ from zipline.utils.serialization_utils import (
 
 import zipline.protocol as zp
 from . position import positiondict
+import zipline.lib as lib
 
 log = logbook.Logger('Performance')
 
@@ -38,19 +39,26 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        sid = event.sid
-        if sid not in self.positions:
-            return
+        if isinstance(event, zp.WideTradeEvent):
+            lib.update_last_sales(self.positions,
+                                  event.columns.values,
+                                  event.sids.values,
+                                  event.vals,
+                                  event.dt,
+                                  self._position_last_sale_prices)
+        else:
+            price = event.price
+            sid = event.sid
+            if sid not in self.positions:
+                return
 
-        price = event.price
-        if not checknull(price):
-            pos = self.positions[sid]
-            pos.last_sale_date = event.dt
-            pos.last_sale_price = price
-            self._position_last_sale_prices[sid] = price
-            self._position_values = None  # invalidate cache
-        sid = event.sid
-        price = event.price
+            if not checknull(price):
+                pos = self.positions[sid]
+                pos.last_sale_date = event.dt
+                pos.last_sale_price = price
+                self._position_last_sale_prices[sid] = price
+
+        self._position_values = None  # invalidate cache
 
     def update_positions(self, positions):
         # update positions in batch
