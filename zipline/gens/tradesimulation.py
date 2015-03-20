@@ -18,7 +18,6 @@ from pandas.tslib import normalize_date
 from zipline.finance import trading
 from zipline.protocol import (
     BarData,
-    SIDData,
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
@@ -311,12 +310,5 @@ class AlgorithmSimulator(object):
         """
         Update the universe with new event information.
         """
-        # Update our knowledge of this event's sid
-        # rather than use if event.sid in ..., just trying
-        # and handling the exception is significantly faster
-        try:
-            sid_data = self.current_data[event.sid]
-        except KeyError:
-            sid_data = self.current_data[event.sid] = SIDData(event.sid)
-
-        sid_data.__dict__.update(event.__dict__)
+        # Off loading handling to BarData class
+        self.current_data.update_sid(event)
