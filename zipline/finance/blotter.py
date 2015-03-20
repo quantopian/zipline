@@ -18,6 +18,7 @@ import uuid
 from copy import copy
 from logbook import Logger
 from collections import defaultdict
+from functools import partial
 
 from six import text_type, iteritems
 from six.moves import filter
@@ -48,9 +49,9 @@ ORDER_STATUS = Enum(
 )
 
 
-def identity(obj):
+def identity(self, sid):
     # new flake8 rules about lambdas...
-    return obj
+    return self
 
 
 class Blotter(object):
@@ -205,7 +206,7 @@ class Blotter(object):
         except:
             # handle any Event classes
             sids_set = {trade_event.sid}
-            sid_ohlcv = identity
+            sid_ohlcv = partial(identity, trade_event)
 
         matched = sids_set.intersection(self.open_orders)
         if not matched:
@@ -235,8 +236,7 @@ class Blotter(object):
 
             # remove closed orders. we should only have to check
             # processed orders
-            not_open = lambda order: not order.open
-            closed_orders = filter(not_open, processed_orders)
+            closed_orders = filter(lambda o: not o.open, processed_orders)
             for order in closed_orders:
                 orders.remove(order)
 
