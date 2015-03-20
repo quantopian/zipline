@@ -26,6 +26,7 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
+import zipline.protocol as zp
 
 
 class TestDataFrameSource(TestCase):
@@ -51,14 +52,21 @@ class TestDataFrameSource(TestCase):
         assert isinstance(source.start, pd.lib.Timestamp)
         assert isinstance(source.end, pd.lib.Timestamp)
         for event in source:
-            self.assertTrue('sid' in event)
-            self.assertTrue('arbitrary' in event)
-            self.assertTrue(hasattr(event, 'volume'))
-            self.assertTrue(hasattr(event, 'price'))
-            self.assertEquals(event['arbitrary'], 1.)
-            self.assertEquals(event['sid'], 0)
-            self.assertTrue(isinstance(event['volume'], int))
-            self.assertTrue(isinstance(event['arbitrary'], float))
+            if isinstance(event, zp.WideTradeEvent):
+                self.assertTrue('sids' in event)
+                self.assertTrue('arbitrary' in event.columns)
+                arbitrary_idx = event.columns.get_loc('arbitrary')
+                self.assertEquals(event.vals[0][arbitrary_idx], 1.)
+                self.assertEquals(event.sids[0], 0)
+            else:
+                self.assertTrue('sid' in event)
+                self.assertTrue('arbitrary' in event)
+                self.assertTrue(hasattr(event, 'volume'))
+                self.assertTrue(hasattr(event, 'price'))
+                self.assertEquals(event['arbitrary'], 1.)
+                self.assertEquals(event['sid'], 0)
+                self.assertTrue(isinstance(event['volume'], int))
+                self.assertTrue(isinstance(event['arbitrary'], float))
 
     def test_yahoo_bars_to_panel_source(self):
         stocks = ['AAPL', 'GE']
@@ -74,10 +82,18 @@ class TestDataFrameSource(TestCase):
         source = DataPanelSource(data)
         stocks_iter = cycle(stocks)
         for event in source:
-            for check_field in check_fields:
-                self.assertIn(check_field, event)
-            self.assertTrue(isinstance(event['volume'], (integer_types)))
-            self.assertEqual(next(stocks_iter), event['sid'])
+            if isinstance(event, zp.WideTradeEvent):
+                for check_field in check_fields:
+                    if check_field == 'sid':
+                        continue
+                    self.assertIn(check_field, event.columns)
+                self.assertIn('sids', event)
+                self.assertEqual(event.sids.tolist(), stocks)
+            else:
+                for check_field in check_fields:
+                    self.assertIn(check_field, event)
+                self.assertTrue(isinstance(event['volume'], (integer_types)))
+                self.assertEqual(next(stocks_iter), event['sid'])
 
 
 class TestRandomWalkSource(TestCase):
