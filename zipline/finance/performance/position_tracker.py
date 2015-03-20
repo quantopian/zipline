@@ -45,7 +45,8 @@ class PositionTracker(object):
                                   event.sids.values,
                                   event.vals,
                                   event.dt,
-                                  self._position_last_sale_prices)
+                                  self._position_last_sale_prices,
+                                  event.price_loc)
         else:
             price = event.price
             sid = event.sid

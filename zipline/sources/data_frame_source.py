@@ -136,6 +136,10 @@ class DataPanelSource(DataSource):
         evt.sids = items
         evt.sids_set = set(items)
         evt.columns = minor_axis
+        try:
+            evt.price_loc = evt.columns.get_loc('price')
+        except KeyError:
+            raise Exception("Trade data must have a price column")
 
         for i, dt in enumerate(major_axis):
             df = values[:, i, :]
