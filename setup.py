@@ -57,11 +57,7 @@ setup(
         'numpy',
         'pandas',
         'six',
-<<<<<<< HEAD
-        'Cython'
-=======
         'Cython',
->>>>>>> 9cedbdd1c9361d08f596f787e682cdadd8cbf623
     ],
     extras_require={
         'talib':  ["talib"],
