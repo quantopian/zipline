@@ -151,6 +151,8 @@ class WideTradeEvent(Event):
         data = dict(zip(self.columns, self.values[sid_loc]))
         data['dt'] = self.dt
         data['sid'] = sid
+        if 'close_price' in data:
+            data['price'] = data['close_price']
         WideTradeEvent._trade_event.__dict__ = data
         return WideTradeEvent._trade_event
 
