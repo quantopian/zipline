@@ -23,7 +23,6 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
 
 
 log = logbook.Logger('Trading')
@@ -93,13 +92,34 @@ class TradingEnvironment(object):
         max_date=None,
         env_trading_calendar=tradingcalendar
     ):
+        # `tc_tdays` is short for "trading calendar trading days"
+        # `tc_tday` is short for "trading calendar trading day"
+        tc_tdays = env_trading_calendar.trading_days
+        tc_tday = env_trading_calendar.trading_day
+
+        if max_date:
+            self.trading_days = tc_tdays[tc_tdays <= max_date].copy()
+            self.trading_day = tc_tday[tc_tday <= max_date].copy()
+        else:
+            self.trading_days = tc_tdays.copy()
+            self.trading_day = tc_tday.copy()
+
+        self.first_trading_day = self.trading_days[0]
+        self.last_trading_day = self.trading_days[-1]
+
+        self.early_closes = env_trading_calendar.get_early_closes(
+            self.first_trading_day, self.last_trading_day)
+
+        self.open_and_closes = env_trading_calendar.open_and_closes.loc[
+            self.trading_days]
+
         self.prev_environment = self
         self.bm_symbol = bm_symbol
         if not load:
             load = load_market_data
 
         self.benchmark_returns, treasury_curves_map = \
-            load(self.bm_symbol)
+            load(self.trading_day, self.trading_days, self.bm_symbol)
 
         self.treasury_curves = pd.DataFrame(treasury_curves_map).T
         if max_date:
@@ -111,23 +131,6 @@ class TradingEnvironment(object):
             self.treasury_curves = tr_c[tr_c.index <= max_date]
 
         self.exchange_tz = exchange_tz
-
-        # `tc_td` is short for "trading calendar trading days"
-        tc_td = env_trading_calendar.trading_days
-
-        if max_date:
-            self.trading_days = tc_td[tc_td <= max_date].copy()
-        else:
-            self.trading_days = tc_td.copy()
-
-        self.first_trading_day = self.trading_days[0]
-        self.last_trading_day = self.trading_days[-1]
-
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
-
-        self.open_and_closes = env_trading_calendar.open_and_closes.loc[
-            self.trading_days]
 
     def __enter__(self, *args, **kwargs):
         global environment
