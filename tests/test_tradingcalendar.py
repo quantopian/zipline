@@ -26,7 +26,6 @@ from nose.tools import nottest
 
 class TestTradingCalendar(TestCase):
 
-    @nottest
     def test_calendar_vs_environment(self):
         """
         test_calendar_vs_environment checks whether the
