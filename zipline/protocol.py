@@ -91,6 +91,7 @@ def dividend_payment(data=None):
 
 
 class Event(object):
+    is_wide = False
 
     def __init__(self, initial_values=None):
         if initial_values:
@@ -122,6 +123,7 @@ class Event(object):
 
 
 class TradeEvent(Event):
+    is_wide = False
     type = DATASOURCE_TYPE.TRADE
 
     def sid_ohlcv(self, sid):
@@ -142,6 +144,7 @@ class WideTradeEvent(Event):
     replace those usecases with a 1-sid WideTradeEvent. For now the
     consuming API is a bit disjointed.
     """
+    is_wide = True
     type = DATASOURCE_TYPE.TRADE
     _trade_event = TradeEvent()
 
@@ -555,7 +558,7 @@ class BarData(object):
         return sid_data
 
     def update_sid(self, event):
-        if isinstance(event, WideTradeEvent):
+        if event.is_wide:
             sids_set = event.sids_set
             # prepopulate BarData with missing SIDData
             for sid in sids_set.difference(self._data):

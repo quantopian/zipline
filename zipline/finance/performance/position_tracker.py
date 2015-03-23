@@ -39,7 +39,7 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        if isinstance(event, zp.WideTradeEvent):
+        if event.is_wide:
             lib.update_last_sales(self.positions,
                                   np.asarray(event.columns),
                                   np.asarray(event.sids),
