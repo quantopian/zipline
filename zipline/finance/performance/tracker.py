@@ -188,6 +188,9 @@ class PerformanceTracker(object):
         self.txn_count = 0
         self.event_count = 0
 
+        self.account_needs_update = True
+        self._account = None
+
     def __repr__(self):
         return "%s(%r)" % (
             self.__class__.__name__,
@@ -249,9 +252,15 @@ class PerformanceTracker(object):
         return self.cumulative_performance.as_portfolio()
 
     def get_account(self, performance_needs_update):
+        if self.account_needs_update:
+            self._get_account(performance_needs_update)
+        return self._account
+
+    def _get_account(self, performance_needs_update):
         if performance_needs_update:
             self.update_performance()
-        return self.cumulative_performance.as_account()
+        self._account = self.cumulative_performance.as_account()
+        self.account_needs_update = False
 
     def to_dict(self, emission_type=None):
         """
@@ -390,6 +399,7 @@ class PerformanceTracker(object):
     def handle_minute_close(self, dt):
         self.update_performance()
         todays_date = normalize_date(dt)
+        account = self.get_account(True)
 
         minute_returns = self.minute_performance.returns
         self.minute_performance.rollover()
@@ -398,7 +408,7 @@ class PerformanceTracker(object):
         self.intraday_risk_metrics.update(dt,
                                           minute_returns,
                                           self.all_benchmark_returns[dt],
-                                          self.get_account(True))
+                                          account)
 
         bench_since_open = \
             self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
@@ -406,12 +416,14 @@ class PerformanceTracker(object):
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open,
-                                            self.get_account(True))
+                                            account)
 
         # if this is the close, save the returns objects for cumulative risk
         # calculations and update dividends for the next day.
         if dt == self.market_close:
             self.check_upcoming_dividends(todays_date)
+
+        self.account_needs_update = True
 
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
@@ -427,6 +439,8 @@ class PerformanceTracker(object):
         self.market_open = new_mkt_open
         self.market_close = new_mkt_close
 
+        self.account_needs_update = True
+
     def handle_market_close_daily(self):
         """
         Function called after handle_data when running with daily emission
@@ -434,13 +448,14 @@ class PerformanceTracker(object):
         """
         self.update_performance()
         completed_date = normalize_date(self.market_close)
+        account = self.get_account(True)
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
             completed_date,
             self.todays_performance.returns,
             self.all_benchmark_returns[completed_date],
-            self.get_account(True))
+            account)
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -465,6 +480,8 @@ class PerformanceTracker(object):
         self.todays_performance.period_close = self.market_close
 
         self.check_upcoming_dividends(completed_date)
+
+        self.account_needs_update = True
 
         return daily_update
 
@@ -505,14 +522,14 @@ class PerformanceTracker(object):
         # we already store perf periods as attributes
         del state_dict['perf_periods']
 
-        STATE_VERSION = 2
+        STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 3
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:
@@ -522,13 +539,6 @@ class PerformanceTracker(object):
 
         # Handle the dividend frame specially
         self.dividend_frame = pickle.loads(state['dividend_frame'])
-
-        if version == 1:
-            # V1 had PositionTracker duties on Period.
-            # default to grabbing the position_tracker from cumulatve
-            assert 'position_tracker' not in state
-            position_tracker = self.cumulative_performance.position_tracker
-            self.position_tracker = position_tracker
 
         # properly setup the perf periods
         self.perf_periods = []

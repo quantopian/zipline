@@ -89,6 +89,7 @@ class VersioningTestCase(TestCase):
                 obj2 = cls.__new__(cls)
             if initargs is not None:
                 obj2.__init__(*initargs)
+
             obj2.__setstate__(state)
             for k, v in di_vars.items():
                 setattr(obj2, k, v)

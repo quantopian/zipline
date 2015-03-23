@@ -267,7 +267,8 @@ class RiskMetricsCumulative(object):
             self.annualized_mean_benchmark_returns_cont[:dt]
 
         self.algorithm_cumulative_leverages_cont[dt] = account['leverage']
-        self.algorithm_cumulative_leverages = self.algorithm_cumulative_leverages_cont[:dt]
+        self.algorithm_cumulative_leverages = \
+            self.algorithm_cumulative_leverages_cont[:dt]
 
         if self.create_first_day_stats:
             if len(self.algorithm_cumulative_leverages) == 1:
@@ -406,10 +407,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # net_liquidation = ending_cash + long_exposure + short_exposure
         cur_leverage = self.algorithm_cumulative_leverages[self.latest_dt]
 
-        if cur_leverage is None or self.max_leverage > cur_leverage:
-            return self.max_leverage
-        else:
-            return cur_leverage
+        return max(cur_leverage, self.max_leverage)
 
     def calculate_sharpe(self):
         """
@@ -488,14 +486,14 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             {k: v for k, v in iteritems(self.__dict__) if
                 (not k.startswith('_') and not k == 'treasury_curves')}
 
-        STATE_VERSION = 1
+        STATE_VERSION = 2
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 2
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:

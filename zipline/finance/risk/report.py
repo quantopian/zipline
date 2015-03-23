@@ -72,7 +72,8 @@ log = logbook.Logger('Risk Report')
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params, benchmark_returns=None, algorithm_leverages=None):
+    def __init__(self, algorithm_returns, sim_params,
+                 benchmark_returns=None, algorithm_leverages=None):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
@@ -143,7 +144,7 @@ class RiskReport(object):
                 end_date=cur_end,
                 returns=self.algorithm_returns,
                 benchmark_returns=self.benchmark_returns,
-                algorithm_leverages = self.algorithm_leverages,
+                algorithm_leverages=self.algorithm_leverages,
             )
 
             ends.append(cur_period_metrics)

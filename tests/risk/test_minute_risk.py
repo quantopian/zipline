@@ -47,11 +47,12 @@ class TestMinuteRisk(unittest.TestCase):
 
         first_dt = self.sim_params.first_open
         second_dt = self.sim_params.first_open + datetime.timedelta(minutes=1)
+        account = {'leverage': 0.0}
 
-        risk_metrics.update(first_dt, 1.0, 2.0)
+        risk_metrics.update(first_dt, 1.0, 2.0, account)
 
         self.assertEquals(1, len(risk_metrics.metrics.alpha.valid()))
 
-        risk_metrics.update(second_dt, 3.0, 4.0)
+        risk_metrics.update(second_dt, 3.0, 4.0, account)
 
         self.assertEquals(2, len(risk_metrics.metrics.alpha.valid()))

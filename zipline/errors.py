@@ -68,6 +68,15 @@ Trading controls may only be set in your initialize method.
 """.strip()
 
 
+class RegisterAccountControlPostInit(ZiplineError):
+    # Raised if a user's script register's a trading control after initialize
+    # has been run.
+    msg = """
+You attempted to set an account control outside of `initialize`. \
+Account controls may only be set in your initialize method.
+""".strip()
+
+
 class UnsupportedCommissionModel(ZiplineError):
     """
     Raised if a user script calls the override_commission magic
@@ -150,6 +159,15 @@ class OrderDuringInitialize(ZiplineError):
     Raised if order is called during initialize()
     """
     msg = "{msg}"
+
+
+class AccountControlViolation(ZiplineError):
+    """
+    Raised if the account violates a constraint set by a AccountControl.
+    """
+    msg = """
+Account violates account constraint {constraint}.
+""".strip()
 
 
 class TradingControlViolation(ZiplineError):

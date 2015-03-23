@@ -34,6 +34,7 @@ from zipline.errors import (
     OrderDuringInitialize,
     RegisterTradingControlPostInit,
     TradingControlViolation,
+    AccountControlViolation,
 )
 from zipline.test_algorithms import (
     access_account_in_init,
@@ -56,6 +57,7 @@ from zipline.test_algorithms import (
     SetMaxOrderCountAlgorithm,
     SetMaxOrderSizeAlgorithm,
     SetDoNotOrderListAlgorithm,
+    SetMaxLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
     api_symbol_algo,
@@ -1114,3 +1116,54 @@ class TestTradingControls(TestCase):
                                 handle_data=handle_data)
         algo.run(self.source)
         self.source.rewind()
+
+
+class TestAccountControls(TestCase):
+
+    def setUp(self):
+        self.sim_params = factory.create_simulation_parameters(num_days=4)
+        self.sid = 133
+        self.trade_history = factory.create_trade_history(
+            self.sid,
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
+            self.sim_params
+        )
+
+        self.source = SpecificEquityTrades(event_list=self.trade_history)
+
+    def _check_algo(self,
+                    algo,
+                    handle_data,
+                    expected_exc):
+
+        algo._handle_data = handle_data
+        with self.assertRaises(expected_exc) if expected_exc else nullctx():
+            algo.run(self.source)
+        self.source.rewind()
+
+    def check_algo_succeeds(self, algo, handle_data):
+        # Default for order_count assumes one order per handle_data call.
+        self._check_algo(algo, handle_data, None)
+
+    def check_algo_fails(self, algo, handle_data):
+        self._check_algo(algo,
+                         handle_data,
+                         AccountControlViolation)
+
+    def test_set_max_leverage(self):
+
+        # Set max leverage to 0 so buying one share fails.
+        def handle_data(algo, data):
+            algo.order(self.sid, 1)
+
+        algo = SetMaxLeverageAlgorithm(0)
+        self.check_algo_fails(algo, handle_data)
+
+        # Set max leverage to 1 so buying one share passes
+        def handle_data(algo, data):
+            algo.order(self.sid, 1)
+
+        algo = SetMaxLeverageAlgorithm(1)
+        self.check_algo_succeeds(algo, handle_data)

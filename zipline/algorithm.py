@@ -35,6 +35,7 @@ from zipline.errors import (
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
     RegisterTradingControlPostInit,
+    RegisterAccountControlPostInit,
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
@@ -48,6 +49,7 @@ from zipline.finance.controls import (
     MaxOrderCount,
     MaxOrderSize,
     MaxPositionSize,
+    MaxLeverage,
     RestrictedListOrder
 )
 from zipline.finance.execution import (
@@ -143,6 +145,9 @@ class TradingAlgorithm(object):
 
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
+
+        # List of account controls to be checked on each bar.
+        self.account_controls = []
 
         self._recorded_vars = {}
         self.namespace = kwargs.get('namespace', {})
@@ -270,6 +275,11 @@ class TradingAlgorithm(object):
             self.history_container.update(data, self.datetime)
 
         self._handle_data(self, data)
+
+        # Unlike trading controls which remain constant unless placing an
+        # order, account controls can change each bar. Thus, must check
+        # every bar no matter if the algorithm places an order or not.
+        self.validate_account_controls()
 
     def analyze(self, perf):
         if self._analyze is None:
@@ -1000,6 +1010,33 @@ class TradingAlgorithm(object):
             ffill,
         )
         return self.history_container.get_history(history_spec, self.datetime)
+
+    ####################
+    # Account Controls #
+    ####################
+
+    def register_account_control(self, control):
+        """
+        Register a new AccountControl to be checked on each bar.
+        """
+        if self.initialized:
+            raise RegisterAccountControlPostInit()
+        self.account_controls.append(control)
+
+    def validate_account_controls(self):
+        for control in self.account_controls:
+            control.validate(self.updated_portfolio(),
+                             self.updated_account(),
+                             self.get_datetime(),
+                             self.trading_client.current_data)
+
+    @api_method
+    def set_max_leverage(self, max_leverage=None):
+        """
+        Set a limit on the maximum leverage of the algorithm.
+        """
+        control = MaxLeverage(max_leverage)
+        self.register_account_control(control)
 
     ####################
     # Trading Controls #
