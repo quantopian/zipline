@@ -134,6 +134,37 @@ class TradeEvent(Event):
         return set([self.sid])
 
 
+_missing = object()
+
+
+def sid_ohlcv(event, sid=_missing):
+    """
+    Function to grab sid ohlcv data.
+    If sid is explicitly passed a None, then we assume that event is meant
+    to be a single sid, even if it is wide.
+    """
+    if sid is _missing:
+        raise TypeError("sid cannot be missing")
+
+    # regular ole event
+    if not event.is_wide:
+        if sid is None:
+            return event
+        # sanity check
+        assert event.sid == sid
+        return event
+
+    # sid is none and event is Wide
+    if sid is None:
+        if len(event.sids) != 1:
+            raise Exception("If sid is None, event can only have one sid")
+        sid = event.sids[0]
+
+    event = event.sid_ohlcv(sid)
+    assert event.sid == sid
+    return event
+
+
 class WideTradeEvent(Event):
     """
     Instead of a single-sid TradeEvent, WideTradeEvent contains the data
