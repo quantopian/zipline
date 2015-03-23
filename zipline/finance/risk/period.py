@@ -48,7 +48,8 @@ choose_treasury = functools.partial(risk.choose_treasury,
 
 class RiskMetricsPeriod(object):
     def __init__(self, start_date, end_date, returns,
-                 benchmark_returns=None, algorithm_leverages=None):
+                 benchmark_returns=None,
+                 algorithm_leverages=None):
 
         treasury_curves = trading.environment.treasury_curves
         if treasury_curves.index[-1] >= start_date:
@@ -289,7 +290,7 @@ class RiskMetricsPeriod(object):
         for r in self.algorithm_returns:
             try:
                 cur_return += math.log(1.0 + r)
-            # this is a guard for a single day returning -100%, if returns are 
+            # this is a guard for a single day returning -100%, if returns are
             # greater than -1.0 it will throw an error because you cannot take
             # the log of a negative number
             except ValueError:
@@ -314,21 +315,24 @@ class RiskMetricsPeriod(object):
         return 1.0 - math.exp(max_drawdown)
 
     def calculate_max_leverage(self):
-        return max(self.algorithm_leverages.values)
+        if self.algorithm_leverages is None:
+            return 0.0
+        else:
+            return max(self.algorithm_leverages.values)
 
     def __getstate__(self):
         state_dict = \
             {k: v for k, v in iteritems(self.__dict__) if
              (not k.startswith('_') and not k == 'treasury_curves')}
 
-        STATE_VERSION = 1
+        STATE_VERSION = 2
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 2
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:

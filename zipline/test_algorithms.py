@@ -416,6 +416,16 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
 
 
 ############################
+# AccountControl Test Algos#
+############################
+
+
+class SetMaxLeverageAlgorithm(TradingAlgorithm):
+    def initialize(self, max_leverage=None):
+        self.set_max_leverage(max_leverage=max_leverage)
+
+
+############################
 # TradingControl Test Algos#
 ############################
 

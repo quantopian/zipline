@@ -56,7 +56,8 @@ class TestRisk(unittest.TestCase):
         for dt, returns in answer_key.RETURNS_DATA.iterrows():
             self.cumulative_metrics_06.update(dt,
                                               returns['Algorithm Returns'],
-                                              returns['Benchmark Returns'])
+                                              returns['Benchmark Returns'],
+                                              {'leverage': 0.0})
 
     def test_algorithm_volatility_06(self):
         algo_vol_answers = answer_key.RISK_CUMULATIVE.volatility
