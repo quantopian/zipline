@@ -31,6 +31,8 @@ def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
         for k in range(num_cols):
             col = columns[k]
             siddata[col] = row[k]
+            if col == 'close_price':
+                siddata['price'] = row[k]
         siddata['dt'] = dt
 
 
