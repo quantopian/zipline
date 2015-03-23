@@ -10,7 +10,7 @@ from cpython.dict cimport PyDict_Clear, PyDict_DelItem, PyDict_SetItem
 
 
 def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
-               float64_t[:, :] values, object dt):
+               float64_t[:, :] values, object dt, dict sid_translate):
     cdef:
         float64_t[:] row
         dict siddata
@@ -33,6 +33,8 @@ def update_sid(dict bardata, object[:] columns, int64_t[:] sids,
             siddata[col] = row[k]
             if col == 'close_price':
                 siddata['price'] = row[k]
+        if 'sid' not in siddata:
+            siddata['sid'] = sid_translate.get(sid, sid)
         siddata['dt'] = dt
 
 

@@ -591,16 +591,17 @@ class BarData(object):
     def update_sid(self, event):
         if event.is_wide:
             sids_set = event.sids_set
+            # until https://github.com/quantopian/zipline/issues/537
+            # gets resolved, using sid_translate dict
+            sid_translate = getattr(event, 'sid_translate', {})
             # prepopulate BarData with missing SIDData
             for sid in sids_set.difference(self._data):
-                # until https://github.com/quantopian/zipline/issues/537
-                # gets resolved, using sid_translate dict
-                if hasattr(event, 'sid_translate'):
-                    sid = event.sid_translate.get(sid)
+                sid = sid_translate.get(sid, sid)
                 self.get_default(sid)
 
             lib.update_sid(self._data, np.asarray(event.columns),
-                           np.asarray(event.sids), event.values, event.dt)
+                           np.asarray(event.sids), event.values, event.dt,
+                           sid_translate)
         else:
             sid_data = self.get_default(event.sid)
             sid_data.update(event.__dict__)
