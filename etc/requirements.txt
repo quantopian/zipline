@@ -3,13 +3,13 @@ Logbook==0.9.0
 
 # Scientific Libraries
 
-pytz==2014.10
+pytz==2015.2
 numpy==1.9.2
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
 scipy==0.15.1
-pandas==0.15.2
+pandas==0.16.0
 # Needed for parts of pandas.stats
 patsy==0.3.0
 statsmodels==0.6.1
@@ -19,7 +19,7 @@ python-dateutil==2.4.1
 six==1.9.0
 
 # For fetching remote data
-requests==2.5.3
+requests==2.6.0
 
 Cython==0.22
 
