@@ -26,5 +26,8 @@ Cython==0.22
 # faster OrderedDict
 cyordereddict==0.2.2
 
+# for communicating with an sql databank
+sqlalchemy
+
 # faster array ops.
 bottleneck==1.0.0
