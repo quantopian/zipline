@@ -285,18 +285,13 @@ class SIDData(object):
     # This will remain constant for a given bar and day count.
     # This maps days to number of minutes.
     _minute_bar_cache = {}
+    __slots__ = ('_sid', '_freqstr', '__dict__')
 
     def __init__(self, sid, initial_values=None):
         self._sid = sid
 
         self._freqstr = None
-
-        # To check if we have data, we use the __len__ which depends on the
-        # __dict__. Because we are foward defining the attributes needed, we
-        # need to account for their entrys in the __dict__.
-        # We will add 1 because we need to account for the _initial_len entry
-        # itself.
-        self._initial_len = len(self.__dict__) + 1
+        self.__dict__ = {}
 
         if initial_values:
             self.__dict__.update(initial_values)
@@ -326,13 +321,17 @@ class SIDData(object):
         self.__dict__[name] = value
 
     def __len__(self):
-        return len(self.__dict__) - self._initial_len
+        return len(self.__dict__)
 
     def __contains__(self, name):
         return name in self.__dict__
 
     def __repr__(self):
         return "SIDData({0})".format(self.__dict__)
+
+    def __bool__(self):
+        return bool(self.__dict__)
+    __nonzero__ = __bool__  # python 2 compat
 
     def _get_buffer(self, bars, field='price', raw=False):
         """
