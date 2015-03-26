@@ -214,6 +214,7 @@ cdef class Future(Asset):
 
     cdef readonly object notice_date
     cdef readonly object expiration_date
+    cdef readonly int contract_multiplier
 
     def __cinit__(self,
                   int sid, # sid is required
@@ -224,16 +225,18 @@ cdef class Future(Asset):
                   object notice_date=None,
                   object expiration_date=None,
                   object first_traded=None,
-                  object exchange=""):
+                  object exchange="",
+                  int contract_multiplier=1):
 
-        self.asset_type       = FUTURE
-        self.notice_date      = notice_date
-        self.expiration_date  = expiration_date
+        self.asset_type          = FUTURE
+        self.notice_date         = notice_date
+        self.expiration_date     = expiration_date
+        self.contract_multiplier = contract_multiplier
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded', 'notice_date',
-                 'expiration_date')
+                 'expiration_date', 'contract_multiplier')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
