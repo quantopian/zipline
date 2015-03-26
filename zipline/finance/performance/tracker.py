@@ -283,8 +283,11 @@ class PerformanceTracker(object):
         self.event_count += 1
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
-            # update last sale
-            self.position_tracker.update_last_sale(event)
+            # update last sale, and pay out a cash adjustment
+            cash_adjustment = self.position_tracker.update_last_sale(event)
+            if cash_adjustment != 0:
+                for perf_period in self.perf_periods:
+                    perf_period.handle_cash_payment(cash_adjustment)
 
         elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
             # Trade simulation always follows a transaction with the
