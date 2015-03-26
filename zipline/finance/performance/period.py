@@ -234,6 +234,10 @@ class PerformancePeriod(object):
         return self.position_tracker.position_last_sale_prices
 
     @position_proxy
+    def calculate_positions_exposure(self):
+        raise ProxyError()
+
+    @position_proxy
     def calculate_positions_value(self):
         raise ProxyError()
 
@@ -250,6 +254,10 @@ class PerformancePeriod(object):
         raise ProxyError()
 
     @position_proxy
+    def _long_value(self):
+        raise ProxyError()
+
+    @position_proxy
     def _shorts_count(self):
         raise ProxyError()
 
@@ -258,18 +266,28 @@ class PerformancePeriod(object):
         raise ProxyError()
 
     @position_proxy
+    def _short_value(self):
+        raise ProxyError()
+
+    @position_proxy
     def _gross_exposure(self):
+        raise ProxyError()
+
+    @position_proxy
+    def _gross_value(self):
         raise ProxyError()
 
     @position_proxy
     def _net_exposure(self):
         raise ProxyError()
 
+    @position_proxy
+    def _net_value(self):
+        raise ProxyError()
+
     @property
     def _net_liquidation_value(self):
-        return self.ending_cash + \
-            self._long_exposure() + \
-            self._short_exposure()
+        return self.ending_cash + self._long_value() + self._short_value()
 
     def _gross_leverage(self):
         net_liq = self._net_liquidation_value
@@ -303,6 +321,8 @@ class PerformancePeriod(object):
             'net_leverage': self._net_leverage(),
             'short_exposure': self._short_exposure(),
             'long_exposure': self._long_exposure(),
+            'short_value': self._short_value(),
+            'long_value': self._long_value(),
             'longs_count': self._longs_count(),
             'shorts_count': self._shorts_count()
         }

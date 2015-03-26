@@ -188,17 +188,29 @@ class PositionTracker(object):
     def _long_exposure(self):
         return sum(filter(lambda x: x > 0, self.position_exposures))
 
+    def _long_value(self):
+        return sum(filter(lambda x: x > 0, self.position_values))
+
     def _shorts_count(self):
         return sum(map(lambda x: x < 0, self.position_exposures))
 
     def _short_exposure(self):
         return sum(filter(lambda x: x < 0, self.position_exposures))
 
+    def _short_value(self):
+        return sum(filter(lambda x: x < 0, self.position_values))
+
     def _gross_exposure(self):
         return self._long_exposure() + abs(self._short_exposure())
 
+    def _gross_value(self):
+        return self._long_value() + abs(self._short_value())
+
     def _net_exposure(self):
         return self.calculate_positions_exposure()
+
+    def _net_value(self):
+        return self.calculate_positions_value()
 
     def handle_split(self, split):
         if split.sid in self.positions:
