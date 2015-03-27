@@ -18,13 +18,12 @@ from zipline.utils.serialization_utils import (
 )
 
 import zipline.protocol as zp
+from zipline.assets.assets import (
+    FUTURE, EQUITY
+)
 from . position import positiondict
 
 log = logbook.Logger('Performance')
-
-# These values should match the AssetType enum in zipline.assets._assets
-EQUITY = 1
-FUTURE = 2
 
 
 class PositionTracker(object):
@@ -77,13 +76,13 @@ class PositionTracker(object):
             self._position_last_sale_prices[sid] = pos.last_sale_price
 
             # Collect the value multipliers from applicable sids
-            if sid.asset_type == FUTURE:
+            if sid.asset_type == EQUITY:
+                self._position_value_multiplier[sid] = 1
+                self._position_exposure_multiplier[sid] = 1
+            elif sid.asset_type == FUTURE:
                 self._position_value_multiplier[sid] = 0
                 self._position_exposure_multiplier[sid] = \
                     sid.contract_multiplier
-            else:
-                self._position_value_multiplier[sid] = 1
-                self._position_exposure_multiplier[sid] = 1
 
             # Invalidate cache.
             self._position_values = None  # invalidate cache
@@ -118,13 +117,13 @@ class PositionTracker(object):
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
 
-        if sid.asset_type == FUTURE:
+        if sid.asset_type == EQUITY:
+            self._position_value_multiplier[sid] = 1
+            self._position_exposure_multiplier[sid] = 1
+        elif sid.asset_type == FUTURE:
             self._position_value_multiplier[sid] = 0
             self._position_exposure_multiplier[sid] = \
                 sid.contract_multiplier
-        else:
-            self._position_value_multiplier[sid] = 1
-            self._position_exposure_multiplier[sid] = 1
 
         self._position_values = None  # invalidate cache
         self._position_exposures = None
