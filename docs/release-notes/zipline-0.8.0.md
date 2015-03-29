@@ -78,10 +78,10 @@ data[security].stddev(3)
   >
   # take half of my available cash and buy AAPL
   order_percent('AAPL', 0.5, percent_of='cash')
-  > 
+  >
   # rebalance my short position, as a percentage of my current short book
   order_target_percent('MSFT', 0.1, percent_of='shorts')
-  > 
+  >
   # rebalance within a custom group of stocks
   tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
   tech_filter = lambda p: p.sid in tech_stocks
@@ -90,6 +90,8 @@ data[security].stddev(3)
   ```
 
 ### Major performance enhancements to history (by Dale Jung) [PR488](https://github.com/quantopian/zipline/commit/38e8d5214d46f089020703712dc6b3f4f6ee084d)
+
+### Command line option to for printing algo to stdout (by Andrea D'Amore) [PR545](https://github.com/quantopian/zipline/pull/545)
 
 ## Contributors
 
@@ -112,4 +114,5 @@ The following people have contributed to this release, ordered by numbers of com
      1  Mete Atamel
      1  Nicholas Pezolano
      1  Philipp Kosel
+     1  Andrea D'Amore
 ```

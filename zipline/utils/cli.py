@@ -100,12 +100,17 @@ def parse_args(argv, ipython_mode=False):
     parser.add_argument('--start', '-s')
     parser.add_argument('--end', '-e')
     parser.add_argument('--capital_base')
-    parser.add_argument('--source', '-d')
+    parser.add_argument('--source', '-d', choices=('yahoo',))
     parser.add_argument('--source_time_column', '-t')
     parser.add_argument('--symbols')
     parser.add_argument('--output', '-o')
     parser.add_argument('--metadata_path', '-m')
     parser.add_argument('--metadata_index', '-x')
+    parser.add_argument('--print-algo', '-p', dest='print_algo',
+                        action='store_true')
+    parser.add_argument('--no-print-algo', '-q', dest='print_algo',
+                        action='store_false')
+
     if ipython_mode:
         parser.add_argument('--local_namespace', action='store_true')
 
