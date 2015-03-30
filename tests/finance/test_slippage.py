@@ -76,7 +76,8 @@ class SlippageTestCase(TestCase):
             'sid': int(133),
             'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
-            'order_id': open_orders[0].id
+            'order_id': open_orders[0].id,
+            'slippage_price_effect': 0.018750000000000003
         }
 
         self.assertIsNotNone(txn)
