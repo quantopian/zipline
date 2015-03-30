@@ -389,7 +389,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, overwrite_sim_params=True,
+    def run(self, source, asset_metadata, overwrite_sim_params=True,
             benchmark_return_source=None):
         """Run the algorithm.
 
@@ -405,6 +405,22 @@ class TradingAlgorithm(object):
                  different sids
                * index must be DatetimeIndex
                * array contents should be price info.
+
+            asset_metadata: can be either:
+                            - dict
+                            - pandas.DataFrame
+                            - zipline AssetMetaDataSource
+
+                If dict is provided, it must have the following structure:
+                * keys are the sids
+                * values are dicts containing the metadata, with the metadata
+                  field name as the key
+
+                If pandas.DataFrame is provided, it must have the
+                following structure:
+                * column names must consist of the different sids
+                * index must be the name of the metadata field
+                * array contents should be the metadata value
 
         :Returns:
             daily_stats : pandas.DataFrame

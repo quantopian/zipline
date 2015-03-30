@@ -24,6 +24,7 @@ import numpy as np
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.utils.tradingcalendar import get_early_closes
+from zipline.assets.assets import AssetFinder
 
 
 log = logbook.Logger('Trading')
@@ -91,7 +92,8 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
         max_date=None,
-        env_trading_calendar=tradingcalendar
+        env_trading_calendar=tradingcalendar,
+        asset_metadata_source=None,
     ):
         self.prev_environment = self
         self.bm_symbol = bm_symbol
@@ -128,6 +130,8 @@ class TradingEnvironment(object):
 
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
+
+        self.asset_finder = AssetFinder(table=asset_metadata_source)
 
     def __enter__(self, *args, **kwargs):
         global environment

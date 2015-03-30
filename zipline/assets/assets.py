@@ -1,9 +1,22 @@
+#
+# Copyright 2015 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import ABCMeta
 from itertools import chain
 from numbers import Integral
 import operator
-from datetime import datetime
-import pytz
 
 from logbook import Logger
 import pandas as pd
@@ -19,6 +32,7 @@ from zipline.assets._assets import (
     Asset, Equity, Future
 )
 
+# asset_type values
 # These values should match the AssetType enum in zipline.assets._assets
 EQUITY = 1
 FUTURE = 2
@@ -30,7 +44,10 @@ class AssetFinder(object):
 
     shared_caches = {'by_sid': {}, 'by_symbol': {}, 'fuzzy_match': {}}
 
-    def __init__(self, table, force_populate=False):
+    def __init__(self,
+                 table,
+                 force_populate=False,
+    ):
 
         self.table = table
         self.populate_cache(table, force_populate)
