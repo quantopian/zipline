@@ -98,7 +98,7 @@ class PerformanceTracker(object):
             trading.environment.get_open_and_close(first_day)
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
-        self.emission_rate = sim_params.emission_rate
+        self.emission_rate = self.sim_params.emission_rate
 
         all_trading_days = trading.environment.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
