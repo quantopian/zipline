@@ -553,9 +553,6 @@ def handle_data(context, data):
         # placed.
         self.zipline_test_config['order_count'] = 1
 
-        # self.zipline_test_config['transforms'] = \
-        #     test_algo.transform_visitor.transforms.values()
-
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config)
 
@@ -617,9 +614,6 @@ def handle_data(context, data):
         # spreadsheet for details:
 # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
         self.zipline_test_config['expected_transactions'] = 67
-
-        # self.zipline_test_config['transforms'] = \
-        #     test_algo.transform_visitor.transforms.values()
 
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config)

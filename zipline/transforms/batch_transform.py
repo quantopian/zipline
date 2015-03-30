@@ -37,8 +37,6 @@ from zipline.protocol import Event
 
 from zipline.finance import trading
 
-from . utils import check_window_length
-
 log = logbook.Logger('BatchTransform')
 func_map = {'open_price': 'first',
             'close_price': 'last',
@@ -90,6 +88,28 @@ def get_date(mkt_close, d1, d2, d):
         return d2
     else:
         return d1
+
+
+class InvalidWindowLength(Exception):
+    """
+    Error raised when the window length is unusable.
+    """
+    pass
+
+
+def check_window_length(window_length):
+    """
+    Ensure the window length provided to a transform is valid.
+    """
+    if window_length is None:
+        raise InvalidWindowLength("window_length must be provided")
+    if not isinstance(window_length, Integral):
+        raise InvalidWindowLength(
+            "window_length must be an integer-like number")
+    if window_length == 0:
+        raise InvalidWindowLength("window_length must be non-zero")
+    if window_length < 0:
+        raise InvalidWindowLength("window_length must be positive")
 
 
 class BatchTransform(object):

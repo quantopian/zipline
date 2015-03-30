@@ -23,8 +23,6 @@ def create_test_zipline(**config):
              Expects an object with a simulate mehod, such as
              :py:class:`zipline.gens.tradingsimulation.FixedSlippage`.
              :py:mod:`zipline.finance.trading`
-           - transforms: optional parameter that provides a list
-             of StatefulTransform objects.
        """
     assert isinstance(config, dict)
     sid_list = config.get('sid_list')
@@ -86,14 +84,6 @@ def create_test_zipline(**config):
     # -------------------
 
     test_algo.benchmark_return_source = config.get('benchmark_source', None)
-
-    # -------------------
-    # Transforms
-    # -------------------
-
-    transforms = config.get('transforms', None)
-    if transforms is not None:
-        test_algo.set_transforms(transforms)
 
     # ------------------
     # generator/simulator

@@ -15,8 +15,6 @@
 
 import heapq
 
-from six.moves import reduce
-
 
 def _decorate_source(source):
     for message in source:
@@ -33,17 +31,3 @@ def date_sorted_sources(*sources):
     # Strip out key decoration
     for _, message in sorted_stream:
         yield message
-
-
-def sequential_transforms(stream_in, *transforms):
-    """
-    Apply each transform in transforms sequentially to each event in stream_in.
-    Each transform application will add a new entry indexed to the transform's
-    hash string.
-    """
-    # Recursively apply all transforms to the stream.
-    stream_out = reduce(lambda stream, tnfm: tnfm.transform(stream),
-                        transforms,
-                        stream_in)
-
-    return stream_out

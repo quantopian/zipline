@@ -109,19 +109,6 @@ class ExceptionSource(object):
         5 / 0
 
 
-class ExceptionTransform(object):
-
-    def __init__(self):
-        self.window_length = 1
-        pass
-
-    def get_hash(self):
-        return "ExceptionTransform"
-
-    def update(self, event):
-        assert False, "An assertion message"
-
-
 @contextmanager
 def nullctx():
     """
