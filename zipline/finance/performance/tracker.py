@@ -215,7 +215,7 @@ class PerformanceTracker(object):
         """
 
         # Mark each new dividend with a unique integer id.  This ensures that
-        # we can differentiate dividends whose date/sid fields are otherwise
+        # we can differentiate dividends whose date/asset fields are otherwise
         # identical.
         new_dividends['id'] = np.arange(
             self._dividend_count,
@@ -281,6 +281,18 @@ class PerformanceTracker(object):
 
     def process_event(self, event):
         self.event_count += 1
+
+        #TODO replace this hack
+        if hasattr(event, 'sid'):
+            asset = trading.environment.asset_finder.\
+                retrieve_asset(event.sid)
+            if asset is not None:
+                event.asset = asset
+        if hasattr(event, 'payment_sid'):
+            payment_asset = trading.environment.asset_finder.\
+                retrieve_asset(event.payment_sid)
+            if payment_asset is not None:
+                event.payment_asset = payment_asset
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale, and pay out a cash adjustment
