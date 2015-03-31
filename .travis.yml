@@ -24,7 +24,7 @@ install:
   - grep pep8== etc/requirements_dev.txt | xargs pip install
   - grep mccabe== etc/requirements_dev.txt | xargs pip install
   - grep flake8== etc/requirements_dev.txt | xargs pip install
-  - grep nose== etc/requirements_dev.txt | xargs pip install
+  - grep nose== etc/requirements_dev.txt | xargs pip install --upgrade --force-reinstall
   - grep nose-parameterized== etc/requirements_dev.txt | xargs pip install
   - grep nose-ignore-docstring== etc/requirements_dev.txt | xargs pip install
   - pip install coveralls
