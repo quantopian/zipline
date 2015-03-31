@@ -83,7 +83,7 @@ def assert_single_position(test, zipline):
 
     sid = test.zipline_test_config['sid']
     test.assertEqual(
-        closing_positions[0]['asset'].sid,
+        closing_positions[0]['sid'],
         sid,
         "Portfolio should have one position in " + str(sid)
     )

@@ -288,11 +288,6 @@ class PerformanceTracker(object):
                 retrieve_asset(event.sid)
             if asset is not None:
                 event.asset = asset
-        if hasattr(event, 'payment_sid'):
-            payment_asset = trading.environment.asset_finder.\
-                retrieve_asset(event.payment_sid)
-            if payment_asset is not None:
-                event.payment_asset = payment_asset
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale, and pay out a cash adjustment

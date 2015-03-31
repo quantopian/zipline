@@ -43,23 +43,24 @@ class PositionTracker(object):
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
-        asset = event.asset
-        if asset not in self.positions:
+        sid = event.sid
+        if sid not in self.positions:
             return 0
 
         cash_adjustment = 0
         price = event.price
 
         if not checknull(price):
-            pos = self.positions[asset]
+            pos = self.positions[sid]
             old_price = pos.last_sale_price
             pos.last_sale_date = event.dt
             pos.last_sale_price = price
-            self._position_last_sale_prices[asset] = price
+            self._position_last_sale_prices[sid] = price
             self._position_values = None  # invalidate cache
             self._position_exposures = None
 
             # Calculate cash adjustment on futures
+            asset = event.asset
             if asset.asset_type == FUTURE:
                 price_change = price - old_price
                 cash_adjustment = price_change * asset.contract_multiplier \
@@ -72,34 +73,35 @@ class PositionTracker(object):
         # update positions in batch
         self.positions.update(positions)
         for asset, pos in iteritems(positions):
-            self._position_amounts[asset] = pos.amount
-            self._position_last_sale_prices[asset] = pos.last_sale_price
+            sid = asset.sid
+            self._position_amounts[sid] = pos.amount
+            self._position_last_sale_prices[sid] = pos.last_sale_price
 
             # Collect the value multipliers from applicable sids
             if asset.asset_type == EQUITY:
-                self._position_value_multiplier[asset] = 1
-                self._position_exposure_multiplier[asset] = 1
+                self._position_value_multiplier[sid] = 1
+                self._position_exposure_multiplier[sid] = 1
             elif asset.asset_type == FUTURE:
-                self._position_value_multiplier[asset] = 0
-                self._position_exposure_multiplier[asset] = \
+                self._position_value_multiplier[sid] = 0
+                self._position_exposure_multiplier[sid] = \
                     asset.contract_multiplier
 
             # Invalidate cache.
             self._position_values = None  # invalidate cache
             self._position_exposures = None
 
-    def update_position(self, asset, amount=None, last_sale_price=None,
+    def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):
-        pos = self.positions[asset]
+        pos = self.positions[sid]
 
         if amount is not None:
             pos.amount = amount
-            self._position_amounts[asset] = amount
+            self._position_amounts[sid] = amount
             self._position_values = None  # invalidate cache
             self._position_exposures = None
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
-            self._position_last_sale_prices[asset] = last_sale_price
+            self._position_last_sale_prices[sid] = last_sale_price
             self._position_values = None  # invalidate cache
             self._position_exposures = None
         if last_sale_date is not None:
@@ -111,18 +113,19 @@ class PositionTracker(object):
         # Update Position
         # ----------------
 
+        sid = txn.sid
         asset = txn.asset
-        position = self.positions[asset]
+        position = self.positions[sid]
         position.update(txn)
-        self._position_amounts[asset] = position.amount
-        self._position_last_sale_prices[asset] = position.last_sale_price
+        self._position_amounts[sid] = position.amount
+        self._position_last_sale_prices[sid] = position.last_sale_price
 
         if asset.asset_type == EQUITY:
-            self._position_value_multiplier[asset] = 1
-            self._position_exposure_multiplier[asset] = 1
+            self._position_value_multiplier[sid] = 1
+            self._position_exposure_multiplier[sid] = 1
         elif asset.asset_type == FUTURE:
-            self._position_value_multiplier[asset] = 0
-            self._position_exposure_multiplier[asset] = \
+            self._position_value_multiplier[sid] = 0
+            self._position_exposure_multiplier[sid] = \
                 asset.contract_multiplier
 
         self._position_values = None  # invalidate cache
@@ -130,8 +133,8 @@ class PositionTracker(object):
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it
-        if commission.asset in self.positions:
-            self.positions[commission.asset].\
+        if commission.sid in self.positions:
+            self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
     _position_values = None
@@ -212,13 +215,13 @@ class PositionTracker(object):
         return self.calculate_positions_value()
 
     def handle_split(self, split):
-        if split.asset in self.positions:
+        if split.sid in self.positions:
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.asset]
+            position = self.positions[split.sid]
             leftover_cash = position.handle_split(split)
-            self._position_amounts[split.asset] = position.amount
-            self._position_last_sale_prices[split.asset] = \
+            self._position_amounts[split.sid] = position.amount
+            self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
             self._position_values = None  # invalidate cache
             self._position_exposures = None
@@ -230,8 +233,8 @@ class PositionTracker(object):
         zipline.protocol.DIVIDEND_FIELDS (plus an 'id' field) representing
         the cash/stock amount we are owed when the dividend is paid.
         """
-        if dividend['asset'] in self.positions:
-            return self.positions[dividend['asset']].earn_dividend(dividend)
+        if dividend['sid'] in self.positions:
+            return self.positions[dividend['sid']].earn_dividend(dividend)
         else:
             return zp.dividend_payment()
 
@@ -277,9 +280,9 @@ class PositionTracker(object):
 
         # Add stock for any stock dividends paid.  Again, the values here may
         # be negative in the case of short positions.
-        stock_payments = payments[payments['payment_asset'].notnull()]
+        stock_payments = payments[payments['payment_sid'].notnull()]
         for _, row in stock_payments.iterrows():
-            stock = row['payment_asset']
+            stock = row['payment_sid']
             share_count = row['share_count']
             # note we create a Position for stock dividend if we don't
             # already own the security
@@ -300,7 +303,7 @@ class PositionTracker(object):
 
         positions = self._positions_store
 
-        for asset, pos in iteritems(self.positions):
+        for sid, pos in iteritems(self.positions):
 
             if pos.amount == 0:
                 # Clear out the position if it has become empty since the last
@@ -308,14 +311,14 @@ class PositionTracker(object):
                 # faster than checking `if sid in positions`, and this can be
                 # potentially called in a tight inner loop.
                 try:
-                    del positions[asset]
+                    del positions[sid]
                 except KeyError:
                     pass
                 continue
 
             # Note that this will create a position if we don't currently have
             # an entry
-            position = positions[asset]
+            position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price = pos.last_sale_price
@@ -323,7 +326,7 @@ class PositionTracker(object):
 
     def get_positions_list(self):
         positions = []
-        for asset, pos in iteritems(self.positions):
+        for sid, pos in iteritems(self.positions):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
