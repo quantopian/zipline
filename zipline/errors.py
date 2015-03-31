@@ -203,3 +203,12 @@ class SidNotFound(ZiplineError):
     msg = """
 Sid '{sid}' was not found.
 """.strip()
+
+
+class SidToIntFailure(ZiplineError):
+    """
+    Raised when a AssetFinder.sid_to_int() call cannot be converted.
+    """
+    msg = """
+Sid '{sid}' could not be converted to an integer.
+""".strip()

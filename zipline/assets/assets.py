@@ -19,14 +19,12 @@ from numbers import Integral
 import operator
 
 from logbook import Logger
-import pandas as pd
 from pandas.tseries.tools import normalize_date
 from six import with_metaclass
 
 from zipline.errors import (
     SymbolNotFound,
-    MultipleSymbolsFound,
-    SidNotFound
+    MultipleSymbolsFound
 )
 
 from zipline.assets._assets import (
@@ -61,13 +59,19 @@ class AssetFinder(object):
         self.metadata = metadata
         self.populate_cache(metadata, force_populate)
 
+    def _next_free_sid(self):
+        if len(self.cache) > 0:
+            return max(self.cache.keys()) + 1
+        return 0
+
+    def _assign_sid(self, identifier):
+        if hasattr(identifier, '__int__'):
+            return identifier.__int__()
+        if isinstance(identifier, str):
+            return self._next_free_sid()
+
     def retrieve_asset(self, sid):
-        asset = self.cache.get(sid)
-        if asset is None:
-            asset = self.spawn_asset(sid)
-        if asset is None:
-            raise SidNotFound(sid=sid)
-        return asset
+        return self.cache.get(sid)
 
     @staticmethod
     def _lookup_symbol_in_infos(infos, as_of_date):
@@ -88,7 +92,8 @@ class AssetFinder(object):
 
         # Find the newest asset that started before as_of_date.
         candidates = [i for i in infos
-                      if i.start_date <= as_of_date <= i.end_date]
+                      if (i.start_date is None or i.start_date <= as_of_date)
+                      and (i.end_date is None or as_of_date <= i.end_date)]
 
         # If one SID exists for symbol, return that symbol
         if len(candidates) == 1:
@@ -192,10 +197,15 @@ class AssetFinder(object):
                              if c is not None):
             return
 
+        # Wipe caches before repopulating
+        self.cache = {}
+        self.sym_cache = {}
+        self.fuzzy_match = {}
+
         counter = 0
-        for sid in metadata:
-            row = metadata.retrieve_metadata(sid=sid)
-            self.spawn_asset(**row)
+        for identifier in metadata:
+            row = metadata.retrieve_metadata(identifier=identifier)
+            self.spawn_asset(identifier=identifier, **row)
             counter+=1
         log.info('Read %d items into cache' % counter)
 
@@ -205,9 +215,17 @@ class AssetFinder(object):
              'fuzzy_match': {}}
         )
 
-    def spawn_asset(self, sid, **kwargs):
+    def spawn_asset(self, identifier, **kwargs):
+
+        # Make sure that the sid exists in the kwargs
         if 'sid' not in kwargs.keys():
-            kwargs['sid'] = sid
+            kwargs['sid'] = self._assign_sid(identifier)
+
+        # If the identifier coming in was a string and there is no defined
+        # symbol yet, set the symbol to the incoming sid
+        if isinstance(identifier, str) and 'symbol' not in kwargs.keys():
+            kwargs['symbol'] = identifier
+
         asset_type = kwargs.get('asset_type', None)
         asset = None
 
@@ -237,7 +255,7 @@ class AssetFinder(object):
 
     def _lookup_generic_scalar(self,
                                asset_convertible,
-                               reference_date,
+                               as_of_date,
                                matches,
                                missing):
         """
@@ -253,7 +271,7 @@ class AssetFinder(object):
             elif isinstance(asset_convertible, Integral):
                 result = self.retrieve_asset(int(asset_convertible))
                 if result is None:
-                    raise SymbolNotFound()
+                    raise SymbolNotFound(symbol=asset_convertible)
                 matches.append(result)
 
             elif isinstance(asset_convertible, basestring):
@@ -261,7 +279,7 @@ class AssetFinder(object):
                 matches.append(
                     self.lookup_symbol_resolve_multiple(
                         asset_convertible,
-                        reference_date,
+                        as_of_date,
                     )
                 )
             else:
@@ -272,11 +290,14 @@ class AssetFinder(object):
 
         except SymbolNotFound:
             missing.append(asset_convertible)
+            # HACK lookup should not be creating assets
+            newAsset = self.spawn_asset(asset_convertible)
+            matches.append(newAsset)
             return None
 
     def lookup_generic(self,
                        asset_convertible_or_iterable,
-                       reference_date):
+                       as_of_date):
         """
         Convert a AssetConvertible or iterable of AssetConvertibles into
         a list of Asset objects.
@@ -296,10 +317,10 @@ class AssetFinder(object):
         # Interpret input as scalar.
         if isinstance(asset_convertible_or_iterable, AssetConvertible):
             self._lookup_generic_scalar(
-                asset_convertible_or_iterable,
-                reference_date,
-                matches,
-                missing,
+                asset_convertible=asset_convertible_or_iterable,
+                as_of_date=as_of_date,
+                matches=matches,
+                missing=missing,
             )
             return matches[0], missing
 
@@ -313,7 +334,7 @@ class AssetFinder(object):
             )
 
         for obj in iterator:
-            self._lookup_generic_scalar(obj, reference_date, matches, missing)
+            self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
 

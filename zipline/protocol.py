@@ -286,8 +286,12 @@ class SIDData(object):
     # This maps days to number of minutes.
     _minute_bar_cache = {}
 
-    def __init__(self, sid, initial_values=None):
+    @with_environment()
+    def __init__(self, sid, initial_values=None, env=None):
         self._sid = sid
+        if not isinstance(self._sid, int):
+            asset, _ = env.asset_finder.lookup_generic(sid, as_of_date=None)
+            self._sid = asset.__int__()
 
         self._freqstr = None
 

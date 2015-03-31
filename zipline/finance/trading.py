@@ -167,13 +167,11 @@ class TradingEnvironment(object):
 
         # Create an empty metadata entry for missing sids
         if hasattr(source, 'sids'):
-            for sid in source.sids:
-                if metadata.retrieve_metadata(sid) is None:
-                    metadata.insert_metadata(sid=sid)
+            for identifier in source.sids:
+                if metadata.retrieve_metadata(identifier) is None:
+                    metadata.insert_metadata(identifier=identifier)
 
         self.asset_finder = AssetFinder(metadata=metadata, force_populate=True)
-
-
 
 
     def normalize_date(self, test_date):

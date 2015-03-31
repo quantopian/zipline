@@ -21,7 +21,8 @@ import math
 class AssetMetaDataSource(object):
 
     cache = {}
-    fields = ("asset_type",
+    fields = ("sid",
+              "asset_type",
               "symbol",
               "asset_name",
               "start_date",
@@ -44,8 +45,8 @@ class AssetMetaDataSource(object):
         return self.cache.__iter__()
 
     def insert_dataframe(self, dataframe):
-        for sid, row in dataframe.iterrows():
-            self.insert_metadata(sid, row)
+        for identifier, row in dataframe.iterrows():
+            self.insert_metadata(identifier, row)
 
     def insert_dict(self, dict):
         for sid, entry in dict.iteritems():
@@ -54,15 +55,14 @@ class AssetMetaDataSource(object):
     def read(self):
         return self.cache.itervalues()
 
-    def retrieve_metadata(self, sid):
-        return self.cache.get(sid)
+    def retrieve_metadata(self, identifier):
+        return self.cache.get(identifier)
 
-    def insert_metadata(self, sid, **kwargs):
-        entry = self.retrieve_metadata(sid)
+    def insert_metadata(self, identifier, **kwargs):
+        entry = self.retrieve_metadata(identifier)
         if entry is None:
             entry = {}
 
-        entry['sid'] = sid
         for key, value in kwargs.iteritems():
             # Do not accept invalid fields
             if key not in self.fields:
@@ -75,4 +75,4 @@ class AssetMetaDataSource(object):
                 continue
             entry[key] = value
 
-        self.cache[sid] = entry
+        self.cache[identifier] = entry
