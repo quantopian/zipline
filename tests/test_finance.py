@@ -526,3 +526,11 @@ class TradingEnvironmentTestCase(TestCase):
         self.assertTrue(all(today == minutes[:31]))
         self.assertTrue(all(friday == minutes[31:421]))
         self.assertTrue(all(thursday == minutes[421:]))
+
+    def test_max_date(self):
+        max_date = datetime(2008, 8, 1, tzinfo=pytz.utc)
+        env = TradingEnvironment(max_date=max_date)
+
+        self.assertLessEqual(env.last_trading_day, max_date)
+        self.assertLessEqual(env.treasury_curves.index[-1],
+                             max_date)
