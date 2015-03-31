@@ -20,8 +20,7 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | key             | value                                              |
     +=================+====================================================+
-    | sid             | the identifier for the security held in this       |
-    |                 | position.                                          |
+    | asset           | the asset for the security held in this position   |
     +-----------------+----------------------------------------------------+
     | amount          | whole number of shares in the position             |
     +-----------------+----------------------------------------------------+
@@ -52,10 +51,10 @@ log = logbook.Logger('Performance')
 
 class Position(object):
 
-    def __init__(self, sid, amount=0, cost_basis=0.0,
+    def __init__(self, asset, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None):
 
-        self.sid = sid
+        self.asset = asset
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
@@ -66,12 +65,12 @@ class Position(object):
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        assert dividend['sid'] == self.sid
+        assert dividend['asset'] == self.asset
         out = {'id': dividend['id']}
 
         # stock dividend
-        if dividend['payment_sid']:
-            out['payment_sid'] = dividend['payment_sid']
+        if dividend['payment_asset']:
+            out['payment_asset'] = dividend['payment_asset']
             out['share_count'] = floor(self.amount * float(dividend['ratio']))
 
         # cash dividend
@@ -90,8 +89,8 @@ class Position(object):
 
         Returns the unused cash.
         """
-        if self.sid != split.sid:
-            raise Exception("updating split with the wrong sid!")
+        if self.asset != split.asset:
+            raise Exception("updating split with the wrong asset!")
 
         ratio = split.ratio
 
@@ -134,9 +133,9 @@ class Position(object):
         return return_cash
 
     def update(self, txn):
-        if self.sid != txn.sid:
+        if self.asset != txn.asset:
             raise Exception('updating position with txn for a '
-                            'different sid')
+                            'different asset')
 
         total_shares = self.amount + txn.amount
 
@@ -177,8 +176,8 @@ class Position(object):
         all shares in a position.
         """
 
-        if commission.sid != self.sid:
-            raise Exception('Updating a commission for a different sid?')
+        if commission.asset != self.asset:
+            raise Exception('Updating a commission for a different asset?')
         if commission.cost == 0.0:
             return
 
@@ -192,10 +191,10 @@ class Position(object):
         self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
-        template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
+        template = "asset: {asset}, amount: {amount}, cost_basis: {cost_basis}, \
 last_sale_price: {last_sale_price}"
         return template.format(
-            sid=self.sid,
+            asset=self.asset,
             amount=self.amount,
             cost_basis=self.cost_basis,
             last_sale_price=self.last_sale_price
@@ -207,7 +206,7 @@ last_sale_price: {last_sale_price}"
         Returns a dict object of the form:
         """
         return {
-            'sid': self.sid,
+            'asset': self.asset,
             'amount': self.amount,
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price

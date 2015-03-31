@@ -25,6 +25,7 @@ from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.utils.tradingcalendar import get_early_closes
 from zipline.assets.assets import AssetFinder
+from zipline.assets.metadata import AssetMetaDataSource
 
 
 log = logbook.Logger('Trading')
@@ -93,7 +94,6 @@ class TradingEnvironment(object):
         exchange_tz="US/Eastern",
         max_date=None,
         env_trading_calendar=tradingcalendar,
-        asset_metadata_source=None,
     ):
         self.prev_environment = self
         self.bm_symbol = bm_symbol
@@ -131,7 +131,7 @@ class TradingEnvironment(object):
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
-        self.asset_finder = AssetFinder(table=asset_metadata_source)
+        self.asset_finder = AssetFinder(AssetMetaDataSource())
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -147,6 +147,33 @@ class TradingEnvironment(object):
         # signal that any exceptions need to be propagated up the
         # stack.
         return False
+
+    def build_asset_finder(self, source, asset_metadata=None):
+        """
+        Builds a new AssetFinder using the provided source and asset metadata.
+        All sids in source will be inserted in the asset metadata if they are
+        not already present. If asset_metadata is none, an empty
+        AssetMetaDataSource will be created and populated with the sids from
+        'source'.
+
+        :param asset_metadata: A zipline AssetMetaDataSource
+        :param source: A zipline DataSource
+        :return:
+        """
+
+        metadata = asset_metadata
+        if metadata is None:
+            metadata = AssetMetaDataSource()
+
+        # Create an empty metadata entry for missing sids
+        for event in source:
+            if metadata.retrieve_metadata(event.sid) is None:
+                metadata.insert_metadata(sid=event.sid)
+
+        self.asset_finder = AssetFinder(metadata=metadata, force_populate=True)
+
+
+
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')

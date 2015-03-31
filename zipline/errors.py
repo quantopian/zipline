@@ -194,3 +194,12 @@ should be valid.
 
 Possible options:{options}
     """.strip()
+
+
+class SidNotFound(ZiplineError):
+    """
+    Raised when a retrieve_asset() call contains a non-existant sid.
+    """
+    msg = """
+Sid '{sid}' was not found.
+""".strip()

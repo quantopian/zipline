@@ -25,7 +25,8 @@ from six import with_metaclass
 
 from zipline.errors import (
     SymbolNotFound,
-    MultipleSymbolsFound
+    MultipleSymbolsFound,
+    SidNotFound
 )
 
 from zipline.assets._assets import (
@@ -45,12 +46,9 @@ class AssetFinder(object):
     shared_caches = {'by_sid': {}, 'by_symbol': {}, 'fuzzy_match': {}}
 
     def __init__(self,
-                 table,
+                 metadata,
                  force_populate=False,
     ):
-
-        self.table = table
-        self.populate_cache(table, force_populate)
 
         # Any particular instance of AssetFinder should be
         # consistent throughout its lifetime, so we grab a reference
@@ -60,8 +58,16 @@ class AssetFinder(object):
         self.sym_cache = self.shared_caches['by_symbol']
         self.fuzzy_match = self.shared_caches['fuzzy_match']
 
+        self.metadata = metadata
+        self.populate_cache(metadata, force_populate)
+
     def retrieve_asset(self, sid):
-        return self.cache.get(sid)
+        asset = self.cache.get(sid)
+        if asset is None:
+            asset = self.spawn_asset(sid)
+        if asset is None:
+            raise SidNotFound(sid=sid)
+        return asset
 
     @staticmethod
     def _lookup_symbol_in_infos(infos, as_of_date):
@@ -177,7 +183,7 @@ class AssetFinder(object):
                 else:
                     self.fuzzy_match[(symbol, fuzzy, as_of_date)] = None
 
-    def populate_cache(self, table, force=False):
+    def populate_cache(self, metadata, force=False):
         """
         Populates the asset cache with all values in the assets
         collection.
@@ -186,28 +192,34 @@ class AssetFinder(object):
                              if c is not None):
             return
 
-        all_assets = table.read()
-
-        cache = {}
-        sym_cache = {}
-        for row in all_assets:
-            info = Asset(sid=row['sid'],
-                            symbol=row['file_name'],
-                            exchange=row['exchange'],
-                            asset_name=row['company_name'],
-                            start_date=pd.Timestamp(row['start_date_nano'],
-                                                    unit='ns',
-                                                    tz='UTC'),
-                            end_date=pd.Timestamp(row['end_date_nano'],
-                                                  unit='ns',
-                                                  tz='UTC'))
-            cache[info.sid] = info
-            sym_cache.setdefault(info.symbol, []).append(info)
-        log.info('Read %d items into cache' % len(cache))
+        counter = 0
+        for sid in metadata:
+            row = metadata.retrieve_metadata(sid=sid)
+            self.spawn_asset(**row)
+            counter+=1
+        log.info('Read %d items into cache' % counter)
 
         self.shared_caches.update(
-            {'by_sid': cache, 'by_symbol': sym_cache, 'fuzzy_match': {}}
+            {'by_sid': self.cache,
+             'by_symbol': self.sym_cache,
+             'fuzzy_match': {}}
         )
+
+    def spawn_asset(self, sid, **kwargs):
+        if 'sid' not in kwargs.keys():
+            kwargs['sid'] = sid
+        asset_type = kwargs.get('asset_type', None)
+        asset = None
+
+        if asset_type in (EQUITY, None):
+            asset = Equity(**kwargs)
+        if asset_type == FUTURE:
+            asset = Future(**kwargs)
+
+        self.cache[asset.sid] = asset
+        if 'symbol' in kwargs.keys():
+            self.sym_cache.setdefault(asset.symbol, []).append(asset)
+        return asset
 
     @classmethod
     def clear_cache(cls):
@@ -218,6 +230,10 @@ class AssetFinder(object):
     @property
     def sids(self):
         return self.cache.keys()
+
+    @property
+    def assets(self):
+        return self.cache.values()
 
     def _lookup_generic_scalar(self,
                                asset_convertible,

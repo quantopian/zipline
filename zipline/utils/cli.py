@@ -31,6 +31,7 @@ except:
     PYGMENTS = False
 
 import zipline
+from zipline.assets.metadata import AssetMetaDataSource
 
 DEFAULTS = {
     'start': '2012-01-01',
@@ -165,6 +166,15 @@ def run_pipeline(print_algo=True, **kwargs):
         raise NotImplementedError(
             'Source %s not implemented.' % kwargs['source'])
 
+    # Pull asset metadata
+    asset_metadata = kwargs.get('asset_metadata', AssetMetaDataSource())
+    asset_metadata_path = kwargs.get('asset_metadata_path', None)
+        # Read in a CSV file, if applicable
+    if asset_metadata_path is not None:
+        if os.path.isfile(asset_metadata_path):
+            asset_metadata.insert_dataframe(pd.read_csv(asset_metadata_path,
+                                                        index_col='sid'))
+
     algo_text = kwargs.get('algo_text', None)
     if algo_text is None:
         # Expect algofile to be set
@@ -190,7 +200,7 @@ def run_pipeline(print_algo=True, **kwargs):
                                     capital_base=float(kwargs['capital_base']),
                                     algo_filename=kwargs.get('algofile'))
 
-    perf = algo.run(source)
+    perf = algo.run(source, asset_metadata=asset_metadata)
 
     output_fname = kwargs.get('output', None)
     if output_fname is not None:

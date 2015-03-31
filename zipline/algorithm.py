@@ -389,7 +389,7 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, asset_metadata, overwrite_sim_params=True,
+    def run(self, source, asset_metadata=None, overwrite_sim_params=True,
             benchmark_return_source=None):
         """Run the algorithm.
 
@@ -418,8 +418,8 @@ class TradingAlgorithm(object):
 
                 If pandas.DataFrame is provided, it must have the
                 following structure:
-                * column names must consist of the different sids
-                * index must be the name of the metadata field
+                * column names must consist of the metadata fields
+                * index must be the name of the different sids
                 * array contents should be the metadata value
 
         :Returns:
@@ -444,14 +444,17 @@ class TradingAlgorithm(object):
         else:
             self.set_sources([source])
 
+        # Have the environment build an AssetFinder
+        trading.environment.build_asset_finder(source, asset_metadata)
+        asset_finder = trading.environment.asset_finder
+
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
             if hasattr(source, 'start'):
                 self.sim_params.period_start = source.start
             if hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
-            all_sids = [sid for s in self.sources for sid in s.sids]
-            self.sim_params.sids = set(all_sids)
+            self.sim_params.sids = set(asset_finder.sids)
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
             self.sim_params._update_internal()

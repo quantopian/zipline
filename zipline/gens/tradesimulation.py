@@ -22,6 +22,7 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
+from zipline.assets._assets import Asset
 
 log = Logger('Trade Simulation')
 

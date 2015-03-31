@@ -14,6 +14,10 @@
 # limitations under the License.
 
 
+import pandas as pd
+import math
+
+
 class AssetMetaDataSource(object):
 
     cache = {}
@@ -28,8 +32,24 @@ class AssetMetaDataSource(object):
               "expiration_date",
               "contract_multiplier")
 
+    def __init__(self, data=None):
+        # Check if data is a DataFrame
+        if isinstance(data, pd.DataFrame):
+            self.insert_dataframe(dataframe=data)
+        # Check if data is a dict
+        elif isinstance(data, dict):
+            self.insert_dict(dict=data)
+
     def __iter__(self):
         return self.cache.__iter__()
+
+    def insert_dataframe(self, dataframe):
+        for sid, row in dataframe.iterrows():
+            self.insert_metadata(sid, row)
+
+    def insert_dict(self, dict):
+        for sid, entry in dict.iteritems():
+            self.insert_metadata(sid, entry)
 
     def read(self):
         return self.cache.itervalues()
@@ -38,14 +58,21 @@ class AssetMetaDataSource(object):
         return self.cache.get(sid)
 
     def insert_metadata(self, sid, **kwargs):
-
         entry = self.retrieve_metadata(sid)
         if entry is None:
             entry = {}
 
         entry['sid'] = sid
         for key, value in kwargs.iteritems():
-            if key in self.fields:
-                entry[key] = value
+            # Do not accept invalid fields
+            if key not in self.fields:
+                continue
+            # Do not accept Nones
+            if value is None:
+                continue
+            # Do not accept nans from dataframes
+            if math.isnan(value):
+                continue
+            entry[key] = value
 
         self.cache[sid] = entry
