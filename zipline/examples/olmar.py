@@ -6,7 +6,8 @@ import pytz
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.utils.factory import load_from_yahoo
-from zipline.finance import commission
+from zipline.finance import commission, trading
+from zipline.sources.data_frame_source import DataFrameSource
 
 zipline_logging = logbook.NestedSetup([
     logbook.NullHandler(level=logbook.DEBUG, bubble=True),
@@ -24,6 +25,7 @@ STOCKS = ['AMD', 'CERN', 'COST', 'DELL', 'GPS', 'INTC', 'MMM']
 # http://icml.cc/2012/papers/168.pdf
 def initialize(algo, eps=1, window_length=5):
     algo.stocks = STOCKS
+    algo.sids = [algo.symbol(symbol) for symbol in algo.stocks]
     algo.m = len(algo.stocks)
     algo.price = {}
     algo.b_t = np.ones(algo.m) / algo.m
@@ -53,10 +55,10 @@ def handle_data(algo, data):
     b = np.zeros(m)
 
     # find relative moving average price for each security
-    for i, stock in enumerate(algo.stocks):
-        price = data[stock].price
+    for i, sid in enumerate(algo.sids):
+        price = data[sid].price
         # Relative mean deviation
-        x_tilde[i] = data[stock].mavg(algo.window_length) / price
+        x_tilde[i] = data[sid].mavg(algo.window_length) / price
 
     ###########################
     # Inside of OLMAR (algo 2)
@@ -98,17 +100,17 @@ def rebalance_portfolio(algo, data, desired_port):
         positions_value = algo.portfolio.positions_value + \
             algo.portfolio.cash
 
-    for i, stock in enumerate(algo.stocks):
-        current_amount[i] = algo.portfolio.positions[stock].amount
-        prices[i] = data[stock].price
+    for i, sid in enumerate(algo.sids):
+        current_amount[i] = algo.portfolio.positions[sid].amount
+        prices[i] = data[sid].price
 
     desired_amount = np.round(desired_port * positions_value / prices)
 
     algo.last_desired_port = desired_port
     diff_amount = desired_amount - current_amount
 
-    for i, stock in enumerate(algo.stocks):
-        algo.order(stock, diff_amount[i])
+    for i, sid in enumerate(algo.sids):
+        algo.order(sid, diff_amount[i])
 
 
 def simplex_projection(v, b=1):
@@ -154,7 +156,8 @@ if __name__ == '__main__':
     end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
     data = data.dropna()
+    source = DataFrameSource(data)
     olmar = TradingAlgorithm(handle_data=handle_data, initialize=initialize)
-    results = olmar.run(data)
+    results = olmar.run(source)
     results.portfolio_value.plot()
     pl.show()

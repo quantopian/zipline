@@ -40,7 +40,7 @@ from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 
 from zipline.gens.composites import date_sorted_sources
-from zipline.finance.trading import SimulationParameters
+from zipline.finance.trading import SimulationParameters, with_environment
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance import trading
@@ -117,13 +117,17 @@ def check_account(account,
                                account['net_liquidation'], rtol=1e-3)
 
 
-def create_txn(trade_event, price, amount):
+@with_environment()
+def create_txn(trade_event, price, amount, env=None):
     """
     Create a fake transaction to be filled and processed prior to the execution
     of a given trade event.
     """
     mock_order = Order(trade_event.dt, trade_event.sid, amount, id=None)
-    return create_transaction(trade_event, mock_order, price, amount)
+    env.asset_finder.map_event(mock_order)
+    transaction = create_transaction(trade_event, mock_order, price, amount)
+    env.asset_finder.map_event(transaction)
+    return transaction
 
 
 def benchmark_events_in_range(sim_params):

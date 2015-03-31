@@ -169,11 +169,13 @@ def run_pipeline(print_algo=True, **kwargs):
     # Pull asset metadata
     asset_metadata = kwargs.get('asset_metadata', AssetMetaDataSource())
     asset_metadata_path = kwargs.get('asset_metadata_path', None)
-        # Read in a CSV file, if applicable
+    asset_metadata_index = kwargs.get('asset_metadata_index', 'symbol')
+    # Read in a CSV file, if applicable
     if asset_metadata_path is not None:
         if os.path.isfile(asset_metadata_path):
-            asset_metadata.insert_dataframe(pd.read_csv(asset_metadata_path,
-                                                        index_col='sid'))
+            asset_metadata.insert_dataframe(
+                pd.read_csv(asset_metadata_path,
+                            index_col=asset_metadata_index))
 
     algo_text = kwargs.get('algo_text', None)
     if algo_text is None:

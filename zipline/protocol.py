@@ -55,9 +55,15 @@ DIVIDEND_FIELDS = [
     'payment_sid',
     'ratio',
     'sid',
+    'asset',
 ]
 # Expected fields/index values for a dividend payment Series.
-DIVIDEND_PAYMENT_FIELDS = ['id', 'payment_sid', 'cash_amount', 'share_count']
+DIVIDEND_PAYMENT_FIELDS = [
+    'id',
+    'payment_sid',
+    'cash_amount',
+    'share_count'
+]
 
 
 def dividend_payment(data=None):
@@ -287,10 +293,12 @@ class SIDData(object):
     _minute_bar_cache = {}
 
     @with_environment()
-    def __init__(self, sid, initial_values=None, env=None):
-        self._sid = sid
-        if not isinstance(self._sid, int):
-            asset, _ = env.asset_finder.lookup_generic(sid, as_of_date=None)
+    def __init__(self, identifier, initial_values=None, env=None):
+        if hasattr(identifier, '__int__'):
+            self._sid = identifier.__int__()
+        else:
+            asset, _ = env.asset_finder.lookup_generic(identifier,
+                                                       as_of_date=None)
             self._sid = asset.__int__()
 
         self._freqstr = None

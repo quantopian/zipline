@@ -7,6 +7,7 @@ from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.protocol import Event
+from zipline.finance.trading import with_environment
 
 
 class DataSource(with_metaclass(ABCMeta)):
@@ -41,7 +42,8 @@ class DataSource(with_metaclass(ABCMeta)):
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.instance_hash
 
-    def apply_mapping(self, raw_row):
+    @with_environment()
+    def apply_mapping(self, raw_row, env=None):
         """
         Override this to hand craft conversion of row.
         """
@@ -50,6 +52,7 @@ class DataSource(with_metaclass(ABCMeta)):
                in self.mapping.items()}
         row.update({'source_id': self.get_hash()})
         row.update({'type': self.event_type})
+        env.asset_finder.map_dict(row)
         return row
 
     @property

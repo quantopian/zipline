@@ -57,7 +57,7 @@ class AssetFinder(object):
         self.fuzzy_match = self.shared_caches['fuzzy_match']
 
         self.metadata = metadata
-        self.populate_cache(metadata, force_populate)
+        self.populate_cache(force_populate)
 
     def _next_free_sid(self):
         if len(self.cache) > 0:
@@ -188,7 +188,7 @@ class AssetFinder(object):
                 else:
                     self.fuzzy_match[(symbol, fuzzy, as_of_date)] = None
 
-    def populate_cache(self, metadata, force=False):
+    def populate_cache(self, force=False):
         """
         Populates the asset cache with all values in the assets
         collection.
@@ -203,8 +203,8 @@ class AssetFinder(object):
         self.fuzzy_match = {}
 
         counter = 0
-        for identifier in metadata:
-            row = metadata.retrieve_metadata(identifier=identifier)
+        for identifier in self.metadata:
+            row = self.metadata.retrieve_metadata(identifier=identifier)
             self.spawn_asset(identifier=identifier, **row)
             counter+=1
         log.info('Read %d items into cache' % counter)
@@ -237,6 +237,10 @@ class AssetFinder(object):
         self.cache[asset.sid] = asset
         if 'symbol' in kwargs.keys():
             self.sym_cache.setdefault(asset.symbol, []).append(asset)
+
+        # Update the metadata object with the new sid
+        self.metadata.insert_metadata(identifier=identifier,
+                                 sid=asset.sid)
         return asset
 
     @classmethod
@@ -336,6 +340,36 @@ class AssetFinder(object):
         for obj in iterator:
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
+
+    def map_event(self, event):
+        """
+        Maps the event's fields to the assets in this AssetFinder
+        """
+        # Check if the event is mappable / needs to be mapped
+        if (hasattr(event, 'sid')) \
+                and (not hasattr(event, 'asset')
+                and (hasattr(event, 'dt'))):
+            asset, _ = self.lookup_generic(
+                asset_convertible_or_iterable=event.sid,
+                as_of_date=event.dt)
+            if asset is not None:
+                event.asset = asset
+                event.sid = asset.sid
+
+    def map_dict(self, dict):
+        """
+        Maps the dict's fields to the assets in this AssetFinder
+        """
+        # Check if the dict is mappable / needs to be mapped
+        if ('sid' in dict) \
+                and ('asset' not in dict) \
+                and ('dt' in dict):
+            asset, _ = self.lookup_generic(
+                asset_convertible_or_iterable=dict['sid'],
+                as_of_date=dict['dt'])
+            if asset is not None:
+                dict['asset'] = asset
+                dict['sid'] = asset.sid
 
 
 class AssetConvertible(with_metaclass(ABCMeta)):

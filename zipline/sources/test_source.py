@@ -33,8 +33,9 @@ from zipline.protocol import (
 from zipline.gens.utils import hash_args
 from zipline.finance.trading import with_environment
 
-
-def create_trade(sid, price, amount, datetime, source_id="test_factory"):
+@with_environment()
+def create_trade(sid, price, amount, datetime,
+                 source_id="test_factory", env=None):
 
     trade = Event()
 
@@ -48,6 +49,8 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     trade.low = price * .95
     trade.high = price * 1.05
     trade.volume = amount
+
+    env.asset_finder.map_event(trade)
 
     return trade
 

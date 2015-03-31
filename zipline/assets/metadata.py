@@ -76,3 +76,13 @@ class AssetMetaDataSource(object):
             entry[key] = value
 
         self.cache[identifier] = entry
+
+    def consume_metadata_source(self, metadata):
+        for identifier, row in metadata:
+            self.insert_metadata(identifier, **row)
+
+    def consume_data_source(self, source):
+        if hasattr(source, 'identifiers'):
+            for identifier in source.identifiers:
+                if self.retrieve_metadata(identifier) is None:
+                    self.insert_metadata(identifier=identifier)

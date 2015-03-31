@@ -28,7 +28,7 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
-from zipline.finance.trading import SimulationParameters
+from zipline.finance.trading import SimulationParameters, with_environment
 from zipline.finance import trading
 from zipline.sources.test_source import create_trade
 
@@ -116,8 +116,9 @@ def get_next_trading_dt(current, interval):
     return next_dt_utc
 
 
+@with_environment()
 def create_trade_history(sid, prices, amounts, interval, sim_params,
-                         source_id="test_factory"):
+                         source_id="test_factory", env=None):
     trades = []
     current = sim_params.first_open
 
@@ -129,6 +130,7 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
         else:
             trade_dt = current
         trade = create_trade(sid, price, amount, trade_dt, source_id)
+        env.asset_finder.map_event(trade)
         trades.append(trade)
         current = get_next_trading_dt(current, interval)
 
@@ -136,7 +138,8 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
     return trades
 
 
-def create_dividend(sid, payment, declared_date, ex_date, pay_date):
+@with_environment()
+def create_dividend(sid, payment, declared_date, ex_date, pay_date, env=None):
     div = Event({
         'sid': sid,
         'gross_amount': payment,
@@ -149,13 +152,14 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'type': DATASOURCE_TYPE.DIVIDEND,
         'source_id': 'MockDividendSource'
     })
-
+    env.asset_finder.map_event(div)
     return div
 
 
+@with_environment()
 def create_stock_dividend(sid, payment_sid, ratio, declared_date,
-                          ex_date, pay_date):
-    return Event({
+                          ex_date, pay_date, env=None):
+    div = Event({
         'sid': sid,
         'payment_sid': payment_sid,
         'ratio': ratio,
@@ -167,19 +171,25 @@ def create_stock_dividend(sid, payment_sid, ratio, declared_date,
         'type': DATASOURCE_TYPE.DIVIDEND,
         'source_id': 'MockDividendSource'
     })
+    env.asset_finder.map_event(div)
+    return div
 
 
-def create_split(sid, ratio, date):
-    return Event({
+@with_environment()
+def create_split(sid, ratio, date, env=None):
+    split = Event({
         'sid': sid,
         'ratio': ratio,
         'dt': date.replace(hour=0, minute=0, second=0, microsecond=0),
         'type': DATASOURCE_TYPE.SPLIT,
         'source_id': 'MockSplitSource'
     })
+    env.asset_finder.map_event(split)
+    return split
 
 
-def create_txn(sid, price, amount, datetime):
+@with_environment()
+def create_txn(sid, price, amount, datetime, env=None):
     txn = Event({
         'sid': sid,
         'amount': amount,
@@ -188,10 +198,12 @@ def create_txn(sid, price, amount, datetime):
         'type': DATASOURCE_TYPE.TRANSACTION,
         'source_id': 'MockTransactionSource'
     })
+    env.asset_finder.map_event(txn)
     return txn
 
 
-def create_commission(sid, value, datetime):
+@with_environment()
+def create_commission(sid, value, datetime, env=None):
     txn = Event({
         'dt': datetime,
         'type': DATASOURCE_TYPE.COMMISSION,
@@ -199,6 +211,7 @@ def create_commission(sid, value, datetime):
         'sid': sid,
         'source_id': 'MockCommissionSource'
     })
+    env.asset_finder.map_event(txn)
     return txn
 
 

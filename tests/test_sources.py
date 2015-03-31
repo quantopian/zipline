@@ -26,6 +26,7 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
+from zipline.finance import trading
 
 
 class TestDataFrameSource(TestCase):
@@ -72,7 +73,10 @@ class TestDataFrameSource(TestCase):
         check_fields = ['sid', 'open', 'high', 'low', 'close',
                         'volume', 'price']
         source = DataPanelSource(data)
-        stocks_iter = cycle(stocks)
+        sids = [trading.environment.asset_finder.
+                    lookup_generic(symbol, end)[0].sid
+                for symbol in stocks]
+        stocks_iter = cycle(sids)
         for event in source:
             for check_field in check_fields:
                 self.assertIn(check_field, event)

@@ -283,14 +283,7 @@ class PerformanceTracker(object):
         self.event_count += 1
 
         #TODO replace this hack
-        if hasattr(event, 'sid'):
-            if not hasattr(event, 'dt'):
-                from nose.tools import set_trace;set_trace()
-            asset, _ = trading.environment.asset_finder.\
-                lookup_generic(asset_convertible_or_iterable=event.sid,
-                               as_of_date=event.dt)
-            if asset is not None:
-                event.asset = asset
+        trading.environment.asset_finder.map_event(event)
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale, and pay out a cash adjustment

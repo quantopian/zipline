@@ -148,9 +148,9 @@ class TradingEnvironment(object):
         # stack.
         return False
 
-    def build_asset_finder(self, source, asset_metadata=None):
+    def update_asset_finder(self, source, asset_metadata=None):
         """
-        Builds a new AssetFinder using the provided source and asset metadata.
+        Updates the AssetFinder using the provided source and asset metadata.
         All sids in source will be inserted in the asset metadata if they are
         not already present. If asset_metadata is none, an empty
         AssetMetaDataSource will be created and populated with the sids from
@@ -161,17 +161,11 @@ class TradingEnvironment(object):
         :return:
         """
 
-        metadata = asset_metadata
-        if metadata is None:
-            metadata = AssetMetaDataSource()
-
         # Create an empty metadata entry for missing sids
-        if hasattr(source, 'sids'):
-            for identifier in source.sids:
-                if metadata.retrieve_metadata(identifier) is None:
-                    metadata.insert_metadata(identifier=identifier)
-
-        self.asset_finder = AssetFinder(metadata=metadata, force_populate=True)
+        if asset_metadata is not None:
+            self.asset_finder.metadata.consume_metadata_source(asset_metadata)
+        self.asset_finder.metadata.consume_data_source(source)
+        self.asset_finder.populate_cache()
 
 
     def normalize_date(self, test_date):

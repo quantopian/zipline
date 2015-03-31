@@ -412,14 +412,14 @@ class TradingAlgorithm(object):
                             - zipline AssetMetaDataSource
 
                 If dict is provided, it must have the following structure:
-                * keys are the sids
+                * keys are the identifiers
                 * values are dicts containing the metadata, with the metadata
                   field name as the key
 
                 If pandas.DataFrame is provided, it must have the
                 following structure:
                 * column names must consist of the metadata fields
-                * index must be the name of the different sids
+                * index must be the name of the different identifiers
                 * array contents should be the metadata value
 
         :Returns:
@@ -445,7 +445,7 @@ class TradingAlgorithm(object):
             self.set_sources([source])
 
         # Have the environment build an AssetFinder
-        trading.environment.build_asset_finder(source, asset_metadata)
+        trading.environment.update_asset_finder(source, asset_metadata)
         asset_finder = trading.environment.asset_finder
 
         # Override sim_params if params are provided by the source.
@@ -454,7 +454,10 @@ class TradingAlgorithm(object):
                 self.sim_params.period_start = source.start
             if hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
-            self.sim_params.sids = set(asset_finder.sids)
+            # The sids field of the source is the canonical reference for
+            # sids in this run
+            all_sids = [sid for s in self.sources for sid in s.sids]
+            self.sim_params.sids = set(all_sids)
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
             self.sim_params._update_internal()
@@ -616,7 +619,11 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the identifier (e.g. yahoo finance).
         """
-        return symbol_str
+        asset, _ = trading.environment.asset_finder.lookup_generic(
+            asset_convertible_or_iterable=symbol_str,
+            as_of_date=self.datetime,
+            )
+        return asset.sid
 
     @api_method
     def symbols(self, *args):
@@ -624,6 +631,9 @@ class TradingAlgorithm(object):
         Default symbols lookup for any source that directly maps the
         symbol to the identifier (e.g. yahoo finance).
         """
+        result = []
+        for identifier in args:
+            result.append(self.symbol(identifier))
         return args
 
     @api_method
