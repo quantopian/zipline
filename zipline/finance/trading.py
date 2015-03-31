@@ -92,17 +92,15 @@ class TradingEnvironment(object):
         max_date=None,
         env_trading_calendar=tradingcalendar
     ):
-        # `tc_tdays` is short for "trading calendar trading days"
-        # `tc_tday` is short for "trading calendar trading day"
-        tc_tdays = env_trading_calendar.trading_days
-        tc_tday = env_trading_calendar.trading_day
+        self.trading_day = env_trading_calendar.trading_day.copy()
+
+        # `tc_td` is short for "trading calendar trading days"
+        tc_td = env_trading_calendar.trading_days
 
         if max_date:
-            self.trading_days = tc_tdays[tc_tdays <= max_date].copy()
-            self.trading_day = tc_tday[tc_tday <= max_date].copy()
+            self.trading_days = tc_td[tc_td <= max_date].copy()
         else:
-            self.trading_days = tc_tdays.copy()
-            self.trading_day = tc_tday.copy()
+            self.trading_days = tc_td.copy()
 
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
@@ -124,7 +122,7 @@ class TradingEnvironment(object):
         self.treasury_curves = pd.DataFrame(treasury_curves_map).T
         if max_date:
             tr_c = self.treasury_curves
-            # Mask the treasury curvers down to the current date.
+            # Mask the treasury curves down to the current date.
             # In the case of live trading, the last date in the treasury
             # curves would be the day before the date considered to be
             # 'today'.
