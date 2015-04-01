@@ -752,12 +752,15 @@ class TradingAlgorithm(object):
         last_price = self.trading_client.current_data[sid].price
         asset = trading.environment.asset_finder.retrieve_asset(sid)
 
+        if asset is None:
+            raise UnsupportedOrderParameters(
+                msg="No Asset found for sid %s" % sid)
+
         value_multiplier = 1
         if asset.asset_type == EQUITY:
             value_multiplier = 1
         if asset.asset_type == FUTURE:
             value_multiplier = asset.contract_multiplier
-
 
         if np.allclose(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
@@ -768,7 +771,7 @@ class TradingAlgorithm(object):
             # Don't place any order
             return
         else:
-            amount = value / (last_price + value_multiplier)
+            amount = value / (last_price * value_multiplier)
             return self.order(sid, amount,
                               limit_price=limit_price,
                               stop_price=stop_price,
@@ -936,6 +939,10 @@ class TradingAlgorithm(object):
         last_price = self.trading_client.current_data[sid].price
         asset = trading.environment.asset_finder.retrieve_asset(sid)
 
+        if asset is None:
+            raise UnsupportedOrderParameters(
+                msg="No Asset found for sid %s" % sid)
+
         value_multiplier = 1
         if asset.asset_type == EQUITY:
             value_multiplier = 1
@@ -949,7 +956,7 @@ class TradingAlgorithm(object):
                 self.logger.debug(zero_message.format(psid=sid))
             return
 
-        target_amount = target / (last_price + value_multiplier)
+        target_amount = target / (last_price * value_multiplier)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,
