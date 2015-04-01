@@ -178,6 +178,10 @@ def run_pipeline(print_algo=True, **kwargs):
         source = pd.read_csv(source_arg,
                            index_col=source_time_column)
         source.index = pd.DatetimeIndex(source.index, tz='UTC')
+        source.sort_index(inplace=True)
+        source = source.loc[start:end]
+        source.fillna(method='ffill')
+        source.fillna(method='bfill')
 
     elif os.path.isdir(source_arg):
         data = None
@@ -186,11 +190,13 @@ def run_pipeline(print_algo=True, **kwargs):
                 continue
             raw = pd.read_csv(os.path.join(source_arg, file),
                               index_col=source_time_column)
+            raw.index = pd.DatetimeIndex(raw.index, tz='UTC')
+            raw.sort_index(inplace=True)
+            raw = raw.loc[start:end]
             if data is None:
                 data = raw
             else:
-                data = pd.concat([data, raw])
-        data.index = pd.DatetimeIndex(data.index, tz='UTC')
+                data = pd.concat([data, raw], axis=1)
         data.fillna(method='bfill')
         data.fillna(method='ffill')
         source = data

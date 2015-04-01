@@ -13,8 +13,6 @@ def initialize(context):
 def handle_data(context, data):
     # Skip first 50 days to get full windows
     context.i += 1
-    if context.i < 50:
-        return
 
     # Compute averages
     # history() has to be called with the same params
@@ -22,10 +20,15 @@ def handle_data(context, data):
 
     clk = symbol('CLK15')
     clj = symbol('CLJ15')
-
-    # order_target(clk, 100)
-    order_target(clj, -100)
+    aapl = symbol('AAPL')
 
     # Save values for later inspection
     record(CLK15=data[clk].price,
-           CLJ15=data[clj].price)
+           CLJ15=data[clj].price,
+           AAPL=data[aapl].price)
+
+    if context.i < 20:
+        return
+    order_target(clk, 100)
+    order_target(clj, -100)
+    order_target(aapl, -100)

@@ -54,7 +54,7 @@ class AssetMetaData(object):
             self.insert_metadata(sid, entry)
 
     def read(self):
-        return self.cache.itervalues()
+        return self.cache.items()
 
     def retrieve_metadata(self, identifier):
         return self.cache.get(identifier)
