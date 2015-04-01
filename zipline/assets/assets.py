@@ -294,9 +294,8 @@ class AssetFinder(object):
 
         except SymbolNotFound:
             missing.append(asset_convertible)
-            # HACK lookup should not be creating assets
-            newAsset = self.spawn_asset(asset_convertible)
-            matches.append(newAsset)
+            #HACK Lookup should not be spawning assets
+            matches.append(self.spawn_asset(asset_convertible))
             return None
 
     def lookup_generic(self,

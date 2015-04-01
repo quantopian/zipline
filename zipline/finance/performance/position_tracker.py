@@ -48,11 +48,11 @@ class PositionTracker(object):
         self._position_exposures = None
 
     @with_environment()
-    def _find_asset(self, sid, env=None):
+    def _find_asset(self, sid, dt, env=None):
         if sid in self._assets:
             return self._assets[sid]
 
-        asset = env.asset_finder.retrieve_asset(sid)
+        asset = env.asset_finder.lookup_generic(sid, dt)[0]
         if asset is not None:
             self._assets[sid] = asset
         return asset
@@ -84,7 +84,7 @@ class PositionTracker(object):
         if checknull(price):
             return 0
 
-        asset = self._find_asset(sid)
+        asset = self._find_asset(sid, event.dt)
         pos = self.positions[sid]
         old_price = pos.last_sale_price
         pos.last_sale_date = event.dt
@@ -139,7 +139,7 @@ class PositionTracker(object):
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
         self._invalidate_cache()
-        self._update_multipliers(self._find_asset(sid))
+        self._update_multipliers(self._find_asset(sid, txn.dt))
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it
@@ -231,7 +231,7 @@ class PositionTracker(object):
             self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
             self._invalidate_cache()
-            self._update_multipliers(self._find_asset(split.sid))
+            self._update_multipliers(self._find_asset(split.sid, split.dt))
             return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):

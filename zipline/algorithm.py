@@ -446,7 +446,6 @@ class TradingAlgorithm(object):
 
         # Have the environment build an AssetFinder
         trading.environment.update_asset_finder(source, asset_metadata)
-        asset_finder = trading.environment.asset_finder
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:

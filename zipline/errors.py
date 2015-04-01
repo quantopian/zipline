@@ -207,7 +207,7 @@ Sid '{sid}' was not found.
 
 class SidToIntFailure(ZiplineError):
     """
-    Raised when a AssetFinder.sid_to_int() call cannot be converted.
+    Raised when a AssetFinder.lookup_sid() call cannot be converted.
     """
     msg = """
 Sid '{sid}' could not be converted to an integer.

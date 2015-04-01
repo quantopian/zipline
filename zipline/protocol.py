@@ -55,7 +55,6 @@ DIVIDEND_FIELDS = [
     'payment_sid',
     'ratio',
     'sid',
-    'asset',
 ]
 # Expected fields/index values for a dividend payment Series.
 DIVIDEND_PAYMENT_FIELDS = [

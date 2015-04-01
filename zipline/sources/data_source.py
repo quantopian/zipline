@@ -41,7 +41,7 @@ class DataSource(with_metaclass(ABCMeta)):
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.instance_hash
 
-    def apply_mapping(self, raw_row, env=None):
+    def apply_mapping(self, raw_row):
         """
         Override this to hand craft conversion of row.
         """
