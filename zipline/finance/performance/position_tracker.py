@@ -53,7 +53,8 @@ class PositionTracker(object):
             return self._assets[sid]
 
         asset = env.asset_finder.retrieve_asset(sid)
-        self._assets[sid] = asset
+        if asset is not None:
+            self._assets[sid] = asset
         return asset
 
     def _invalidate_cache(self):
@@ -61,6 +62,8 @@ class PositionTracker(object):
         self._position_exposures = None
 
     def _update_multipliers(self, asset):
+        if asset is None:
+            return
         # Collect the value multipliers from applicable sids
         if asset.asset_type == EQUITY:
             self._position_value_multiplier[asset.sid] = 1
@@ -76,25 +79,29 @@ class PositionTracker(object):
         if sid not in self.positions:
             return 0
 
-        cash_adjustment = 0
         price = event.price
 
-        if not checknull(price):
-            pos = self.positions[sid]
-            old_price = pos.last_sale_price
-            pos.last_sale_date = event.dt
-            pos.last_sale_price = price
-            asset = self._find_asset(sid)
-            self._position_last_sale_prices[sid] = price
-            self._invalidate_cache()
-            self._update_multipliers(asset)
+        if checknull(price):
+            return 0
 
-            # Calculate cash adjustment on futures
-            if asset.asset_type == FUTURE:
-                price_change = price - old_price
-                cash_adjustment = price_change * asset.contract_multiplier \
-                                  * pos.amount
+        asset = self._find_asset(sid)
+        pos = self.positions[sid]
+        old_price = pos.last_sale_price
+        pos.last_sale_date = event.dt
+        pos.last_sale_price = price
+        self._position_last_sale_prices[sid] = price
+        self._invalidate_cache()
+        self._update_multipliers(asset)
 
+        if asset is None:
+            return 0
+
+        cash_adjustment = 0
+        # Calculate cash adjustment on futures
+        if asset.asset_type == FUTURE:
+            price_change = price - old_price
+            cash_adjustment = price_change * asset.contract_multiplier \
+                              * pos.amount
         return cash_adjustment
 
 
@@ -127,13 +134,12 @@ class PositionTracker(object):
         # Update Position
         # ----------------
         sid = txn.sid
-        asset = self._find_asset(sid)
         position = self.positions[sid]
         position.update(txn)
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
         self._invalidate_cache()
-        self._update_multipliers(asset)
+        self._update_multipliers(self._find_asset(sid))
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it

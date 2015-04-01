@@ -341,36 +341,6 @@ class AssetFinder(object):
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
-    def map_event(self, event):
-        """
-        Maps the event's fields to the assets in this AssetFinder
-        """
-        # Check if the event is mappable / needs to be mapped
-        if (hasattr(event, 'sid')) \
-                and (not hasattr(event, 'asset')
-                and (hasattr(event, 'dt'))):
-            asset, _ = self.lookup_generic(
-                asset_convertible_or_iterable=event.sid,
-                as_of_date=event.dt)
-            if asset is not None:
-                event.asset = asset
-                event.sid = asset.sid
-
-    def map_dict(self, dict):
-        """
-        Maps the dict's fields to the assets in this AssetFinder
-        """
-        # Check if the dict is mappable / needs to be mapped
-        if ('sid' in dict) \
-                and ('asset' not in dict) \
-                and ('dt' in dict):
-            asset, _ = self.lookup_generic(
-                asset_convertible_or_iterable=dict['sid'],
-                as_of_date=dict['dt'])
-            if asset is not None:
-                dict['asset'] = asset
-                dict['sid'] = asset.sid
-
 
 class AssetConvertible(with_metaclass(ABCMeta)):
     """
