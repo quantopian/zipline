@@ -50,7 +50,7 @@ class AssetMetaData(object):
             self.insert_metadata(identifier, **row)
 
     def insert_dict(self, dict):
-        for sid, entry in dict.iteritems():
+        for sid, entry in dict.items():
             self.insert_metadata(sid, entry)
 
     def read(self):
@@ -64,7 +64,7 @@ class AssetMetaData(object):
         if entry is None:
             entry = {}
 
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             # Do not accept invalid fields
             if key not in self.fields:
                 continue

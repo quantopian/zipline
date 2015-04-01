@@ -196,7 +196,7 @@ class AssetFinder(object):
         Populates the asset cache with all values in the assets
         collection.
         """
-        if not force and any(c for c in self.shared_caches.itervalues()
+        if not force and any(c for c in self.shared_caches.items()
                              if c is not None):
             return
 
@@ -295,7 +295,7 @@ class AssetFinder(object):
                     raise SymbolNotFound(symbol=asset_convertible)
                 matches.append(result)
 
-            elif isinstance(asset_convertible, basestring):
+            elif isinstance(asset_convertible, str):
                 # Throws SymbolNotFound on failure to match.
                 matches.append(
                     self.lookup_symbol_resolve_multiple(
@@ -363,11 +363,11 @@ class AssetConvertible(with_metaclass(ABCMeta)):
     ABC for types that are convertible to integer-representations of
     Assets.
 
-    Includes Security, basestring, and Integral
+    Includes Security, str, and Integral
     """
     pass
 AssetConvertible.register(Integral)
-AssetConvertible.register(basestring)
+AssetConvertible.register(str)
 AssetConvertible.register(Asset)
 
 
