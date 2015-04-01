@@ -19,6 +19,7 @@ from numbers import Integral
 import operator
 
 from logbook import Logger
+import pandas as pd
 from pandas.tseries.tools import normalize_date
 from six import with_metaclass
 
@@ -45,6 +46,7 @@ class AssetFinder(object):
 
     def __init__(self,
                  metadata,
+                 trading_calendar,
                  force_populate=False,
     ):
 
@@ -56,6 +58,7 @@ class AssetFinder(object):
         self.sym_cache = self.shared_caches['by_symbol']
         self.fuzzy_match = self.shared_caches['fuzzy_match']
 
+        self.trading_calendar = trading_calendar
         self.metadata = metadata
         self.populate_cache(force_populate)
 
@@ -226,8 +229,22 @@ class AssetFinder(object):
         if isinstance(identifier, str) and 'symbol' not in kwargs.keys():
             kwargs['symbol'] = identifier
 
-        asset_type = kwargs.get('asset_type', None)
+        asset_type = kwargs.pop('asset_type', None)
         asset = None
+
+        # Process dates
+        if 'start_date' in kwargs:
+            kwargs['start_date'] = self.trading_calendar.\
+                canonicalize_datetime(pd.Timestamp(kwargs['start_date']))
+        if 'end_date' in kwargs:
+            kwargs['end_date'] = self.trading_calendar.\
+                canonicalize_datetime(pd.Timestamp(kwargs['end_date']))
+        if 'notice_date' in kwargs:
+            kwargs['notice_date'] = self.trading_calendar.\
+                canonicalize_datetime(pd.Timestamp(kwargs['notice_date']))
+        if 'expiration_date' in kwargs:
+            kwargs['expiration_date'] = self.trading_calendar.\
+                canonicalize_datetime(pd.Timestamp(kwargs['expiration_date']))
 
         if asset_type in (EQUITY, None):
             asset = Equity(**kwargs)

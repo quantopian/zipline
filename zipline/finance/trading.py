@@ -131,7 +131,7 @@ class TradingEnvironment(object):
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
-        self.asset_finder = AssetFinder(AssetMetaData())
+        self.asset_finder = AssetFinder(AssetMetaData(), env_trading_calendar)
 
     def __enter__(self, *args, **kwargs):
         global environment

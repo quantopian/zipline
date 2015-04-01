@@ -212,3 +212,12 @@ class ConsumeAssetMetaDataError(ZiplineError):
     msg = """
 AssetMetaData can not consume {obj}.
 """.strip()
+
+
+class NoSourceError(ZiplineError):
+    """
+    Raised when no source is given to the pipeline
+    """
+    msg = """
+No data source given.
+""".strip()

@@ -47,7 +47,7 @@ class AssetMetaData(object):
 
     def insert_dataframe(self, dataframe):
         for identifier, row in dataframe.iterrows():
-            self.insert_metadata(identifier, row)
+            self.insert_metadata(identifier, **row)
 
     def insert_dict(self, dict):
         for sid, entry in dict.iteritems():
@@ -72,7 +72,7 @@ class AssetMetaData(object):
             if value is None:
                 continue
             # Do not accept nans from dataframes
-            if math.isnan(value):
+            if isinstance(value, float) and math.isnan(value):
                 continue
             entry[key] = value
 

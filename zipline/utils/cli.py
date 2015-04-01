@@ -32,6 +32,7 @@ except:
 
 import zipline
 from zipline.assets.metadata import AssetMetaData
+from zipline.errors import NoSourceError
 
 DEFAULTS = {
     'start': '2012-01-01',
@@ -100,9 +101,12 @@ def parse_args(argv, ipython_mode=False):
     parser.add_argument('--start', '-s')
     parser.add_argument('--end', '-e')
     parser.add_argument('--capital_base')
-    parser.add_argument('--source', choices=('yahoo',))
+    parser.add_argument('--source', '-d')
+    parser.add_argument('--source_time_column', '-t')
     parser.add_argument('--symbols')
     parser.add_argument('--output', '-o')
+    parser.add_argument('--metadata_path', '-m')
+    parser.add_argument('--metadata_index', '-x')
     if ipython_mode:
         parser.add_argument('--local_namespace', action='store_true')
 
@@ -158,24 +162,52 @@ def run_pipeline(print_algo=True, **kwargs):
     end = pd.Timestamp(kwargs['end'], tz='UTC')
 
     symbols = kwargs['symbols'].split(',')
+    asset_identifier = kwargs.get('metadata_index', 'symbol')
 
-    if kwargs['source'] == 'yahoo':
+    source_arg = kwargs['source']
+    source_time_column = kwargs.get('source_time_column', 'Date')
+
+    if source_arg is None:
+        raise NoSourceError()
+
+    elif source_arg == 'yahoo':
         source = zipline.data.load_bars_from_yahoo(
             stocks=symbols, start=start, end=end)
+
+    elif os.path.isfile(source_arg):
+        source = pd.read_csv(source_arg,
+                           index_col=source_time_column)
+        source.index = pd.DatetimeIndex(source.index, tz='UTC')
+
+    elif os.path.isdir(source_arg):
+        data = None
+        for file in os.listdir(source_arg):
+            if '.csv' not in file:
+                continue
+            raw = pd.read_csv(os.path.join(source_arg, file),
+                              index_col=source_time_column)
+            if data is None:
+                data = raw
+            else:
+                data = pd.concat([data, raw])
+        data.index = pd.DatetimeIndex(data.index, tz='UTC')
+        data.fillna(method='bfill')
+        data.fillna(method='ffill')
+        source = data
+
     else:
         raise NotImplementedError(
             'Source %s not implemented.' % kwargs['source'])
 
     # Pull asset metadata
     asset_metadata = kwargs.get('asset_metadata', AssetMetaData())
-    asset_metadata_path = kwargs.get('asset_metadata_path', None)
-    asset_metadata_index = kwargs.get('asset_metadata_index', 'symbol')
+    asset_metadata_path = kwargs.get('metadata_path', None)
     # Read in a CSV file, if applicable
     if asset_metadata_path is not None:
         if os.path.isfile(asset_metadata_path):
             asset_metadata.insert_dataframe(
                 pd.read_csv(asset_metadata_path,
-                            index_col=asset_metadata_index))
+                            index_col=asset_identifier))
 
     algo_text = kwargs.get('algo_text', None)
     if algo_text is None:
