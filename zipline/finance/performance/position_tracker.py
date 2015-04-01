@@ -21,6 +21,7 @@ import zipline.protocol as zp
 from zipline.assets.assets import (
     FUTURE, EQUITY
 )
+from zipline.finance.trading import with_environment
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -34,14 +35,26 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
+        self._position_value_multiplier = OrderedDict()
+        self._position_exposure_multiplier = OrderedDict()
+        self._assets = {}
         self._unpaid_dividends = pd.DataFrame(
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
         self._positions_store = zp.Positions()
+
+        # Cached for fast property calculation
         self._position_values = None
         self._position_exposures = None
-        self._position_value_multiplier = OrderedDict()
-        self._position_exposure_multiplier = OrderedDict()
+
+    @with_environment()
+    def _find_asset(self, sid, env=None):
+        if sid in self._assets:
+            return self._assets[sid]
+
+        asset = env.asset_finder.retrieve_asset(sid)
+        self._assets[sid] = asset
+        return asset
 
     def _invalidate_cache(self):
         self._position_values = None
@@ -60,7 +73,6 @@ class PositionTracker(object):
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
         sid = event.sid
-        asset = event.asset
         if sid not in self.positions:
             return 0
 
@@ -72,6 +84,7 @@ class PositionTracker(object):
             old_price = pos.last_sale_price
             pos.last_sale_date = event.dt
             pos.last_sale_price = price
+            asset = self._find_asset(sid)
             self._position_last_sale_prices[sid] = price
             self._invalidate_cache()
             self._update_multipliers(asset)
@@ -113,22 +126,12 @@ class PositionTracker(object):
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
-
         sid = txn.sid
-        asset = txn.asset
+        asset = self._find_asset(sid)
         position = self.positions[sid]
         position.update(txn)
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
-
-        if asset.asset_type == EQUITY:
-            self._position_value_multiplier[sid] = 1
-            self._position_exposure_multiplier[sid] = 1
-        elif asset.asset_type == FUTURE:
-            self._position_value_multiplier[sid] = 0
-            self._position_exposure_multiplier[sid] = \
-                asset.contract_multiplier
-
         self._invalidate_cache()
         self._update_multipliers(asset)
 
@@ -222,7 +225,7 @@ class PositionTracker(object):
             self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
             self._invalidate_cache()
-            self._update_multipliers(split.asset)
+            self._update_multipliers(self._find_asset(split.sid))
             return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
@@ -358,6 +361,8 @@ class PositionTracker(object):
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
         self._position_value_multiplier = OrderedDict()
+        self._position_exposure_multiplier = OrderedDict()
+        self._assets = {}
         self._invalidate_cache()
 
         self.update_positions(state['positions'])

@@ -282,9 +282,6 @@ class PerformanceTracker(object):
     def process_event(self, event):
         self.event_count += 1
 
-        #TODO replace this hack
-        trading.environment.asset_finder.map_event(event)
-
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale, and pay out a cash adjustment
             cash_adjustment = self.position_tracker.update_last_sale(event)
