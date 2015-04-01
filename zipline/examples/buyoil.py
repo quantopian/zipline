@@ -1,4 +1,6 @@
-from zipline.api import order_target, record, symbol, history, add_history
+from zipline.api import (
+    order_target, record, symbol, history, add_history, order_target_value
+)
 
 
 def initialize(context):
@@ -29,6 +31,6 @@ def handle_data(context, data):
 
     if context.i < 20:
         return
-    order_target(clk, 100)
-    order_target(clj, -100)
-    order_target(aapl, -100)
+    order_target_value(clk, 30000)
+    order_target_value(clj, 30000)
+    order_target_value(aapl, 30000)

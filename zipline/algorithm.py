@@ -62,6 +62,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
+from zipline.assets.assets import EQUITY, FUTURE
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -737,6 +738,8 @@ class TradingAlgorithm(object):
         Place an order by desired value rather than desired number of shares.
         If the requested sid is found in the universe, the requested value is
         divided by its price to imply the number of shares to transact.
+        If the Asset being ordered is a Future, the 'value' calculated
+        is actually the exposure, as Futures have no 'value'.
 
         value > 0 :: Buy/Cover
         value < 0 :: Sell/Short
@@ -744,8 +747,18 @@ class TradingAlgorithm(object):
         Limit order:     order(sid, value, limit_price)
         Stop order:      order(sid, value, None, stop_price)
         StopLimit order: order(sid, value, limit_price, stop_price)
+
         """
         last_price = self.trading_client.current_data[sid].price
+        asset = trading.environment.asset_finder.retrieve_asset(sid)
+
+        value_multiplier = 1
+        if asset.asset_type == EQUITY:
+            value_multiplier = 1
+        if asset.asset_type == FUTURE:
+            value_multiplier = asset.contract_multiplier
+
+
         if np.allclose(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
                 psid=sid
@@ -755,7 +768,7 @@ class TradingAlgorithm(object):
             # Don't place any order
             return
         else:
-            amount = value / last_price
+            amount = value / (last_price + value_multiplier)
             return self.order(sid, amount,
                               limit_price=limit_price,
                               stop_price=stop_price,
@@ -917,15 +930,26 @@ class TradingAlgorithm(object):
         order. If the position does exist, this is equivalent to placing an
         order for the difference between the target value and the
         current value.
+        If the Asset being ordered is a Future, the 'target value' calculated
+        is actually the target exposure, as Futures have no 'value'.
         """
         last_price = self.trading_client.current_data[sid].price
+        asset = trading.environment.asset_finder.retrieve_asset(sid)
+
+        value_multiplier = 1
+        if asset.asset_type == EQUITY:
+            value_multiplier = 1
+        if asset.asset_type == FUTURE:
+            value_multiplier = asset.contract_multiplier
+
         if np.allclose(last_price, 0):
             # Don't place an order
             if self.logger:
                 zero_message = "Price of 0 for {psid}; can't infer value"
                 self.logger.debug(zero_message.format(psid=sid))
             return
-        target_amount = target / last_price
+
+        target_amount = target / (last_price + value_multiplier)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,

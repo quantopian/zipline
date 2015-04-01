@@ -180,8 +180,8 @@ def run_pipeline(print_algo=True, **kwargs):
         source.index = pd.DatetimeIndex(source.index, tz='UTC')
         source.sort_index(inplace=True)
         source = source.loc[start:end]
-        source.fillna(method='ffill')
-        source.fillna(method='bfill')
+        source.fillna(method='ffill', inplace=True)
+        source.fillna(method='bfill', inplace=True)
 
     elif os.path.isdir(source_arg):
         data = None
@@ -197,8 +197,8 @@ def run_pipeline(print_algo=True, **kwargs):
                 data = raw
             else:
                 data = pd.concat([data, raw], axis=1)
-        data.fillna(method='bfill')
-        data.fillna(method='ffill')
+        data.fillna(method='bfill', inplace=True)
+        data.fillna(method='ffill', inplace=True)
         source = data
 
     else:
