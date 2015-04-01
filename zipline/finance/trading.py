@@ -25,7 +25,7 @@ from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.utils.tradingcalendar import get_early_closes
 from zipline.assets.assets import AssetFinder
-from zipline.assets.metadata import AssetMetaDataSource
+from zipline.assets.metadata import AssetMetaData
 
 
 log = logbook.Logger('Trading')
@@ -131,7 +131,7 @@ class TradingEnvironment(object):
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
-        self.asset_finder = AssetFinder(AssetMetaDataSource())
+        self.asset_finder = AssetFinder(AssetMetaData())
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -153,17 +153,17 @@ class TradingEnvironment(object):
         Updates the AssetFinder using the provided source and asset metadata.
         All sids in source will be inserted in the asset metadata if they are
         not already present. If asset_metadata is none, an empty
-        AssetMetaDataSource will be created and populated with the sids from
+        AssetMetaData will be created and populated with the sids from
         'source'.
 
-        :param asset_metadata: A zipline AssetMetaDataSource
+        :param asset_metadata: A zipline AssetMetaData
         :param source: A zipline DataSource
         :return:
         """
 
         # Create an empty metadata entry for missing sids
         if asset_metadata is not None:
-            self.asset_finder.metadata.consume_metadata_source(asset_metadata)
+            self.asset_finder.metadata.consume_metadata(asset_metadata)
         self.asset_finder.metadata.consume_data_source(source)
         self.asset_finder.populate_cache()
 

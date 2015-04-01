@@ -205,10 +205,10 @@ Sid '{sid}' was not found.
 """.strip()
 
 
-class SidToIntFailure(ZiplineError):
+class ConsumeAssetMetaDataError(ZiplineError):
     """
-    Raised when a AssetFinder.lookup_sid() call cannot be converted.
+    Raised when AssetMetaData.consume() is called on a non-AssetMetaData object
     """
     msg = """
-Sid '{sid}' could not be converted to an integer.
+AssetMetaData can not consume {obj}.
 """.strip()

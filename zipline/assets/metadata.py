@@ -16,9 +16,10 @@
 
 import pandas as pd
 import math
+from zipline.errors import ConsumeAssetMetaDataError
 
 
-class AssetMetaDataSource(object):
+class AssetMetaData(object):
 
     cache = {}
     fields = ("sid",
@@ -77,9 +78,12 @@ class AssetMetaDataSource(object):
 
         self.cache[identifier] = entry
 
-    def consume_metadata_source(self, metadata):
-        for identifier, row in metadata:
-            self.insert_metadata(identifier, **row)
+    def consume_metadata(self, metadata):
+        if not isinstance(metadata, AssetMetaData):
+            raise ConsumeAssetMetaDataError(obj=metadata)
+        for identifier in metadata:
+            self.insert_metadata(identifier,
+                                 **metadata.retrieve_metadata(identifier))
 
     def consume_data_source(self, source):
         if hasattr(source, 'identifiers'):

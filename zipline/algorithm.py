@@ -409,7 +409,7 @@ class TradingAlgorithm(object):
             asset_metadata: can be either:
                             - dict
                             - pandas.DataFrame
-                            - zipline AssetMetaDataSource
+                            - zipline AssetMetaData
 
                 If dict is provided, it must have the following structure:
                 * keys are the identifiers

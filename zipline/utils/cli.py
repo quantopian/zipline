@@ -31,7 +31,7 @@ except:
     PYGMENTS = False
 
 import zipline
-from zipline.assets.metadata import AssetMetaDataSource
+from zipline.assets.metadata import AssetMetaData
 
 DEFAULTS = {
     'start': '2012-01-01',
@@ -167,7 +167,7 @@ def run_pipeline(print_algo=True, **kwargs):
             'Source %s not implemented.' % kwargs['source'])
 
     # Pull asset metadata
-    asset_metadata = kwargs.get('asset_metadata', AssetMetaDataSource())
+    asset_metadata = kwargs.get('asset_metadata', AssetMetaData())
     asset_metadata_path = kwargs.get('asset_metadata_path', None)
     asset_metadata_index = kwargs.get('asset_metadata_index', 'symbol')
     # Read in a CSV file, if applicable
