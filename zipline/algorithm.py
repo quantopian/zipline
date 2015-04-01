@@ -38,6 +38,7 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
+    SidNotFound
 )
 
 from zipline.finance import trading
@@ -753,8 +754,7 @@ class TradingAlgorithm(object):
         asset = trading.environment.asset_finder.retrieve_asset(sid)
 
         if asset is None:
-            raise UnsupportedOrderParameters(
-                msg="No Asset found for sid %s" % sid)
+            raise SidNotFound(sid=sid)
 
         value_multiplier = 1
         if asset.asset_type == EQUITY:
@@ -940,8 +940,7 @@ class TradingAlgorithm(object):
         asset = trading.environment.asset_finder.retrieve_asset(sid)
 
         if asset is None:
-            raise UnsupportedOrderParameters(
-                msg="No Asset found for sid %s" % sid)
+            raise SidNotFound(sid=sid)
 
         value_multiplier = 1
         if asset.asset_type == EQUITY:
