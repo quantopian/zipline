@@ -11,15 +11,27 @@ def analyze(context, perf):
     perf['CLJ15'].plot(ax=ax2)
     perf['CLK15'].plot(ax=ax2)
     perf['AAPL'].plot(ax=ax2)
-    # perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
     perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-    jbuys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions if t[0]['sid']==1]]
-    jsells = perf_trans.ix[[t[0]['amount'] < 0 for t in perf_trans.transactions if t[0]['sid']==1]]
-    kbuys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions if t[0]['sid']==2]]
-    ksells = perf_trans.ix[[t[0]['amount'] < 0 for t in perf_trans.transactions if t[0]['sid']==2]]
-    abuys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions if t[0]['sid']==3]]
-    asells = perf_trans.ix[[t[0]['amount'] < 0 for t in perf_trans.transactions if t[0]['sid']==3]]
+    jbuys = perf_trans.ix[[t[0]['amount'] > 0
+                           for t in perf_trans.transactions
+                           if t[0]['sid']==context.clj]]
+    jsells = perf_trans.ix[[t[0]['amount'] < 0
+                            for t in perf_trans.transactions
+                            if t[0]['sid']==context.clj]]
+    kbuys = perf_trans.ix[[t[0]['amount'] > 0
+                           for t in perf_trans.transactions
+                           if t[0]['sid']==context.clk]]
+    ksells = perf_trans.ix[[t[0]['amount'] < 0
+                            for t in perf_trans.transactions
+                            if t[0]['sid']==context.clk]]
+    abuys = perf_trans.ix[[t[0]['amount'] > 0
+                           for t in perf_trans.transactions
+                           if t[0]['sid']==context.aapl]]
+    asells = perf_trans.ix[[t[0]['amount'] < 0
+                            for t in perf_trans.transactions
+                            if t[0]['sid']==context.aapl]]
+
     ax2.plot(jbuys.index, perf.CLJ15.ix[jbuys.index],
              '^', markersize=10, color='m')
     ax2.plot(jsells.index, perf.CLJ15.ix[jsells.index],

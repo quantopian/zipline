@@ -311,7 +311,7 @@ class AssetFinder(object):
 
         except SymbolNotFound:
             missing.append(asset_convertible)
-            #HACK Lookup should not be spawning assets
+            #TODO HACK Lookup should not be spawning assets
             matches.append(self.spawn_asset(asset_convertible))
             return None
 

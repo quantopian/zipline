@@ -1,7 +1,6 @@
 from zipline.api import (
-    order_target, record, symbol, history, add_history, order_target_value
+    order_target, record, symbol, history, add_history, order_target_percent
 )
-
 
 def initialize(context):
     # Register 2 histories that track daily prices,
@@ -10,6 +9,10 @@ def initialize(context):
     add_history(300, '1d', 'price')
 
     context.i = 0
+
+    context.clk = symbol('CLK15')
+    context.clj = symbol('CLJ15')
+    context.aapl = symbol('AAPL')
 
 
 def handle_data(context, data):
@@ -20,17 +23,15 @@ def handle_data(context, data):
     # history() has to be called with the same params
     # from above and returns a pandas dataframe.
 
-    clk = symbol('CLK15')
-    clj = symbol('CLJ15')
-    aapl = symbol('AAPL')
 
     # Save values for later inspection
-    record(CLK15=data[clk].price,
-           CLJ15=data[clj].price,
-           AAPL=data[aapl].price)
+    record(CLK15=data[context.clk].price,
+           CLJ15=data[context.clj].price,
+           AAPL=data[context.aapl].price)
 
-    if context.i < 20:
-        return
-    order_target_value(clk, 30000)
-    order_target_value(clj, 30000)
-    order_target_value(aapl, 30000)
+    if context.i > 20:
+        order_target_percent(context.clk, -.33)
+    if context.i > 30:
+        order_target_percent(context.clj, -.33)
+    if context.i > 40:
+        order_target_percent(context.aapl, .33)
