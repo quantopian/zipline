@@ -15,7 +15,7 @@ patsy==0.3.0
 statsmodels==0.6.1
 
 # Don't use 2.4.0.
-python-dateutil==2.4.1
+python-dateutil==2.4.2
 six==1.9.0
 
 # For fetching remote data
