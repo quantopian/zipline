@@ -35,7 +35,6 @@ from zipline.errors import (
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
     RegisterTradingControlPostInit,
-    UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
 )
@@ -821,9 +820,6 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_commission(self, commission):
-        if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
-            raise UnsupportedCommissionModel()
-
         if self.initialized:
             raise OverrideCommissionPostInit()
         self.commission = commission

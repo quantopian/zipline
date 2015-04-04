@@ -68,18 +68,6 @@ Trading controls may only be set in your initialize method.
 """.strip()
 
 
-class UnsupportedCommissionModel(ZiplineError):
-    """
-    Raised if a user script calls the override_commission magic
-    with a commission object that isn't a PerShare, PerTrade or
-    PerDollar commission
-    """
-    msg = """
-You attempted to override commission with an unsupported class. \
-Please use PerShare or PerTrade.
-""".strip()
-
-
 class OverrideCommissionPostInit(ZiplineError):
     """
     Raised if a users script calls override_commission magic
