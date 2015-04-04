@@ -253,7 +253,7 @@ class FinanceTestCase(TestCase):
         oo = blotter.open_orders
         self.assertEqual(len(oo), 1)
         self.assertTrue(sid in oo)
-        order_list = oo[sid]
+        order_list = oo[sid][:]  # make copy
         self.assertEqual(order_count, len(order_list))
 
         for i in range(order_count):
@@ -270,8 +270,8 @@ class FinanceTestCase(TestCase):
                    zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                    'source_id': 'benchmarks'})
             for dt, ret in trading.environment.benchmark_returns.iteritems()
-            if dt.date() >= sim_params.period_start.date()
-            and dt.date() <= sim_params.period_end.date()
+            if dt.date() >= sim_params.period_start.date() and
+            dt.date() <= sim_params.period_end.date()
         ]
 
         generated_events = date_sorted_sources(generated_trades,

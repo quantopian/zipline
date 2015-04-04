@@ -24,6 +24,9 @@ from functools import partial
 from six import with_metaclass
 
 from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -128,6 +131,25 @@ class Transaction(object):
         del py['type']
         return py
 
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Transaction saved state is too old.")
+
+        self.__dict__.update(state)
+
 
 def create_transaction(event, order, price, amount):
 
@@ -148,6 +170,10 @@ def create_transaction(event, order, price, amount):
     )
 
     return transaction
+
+
+class LiquidityExceeded(Exception):
+    pass
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
@@ -173,7 +199,10 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if not order.triggered:
                 continue
 
-            txn = self.process_order(event, order)
+            try:
+                txn = self.process_order(event, order)
+            except LiquidityExceeded:
+                break
 
             if txn:
                 self._volume_for_bar += abs(txn.amount)
@@ -210,7 +239,7 @@ class VolumeShareSlippage(SlippageModel):
         remaining_volume = max_volume - self.volume_for_bar
         if remaining_volume < 1:
             # we can't fill any more transactions
-            return
+            raise LiquidityExceeded()
 
         # the current order amount will be the min of the
         # volume available in the bar or the open amount.
@@ -239,6 +268,25 @@ class VolumeShareSlippage(SlippageModel):
             math.copysign(cur_volume, order.direction)
         )
 
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("VolumeShareSlippage saved state is too old.")
+
+        self.__dict__.update(state)
+
 
 class FixedSlippage(SlippageModel):
 
@@ -257,3 +305,22 @@ class FixedSlippage(SlippageModel):
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
+
+    def __getstate__(self):
+
+        state_dict = copy(self.__dict__)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("FixedSlippage saved state is too old.")
+
+        self.__dict__.update(state)

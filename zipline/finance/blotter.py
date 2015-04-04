@@ -19,7 +19,8 @@ from copy import copy
 from logbook import Logger
 from collections import defaultdict
 
-from six import text_type
+from six import text_type, iteritems
+from six.moves import filter
 
 import zipline.errors
 import zipline.protocol as zp
@@ -30,10 +31,13 @@ from zipline.finance.slippage import (
     check_order_triggers
 )
 from zipline.finance.commission import PerShare
+from zipline.utils.protocol_utils import Enum
+
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
 
 log = Logger('Blotter')
-
-from zipline.utils.protocol_utils import Enum
 
 ORDER_STATUS = Enum(
     'OPEN',
@@ -199,25 +203,27 @@ class Blotter(object):
             return
 
         orders = self.open_orders[trade_event.sid]
-        orders = sorted(orders, key=lambda o: o.dt)
+        orders.sort(key=lambda o: o.dt)
         # Only use orders for the current day or before
         current_orders = filter(
             lambda o: o.dt <= trade_event.dt,
             orders)
 
+        processed_orders = []
         for txn, order in self.process_transactions(trade_event,
                                                     current_orders):
+            processed_orders.append(order)
             yield txn, order
 
-        # update the open orders for the trade_event's sid
-        updated_orders = \
-            [order for order
-                in self.open_orders[trade_event.sid]
-                if order.open]
+        # remove closed orders. we should only have to check
+        # processed orders
+        def not_open(order):
+            return not order.open
+        closed_orders = filter(not_open, processed_orders)
+        for order in closed_orders:
+            orders.remove(order)
 
-        if updated_orders:
-            self.open_orders[trade_event.sid] = updated_orders
-        else:
+        if len(orders) == 0:
             del self.open_orders[trade_event.sid]
 
     def process_transactions(self, trade_event, current_orders):
@@ -236,14 +242,45 @@ class Blotter(object):
 
                 order.filled += txn.amount
                 if txn.commission is not None:
-                    order.commission = ((order.commission or 0.0)
-                                        + txn.commission)
+                    order.commission = ((order.commission or 0.0) +
+                                        txn.commission)
 
             # mark the date of the order to match the transaction
             # that is filling it.
             order.dt = txn.dt
 
             yield txn, order
+
+    def __getstate__(self):
+
+        state_to_save = ['new_orders', 'orders', '_status']
+
+        state_dict = {k: self.__dict__[k] for k in state_to_save
+                      if k in self.__dict__}
+
+        # Have to handle defaultdicts specially
+        state_dict['open_orders'] = dict(self.open_orders)
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        self.__init__()
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Blotter saved is state too old.")
+
+        open_orders = defaultdict(list)
+        open_orders.update(state.pop('open_orders'))
+        self.open_orders = open_orders
+
+        self.__dict__.update(state)
 
 
 class Order(object):
@@ -383,3 +420,26 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
+
+    def __getstate__(self):
+
+        state_dict = \
+            {k: v for k, v in iteritems(self.__dict__)
+                if not k.startswith('_')}
+
+        state_dict['_status'] = self._status
+
+        STATE_VERSION = 1
+        state_dict[VERSION_LABEL] = STATE_VERSION
+
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("Order saved state is too old.")
+
+        self.__dict__.update(state)

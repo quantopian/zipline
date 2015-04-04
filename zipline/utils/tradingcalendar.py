@@ -15,7 +15,7 @@
 import pandas as pd
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import rrule
 from functools import partial
 
@@ -23,7 +23,7 @@ start = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')
 # Give an aggressive buffer for logic that needs to use the next trading
 # day or minute.
-end = end_base + timedelta(days=365)
+end = end_base + pd.datetools.relativedelta(years=1)
 
 
 def canonicalize_datetime(dt):

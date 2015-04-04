@@ -93,7 +93,7 @@ Dependencies
 Quickstart
 ==========
 
-See our [getting started tutorial](tutorial.md).
+See our [getting started tutorial](http://www.zipline.io/#quickstart).
 
 The following code implements a simple dual moving average algorithm.
 
@@ -142,7 +142,7 @@ You can then run this algorithm using the Zipline CLI. From the
 command line, run:
 
 ```bash
-python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+python run_algo.py -f dual_moving_average.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
 ```
 
 This will download the AAPL price data from Yahoo! Finance in the

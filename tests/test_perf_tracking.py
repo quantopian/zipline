@@ -15,6 +15,7 @@
 
 from __future__ import division
 
+import pickle
 import collections
 from datetime import (
     datetime,
@@ -25,6 +26,7 @@ import operator
 
 import unittest
 from nose_parameterized import parameterized
+import nose.tools as nt
 import pytz
 import itertools
 
@@ -51,6 +53,10 @@ logger = logging.getLogger('Test Perf Tracking')
 onesec = timedelta(seconds=1)
 oneday = timedelta(days=1)
 tradingday = timedelta(hours=6, minutes=30)
+
+# nose.tools changed name in python 3
+if not hasattr(nt, 'assert_count_equal'):
+    nt.assert_count_equal = nt.assert_items_equal
 
 
 def check_perf_period(pp,
@@ -129,8 +135,8 @@ def benchmark_events_in_range(sim_params):
                # any other events.
                'source_id': '1Abenchmarks'})
         for dt, ret in trading.environment.benchmark_returns.iteritems()
-        if dt.date() >= sim_params.period_start.date()
-        and dt.date() <= sim_params.period_end.date()
+        if dt.date() >= sim_params.period_start.date() and
+        dt.date() <= sim_params.period_end.date()
     ]
 
 
@@ -213,6 +219,34 @@ def calculate_results(host,
             results.append(msg)
             bm_updated = False
     return results
+
+
+def check_perf_tracker_serialization(perf_tracker):
+    scalar_keys = [
+        'emission_rate',
+        'txn_count',
+        'market_open',
+        'last_close',
+        '_dividend_count',
+        'period_start',
+        'event_count',
+        'day_count',
+        'capital_base',
+        'market_close',
+        'saved_dt',
+        'period_end',
+        'total_days',
+    ]
+
+    p_string = pickle.dumps(perf_tracker)
+
+    test = pickle.loads(p_string)
+
+    for k in scalar_keys:
+        nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
+
+    for period in test.perf_periods:
+        nt.assert_true(hasattr(period, '_position_tracker'))
 
 
 class TestSplitPerformance(unittest.TestCase):
@@ -879,12 +913,16 @@ class TestPositionPerformance(unittest.TestCase):
 
         txn1 = create_txn(trades_1[1], 10.0, 100)
         txn2 = create_txn(trades_2[1], 10.0, -100)
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
-        pp.execute_transaction(txn1)
-        pp.execute_transaction(txn2)
+        pp.position_tracker = pt
+        pt.execute_transaction(txn1)
+        pp.handle_execution(txn1)
+        pt.execute_transaction(txn2)
+        pp.handle_execution(txn2)
 
         for trade in itertools.chain(trades_1[:-2], trades_2[:-2]):
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -911,9 +949,9 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         # now simulate stock1 going to $9
-        pp.update_last_sale(trades_1[-1])
+        pt.update_last_sale(trades_1[-1])
         # and stock2 going to $11
-        pp.update_last_sale(trades_2[-1])
+        pt.update_last_sale(trades_2[-1])
 
         pp.calculate_performance()
 
@@ -956,12 +994,15 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         txn = create_txn(trades[1], 10.0, 1000)
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
-        pp.execute_transaction(txn)
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
 
         for trade in trades[:-2]:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -989,7 +1030,7 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         # now simulate a price jump to $11
-        pp.update_last_sale(trades[-1])
+        pt.update_last_sale(trades[-1])
 
         pp.calculate_performance()
 
@@ -1032,9 +1073,12 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         txn = create_txn(trades[1], 10.0, 100)
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
-        pp.execute_transaction(txn)
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
 
         # This verifies that the last sale price is being correctly
         # set in the positions. If this is not the case then returns can
@@ -1044,7 +1088,7 @@ class TestPositionPerformance(unittest.TestCase):
         self.assertEqual(pp.positions[1].last_sale_price, 10.0)
 
         for trade in trades:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1134,11 +1178,14 @@ single short-sale transaction"""
         trades_1 = trades[:-2]
 
         txn = create_txn(trades[1], 10.0, -100)
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
-        pp.execute_transaction(txn)
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
         for trade in trades_1:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1195,7 +1242,7 @@ single short-sale transaction"""
         pp.rollover()
 
         for trade in trades_2:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1249,15 +1296,18 @@ single short-sale transaction"""
         )
 
         # now run a performance period encompassing the entire trade sample.
+        ptTotal = perf.PositionTracker()
         ppTotal = perf.PerformancePeriod(1000.0)
+        ppTotal.position_tracker = pt
 
         for trade in trades_1:
-            ppTotal.update_last_sale(trade)
+            ptTotal.update_last_sale(trade)
 
-        ppTotal.execute_transaction(txn)
+        ptTotal.execute_transaction(txn)
+        ppTotal.handle_execution(txn)
 
         for trade in trades_2:
-            ppTotal.update_last_sale(trade)
+            ptTotal.update_last_sale(trade)
 
         ppTotal.calculate_performance()
 
@@ -1351,13 +1401,17 @@ trade after cover"""
         )
 
         cover_txn = create_txn(trades[6], 7.0, 100)
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
-        pp.execute_transaction(short_txn)
-        pp.execute_transaction(cover_txn)
+        pt.execute_transaction(short_txn)
+        pp.handle_execution(short_txn)
+        pt.execute_transaction(cover_txn)
+        pp.handle_execution(cover_txn)
 
         for trade in trades:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1446,16 +1500,19 @@ shares in position"
         trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)
 
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
         average_cost = 0
         for i, txn in enumerate(transactions):
-            pp.execute_transaction(txn)
+            pt.execute_transaction(txn)
+            pp.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
             self.assertEqual(pp.positions[1].cost_basis, average_cost)
 
         for trade in trades:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1490,8 +1547,9 @@ shares in position"
 
         pp.rollover()
 
-        pp.execute_transaction(sale_txn)
-        pp.update_last_sale(down_tick)
+        pt.execute_transaction(sale_txn)
+        pp.handle_execution(sale_txn)
+        pt.update_last_sale(down_tick)
 
         pp.calculate_performance()
         self.assertEqual(
@@ -1509,19 +1567,23 @@ shares in position"
 
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
+        pt3 = perf.PositionTracker()
         pp3 = perf.PerformancePeriod(1000.0)
+        pp3.position_tracker = pt3
 
         average_cost = 0
         for i, txn in enumerate(transactions):
-            pp3.execute_transaction(txn)
+            pt3.execute_transaction(txn)
+            pp3.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
             self.assertEqual(pp3.positions[1].cost_basis, average_cost)
 
-        pp3.execute_transaction(sale_txn)
+        pt3.execute_transaction(sale_txn)
+        pp3.handle_execution(sale_txn)
 
         trades.append(down_tick)
         for trade in trades:
-            pp3.update_last_sale(trade)
+            pt3.update_last_sale(trade)
 
         pp3.calculate_performance()
         self.assertEqual(
@@ -1555,14 +1617,17 @@ shares in position"
         trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)
 
+        pt = perf.PositionTracker()
         pp = perf.PerformancePeriod(1000.0)
+        pp.position_tracker = pt
 
         for txn, cb in zip(transactions, cost_bases):
-            pp.execute_transaction(txn)
+            pt.execute_transaction(txn)
+            pp.handle_execution(txn)
             self.assertEqual(pp.positions[1].cost_basis, cb)
 
         for trade in trades:
-            pp.update_last_sale(trade)
+            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
@@ -1713,12 +1778,18 @@ class TestPerformanceTracker(unittest.TestCase):
         self.assertEqual(perf_tracker.txn_count, len(txns))
         self.assertEqual(perf_tracker.txn_count, len(orders))
 
-        cumulative_pos = perf_tracker.cumulative_performance.positions[sid]
-        expected_size = len(txns) / 2 * -25
-        self.assertEqual(cumulative_pos.amount, expected_size)
+        positions = perf_tracker.cumulative_performance.positions
+        if len(txns) == 0:
+            self.assertNotIn(sid, positions)
+        else:
+            expected_size = len(txns) / 2 * -25
+            cumulative_pos = positions[sid]
+            self.assertEqual(cumulative_pos.amount, expected_size)
 
-        self.assertEqual(len(perf_messages),
-                         sim_params.days_in_period)
+            self.assertEqual(len(perf_messages),
+                             sim_params.days_in_period)
+
+        check_perf_tracker_serialization(perf_tracker)
 
     def trades_with_txns(self, events, no_txn_dt):
         for event in events:
@@ -1844,3 +1915,113 @@ class TestPerformanceTracker(unittest.TestCase):
             # In the second bar we can start establishing a sharpe ratio.
             self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
             self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
+
+            check_perf_tracker_serialization(tracker)
+
+    def test_serialization(self):
+        start_dt = datetime(year=2008,
+                            month=10,
+                            day=9,
+                            tzinfo=pytz.utc)
+        end_dt = datetime(year=2008,
+                          month=10,
+                          day=16,
+                          tzinfo=pytz.utc)
+
+        sim_params = SimulationParameters(
+            period_start=start_dt,
+            period_end=end_dt
+        )
+
+        perf_tracker = perf.PerformanceTracker(
+            sim_params
+        )
+        check_perf_tracker_serialization(perf_tracker)
+
+
+class TestPosition(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_serialization(self):
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos = perf.Position(10, amount=np.float64(120.0), last_sale_date=dt,
+                            last_sale_price=3.4)
+
+        p_string = pickle.dumps(pos)
+
+        test = pickle.loads(p_string)
+        nt.assert_dict_equal(test.__dict__, pos.__dict__)
+
+
+class TestPositionTracker(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_empty_positions(self):
+        """
+        make sure all the empty position stats return a numeric 0
+
+        Originally this bug was due to np.dot([], []) returning
+        np.bool_(False)
+        """
+        pt = perf.PositionTracker()
+
+        stats = [
+            'calculate_positions_value',
+            '_net_exposure',
+            '_gross_exposure',
+            '_short_exposure',
+            '_shorts_count',
+            '_long_exposure',
+            '_longs_count',
+        ]
+        for name in stats:
+            meth = getattr(pt, name)
+            val = meth()
+            self.assertEquals(val, 0)
+            self.assertNotIsInstance(val, (bool, np.bool_))
+
+    def test_serializaition(self):
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position('AAPL', amount=np.float64(120.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pos2 = perf.Position('IBM', amount=np.float64(100.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+
+        pt.update_positions({'AAPL': pos1, 'IBM': pos2})
+        p_string = pickle.dumps(pt)
+        test = pickle.loads(p_string)
+        nt.assert_dict_equal(test._position_amounts, pt._position_amounts)
+        nt.assert_dict_equal(test._position_last_sale_prices,
+                             pt._position_last_sale_prices)
+        nt.assert_count_equal(test.positions.keys(), pt.positions.keys())
+        for sid in pt.positions:
+            nt.assert_dict_equal(test.positions[sid].__dict__,
+                                 pt.positions[sid].__dict__)
+
+
+class TestPerformancePeriod(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_serialization(self):
+        pt = perf.PositionTracker()
+        pp = perf.PerformancePeriod(100)
+        pp.position_tracker = pt
+
+        p_string = pickle.dumps(pp)
+        test = pickle.loads(p_string)
+
+        correct = pp.__dict__.copy()
+        del correct['_position_tracker']
+
+        nt.assert_count_equal(test.__dict__.keys(), correct.keys())
+
+        equal_keys = list(correct.keys())
+        equal_keys.remove('_account_store')
+        equal_keys.remove('_portfolio_store')
+
+        for k in equal_keys:
+            nt.assert_equal(test.__dict__[k], correct[k])

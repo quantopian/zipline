@@ -74,39 +74,46 @@ from __future__ import division
 import logbook
 
 import numpy as np
-import pandas as pd
 from collections import (
     defaultdict,
-    OrderedDict,
 )
-from six import iteritems, itervalues
+
+try:
+    # optional cython based OrderedDict
+    from cyordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
+from six import itervalues, iteritems
 
 import zipline.protocol as zp
-from . position import positiondict
+
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
+
+from .position_tracker import PositionTracker
 
 log = logbook.Logger('Performance')
+TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
-class FastSeries(object):
-    def __init__(self, *args, **kwargs):
-        super(FastSeries, self).__init__(*args, **kwargs)
+def position_proxy(func):
+    def _proxied(self, *args, **kwargs):
+        meth_name = func.__name__
+        meth = getattr(self.position_tracker, meth_name)
+        return meth(*args, **kwargs)
+    return _proxied
 
-        self._loc_map = {}
-        self.series = pd.Series([])
-        self.values = self.series.values
 
-    def __setitem__(self, key, value):
-        try:
-            i = self._loc_map[key]
-            self.values[i] = value
-        except (KeyError, IndexError):
-            self.series = \
-                self.series.append(
-                    pd.Series({key: value}))
-            self._loc_map = dict(
-                zip(self.series.index,
-                    range(len(self.series))))
-            self.values = self.series.values
+class ProxyError(Exception):
+    def __init__(self):
+        import inspect
+
+        meth_name = inspect.stack()[1][3]
+        TEMPLATE = "{meth_name} should have been proxied to position_tracker."
+        msg = TEMPLATE.format(meth_name=meth_name)
+        super(ProxyError, self).__init__(msg)
 
 
 class PerformancePeriod(object):
@@ -127,33 +134,32 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
 
-        # sid => position object
-        self.positions = positiondict()
         self.ending_cash = starting_cash
         # rollover initializes a number of self's attributes:
         self.rollover()
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
 
-        # Arrays for quick calculations of positions value
-        self.position_amounts = FastSeries()
-        self.position_last_sale_prices = FastSeries()
-
-        self.calculate_performance()
-
         # An object to recycle via assigning new values
         # when returning portfolio information.
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
         self._account_store = zp.Account()
-        self._positions_store = zp.Positions()
         self.serialize_positions = serialize_positions
 
-        self._unpaid_dividends = pd.DataFrame(
-            columns=zp.DIVIDEND_PAYMENT_FIELDS,
-        )
+    _position_tracker = None
 
-        self.loc_map = {}
+    @property
+    def position_tracker(self):
+        return self._position_tracker
+
+    @position_tracker.setter
+    def position_tracker(self, obj):
+        if obj is None:
+            raise ValueError("position_tracker can not be None")
+        self._position_tracker = obj
+        # we only calculate perf once we inject PositionTracker
+        self.calculate_performance()
 
     def rollover(self):
         self.starting_value = self.ending_value
@@ -164,98 +170,10 @@ class PerformancePeriod(object):
         self.orders_by_modified = defaultdict(OrderedDict)
         self.orders_by_id = OrderedDict()
 
-    def set_position_amount(self, sid, amount):
-        self.position_amounts[sid] = amount
-
-    def set_position_last_sale_price(self, sid, last_sale_price):
-        self.position_last_sale_prices[sid] = last_sale_price
-
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self.position_amounts[split.sid] = position.amount
-            self.position_last_sale_prices[split.sid] = \
-                position.last_sale_price
-
-            if leftover_cash > 0:
-                self.handle_cash_payment(leftover_cash)
-
-    def earn_dividends(self, dividend_frame):
-        """
-        Given a frame of dividends whose ex_dates are all the next trading day,
-        calculate and store the cash and/or stock payments to be paid on each
-        dividend's pay date.
-        """
-        earned = dividend_frame.apply(self._maybe_earn_dividend, axis=1)\
-                               .dropna(how='all')
-        if len(earned) > 0:
-            # Store the earned dividends so that they can be paid on the
-            # dividends' pay_dates.
-            self._unpaid_dividends = pd.concat(
-                [self._unpaid_dividends, earned],
-            )
-
-    def _maybe_earn_dividend(self, dividend):
-        """
-        Take a historical dividend record and return a Series with fields in
-        zipline.protocol.DIVIDEND_FIELDS (plus an 'id' field) representing
-        the cash/stock amount we are owed when the dividend is paid.
-        """
-        if dividend['sid'] in self.positions:
-            return self.positions[dividend['sid']].earn_dividend(dividend)
-        else:
-            return zp.dividend_payment()
-
-    def pay_dividends(self, dividend_frame):
-        """
-        Given a frame of dividends whose pay_dates are all the next trading
-        day, grant the cash and/or stock payments that were calculated on the
-        given dividends' ex dates.
-        """
-        payments = dividend_frame.apply(self._maybe_pay_dividend, axis=1)\
-                                 .dropna(how='all')
-
-        # Mark these dividends as paid by dropping them from our unpaid
-        # table.
-        self._unpaid_dividends.drop(payments.index)
-
-        # Add cash equal to the net cash payed from all dividends.  Note that
-        # "negative cash" is effectively paid if we're short a security,
-        # representing the fact that we're required to reimburse the owner of
-        # the stock for any dividends paid while borrowing.
-        net_cash_payment = payments['cash_amount'].fillna(0).sum()
+    def handle_dividends_paid(self, net_cash_payment):
         if net_cash_payment:
             self.handle_cash_payment(net_cash_payment)
-
-        # Add stock for any stock dividends paid.  Again, the values here may
-        # be negative in the case of short positions.
-        stock_payments = payments[payments['payment_sid'].notnull()]
-        for _, row in stock_payments.iterrows():
-            stock = row['payment_sid']
-            share_count = row['share_count']
-            position = self.positions[stock]
-
-            position.amount += share_count
-            self.position_amounts[stock] = position.amount
-            self.position_last_sale_prices[stock] = position.last_sale_price
-
-        # Recalculate performance after applying dividend benefits.
         self.calculate_performance()
-
-    def _maybe_pay_dividend(self, dividend):
-        """
-        Take a historical dividend record, look up any stored record of
-        cash/stock we are owed for that dividend, and return a Series
-        with fields drawn from zipline.protocol.DIVIDEND_PAYMENT_FIELDS.
-        """
-        try:
-            unpaid_dividend = self._unpaid_dividends.loc[dividend['id']]
-            return unpaid_dividend
-        except KeyError:
-            return zp.dividend_payment()
 
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
@@ -263,10 +181,6 @@ class PerformancePeriod(object):
     def handle_commission(self, commission):
         # Deduct from our total cash pool.
         self.adjust_cash(-commission.cost)
-        # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount
@@ -300,66 +214,56 @@ class PerformancePeriod(object):
                 del self.orders_by_id[order.id]
             self.orders_by_id[order.id] = order
 
-    def update_position(self, sid, amount=None, last_sale_price=None,
-                        last_sale_date=None, cost_basis=None):
-        pos = self.positions[sid]
-
-        if amount is not None:
-            pos.amount = amount
-            self.set_position_amount(sid, amount)
-        if last_sale_price is not None:
-            pos.last_sale_price = last_sale_price
-            self.position_last_sale_prices[sid] = last_sale_price
-        if last_sale_date is not None:
-            pos.last_sale_date = last_sale_date
-        if cost_basis is not None:
-            pos.cost_basis = cost_basis
-
-    def execute_transaction(self, txn):
-        # Update Position
-        # ----------------
-
-        # NOTE: self.positions has defaultdict semantics, so this will create
-        # an empty position if one does not already exist.
-        position = self.positions[txn.sid]
-        position.update(txn)
-        self.position_amounts[txn.sid] = position.amount
-        self.position_last_sale_prices[txn.sid] = position.last_sale_price
-
+    def handle_execution(self, txn):
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
             self.processed_transactions[txn.dt].append(txn)
 
+    # backwards compat. TODO: remove?
+    @property
+    def positions(self):
+        return self.position_tracker.positions
+
+    @property
+    def position_amounts(self):
+        return self.position_tracker.position_amounts
+
+    @property
+    def position_last_sale_prices(self):
+        return self.position_tracker.position_last_sale_prices
+
+    @position_proxy
     def calculate_positions_value(self):
-        return np.dot(self.position_amounts.series,
-                      self.position_last_sale_prices.series)
+        raise ProxyError()
 
+    @position_proxy
+    def set_positions(self):
+        raise ProxyError()
+
+    @position_proxy
     def _longs_count(self):
-        longs = self.position_amounts.series[self.position_amounts.series > 0]
-        return longs.count()
+        raise ProxyError()
 
+    @position_proxy
     def _long_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        longs = pos_values[pos_values > 0]
-        return longs.sum()
+        raise ProxyError()
 
+    @position_proxy
     def _shorts_count(self):
-        shorts = self.position_amounts.series[self.position_amounts.series < 0]
-        return shorts.count()
+        raise ProxyError()
 
+    @position_proxy
     def _short_exposure(self):
-        pos_values = self.position_amounts.series * \
-            self.position_last_sale_prices.series
-        shorts = pos_values[pos_values < 0]
-        return shorts.sum()
+        raise ProxyError()
 
+    @position_proxy
     def _gross_exposure(self):
-        return self._long_exposure() + abs(self._short_exposure())
+        raise ProxyError()
 
+    @position_proxy
     def _net_exposure(self):
-        return self.calculate_positions_value()
+        raise ProxyError()
 
     @property
     def _net_liquidation_value(self):
@@ -380,18 +284,6 @@ class PerformancePeriod(object):
             return self._net_exposure() / net_liq
 
         return np.inf
-
-    def update_last_sale(self, event):
-        if event.sid not in self.positions:
-            return
-
-        if event.type != zp.DATASOURCE_TYPE.TRADE:
-            return
-
-        if not pd.isnull(event.price):
-            # isnan check will keep the last price if its not present
-            self.update_position(event.sid, last_sale_price=event.price,
-                                 last_sale_date=event.dt)
 
     def __core_dict(self):
         rval = {
@@ -524,34 +416,62 @@ class PerformancePeriod(object):
             getattr(self, 'net_liquidation', self._net_liquidation_value)
         return account
 
+    @position_proxy
     def get_positions(self):
+        raise ProxyError()
 
-        positions = self._positions_store
-
-        for sid, pos in iteritems(self.positions):
-
-            if pos.amount == 0:
-                # Clear out the position if it has become empty since the last
-                # time get_positions was called.  Catching the KeyError is
-                # faster than checking `if sid in positions`, and this can be
-                # potentially called in a tight inner loop.
-                try:
-                    del positions[sid]
-                except KeyError:
-                    pass
-                continue
-
-            # Note that this will create a position if we don't currently have
-            # an entry
-            position = positions[sid]
-            position.amount = pos.amount
-            position.cost_basis = pos.cost_basis
-            position.last_sale_price = pos.last_sale_price
-        return positions
-
+    @position_proxy
     def get_positions_list(self):
-        positions = []
-        for sid, pos in iteritems(self.positions):
-            if pos.amount != 0:
-                positions.append(pos.to_dict())
-        return positions
+        raise ProxyError()
+
+    def __getstate__(self):
+        state_dict = {k: v for k, v in iteritems(self.__dict__)
+                      if not k.startswith('_')}
+
+        state_dict['_portfolio_store'] = self._portfolio_store
+        state_dict['_account_store'] = self._account_store
+
+        state_dict['processed_transactions'] = \
+            dict(self.processed_transactions)
+        state_dict['orders_by_id'] = \
+            dict(self.orders_by_id)
+        state_dict['orders_by_modified'] = \
+            dict(self.orders_by_modified)
+
+        STATE_VERSION = 2
+        state_dict[VERSION_LABEL] = STATE_VERSION
+        return state_dict
+
+    def __setstate__(self, state):
+
+        OLDEST_SUPPORTED_STATE = 1
+        version = state.pop(VERSION_LABEL)
+
+        if version < OLDEST_SUPPORTED_STATE:
+            raise BaseException("PerformancePeriod saved state is too old.")
+
+        processed_transactions = defaultdict(list)
+        processed_transactions.update(state.pop('processed_transactions'))
+
+        orders_by_id = OrderedDict()
+        orders_by_id.update(state.pop('orders_by_id'))
+
+        orders_by_modified = defaultdict(OrderedDict)
+        orders_by_modified.update(state.pop('orders_by_modified'))
+        self.processed_transactions = processed_transactions
+        self.orders_by_id = orders_by_id
+        self.orders_by_modified = orders_by_modified
+
+        # pop positions to use for v1
+        positions = state.pop('positions', None)
+        self.__dict__.update(state)
+
+        if version == 1:
+            # version 1 had PositionTracker logic inside of Period
+            # we create the PositionTracker here.
+            # Note: that in V2 it is assumed that the position_tracker
+            # will be dependency injected and so is not reconstructed
+            assert positions is not None, "positions should exist in v1"
+            position_tracker = PositionTracker()
+            position_tracker.update_positions(positions)
+            self.position_tracker = position_tracker

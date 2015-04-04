@@ -24,7 +24,6 @@ from zipline.test_algorithms import (
     SetPortfolioAlgorithm,
 )
 from zipline.finance.slippage import FixedSlippage
-from zipline.transforms.utils import StatefulTransform
 
 
 from zipline.utils.test_utils import (
@@ -32,7 +31,6 @@ from zipline.utils.test_utils import (
     setup_logger,
     teardown_logger,
     ExceptionSource,
-    ExceptionTransform
 )
 
 DEFAULT_TIMEOUT = 15  # seconds
@@ -59,20 +57,6 @@ class ExceptionTestCase(TestCase):
 
         with self.assertRaises(ZeroDivisionError):
             output, _ = drain_zipline(self, zipline)
-
-    def test_tranform_exception(self):
-        exc_tnfm = StatefulTransform(ExceptionTransform)
-        self.zipline_test_config['transforms'] = [exc_tnfm]
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
-
-        with self.assertRaises(AssertionError) as ctx:
-            output, _ = drain_zipline(self, zipline)
-
-        self.assertEqual(str(ctx.exception),
-                         'An assertion message')
 
     def test_exception_in_handle_data(self):
         # Simulation

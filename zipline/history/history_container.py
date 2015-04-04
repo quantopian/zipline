@@ -179,9 +179,9 @@ class HistoryContainerDelta(HistoryContainerDeltaSuper):
         """
         Checks if the delta is empty.
         """
-        return (self.field is None
-                and self.frequency_delta is None
-                and self.length_delta is None)
+        return (self.field is None and
+                self.frequency_delta is None and
+                self.length_delta is None)
 
 
 def normalize_to_data_freq(data_frequency, dt):
@@ -648,7 +648,7 @@ class HistoryContainer(object):
         if bar_count == 1:
             # slicing with [1 - bar_count:] doesn't work when bar_count == 1,
             # so special-casing this.
-            res = pd.DataFrame(index=[], columns=self.sids)
+            res = pd.DataFrame(index=[], columns=self.sids, dtype=float)
             return res.values, res.index
 
         field = history_spec.field
