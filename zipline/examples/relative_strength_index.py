@@ -116,7 +116,10 @@ if __name__ == '__main__':
 
     # get s&p500 and nasdaq indexes
     index_data = load_from_yahoo(
-        stocks=['^gspc', '^ixic'], indexes={}, start=results.index[0], end=results.index[-1])
+        stocks=['^gspc', '^ixic'],
+        indexes={},
+        start=results.index[0],
+        end=results.index[-1])
 
     # portfolio value, stock holdings and S&P 500 index
     fig = plt.figure(figsize=(12, 6))
