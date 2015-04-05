@@ -41,7 +41,7 @@ from zipline.errors import (
 
 from zipline.finance import trading
 from zipline.finance.blotter import Blotter
-from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.commission import PerShare
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
