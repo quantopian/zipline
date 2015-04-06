@@ -18,6 +18,7 @@
 Tools to generate data sources.
 """
 import pandas as pd
+import numpy as np
 
 from zipline.gens.utils import hash_args
 
@@ -42,17 +43,19 @@ class DataFrameSource(DataSource):
     def __init__(self, data, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(method='ffill')
         # Unpack config dictionary with default values.
-        self.start = kwargs.get('start', data.index[0])
-        self.end = kwargs.get('end', data.index[-1])
+        self.start = kwargs.get('start', self.data.index[0])
+        self.end = kwargs.get('end', self.data.index[-1])
 
         # Remap sids based on the trading environment
-        self.identifiers = kwargs.get('sids', data.columns)
-        assets, _ = trading.environment.asset_finder\
-            .lookup_generic(self.identifiers, self.end)
-        self.sids = [asset.sid for asset in assets]
-        data.columns = self.sids
+        self.identifiers = kwargs.get('sids', self.data.columns)
+        self.data.columns = [
+            trading.environment.asset_finder.
+                lookup_generic(identifier, as_of_date=self.end)[0].sid
+            for identifier in self.data.columns
+        ]
+        self.sids = self.data.columns
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
@@ -84,6 +87,11 @@ class DataFrameSource(DataSource):
                         # if no volume available.
                         'volume': 1e9,
                     }
+
+                    # skip events with nan prices
+                    if event.has_key('price') and np.isnan(event['price']):
+                        continue
+
                     yield event
 
     @property
@@ -110,17 +118,19 @@ class DataPanelSource(DataSource):
     def __init__(self, data, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(method='ffill', axis=0)
         # Unpack config dictionary with default values.
-        self.start = kwargs.get('start', data.major_axis[0])
-        self.end = kwargs.get('end', data.major_axis[-1])
+        self.start = kwargs.get('start', self.data.major_axis[0])
+        self.end = kwargs.get('end', self.data.major_axis[-1])
 
         # Remap sids based on the trading environment
-        self.identifiers = kwargs.get('sids', data.items)
-        assets, _ = trading.environment.asset_finder\
-            .lookup_generic(self.identifiers, self.end)
-        self.sids = [asset.sid for asset in assets]
-        data.items = self.sids
+        self.identifiers = kwargs.get('sids', self.data.items)
+        self.data.items = [
+            trading.environment.asset_finder.
+                lookup_generic(identifier, as_of_date=self.end)[0].sid
+            for identifier in self.data.items
+        ]
+        self.sids = self.data.items
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
@@ -157,6 +167,12 @@ class DataPanelSource(DataSource):
                         'dt': dt,
                         'sid': sid,
                     }
+
+                    # skip events with nan values
+                    for _, value in series.iteritems():
+                        if np.isnan(value):
+                            continue
+
                     for field_name, value in series.iteritems():
                         event[field_name] = value
 

@@ -31,7 +31,6 @@ except:
     PYGMENTS = False
 
 import zipline
-from zipline.assets.metadata import AssetMetaData
 from zipline.errors import NoSourceError
 
 DEFAULTS = {
@@ -162,10 +161,23 @@ def run_pipeline(print_algo=True, **kwargs):
     end = pd.Timestamp(kwargs['end'], tz='UTC')
 
     symbols = kwargs['symbols'].split(',')
-    asset_identifier = kwargs.get('metadata_index', 'symbol')
+    asset_identifier = kwargs['metadata_index']
+    if asset_identifier is None:
+        asset_identifier = 'symbol'
+
+    # Pull asset metadata
+    asset_metadata = kwargs.get('asset_metadata', None)
+    asset_metadata_path = kwargs['metadata_path']
+    # Read in a CSV file, if applicable
+    if asset_metadata_path is not None:
+        if os.path.isfile(asset_metadata_path):
+            asset_metadata = pd.read_csv(asset_metadata_path,
+                                         index_col=asset_identifier)
 
     source_arg = kwargs['source']
-    source_time_column = kwargs.get('source_time_column', 'Date')
+    source_time_column = kwargs['source_time_column']
+    if source_time_column is None:
+        source_time_column = 'Date'
 
     if source_arg is None:
         raise NoSourceError()
@@ -175,45 +187,20 @@ def run_pipeline(print_algo=True, **kwargs):
             stocks=symbols, start=start, end=end)
 
     elif os.path.isfile(source_arg):
-        source = pd.read_csv(source_arg,
-                           index_col=source_time_column)
-        source.index = pd.DatetimeIndex(source.index, tz='UTC')
-        source.sort_index(inplace=True)
-        source = source.loc[start:end]
-        source.fillna(method='ffill', inplace=True)
-        source.fillna(method='bfill', inplace=True)
+        source = zipline.data.load_prices_from_csv(
+            filepath=source_arg,
+            identifier_col=source_time_column
+        )
 
     elif os.path.isdir(source_arg):
-        data = None
-        for file in os.listdir(source_arg):
-            if '.csv' not in file:
-                continue
-            raw = pd.read_csv(os.path.join(source_arg, file),
-                              index_col=source_time_column)
-            raw.index = pd.DatetimeIndex(raw.index, tz='UTC')
-            raw.sort_index(inplace=True)
-            raw = raw.loc[start:end]
-            if data is None:
-                data = raw
-            else:
-                data = pd.concat([data, raw], axis=1)
-        data.fillna(method='bfill', inplace=True)
-        data.fillna(method='ffill', inplace=True)
-        source = data
+        source = zipline.data.load_prices_from_csv_folder(
+            folderpath=source_arg,
+            identifier_col=source_time_column
+        )
 
     else:
         raise NotImplementedError(
             'Source %s not implemented.' % kwargs['source'])
-
-    # Pull asset metadata
-    asset_metadata = kwargs.get('asset_metadata', AssetMetaData())
-    asset_metadata_path = kwargs.get('metadata_path', None)
-    # Read in a CSV file, if applicable
-    if asset_metadata_path is not None:
-        if os.path.isfile(asset_metadata_path):
-            asset_metadata.insert_dataframe(
-                pd.read_csv(asset_metadata_path,
-                            index_col=asset_identifier))
 
     algo_text = kwargs.get('algo_text', None)
     if algo_text is None:
@@ -238,9 +225,13 @@ def run_pipeline(print_algo=True, **kwargs):
     algo = zipline.TradingAlgorithm(script=algo_text,
                                     namespace=kwargs.get('namespace', {}),
                                     capital_base=float(kwargs['capital_base']),
-                                    algo_filename=kwargs.get('algofile'))
+                                    algo_filename=kwargs.get('algofile'),
+                                    asset_metadata=asset_metadata)
 
-    perf = algo.run(source, asset_metadata=asset_metadata)
+    perf = algo.run(source,
+                    asset_metadata=asset_metadata,
+                    start=start,
+                    end=end)
 
     output_fname = kwargs.get('output', None)
     if output_fname is not None:

@@ -23,7 +23,6 @@ def handle_data(context, data):
     # history() has to be called with the same params
     # from above and returns a pandas dataframe.
 
-
     # Save values for later inspection
     record(CLK15=data[context.clk].price,
            CLJ15=data[context.clj].price,

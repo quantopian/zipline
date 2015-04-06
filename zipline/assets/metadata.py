@@ -35,21 +35,17 @@ class AssetMetaData(object):
               "contract_multiplier")
 
     def __init__(self, data=None):
-        # Check if data is a DataFrame
-        if isinstance(data, pd.DataFrame):
-            self.insert_dataframe(dataframe=data)
-        # Check if data is a dict
-        elif isinstance(data, dict):
-            self.insert_dict(dict=data)
+        if data is not None:
+            self.consume_metadata(data)
 
     def __iter__(self):
         return self.cache.__iter__()
 
-    def insert_dataframe(self, dataframe):
+    def _insert_dataframe(self, dataframe):
         for identifier, row in dataframe.iterrows():
             self.insert_metadata(identifier, **row)
 
-    def insert_dict(self, dict):
+    def _insert_dict(self, dict):
         for sid, entry in dict.items():
             self.insert_metadata(sid, entry)
 
@@ -79,11 +75,21 @@ class AssetMetaData(object):
         self.cache[identifier] = entry
 
     def consume_metadata(self, metadata):
-        if not isinstance(metadata, AssetMetaData):
+        """
+        Consumes the provided metadata in to this AssetMetaData object. The
+        existing values in this AssetMetaData will be overwritten when there
+        is a conflict.
+        :param metadata: The metadata to be consumed
+        """
+        if isinstance(metadata, AssetMetaData):
+            for identifier in metadata:
+                self.insert_metadata(identifier)
+        elif isinstance(metadata, pd.DataFrame):
+            self._insert_dataframe(metadata)
+        elif isinstance(metadata, dict):
+            self._insert_dict(metadata)
+        else:
             raise ConsumeAssetMetaDataError(obj=metadata)
-        for identifier in metadata:
-            self.insert_metadata(identifier,
-                                 **metadata.retrieve_metadata(identifier))
 
     def consume_data_source(self, source):
         if hasattr(source, 'identifiers'):

@@ -148,13 +148,12 @@ class TradingEnvironment(object):
         # stack.
         return False
 
-    def update_asset_finder(self, source, asset_metadata=None):
+    def update_asset_finder(self, source=None, asset_metadata=None):
         """
         Updates the AssetFinder using the provided source and asset metadata.
-        All sids in source will be inserted in the asset metadata if they are
-        not already present. If asset_metadata is none, an empty
-        AssetMetaData will be created and populated with the sids from
-        'source'.
+        All metadata in the provided asset_metadata will be consumed.
+        All identifiers in source will be inserted in the asset metadata if
+        they are not already present.
 
         :param asset_metadata: A zipline AssetMetaData
         :param source: A zipline DataSource
@@ -162,10 +161,15 @@ class TradingEnvironment(object):
         """
 
         # Create an empty metadata entry for missing sids
+        populate = False
         if asset_metadata is not None:
             self.asset_finder.metadata.consume_metadata(asset_metadata)
-        self.asset_finder.metadata.consume_data_source(source)
-        self.asset_finder.populate_cache()
+            populate = True
+        if source is not None:
+            self.asset_finder.metadata.consume_data_source(source)
+            populate = True
+        if populate:
+            self.asset_finder.populate_cache(force=True)
 
 
     def normalize_date(self, test_date):

@@ -64,6 +64,7 @@ from zipline.finance.slippage import (
     transact_partial
 )
 from zipline.assets.assets import EQUITY, FUTURE
+from zipline.assets.metadata import AssetMetaData
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -136,8 +137,8 @@ class TradingAlgorithm(object):
                How much capital to start with.
             instant_fill : bool <default: False>
                Whether to fill orders immediately or on next bar.
-            environment : str <default: 'zipline'>
-               The environment that this algorithm is running in.
+            asset_metadata : AssetMetaData, dict, or DataFrame
+                The metadata for all assets that may be used
         """
         self.datetime = None
 
@@ -170,6 +171,10 @@ class TradingAlgorithm(object):
                 capital_base=self.capital_base
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
+
+        # Update the TradingEnvironment with the provided metadata
+        trading.environment.update_asset_finder(
+            asset_metadata=kwargs.pop('asset_metadata', None))
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -392,10 +397,12 @@ class TradingAlgorithm(object):
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
     def run(self, source, asset_metadata=None, overwrite_sim_params=True,
-            benchmark_return_source=None):
+            benchmark_return_source=None, start=None, end=None):
         """Run the algorithm.
 
         :Arguments:
+            start : DateTime at which to begin the run
+            end : DateTime at which to end the run
             source : can be either:
                      - pandas.DataFrame
                      - zipline source
@@ -403,8 +410,7 @@ class TradingAlgorithm(object):
 
                If pandas.DataFrame is provided, it must have the
                following structure:
-               * column names must consist of ints representing the
-                 different sids
+               * column names must be the different asset identifiers
                * index must be DatetimeIndex
                * array contents should be price info.
 
@@ -420,8 +426,8 @@ class TradingAlgorithm(object):
 
                 If pandas.DataFrame is provided, it must have the
                 following structure:
-                * column names must consist of the metadata fields
-                * index must be the name of the different identifiers
+                * column names must be the metadata fields
+                * index must be the different asset identifiers
                 * array contents should be the metadata value
 
         :Returns:
@@ -429,6 +435,11 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
+        if not isinstance(asset_metadata, AssetMetaData):
+            asset_metadata = AssetMetaData(data=asset_metadata)
+        trading.environment.update_asset_finder(asset_metadata=asset_metadata)
+
+        # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
                 warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
@@ -446,14 +457,17 @@ class TradingAlgorithm(object):
         else:
             self.set_sources([source])
 
-        # Have the environment build an AssetFinder
-        trading.environment.update_asset_finder(source, asset_metadata)
+        trading.environment.update_asset_finder(source=source)
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
-            if hasattr(source, 'start'):
+            if start is not None:
+                self.sim_params.period_start = start
+            elif hasattr(source, 'start'):
                 self.sim_params.period_start = source.start
-            if hasattr(source, 'end'):
+            if end is not None:
+                self.sim_params.period_end = end
+            elif hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
             # The sids field of the source is the canonical reference for
             # sids in this run
