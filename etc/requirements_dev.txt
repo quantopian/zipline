@@ -1,5 +1,5 @@
 # Testing
-nose==1.3.4
+nose==1.3.6
 nose-parameterized==0.3.5
 nose-ignore-docstring==0.2
 xlrd==0.9.3
