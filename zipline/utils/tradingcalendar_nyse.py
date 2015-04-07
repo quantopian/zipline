@@ -216,10 +216,10 @@ class NYSEExchangeCalendar(ExchangeCalendar):
     - Veterans Day
 
     Regularly-Observed Early Closes:
-    - July 3rd (Mondays, Tuesdays, and Thursdays)
-    - July 5th (Fridays, except 2013)
+    - July 3rd (Mondays, Tuesdays, and Thursdays, 1995 onward)
+    - July 5th (Fridays, 1995 onward, except 2013)
     - Christmas Eve (except on Fridays, when the exchange is closed entirely)
-    - Day After Thanksgiving (Black Friday)
+    - Day After Thanksgiving (aka Black Friday, observed from 1992 onward)
 
     NOTE: Until 1993, the standard early close time for the NYSE was 2:00 PM.
     From 1993 onward, it has been 1:00 PM.
