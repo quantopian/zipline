@@ -189,7 +189,7 @@ class RiskMetricsCumulative(object):
                 # Create container for all minutes on first iteration
                 trading_minutes = minutes_for_day
             else:
-                trading_minutes = trading_minutes + minutes_for_day
+                trading_minutes = trading_minutes.union(minutes_for_day)
         return trading_minutes
 
     def get_daily_index(self):
