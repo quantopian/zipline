@@ -89,7 +89,7 @@ class DataFrameSource(DataSource):
                     }
 
                     # skip events with nan prices
-                    if event.has_key('price') and np.isnan(event['price']):
+                    if 'price' in event and np.isnan(event['price']):
                         continue
 
                     yield event
