@@ -82,6 +82,7 @@ MonTuesThursBeforeIndependenceDay = Holiday(
     month=7,
     day=3,
     days_of_week=(MONDAY, TUESDAY, THURSDAY),
+    start_date=Timestamp("1995-01-01"),
 )
 FridayAfterIndependenceDayExcept2013 = Holiday(
     # When July 4th is a Thursday, the next day is a half day (except in 2013,
@@ -91,6 +92,7 @@ FridayAfterIndependenceDayExcept2013 = Holiday(
     day=5,
     days_of_week=(FRIDAY,),
     observance=lambda dt: None if dt.year == 2013 else dt,
+    start_date=Timestamp("1995-01-01"),
 )
 USBlackFridayBefore1993 = Holiday(
     'Black Friday',
