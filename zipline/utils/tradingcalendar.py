@@ -1,4 +1,3 @@
-#
 # Copyright 2013 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,393 +11,250 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
-import pytz
+from abc import (
+    ABCMeta,
+    abstractproperty,
+)
+from six import with_metaclass
 
-from datetime import datetime
-from dateutil import rrule
-from functools import partial
-
-start = pd.Timestamp('1990-01-01', tz='UTC')
-end_base = pd.Timestamp('today', tz='UTC')
-# Give an aggressive buffer for logic that needs to use the next trading
-# day or minute.
-end = end_base + pd.datetools.relativedelta(years=1)
-
-
-def canonicalize_datetime(dt):
-    # Strip out any HHMMSS or timezone info in the user's datetime, so that
-    # all the datetimes we return will be 00:00:00 UTC.
-    return datetime(dt.year, dt.month, dt.day, tzinfo=pytz.utc)
+from pandas import (
+    DataFrame,
+    date_range,
+    DateOffset,
+    DatetimeIndex,
+    Timedelta,
+)
+from pandas.tseries.offsets import CustomBusinessDay
 
 
-def get_non_trading_days(start, end):
-    non_trading_rules = []
-
-    start = canonicalize_datetime(start)
-    end = canonicalize_datetime(end)
-
-    weekends = rrule.rrule(
-        rrule.YEARLY,
-        byweekday=(rrule.SA, rrule.SU),
-        cache=True,
-        dtstart=start,
-        until=end
+def delta_from_time(t):
+    """
+    Convert a datetime.time into a timedelta.
+    """
+    return Timedelta(
+        hours=t.hour,
+        minutes=t.minute,
+        seconds=t.second,
     )
-    non_trading_rules.append(weekends)
 
-    new_years = rrule.rrule(
-        rrule.MONTHLY,
-        byyearday=1,
-        cache=True,
-        dtstart=start,
-        until=end
+
+def days_at_time(days, t, tz):
+    """
+    Shift an index of days to time t, interpreted in tz.
+
+    Overwrites any existing tz info on the input.
+    """
+    days = DatetimeIndex(days).tz_localize(None).tz_localize(tz)
+    return days.shift(
+        1, freq=DateOffset(hour=t.hour, minute=t.minute, second=t.second)
+    ).tz_convert('UTC')
+
+
+def holidays_at_time(calendar, start, end, time, tz):
+    return days_at_time(
+        calendar.holidays(
+            # Workaround for https://github.com/pydata/pandas/issues/9825.
+            start.tz_localize(None),
+            end.tz_localize(None),
+        ),
+        time,
+        tz=tz,
     )
-    non_trading_rules.append(new_years)
-
-    new_years_sunday = rrule.rrule(
-        rrule.MONTHLY,
-        byyearday=2,
-        byweekday=rrule.MO,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(new_years_sunday)
-
-    mlk_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=1,
-        byweekday=(rrule.MO(+3)),
-        cache=True,
-        dtstart=datetime(1998, 1, 1, tzinfo=pytz.utc),
-        until=end
-    )
-    non_trading_rules.append(mlk_day)
-
-    presidents_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=2,
-        byweekday=(rrule.MO(3)),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(presidents_day)
-
-    good_friday = rrule.rrule(
-        rrule.DAILY,
-        byeaster=-2,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(good_friday)
-
-    memorial_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=5,
-        byweekday=(rrule.MO(-1)),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(memorial_day)
-
-    july_4th = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=4,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(july_4th)
-
-    july_4th_sunday = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=5,
-        byweekday=rrule.MO,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(july_4th_sunday)
-
-    july_4th_saturday = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=3,
-        byweekday=rrule.FR,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(july_4th_saturday)
-
-    labor_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=9,
-        byweekday=(rrule.MO(1)),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(labor_day)
-
-    thanksgiving = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=11,
-        byweekday=(rrule.TH(4)),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(thanksgiving)
-
-    christmas = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=25,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(christmas)
-
-    christmas_sunday = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=26,
-        byweekday=rrule.MO,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(christmas_sunday)
-
-    # If Christmas is a Saturday then 24th, a Friday is observed.
-    christmas_saturday = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=24,
-        byweekday=rrule.FR,
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    non_trading_rules.append(christmas_saturday)
-
-    non_trading_ruleset = rrule.rruleset()
-
-    for rule in non_trading_rules:
-        non_trading_ruleset.rrule(rule)
-
-    non_trading_days = non_trading_ruleset.between(start, end, inc=True)
-
-    # Add September 11th closings
-    # http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
-    # Due to the terrorist attacks, the stock market did not open on 9/11/2001
-    # It did not open again until 9/17/2001.
-    #
-    #    September 2001
-    # Su Mo Tu We Th Fr Sa
-    #                    1
-    #  2  3  4  5  6  7  8
-    #  9 10 11 12 13 14 15
-    # 16 17 18 19 20 21 22
-    # 23 24 25 26 27 28 29
-    # 30
-
-    for day_num in range(11, 17):
-        non_trading_days.append(
-            datetime(2001, 9, day_num, tzinfo=pytz.utc))
-
-    # Add closings due to Hurricane Sandy in 2012
-    # http://en.wikipedia.org/wiki/Hurricane_sandy
-    #
-    # The stock exchange was closed due to Hurricane Sandy's
-    # impact on New York.
-    # It closed on 10/29 and 10/30, reopening on 10/31
-    #     October 2012
-    # Su Mo Tu We Th Fr Sa
-    #     1  2  3  4  5  6
-    #  7  8  9 10 11 12 13
-    # 14 15 16 17 18 19 20
-    # 21 22 23 24 25 26 27
-    # 28 29 30 31
-
-    for day_num in range(29, 31):
-        non_trading_days.append(
-            datetime(2012, 10, day_num, tzinfo=pytz.utc))
-
-    # Misc closings from NYSE listing.
-    # http://www.nyse.com/pdfs/closings.pdf
-    #
-    # National Days of Mourning
-    # - President Richard Nixon
-    non_trading_days.append(datetime(1994, 4, 27, tzinfo=pytz.utc))
-    # - President Ronald W. Reagan - June 11, 2004
-    non_trading_days.append(datetime(2004, 6, 11, tzinfo=pytz.utc))
-    # - President Gerald R. Ford - Jan 2, 2007
-    non_trading_days.append(datetime(2007, 1, 2, tzinfo=pytz.utc))
-
-    non_trading_days.sort()
-    return pd.DatetimeIndex(non_trading_days)
-
-non_trading_days = get_non_trading_days(start, end)
-trading_day = pd.tseries.offsets.CDay(holidays=non_trading_days)
 
 
-def get_trading_days(start, end, trading_day=trading_day):
-    return pd.date_range(start=start.date(),
-                         end=end.date(),
-                         freq=trading_day).tz_localize('UTC')
+def _overwrite_special_dates(midnight_utcs,
+                             opens_or_closes,
+                             special_opens_or_closes):
+    """
+    Overwrite dates in open_or_closes with corresponding dates in
+    special_opens_or_closes, using midnight_utcs for alignment.
+    """
+    # Short circuit when nothing to apply.
+    if not len(special_opens_or_closes):
+        return
 
-trading_days = get_trading_days(start, end)
+    len_m, len_oc = len(midnight_utcs), len(opens_or_closes)
+    if len_m != len_oc:
+        raise ValueError(
+            "Found misaligned dates while building calendar.\n"
+            "Expected midnight_utcs to be the same length as open_or_closes,\n"
+            "but len(midnight_utcs)=%d, len(open_or_closes)=%d" % len_m, len_oc
+        )
 
+    # Find the array indices corresponding to each special date.
+    indexer = midnight_utcs.get_indexer(special_opens_or_closes.normalize())
 
-def get_early_closes(start, end):
-    # 1:00 PM close rules based on
-    # http://quant.stackexchange.com/questions/4083/nyse-early-close-rules-july-4th-and-dec-25th # noqa
-    # and verified against http://www.nyse.com/pdfs/closings.pdf
+    # -1 indicates that no corresponding entry was found.  If any -1s are
+    # present, then we have special dates that doesn't correspond to any
+    # trading day.
+    if -1 in indexer:
+        bad_dates = list(special_opens_or_closes[indexer == -1])
+        raise ValueError("Special dates %s are not trading days." % bad_dates)
 
-    # These rules are valid starting in 1993
-
-    start = canonicalize_datetime(start)
-    end = canonicalize_datetime(end)
-
-    start = max(start, datetime(1993, 1, 1, tzinfo=pytz.utc))
-    end = max(end, datetime(1993, 1, 1, tzinfo=pytz.utc))
-
-    # Not included here are early closes prior to 1993
-    # or unplanned early closes
-
-    early_close_rules = []
-
-    day_after_thanksgiving = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=11,
-        # 4th Friday isn't correct if month starts on Friday, so restrict to
-        # day range:
-        byweekday=(rrule.FR),
-        bymonthday=range(23, 30),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    early_close_rules.append(day_after_thanksgiving)
-
-    christmas_eve = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=24,
-        byweekday=(rrule.MO, rrule.TU, rrule.WE, rrule.TH),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    early_close_rules.append(christmas_eve)
-
-    friday_after_christmas = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=26,
-        byweekday=rrule.FR,
-        cache=True,
-        dtstart=start,
-        # valid 1993-2007
-        until=min(end, datetime(2007, 12, 31, tzinfo=pytz.utc))
-    )
-    early_close_rules.append(friday_after_christmas)
-
-    day_before_independence_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=3,
-        byweekday=(rrule.MO, rrule.TU, rrule.TH),
-        cache=True,
-        dtstart=start,
-        until=end
-    )
-    early_close_rules.append(day_before_independence_day)
-
-    day_after_independence_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=5,
-        byweekday=rrule.FR,
-        cache=True,
-        dtstart=start,
-        # starting in 2013: wednesday before independence day
-        until=min(end, datetime(2012, 12, 31, tzinfo=pytz.utc))
-    )
-    early_close_rules.append(day_after_independence_day)
-
-    wednesday_before_independence_day = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=3,
-        byweekday=rrule.WE,
-        cache=True,
-        # starting in 2013
-        dtstart=max(start, datetime(2013, 1, 1, tzinfo=pytz.utc)),
-        until=max(end, datetime(2013, 1, 1, tzinfo=pytz.utc))
-    )
-    early_close_rules.append(wednesday_before_independence_day)
-
-    early_close_ruleset = rrule.rruleset()
-
-    for rule in early_close_rules:
-        early_close_ruleset.rrule(rule)
-    early_closes = early_close_ruleset.between(start, end, inc=True)
-
-    # Misc early closings from NYSE listing.
-    # http://www.nyse.com/pdfs/closings.pdf
-    #
-    # New Year's Eve
-    nye_1999 = datetime(1999, 12, 31, tzinfo=pytz.utc)
-    if start <= nye_1999 and nye_1999 <= end:
-        early_closes.append(nye_1999)
-
-    early_closes.sort()
-    return pd.DatetimeIndex(early_closes)
-
-early_closes = get_early_closes(start, end)
+    # NOTE: This is a slightly dirty hack.  We're in-place overwriting the
+    # internal data of an Index, which is conceptually immutable.  Since we're
+    # maintaining sorting, this should be ok, but this is a good place to
+    # sanity check if things start going haywire with calendar computations.
+    opens_or_closes.values[indexer] = special_opens_or_closes.values
 
 
-def get_open_and_close(day, early_closes):
-    market_open = pd.Timestamp(
-        datetime(
-            year=day.year,
-            month=day.month,
-            day=day.day,
-            hour=9,
-            minute=31),
-        tz='US/Eastern').tz_convert('UTC')
-    # 1 PM if early close, 4 PM otherwise
-    close_hour = 13 if day in early_closes else 16
-    market_close = pd.Timestamp(
-        datetime(
-            year=day.year,
-            month=day.month,
-            day=day.day,
-            hour=close_hour),
-        tz='US/Eastern').tz_convert('UTC')
+class ExchangeCalendar(with_metaclass(ABCMeta)):
+    """
+    Abstract Base Class for Exchange Calendars
 
-    return market_open, market_close
+    Provides the following public attributes:
+    """
+    def __init__(self, start, end):
+        tz = self.native_timezone
 
+        self.day = CustomBusinessDay(
+            holidays=list(self.holidays_adhoc),
+            calendar=self.holidays_calendar,
+        )
 
-def get_open_and_closes(trading_days, early_closes):
-    open_and_closes = pd.DataFrame(index=trading_days,
-                                   columns=('market_open', 'market_close'))
+        # Midnight in UTC for each trading day.
+        _all_days = date_range(start, end, freq=self.day, tz='UTC')
 
-    get_o_and_c = partial(get_open_and_close, early_closes=early_closes)
+        # `DatetimeIndex`s of standard opens/closes for each day.
+        _opens = days_at_time(_all_days, self.open_time, tz)
+        _closes = days_at_time(_all_days, self.close_time, tz)
 
-    open_and_closes['market_open'], open_and_closes['market_close'] = \
-        zip(*open_and_closes.index.map(get_o_and_c))
+        # `DatetimeIndex`s of nonstandard opens/closes
+        _special_opens = self._special_opens(start, end)
+        _special_closes = self._special_closes(start, end)
 
-    return open_and_closes
+        # Overwrite the special opens and closes on top of the standard ones.
+        _overwrite_special_dates(_all_days, _opens, _special_opens)
+        _overwrite_special_dates(_all_days, _closes, _special_closes)
 
-open_and_closes = get_open_and_closes(trading_days, early_closes)
+        self.schedule = DataFrame(
+            index=_all_days,
+            columns=['market_open', 'market_close'],
+            data={
+                'market_open': _opens,
+                'market_close': _closes,
+            },
+            dtype='datetime64[ns]',
+        )
+
+        self.first_trading_day = _all_days[0]
+        self.last_trading_day = _all_days[-1]
+
+    def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):
+        """
+        Union an iterable of pairs of the form
+
+        (time, calendar)
+
+        and an iterable of pairs of the form
+
+        (time, [dates])
+
+        (This is shared logic for computing special opens and special closes.)
+        """
+        tz = self.native_timezone
+        _dates = DatetimeIndex([], tz='UTC').union_many(
+            [
+                holidays_at_time(calendar, start_date, end_date, time_, tz)
+                for time_, calendar in calendars
+            ] + [
+                days_at_time(datetimes, time_, tz)
+                for time_, datetimes in ad_hoc_dates
+            ]
+        )
+        return _dates[(_dates >= start_date) & (_dates <= end_date)]
+
+    def _special_opens(self, start, end):
+        return self._special_dates(
+            self.special_opens_calendars,
+            self.special_opens_adhoc,
+            start,
+            end,
+        )
+
+    def _special_closes(self, start, end):
+        return self._special_dates(
+            self.special_closes_calendars,
+            self.special_closes_adhoc,
+            start,
+            end,
+        )
+
+    @abstractproperty
+    def native_timezone(self):
+        """
+        Native timezone for the exchange.
+        """
+        raise NotImplementedError()
+
+    @abstractproperty
+    def open_time(self):
+        """
+        datetime.time at which the exchange opens on normal days
+        """
+        raise NotImplementedError()
+
+    @abstractproperty
+    def close_time(self):
+        """
+        Hour, in UTC, at which the exchange opens on no.
+        """
+        raise NotImplementedError()
+
+    @abstractproperty
+    def holidays_calendar(self):
+        """
+        An instance of pd.AbstractHolidayCalendar representing
+        regularly-occurring holidays.
+        """
+        raise NotImplementedError()
+
+    @abstractproperty
+    def special_opens_calendars(self):
+        """
+        Iterable of pairs of the form (datetime.time, AbstractHolidayCalendar).
+
+        Defines dates and times on which the calendar regularly opens at a
+        nonstandard time.
+        """
+        return ()
+
+    @abstractproperty
+    def special_closes_calendars(self):
+        """
+        Iterable of pairs of the form (datetime.time, AbstractHolidayCalendar).
+
+        Defines dates and times on which the calendar regularly closes at a
+        nonstandard time.
+        """
+        return ()
+
+    @abstractproperty
+    def holidays_adhoc(self):
+        """
+        An iterable of datetimes on which the market was closed.
+
+        Intended for use in cases where the market was closed as a result of a
+        non-recurring historical event.
+        """
+        return ()
+
+    @abstractproperty
+    def special_opens_adhoc(self):
+        """
+        Iterable of datetimes on which the exchange opened irregularly.
+
+        Intended for use in cases where the market opened irregularly as a
+        result of a non-recurring historical event.
+        """
+        return ()
+
+    @abstractproperty
+    def special_closes_adhoc(self):
+        """
+        Iterable of datetimes on which the exchange closed irregularly.
+
+        Intended for use in cases where the market closed irregularly as a
+        result of a non-recurring historical event.
+        """
+        return ()

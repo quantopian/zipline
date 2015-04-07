@@ -31,10 +31,7 @@ from six import iteritems
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.utils.tradingcalendar import (
-    trading_day,
-    trading_days
-)
+from zipline.utils.tradingcalendar_nyse import NYSEExchangeCalendar
 
 logger = logbook.Logger('Loader')
 
