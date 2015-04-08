@@ -13,22 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
 
+from dateutil import rrule
 import pandas as pd
+from pandas.tseries.tools import normalize_date
 import pytz
 
-from datetime import datetime
-from dateutil import rrule
-from zipline.utils.tradingcalendar import end, canonicalize_datetime
-
 start = pd.Timestamp('1994-01-01', tz='UTC')
+end = pd.Timestamp('now', tz='UTC')
 
 
 def get_non_trading_days(start, end):
     non_trading_rules = []
 
-    start = canonicalize_datetime(start)
-    end = canonicalize_datetime(end)
+    start = normalize_date(start)
+    end = normalize_date(end)
 
     weekends = rrule.rrule(
         rrule.YEARLY,
@@ -304,8 +304,8 @@ trading_days = get_trading_days(start, end)
 def get_early_closes(start, end):
     # TSX closed at 1:00 PM on december 24th.
 
-    start = canonicalize_datetime(start)
-    end = canonicalize_datetime(end)
+    start = normalize_date(start)
+    end = normalize_date(end)
 
     start = max(start, datetime(1993, 1, 1, tzinfo=pytz.utc))
     end = max(end, datetime(1993, 1, 1, tzinfo=pytz.utc))

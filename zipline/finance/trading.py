@@ -21,9 +21,11 @@ from functools import wraps
 import pandas as pd
 import numpy as np
 
+from dateutil.relativedelta import relativedelta
+from pandas.tseries.tools import normalize_date
+
 from zipline.data.loader import load_market_data
-from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
+from zipline.utils.tradingcalendar_nyse import NYSEExchangeCalendar
 
 
 log = logbook.Logger('Trading')
@@ -65,6 +67,13 @@ log = logbook.Logger('Trading')
 # your code from responding to user code that changes the global
 # state.
 
+DEFAULT_MIN_DATE = normalize_date(pd.Timestamp('1990-01-01', tz='UTC'))
+# Give an aggressive buffer for logic that needs to use the next trading
+# day or minute
+DEFAULT_MAX_DATE = normalize_date(
+    pd.Timestamp('today', tz='UTC')
+) + relativedelta(years=1)
+
 environment = None
 
 
@@ -89,45 +98,38 @@ class TradingEnvironment(object):
         self,
         load=None,
         bm_symbol='^GSPC',
-        exchange_tz="US/Eastern",
-        max_date=None,
-        env_trading_calendar=tradingcalendar
+        min_date=DEFAULT_MIN_DATE,
+        max_date=DEFAULT_MAX_DATE,
+        calendar_cls=NYSEExchangeCalendar,
     ):
-        self.prev_environment = self
+        self.prev_environment = None
+        load = load or load_market_data
         self.bm_symbol = bm_symbol
-        if not load:
-            load = load_market_data
+        self.calendar = calendar_cls(min_date, max_date)
 
-        self.benchmark_returns, treasury_curves_map = \
-            load(self.bm_symbol)
-
+        self.benchmark_returns, treasury_curves_map = load(self.bm_symbol)
         self.treasury_curves = pd.DataFrame(treasury_curves_map).T
-        if max_date:
-            tr_c = self.treasury_curves
-            # Mask the treasury curvers down to the current date.
-            # In the case of live trading, the last date in the treasury
-            # curves would be the day before the date considered to be
-            # 'today'.
-            self.treasury_curves = tr_c[tr_c.index <= max_date]
+        self.treasury_curves = self.treasury_curves.query("index <= @max_date")
 
-        self.exchange_tz = exchange_tz
+    @property
+    def exchange_tz(self):
+        return self.calendar.native_timezone
 
-        # `tc_td` is short for "trading calendar trading days"
-        tc_td = env_trading_calendar.trading_days
+    @property
+    def first_trading_day(self):
+        return self.calendar.first_trading_day
 
-        if max_date:
-            self.trading_days = tc_td[tc_td <= max_date].copy()
-        else:
-            self.trading_days = tc_td.copy()
+    @property
+    def last_trading_day(self):
+        return self.calendar.last_trading_day
 
-        self.first_trading_day = self.trading_days[0]
-        self.last_trading_day = self.trading_days[-1]
+    @property
+    def trading_days(self):
+        return self.calendar.schedule.index
 
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
-
-        self.open_and_closes = env_trading_calendar.open_and_closes.loc[
-            self.trading_days]
+    @property
+    def open_and_closes(self):
+        return self.calendar.schedule
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -145,8 +147,7 @@ class TradingEnvironment(object):
         return False
 
     def normalize_date(self, test_date):
-        test_date = pd.Timestamp(test_date, tz='UTC')
-        return pd.tseries.tools.normalize_date(test_date)
+        return normalize_date(pd.Timestamp(test_date, tz='UTC'))
 
     def utc_dt_in_exchange(self, dt):
         return pd.Timestamp(dt).tz_convert(self.exchange_tz)
