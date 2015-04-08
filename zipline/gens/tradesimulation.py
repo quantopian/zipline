@@ -234,6 +234,18 @@ class AlgorithmSimulator(object):
                 # called rarely compared to the other event processors.
                 self.algo.blotter.process_split(event)
 
+            elif event.type == DATASOURCE_TYPE.LIQUIDATION:
+
+                # cancel all open orders, if applicable
+                if event.sid in self.algo.blotter.open_orders:
+                    for order in self.algo.blotter.open_orders[event.sid]:
+                        self.algo.blotter.cancel(order.id)
+
+                # remove the sid from current data; it is no longer
+                # part of the universe
+                if event.sid in self.current_data:
+                    del self.current_data[event.sid]
+
             if not instant_fill:
                 process_event(blotter_process_trade,
                               perf_process_event,

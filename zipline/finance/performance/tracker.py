@@ -67,8 +67,7 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 import zipline.protocol as zp
-import zipline.finance.risk as risk
-from zipline.finance import trading
+from zipline.finance import risk, slippage, trading
 from . period import PerformancePeriod
 
 from zipline.finance.trading import with_environment
@@ -285,6 +284,28 @@ class PerformanceTracker(object):
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale
             self.position_tracker.update_last_sale(event)
+
+        elif event.type == zp.DATASOURCE_TYPE.LIQUIDATION:
+            # get current positions
+            portfolio = self.get_portfolio(performance_needs_update=False)
+            positions = portfolio.positions
+
+            # if no position is held, skip
+            if event.sid not in positions:
+                return
+
+            # create a transaction to liquidate the position
+            txn = slippage.Transaction(
+                sid=event.sid,
+                amount=-positions[event.sid].amount,
+                dt=event.dt,
+                price=event.price,
+                order_id='liquidation-{sid}-{dt}-{price}'.format(
+                    sid=event.sid, dt=event.dt, price=event.price)
+            )
+
+            # recursive call to avoid duplication of transaction logic
+            self.process_event(txn)
 
         elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
             # Trade simulation always follows a transaction with the
