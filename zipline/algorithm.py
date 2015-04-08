@@ -35,14 +35,13 @@ from zipline.errors import (
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
     RegisterTradingControlPostInit,
-    UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
 )
 
 from zipline.finance import trading
 from zipline.finance.blotter import Blotter
-from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.commission import PerShare
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -821,9 +820,6 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_commission(self, commission):
-        if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
-            raise UnsupportedCommissionModel()
-
         if self.initialized:
             raise OverrideCommissionPostInit()
         self.commission = commission
