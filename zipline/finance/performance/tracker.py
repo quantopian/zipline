@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -183,7 +183,6 @@ class PerformanceTracker(object):
         self.perf_periods.append(self.todays_performance)
 
         self.saved_dt = self.period_start
-        self.returns = pd.Series(index=self.trading_days)
         # one indexed so that we reach 100%
         self.day_count = 0.0
         self.txn_count = 0
@@ -411,7 +410,6 @@ class PerformanceTracker(object):
         # calculations and update dividends for the next day.
         if dt == self.market_close:
             self.check_upcoming_dividends(todays_date)
-            self.returns[todays_date] = self.todays_performance.returns
 
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
@@ -435,9 +433,6 @@ class PerformanceTracker(object):
         """
         self.update_performance()
         completed_date = normalize_date(self.market_close)
-
-        # add the return results from today to the returns series
-        self.returns[completed_date] = self.todays_performance.returns
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
