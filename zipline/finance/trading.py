@@ -23,7 +23,6 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
 
 
 log = logbook.Logger('Trading')
@@ -93,24 +92,7 @@ class TradingEnvironment(object):
         max_date=None,
         env_trading_calendar=tradingcalendar
     ):
-        self.prev_environment = self
-        self.bm_symbol = bm_symbol
-        if not load:
-            load = load_market_data
-
-        self.benchmark_returns, treasury_curves_map = \
-            load(self.bm_symbol)
-
-        self.treasury_curves = pd.DataFrame(treasury_curves_map).T
-        if max_date:
-            tr_c = self.treasury_curves
-            # Mask the treasury curvers down to the current date.
-            # In the case of live trading, the last date in the treasury
-            # curves would be the day before the date considered to be
-            # 'today'.
-            self.treasury_curves = tr_c[tr_c.index <= max_date]
-
-        self.exchange_tz = exchange_tz
+        self.trading_day = env_trading_calendar.trading_day.copy()
 
         # `tc_td` is short for "trading calendar trading days"
         tc_td = env_trading_calendar.trading_days
@@ -123,11 +105,30 @@ class TradingEnvironment(object):
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
 
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
+        self.early_closes = env_trading_calendar.get_early_closes(
+            self.first_trading_day, self.last_trading_day)
 
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
+
+        self.prev_environment = self
+        self.bm_symbol = bm_symbol
+        if not load:
+            load = load_market_data
+
+        self.benchmark_returns, treasury_curves_map = \
+            load(self.trading_day, self.trading_days, self.bm_symbol)
+
+        self.treasury_curves = pd.DataFrame(treasury_curves_map).T
+        if max_date:
+            tr_c = self.treasury_curves
+            # Mask the treasury curves down to the current date.
+            # In the case of live trading, the last date in the treasury
+            # curves would be the day before the date considered to be
+            # 'today'.
+            self.treasury_curves = tr_c[tr_c.index <= max_date]
+
+        self.exchange_tz = exchange_tz
 
     def __enter__(self, *args, **kwargs):
         global environment

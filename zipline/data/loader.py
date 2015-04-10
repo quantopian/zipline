@@ -31,10 +31,8 @@ from six import iteritems
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
 
-from zipline.utils.tradingcalendar import (
-    trading_day,
-    trading_days
-)
+from zipline.utils.tradingcalendar import trading_day as trading_day_nyse
+from zipline.utils.tradingcalendar import trading_days as trading_days_nyse
 
 logger = logbook.Logger('Loader')
 
@@ -154,7 +152,8 @@ def get_benchmark_filename(symbol):
     return "%s_benchmark.csv" % symbol
 
 
-def load_market_data(bm_symbol='^GSPC'):
+def load_market_data(trading_day=trading_day_nyse,
+                     trading_days=trading_days_nyse, bm_symbol='^GSPC'):
     bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
