@@ -158,10 +158,13 @@ def load_market_data(trading_day=trading_day_nyse,
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
     except (OSError, IOError):
-        print("""
-data files aren't distributed with source.
-Fetching data from Yahoo Finance.
-""".strip())
+        logger.info(
+            "No cache found at {path}. "
+            "Downloading benchmark data for '{symbol}'.",
+            symbol=bm_symbol,
+            path=bm_filepath,
+        )
+
         dump_benchmarks(bm_symbol)
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
 
@@ -202,10 +205,13 @@ Fetching data from Yahoo Finance.
     try:
         saved_curves = pd.DataFrame.from_csv(tr_filepath)
     except (OSError, IOError):
-        print("""
-data files aren't distributed with source.
-Fetching data from {0}
-""".format(source).strip())
+        logger.info(
+            "No cache found at {path}. "
+            "Downloading treasury data from {source}.",
+            path=tr_filepath,
+            source=source,
+        )
+
         dump_treasury_curves(module, filename)
         saved_curves = pd.DataFrame.from_csv(tr_filepath)
 
