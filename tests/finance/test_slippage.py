@@ -103,12 +103,13 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[2],
+            events[3],
             open_orders
         ))
         self.assertEquals(len(orders_txns), 0)
 
-        # long, does trade
+        # long, does not trade - impacted price worse than limit price
+
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -116,6 +117,24 @@ class SlippageTestCase(TestCase):
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
+        ]
+
+        orders_txns = list(slippage_model.simulate(
+            events[3],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        # long, does trade
+
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'filled': 0,
+                'sid': 133,
+                'limit': 3.6})
         ]
 
         orders_txns = list(slippage_model.simulate(
@@ -160,7 +179,7 @@ class SlippageTestCase(TestCase):
 
         self.assertEquals(len(orders_txns), 0)
 
-        # short, does trade
+        # short, does not trade - impacted price worse than limit price
 
         open_orders = [
             Order(**{
@@ -169,6 +188,24 @@ class SlippageTestCase(TestCase):
                 'filled': 0,
                 'sid': 133,
                 'limit': 3.5})
+        ]
+
+        orders_txns = list(slippage_model.simulate(
+            events[1],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        # short, does trade
+
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': -100,
+                'filled': 0,
+                'sid': 133,
+                'limit': 3.4})
         ]
 
         orders_txns = list(slippage_model.simulate(
@@ -372,7 +409,7 @@ class SlippageTestCase(TestCase):
 
         self.assertEquals(len(orders_txns), 0)
 
-        # long, does trade
+        # long, does not trade - impacted price worse than limit price
 
         open_orders = [
             Order(**{
@@ -382,6 +419,32 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 4.0,
                 'limit': 3.5})
+        ]
+
+        orders_txns = list(slippage_model.simulate(
+            events[2],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        orders_txns = list(slippage_model.simulate(
+            events[3],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        # long, does trade
+
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'filled': 0,
+                'sid': 133,
+                'stop': 4.0,
+                'limit': 3.6})
         ]
 
         orders_txns = list(slippage_model.simulate(
@@ -436,7 +499,7 @@ class SlippageTestCase(TestCase):
 
         self.assertEquals(len(orders_txns), 0)
 
-        # short, does trade
+        # short, does not trade - impacted price worse than limit price
 
         open_orders = [
             Order(**{
@@ -446,6 +509,32 @@ class SlippageTestCase(TestCase):
                 'sid': 133,
                 'stop': 3.0,
                 'limit': 3.5})
+        ]
+
+        orders_txns = list(slippage_model.simulate(
+            events[0],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        orders_txns = list(slippage_model.simulate(
+            events[1],
+            open_orders
+        ))
+
+        self.assertEquals(len(orders_txns), 0)
+
+        # short, does trade
+
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': -100,
+                'filled': 0,
+                'sid': 133,
+                'stop': 3.0,
+                'limit': 3.4})
         ]
 
         orders_txns = list(slippage_model.simulate(

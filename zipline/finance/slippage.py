@@ -258,13 +258,25 @@ class VolumeShareSlippage(SlippageModel):
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
             * event.price
+        impacted_price = event.price + simulated_impact
+
+        if order.limit:
+            # this is tricky! if an order with a limit price has reached
+            # the limit price, we will try to fill the order. do not fill
+            # these shares if the impacted price is worse than the limit
+            # price. return early to avoid creating the transaction.
+
+            # buy order is worse if the impacted price is greater than
+            # the limit price. sell order is worse if the impacted price
+            # is less than the limit price
+            if (order.direction > 0 and impacted_price > order.limit) or \
+                    (order.direction < 0 and impacted_price < order.limit):
+                return
 
         return create_transaction(
             event,
             order,
-            # In the future, we may want to change the next line
-            # for limit pricing
-            event.price + simulated_impact,
+            impacted_price,
             math.copysign(cur_volume, order.direction)
         )
 
