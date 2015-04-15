@@ -22,6 +22,7 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
+from zipline.finance import trading
 
 
 class DataFrameSource(DataSource):
@@ -39,11 +40,21 @@ class DataFrameSource(DataSource):
     def __init__(self, data, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(method='ffill')
         # Unpack config dictionary with default values.
-        self.sids = kwargs.get('sids', data.columns)
-        self.start = kwargs.get('start', data.index[0])
-        self.end = kwargs.get('end', data.index[-1])
+        self.start = kwargs.get('start', self.data.index[0])
+        self.end = kwargs.get('end', self.data.index[-1])
+
+        # Remap sids based on the trading environment
+        self.identifiers = kwargs.get('sids', self.data.columns)
+        trading.environment.update_asset_finder(identifiers=self.identifiers)
+        self.data.columns = [
+            trading.environment.asset_finder.lookup_generic(
+                identifier,
+                as_of_date=self.end)[0].sid
+            for identifier in self.data.columns
+        ]
+        self.sids = self.data.columns
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
@@ -108,11 +119,21 @@ class DataPanelSource(DataSource):
     def __init__(self, data, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(method='ffill', axis=0)
         # Unpack config dictionary with default values.
-        self.sids = kwargs.get('sids', data.items)
-        self.start = kwargs.get('start', data.major_axis[0])
-        self.end = kwargs.get('end', data.major_axis[-1])
+        self.start = kwargs.get('start', self.data.major_axis[0])
+        self.end = kwargs.get('end', self.data.major_axis[-1])
+
+        # Remap sids based on the trading environment
+        self.identifiers = kwargs.get('sids', self.data.items)
+        trading.environment.update_asset_finder(identifiers=self.identifiers)
+        self.data.items = [
+            trading.environment.asset_finder.lookup_generic(
+                identifier,
+                as_of_date=self.end)[0].sid
+            for identifier in self.data.items
+        ]
+        self.sids = self.data.items
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)

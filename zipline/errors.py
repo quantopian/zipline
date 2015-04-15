@@ -188,3 +188,54 @@ class IncompatibleHistoryFrequency(ZiplineError):
 Requested history at frequency '{frequency}' cannot be created with data
 at frequency '{data_frequency}'.
 """.strip()
+
+
+class SymbolNotFound(ZiplineError):
+    """
+    Raised when a symbol() call contains a non-existant symbol.
+    """
+    msg = """
+Symbol '{symbol}' was not found.
+""".strip()
+
+
+class MultipleSymbolsFound(ZiplineError):
+    """
+    Raised when a symbol() call contains a symbol that changed over
+    time and is thus not resolvable without additional information
+    provided via as_of_date.
+    """
+    msg = """
+Multiple symbols with the name '{symbol}' found. Use the
+as_of_date' argument to to specify when the date symbol-lookup
+should be valid.
+
+Possible options:{options}
+    """.strip()
+
+
+class SidNotFound(ZiplineError):
+    """
+    Raised when a retrieve_asset() call contains a non-existant sid.
+    """
+    msg = """
+Sid '{sid}' was not found.
+""".strip()
+
+
+class ConsumeAssetMetaDataError(ZiplineError):
+    """
+    Raised when AssetMetaData.consume() is called on a non-AssetMetaData object
+    """
+    msg = """
+AssetMetaData can not consume {obj}.
+""".strip()
+
+
+class NoSourceError(ZiplineError):
+    """
+    Raised when no source is given to the pipeline
+    """
+    msg = """
+No data source given.
+""".strip()

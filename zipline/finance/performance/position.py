@@ -20,8 +20,7 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | key             | value                                              |
     +=================+====================================================+
-    | sid             | the identifier for the security held in this       |
-    |                 | position.                                          |
+    | sid             | the sid for the security held in this position     |
     +-----------------+----------------------------------------------------+
     | amount          | whole number of shares in the position             |
     +-----------------+----------------------------------------------------+

@@ -18,6 +18,7 @@ from nose_parameterized import parameterized
 from unittest import TestCase
 
 from zipline.finance.blotter import Blotter, ORDER_STATUS
+from zipline.finance import trading
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -36,6 +37,8 @@ class BlotterTestCase(TestCase):
 
     def setUp(self):
         setup_logger(self)
+        self.environment = trading.environment
+        self.environment.update_asset_finder(identifiers=[24])
 
     def tearDown(self):
         teardown_logger(self)

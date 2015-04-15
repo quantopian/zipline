@@ -19,15 +19,16 @@ import pytz
 from zipline import TradingAlgorithm
 from zipline.utils.factory import load_from_yahoo
 
-from zipline.api import order
+from zipline.api import order, symbol
 
 
 def initialize(context):
     context.test = 10
+    context.aapl = symbol('AAPL')
 
 
 def handle_date(context, data):
-    order('AAPL', 10)
+    order(context.aapl, 10)
     print(context.test)
 
 
@@ -39,7 +40,8 @@ if __name__ == '__main__':
                            end=end)
     data = data.dropna()
     algo = TradingAlgorithm(initialize=initialize,
-                            handle_data=handle_date)
+                            handle_data=handle_date,
+                            identifiers=['AAPL'])
     results = algo.run(data)
     results.portfolio_value.plot()
     pl.show()

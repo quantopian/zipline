@@ -39,6 +39,7 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
+    SidNotFound
 )
 
 from zipline.finance import trading
@@ -50,7 +51,8 @@ from zipline.finance.controls import (
     MaxOrderSize,
     MaxPositionSize,
     MaxLeverage,
-    RestrictedListOrder
+    RestrictedListOrder,
+    ExpiredSID
 )
 from zipline.finance.execution import (
     LimitOrder,
@@ -64,6 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
+from zipline.assets.assets import EQUITY, FUTURE
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -138,6 +141,11 @@ class TradingAlgorithm(object):
                Whether to fill orders immediately or on next bar.
             environment : str <default: 'zipline'>
                The environment that this algorithm is running in.
+            asset_metadata : AssetMetaData, dict, or DataFrame
+                The metadata for all assets that may be used
+            identifiers : List
+                Any asset identifiers that are not provided in the
+                asset_metadata, but will be traded by this TradingAlgorithm
         """
         self.datetime = None
 
@@ -173,6 +181,12 @@ class TradingAlgorithm(object):
                 capital_base=self.capital_base
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
+
+        # Update the TradingEnvironment with the provided metadata
+        self._environment = kwargs.pop('environment', trading.environment)
+        self._environment.update_asset_finder(
+            asset_metadata=kwargs.pop('asset_metadata', None),
+            identifiers=kwargs.pop('identifiers', None))
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -247,10 +261,14 @@ class TradingAlgorithm(object):
 
         self._most_recent_data = None
 
+        self.initialized = False
+
+        # Register any default TradingControl objects
+        self.register_trading_control(ExpiredSID())
+
         # Subclasses that override initialize should only worry about
         # setting self.initialized = True if AUTO_INITIALIZE is
         # is manually set to False.
-        self.initialized = False
         self.initialize(*args, **kwargs)
         if self.AUTO_INITIALIZE:
             self.initialized = True
@@ -328,11 +346,10 @@ class TradingAlgorithm(object):
             sim_params = self.sim_params
 
         if self.benchmark_return_source is None:
-            env = trading.environment
             if sim_params.data_frequency == 'minute' or \
                sim_params.emission_rate == 'minute':
                 def update_time(date):
-                    return env.get_open_and_close(date)[1]
+                    return self._environment.get_open_and_close(date)[1]
             else:
                 def update_time(date):
                     return date
@@ -342,7 +359,7 @@ class TradingAlgorithm(object):
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
                 for dt, ret in
-                trading.environment.benchmark_returns.iteritems()
+                self._environment.benchmark_returns.iteritems()
                 if dt.date() >= sim_params.period_start.date() and
                 dt.date() <= sim_params.period_end.date()
             ]
@@ -400,10 +417,12 @@ class TradingAlgorithm(object):
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
     def run(self, source, overwrite_sim_params=True,
-            benchmark_return_source=None):
+            benchmark_return_source=None, start=None, end=None):
         """Run the algorithm.
 
         :Arguments:
+            start : (optional) DateTime at which to begin the run
+            end : (optional) DateTime at which to end the run
             source : can be either:
                      - pandas.DataFrame
                      - zipline source
@@ -411,19 +430,36 @@ class TradingAlgorithm(object):
 
                If pandas.DataFrame is provided, it must have the
                following structure:
-               * column names must consist of ints representing the
-                 different sids
+               * column names must be the different asset identifiers
                * index must be DatetimeIndex
                * array contents should be price info.
+
+            asset_metadata: can be either:
+                            - dict
+                            - pandas.DataFrame
+                            - zipline AssetMetaData
+
+                If dict is provided, it must have the following structure:
+                * keys are the identifiers
+                * values are dicts containing the metadata, with the metadata
+                  field name as the key
+
+                If pandas.DataFrame is provided, it must have the
+                following structure:
+                * column names must be the metadata fields
+                * index must be the different asset identifiers
+                * array contents should be the metadata value
 
         :Returns:
             daily_stats : pandas.DataFrame
               Daily performance metrics such as returns, alpha etc.
 
         """
+
+        # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
+                warnings.warn("""List of sources passed, will not attempt to extract start and end
  dates. Make sure to set the correct fields in sim_params passed to
  __init__().""", UserWarning)
                 overwrite_sim_params = False
@@ -440,10 +476,16 @@ class TradingAlgorithm(object):
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
-            if hasattr(source, 'start'):
+            if start is not None:
+                self.sim_params.period_start = start
+            elif hasattr(source, 'start'):
                 self.sim_params.period_start = source.start
-            if hasattr(source, 'end'):
+            if end is not None:
+                self.sim_params.period_end = end
+            elif hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
+            # The sids field of the source is the canonical reference for
+            # sids in this run
             all_sids = [sid for s in self.sources for sid in s.sids]
             self.sim_params.sids = set(all_sids)
             # Changing period_start and period_close might require updating
@@ -607,7 +649,11 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the identifier (e.g. yahoo finance).
         """
-        return symbol_str
+        asset, _ = self._environment.asset_finder.lookup_generic(
+            asset_convertible_or_iterable=symbol_str,
+            as_of_date=self.datetime,
+            )
+        return asset.sid
 
     @api_method
     def symbols(self, *args):
@@ -615,6 +661,9 @@ class TradingAlgorithm(object):
         Default symbols lookup for any source that directly maps the
         symbol to the identifier (e.g. yahoo finance).
         """
+        result = []
+        for identifier in args:
+            result.append(self.symbol(identifier))
         return args
 
     @api_method
@@ -719,6 +768,8 @@ class TradingAlgorithm(object):
         Place an order by desired value rather than desired number of shares.
         If the requested sid is found in the universe, the requested value is
         divided by its price to imply the number of shares to transact.
+        If the Asset being ordered is a Future, the 'value' calculated
+        is actually the exposure, as Futures have no 'value'.
 
         value > 0 :: Buy/Cover
         value < 0 :: Sell/Short
@@ -728,6 +779,17 @@ class TradingAlgorithm(object):
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
         last_price = self.trading_client.current_data[sid].price
+        asset = self._environment.asset_finder.retrieve_asset(sid)
+
+        if asset is None:
+            raise SidNotFound(sid=sid)
+
+        value_multiplier = 1
+        if asset.asset_type == EQUITY:
+            value_multiplier = 1
+        if asset.asset_type == FUTURE:
+            value_multiplier = asset.contract_multiplier
+
         if np.allclose(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
                 psid=sid
@@ -737,7 +799,7 @@ class TradingAlgorithm(object):
             # Don't place any order
             return
         else:
-            amount = value / last_price
+            amount = value / (last_price * value_multiplier)
             return self.order(sid, amount,
                               limit_price=limit_price,
                               stop_price=stop_price,
@@ -899,15 +961,29 @@ class TradingAlgorithm(object):
         order. If the position does exist, this is equivalent to placing an
         order for the difference between the target value and the
         current value.
+        If the Asset being ordered is a Future, the 'target value' calculated
+        is actually the target exposure, as Futures have no 'value'.
         """
         last_price = self.trading_client.current_data[sid].price
+        asset = self._environment.asset_finder.retrieve_asset(sid)
+
+        if asset is None:
+            raise SidNotFound(sid=sid)
+
+        value_multiplier = 1
+        if asset.asset_type == EQUITY:
+            value_multiplier = 1
+        if asset.asset_type == FUTURE:
+            value_multiplier = asset.contract_multiplier
+
         if np.allclose(last_price, 0):
             # Don't place an order
             if self.logger:
                 zero_message = "Price of 0 for {psid}; can't infer value"
                 self.logger.debug(zero_message.format(psid=sid))
             return
-        target_amount = target / last_price
+
+        target_amount = target / (last_price * value_multiplier)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,

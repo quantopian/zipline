@@ -31,6 +31,7 @@ except:
     PYGMENTS = False
 
 import zipline
+from zipline.errors import NoSourceError
 
 DEFAULTS = {
     'start': '2012-01-01',
@@ -99,9 +100,12 @@ def parse_args(argv, ipython_mode=False):
     parser.add_argument('--start', '-s')
     parser.add_argument('--end', '-e')
     parser.add_argument('--capital_base')
-    parser.add_argument('--source', choices=('yahoo',))
+    parser.add_argument('--source', '-d')
+    parser.add_argument('--source_time_column', '-t')
     parser.add_argument('--symbols')
     parser.add_argument('--output', '-o')
+    parser.add_argument('--metadata_path', '-m')
+    parser.add_argument('--metadata_index', '-x')
     if ipython_mode:
         parser.add_argument('--local_namespace', action='store_true')
 
@@ -157,10 +161,43 @@ def run_pipeline(print_algo=True, **kwargs):
     end = pd.Timestamp(kwargs['end'], tz='UTC')
 
     symbols = kwargs['symbols'].split(',')
+    asset_identifier = kwargs['metadata_index']
+    if asset_identifier is None:
+        asset_identifier = 'symbol'
 
-    if kwargs['source'] == 'yahoo':
+    # Pull asset metadata
+    asset_metadata = kwargs.get('asset_metadata', None)
+    asset_metadata_path = kwargs['metadata_path']
+    # Read in a CSV file, if applicable
+    if asset_metadata_path is not None:
+        if os.path.isfile(asset_metadata_path):
+            asset_metadata = pd.read_csv(asset_metadata_path,
+                                         index_col=asset_identifier)
+
+    source_arg = kwargs['source']
+    source_time_column = kwargs['source_time_column']
+    if source_time_column is None:
+        source_time_column = 'Date'
+
+    if source_arg is None:
+        raise NoSourceError()
+
+    elif source_arg == 'yahoo':
         source = zipline.data.load_bars_from_yahoo(
             stocks=symbols, start=start, end=end)
+
+    elif os.path.isfile(source_arg):
+        source = zipline.data.load_prices_from_csv(
+            filepath=source_arg,
+            identifier_col=source_time_column
+        )
+
+    elif os.path.isdir(source_arg):
+        source = zipline.data.load_prices_from_csv_folder(
+            folderpath=source_arg,
+            identifier_col=source_time_column
+        )
+
     else:
         raise NotImplementedError(
             'Source %s not implemented.' % kwargs['source'])
@@ -188,9 +225,13 @@ def run_pipeline(print_algo=True, **kwargs):
     algo = zipline.TradingAlgorithm(script=algo_text,
                                     namespace=kwargs.get('namespace', {}),
                                     capital_base=float(kwargs['capital_base']),
-                                    algo_filename=kwargs.get('algofile'))
+                                    algo_filename=kwargs.get('algofile'),
+                                    asset_metadata=asset_metadata,
+                                    identifiers=symbols)
 
-    perf = algo.run(source)
+    perf = algo.run(source,
+                    start=start,
+                    end=end)
 
     output_fname = kwargs.get('output', None)
     if output_fname is not None:

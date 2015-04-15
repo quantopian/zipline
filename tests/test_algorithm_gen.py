@@ -159,8 +159,7 @@ class AlgorithmGeneratorTestCase(TestCase):
             period_end=datetime(2012, 7, 30, tzinfo=pytz.utc),
             data_frequency='minute'
         )
-        algo = TestAlgo(self,
-                        sim_params=sim_params)
+        algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
 
         midnight_custom_source = [Event({
             'custom_field': 42.0,

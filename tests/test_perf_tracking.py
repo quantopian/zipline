@@ -1845,11 +1845,17 @@ class TestPerformanceTracker(unittest.TestCase):
             )
             tracker = perf.PerformanceTracker(sim_params)
 
-            foo_event_1 = factory.create_trade('foo', 10.0, 20, start_dt)
+            foosid = 1
+            barsid = 2
+
+            trading.environment.update_asset_finder(
+                identifiers=[foosid, barsid])
+
+            foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
             order_event_1 = Order(sid=foo_event_1.sid,
                                   amount=-25,
                                   dt=foo_event_1.dt)
-            bar_event_1 = factory.create_trade('bar', 100.0, 200, start_dt)
+            bar_event_1 = factory.create_trade(barsid, 100.0, 200, start_dt)
             txn_event_1 = Transaction(sid=foo_event_1.sid,
                                       amount=-25,
                                       dt=foo_event_1.dt,
@@ -1863,9 +1869,9 @@ class TestPerformanceTracker(unittest.TestCase):
             })
 
             foo_event_2 = factory.create_trade(
-                'foo', 11.0, 20, start_dt + timedelta(minutes=1))
+                foosid, 11.0, 20, start_dt + timedelta(minutes=1))
             bar_event_2 = factory.create_trade(
-                'bar', 11.0, 20, start_dt + timedelta(minutes=1))
+                barsid, 11.0, 20, start_dt + timedelta(minutes=1))
             benchmark_event_2 = Event({
                 'dt': start_dt + timedelta(minutes=1),
                 'returns': 0.02,

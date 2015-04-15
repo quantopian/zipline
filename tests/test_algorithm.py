@@ -489,7 +489,8 @@ class TestAlgoScript(TestCase):
             self.sim_params
         )
 
-        self.source = SpecificEquityTrades(event_list=trade_history)
+        self.source = SpecificEquityTrades(sids=[133],
+                                           event_list=trade_history)
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
 

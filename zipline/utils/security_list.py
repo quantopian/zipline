@@ -5,6 +5,8 @@ import os.path
 import pandas as pd
 import pytz
 import zipline
+from zipline.finance.trading import with_environment
+from zipline.errors import SidNotFound
 
 
 DATE_FORMAT = "%Y%m%d"
@@ -12,23 +14,16 @@ zipline_dir = os.path.dirname(zipline.__file__)
 SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
 
-def loopback(symbol, *args, **kwargs):
-    return symbol
-
-
 class SecurityList(object):
 
-    def __init__(self, lookup_func, data, current_date_func):
+    def __init__(self, data, current_date_func):
         """
-        lookup_func: function that takes a string symbol and a date and
-        returns a Security object.
         data: a nested dictionary:
             knowledge_date -> lookup_date ->
               {add: [symbol list], 'delete': []}, delete: [symbol list]}
         current_date_func: function taking no parameters, returning
             current datetime
         """
-        self.lookup_func = lookup_func
         self.data = data
         self._cache = {}
         self._knowledge_dates = self.make_knowledge_dates(self.data)
@@ -74,13 +69,17 @@ class SecurityList(object):
             self._cache[kd] = self._current_set
         return self._current_set
 
-    def update_current(self, effective_date, symbols, change_func):
+    @with_environment()
+    def update_current(self, effective_date, symbols, change_func, env=None):
         for symbol in symbols:
-            sid = self.lookup_func(
-                symbol,
-                as_of_date=effective_date
-            )
-            change_func(sid)
+            try:
+                sid = env.asset_finder.lookup_generic(
+                    symbol,
+                    as_of_date=effective_date
+                )[0].sid
+                change_func(sid)
+            except SidNotFound:
+                continue
 
 
 class SecurityListSet(object):
@@ -88,11 +87,7 @@ class SecurityListSet(object):
     # list implementations.
     security_list_type = SecurityList
 
-    def __init__(self, current_date_func, lookup_func=None):
-        if lookup_func is None:
-            self.lookup_func = loopback
-        else:
-            self.lookup_func = lookup_func
+    def __init__(self, current_date_func):
         self.current_date_func = current_date_func
         self._leveraged_etf = None
 
@@ -100,7 +95,6 @@ class SecurityListSet(object):
     def leveraged_etf_list(self):
         if self._leveraged_etf is None:
             self._leveraged_etf = self.security_list_type(
-                self.lookup_func,
                 load_from_directory('leveraged_etf_list'),
                 self.current_date_func
             )

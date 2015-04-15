@@ -23,6 +23,7 @@ import pytz
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import batch_transform
 from zipline.utils.factory import load_from_yahoo
+from zipline.sources.data_frame_source import DataFrameSource
 
 
 @batch_transform
@@ -59,11 +60,13 @@ class Pairtrade(TradingAlgorithm):
         self.window_length = window_length
         self.ols_transform = ols_transform(refresh_period=self.window_length,
                                            window_length=self.window_length)
+        self.PEPsid = self.symbol('PEP')
+        self.KOsid = self.symbol('KO')
 
     def handle_data(self, data):
         ######################################################
         # 1. Compute regression coefficients between PEP and KO
-        params = self.ols_transform.handle_data(data, 'PEP', 'KO')
+        params = self.ols_transform.handle_data(data, self.PEPsid, self.KOsid)
         if params is None:
             return
         intercept, slope = params
@@ -81,7 +84,8 @@ class Pairtrade(TradingAlgorithm):
         """1. Compute the spread given slope and intercept.
            2. zscore the spread.
         """
-        spread = (data['PEP'].price - (slope * data['KO'].price + intercept))
+        spread = (data[self.PEPsid].price -
+                  (slope * data[self.KOsid].price + intercept))
         self.spreads.append(spread)
         spread_wind = self.spreads[-self.window_length:]
         zscore = (spread - np.mean(spread_wind)) / np.std(spread_wind)
@@ -91,12 +95,12 @@ class Pairtrade(TradingAlgorithm):
         """Buy spread if zscore is > 2, sell if zscore < .5.
         """
         if zscore >= 2.0 and not self.invested:
-            self.order('PEP', int(100 / data['PEP'].price))
-            self.order('KO', -int(100 / data['KO'].price))
+            self.order(self.PEPsid, int(100 / data[self.PEPsid].price))
+            self.order(self.KOsid, -int(100 / data[self.KOsid].price))
             self.invested = True
         elif zscore <= -2.0 and not self.invested:
-            self.order('PEP', -int(100 / data['PEP'].price))
-            self.order('KO', int(100 / data['KO'].price))
+            self.order(self.PEPsid, -int(100 / data[self.PEPsid].price))
+            self.order(self.KOsid, int(100 / data[self.KOsid].price))
             self.invested = True
         elif abs(zscore) < .5 and self.invested:
             self.sell_spread()
@@ -107,23 +111,25 @@ class Pairtrade(TradingAlgorithm):
         decrease exposure, regardless of position long/short.
         buy for a short position, sell for a long.
         """
-        ko_amount = self.portfolio.positions['KO'].amount
-        self.order('KO', -1 * ko_amount)
-        pep_amount = self.portfolio.positions['PEP'].amount
-        self.order('PEP', -1 * pep_amount)
+        ko_amount = self.portfolio.positions[self.KOsid].amount
+        self.order(self.KOsid, -1 * ko_amount)
+        pep_amount = self.portfolio.positions[self.PEPsid].amount
+        self.order(self.PEPsid, -1 * pep_amount)
 
 if __name__ == '__main__':
     start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},
                            start=start, end=end)
+    source = DataFrameSource(data)
 
     pairtrade = Pairtrade()
-    results = pairtrade.run(data)
+    results = pairtrade.run(source)
     data['spreads'] = np.nan
 
     ax1 = plt.subplot(211)
-    data[['PEP', 'KO']].plot(ax=ax1)
+    # TODO Bugged - indices are out of bounds
+    # data[[pairtrade.PEPsid, pairtrade.KOsid]].plot(ax=ax1)
     plt.ylabel('price')
     plt.setp(ax1.get_xticklabels(), visible=False)
 

@@ -74,7 +74,7 @@ class TestAssetRichCmp(TestCase):
                 'a' < Asset(3)
 
 
-class testFuture(TestCase):
+class TestFuture(TestCase):
 
     def test_repr(self):
 

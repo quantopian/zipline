@@ -57,7 +57,12 @@ DIVIDEND_FIELDS = [
     'sid',
 ]
 # Expected fields/index values for a dividend payment Series.
-DIVIDEND_PAYMENT_FIELDS = ['id', 'payment_sid', 'cash_amount', 'share_count']
+DIVIDEND_PAYMENT_FIELDS = [
+    'id',
+    'payment_sid',
+    'cash_amount',
+    'share_count'
+]
 
 
 def dividend_payment(data=None):
@@ -288,7 +293,6 @@ class SIDData(object):
 
     def __init__(self, sid, initial_values=None):
         self._sid = sid
-
         self._freqstr = None
 
         # To check if we have data, we use the __len__ which depends on the

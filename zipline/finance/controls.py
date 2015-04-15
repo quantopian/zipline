@@ -20,6 +20,7 @@ from zipline.errors import (
     AccountControlViolation,
     TradingControlViolation,
 )
+from zipline.finance import trading
 
 
 class TradingControl(with_metaclass(abc.ABCMeta)):
@@ -266,6 +267,30 @@ class LongOnly(TradingControl):
         order.
         """
         if portfolio.positions[sid].amount + amount < 0:
+            self.fail(sid, amount)
+
+
+class ExpiredSID(TradingControl):
+    """
+    TradingControl representing a prohibition against ordering a SID that has
+    passed its end_date.
+    """
+
+    def validate(self,
+                 sid,
+                 amount,
+                 portfolio,
+                 algo_datetime,
+                 algo_current_data):
+        """
+        Fail if the algo has passed this Asset's end_date.
+        """
+        asset = trading.environment.asset_finder.retrieve_asset(sid=sid)
+        # No failure if the Asset has no end_date
+        if not asset.end_date:
+            return
+        # Fail if the algo has passed this Asset's end_date
+        if algo_datetime >= asset.end_date:
             self.fail(sid, amount)
 
 

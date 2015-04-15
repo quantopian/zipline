@@ -6,6 +6,7 @@ from unittest import TestCase
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.sources import SpecificEquityTrades
+from zipline.finance import trading
 from zipline.utils.test_utils import (
     setup_logger, teardown_logger, security_list_copy, add_security_data)
 from zipline.utils import factory
@@ -16,11 +17,11 @@ LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
 
 class RestrictedAlgoWithCheck(TradingAlgorithm):
-    def initialize(self, sid):
+    def initialize(self, symbol):
             self.rl = SecurityListSet(self.get_datetime)
             self.set_do_not_order_list(self.rl.leveraged_etf_list)
             self.order_count = 0
-            self.sid = sid
+            self.sid = self.symbol(symbol)
 
     def handle_data(self, data):
         if not self.order_count:
@@ -31,11 +32,11 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
 
 
 class RestrictedAlgoWithoutCheck(TradingAlgorithm):
-    def initialize(self, sid):
+    def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime)
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
         self.order_count = 0
-        self.sid = sid
+        self.sid = self.symbol(symbol)
 
     def handle_data(self, data):
         self.order(self.sid, 100)
@@ -43,11 +44,11 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
 
 
 class IterateRLAlgo(TradingAlgorithm):
-    def initialize(self, sid):
+    def initialize(self, symbol):
             self.rl = SecurityListSet(self.get_datetime)
             self.set_do_not_order_list(self.rl.leveraged_etf_list)
             self.order_count = 0
-            self.sid = sid
+            self.sid = self.symbol(symbol)
             self.found = False
 
     def handle_data(self, data):
@@ -63,6 +64,10 @@ class SecurityListTestCase(TestCase):
             datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
         self.trading_day_before_first_kd = datetime(
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
+
+        trading.TradingEnvironment().update_asset_finder(
+            erase_existing=True,
+            identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"])
 
         setup_logger(self)
 
@@ -81,7 +86,7 @@ class SecurityListTestCase(TestCase):
             sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
-        algo = IterateRLAlgo(sid='BZQ', sim_params=sim_params)
+        algo = IterateRLAlgo(symbol='BZQ', sim_params=sim_params)
         algo.run(self.source)
         self.assertTrue(algo.found)
 
@@ -94,16 +99,24 @@ class SecurityListTestCase(TestCase):
 
         rl = SecurityListSet(get_datetime)
         # assert that a sample from the leveraged list are in restricted
-
-        self.assertIn("BZQ", rl.leveraged_etf_list)
-        self.assertIn("URTY", rl.leveraged_etf_list)
-        self.assertIn("JFT", rl.leveraged_etf_list)
+        should_exist = [
+            asset.sid for asset in
+            trading.environment.asset_finder.lookup_generic(
+                ["BZQ", "URTY", "JFT"],
+                as_of_date=self.extra_knowledge_date)[0]
+        ]
+        for sid in should_exist:
+            self.assertIn(sid, rl.leveraged_etf_list)
 
         # assert that a sample of allowed stocks are not in restricted
-        # AAPL
-        self.assertNotIn("AAPL", rl.leveraged_etf_list)
-        # GOOG
-        self.assertNotIn("GOOG", rl.leveraged_etf_list)
+        shouldnt_exist = [
+            asset.sid for asset in
+            trading.environment.asset_finder.lookup_generic(
+                ["AAPL", "GOOG"],
+                as_of_date=self.extra_knowledge_date)[0]
+        ]
+        for sid in shouldnt_exist:
+            self.assertNotIn(sid, rl.leveraged_etf_list)
 
     def test_security_add(self):
         def get_datetime():
@@ -111,10 +124,14 @@ class SecurityListTestCase(TestCase):
         with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
             rl = SecurityListSet(get_datetime)
-            self.assertIn("AAPL", rl.leveraged_etf_list)
-            self.assertIn("GOOG", rl.leveraged_etf_list)
-            self.assertIn("BZQ", rl.leveraged_etf_list)
-            self.assertIn("URTY", rl.leveraged_etf_list)
+            should_exist = [
+                asset.sid for asset in
+                trading.environment.asset_finder.lookup_generic(
+                    ["AAPL", "GOOG", "BZQ", "URTY"],
+                    as_of_date=self.extra_knowledge_date)[0]
+            ]
+            for sid in should_exist:
+                self.assertIn(sid, rl.leveraged_etf_list)
 
     def test_security_add_delete(self):
         with security_list_copy():
@@ -138,7 +155,7 @@ class SecurityListTestCase(TestCase):
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
-        algo = RestrictedAlgoWithCheck(sid='BZQ', sim_params=sim_params)
+        algo = RestrictedAlgoWithCheck(symbol='BZQ', sim_params=sim_params)
         algo.run(self.source)
 
     def test_algo_without_rl_violation(self):
@@ -153,7 +170,7 @@ class SecurityListTestCase(TestCase):
             sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
-        algo = RestrictedAlgoWithoutCheck(sid='AAPL', sim_params=sim_params)
+        algo = RestrictedAlgoWithoutCheck(symbol='AAPL', sim_params=sim_params)
         algo.run(self.source)
 
     def test_algo_with_rl_violation(self):
@@ -169,10 +186,7 @@ class SecurityListTestCase(TestCase):
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
-        self.df_source, self.df = \
-            factory.create_test_df_source(sim_params)
-
-        algo = RestrictedAlgoWithoutCheck(sid='BZQ', sim_params=sim_params)
+        algo = RestrictedAlgoWithoutCheck(symbol='BZQ', sim_params=sim_params)
         with self.assertRaises(TradingControlViolation) as ctx:
             algo.run(self.source)
 
@@ -189,10 +203,7 @@ class SecurityListTestCase(TestCase):
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
 
-        self.df_source, self.df = \
-            factory.create_test_df_source(sim_params)
-
-        algo = RestrictedAlgoWithoutCheck(sid='JFT', sim_params=sim_params)
+        algo = RestrictedAlgoWithoutCheck(symbol='JFT', sim_params=sim_params)
         with self.assertRaises(TradingControlViolation) as ctx:
             algo.run(self.source)
 
@@ -211,7 +222,7 @@ class SecurityListTestCase(TestCase):
             sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
-        algo = RestrictedAlgoWithoutCheck(sid='BZQ', sim_params=sim_params)
+        algo = RestrictedAlgoWithoutCheck(symbol='BZQ', sim_params=sim_params)
         with self.assertRaises(TradingControlViolation) as ctx:
             algo.run(self.source)
 
@@ -238,7 +249,7 @@ class SecurityListTestCase(TestCase):
             )
             self.source = SpecificEquityTrades(event_list=trade_history)
             algo = RestrictedAlgoWithoutCheck(
-                sid='BZQ', sim_params=sim_params)
+                symbol='BZQ', sim_params=sim_params)
             with self.assertRaises(TradingControlViolation) as ctx:
                 algo.run(self.source)
 
@@ -261,7 +272,8 @@ class SecurityListTestCase(TestCase):
             )
             self.source = SpecificEquityTrades(event_list=trade_history)
             algo = RestrictedAlgoWithoutCheck(
-                sid='BZQ', sim_params=sim_params)
+                symbol='BZQ', sim_params=sim_params
+            )
             algo.run(self.source)
 
     def test_algo_with_rl_violation_after_add(self):
@@ -278,7 +290,7 @@ class SecurityListTestCase(TestCase):
             )
             self.source = SpecificEquityTrades(event_list=trade_history)
             algo = RestrictedAlgoWithoutCheck(
-                sid='AAPL', sim_params=sim_params)
+                symbol='AAPL', sim_params=sim_params)
             with self.assertRaises(TradingControlViolation) as ctx:
                 algo.run(self.source)
 

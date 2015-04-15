@@ -23,6 +23,7 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
+from zipline.assets.assets import AssetFinder, AssetMetaData
 
 
 log = logbook.Logger('Trading')
@@ -134,6 +135,8 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
+        self.asset_finder = AssetFinder(AssetMetaData(), env_trading_calendar)
+
     def __enter__(self, *args, **kwargs):
         global environment
         self.prev_environment = environment
@@ -148,6 +151,40 @@ class TradingEnvironment(object):
         # signal that any exceptions need to be propagated up the
         # stack.
         return False
+
+    def update_asset_finder(self,
+                            erase_existing=False,
+                            asset_metadata=None,
+                            identifiers=None):
+        """
+        Updates the AssetFinder using the provided asset metadata and
+        identifiers.
+        If asset_metadata is provided, the existing metadata will be replaced
+        with the provided metadata.
+        All identifiers will be inserted in the asset metadata if they are not
+        already present.
+        If erase_existing is True, all metadata and assets held in the
+        asset_finder will be erased.
+
+        :param erase_existing: A boolean
+        :param asset_metadata: A zipline AssetMetaData, dict, or DataFrame
+        :param identifiers: A list of identifiers to be inserted
+        :return:
+        """
+        populate = False
+        if erase_existing:
+            self.asset_finder.metadata.erase()
+            populate = True
+        if asset_metadata is not None:
+            if not isinstance(asset_metadata, AssetMetaData):
+                asset_metadata = AssetMetaData(asset_metadata)
+            self.asset_finder.metadata = asset_metadata
+            populate = True
+        if identifiers is not None:
+            self.asset_finder.metadata.consume_identifiers(identifiers)
+            populate = True
+        if populate:
+            self.asset_finder.populate_cache(force=True)
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
