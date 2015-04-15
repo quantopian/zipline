@@ -114,7 +114,8 @@ def transact_partial(slippage, commission):
 
 class Transaction(object):
 
-    def __init__(self, sid, amount, dt, price, order_id, commission=None):
+    def __init__(self, sid, amount, dt, price, order_id, commission=None,
+                 slippage_price_effect=0):
         self.sid = sid
         self.amount = amount
         self.dt = dt
@@ -122,6 +123,7 @@ class Transaction(object):
         self.order_id = order_id
         self.commission = commission
         self.type = DATASOURCE_TYPE.TRANSACTION
+        self.slippage_price_effect = slippage_price_effect
 
     def __getitem__(self, name):
         return self.__dict__[name]
@@ -151,7 +153,7 @@ class Transaction(object):
         self.__dict__.update(state)
 
 
-def create_transaction(event, order, price, amount):
+def create_transaction(event, order, price, amount, slippage_price_effect=0):
 
     # floor the amount to protect against non-whole number orders
     # TODO: Investigate whether we can add a robust check in blotter
@@ -166,7 +168,8 @@ def create_transaction(event, order, price, amount):
         amount=int(amount),
         dt=event.dt,
         price=price,
-        order_id=order.id
+        order_id=order.id,
+        slippage_price_effect=slippage_price_effect
     )
 
     return transaction
@@ -265,7 +268,8 @@ class VolumeShareSlippage(SlippageModel):
             # In the future, we may want to change the next line
             # for limit pricing
             event.price + simulated_impact,
-            math.copysign(cur_volume, order.direction)
+            math.copysign(cur_volume, order.direction),
+            simulated_impact
         )
 
     def __getstate__(self):
@@ -304,6 +308,7 @@ class FixedSlippage(SlippageModel):
             order,
             event.price + (self.spread / 2.0 * order.direction),
             order.amount,
+            (self.spread / 2.0 * order.direction)
         )
 
     def __getstate__(self):
