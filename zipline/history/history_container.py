@@ -535,7 +535,7 @@ class HistoryContainer(object):
         Add new sids to the container.
         """
         self.sids = pd.Index(
-            sorted(self.sids + _ensure_index(to_add)),
+            sorted(self.sids.union(_ensure_index(to_add))),
         )
         self._realign_sids()
 
@@ -544,7 +544,7 @@ class HistoryContainer(object):
         Remove sids from the container.
         """
         self.sids = pd.Index(
-            sorted(self.sids - _ensure_index(to_drop)),
+            sorted(self.sids.difference(_ensure_index(to_drop))),
         )
         self._realign_sids()
 
