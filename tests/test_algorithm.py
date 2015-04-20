@@ -289,6 +289,18 @@ class TestMiscellaneousAPI(TestCase):
 
         self.assertIs(composer, zipline.utils.events.ComposedRule.lazy_and)
 
+    def test_symbol(self):
+        #TODO write test
+        return
+
+    def test_symbols(self):
+        #TODO write test
+        return
+
+    def test_sid(self):
+        #TODO write test
+        return
+
 
 class TestTransformAlgorithm(TestCase):
     def setUp(self):
@@ -720,6 +732,10 @@ def handle_data(context, data):
 
         output, _ = drain_zipline(self, zipline)
 
+    def test_order_value_of_future(self):
+        #TODO write test
+        return
+
     def test_order_in_init(self):
         """
         Test that calling order in initialize
@@ -874,6 +890,7 @@ class TestGetDatetime(TestCase):
         algo = TradingAlgorithm(
             script=algo,
             sim_params=sim_params,
+            identifiers=[1]
         )
         algo.run(source)
         self.assertFalse(algo.first_bar)
@@ -1130,6 +1147,24 @@ class TestTradingControls(TestCase):
                                 handle_data=handle_data)
         algo.run(self.source)
         self.source.rewind()
+
+    def test_expired_sid(self):
+
+        # Run the algorithm with a sid that ends far in the future
+
+        df_source, _ = factory.create_test_df_source(self.sim_params)
+        metadata = {0: {'end_date': '2020-01-01'}}
+        algo = TestOrderAlgorithm(asset_metadata=metadata,
+                                  sim_params=self.sim_params)
+        algo.run(df_source)
+
+        # Run the algorithm with a sid that has already ended
+        df_source, _ = factory.create_test_df_source(self.sim_params)
+        metadata = {0: {'end_date': '1990-01-01'}}
+        algo = TestOrderAlgorithm(asset_metadata=metadata,
+                                  sim_params=self.sim_params)
+        with self.assertRaises(TradingControlViolation):
+            algo.run(df_source)
 
 
 class TestAccountControls(TestCase):

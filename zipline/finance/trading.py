@@ -23,7 +23,7 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.assets.assets import AssetFinder, AssetMetaData
+from zipline.assets import AssetFinder, AssetMetaData
 
 
 log = logbook.Logger('Trading')

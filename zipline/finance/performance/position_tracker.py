@@ -18,7 +18,7 @@ from zipline.utils.serialization_utils import (
 )
 
 import zipline.protocol as zp
-from zipline.assets.assets import (
+from zipline.assets import (
     FUTURE, EQUITY
 )
 from zipline.finance.trading import with_environment

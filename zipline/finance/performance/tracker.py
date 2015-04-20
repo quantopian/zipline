@@ -71,7 +71,6 @@ import zipline.finance.risk as risk
 from zipline.finance import trading
 from . period import PerformancePeriod
 
-from zipline.finance.trading import with_environment
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )

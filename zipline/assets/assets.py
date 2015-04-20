@@ -226,7 +226,7 @@ class AssetFinder(object):
     def spawn_asset(self, identifier, **kwargs):
 
         # Check if the identifier is an int
-        if isinstance(identifier, int) and ('sid' not in kwargs):
+        if isinstance(identifier, int) and ('sid' not in kwargs.keys()):
             kwargs['sid'] = identifier
 
         # Make sure that the sid exists in the kwargs
@@ -235,26 +235,47 @@ class AssetFinder(object):
 
         # If the identifier coming in was a string and there is no defined
         # symbol yet, set the symbol to the incoming sid
-        if isinstance(identifier, str) and 'symbol' not in kwargs.keys():
+        if isinstance(identifier, str) and ('symbol' not in kwargs.keys()):
             kwargs['symbol'] = identifier
 
-        asset_type = kwargs.pop('asset_type', None)
-        asset = None
+        # If the file_name is in the kwargs, it may be the symbol
+        if 'file_name' in kwargs.keys():
+            file_name = kwargs.pop('file_name')
+            if 'symbol' not in kwargs.keys():
+                kwargs['symbol'] = file_name
+
+        # If the company_name is in the kwargs, it may be the asset_name
+        if 'company_name' in kwargs.keys():
+            company_name = kwargs.pop('company_name')
+            if 'asset_name' not in kwargs.keys():
+                kwargs['asset_name'] = company_name
+
+        # If dates are given as nanos, pop them
+        if 'start_date_nano' in kwargs.keys():
+            kwargs['start_date'] = kwargs.pop('start_date_nano')
+        if 'end_date_nano' in kwargs.keys():
+            kwargs['end_date'] = kwargs.pop('end_date_nano')
+        if 'notice_date_nano' in kwargs.keys():
+            kwargs['notice_date'] = kwargs.pop('notice_date_nano')
+        if 'expiration_date_nano' in kwargs.keys():
+            kwargs['expiration_date'] = kwargs.pop('expiration_date_nano')
 
         # Process dates
-        if 'start_date' in kwargs:
+        if 'start_date' in kwargs.keys():
             kwargs['start_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['start_date']))
-        if 'end_date' in kwargs:
+        if 'end_date' in kwargs.keys():
             kwargs['end_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['end_date']))
-        if 'notice_date' in kwargs:
+        if 'notice_date' in kwargs.keys():
             kwargs['notice_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['notice_date']))
-        if 'expiration_date' in kwargs:
+        if 'expiration_date' in kwargs.keys():
             kwargs['expiration_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['expiration_date']))
 
+        asset = None
+        asset_type = kwargs.pop('asset_type', None)
         if asset_type in (EQUITY, None):
             asset = Equity(**kwargs)
         if asset_type == FUTURE:
@@ -386,20 +407,29 @@ class NotAssetConvertible(ValueError):
 
 class AssetMetaData(object):
 
-    cache = {}
-    fields = ("sid",
-              "asset_type",
-              "symbol",
-              "asset_name",
-              "start_date",
-              "end_date",
-              "first_traded",
-              "exchange",
-              "notice_date",
-              "expiration_date",
-              "contract_multiplier")
+    fields = (
+        # The following fields are the properties of an Asset or its extensions
+        "sid",
+        "asset_type",
+        "symbol",
+        "asset_name",
+        "start_date",
+        "end_date",
+        "first_traded",
+        "exchange",
+        "notice_date",
+        "expiration_date",
+        "contract_multiplier",
+        # The following fields are for compatibility with other systems
+        "file_name",
+        "company_name",
+        "start_date_nano",
+        "end_date_nano",
+    )
 
     def __init__(self, data=None, identifiers=None):
+
+        self.cache = {}
         if data is not None:
             self.consume_metadata(data)
         if identifiers is not None:

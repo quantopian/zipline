@@ -20,7 +20,6 @@ from zipline.errors import (
     AccountControlViolation,
     TradingControlViolation,
 )
-from zipline.finance import trading
 
 
 class TradingControl(with_metaclass(abc.ABCMeta)):

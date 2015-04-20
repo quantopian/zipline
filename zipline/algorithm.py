@@ -66,7 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets.assets import FUTURE
+from zipline.assets import FUTURE
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -186,7 +186,8 @@ class TradingAlgorithm(object):
         self._environment = kwargs.pop('environment', trading.environment)
         self._environment.update_asset_finder(
             asset_metadata=kwargs.pop('asset_metadata', None),
-            identifiers=kwargs.pop('identifiers', None))
+            identifiers=kwargs.pop('identifiers', None)
+        )
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -488,6 +489,15 @@ class TradingAlgorithm(object):
             # sids in this run
             all_sids = [sid for s in self.sources for sid in s.sids]
             self.sim_params.sids = set(all_sids)
+            # Check that all sids from the source are accounted for in
+            # the AssetFinder
+            for sid in self.sim_params.sids:
+                try:
+                    self._environment.asset_finder.retrieve_asset(sid)
+                except SidNotFound:
+                    warnings.warn("No Asset found for sid '%s'. Make sure "
+                                  "that the correct identifiers and asset "
+                                  "metadata are passed to __init__()." % sid)
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
             self.sim_params._update_internal()

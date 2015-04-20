@@ -84,31 +84,6 @@ cdef class Asset:
         def __get__(self):
             return self.end_date
 
-    property critical_dates:
-        """
-        Alias for a dict containing the start_date, end_date, and other dates
-        that may be needed in the system if this Asset contains those fields.
-        """
-        def __get__(self):
-            critical_dates = {}
-
-            # Asset fields
-            if self.start_date is not None:
-                critical_dates['start_date'] = self.start_date
-            if self.end_date is not None:
-                critical_dates['end_date'] = self.end_date
-            if self.first_traded is not None:
-                critical_dates['first_traded'] = self.first_traded
-
-            # Future fields
-            if self.asset_type == FUTURE:
-                if self.notice_date is not None:
-                    critical_dates['notice_date'] = self.notice_date
-                if self.expiration_date is not None:
-                    critical_dates['expiration_date'] = self.expiration_date
-
-            return critical_dates
-
     def __richcmp__(x, y, int op):
         """
         Cython rich comparison method.  This is used in place of various
@@ -262,7 +237,7 @@ cdef class Future(Asset):
         self.expiration_date     = expiration_date
         self.contract_multiplier = contract_multiplier
 
-        # Assign the end date as the expiration, if it is not explicit
+        # Assign the expiration as the end_date if end_date is not explicit
         if self.end_date is None:
             self.end_date = expiration_date
 

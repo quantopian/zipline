@@ -694,8 +694,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 "batch transform is not updating for new kwargs"
 
         new_data = deepcopy(data)
-        for sid in new_data:
-            new_data[sid]['arbitrary'] = 123
+        for sidint in new_data:
+            new_data[sidint]['arbitrary'] = 123
 
         self.history_return_arbitrary_fields.append(
             self.return_arbitrary_fields.handle_data(new_data))
@@ -706,8 +706,8 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 self.return_nan.handle_data(data))
         else:
             nan_data = deepcopy(data)
-            for sid in nan_data.iterkeys():
-                nan_data[sid].price = np.nan
+            for sidint in nan_data.iterkeys():
+                nan_data[sidint].price = np.nan
             self.history_return_nan.append(
                 self.return_nan.handle_data(nan_data))
 
@@ -872,16 +872,24 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                 order_target(self.asset, 100, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.asset, 100, limit_price=10, style=style)
+                order_target_value(self.asset, 100,
+                                   limit_price=10,
+                                   style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.asset, 100, stop_price=10, style=style)
+                order_target_value(self.asset, 100,
+                                   stop_price=10,
+                                   style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.asset, .2, limit_price=10, style=style)
+                order_target_percent(self.asset, .2,
+                                     limit_price=10,
+                                     style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.asset, .2, stop_price=10, style=style)
+                order_target_percent(self.asset, .2,
+                                     stop_price=10,
+                                     style=style)
 
 
 ##############################
