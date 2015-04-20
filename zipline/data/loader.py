@@ -229,17 +229,7 @@ def load_market_data(trading_day=trading_day_nyse,
     else:
         treasury_curves = saved_curves.tz_localize('UTC')
 
-    tr_curves = {}
-    for tr_dt, curve in treasury_curves.T.iteritems():
-        # tr_dt = tr_dt.replace(hour=0, minute=0, second=0, microsecond=0,
-        #                       tzinfo=pytz.utc)
-        tr_curves[tr_dt] = curve.to_dict()
-
-    tr_curves = OrderedDict(sorted(
-        ((dt, c) for dt, c in iteritems(tr_curves)),
-        key=lambda t: t[0]))
-
-    return benchmark_returns, tr_curves
+    return benchmark_returns, treasury_curves
 
 
 def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):

@@ -92,6 +92,11 @@ class TradingEnvironment(object):
         max_date=None,
         env_trading_calendar=tradingcalendar
     ):
+        """
+        @load is function that returns benchmark_returns and treasury_curves
+        The treasury_curves are expected to be a DataFrame with an index of
+        dates and columns of the curve names, e.g. '10year', '1month', etc.
+        """
         self.trading_day = env_trading_calendar.trading_day.copy()
 
         # `tc_td` is short for "trading calendar trading days"
@@ -116,10 +121,9 @@ class TradingEnvironment(object):
         if not load:
             load = load_market_data
 
-        self.benchmark_returns, treasury_curves_map = \
+        self.benchmark_returns, self.treasury_curves = \
             load(self.trading_day, self.trading_days, self.bm_symbol)
 
-        self.treasury_curves = pd.DataFrame(treasury_curves_map).T
         if max_date:
             tr_c = self.treasury_curves
             # Mask the treasury curves down to the current date.
