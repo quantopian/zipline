@@ -285,12 +285,11 @@ class ExpiredSID(TradingControl):
         """
         Fail if the algo has passed this Asset's end_date.
         """
-        asset = trading.environment.asset_finder.retrieve_asset(sid=sid)
         # No failure if the Asset has no end_date
-        if not asset.end_date:
+        if not sid.end_date:
             return
         # Fail if the algo has passed this Asset's end_date
-        if algo_datetime >= asset.end_date:
+        if algo_datetime >= sid.end_date:
             self.fail(sid, amount)
 
 

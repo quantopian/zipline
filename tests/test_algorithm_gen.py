@@ -62,7 +62,7 @@ class TestAlgo(TradingAlgorithm):
         self.latest_date = None
 
         self.set_slippage(RecordDateSlippage(spread=0.05))
-        self.stocks = [8229]
+        self.stocks = [self.sid(8229)]
         self.ordered = False
         self.num_bars = 0
 
@@ -105,7 +105,7 @@ class AlgorithmGeneratorTestCase(TestCase):
                 start=datetime(2012, 5, 1, tzinfo=pytz.utc),
                 end=datetime(2012, 6, 30, tzinfo=pytz.utc)
             )
-            algo = TestAlgo(self, sim_params=sim_params)
+            algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
             trade_source = factory.create_daily_trade_source(
                 [8229],
                 200,
@@ -131,7 +131,7 @@ class AlgorithmGeneratorTestCase(TestCase):
             start=datetime(2011, 7, 30, tzinfo=pytz.utc),
             end=datetime(2012, 7, 30, tzinfo=pytz.utc)
         )
-        algo = TestAlgo(self, sim_params=sim_params)
+        algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
         trade_source = factory.create_daily_trade_source(
             [8229],
             200,
@@ -224,6 +224,6 @@ class AlgorithmGeneratorTestCase(TestCase):
         """
         sim_params = create_simulation_parameters(num_days=1,
                                                   data_frequency='minute')
-        algo = TestAlgo(self, sim_params=sim_params)
+        algo = TestAlgo(self, sim_params=sim_params, identifiers=[8229])
         algo.run(source=[], overwrite_sim_params=False)
         self.assertEqual(algo.datetime, sim_params.last_close)

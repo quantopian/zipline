@@ -66,7 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets.assets import EQUITY, FUTURE
+from zipline.assets.assets import FUTURE
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -647,24 +647,32 @@ class TradingAlgorithm(object):
     def symbol(self, symbol_str):
         """
         Default symbol lookup for any source that directly maps the
-        symbol to the identifier (e.g. yahoo finance).
+        symbol to the Asset (e.g. yahoo finance).
         """
         asset, _ = self._environment.asset_finder.lookup_generic(
             asset_convertible_or_iterable=symbol_str,
             as_of_date=self.datetime,
             )
-        return asset.sid
+        return asset
 
     @api_method
     def symbols(self, *args):
         """
         Default symbols lookup for any source that directly maps the
-        symbol to the identifier (e.g. yahoo finance).
+        symbol to the Asset (e.g. yahoo finance).
         """
         result = []
         for identifier in args:
             result.append(self.symbol(identifier))
         return args
+
+    @api_method
+    def sid(self, sid):
+        """
+        Default sid lookup for any source that directly maps the integer sid
+        to the Asset.
+        """
+        return self._environment.asset_finder.retrieve_asset(sid)
 
     @api_method
     def order(self, sid, amount,
@@ -732,6 +740,12 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
+        if not hasattr(sid, 'asset_type'):
+            raise UnsupportedOrderParameters(
+                msg="Passing non-Asset argument to 'order()' is not supported."
+                    " Use 'sid()' or 'symbol()' methods to look up an Asset."
+            )
+
         for control in self.trading_controls:
             control.validate(sid,
                              amount,
@@ -779,16 +793,10 @@ class TradingAlgorithm(object):
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
         last_price = self.trading_client.current_data[sid].price
-        asset = self._environment.asset_finder.retrieve_asset(sid)
-
-        if asset is None:
-            raise SidNotFound(sid=sid)
 
         value_multiplier = 1
-        if asset.asset_type == EQUITY:
-            value_multiplier = 1
-        if asset.asset_type == FUTURE:
-            value_multiplier = asset.contract_multiplier
+        if sid.asset_type == FUTURE:
+            value_multiplier = sid.contract_multiplier
 
         if np.allclose(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
@@ -965,16 +973,10 @@ class TradingAlgorithm(object):
         is actually the target exposure, as Futures have no 'value'.
         """
         last_price = self.trading_client.current_data[sid].price
-        asset = self._environment.asset_finder.retrieve_asset(sid)
-
-        if asset is None:
-            raise SidNotFound(sid=sid)
 
         value_multiplier = 1
-        if asset.asset_type == EQUITY:
-            value_multiplier = 1
-        if asset.asset_type == FUTURE:
-            value_multiplier = asset.contract_multiplier
+        if sid.asset_type == FUTURE:
+            value_multiplier = sid.contract_multiplier
 
         if np.allclose(last_price, 0):
             # Don't place an order

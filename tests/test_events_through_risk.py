@@ -37,7 +37,7 @@ class BuyAndHoldAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         if not self.holding:
-            self.order(self.SID_TO_BUY_AND_HOLD, 100)
+            self.order(self.sid(self.SID_TO_BUY_AND_HOLD), 100)
             self.holding = True
 
 

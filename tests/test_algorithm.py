@@ -174,12 +174,12 @@ class TestMiscellaneousAPI(TestCase):
             if algo.minute == 0:
 
                 # Should be filled by the next minute
-                algo.order(1, 1)
+                algo.order(algo.sid(1), 1)
 
                 # Won't be filled because the price is too low.
-                algo.order(2, 1, style=LimitOrder(0.01))
-                algo.order(2, 1, style=LimitOrder(0.01))
-                algo.order(2, 1, style=LimitOrder(0.01))
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
 
                 all_orders = algo.get_open_orders()
                 self.assertEqual(list(all_orders.keys()), [1, 2])
@@ -540,7 +540,8 @@ from zipline.api import (slippage,
                          set_slippage,
                          set_commission,
                          order,
-                         record)
+                         record,
+                         sid)
 
 def initialize(context):
     model = slippage.FixedSlippage(spread=0.10)
@@ -551,7 +552,7 @@ def initialize(context):
 
 def handle_data(context, data):
     if context.incr < context.count:
-        order(0, -1000)
+        order(sid(0), -1000)
     record(price=data[0].price)
 
     context.incr += 1""",
@@ -604,7 +605,7 @@ def handle_data(context, data):
     if context.incr < context.count:
         # order small lots to be sure the
         # order will fill in a single transaction
-        order(0, 5000)
+        order(sid(0), 5000)
     record(price=data[0].price)
     record(volume=data[0].volume)
     record(incr=context.incr)
@@ -919,7 +920,7 @@ class TestTradingControls(TestCase):
 
         # Buy one share four times.  Should be fine.
         def handle_data(algo, data):
-            algo.order(self.sid, 1)
+            algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
                                            max_shares=10,
@@ -929,7 +930,7 @@ class TestTradingControls(TestCase):
         # Buy three shares four times.  Should bail on the fourth before it's
         # placed.
         def handle_data(algo, data):
-            algo.order(self.sid, 3)
+            algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
@@ -940,7 +941,7 @@ class TestTradingControls(TestCase):
         # Buy two shares four times. Should bail due to max_notional on the
         # third attempt.
         def handle_data(algo, data):
-            algo.order(self.sid, 3)
+            algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
@@ -951,7 +952,7 @@ class TestTradingControls(TestCase):
         # Set the trading control to a different sid, then BUY ALL THE THINGS!.
         # Should continue normally.
         def handle_data(algo, data):
-            algo.order(self.sid, 10000)
+            algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid + 1,
                                            max_shares=10,
@@ -961,7 +962,7 @@ class TestTradingControls(TestCase):
         # Set the trading control sid to None, then BUY ALL THE THINGS!. Should
         # fail because setting sid to None makes the control apply to all sids.
         def handle_data(algo, data):
-            algo.order(self.sid, 10000)
+            algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
         algo = SetMaxPositionSizeAlgorithm(max_shares=10, max_notional=61.0)
         self.check_algo_fails(algo, handle_data, 0)
@@ -973,7 +974,7 @@ class TestTradingControls(TestCase):
             restricted_list=[self.sid])
 
         def handle_data(algo, data):
-            algo.order(self.sid, 100)
+            algo.order(algo.sid(self.sid), 100)
             algo.order_count += 1
 
         self.check_algo_fails(algo, handle_data, 0)
@@ -984,7 +985,7 @@ class TestTradingControls(TestCase):
             restricted_list=[134, 135, 136])
 
         def handle_data(algo, data):
-            algo.order(self.sid, 100)
+            algo.order(algo.sid(self.sid), 100)
             algo.order_count += 1
 
         self.check_algo_succeeds(algo, handle_data)
@@ -993,7 +994,7 @@ class TestTradingControls(TestCase):
 
         # Buy one share.
         def handle_data(algo, data):
-            algo.order(self.sid, 1)
+            algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
         algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
                                         max_shares=10,
@@ -1003,7 +1004,7 @@ class TestTradingControls(TestCase):
         # Buy 1, then 2, then 3, then 4 shares.  Bail on the last attempt
         # because we exceed shares.
         def handle_data(algo, data):
-            algo.order(self.sid, algo.order_count + 1)
+            algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
         algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
@@ -1014,7 +1015,7 @@ class TestTradingControls(TestCase):
         # Buy 1, then 2, then 3, then 4 shares.  Bail on the last attempt
         # because we exceed notional.
         def handle_data(algo, data):
-            algo.order(self.sid, algo.order_count + 1)
+            algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
         algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
@@ -1025,7 +1026,7 @@ class TestTradingControls(TestCase):
         # Set the trading control to a different sid, then BUY ALL THE THINGS!.
         # Should continue normally.
         def handle_data(algo, data):
-            algo.order(self.sid, 10000)
+            algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
         algo = SetMaxOrderSizeAlgorithm(sid=self.sid + 1,
                                         max_shares=1,
@@ -1036,7 +1037,7 @@ class TestTradingControls(TestCase):
         # Should fail because not specifying a sid makes the trading control
         # apply to all sids.
         def handle_data(algo, data):
-            algo.order(self.sid, 10000)
+            algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
         algo = SetMaxOrderSizeAlgorithm(max_shares=1,
                                         max_notional=1.0)
@@ -1057,7 +1058,7 @@ class TestTradingControls(TestCase):
 
         def handle_data(algo, data):
             for i in range(5):
-                algo.order(self.sid, 1)
+                algo.order(algo.sid(self.sid), 1)
                 algo.order_count += 1
 
         algo = SetMaxOrderCountAlgorithm(3)
@@ -1076,7 +1077,7 @@ class TestTradingControls(TestCase):
     def test_long_only(self):
         # Sell immediately -> fail immediately.
         def handle_data(algo, data):
-            algo.order(self.sid, -1)
+            algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
         algo = SetLongOnlyAlgorithm()
         self.check_algo_fails(algo, handle_data, 0)
@@ -1085,9 +1086,9 @@ class TestTradingControls(TestCase):
         # should succeed.
         def handle_data(algo, data):
             if (algo.order_count % 2) == 0:
-                algo.order(self.sid, 1)
+                algo.order(algo.sid(self.sid), 1)
             else:
-                algo.order(self.sid, -1)
+                algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
         algo = SetLongOnlyAlgorithm()
         self.check_algo_succeeds(algo, handle_data)
@@ -1095,7 +1096,7 @@ class TestTradingControls(TestCase):
         # Buy on first three days, then sell off holdings.  Should succeed.
         def handle_data(algo, data):
             amounts = [1, 1, 1, -3]
-            algo.order(self.sid, amounts[algo.order_count])
+            algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
         algo = SetLongOnlyAlgorithm()
         self.check_algo_succeeds(algo, handle_data)
@@ -1104,7 +1105,7 @@ class TestTradingControls(TestCase):
         # Should fail on the last sale.
         def handle_data(algo, data):
             amounts = [1, 1, 1, -4]
-            algo.order(self.sid, amounts[algo.order_count])
+            algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
         algo = SetLongOnlyAlgorithm()
         self.check_algo_fails(algo, handle_data, 3)
@@ -1135,9 +1136,9 @@ class TestAccountControls(TestCase):
 
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4)
-        self.sid = 133
+        self.sidint = 133
         self.trade_history = factory.create_trade_history(
-            self.sid,
+            self.sidint,
             [10.0, 10.0, 11.0, 11.0],
             [100, 100, 100, 300],
             timedelta(days=1),
@@ -1169,14 +1170,14 @@ class TestAccountControls(TestCase):
 
         # Set max leverage to 0 so buying one share fails.
         def handle_data(algo, data):
-            algo.order(self.sid, 1)
+            algo.order(algo.sid(self.sidint), 1)
 
         algo = SetMaxLeverageAlgorithm(0)
         self.check_algo_fails(algo, handle_data)
 
         # Set max leverage to 1 so buying one share passes
         def handle_data(algo, data):
-            algo.order(self.sid, 1)
+            algo.order(algo.sid(self.sidint), 1)
 
         algo = SetMaxLeverageAlgorithm(1)
         self.check_algo_succeeds(algo, handle_data)
