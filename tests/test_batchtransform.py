@@ -114,7 +114,7 @@ class TestChangeOfSids(TestCase):
     def test_all_sids_passed(self):
         algo = BatchTransformAlgorithmSetSid(
             sim_params=self.sim_params,
-            identifiers=[i for i in xrange(0, 90)]
+            identifiers=[i for i in range(0, 90)]
         )
         source = DifferentSidSource()
         algo.run(source)

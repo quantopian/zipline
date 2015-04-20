@@ -173,7 +173,7 @@ class FakeTable(object):
                     'end_date_nano': pd.Timestamp(dt, tz='UTC').value,
                     'exchange': self.name,
                 }
-                for i in xrange(1, self.count + 1)
+                for i in range(1, self.count + 1)
             ]
         )
 
@@ -341,7 +341,7 @@ class AssetFinderTestCase(TestCase):
             # Incrementing by two so that start and end dates for each
             # generated Asset don't overlap (each Asset's end_date is the
             # day after its start date.)
-            for i in xrange(0, 10, 2)
+            for i in range(0, 10, 2)
         ]
 
         table = FakeTableIdenticalSymbols(
