@@ -167,7 +167,7 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
         self.processed_transactions = defaultdict(list)
-        self.orders_by_modified = defaultdict(OrderedDict)
+        self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
     def handle_dividends_paid(self, net_cash_payment):
@@ -203,9 +203,12 @@ class PerformancePeriod(object):
 
     def record_order(self, order):
         if self.keep_orders:
-            dt_orders = self.orders_by_modified[order.dt]
-            if order.id in dt_orders:
-                del dt_orders[order.id]
+            try:
+                dt_orders = self.orders_by_modified[order.dt]
+                if order.id in dt_orders:
+                    del dt_orders[order.id]
+            except KeyError:
+                self.orders_by_modified[order.dt] = dt_orders = OrderedDict()
             dt_orders[order.id] = order
             # to preserve the order of the orders by modified date
             # we delete and add back. (ordered dictionary is sorted by
@@ -339,8 +342,11 @@ class PerformancePeriod(object):
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.to_dict()
-                          for x in itervalues(self.orders_by_modified[dt])]
+                try:
+                    orders = [x.to_dict()
+                              for x in itervalues(self.orders_by_modified[dt])]
+                except KeyError:
+                    orders = []
             else:
                 orders = [x.to_dict() for x in itervalues(self.orders_by_id)]
             rval['orders'] = orders
@@ -456,7 +462,7 @@ class PerformancePeriod(object):
         orders_by_id = OrderedDict()
         orders_by_id.update(state.pop('orders_by_id'))
 
-        orders_by_modified = defaultdict(OrderedDict)
+        orders_by_modified = {}
         orders_by_modified.update(state.pop('orders_by_modified'))
         self.processed_transactions = processed_transactions
         self.orders_by_id = orders_by_id
