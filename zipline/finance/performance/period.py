@@ -74,9 +74,6 @@ from __future__ import division
 import logbook
 
 import numpy as np
-from collections import (
-    defaultdict,
-)
 
 try:
     # optional cython based OrderedDict
@@ -166,7 +163,7 @@ class PerformancePeriod(object):
         self.starting_cash = self.ending_cash
         self.period_cash_flow = 0.0
         self.pnl = 0.0
-        self.processed_transactions = defaultdict(list)
+        self.processed_transactions = {}
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
@@ -221,7 +218,10 @@ class PerformancePeriod(object):
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
-            self.processed_transactions[txn.dt].append(txn)
+            try:
+                self.processed_transactions[txn.dt].append(txn)
+            except KeyError:
+                self.processed_transactions[txn.dt] = [txn]
 
     # backwards compat. TODO: remove?
     @property
@@ -330,8 +330,11 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.to_dict()
-                                for x in self.processed_transactions[dt]]
+                try:
+                    transactions = [x.to_dict()
+                                    for x in self.processed_transactions[dt]]
+                except KeyError:
+                    transactions = []
             else:
                 transactions = \
                     [y.to_dict()
@@ -456,7 +459,7 @@ class PerformancePeriod(object):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerformancePeriod saved state is too old.")
 
-        processed_transactions = defaultdict(list)
+        processed_transactions = {}
         processed_transactions.update(state.pop('processed_transactions'))
 
         orders_by_id = OrderedDict()
