@@ -674,7 +674,7 @@ class TradingAlgorithm(object):
         result = []
         for identifier in args:
             result.append(self.symbol(identifier))
-        return args
+        return result
 
     @api_method
     def sid(self, sid):

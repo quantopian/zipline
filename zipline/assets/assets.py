@@ -274,6 +274,12 @@ class AssetFinder(object):
             kwargs['expiration_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['expiration_date']))
 
+        # HACK: If no end_date is given, assign the current system time as the
+        # end date. This is so the AssetFinder does not fail on Assets missing
+        # end_dates.
+        if 'end_date' not in kwargs.keys():
+            kwargs['end_date'] = self.trading_calendar.end_base
+
         asset = None
         asset_type = kwargs.pop('asset_type', None)
         if asset_type in (EQUITY, None):
@@ -372,7 +378,10 @@ class AssetFinder(object):
             try:
                 return matches[0], missing
             except IndexError:
-                raise SidNotFound(sid=asset_convertible_or_iterable)
+                if hasattr(asset_convertible_or_iterable, '__int__'):
+                    raise SidNotFound(sid=asset_convertible_or_iterable)
+                else:
+                    raise SymbolNotFound(symbol=asset_convertible_or_iterable)
 
         # Interpret input as iterable.
         try:

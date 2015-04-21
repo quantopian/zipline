@@ -6,7 +6,7 @@ import pandas as pd
 import pytz
 import zipline
 from zipline.finance.trading import with_environment
-from zipline.errors import SidNotFound
+from zipline.errors import SymbolNotFound
 
 
 DATE_FORMAT = "%Y%m%d"
@@ -78,7 +78,7 @@ class SecurityList(object):
                     as_of_date=effective_date
                 )[0].sid
                 change_func(sid)
-            except SidNotFound:
+            except SymbolNotFound:
                 continue
 
 
