@@ -255,9 +255,6 @@ class AssetTestCase(TestCase):
         self.assertGreater(24, s_23)
         self.assertGreater(s_24, s_23)
 
-
-class TestAssetRichCmp(TestCase):
-
     def test_lt(self):
         self.assertTrue(Asset(3) < Asset(4))
         self.assertFalse(Asset(4) < Asset(4))
@@ -296,17 +293,38 @@ class TestAssetRichCmp(TestCase):
 
 class TestFuture(TestCase):
 
+    future = Future(2468,
+                    symbol='OMK15',
+                    notice_date='2014-01-20',
+                    expiration_date='2014-02-20',
+                    contract_multiplier=500)
+
+    def test_str(self):
+        strd = self.future.__str__()
+        self.assertEqual("Future(2468 [OMK15])", strd)
+
     def test_repr(self):
+        reprd = self.future.__repr__()
+        self.assertTrue("Future" in reprd)
+        self.assertTrue("2468" in reprd)
+        self.assertTrue("OMK15" in reprd)
+        self.assertTrue("notice_date='2014-01-20'" in reprd)
+        self.assertTrue("expiration_date='2014-02-20'" in reprd)
+        self.assertTrue("contract_multiplier=500" in reprd)
 
-        future = Future(2468,
-                        notice_date='2014-01-20',
-                        expiration_date='2014-02-20')
-        rep = future.__repr__()
+    def test_reduce(self):
+        reduced = self.future.__reduce__()
+        self.assertEqual(Future, reduced[0])
 
-        self.assertTrue("Future" in rep)
-        self.assertTrue("2468" in rep)
-        self.assertTrue("notice_date='2014-01-20'" in rep)
-        self.assertTrue("expiration_date='2014-02-20'" in rep)
+    def test_to_and_from_dict(self):
+        dictd = self.future.to_dict()
+        self.assertTrue('notice_date' in dictd)
+        self.assertTrue('expiration_date' in dictd)
+        self.assertTrue('contract_multiplier' in dictd)
+
+        from_dict = Future.from_dict(dictd)
+        self.assertTrue(isinstance(from_dict, Future))
+        self.assertEqual(self.future, from_dict)
 
 
 class AssetFinderTestCase(TestCase):

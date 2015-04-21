@@ -35,7 +35,6 @@ cdef class Asset:
     cdef readonly object asset_name
     cdef readonly AssetType asset_type
 
-    # TODO: Maybe declare as pandas Timestamp?
     cdef readonly object start_date
     cdef readonly object end_date
     cdef public object first_traded
@@ -135,7 +134,6 @@ cdef class Asset:
             # >=
             return compared >= 0
 
-    # TODO handle extensions of Asset
     def __str__(self):
         if self.symbol:
             return 'Asset(%d [%s])' % (self.sid, self.symbol)
@@ -151,7 +149,6 @@ cdef class Asset:
         params = ', '.join(strings)
         return 'Asset(%d, %s)' % (self.sid, params)
 
-    # TODO handle extensions of Asset
     cpdef __reduce__(self):
         """
         Function used by pickle to determine how to serialize/deserialize this
@@ -167,7 +164,6 @@ cdef class Asset:
                                  self.first_traded,
                                  self.exchange,))
 
-    # TODO handle extensions of Asset
     cpdef to_dict(self):
         """
         Convert to a python dict.
@@ -182,7 +178,6 @@ cdef class Asset:
             'exchange': self.exchange,
         }
 
-    # TODO handle extensions of Asset
     @staticmethod
     def from_dict(dict_):
         """
@@ -204,6 +199,12 @@ cdef class Equity(Asset):
 
         self.asset_type = EQUITY
 
+    def __str__(self):
+        if self.symbol:
+            return 'Equity(%d [%s])' % (self.sid, self.symbol)
+        else:
+            return 'Equity(%d)' % self.sid
+
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded')
@@ -212,6 +213,13 @@ cdef class Equity(Asset):
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
         params = ', '.join(strings)
         return 'Equity(%d, %s)' % (self.sid, params)
+
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Build an Equity instance from a dict.
+        """
+        return Equity(**dict_)
 
 
 cdef class Future(Asset):
@@ -241,6 +249,12 @@ cdef class Future(Asset):
         if self.end_date is None:
             self.end_date = expiration_date
 
+    def __str__(self):
+        if self.symbol:
+            return 'Future(%d [%s])' % (self.sid, self.symbol)
+        else:
+            return 'Future(%d)' % self.sid
+
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded', 'notice_date',
@@ -250,3 +264,38 @@ cdef class Future(Asset):
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
         params = ', '.join(strings)
         return 'Future(%d, %s)' % (self.sid, params)
+
+    cpdef __reduce__(self):
+        """
+        Function used by pickle to determine how to serialize/deserialize this
+        class.  Should return a tuple whose first element is self.__class__,
+        and whose second element is a tuple of all the attributes that should
+        be serialized/deserialized during pickling.
+        """
+        return (self.__class__, (self.sid,
+                                 self.symbol,
+                                 self.asset_name,
+                                 self.start_date,
+                                 self.end_date,
+                                 self.notice_date,
+                                 self.expiration_date,
+                                 self.first_traded,
+                                 self.exchange,
+                                 self.contract_multiplier,))
+
+    cpdef to_dict(self):
+        """
+        Convert to a python dict.
+        """
+        super_dict = super(Future, self).to_dict()
+        super_dict['notice_date'] = self.notice_date
+        super_dict['expiration_date'] = self.expiration_date
+        super_dict['contract_multiplier'] = self.contract_multiplier
+        return super_dict
+
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Build a Future instance from a dict.
+        """
+        return Future(**dict_)
