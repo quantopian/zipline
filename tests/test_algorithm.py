@@ -1151,7 +1151,6 @@ class TestTradingControls(TestCase):
     def test_expired_sid(self):
 
         # Run the algorithm with a sid that ends far in the future
-
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'end_date': '2020-01-01'}}
         algo = TestOrderAlgorithm(asset_metadata=metadata,

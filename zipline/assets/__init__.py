@@ -13,11 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import _assets, assets
-from ._assets import Asset, Equity, Future
-from .assets import EQUITY, FUTURE, AssetFinder, AssetMetaData
+from ._assets import (
+    Asset,
+    Equity,
+    Future
+)
+from .assets import (
+    EQUITY,
+    FUTURE,
+    AssetFinder,
+    AssetMetaData
+)
 
-__all__=[
+__all__ = [
     'Asset',
     'Equity',
     'Future',

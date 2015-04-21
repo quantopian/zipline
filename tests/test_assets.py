@@ -43,119 +43,6 @@ from zipline.errors import (
 trading.environment = trading.TradingEnvironment()
 env = trading.environment
 
-class AssetTestCase(TestCase):
-
-    def test_asset_object(self):
-        self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
-        self.assertEquals(Asset(5061), 5061)
-        self.assertEquals(5061, Asset(5061))
-
-        self.assertEquals(Asset(5061), Asset(5061))
-        self.assertEquals(int(Asset(5061)), 5061)
-
-        self.assertEquals(str(Asset(5061)), 'Asset(5061)')
-
-    def test_asset_is_pickleable(self):
-
-        # Very wow
-        s = Asset(
-            1337,
-            symbol="DOGE",
-            asset_name="DOGECOIN",
-            start_date=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-            end_date=pd.Timestamp('2014-06-25 11:21AM', tz='UTC'),
-            first_traded=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-            exchange='THE MOON',
-        )
-        s_unpickled = pickle.loads(pickle.dumps(s))
-
-        attrs_to_check = ['end_date',
-                          'exchange',
-                          'first_traded',
-                          'asset_end_date',
-                          'asset_name',
-                          'asset_start_date',
-                          'sid',
-                          'start_date',
-                          'symbol']
-
-        for attr in attrs_to_check:
-            self.assertEqual(getattr(s, attr), getattr(s_unpickled, attr))
-
-    def test_asset_comparisons(self):
-
-        s_23 = Asset(23)
-        s_24 = Asset(24)
-
-        self.assertEqual(s_23, s_23)
-        self.assertEqual(s_23, 23)
-        self.assertEqual(23, s_23)
-
-        self.assertNotEqual(s_23, s_24)
-        self.assertNotEqual(s_23, 24)
-        self.assertNotEqual(s_23, "23")
-        self.assertNotEqual(s_23, 23.5)
-        self.assertNotEqual(s_23, [])
-        self.assertNotEqual(s_23, None)
-
-        self.assertLess(s_23, s_24)
-        self.assertLess(s_23, 24)
-        self.assertGreater(24, s_23)
-        self.assertGreater(s_24, s_23)
-
-
-class TestAssetRichCmp(TestCase):
-
-    def test_lt(self):
-        self.assertTrue(Asset(3) < Asset(4))
-        self.assertFalse(Asset(4) < Asset(4))
-        self.assertFalse(Asset(5) < Asset(4))
-
-    def test_le(self):
-        self.assertTrue(Asset(3) <= Asset(4))
-        self.assertTrue(Asset(4) <= Asset(4))
-        self.assertFalse(Asset(5) <= Asset(4))
-
-    def test_eq(self):
-        self.assertFalse(Asset(3) == Asset(4))
-        self.assertTrue(Asset(4) == Asset(4))
-        self.assertFalse(Asset(5) == Asset(4))
-
-    def test_ge(self):
-        self.assertFalse(Asset(3) >= Asset(4))
-        self.assertTrue(Asset(4) >= Asset(4))
-        self.assertTrue(Asset(5) >= Asset(4))
-
-    def test_gt(self):
-        self.assertFalse(Asset(3) > Asset(4))
-        self.assertFalse(Asset(4) > Asset(4))
-        self.assertTrue(Asset(5) > Asset(4))
-
-    def test_type_mismatch(self):
-        if sys.version_info.major < 3:
-            self.assertIsNotNone(Asset(3) < 'a')
-            self.assertIsNotNone('a' < Asset(3))
-        else:
-            with self.assertRaises(TypeError):
-                Asset(3) < 'a'
-            with self.assertRaises(TypeError):
-                'a' < Asset(3)
-
-
-class TestFuture(TestCase):
-
-    def test_repr(self):
-
-        future = Future(2468,
-                        notice_date='2014-01-20',
-                        expiration_date='2014-02-20')
-        rep = future.__repr__()
-
-        self.assertTrue("Future" in rep)
-        self.assertTrue("2468" in rep)
-        self.assertTrue("notice_date='2014-01-20'" in rep)
-        self.assertTrue("expiration_date='2014-02-20'" in rep)
-
 
 class FakeTable(object):
     def __init__(self, name, count, dt, fuzzy_str):
@@ -306,6 +193,120 @@ def build_lookup_generic_cases():
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
     ]
     return cases
+
+
+class AssetTestCase(TestCase):
+
+    def test_asset_object(self):
+        self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
+        self.assertEquals(Asset(5061), 5061)
+        self.assertEquals(5061, Asset(5061))
+
+        self.assertEquals(Asset(5061), Asset(5061))
+        self.assertEquals(int(Asset(5061)), 5061)
+
+        self.assertEquals(str(Asset(5061)), 'Asset(5061)')
+
+    def test_asset_is_pickleable(self):
+
+        # Very wow
+        s = Asset(
+            1337,
+            symbol="DOGE",
+            asset_name="DOGECOIN",
+            start_date=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
+            end_date=pd.Timestamp('2014-06-25 11:21AM', tz='UTC'),
+            first_traded=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
+            exchange='THE MOON',
+        )
+        s_unpickled = pickle.loads(pickle.dumps(s))
+
+        attrs_to_check = ['end_date',
+                          'exchange',
+                          'first_traded',
+                          'asset_end_date',
+                          'asset_name',
+                          'asset_start_date',
+                          'sid',
+                          'start_date',
+                          'symbol']
+
+        for attr in attrs_to_check:
+            self.assertEqual(getattr(s, attr), getattr(s_unpickled, attr))
+
+    def test_asset_comparisons(self):
+
+        s_23 = Asset(23)
+        s_24 = Asset(24)
+
+        self.assertEqual(s_23, s_23)
+        self.assertEqual(s_23, 23)
+        self.assertEqual(23, s_23)
+
+        self.assertNotEqual(s_23, s_24)
+        self.assertNotEqual(s_23, 24)
+        self.assertNotEqual(s_23, "23")
+        self.assertNotEqual(s_23, 23.5)
+        self.assertNotEqual(s_23, [])
+        self.assertNotEqual(s_23, None)
+
+        self.assertLess(s_23, s_24)
+        self.assertLess(s_23, 24)
+        self.assertGreater(24, s_23)
+        self.assertGreater(s_24, s_23)
+
+
+class TestAssetRichCmp(TestCase):
+
+    def test_lt(self):
+        self.assertTrue(Asset(3) < Asset(4))
+        self.assertFalse(Asset(4) < Asset(4))
+        self.assertFalse(Asset(5) < Asset(4))
+
+    def test_le(self):
+        self.assertTrue(Asset(3) <= Asset(4))
+        self.assertTrue(Asset(4) <= Asset(4))
+        self.assertFalse(Asset(5) <= Asset(4))
+
+    def test_eq(self):
+        self.assertFalse(Asset(3) == Asset(4))
+        self.assertTrue(Asset(4) == Asset(4))
+        self.assertFalse(Asset(5) == Asset(4))
+
+    def test_ge(self):
+        self.assertFalse(Asset(3) >= Asset(4))
+        self.assertTrue(Asset(4) >= Asset(4))
+        self.assertTrue(Asset(5) >= Asset(4))
+
+    def test_gt(self):
+        self.assertFalse(Asset(3) > Asset(4))
+        self.assertFalse(Asset(4) > Asset(4))
+        self.assertTrue(Asset(5) > Asset(4))
+
+    def test_type_mismatch(self):
+        if sys.version_info.major < 3:
+            self.assertIsNotNone(Asset(3) < 'a')
+            self.assertIsNotNone('a' < Asset(3))
+        else:
+            with self.assertRaises(TypeError):
+                Asset(3) < 'a'
+            with self.assertRaises(TypeError):
+                'a' < Asset(3)
+
+
+class TestFuture(TestCase):
+
+    def test_repr(self):
+
+        future = Future(2468,
+                        notice_date='2014-01-20',
+                        expiration_date='2014-02-20')
+        rep = future.__repr__()
+
+        self.assertTrue("Future" in rep)
+        self.assertTrue("2468" in rep)
+        self.assertTrue("notice_date='2014-01-20'" in rep)
+        self.assertTrue("expiration_date='2014-02-20'" in rep)
 
 
 class AssetFinderTestCase(TestCase):
@@ -481,7 +482,9 @@ class AssetFinderTestCase(TestCase):
 
             self.assertEqual(len(results), 3)
             self.assertEqual(results[0].symbol, 'real')
+            self.assertEqual(results[0].sid, 0)
             self.assertEqual(results[1].symbol, 'also_real')
+            self.assertEqual(results[1].sid, 1)
 
             self.assertEqual(len(missing), 2)
             self.assertEqual(missing[0], 'fake')
@@ -489,3 +492,12 @@ class AssetFinderTestCase(TestCase):
 
         finally:
             AssetFinder.clear_cache()
+
+    def test_trading_update_asset_finder(self):
+        #TODO write test
+        return
+
+
+class TestAssetMetaData(TestCase):
+    #TODO write tests
+    lol = 'foo'

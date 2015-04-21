@@ -190,15 +190,6 @@ at frequency '{data_frequency}'.
 """.strip()
 
 
-class SymbolNotFound(ZiplineError):
-    """
-    Raised when a symbol() call contains a non-existant symbol.
-    """
-    msg = """
-Symbol '{symbol}' was not found.
-""".strip()
-
-
 class MultipleSymbolsFound(ZiplineError):
     """
     Raised when a symbol() call contains a symbol that changed over
@@ -212,6 +203,15 @@ should be valid.
 
 Possible options:{options}
     """.strip()
+
+
+class SymbolNotFound(ZiplineError):
+    """
+    Raised when a symbol() call contains a non-existant symbol.
+    """
+    msg = """
+Symbol '{symbol}' was not found.
+""".strip()
 
 
 class SidNotFound(ZiplineError):

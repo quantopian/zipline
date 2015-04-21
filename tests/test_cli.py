@@ -28,6 +28,7 @@ class TestParseArgs(TestCase):
             self.assertEqual(v, args[k])
 
     def write_conf_file(self):
+        #TODO add new CLI arguments
         conf_str = """
 [Defaults]
 algofile=test.py

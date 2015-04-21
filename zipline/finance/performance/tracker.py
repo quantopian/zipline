@@ -454,10 +454,9 @@ class PerformanceTracker(object):
         # calculations and update dividends for the next day.
         if dt == self.market_close:
             next_trading_day = self._next_trading_day(todays_date)
-            if not next_trading_day:
-                return
-            self.check_upcoming_dividends(next_trading_day)
-            self.check_upcoming_asset_ends(next_trading_day)
+            if next_trading_day:
+                self.check_upcoming_dividends(next_trading_day)
+                self.check_upcoming_asset_ends(next_trading_day)
 
         self.account_needs_update = True
 
