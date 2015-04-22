@@ -451,6 +451,22 @@ class TestTransformAlgorithm(TestCase):
             )
             algo.run(self.df)
 
+    def test_order_methods_for_future(self):
+        AlgoClasses = [TestOrderAlgorithm,
+                       TestOrderValueAlgorithm,
+                       TestTargetAlgorithm,
+                       TestOrderPercentAlgorithm,
+                       TestTargetValueAlgorithm]
+
+        metadata = {0: {'asset_type': FUTURE,
+                        'contract_multiplier': 10}}
+        for AlgoClass in AlgoClasses:
+            algo = AlgoClass(
+                sim_params=self.sim_params,
+                asset_metadata=metadata
+            )
+            algo.run(self.df)
+
     def test_order_method_style_forwarding(self):
 
         method_names_to_test = ['order',
@@ -776,10 +792,6 @@ def handle_data(context, data):
             **self.zipline_test_config)
 
         output, _ = drain_zipline(self, zipline)
-
-    def test_order_value_of_future(self):
-        #TODO write test
-        return
 
     def test_order_in_init(self):
         """

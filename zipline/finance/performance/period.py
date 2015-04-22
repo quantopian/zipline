@@ -131,6 +131,7 @@ class PerformancePeriod(object):
         self.period_close = period_close
 
         self.ending_value = 0.0
+        self.ending_exposure = 0.0
         self.period_cash_flow = 0.0
         self.pnl = 0.0
 
@@ -163,6 +164,7 @@ class PerformancePeriod(object):
 
     def rollover(self):
         self.starting_value = self.ending_value
+        self.starting_exposure = self.ending_exposure
         self.starting_cash = self.ending_cash
         self.period_cash_flow = 0.0
         self.pnl = 0.0
@@ -190,6 +192,7 @@ class PerformancePeriod(object):
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
+        self.ending_exposure = self.calculate_positions_exposure()
 
         total_at_start = self.starting_cash + self.starting_value
         self.ending_cash = self.starting_cash + self.period_cash_flow
@@ -310,10 +313,12 @@ class PerformancePeriod(object):
     def __core_dict(self):
         rval = {
             'ending_value': self.ending_value,
+            'ending_exposure': self.ending_exposure,
             # this field is renamed to capital_used for backward
             # compatibility.
             'capital_used': self.period_cash_flow,
             'starting_value': self.starting_value,
+            'starting_exposure': self.starting_exposure,
             'starting_cash': self.starting_cash,
             'ending_cash': self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
@@ -401,6 +406,7 @@ class PerformancePeriod(object):
         portfolio.start_date = self.period_open
         portfolio.positions = self.get_positions()
         portfolio.positions_value = self.ending_value
+        portfolio.positions_exposure = self.ending_exposure
         return portfolio
 
     def as_account(self):
@@ -422,6 +428,8 @@ class PerformancePeriod(object):
                     self.ending_cash + self.ending_value)
         account.total_positions_value = \
             getattr(self, 'total_positions_value', self.ending_value)
+        account.total_positions_value = \
+            getattr(self, 'total_positions_exposure', self.ending_exposure)
         account.regt_equity = \
             getattr(self, 'regt_equity', self.ending_cash)
         account.regt_margin = \

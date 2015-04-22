@@ -38,6 +38,7 @@ import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
+from zipline.assets import EQUITY, FUTURE
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -2015,8 +2016,31 @@ class TestPositionTracker(unittest.TestCase):
             self.assertNotIsInstance(val, (bool, np.bool_))
 
     def test_update_last_sale(self):
-        #TODO write test
-        return
+        metadata = {1: {'asset_type': EQUITY},
+                    2: {'asset_type': FUTURE,
+                        'contract_multiplier': 1000}}
+        if trading.environment is None:
+            trading.environment = trading.TradingEnvironment()
+        trading.environment.update_asset_finder(asset_metadata=metadata)
+
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position(1, amount=np.float64(100.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos2 = perf.Position(2, amount=np.float64(100.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pt.update_positions({1: pos1, 2: pos2})
+
+        event1 = Event({'sid': 1,
+                        'price': 11,
+                        'dt': dt})
+        event2 = Event({'sid': 2,
+                        'price': 11,
+                        'dt': dt})
+
+        # Check cash-adjustment return value
+        self.assertEqual(0, pt.update_last_sale(event1))
+        self.assertEqual(100000, pt.update_last_sale(event2))
 
     def test_position_values(self):
         #TODO write test

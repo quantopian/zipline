@@ -34,7 +34,7 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.finance import trading
-from zipline.assets import Asset, Future, AssetFinder
+from zipline.assets import Asset, Future, AssetFinder, AssetMetaData
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -511,11 +511,67 @@ class AssetFinderTestCase(TestCase):
         finally:
             AssetFinder.clear_cache()
 
-    def test_trading_update_asset_finder(self):
-        #TODO write test
-        return
-
 
 class TestAssetMetaData(TestCase):
-    #TODO write tests
-    lol = 'foo'
+
+    def test_insert_metadata(self):
+        amd = AssetMetaData()
+        amd.insert_metadata(0,
+                            asset_type=1,
+                            start_date='2014-01-01',
+                            end_date='2015-01-01',
+                            symbol="PLAY",
+                            foo_data="FOO"
+                            )
+
+        # Test proper insertion
+        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
+        self.assertEqual('2015-01-01', amd.retrieve_metadata(0)['end_date'])
+
+        # Test invalid field
+        self.assertFalse('foo_data' in amd.retrieve_metadata(0))
+
+        # Test updating fields
+        amd.insert_metadata(0,
+                            asset_type=1,
+                            start_date='2014-01-01',
+                            end_date='2015-02-01',
+                            symbol="PLAY",
+                            exchange="NYSE"
+                            )
+        self.assertEqual('2015-02-01', amd.retrieve_metadata(0)['end_date'])
+        self.assertEqual('NYSE', amd.retrieve_metadata(0)['exchange'])
+
+        # Check that old data survived
+        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
+
+    def test_consume_metadata(self):
+
+        # Test dict consumption
+        amd = AssetMetaData({0: {'asset_type': 1}})
+        dict_to_consume = {0: {'symbol': 'PLAY'},
+                           1: {'symbol': 'MSFT'}}
+        amd.consume_metadata(dict_to_consume)
+        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
+
+        # Test dataframe consumption
+        df = pd.DataFrame(columns=['asset_name', 'exchange'], index=[0, 1])
+        df['asset_name'][0] = "Dave'N'Busters"
+        df['exchange'][0] = "NASDAQ"
+        df['asset_name'][1] = "Microsoft"
+        df['exchange'][1] = "NYSE"
+        amd.consume_metadata(df)
+        self.assertEqual('NASDAQ', amd.retrieve_metadata(0)['exchange'])
+        self.assertEqual('Microsoft', amd.retrieve_metadata(1)['asset_name'])
+        # Check that old data survived
+        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+
+        # Test AssetMetaData consumption
+        amd2 = AssetMetaData({2: {'symbol': 'AAPL'}})
+        amd.consume_metadata(amd2)
+        self.assertEqual('AAPL', amd.retrieve_metadata(2)['symbol'])
+        # Check that old data survived
+        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+

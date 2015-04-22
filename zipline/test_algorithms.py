@@ -88,6 +88,7 @@ from zipline.api import (
     sid,
 )
 from zipline.errors import UnsupportedOrderParameters
+from zipline.assets import FUTURE, EQUITY
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -334,7 +335,12 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
         self.incr += 2
-        self.order_value(self.sid(0), data[0].price * 2.)
+
+        multiplier = 2.
+        if self.sid(0).asset_type == FUTURE:
+            multiplier *= self.sid(0).contract_multiplier
+
+        self.order_value(self.sid(0), data[0].price * multiplier)
 
 
 class TestTargetAlgorithm(TradingAlgorithm):
@@ -372,9 +378,16 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
 
         self.order_percent(self.sid(0), .001)
-        self.target_shares += np.floor((.001 *
-                                        self.portfolio.portfolio_value) /
-                                       data[0].price)
+
+        if self.sid(0).asset_type == EQUITY:
+            self.target_shares += np.floor(
+                (.001 * self.portfolio.portfolio_value) / data[0].price
+            )
+        if self.sid(0).asset_type == FUTURE:
+            self.target_shares += np.floor(
+                (.001 * self.portfolio.portfolio_value) /
+                (data[0].price * self.sid(0).contract_multiplier)
+            )
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
@@ -416,6 +429,12 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
 
         self.order_target_value(self.sid(0), 20)
         self.target_shares = np.round(20 / data[0].price)
+
+        if self.sid(0).asset_type == EQUITY:
+            self.target_shares = np.round(20 / data[0].price)
+        if self.sid(0).asset_type == FUTURE:
+            self.target_shares = np.round(
+                20 / (data[0].price * self.sid(0).contract_multiplier))
 
 
 ############################
