@@ -74,9 +74,6 @@ from __future__ import division
 import logbook
 
 import numpy as np
-from collections import (
-    defaultdict,
-)
 
 try:
     # optional cython based OrderedDict
@@ -166,8 +163,8 @@ class PerformancePeriod(object):
         self.starting_cash = self.ending_cash
         self.period_cash_flow = 0.0
         self.pnl = 0.0
-        self.processed_transactions = defaultdict(list)
-        self.orders_by_modified = defaultdict(OrderedDict)
+        self.processed_transactions = {}
+        self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
     def handle_dividends_paid(self, net_cash_payment):
@@ -203,9 +200,12 @@ class PerformancePeriod(object):
 
     def record_order(self, order):
         if self.keep_orders:
-            dt_orders = self.orders_by_modified[order.dt]
-            if order.id in dt_orders:
-                del dt_orders[order.id]
+            try:
+                dt_orders = self.orders_by_modified[order.dt]
+                if order.id in dt_orders:
+                    del dt_orders[order.id]
+            except KeyError:
+                self.orders_by_modified[order.dt] = dt_orders = OrderedDict()
             dt_orders[order.id] = order
             # to preserve the order of the orders by modified date
             # we delete and add back. (ordered dictionary is sorted by
@@ -218,7 +218,10 @@ class PerformancePeriod(object):
         self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
-            self.processed_transactions[txn.dt].append(txn)
+            try:
+                self.processed_transactions[txn.dt].append(txn)
+            except KeyError:
+                self.processed_transactions[txn.dt] = [txn]
 
     # backwards compat. TODO: remove?
     @property
@@ -327,8 +330,11 @@ class PerformancePeriod(object):
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.to_dict()
-                                for x in self.processed_transactions[dt]]
+                try:
+                    transactions = [x.to_dict()
+                                    for x in self.processed_transactions[dt]]
+                except KeyError:
+                    transactions = []
             else:
                 transactions = \
                     [y.to_dict()
@@ -339,8 +345,11 @@ class PerformancePeriod(object):
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.to_dict()
-                          for x in itervalues(self.orders_by_modified[dt])]
+                try:
+                    orders = [x.to_dict()
+                              for x in itervalues(self.orders_by_modified[dt])]
+                except KeyError:
+                    orders = []
             else:
                 orders = [x.to_dict() for x in itervalues(self.orders_by_id)]
             rval['orders'] = orders
@@ -450,13 +459,13 @@ class PerformancePeriod(object):
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PerformancePeriod saved state is too old.")
 
-        processed_transactions = defaultdict(list)
+        processed_transactions = {}
         processed_transactions.update(state.pop('processed_transactions'))
 
         orders_by_id = OrderedDict()
         orders_by_id.update(state.pop('orders_by_id'))
 
-        orders_by_modified = defaultdict(OrderedDict)
+        orders_by_modified = {}
         orders_by_modified.update(state.pop('orders_by_modified'))
         self.processed_transactions = processed_transactions
         self.orders_by_id = orders_by_id
