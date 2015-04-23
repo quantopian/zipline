@@ -19,7 +19,7 @@ python-dateutil==2.4.2
 six==1.9.0
 
 # For fetching remote data
-requests==2.6.0
+requests==2.6.1
 
 Cython==0.22
 
