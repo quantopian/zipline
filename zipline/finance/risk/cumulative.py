@@ -194,7 +194,7 @@ class RiskMetricsCumulative(object):
                 # Create container for all minutes on first iteration
                 trading_minutes = minutes_for_day
             else:
-                trading_minutes = trading_minutes + minutes_for_day
+                trading_minutes = trading_minutes.union(minutes_for_day)
         return trading_minutes
 
     def get_daily_index(self):
@@ -462,15 +462,16 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-        # it doesn't make much sense to calculate beta for less than two days,
-        # so return none.
-        if len(self.annualized_mean_returns) < 2:
-            return 0.0
 
         # Drop nans if there are gaps in the data
         algorithm_returns = self.algorithm_returns.dropna()
         benchmark_returns = \
             self.benchmark_returns.loc[algorithm_returns.index]
+
+        # it doesn't make much sense to calculate beta for less than two days,
+        # so return none.
+        if len(algorithm_returns) < 2:
+            return 0.0
 
         returns_matrix = np.vstack([algorithm_returns,
                                     benchmark_returns])
