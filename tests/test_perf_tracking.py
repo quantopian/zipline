@@ -1964,10 +1964,6 @@ class TestPerformanceTracker(unittest.TestCase):
         )
         check_perf_tracker_serialization(perf_tracker)
 
-    def test_asset_end(self):
-        #TODO write test
-        return
-
 
 class TestPosition(unittest.TestCase):
     def setUp(self):
@@ -2022,7 +2018,6 @@ class TestPositionTracker(unittest.TestCase):
         if trading.environment is None:
             trading.environment = trading.TradingEnvironment()
         trading.environment.update_asset_finder(asset_metadata=metadata)
-
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(100.0),
@@ -2042,27 +2037,86 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(0, pt.update_last_sale(event1))
         self.assertEqual(100000, pt.update_last_sale(event2))
 
-    def test_position_values(self):
-        #TODO write test
-        return
-
-    def test_position_exposures(self):
-        #TODO write test
-        return
-
-    def test_generate_end_sid_transaction(self):
-        #TODO write test
-        return
-
-    def test_serializaition(self):
+    def test_position_values_and_exposures(self):
+        metadata = {1: {'asset_type': EQUITY},
+                    2: {'asset_type': EQUITY},
+                    3: {'asset_type': FUTURE,
+                        'contract_multiplier': 1000},
+                    4: {'asset_type': FUTURE,
+                        'contract_multiplier': 1000}}
+        if trading.environment is None:
+            trading.environment = trading.TradingEnvironment()
+        trading.environment.update_asset_finder(asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position('AAPL', amount=np.float64(120.0),
+        pos1 = perf.Position(1, amount=np.float64(10.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos2 = perf.Position(2, amount=np.float64(-20.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos3 = perf.Position(3, amount=np.float64(30.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos4 = perf.Position(4, amount=np.float64(-40.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pt.update_positions({1: pos1, 2: pos2, 3: pos3, 4: pos4})
+
+        # Test long-only methods
+        self.assertEqual(100, pt._long_value())
+        self.assertEqual(100 + 300000, pt._long_exposure())
+
+        # Test short-only methods
+        self.assertEqual(-200, pt._short_value())
+        self.assertEqual(-200 - 400000, pt._short_exposure())
+
+        # Test gross and net values
+        self.assertEqual(100 + 200, pt._gross_value())
+        self.assertEqual(100 - 200, pt._net_value())
+
+        # Test gross and net exposures
+        self.assertEqual(100 + 200 + 300000 + 400000, pt._gross_exposure())
+        self.assertEqual(100 - 200 + 300000 - 400000, pt._net_exposure())
+
+
+    def test_generate_end_sid_transaction(self):
+        metadata = {1: {'asset_type': EQUITY},
+                    2: {'asset_type': FUTURE,
+                        'contract_multiplier': 1000}}
+        if trading.environment is None:
+            trading.environment = trading.TradingEnvironment()
+        trading.environment.update_asset_finder(asset_metadata=metadata)
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position(1, amount=np.float64(120.0),
                              last_sale_date=dt, last_sale_price=3.4)
-        pos2 = perf.Position('IBM', amount=np.float64(100.0),
+        pos2 = perf.Position(2, amount=np.float64(-100.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pt.update_positions({1: pos1, 2: pos2})
+
+        # Test owned long
+        txn = pt._generate_end_sid_transaction(1, dt)
+        self.assertEqual(-120, txn.amount)
+
+        # Test owned short
+        txn = pt._generate_end_sid_transaction(2, dt)
+        self.assertEqual(100, txn.amount)
+
+        # Test not-owned SID
+        self.assertIsNone(pt._generate_end_sid_transaction(3, dt))
+
+    def test_serialization(self):
+        metadata = {1: {'asset_type': EQUITY},
+                    2: {'asset_type': FUTURE,
+                        'contract_multiplier': 1000}}
+        if trading.environment is None:
+            trading.environment = trading.TradingEnvironment()
+        trading.environment.update_asset_finder(asset_metadata=metadata)
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position(1, amount=np.float64(120.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pos2 = perf.Position(2, amount=np.float64(100.0),
                              last_sale_date=dt, last_sale_price=3.4)
 
-        pt.update_positions({'AAPL': pos1, 'IBM': pos2})
+        pt.update_positions({1: pos1, 2: pos2})
         p_string = pickle.dumps(pt)
         test = pickle.loads(p_string)
         nt.assert_dict_equal(test._position_amounts, pt._position_amounts)
