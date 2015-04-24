@@ -124,14 +124,6 @@ class TestDataFrameSource(TestCase):
         self.assertEqual(5, event.sid)
         self.assertFalse(np.isnan(event.price))
 
-    def test_identifier_mapping_dataframe(self):
-        #TODO write tests
-        return
-
-    def test_identifier_mapping_panel(self):
-        #TODO write tests
-        return
-
 
 class TestRandomWalkSource(TestCase):
     def test_minute(self):
