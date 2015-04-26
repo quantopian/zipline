@@ -449,8 +449,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return np.std(daily_returns, ddof=1) * math.sqrt(252)
 
     def calculate_downside_risk(self):
-        return downside_risk(self.algorithm_returns,
-                             self.mean_returns,
+        return downside_risk(self.algorithm_returns.values,
+                             self.mean_returns.values,
                              252)
 
     def calculate_beta(self):
@@ -462,19 +462,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-
-        # Drop nans if there are gaps in the data
-        algorithm_returns = self.algorithm_returns.dropna()
-        benchmark_returns = \
-            self.benchmark_returns.loc[algorithm_returns.index]
-
-        # it doesn't make much sense to calculate beta for less than two days,
-        # so return none.
-        if len(algorithm_returns) < 2:
+        # it doesn't make much sense to calculate beta for less than two
+        # values, so return none.
+        if len(self.algorithm_returns) < 2:
             return 0.0
 
-        returns_matrix = np.vstack([algorithm_returns,
-                                    benchmark_returns])
+        returns_matrix = np.vstack([self.algorithm_returns,
+                                    self.benchmark_returns])
         C = np.cov(returns_matrix, ddof=1)
         algorithm_covariance = C[0][1]
         benchmark_variance = C[1][1]
