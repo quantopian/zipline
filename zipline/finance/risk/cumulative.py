@@ -312,10 +312,18 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.excess_returns[self.latest_dt] = (
             self.algorithm_cumulative_returns[self.latest_dt] -
             self.treasury_period_return)
-        self.metrics.beta[dt] = self.calculate_beta()
+        dt_index = self.metrics.index.searchsorted(dt)
+        algorithm_returns = self.algorithm_returns.values[:dt_index + 1]
+        benchmark_returns = \
+            self.benchmark_returns.values[:dt_index + 1]
+        mean_returns = self.mean_returns.values[:dt_index + 1]
+        self.metrics.beta[dt] = self.calculate_beta(algorithm_returns,
+                                                    benchmark_returns)
         self.metrics.alpha[dt] = self.calculate_alpha()
         self.metrics.sharpe[dt] = self.calculate_sharpe()
-        self.metrics.downside_risk[dt] = self.calculate_downside_risk()
+        self.metrics.downside_risk[dt] = self.calculate_downside_risk(
+            algorithm_returns,
+            mean_returns)
         self.metrics.sortino[dt] = self.calculate_sortino()
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
@@ -448,12 +456,12 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             return 0.0
         return np.std(daily_returns, ddof=1) * math.sqrt(252)
 
-    def calculate_downside_risk(self):
-        return downside_risk(self.algorithm_returns,
-                             self.mean_returns,
+    def calculate_downside_risk(self, algorithm_returns, mean_returns):
+        return downside_risk(algorithm_returns,
+                             mean_returns,
                              252)
 
-    def calculate_beta(self):
+    def calculate_beta(self, algorithm_returns, benchmark_returns):
         """
 
         .. math::
@@ -462,14 +470,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         http://en.wikipedia.org/wiki/Beta_(finance)
         """
-
-        # Drop nans if there are gaps in the data
-        algorithm_returns = self.algorithm_returns.dropna()
-        benchmark_returns = \
-            self.benchmark_returns.loc[algorithm_returns.index]
-
-        # it doesn't make much sense to calculate beta for less than two days,
-        # so return none.
+        # it doesn't make much sense to calculate beta for less than two
+        # values, so return none.
         if len(algorithm_returns) < 2:
             return 0.0
 
