@@ -410,8 +410,14 @@ class PerformanceTracker(object):
                                           self.all_benchmark_returns[dt],
                                           account)
 
-        bench_since_open = \
-            self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
+        # Duplicate intraday_risk_metrics work of calculating the benchmark
+        # returns since open.
+        # intraday_risk_metrics is marked for removal.
+        #
+        # This redundant work is in anticipation of no longer being able to
+        # depend on the 'since open' calculations in intraday_risk_metrics.
+        bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
+        bench_since_open = (1. + bench_returns).prod() - 1
 
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
