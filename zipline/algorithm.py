@@ -176,7 +176,9 @@ class TradingAlgorithm(object):
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
             self.sim_params = create_simulation_parameters(
-                capital_base=self.capital_base
+                capital_base=self.capital_base,
+                start=kwargs.pop('start', None),
+                end=kwargs.pop('end', None)
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
 
@@ -415,12 +417,10 @@ class TradingAlgorithm(object):
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
     def run(self, source, overwrite_sim_params=True,
-            benchmark_return_source=None, start=None, end=None):
+            benchmark_return_source=None):
         """Run the algorithm.
 
         :Arguments:
-            start : (optional) DateTime at which to begin the run
-            end : (optional) DateTime at which to end the run
             source : can be either:
                      - pandas.DataFrame
                      - zipline source
@@ -474,13 +474,9 @@ class TradingAlgorithm(object):
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
-            if start is not None:
-                self.sim_params.period_start = start
-            elif hasattr(source, 'start'):
+            if hasattr(source, 'start'):
                 self.sim_params.period_start = source.start
-            if end is not None:
-                self.sim_params.period_end = end
-            elif hasattr(source, 'end'):
+            if hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
             # The sids field of the source is the canonical reference for
             # sids in this run

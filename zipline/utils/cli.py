@@ -227,11 +227,11 @@ def run_pipeline(print_algo=True, **kwargs):
                                     capital_base=float(kwargs['capital_base']),
                                     algo_filename=kwargs.get('algofile'),
                                     asset_metadata=asset_metadata,
-                                    identifiers=symbols)
+                                    identifiers=symbols,
+                                    start=start,
+                                    end=end)
 
-    perf = algo.run(source,
-                    start=start,
-                    end=end)
+    perf = algo.run(source, overwrite_sim_params=False)
 
     output_fname = kwargs.get('output', None)
     if output_fname is not None:
