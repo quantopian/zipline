@@ -76,7 +76,7 @@ import logbook
 import numpy as np
 
 from zipline.finance.trading import with_environment
-from zipline.assets import Equity
+from zipline.assets import Future
 
 try:
     # optional cython based OrderedDict
@@ -221,12 +221,11 @@ class PerformancePeriod(object):
             self.orders_by_id[order.id] = order
 
     @with_environment()
-    def _find_asset(self, sid, env=None):
-        return env.asset_finder.retrieve_asset(sid)
+    def handle_execution(self, txn, env=None):
+        asset = env.asset_finder.retrieve_asset(txn.sid)
 
-    def handle_execution(self, txn):
-        asset = self._find_asset(txn.sid)
-        if isinstance(asset, Equity):
+        # Futures experience no cash flow on transactions
+        if not isinstance(asset, Future):
             self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:

@@ -108,7 +108,7 @@ class PositionTracker(object):
             self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
             self._invalidate_cache()
-            self._update_asset(self._retrieve_asset(sid))
+            self._update_asset(sid)
 
     def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):

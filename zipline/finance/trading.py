@@ -24,6 +24,7 @@ import numpy as np
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.assets import AssetFinder, AssetMetaData
+from zipline.errors import UpdateAssetFinderTypeError
 
 
 log = logbook.Logger('Trading')
@@ -154,11 +155,14 @@ class TradingEnvironment(object):
 
     def update_asset_finder(self,
                             erase_existing=False,
+                            asset_finder=None,
                             asset_metadata=None,
                             identifiers=None):
         """
         Updates the AssetFinder using the provided asset metadata and
         identifiers.
+        If asset_finder is provided, the existing asset_finder will be replaced
+        outright with the new asset_finder.
         If asset_metadata is provided, the existing metadata will be replaced
         with the provided metadata.
         All identifiers will be inserted in the asset metadata if they are not
@@ -167,6 +171,8 @@ class TradingEnvironment(object):
         asset_finder will be erased.
 
         :param erase_existing: A boolean
+        :param asset_finder: An AssetFinder object to replace the environment's
+        existing asset_finder
         :param asset_metadata: A zipline AssetMetaData, dict, or DataFrame
         :param identifiers: A list of identifiers to be inserted
         :return:
@@ -175,6 +181,10 @@ class TradingEnvironment(object):
         if erase_existing:
             self.asset_finder.metadata.erase()
             populate = True
+        if asset_finder is not None:
+            if not isinstance(asset_finder, AssetFinder):
+                raise UpdateAssetFinderTypeError(cls=asset_finder.__class__)
+            self.asset_finder = asset_finder
         if asset_metadata is not None:
             if not isinstance(asset_metadata, AssetMetaData):
                 asset_metadata = AssetMetaData(asset_metadata)

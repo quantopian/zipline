@@ -233,6 +233,16 @@ AssetMetaData contained an invalid Asset type: '{asset_type}'.
 """.strip()
 
 
+class UpdateAssetFinderTypeError(ZiplineError):
+    """
+    Raised when TradingEnvironment.update_asset_finder() gets an asset_finder
+    arg that is not of AssetFinder class.
+    """
+    msg = """
+TradingEnvironment can not set asset_finder to object of class {cls}.
+""".strip()
+
+
 class ConsumeAssetMetaDataError(ZiplineError):
     """
     Raised when AssetMetaData.consume() is called on a non-AssetMetaData object
