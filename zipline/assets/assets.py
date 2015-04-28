@@ -278,8 +278,7 @@ class AssetFinder(object):
 
         asset = None
         asset_type = kwargs.pop('asset_type', None)
-        if (asset_type == None) \
-            or (asset_type.lower() == 'equity'):
+        if (asset_type is None) or (asset_type.lower() == 'equity'):
             asset = Equity(**kwargs)
         elif asset_type.lower() == 'future':
             asset = Future(**kwargs)
