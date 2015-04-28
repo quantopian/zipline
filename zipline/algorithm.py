@@ -139,8 +139,6 @@ class TradingAlgorithm(object):
                How much capital to start with.
             instant_fill : bool <default: False>
                Whether to fill orders immediately or on next bar.
-            environment : str <default: 'zipline'>
-               The environment that this algorithm is running in.
             asset_metadata : AssetMetaData, dict, or DataFrame
                 The metadata for all assets that may be used
             identifiers : List
@@ -182,9 +180,8 @@ class TradingAlgorithm(object):
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
 
-        # Update the TradingEnvironment with the provided metadata
-        self._environment = kwargs.pop('environment', trading.environment)
-        self._environment.update_asset_finder(
+        # Update the TradingEnvironment with the provided metadata\
+        trading.environment.update_asset_finder(
             asset_metadata=kwargs.pop('asset_metadata', None),
             identifiers=kwargs.pop('identifiers', None)
         )
@@ -350,7 +347,7 @@ class TradingAlgorithm(object):
             if sim_params.data_frequency == 'minute' or \
                sim_params.emission_rate == 'minute':
                 def update_time(date):
-                    return self._environment.get_open_and_close(date)[1]
+                    return trading.environment.get_open_and_close(date)[1]
             else:
                 def update_time(date):
                     return date
@@ -360,7 +357,7 @@ class TradingAlgorithm(object):
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
                 for dt, ret in
-                self._environment.benchmark_returns.iteritems()
+                trading.environment.benchmark_returns.iteritems()
                 if dt.date() >= sim_params.period_start.date() and
                 dt.date() <= sim_params.period_end.date()
             ]
@@ -493,7 +490,7 @@ class TradingAlgorithm(object):
             # the AssetFinder
             for sid in self.sim_params.sids:
                 try:
-                    self._environment.asset_finder.retrieve_asset(sid)
+                    trading.environment.asset_finder.retrieve_asset(sid)
                 except SidNotFound:
                     warnings.warn("No Asset found for sid '%s'. Make sure "
                                   "that the correct identifiers and asset "
@@ -659,7 +656,7 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the Asset (e.g. yahoo finance).
         """
-        asset, _ = self._environment.asset_finder.lookup_generic(
+        asset, _ = trading.environment.asset_finder.lookup_generic(
             asset_convertible_or_iterable=symbol_str,
             as_of_date=self.datetime,
             )
@@ -682,7 +679,7 @@ class TradingAlgorithm(object):
         Default sid lookup for any source that directly maps the integer sid
         to the Asset.
         """
-        return self._environment.asset_finder.retrieve_asset(sid)
+        return trading.environment.asset_finder.retrieve_asset(sid)
 
     @api_method
     def order(self, sid, amount,
