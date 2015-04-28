@@ -19,7 +19,7 @@ from zipline.utils.serialization_utils import (
 
 import zipline.protocol as zp
 from zipline.assets import (
-    FUTURE, EQUITY
+    Equity, Future
 )
 from zipline.finance.trading import with_environment
 from zipline.finance.slippage import Transaction
@@ -63,10 +63,10 @@ class PositionTracker(object):
         self._known_asset_sids.add(sid)
         # Collect the value multipliers from applicable sids
         asset = self._retrieve_asset(sid)
-        if asset.asset_type == EQUITY:
+        if isinstance(asset, Equity):
             self._position_value_multiplier[asset.sid] = 1
             self._position_exposure_multiplier[asset.sid] = 1
-        elif asset.asset_type == FUTURE:
+        if isinstance(asset, Future):
             self._position_value_multiplier[asset.sid] = 0
             self._position_exposure_multiplier[asset.sid] = \
                 asset.contract_multiplier
@@ -95,7 +95,7 @@ class PositionTracker(object):
 
         # Calculate cash adjustment on futures
         cash_adjustment = 0
-        if asset.asset_type == FUTURE:
+        if isinstance(asset, Future):
             price_change = price - old_price
             cash_adjustment = \
                 price_change * asset.contract_multiplier * pos.amount

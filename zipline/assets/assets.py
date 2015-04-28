@@ -28,17 +28,13 @@ from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
     SidNotFound,
-    ConsumeAssetMetaDataError
+    ConsumeAssetMetaDataError,
+    InvalidAssetType
 )
 
 from zipline.assets._assets import (
     Asset, Equity, Future
 )
-
-# asset_type values
-# These values should match the AssetType enum in zipline.assets._assets
-EQUITY = 1
-FUTURE = 2
 
 log = Logger('assets.py')
 
@@ -282,10 +278,13 @@ class AssetFinder(object):
 
         asset = None
         asset_type = kwargs.pop('asset_type', None)
-        if asset_type in (EQUITY, None):
+        if (asset_type == None) \
+            or (asset_type.lower() == 'equity'):
             asset = Equity(**kwargs)
-        if asset_type == FUTURE:
+        elif asset_type.lower() == 'future':
             asset = Future(**kwargs)
+        else:
+            raise InvalidAssetType(asset_type=asset_type)
 
         self.cache[asset.sid] = asset
         if 'symbol' in kwargs.keys():

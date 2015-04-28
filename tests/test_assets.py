@@ -517,7 +517,7 @@ class TestAssetMetaData(TestCase):
     def test_insert_metadata(self):
         amd = AssetMetaData()
         amd.insert_metadata(0,
-                            asset_type=1,
+                            asset_type='equity',
                             start_date='2014-01-01',
                             end_date='2015-01-01',
                             symbol="PLAY",
@@ -525,7 +525,7 @@ class TestAssetMetaData(TestCase):
                             )
 
         # Test proper insertion
-        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
         self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
         self.assertEqual('2015-01-01', amd.retrieve_metadata(0)['end_date'])
 
@@ -534,7 +534,7 @@ class TestAssetMetaData(TestCase):
 
         # Test updating fields
         amd.insert_metadata(0,
-                            asset_type=1,
+                            asset_type='equity',
                             start_date='2014-01-01',
                             end_date='2015-02-01',
                             symbol="PLAY",
@@ -549,11 +549,11 @@ class TestAssetMetaData(TestCase):
     def test_consume_metadata(self):
 
         # Test dict consumption
-        amd = AssetMetaData({0: {'asset_type': 1}})
+        amd = AssetMetaData({0: {'asset_type': 'equity'}})
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
         amd.consume_metadata(dict_to_consume)
-        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
         self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
 
         # Test dataframe consumption
@@ -566,12 +566,12 @@ class TestAssetMetaData(TestCase):
         self.assertEqual('NASDAQ', amd.retrieve_metadata(0)['exchange'])
         self.assertEqual('Microsoft', amd.retrieve_metadata(1)['asset_name'])
         # Check that old data survived
-        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
 
         # Test AssetMetaData consumption
         amd2 = AssetMetaData({2: {'symbol': 'AAPL'}})
         amd.consume_metadata(amd2)
         self.assertEqual('AAPL', amd.retrieve_metadata(2)['symbol'])
         # Check that old data survived
-        self.assertEqual(1, amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
 

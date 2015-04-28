@@ -66,7 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets import FUTURE
+from zipline.assets import Asset, Future
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -750,7 +750,7 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
-        if not hasattr(sid, 'asset_type'):
+        if not isinstance(sid, Asset):
             raise UnsupportedOrderParameters(
                 msg="Passing non-Asset argument to 'order()' is not supported."
                     " Use 'sid()' or 'symbol()' methods to look up an Asset."
@@ -805,7 +805,7 @@ class TradingAlgorithm(object):
         last_price = self.trading_client.current_data[sid].price
 
         value_multiplier = 1
-        if sid.asset_type == FUTURE:
+        if isinstance(sid, Future):
             value_multiplier = sid.contract_multiplier
 
         if np.allclose(last_price, 0):
@@ -985,7 +985,7 @@ class TradingAlgorithm(object):
         last_price = self.trading_client.current_data[sid].price
 
         value_multiplier = 1
-        if sid.asset_type == FUTURE:
+        if isinstance(sid, Future):
             value_multiplier = sid.contract_multiplier
 
         if np.allclose(last_price, 0):

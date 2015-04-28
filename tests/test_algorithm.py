@@ -87,7 +87,7 @@ from zipline.sources import (SpecificEquityTrades,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.assets import (
-    EQUITY, FUTURE, Equity, Future
+    Equity, Future
 )
 
 from zipline.finance.execution import LimitOrder
@@ -296,15 +296,15 @@ class TestMiscellaneousAPI(TestCase):
 
     def test_asset_lookup(self):
         metadata = {0: {'symbol': 'PLAY',
-                        'asset_type': EQUITY,
+                        'asset_type': 'equity',
                         'start_date': '2002-01-01',
                         'end_date': '2004-01-01'},
                     1: {'symbol': 'PLAY',
-                        'asset_type': EQUITY,
+                        'asset_type': 'equity',
                         'start_date': '2005-01-01',
                         'end_date': '2006-01-01'},
                     2: {'symbol': 'OMG15',
-                        'asset_type': FUTURE}}
+                        'asset_type': 'future'}}
         algo = TradingAlgorithm(asset_metadata=metadata)
 
         # Test before either PLAY existed
@@ -458,7 +458,7 @@ class TestTransformAlgorithm(TestCase):
                        TestOrderPercentAlgorithm,
                        TestTargetValueAlgorithm]
 
-        metadata = {0: {'asset_type': FUTURE,
+        metadata = {0: {'asset_type': 'future',
                         'contract_multiplier': 10}}
         for AlgoClass in AlgoClasses:
             algo = AlgoClass(

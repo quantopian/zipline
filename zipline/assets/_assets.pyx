@@ -21,10 +21,6 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-cdef enum AssetType:
-    EQUITY = 1
-    FUTURE = 2
-
 cdef class Asset:
 
     cdef readonly int sid
@@ -33,7 +29,6 @@ cdef class Asset:
 
     cdef readonly object symbol
     cdef readonly object asset_name
-    cdef readonly AssetType asset_type
 
     cdef readonly object start_date
     cdef readonly object end_date
@@ -188,17 +183,6 @@ cdef class Asset:
 
 cdef class Equity(Asset):
 
-    def __cinit__(self,
-                  int sid, # sid is required
-                  object symbol="",
-                  object asset_name="",
-                  object start_date=None,
-                  object end_date=None,
-                  object first_traded=None,
-                  object exchange=""):
-
-        self.asset_type = EQUITY
-
     def __str__(self):
         if self.symbol:
             return 'Equity(%d [%s])' % (self.sid, self.symbol)
@@ -240,7 +224,6 @@ cdef class Future(Asset):
                   object exchange="",
                   int contract_multiplier=1):
 
-        self.asset_type          = FUTURE
         self.notice_date         = notice_date
         self.expiration_date     = expiration_date
         self.contract_multiplier = contract_multiplier

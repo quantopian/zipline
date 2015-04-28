@@ -76,7 +76,7 @@ import logbook
 import numpy as np
 
 from zipline.finance.trading import with_environment
-from zipline.assets import EQUITY
+from zipline.assets import Equity
 
 try:
     # optional cython based OrderedDict
@@ -226,7 +226,7 @@ class PerformancePeriod(object):
 
     def handle_execution(self, txn):
         asset = self._find_asset(txn.sid)
-        if asset.asset_type == EQUITY:
+        if isinstance(asset, Equity):
             self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:

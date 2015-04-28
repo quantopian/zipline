@@ -38,7 +38,7 @@ import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
-from zipline.assets import EQUITY, FUTURE
+from zipline.assets import Equity, Future
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -2012,8 +2012,8 @@ class TestPositionTracker(unittest.TestCase):
             self.assertNotIsInstance(val, (bool, np.bool_))
 
     def test_update_last_sale(self):
-        metadata = {1: {'asset_type': EQUITY},
-                    2: {'asset_type': FUTURE,
+        metadata = {1: {'asset_type': 'equity'},
+                    2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
         if trading.environment is None:
             trading.environment = trading.TradingEnvironment()
@@ -2038,11 +2038,11 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(100000, pt.update_last_sale(event2))
 
     def test_position_values_and_exposures(self):
-        metadata = {1: {'asset_type': EQUITY},
-                    2: {'asset_type': EQUITY},
-                    3: {'asset_type': FUTURE,
+        metadata = {1: {'asset_type': 'equity'},
+                    2: {'asset_type': 'equity'},
+                    3: {'asset_type': 'future',
                         'contract_multiplier': 1000},
-                    4: {'asset_type': FUTURE,
+                    4: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
         if trading.environment is None:
             trading.environment = trading.TradingEnvironment()
@@ -2077,8 +2077,8 @@ class TestPositionTracker(unittest.TestCase):
 
 
     def test_generate_end_sid_transaction(self):
-        metadata = {1: {'asset_type': EQUITY},
-                    2: {'asset_type': FUTURE,
+        metadata = {1: {'asset_type': 'equity'},
+                    2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
         if trading.environment is None:
             trading.environment = trading.TradingEnvironment()
@@ -2103,8 +2103,8 @@ class TestPositionTracker(unittest.TestCase):
         self.assertIsNone(pt._generate_end_sid_transaction(3, dt))
 
     def test_serialization(self):
-        metadata = {1: {'asset_type': EQUITY},
-                    2: {'asset_type': FUTURE,
+        metadata = {1: {'asset_type': 'equity'},
+                    2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
         if trading.environment is None:
             trading.environment = trading.TradingEnvironment()

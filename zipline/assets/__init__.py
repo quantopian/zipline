@@ -19,8 +19,6 @@ from ._assets import (
     Future
 )
 from .assets import (
-    EQUITY,
-    FUTURE,
     AssetFinder,
     AssetMetaData
 )
@@ -29,8 +27,6 @@ __all__ = [
     'Asset',
     'Equity',
     'Future',
-    'EQUITY',
-    'FUTURE',
     'AssetFinder',
     'AssetMetaData'
 ]

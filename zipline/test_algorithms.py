@@ -88,7 +88,7 @@ from zipline.api import (
     sid,
 )
 from zipline.errors import UnsupportedOrderParameters
-from zipline.assets import FUTURE, EQUITY
+from zipline.assets import Future, Equity
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -337,7 +337,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
         self.incr += 2
 
         multiplier = 2.
-        if self.sid(0).asset_type == FUTURE:
+        if isinstance(self.sid(0), Future):
             multiplier *= self.sid(0).contract_multiplier
 
         self.order_value(self.sid(0), data[0].price * multiplier)
@@ -379,11 +379,11 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
 
         self.order_percent(self.sid(0), .001)
 
-        if self.sid(0).asset_type == EQUITY:
+        if isinstance(self.sid(0), Equity):
             self.target_shares += np.floor(
                 (.001 * self.portfolio.portfolio_value) / data[0].price
             )
-        if self.sid(0).asset_type == FUTURE:
+        if isinstance(self.sid(0), Future):
             self.target_shares += np.floor(
                 (.001 * self.portfolio.portfolio_value) /
                 (data[0].price * self.sid(0).contract_multiplier)
@@ -430,9 +430,9 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
         self.order_target_value(self.sid(0), 20)
         self.target_shares = np.round(20 / data[0].price)
 
-        if self.sid(0).asset_type == EQUITY:
+        if isinstance(self.sid(0), Equity):
             self.target_shares = np.round(20 / data[0].price)
-        if self.sid(0).asset_type == FUTURE:
+        if isinstance(self.sid(0), Future):
             self.target_shares = np.round(
                 20 / (data[0].price * self.sid(0).contract_multiplier))
 
