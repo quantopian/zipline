@@ -21,6 +21,11 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
+# IMPORTANT NOTE: You must change this template if you change
+# Asset.__reduce__, or else we'll attempt to unpickle an old version of this
+# class
+CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.cache'
+
 cdef class Asset:
 
     cdef readonly int sid
@@ -282,3 +287,9 @@ cdef class Future(Asset):
         Build a Future instance from a dict.
         """
         return Future(**dict_)
+
+
+def make_asset_array(int size, Asset asset):
+    cdef np.ndarray out = np.empty([size], dtype=object)
+    out.fill(asset)
+    return out

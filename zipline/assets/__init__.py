@@ -16,7 +16,9 @@
 from ._assets import (
     Asset,
     Equity,
-    Future
+    Future,
+    make_asset_array,
+    CACHE_FILE_TEMPLATE
 )
 from .assets import (
     AssetFinder,
@@ -30,5 +32,7 @@ __all__ = [
     'Future',
     'AssetFinder',
     'AssetMetaData',
-    'AssetConvertible'
+    'AssetConvertible',
+    'make_asset_array',
+    'CACHE_FILE_TEMPLATE'
 ]
