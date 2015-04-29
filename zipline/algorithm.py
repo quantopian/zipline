@@ -184,6 +184,7 @@ class TradingAlgorithm(object):
 
         # Update the TradingEnvironment with the provided metadata\
         trading.environment.update_asset_finder(
+            asset_finder=kwargs.pop('asset_finder', None),
             asset_metadata=kwargs.pop('asset_metadata', None),
             identifiers=kwargs.pop('identifiers', None)
         )
