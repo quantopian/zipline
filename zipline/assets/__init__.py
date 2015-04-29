@@ -20,7 +20,8 @@ from ._assets import (
 )
 from .assets import (
     AssetFinder,
-    AssetMetaData
+    AssetMetaData,
+    AssetConvertible
 )
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     'Equity',
     'Future',
     'AssetFinder',
-    'AssetMetaData'
+    'AssetMetaData',
+    'AssetConvertible'
 ]
