@@ -40,7 +40,6 @@ class MungeTests(TestCase):
         test = bfill(df.values)
         assert_almost_equal(correct, test)
 
-
     def test_ffill(self):
         # test ndim=1
         N = 100
