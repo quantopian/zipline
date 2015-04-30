@@ -457,15 +457,23 @@ class AssetMetaData(object):
         for identifier, entry in dict.items():
             self.insert_metadata(identifier, **entry)
 
-    def _insert_iterable(self, iterable):
-        for row in iterable.iterrows():
-            if 'sid' in row:
-                identifier = row['sid']
-            elif 'symbol' in row:
-                identifier = row['symbol']
+    def _insert_readable(self, readable):
+        for row in readable.read():
+            # Parse out the row of the readable object
+            metadata_dict = {}
+            for field in self.fields:
+                try:
+                    metadata_dict[field] = row[field]
+                except KeyError:
+                    continue
+            # Locate the identifier, fail if not found
+            if 'sid' in metadata_dict:
+                identifier = metadata_dict['sid']
+            elif 'symbol' in metadata_dict:
+                identifier = metadata_dict['symbol']
             else:
                 raise ConsumeAssetMetaDataError(obj=row)
-            self.insert_metadata(identifier, **row)
+            self.insert_metadata(identifier, **metadata_dict)
 
     def read(self):
         return self.cache.items()
@@ -516,9 +524,9 @@ class AssetMetaData(object):
         # Handle DataFrames
         elif isinstance(metadata, pd.DataFrame):
             self._insert_dataframe(metadata)
-        # Handle Tables
-        elif hasattr(metadata, 'iterrows'):
-            self._insert_iterable(metadata)
+        # Handle readables
+        elif hasattr(metadata, 'read'):
+            self._insert_readable(metadata)
         else:
             raise ConsumeAssetMetaDataError(obj=metadata)
 
