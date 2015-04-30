@@ -57,7 +57,7 @@ def handle_data(context, data):
         context.invested = False
         sell = True
 
-    record(AAPL=data[context.security].price,
+    record(AAPL=data[context.asset].price,
            short_ema=short_ema[context.asset],
            long_ema=long_ema[context.asset],
            buy=buy,

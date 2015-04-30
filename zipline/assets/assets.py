@@ -57,7 +57,11 @@ class AssetFinder(object):
         self.fuzzy_match = self.shared_caches['fuzzy_match']
 
         self.trading_calendar = trading_calendar
-        self.metadata = metadata
+
+        if isinstance(metadata, AssetMetaData):
+            self.metadata = metadata
+        else:
+            self.metadata = AssetMetaData(metadata)
         self.populate_cache(force_populate)
 
     def _next_free_sid(self):
@@ -445,8 +449,8 @@ class AssetMetaData(object):
     def __iter__(self):
         return self.cache.__iter__()
 
-    def _insert_dataframe(self, dataframe):
-        for identifier, row in dataframe.iterrows():
+    def _insert_iterable(self, iterable):
+        for identifier, row in iterable.iterrows():
             self.insert_metadata(identifier, **row)
 
     def _insert_dict(self, dict):
@@ -491,12 +495,16 @@ class AssetMetaData(object):
         """
         if isinstance(metadata, AssetMetaData):
             for identifier in metadata:
-                self.insert_metadata(identifier,
-                                     **metadata.retrieve_metadata(identifier))
-        elif isinstance(metadata, pd.DataFrame):
-            self._insert_dataframe(metadata)
+                self.insert_metadata(
+                    identifier,
+                    **metadata.retrieve_metadata(identifier)
+                )
+        # Handle dicts
         elif isinstance(metadata, dict):
             self._insert_dict(metadata)
+        # Handle DataFrames and Tables
+        elif hasattr(metadata, 'iterrows'):
+            self._insert_iterable(metadata)
         else:
             raise ConsumeAssetMetaDataError(obj=metadata)
 
