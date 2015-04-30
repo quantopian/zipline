@@ -466,6 +466,8 @@ class AssetMetaData(object):
                     metadata_dict[field] = row[field]
                 except KeyError:
                     continue
+                except IndexError:
+                    continue
             # Locate the identifier, fail if not found
             if 'sid' in metadata_dict:
                 identifier = metadata_dict['sid']
