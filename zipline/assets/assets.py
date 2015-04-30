@@ -449,13 +449,20 @@ class AssetMetaData(object):
     def __iter__(self):
         return self.cache.__iter__()
 
-    def _insert_iterable(self, iterable):
-        for identifier, row in iterable.iterrows():
+    def _insert_dataframe(self, dataframe):
+        for identifier, row in dataframe.iterrows():
             self.insert_metadata(identifier, **row)
 
     def _insert_dict(self, dict):
         for identifier, entry in dict.items():
             self.insert_metadata(identifier, **entry)
+
+    def _insert_iterable(self, iterable):
+        for row in iterable.iterrows():
+            identifier = row.get('sid', row.get('symbol', None))
+            if identifier is None:
+                raise ConsumeAssetMetaDataError(obj=row)
+            self.insert_metadata(identifier, **row)
 
     def read(self):
         return self.cache.items()
@@ -493,6 +500,7 @@ class AssetMetaData(object):
         is a conflict.
         :param metadata: The metadata to be consumed
         """
+        # Handle full AssetMetaData objects
         if isinstance(metadata, AssetMetaData):
             for identifier in metadata:
                 self.insert_metadata(
@@ -502,7 +510,10 @@ class AssetMetaData(object):
         # Handle dicts
         elif isinstance(metadata, dict):
             self._insert_dict(metadata)
-        # Handle DataFrames and Tables
+        # Handle DataFrames
+        elif isinstance(metadata, pd.DataFrame):
+            self._insert_dataframe(metadata)
+        # Handle Tables
         elif hasattr(metadata, 'iterrows'):
             self._insert_iterable(metadata)
         else:
