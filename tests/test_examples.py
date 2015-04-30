@@ -18,46 +18,25 @@
 
 # Disable plotting
 #
-import matplotlib
 
-import os
-from os import path
-
-try:
-    from path import walk
-except ImportError:
-    # Assume Python 3
-    from os import walk
-
-import fnmatch
+import glob
 import imp
+import matplotlib
+from nose_parameterized import parameterized
+import os
+from unittest import TestCase
 
 matplotlib.use('Agg')
 
 
-def test_examples():
-    os.chdir(example_dir())
-    for fname in all_matching_files(example_dir(), '*.py'):
-        yield check_example, fname
-
-
-def all_matching_files(d, pattern):
-    def addfiles(fls, dir, nfiles):
-        nfiles = fnmatch.filter(nfiles, pattern)
-        nfiles = [path.join(dir, f) for f in nfiles]
-        fls.extend(nfiles)
-
-    files = []
-    for dirpath, dirnames, filenames in walk(d):
-        addfiles(files, dirpath, filenames)
-    return files
-
-
 def example_dir():
     import zipline
-    d = path.dirname(zipline.__file__)
-    return path.join(path.abspath(d), 'examples/')
+    d = os.path.dirname(zipline.__file__)
+    return os.path.join(os.path.abspath(d), 'examples')
 
 
-def check_example(p):
-    imp.load_source('__main__', path.basename(p))
+class ExamplesTests(TestCase):
+    @parameterized.expand(((os.path.basename(f).replace('.', '_'), f) for f in
+                           glob.glob(os.path.join(example_dir(), '*.py'))))
+    def test_example(self, name, example):
+        imp.load_source('__main__', os.path.basename(example), open(example))
