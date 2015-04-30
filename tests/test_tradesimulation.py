@@ -41,7 +41,7 @@ class TestTradeSimulation(TestCase):
                                                       data_frequency='minute',
                                                       emission_rate='minute')
         algo = NoopAlgorithm(sim_params=params)
-        algo.run(source=[])
+        algo.run(source=[], overwrite_sim_params=False)
         self.assertEqual(algo.perf_tracker.day_count, 1.0)
 
     @parameterized.expand([('%s_%s_%s' % (num_days, freq, emission_rate),
