@@ -16,6 +16,7 @@
 from unittest import TestCase
 from itertools import product
 from textwrap import dedent
+import warnings
 
 from nose_parameterized import parameterized
 import numpy as np
@@ -1207,7 +1208,10 @@ class TestHistoryContainerResize(TestCase):
         else:
             self.assertNotIn(new_spec.frequency, container.digest_panels)
 
-        self.assert_history(container, new_spec, initial_dt)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+
+            self.assert_history(container, new_spec, initial_dt)
 
     @parameterized.expand(
         (bar_count, pair, field, data_frequency)
