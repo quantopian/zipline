@@ -31,7 +31,7 @@ from zipline.errors import (
     ConsumeAssetMetaDataError,
     InvalidAssetType
 )
-
+from zipline.utils import tradingcalendar
 from zipline.assets._assets import (
     Asset, Equity, Future
 )
@@ -45,7 +45,7 @@ class AssetFinder(object):
 
     def __init__(self,
                  metadata,
-                 trading_calendar,
+                 trading_calendar=tradingcalendar,
                  force_populate=False):
 
         # Any particular instance of AssetFinder should be
