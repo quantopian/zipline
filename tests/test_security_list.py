@@ -7,7 +7,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.sources import SpecificEquityTrades
 from zipline.utils.test_utils import (
-    setup_logger, add_security_data, remove_security_data_directory)
+    setup_logger, security_list_copy, add_security_data)
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
@@ -105,26 +105,22 @@ class SecurityListTestCase(TestCase):
     def test_security_add(self):
         def get_datetime():
             return datetime(2015, 1, 27, tzinfo=pytz.utc)
-        try:
+        with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
             rl = SecurityListSet(get_datetime)
             self.assertIn("AAPL", rl.leveraged_etf_list)
             self.assertIn("GOOG", rl.leveraged_etf_list)
             self.assertIn("BZQ", rl.leveraged_etf_list)
             self.assertIn("URTY", rl.leveraged_etf_list)
-        finally:
-            remove_security_data_directory()
 
     def test_security_add_delete(self):
-        try:
+        with security_list_copy():
             def get_datetime():
                 return datetime(2015, 1, 27, tzinfo=pytz.utc)
             add_security_data([], ['BZQ', 'URTY'])
             rl = SecurityListSet(get_datetime)
             self.assertNotIn("BZQ", rl.leveraged_etf_list)
             self.assertNotIn("URTY", rl.leveraged_etf_list)
-        finally:
-            remove_security_data_directory()
 
     def test_algo_without_rl_violation_via_check(self):
         sim_params = factory.create_simulation_parameters(
@@ -228,7 +224,7 @@ class SecurityListTestCase(TestCase):
             start=list(
                 LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=4)
 
-        try:
+        with security_list_copy():
             add_security_data(['AAPL'], [])
             trade_history = factory.create_trade_history(
                 'BZQ',
@@ -244,11 +240,9 @@ class SecurityListTestCase(TestCase):
                 algo.run(self.source)
 
             self.check_algo_exception(algo, ctx, 0)
-        finally:
-            remove_security_data_directory()
 
     def test_algo_without_rl_violation_after_delete(self):
-        try:
+        with security_list_copy():
             # add a delete statement removing bzq
             # write a new delete statement file to disk
             add_security_data([], ['BZQ'])
@@ -266,11 +260,9 @@ class SecurityListTestCase(TestCase):
             algo = RestrictedAlgoWithoutCheck(
                 sid='BZQ', sim_params=sim_params)
             algo.run(self.source)
-        finally:
-            remove_security_data_directory()
 
     def test_algo_with_rl_violation_after_add(self):
-        try:
+        with security_list_copy():
             add_security_data(['AAPL'], [])
             sim_params = factory.create_simulation_parameters(
                 start=self.trading_day_before_first_kd, num_days=4)
@@ -288,8 +280,6 @@ class SecurityListTestCase(TestCase):
                 algo.run(self.source)
 
             self.check_algo_exception(algo, ctx, 2)
-        finally:
-            remove_security_data_directory()
 
     def check_algo_exception(self, algo, ctx, expected_order_count):
         self.assertEqual(algo.order_count, expected_order_count)
