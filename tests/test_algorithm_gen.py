@@ -226,5 +226,5 @@ class AlgorithmGeneratorTestCase(TestCase):
         sim_params = create_simulation_parameters(num_days=1,
                                                   data_frequency='minute')
         algo = TestAlgo(self, sim_params=sim_params)
-        algo.run(source=[])
+        algo.run(source=[], overwrite_sim_params=False)
         self.assertEqual(algo.datetime, sim_params.last_close)

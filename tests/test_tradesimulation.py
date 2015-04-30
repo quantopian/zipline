@@ -57,7 +57,7 @@ class TestTradeSimulation(TestCase):
             emission_rate=emission_rate)
 
         algo = BeforeTradingAlgorithm(sim_params=params)
-        algo.run(source=[])
+        algo.run(source=[], overwrite_sim_params=False)
 
         self.assertEqual(algo.perf_tracker.day_count, num_days)
         self.assertTrue(params.trading_days.equals(

@@ -331,7 +331,7 @@ class TestTransformAlgorithm(TestCase):
             sim_params=sim_params,
             sids=[0, 1, 133]
         )
-        algo.run([self.source, self.df_source])
+        algo.run([self.source, self.df_source], overwrite_sim_params=False)
         self.assertEqual(len(algo.sources), 2)
 
     def test_df_as_input(self):
