@@ -1,13 +1,15 @@
 from contextlib import contextmanager
 from logbook import FileHandler
+from mock import patch
 from zipline.finance.blotter import ORDER_STATUS
-from zipline.utils.security_list import SECURITY_LISTS_DIR
+from zipline.utils import security_list
 
 from six import itervalues
 
 import os
 import pandas as pd
 import shutil
+import tempfile
 
 
 def to_utc(time_str):
@@ -115,15 +117,34 @@ def nullctx():
     Null context manager.  Useful for conditionally adding a contextmanager in
     a single line, e.g.:
 
-    with SomeContextManager() if some_expr else nullcontext:
+    with SomeContextManager() if some_expr else nullctx():
         do_stuff()
     """
     yield
 
 
+@contextmanager
+def security_list_copy():
+    old_dir = security_list.SECURITY_LISTS_DIR
+    new_dir = tempfile.mkdtemp()
+    try:
+        for subdir in os.listdir(old_dir):
+            shutil.copytree(os.path.join(old_dir, subdir),
+                            os.path.join(new_dir, subdir))
+            with patch.object(security_list, 'SECURITY_LISTS_DIR', new_dir), \
+                    patch.object(security_list, 'using_copy', True,
+                                 create=True):
+                yield
+    finally:
+        shutil.rmtree(new_dir, True)
+
+
 def add_security_data(adds, deletes):
+    if not hasattr(security_list, 'using_copy'):
+        raise Exception('add_security_data must be used within '
+                        'security_list_copy context')
     directory = os.path.join(
-        SECURITY_LISTS_DIR,
+        security_list.SECURITY_LISTS_DIR,
         "leveraged_etf_list/20150127/20150125"
     )
     if not os.path.exists(directory):
@@ -138,11 +159,3 @@ def add_security_data(adds, deletes):
         for sym in adds:
             f.write(sym)
             f.write('\n')
-
-
-def remove_security_data_directory():
-    directory = os.path.join(
-        SECURITY_LISTS_DIR,
-        "leveraged_etf_list/20150127/"
-    )
-    shutil.rmtree(directory)
