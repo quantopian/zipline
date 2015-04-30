@@ -53,7 +53,7 @@ def handle_data(algo, data):
     x_tilde = np.zeros(m)
     b = np.zeros(m)
 
-    # find relative moving average price for each security
+    # find relative moving average price for each asset
     for i, sid in enumerate(algo.sids):
         price = data[sid].price
         # Relative mean deviation

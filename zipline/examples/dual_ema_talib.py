@@ -29,7 +29,7 @@ from zipline.transforms.ta import EMA
 
 
 def initialize(context):
-    context.security = symbol('AAPL')
+    context.asset = symbol('AAPL')
 
     # Add 2 mavg transforms, one with a long window, one with a short window.
     context.short_ema_trans = EMA(timeperiod=20)
@@ -49,17 +49,17 @@ def handle_data(context, data):
     sell = False
 
     if (short_ema > long_ema).all() and not context.invested:
-        order(context.security, 100)
+        order(context.asset, 100)
         context.invested = True
         buy = True
     elif (short_ema < long_ema).all() and context.invested:
-        order(context.security, -100)
+        order(context.asset, -100)
         context.invested = False
         sell = True
 
     record(AAPL=data[context.security].price,
-           short_ema=short_ema[context.security],
-           long_ema=long_ema[context.security],
+           short_ema=short_ema[context.asset],
+           long_ema=long_ema[context.asset],
            buy=buy,
            sell=sell)
 

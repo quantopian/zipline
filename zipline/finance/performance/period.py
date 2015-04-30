@@ -31,7 +31,7 @@ omitted).
     |               | end of the period                                    |
     +---------------+------------------------------------------------------+
     | cash_flow     | the cash flow in the period (negative means spent)   |
-    |               | from buying and selling securities in the period.    |
+    |               | from buying and selling assets in the period.        |
     |               | Includes dividend payments in the period as well.    |
     +---------------+------------------------------------------------------+
     | starting_value| the total market value of the positions held at the  |

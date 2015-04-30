@@ -290,7 +290,7 @@ class PositionTracker(object):
             stock = row['payment_sid']
             share_count = row['share_count']
             # note we create a Position for stock dividend if we don't
-            # already own the security
+            # already own the asset
             position = self.positions[stock]
 
             position.amount += share_count
@@ -300,7 +300,7 @@ class PositionTracker(object):
             self._invalidate_cache()
 
         # Add cash equal to the net cash payed from all dividends.  Note that
-        # "negative cash" is effectively paid if we're short a security,
+        # "negative cash" is effectively paid if we're short an asset,
         # representing the fact that we're required to reimburse the owner of
         # the stock for any dividends paid while borrowing.
         net_cash_payment = payments['cash_amount'].fillna(0).sum()

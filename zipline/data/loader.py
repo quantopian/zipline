@@ -294,7 +294,7 @@ def load_from_yahoo(indexes=None,
                     adjusted=True):
     """
     Loads price data from Yahoo into a dataframe for each of the indicated
-    securities.  By default, 'price' is taken from Yahoo's 'Adjusted Close',
+    assets.  By default, 'price' is taken from Yahoo's 'Adjusted Close',
     which removes the impact of splits and dividends. If the argument
     'adjusted' is False, then the non-adjusted 'close' field is used instead.
 

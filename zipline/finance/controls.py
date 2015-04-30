@@ -104,7 +104,7 @@ class MaxOrderCount(TradingControl):
 
 class RestrictedListOrder(TradingControl):
     """
-    TradingControl representing a restricted list of securities that
+    TradingControl representing a restricted list of assets that
     cannot be ordered by the algorithm.
     """
 
@@ -134,7 +134,7 @@ class RestrictedListOrder(TradingControl):
 class MaxOrderSize(TradingControl):
     """
     TradingControl representing a limit on the magnitude of any single order
-    placed with the given security.  Can be specified by share or by dollar
+    placed with the given asset.  Can be specified by share or by dollar
     value.
     """
 
@@ -191,7 +191,7 @@ class MaxOrderSize(TradingControl):
 class MaxPositionSize(TradingControl):
     """
     TradingControl representing a limit on the maximum position size that can
-    be held by an algo for a given security.
+    be held by an algo for a given asset.
     """
 
     def __init__(self, sid=None, max_shares=None, max_notional=None):

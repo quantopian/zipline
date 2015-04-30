@@ -77,7 +77,7 @@ def dividend_payment(data=None):
     payment.
 
     Additionally, if @data is non-empty, either data['cash_amount'] should be
-    nonzero or data['payment_sid'] should be a security identifier and
+    nonzero or data['payment_sid'] should be an asset identifier and
     data['share_count'] should be nonzero.
 
     The returned Series is given its id value as a name so that concatenating

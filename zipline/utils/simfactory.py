@@ -7,7 +7,7 @@ def create_test_zipline(**config):
     """
        :param config: A configuration object that is a dict with:
 
-           - sid - an integer, which will be used as the security ID.
+           - sid - an integer, which will be used as the asset ID.
            - order_count - the number of orders the test algo will place,
              defaults to 100
            - order_amount - the number of shares per order, defaults to 100

@@ -400,7 +400,7 @@ class AssetConvertible(with_metaclass(ABCMeta)):
     ABC for types that are convertible to integer-representations of
     Assets.
 
-    Includes Security, str, and Integral
+    Includes Asset, str, and Integral
     """
     pass
 AssetConvertible.register(Integral)

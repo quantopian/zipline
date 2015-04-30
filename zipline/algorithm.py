@@ -930,7 +930,7 @@ class TradingAlgorithm(object):
     def order_percent(self, sid, percent,
                       limit_price=None, stop_price=None, style=None):
         """
-        Place an order in the specified security corresponding to the given
+        Place an order in the specified asset corresponding to the given
         percent of the current portfolio value.
 
         Note that percent must expressed as a decimal (0.50 means 50\%).

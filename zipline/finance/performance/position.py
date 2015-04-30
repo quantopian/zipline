@@ -20,11 +20,11 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | key             | value                                              |
     +=================+====================================================+
-    | sid             | the sid for the security held in this position     |
+    | sid             | the sid for the asset held in this position        |
     +-----------------+----------------------------------------------------+
     | amount          | whole number of shares in the position             |
     +-----------------+----------------------------------------------------+
-    | last_sale_price | price at last sale of the security on the exchange |
+    | last_sale_price | price at last sale of the asset on the exchange    |
     +-----------------+----------------------------------------------------+
     | cost_basis      | the volume weighted average price paid per share   |
     +-----------------+----------------------------------------------------+
