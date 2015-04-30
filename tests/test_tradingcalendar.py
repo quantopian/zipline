@@ -81,14 +81,14 @@ class TestTradingCalendar(TestCase):
         self.check_days(env_days, cal_days)
 
     def check_days(self, env_days, cal_days):
-        diff = env_days - cal_days
+        diff = env_days.difference(cal_days)
         self.assertEqual(
             len(diff),
             0,
             "{diff} should be empty".format(diff=diff)
         )
 
-        diff2 = cal_days - env_days
+        diff2 = cal_days.difference(env_days)
         self.assertEqual(
             len(diff2),
             0,

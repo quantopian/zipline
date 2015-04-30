@@ -183,4 +183,4 @@ non_trading_day_index = pd.DatetimeIndex(sorted(non_trading_days))
 business_days = pd.DatetimeIndex(start=start, end=end,
                                  freq=pd.datetools.BDay())
 
-trading_days = business_days - non_trading_day_index
+trading_days = business_days.difference(non_trading_day_index)
