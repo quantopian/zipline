@@ -459,8 +459,11 @@ class AssetMetaData(object):
 
     def _insert_iterable(self, iterable):
         for row in iterable.iterrows():
-            identifier = row.get('sid', row.get('symbol', None))
-            if identifier is None:
+            if 'sid' in row:
+                identifier = row['sid']
+            elif 'symbol' in row:
+                identifier = row['symbol']
+            else:
                 raise ConsumeAssetMetaDataError(obj=row)
             self.insert_metadata(identifier, **row)
 
