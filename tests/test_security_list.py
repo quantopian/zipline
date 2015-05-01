@@ -67,7 +67,7 @@ class SecurityListTestCase(TestCase):
         setup_logger(self)
 
     def tearDown(self):
-        teardown_logger(self);
+        teardown_logger(self)
 
     def test_iterate_over_rl(self):
         sim_params = factory.create_simulation_parameters(

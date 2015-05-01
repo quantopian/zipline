@@ -27,7 +27,6 @@ from zipline.utils.test_utils import (
     nullctx,
     setup_logger,
     teardown_logger
-    
 )
 import zipline.utils.factory as factory
 import zipline.utils.simfactory as simfactory
@@ -449,7 +448,7 @@ class TestPositions(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def tearDown(self):
-        teardown_logger(self);
+        teardown_logger(self)
 
     def test_empty_portfolio(self):
         algo = EmptyPositionsAlgorithm(sim_params=self.sim_params)
@@ -499,7 +498,7 @@ class TestAlgoScript(TestCase):
         }
 
     def tearDown(self):
-        teardown_logger(self);
+        teardown_logger(self)
 
     def test_noop(self):
         algo = TradingAlgorithm(initialize=initialize_noop,

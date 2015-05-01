@@ -40,7 +40,7 @@ class TestTALIB(TestCase):
             factory.create_test_panel_ohlc_source(sim_params)
 
     def tearDown(self):
-       teardown_logger(self)
+        teardown_logger(self)
 
     @skip
     def test_talib_with_default_params(self):

@@ -140,7 +140,7 @@ class TestBatchTransformMinutely(TestCase):
             factory.create_test_df_source(bars='minute')
 
     def tearDown(self):
-        teardown_logger(self);
+        teardown_logger(self)
 
     def test_core(self):
         algo = BatchTransformAlgorithmMinute(sim_params=self.sim_params)
@@ -171,7 +171,7 @@ class TestBatchTransform(TestCase):
             factory.create_test_df_source(self.sim_params)
 
     def tearDown(self):
-        teardown_logger(self);
+        teardown_logger(self)
 
     def test_core_functionality(self):
         algo = BatchTransformAlgorithm(sim_params=self.sim_params)
