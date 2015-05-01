@@ -22,7 +22,7 @@ import pandas as pd
 from datetime import datetime
 from unittest import TestCase
 
-from zipline.utils.test_utils import setup_logger
+from zipline.utils.test_utils import setup_logger, teardown_logger
 
 from zipline.sources.data_source import DataSource
 import zipline.utils.factory as factory
@@ -127,6 +127,7 @@ class TestChangeOfSids(TestCase):
 
 class TestBatchTransformMinutely(TestCase):
     def setUp(self):
+        setup_logger(self)
         start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
         self.sim_params = factory.create_simulation_parameters(
@@ -135,9 +136,11 @@ class TestBatchTransformMinutely(TestCase):
         )
         self.sim_params.emission_rate = 'daily'
         self.sim_params.data_frequency = 'minute'
-        setup_logger(self)
         self.source, self.df = \
             factory.create_test_df_source(bars='minute')
+
+    def tearDown(self):
+        teardown_logger(self);
 
     def test_core(self):
         algo = BatchTransformAlgorithmMinute(sim_params=self.sim_params)
@@ -159,13 +162,16 @@ class TestBatchTransformMinutely(TestCase):
 
 class TestBatchTransform(TestCase):
     def setUp(self):
+        setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(
             start=datetime(1990, 1, 1, tzinfo=pytz.utc),
             end=datetime(1990, 1, 8, tzinfo=pytz.utc)
         )
-        setup_logger(self)
         self.source, self.df = \
             factory.create_test_df_source(self.sim_params)
+
+    def tearDown(self):
+        teardown_logger(self);
 
     def test_core_functionality(self):
         algo = BatchTransformAlgorithm(sim_params=self.sim_params)

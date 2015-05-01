@@ -20,7 +20,7 @@ import pandas as pd
 from datetime import timedelta, datetime
 from unittest import TestCase, skip
 
-from zipline.utils.test_utils import setup_logger
+from zipline.utils.test_utils import setup_logger, teardown_logger
 
 import zipline.utils.factory as factory
 
@@ -38,6 +38,9 @@ class TestTALIB(TestCase):
             end=datetime(1990, 3, 30, tzinfo=pytz.utc))
         self.source, self.panel = \
             factory.create_test_panel_ohlc_source(sim_params)
+
+    def tearDown(self):
+       teardown_logger(self)
 
     @skip
     def test_talib_with_default_params(self):

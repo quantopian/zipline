@@ -7,7 +7,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.sources import SpecificEquityTrades
 from zipline.utils.test_utils import (
-    setup_logger, security_list_copy, add_security_data)
+    setup_logger, teardown_logger, security_list_copy, add_security_data)
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
@@ -65,6 +65,9 @@ class SecurityListTestCase(TestCase):
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
         setup_logger(self)
+
+    def tearDown(self):
+        teardown_logger(self);
 
     def test_iterate_over_rl(self):
         sim_params = factory.create_simulation_parameters(
