@@ -76,6 +76,8 @@ class AssetFinder(object):
             return self._next_free_sid()
 
     def retrieve_asset(self, sid):
+        if isinstance(sid, Asset):
+            return sid
         asset = self.cache.get(sid)
         if asset is not None:
             return asset
@@ -274,13 +276,6 @@ class AssetFinder(object):
             kwargs['expiration_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['expiration_date']))
 
-        # HACK: If no end_date is given, assign the current system time as the
-        # end date. This is so the AssetFinder does not fail on Assets missing
-        # end_dates.
-        if 'end_date' not in kwargs.keys():
-            kwargs['end_date'] = self.trading_calendar.end_base
-
-        asset = None
         asset_type = kwargs.pop('asset_type', None)
         if (asset_type is None) or (asset_type.lower() == 'equity'):
             asset = Equity(**kwargs)
