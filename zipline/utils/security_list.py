@@ -8,7 +8,7 @@ import zipline
 
 
 DATE_FORMAT = "%Y%m%d"
-zipline_dir = os.path.join(*zipline.__path__)
+zipline_dir = os.path.dirname(zipline.__file__)
 SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
 
