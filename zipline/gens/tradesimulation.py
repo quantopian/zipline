@@ -21,7 +21,6 @@ from zipline.protocol import (
     SIDData,
     DATASOURCE_TYPE
 )
-from zipline.gens.utils import hash_args
 
 log = Logger('Trade Simulation')
 
@@ -32,13 +31,6 @@ class AlgorithmSimulator(object):
         'minute': 'minute_perf',
         'daily': 'daily_perf'
     }
-
-    def get_hash(self):
-        """
-        There should only ever be one TSC in the system, so
-        we don't bother passing args into the hash.
-        """
-        return self.__class__.__name__ + hash_args()
 
     def __init__(self, algo, sim_params):
 
