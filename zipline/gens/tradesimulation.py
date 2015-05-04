@@ -70,11 +70,6 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
-    @property
-    def perf_key(self):
-        return self.EMISSION_TO_PERF_KEY_MAP[
-            self.algo.perf_tracker.emission_rate]
-
     def _process_event(self, blotter_process_trade, perf_process_event, event):
         for txn, order in blotter_process_trade(event):
             perf_process_event(txn)
