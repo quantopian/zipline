@@ -275,11 +275,10 @@ class PerformanceTracker(object):
             'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
         if emission_type == 'daily':
-            _dict.update({'daily_perf': self.todays_performance.to_dict()})
+            _dict['daily_perf'] = self.todays_performance.to_dict()
         elif emission_type == 'minute':
-            _dict.update({
-                'minute_perf': self.todays_performance.to_dict(self.saved_dt)
-            })
+            _dict['minute_perf'] = self.todays_performance.to_dict(
+                self.saved_dt)
 
         return _dict
 
