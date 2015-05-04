@@ -116,7 +116,6 @@ class PerformanceTracker(object):
         if self.emission_rate == 'daily':
             self.all_benchmark_returns = pd.Series(
                 index=self.trading_days)
-            self.intraday_risk_metrics = None
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params)
 
@@ -124,8 +123,6 @@ class PerformanceTracker(object):
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
                 freq='Min'))
-            self.intraday_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params)
 
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params,
@@ -278,12 +275,10 @@ class PerformanceTracker(object):
             'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
         if emission_type == 'daily':
-            _dict.update({'daily_perf': self.todays_performance.to_dict()})
+            _dict['daily_perf'] = self.todays_performance.to_dict()
         elif emission_type == 'minute':
-            _dict.update({
-                'intraday_risk_metrics': self.intraday_risk_metrics.to_dict(),
-                'minute_perf': self.todays_performance.to_dict(self.saved_dt)
-            })
+            _dict['minute_perf'] = self.todays_performance.to_dict(
+                self.saved_dt)
 
         return _dict
 
@@ -401,17 +396,11 @@ class PerformanceTracker(object):
         todays_date = normalize_date(dt)
         account = self.get_account(True)
 
-        minute_returns = self.minute_performance.returns
         self.minute_performance.rollover()
-        # the intraday risk is calculated on top of minute performance
-        # returns for the bench and the algo
-        self.intraday_risk_metrics.update(dt,
-                                          minute_returns,
-                                          self.all_benchmark_returns[dt],
-                                          account)
 
-        bench_since_open = \
-            self.intraday_risk_metrics.benchmark_cumulative_returns[dt]
+        bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
+        # cumulative returns
+        bench_since_open = (1. + bench_returns).prod() - 1
 
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
@@ -430,10 +419,6 @@ class PerformanceTracker(object):
         Function called at market close only when emitting at minutely
         frequency.
         """
-        # update_performance should have been called in handle_minute_close
-        # so it is not repeated here.
-        self.intraday_risk_metrics = \
-            risk.RiskMetricsCumulative(self.sim_params)
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
         self.market_open = new_mkt_open
