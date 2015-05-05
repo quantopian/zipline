@@ -229,7 +229,6 @@ def check_perf_tracker_serialization(perf_tracker):
         'last_close',
         '_dividend_count',
         'period_start',
-        'event_count',
         'day_count',
         'capital_base',
         'market_close',

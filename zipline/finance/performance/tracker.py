@@ -183,7 +183,6 @@ class PerformanceTracker(object):
         # one indexed so that we reach 100%
         self.day_count = 0.0
         self.txn_count = 0
-        self.event_count = 0
 
         self.account_needs_update = True
         self._account = None
@@ -283,7 +282,6 @@ class PerformanceTracker(object):
         return _dict
 
     def process_event(self, event):
-        self.event_count += 1
 
         if event.type == zp.DATASOURCE_TYPE.TRADE:
             # update last sale
