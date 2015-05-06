@@ -437,35 +437,36 @@ class TestTransformAlgorithm(TestCase):
         )
         self.assertEqual(algo.sim_params.data_frequency, 'minute')
 
-    def test_order_methods(self):
-        AlgoClasses = [TestOrderAlgorithm,
-                       TestOrderValueAlgorithm,
-                       TestTargetAlgorithm,
-                       TestOrderPercentAlgorithm,
-                       TestTargetPercentAlgorithm,
-                       TestTargetValueAlgorithm]
+    @parameterized.expand([
+        (TestOrderAlgorithm,),
+        (TestOrderValueAlgorithm,),
+        (TestTargetAlgorithm,),
+        (TestOrderPercentAlgorithm,),
+        (TestTargetPercentAlgorithm,),
+        (TestTargetValueAlgorithm,),
+    ])
+    def test_order_methods(self, algo_class):
+        algo = algo_class(
+            sim_params=self.sim_params,
+        )
+        algo.run(self.df)
 
-        for AlgoClass in AlgoClasses:
-            algo = AlgoClass(
-                sim_params=self.sim_params,
-            )
-            algo.run(self.df)
-
-    def test_order_methods_for_future(self):
-        AlgoClasses = [TestOrderAlgorithm,
-                       TestOrderValueAlgorithm,
-                       TestTargetAlgorithm,
-                       TestOrderPercentAlgorithm,
-                       TestTargetValueAlgorithm]
-
+    @parameterized.expand([
+        (TestOrderAlgorithm,),
+        (TestOrderValueAlgorithm,),
+        (TestTargetAlgorithm,),
+        (TestOrderPercentAlgorithm,),
+        (TestTargetValueAlgorithm,),
+    ])
+    def test_order_methods_for_future(self, algo_class):
         metadata = {0: {'asset_type': 'future',
                         'contract_multiplier': 10}}
-        for AlgoClass in AlgoClasses:
-            algo = AlgoClass(
-                sim_params=self.sim_params,
-                asset_metadata=metadata
-            )
-            algo.run(self.df)
+
+        algo = algo_class(
+            sim_params=self.sim_params,
+            asset_metadata=metadata
+        )
+        algo.run(self.df)
 
     def test_order_method_style_forwarding(self):
 
