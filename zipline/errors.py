@@ -188,3 +188,13 @@ class IncompatibleHistoryFrequency(ZiplineError):
 Requested history at frequency '{frequency}' cannot be created with data
 at frequency '{data_frequency}'.
 """.strip()
+
+
+class TrailingWindowInvalidLookback(ZiplineError):
+    """
+    Raised when a TrailingWindowTerm is instantiated with a lookback of less
+    than 1.
+    """
+    mgs = """
+TrailingWindowTerm of type {name} can't be created with lookback of {lookback}.
+""".strip()
