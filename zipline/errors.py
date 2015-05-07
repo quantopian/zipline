@@ -293,3 +293,13 @@ Only one simulation date given. Please specify both the 'start' and 'end' for
 the simulation, or neither. If neither is given, the start and end of the
 DataSource will be used. Given start = '{start}', end = '{end}'
 """.strip()
+
+
+class TrailingWindowInvalidLookback(ZiplineError):
+    """
+    Raised when a TrailingWindowTerm is instantiated with a lookback of less
+    than 1.
+    """
+    mgs = """
+TrailingWindowTerm of type {name} can't be created with lookback of {lookback}.
+""".strip()
