@@ -190,9 +190,11 @@ class Blotter(object):
         for order in orders_to_modify:
             order.handle_split(split_event)
 
+    def process_benchmark(self, benchmark_event):
+        return
+        yield
+
     def process_trade(self, trade_event):
-        if trade_event.type != zp.DATASOURCE_TYPE.TRADE:
-            return
 
         if trade_event.sid not in self.open_orders:
             return

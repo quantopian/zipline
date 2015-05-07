@@ -286,9 +286,11 @@ class FinanceTestCase(TestCase):
 
                     for txn, order in blotter.process_trade(event):
                         transactions.append(txn)
-                        tracker.process_event(txn)
-
-                tracker.process_event(event)
+                        tracker.process_transaction(txn)
+                elif event.type == DATASOURCE_TYPE.BENCHMARK:
+                    tracker.process_benchmark(event)
+                elif event.type == DATASOURCE_TYPE.TRADE:
+                    tracker.process_trade(event)
 
         if complete_fill:
             self.assertEqual(len(transactions), len(order_list))

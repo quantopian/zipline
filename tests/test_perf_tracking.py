@@ -201,17 +201,23 @@ def calculate_results(host,
 
         for txn in filter(lambda txn: txn.dt == date, txns):
             # Process txns for this date.
-            perf_tracker.process_event(txn)
+            perf_tracker.process_transaction(txn)
 
         for event in group:
 
-            perf_tracker.process_event(event)
-            if event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+            if event.type == zp.DATASOURCE_TYPE.TRADE:
+                perf_tracker.process_trade(event)
+            elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
+                perf_tracker.process_dividend(event)
+            elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+                perf_tracker.process_benchmark(event)
                 bm_updated = True
+            elif event.type == zp.DATASOURCE_TYPE.COMMISSION:
+                perf_tracker.process_commission(event)
 
         for split in filter(lambda split: split.dt == date, splits):
             # Process splits for this date.
-            perf_tracker.process_event(split)
+            perf_tracker.process_split(split)
 
         if bm_updated:
             msg = perf_tracker.handle_market_close_daily()
@@ -1770,7 +1776,14 @@ class TestPerformanceTracker(unittest.TestCase):
 
         for date, group in grouped_events:
             for event in group:
-                perf_tracker.process_event(event)
+                if event.type == zp.DATASOURCE_TYPE.TRADE:
+                    perf_tracker.process_trade(event)
+                elif event.type == zp.DATASOURCE_TYPE.ORDER:
+                    perf_tracker.process_order(event)
+                elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+                    perf_tracker.process_benchmark(event)
+                elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
+                    perf_tracker.process_transaction(event)
             msg = perf_tracker.handle_market_close_daily()
             perf_messages.append(msg)
 
@@ -1877,7 +1890,14 @@ class TestPerformanceTracker(unittest.TestCase):
             for date, group in grouped_events:
                 tracker.set_date(date)
                 for event in group:
-                    tracker.process_event(event)
+                    if event.type == zp.DATASOURCE_TYPE.TRADE:
+                        tracker.process_trade(event)
+                    elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+                        tracker.process_benchmark(event)
+                    elif event.type == zp.DATASOURCE_TYPE.ORDER:
+                        tracker.process_order(event)
+                    elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
+                        tracker.process_transaction(event)
                 tracker.handle_minute_close(date)
                 msg = tracker.to_dict()
                 messages[date] = msg

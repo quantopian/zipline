@@ -66,7 +66,6 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
-import zipline.protocol as zp
 import zipline.finance.risk as risk
 from zipline.finance import trading
 from . period import PerformancePeriod
@@ -281,62 +280,56 @@ class PerformanceTracker(object):
 
         return _dict
 
-    def process_event(self, event):
+    def process_trade(self, event):
+        self.position_tracker.update_last_sale(event)
 
-        if event.type == zp.DATASOURCE_TYPE.TRADE:
-            # update last sale
-            self.position_tracker.update_last_sale(event)
+    def process_transaction(self, event):
 
-        elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
-            # Trade simulation always follows a transaction with the
-            # TRADE event that was used to simulate it, so we don't
-            # check for end of day rollover messages here.
-            self.txn_count += 1
-            self.position_tracker.execute_transaction(event)
+        self.txn_count += 1
+        self.position_tracker.execute_transaction(event)
+        for perf_period in self.perf_periods:
+            perf_period.handle_execution(event)
+
+    def process_dividend(self, dividend):
+
+        log.info("Ignoring DIVIDEND event.")
+
+    def process_split(self, event):
+        leftover_cash = self.position_tracker.handle_split(event)
+        if leftover_cash > 0:
             for perf_period in self.perf_periods:
-                perf_period.handle_execution(event)
+                perf_period.handle_cash_payment(leftover_cash)
 
-        elif event.type == zp.DATASOURCE_TYPE.DIVIDEND:
-            log.info("Ignoring DIVIDEND event.")
+    def process_order(self, event):
+        for perf_period in self.perf_periods:
+            perf_period.record_order(event)
 
-        elif event.type == zp.DATASOURCE_TYPE.SPLIT:
-            leftover_cash = self.position_tracker.handle_split(event)
-            if leftover_cash > 0:
-                for perf_period in self.perf_periods:
-                    perf_period.handle_cash_payment(leftover_cash)
+    def process_commission(self, event):
 
-        elif event.type == zp.DATASOURCE_TYPE.ORDER:
-            for perf_period in self.perf_periods:
-                perf_period.record_order(event)
+        self.position_tracker.handle_commission(event)
+        for perf_period in self.perf_periods:
+            perf_period.handle_commission(event)
 
-        elif event.type == zp.DATASOURCE_TYPE.COMMISSION:
-            self.position_tracker.handle_commission(event)
-            for perf_period in self.perf_periods:
-                perf_period.handle_commission(event)
+    def process_benchmark(self, event):
+        if self.sim_params.data_frequency == 'minute' and \
+           self.sim_params.emission_rate == 'daily':
+            # Minute data benchmarks should have a timestamp of market
+            # close, so that calculations are triggered at the right time.
+            # However, risk module uses midnight as the 'day'
+            # marker for returns, so adjust back to midnight.
+            midnight = pd.tseries.tools.normalize_date(event.dt)
+        else:
+            midnight = event.dt
 
-        elif event.type == zp.DATASOURCE_TYPE.CUSTOM:
-            pass
+        if midnight not in self.all_benchmark_returns.index:
+            raise AssertionError(
+                ("Date %s not allocated in all_benchmark_returns. "
+                 "Calendar seems to mismatch with benchmark. "
+                 "Benchmark container is=%s" %
+                 (midnight,
+                  self.all_benchmark_returns.index)))
 
-        elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-            if self.sim_params.data_frequency == 'minute' and \
-               self.sim_params.emission_rate == 'daily':
-                # Minute data benchmarks should have a timestamp of market
-                # close, so that calculations are triggered at the right time.
-                # However, risk module uses midnight as the 'day'
-                # marker for returns, so adjust back to midnight.
-                midnight = pd.tseries.tools.normalize_date(event.dt)
-            else:
-                midnight = event.dt
-
-            if midnight not in self.all_benchmark_returns.index:
-                raise AssertionError(
-                    ("Date %s not allocated in all_benchmark_returns. "
-                     "Calendar seems to mismatch with benchmark. "
-                     "Benchmark container is=%s" %
-                     (midnight,
-                      self.all_benchmark_returns.index)))
-
-            self.all_benchmark_returns[midnight] = event.returns
+        self.all_benchmark_returns[midnight] = event.returns
 
     def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
         """
