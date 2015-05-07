@@ -24,7 +24,10 @@ import numpy as np
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.assets import AssetFinder
-from zipline.errors import UpdateAssetFinderTypeError
+from zipline.errors import (
+    NoFurtherDataError,
+    UpdateAssetFinderTypeError,
+)
 
 
 log = logbook.Logger('Trading')
@@ -67,13 +70,6 @@ log = logbook.Logger('Trading')
 # state.
 
 environment = None
-
-
-class NoFurtherDataError(Exception):
-    """
-    Thrown when next trading is attempted at the end of available data.
-    """
-    pass
 
 
 class TradingEnvironment(object):
@@ -258,7 +254,9 @@ class TradingEnvironment(object):
 
         idx = self.get_index(date) + n
         if idx < 0 or idx >= len(self.trading_days):
-            raise NoFurtherDataError('Cannot add %d days to %s' % (n, date))
+            raise NoFurtherDataError(
+                msg='Cannot add %d days to %s' % (n, date)
+            )
 
         return self.trading_days[idx]
 
@@ -299,8 +297,9 @@ class TradingEnvironment(object):
 
         if next_open is None:
             raise NoFurtherDataError(
-                "Attempt to backtest beyond available history. \
-Last successful date: %s" % self.last_trading_day)
+                msg=("Attempt to backtest beyond available history. "
+                     "Last known date: %s" % self.last_trading_day)
+            )
 
         return self.get_open_and_close(next_open)
 
@@ -313,8 +312,9 @@ Last successful date: %s" % self.last_trading_day)
 
         if previous is None:
             raise NoFurtherDataError(
-                "Attempt to backtest beyond available history. "
-                "First successful date: %s" % self.first_trading_day)
+                msg=("Attempt to backtest beyond available history. "
+                     "First known date: %s" % self.first_trading_day)
+            )
         return self.get_open_and_close(previous)
 
     def next_market_minute(self, start):

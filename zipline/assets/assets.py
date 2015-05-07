@@ -1,4 +1,3 @@
-#
 # Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -148,6 +147,9 @@ class AssetFinder(object):
         self._future_cache = {}
 
         self._asset_type_cache = {}
+
+        # Populated on first call to `lifetimes`.
+        self._asset_lifetimes = None
 
     def create_db_tables(self):
         c = self.conn.cursor()
@@ -898,6 +900,70 @@ class AssetFinder(object):
             self._insert_metadata(identifier, **metadata_dict)
         self.conn.commit()
 
+    def _compute_asset_lifetimes(self):
+        """
+        Compute and cache a recarry of asset lifetimes.
+
+        FUTURE OPTIMIZATION: We're looping over a big array, which means this
+        probably should be in C/Cython.
+        """
+        with self.conn as transaction:
+            results = transaction.execute(
+                'SELECT sid, start_date, end_date from equities'
+            ).fetchall()
+
+            lifetimes = np.recarray(
+                shape=(len(results),),
+                dtype=[('sid', 'i8'), ('start', 'i8'), ('end', 'i8')],
+            )
+
+            # TODO: This is **WAY** slower than it could be because we have to
+            # check for None everywhere.  If we represented "no start date" as
+            # 0, and "no end date" as MAX_INT in our metadata, this would be
+            # significantly faster.
+            NO_START = 0
+            NO_END = np.iinfo(int).max
+            for idx, (sid, start, end) in enumerate(results):
+                lifetimes[idx] = (
+                    sid,
+                    start if start is not None else NO_START,
+                    end if end is not None else NO_END,
+                )
+        return lifetimes
+
+    def lifetimes(self, dates):
+        """
+        Compute a DataFrame representing asset lifetimes for the specified date
+        range.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            The dates for which to compute lifetimes.
+
+        Returns
+        -------
+        lifetimes : pd.DataFrame
+            A frame of dtype bool with `dates` as index and an Int64Index of
+            assets as columns.  The value at `lifetimes.loc[date, asset]` will
+            be True iff `asset` existed on `data`.
+
+        See Also
+        --------
+        numpy.putmask
+        """
+        # This is a less than ideal place to do this, because if someone adds
+        # assets to the finder after we've touched lifetimes we won't have
+        # those new assets available.  Mutability is not my favorite
+        # programming feature.
+        if self._asset_lifetimes is None:
+            self._asset_lifetimes = self._compute_asset_lifetimes()
+        lifetimes = self._asset_lifetimes
+
+        raw_dates = dates.asi8[:, None]
+        mask = (lifetimes.start <= raw_dates) & (raw_dates <= lifetimes.end)
+        return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
+
 
 class AssetConvertible(with_metaclass(ABCMeta)):
     """
@@ -907,6 +973,7 @@ class AssetConvertible(with_metaclass(ABCMeta)):
     Includes Asset, six.string_types, and Integral
     """
     pass
+
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)

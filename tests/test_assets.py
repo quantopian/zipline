@@ -24,10 +24,13 @@ from datetime import datetime, timedelta
 import pickle
 import uuid
 import warnings
+
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+from pandas.util.testing import assert_frame_equal
 
 from nose_parameterized import parameterized
+from numpy import full
 
 from zipline.assets import Asset, Equity, Future, AssetFinder
 from zipline.assets.futures import FutureChain
@@ -36,6 +39,11 @@ from zipline.errors import (
     MultipleSymbolsFound,
     SidAssignmentError,
     RootSymbolNotFound,
+)
+from zipline.finance.trading import with_environment
+from zipline.utils.test_utils import (
+    all_subindices,
+    make_rotating_asset_info,
 )
 
 
@@ -607,6 +615,49 @@ class AssetFinderTestCase(TestCase):
         pre_map = [asset201, asset2, asset200, asset1]
         post_map = finder.map_identifier_index_to_sids(pre_map, dt)
         self.assertListEqual([201, 2, 200, 1], post_map)
+
+    @with_environment()
+    def test_compute_lifetimes(self, env=None):
+        num_assets = 4
+        trading_day = env.trading_day
+        first_start = pd.Timestamp('2015-04-01', tz='UTC')
+
+        frame = make_rotating_asset_info(
+            num_assets=num_assets,
+            first_start=first_start,
+            frequency=env.trading_day,
+            periods_between_starts=3,
+            asset_lifetime=5
+        )
+        finder = AssetFinder(frame)
+
+        all_dates = pd.date_range(
+            start=first_start,
+            end=frame.end_date.max(),
+            freq=trading_day,
+        )
+
+        for dates in all_subindices(all_dates):
+            expected_mask = full(
+                shape=(len(dates), num_assets),
+                fill_value=False,
+                dtype=bool,
+            )
+
+            for i, date in enumerate(dates):
+                it = frame[['start_date', 'end_date']].itertuples()
+                for j, start, end in it:
+                    if start <= date <= end:
+                        expected_mask[i, j] = True
+
+            # Filter out columns with all-empty columns.
+            expected_result = pd.DataFrame(
+                data=expected_mask,
+                index=dates,
+                columns=frame.sid.values,
+            )
+            actual_result = finder.lifetimes(dates)
+            assert_frame_equal(actual_result, expected_result)
 
 
 class TestFutureChain(TestCase):

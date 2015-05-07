@@ -303,3 +303,104 @@ Only one simulation date given. Please specify both the 'start' and 'end' for
 the simulation, or neither. If neither is given, the start and end of the
 DataSource will be used. Given start = '{start}', end = '{end}'
 """.strip()
+
+
+class WindowLengthTooLong(ZiplineError):
+    """
+    Raised when a trailing window is instantiated with a lookback greater than
+    the length of the underlying array.
+    """
+    msg = (
+        "Can't construct a rolling window of length "
+        "{window_length} on an array of length {nrows}."
+    ).strip()
+
+
+class WindowLengthNotPositive(ZiplineError):
+    """
+    Raised when a trailing window would be instantiated with a length less than
+    1.
+    """
+    msg = (
+        "Expected a window_length greater than 0, got {window_length}."
+    ).strip()
+
+
+class InputTermNotAtomic(ZiplineError):
+    """
+    Raised when a non-atomic term is specified as an input to an FFC term with
+    a lookback window.
+    """
+    msg = (
+        "Can't compute {parent} with non-atomic input {child}."
+    )
+
+
+class TermInputsNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = "{termname} requires inputs, but no inputs list was passed."
+
+
+class WindowLengthNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = (
+        "{termname} requires a window_length, but no window_length was passed."
+    )
+
+
+class BadPercentileBounds(ZiplineError):
+    """
+    Raised by API functions accepting percentile bounds when the passed bounds
+    are invalid.
+    """
+    msg = (
+        "Percentile bounds must fall between 0.0 and 100.0, and min must be "
+        "less than max."
+        "\nInputs were min={min_percentile}, max={max_percentile}."
+    )
+
+
+class UnknownRankMethod(ZiplineError):
+    """
+    Raised during construction of a Rank factor when supplied a bad Rank
+    method.
+    """
+    msg = (
+        "Unknown ranking method: '{method}'. "
+        "`method` must be one of {choices}"
+    )
+
+
+class AddTermPostInit(ZiplineError):
+    """
+    Raised when a user tries to call add_{filter,factor,classifier}
+    outside of initialize.
+    """
+    msg = (
+        "Attempted to add a new filter, factor, or classifier "
+        "outside of initialize.\n"
+        "New FFC terms may only be added during initialize."
+    )
+
+
+class UnsupportedDataType(ZiplineError):
+    """
+    Raised by FFC CustomFactors with unsupported dtypes.
+    """
+    msg = "CustomFactors with dtype {dtype} are not supported."
+
+
+class NoFurtherDataError(ZiplineError):
+    """
+    Raised by calendar operations that would ask for dates beyond the extent of
+    our known data.
+    """
+    # This accepts an arbitrary message string because it's used in more places
+    # that can be usefully templated.
+    msg = '{msg}'

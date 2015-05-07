@@ -19,8 +19,13 @@ install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
+  - grep bottleneck== etc/requirements.txt | xargs pip install
   - grep cyordereddict== etc/requirements.txt | xargs pip install
   - grep contextlib2== etc/requirements.txt | xargs pip install
+  - grep click== etc/requirements.txt | xargs pip install
+  - grep networkx== etc/requirements.txt | xargs pip install
+  - grep numexpr== etc/requirements.txt | xargs pip install
+  - grep bcolz== etc/requirements.txt | xargs pip install
   - grep pyflakes== etc/requirements_dev.txt | xargs pip install
   - grep pep8== etc/requirements_dev.txt | xargs pip install
   - grep mccabe== etc/requirements_dev.txt | xargs pip install
@@ -28,6 +33,7 @@ install:
   - grep nose== etc/requirements_dev.txt | xargs pip install --upgrade --force-reinstall
   - grep nose-parameterized== etc/requirements_dev.txt | xargs pip install
   - grep nose-ignore-docstring== etc/requirements_dev.txt | xargs pip install
+  - grep testfixtures== etc/requirements_dev.txt | xargs pip install
   - pip install coveralls
   - pip install nose-timer
   - python setup.py build_ext --inplace

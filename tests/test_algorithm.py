@@ -23,9 +23,10 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.api_support import ZiplineAPI
 from zipline.assets import AssetFinder
+from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
-    nullctx,
     setup_logger,
     teardown_logger
 )
@@ -149,6 +150,26 @@ class TestMiscellaneousAPI(TestCase):
 
     def tearDown(self):
         teardown_logger(self)
+
+    def test_zipline_api_resolves_dynamically(self):
+        # Make a dummy algo.
+        algo = TradingAlgorithm(
+            initialize=lambda context: None,
+            handle_data=lambda context, data: None,
+            sim_params=self.sim_params,
+        )
+
+        # Verify that api methods get resolved dynamically by patching them out
+        # and then calling them
+        for method in algo.all_api_methods():
+            name = method.__name__
+            sentinel = object()
+
+            def fake_method(*args, **kwargs):
+                return sentinel
+            setattr(algo, name, fake_method)
+            with ZiplineAPI(algo):
+                self.assertIs(sentinel, getattr(zipline.api, name)())
 
     def test_get_environment(self):
         expected_env = {

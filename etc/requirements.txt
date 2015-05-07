@@ -33,3 +33,15 @@ cyordereddict==0.2.2
 bottleneck==1.0.0
 
 contextlib2==0.4.0
+
+# Graph algorithms used by zipline.modelling
+networkx==1.9.1
+
+# NumericalExpression modelling terms.
+numexpr==2.4.3
+
+# On disk storage format for modelling data.
+bcolz==0.9.0
+
+# Command line interface helper
+click==4.0.0

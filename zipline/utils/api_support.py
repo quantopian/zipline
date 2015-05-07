@@ -54,3 +54,25 @@ def api_method(f):
     zipline.api.__all__.append(f.__name__)
     f.is_api_method = True
     return f
+
+
+def require_not_initialized(exception):
+    """
+    Decorator for API methods that should only be called during or before
+    TradingAlgorithm.initialize.  `exception` will be raised if the method is
+    called after initialize.
+
+    Usage
+    -----
+    @required_not_initialized(SomeException, "Don't do that!")
+    def method(self):
+        # Do stuff that should only be allowed during initialize.
+    """
+    def decorator(method):
+        @wraps(method)
+        def wrapped_method(self, *args, **kwargs):
+            if self.initialized:
+                raise exception
+            return method(self, *args, **kwargs)
+        return wrapped_method
+    return decorator

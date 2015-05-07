@@ -16,7 +16,6 @@
 
 import importlib
 import os
-from os.path import expanduser
 from collections import OrderedDict
 from datetime import timedelta
 
@@ -30,24 +29,15 @@ from six import iteritems
 
 from . import benchmarks
 from . benchmarks import get_benchmark_returns
+from .paths import (
+    cache_root,
+    data_root,
+)
 
 from zipline.utils.tradingcalendar import trading_day as trading_day_nyse
 from zipline.utils.tradingcalendar import trading_days as trading_days_nyse
 
 logger = logbook.Logger('Loader')
-
-# TODO: Make this path customizable.
-DATA_PATH = os.path.join(
-    expanduser("~"),
-    '.zipline',
-    'data'
-)
-
-CACHE_PATH = os.path.join(
-    expanduser("~"),
-    '.zipline',
-    'cache'
-)
 
 # Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
@@ -66,18 +56,20 @@ def get_data_filepath(name):
 
     Creates containing directory, if needed.
     """
+    dr = data_root()
 
-    if not os.path.exists(DATA_PATH):
-        os.makedirs(DATA_PATH)
+    if not os.path.exists(dr):
+        os.makedirs(dr)
 
-    return os.path.join(DATA_PATH, name)
+    return os.path.join(dr, name)
 
 
 def get_cache_filepath(name):
-    if not os.path.exists(CACHE_PATH):
-        os.makedirs(CACHE_PATH)
+    cr = cache_root()
+    if not os.path.exists(cr):
+        os.makedirs(cr)
 
-    return os.path.join(CACHE_PATH, name)
+    return os.path.join(cr, name)
 
 
 def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):

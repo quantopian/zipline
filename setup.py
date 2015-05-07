@@ -24,6 +24,21 @@ ext_modules = [
         ['zipline/assets/_assets.pyx'],
         include_dirs=[np.get_include()],
     ),
+    Extension(
+        'zipline.lib.adjusted_array',
+        ['zipline/lib/adjusted_array.pyx'],
+        include_dirs=[np.get_include()],
+    ),
+    Extension(
+        'zipline.lib.adjustment',
+        ['zipline/lib/adjustment.pyx'],
+        include_dirs=[np.get_include()],
+    ),
+    Extension(
+        'zipline.data.ffc.loaders._us_equity_pricing',
+        ['zipline/data/ffc/loaders/_us_equity_pricing.pyx'],
+        include_dirs=[np.get_include()],
+    ),
 ]
 
 setup(

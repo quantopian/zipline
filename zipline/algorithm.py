@@ -31,16 +31,16 @@ from six import (
 from operator import attrgetter
 
 from zipline.errors import (
+    AddTermPostInit,
     OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
-    RegisterTradingControlPostInit,
     RegisterAccountControlPostInit,
+    RegisterTradingControlPostInit,
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
 )
-
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
@@ -68,8 +68,16 @@ from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.modelling.engine import (
+    NoOpFFCEngine,
+    SimpleFFCEngine,
+)
 from zipline.sources import DataFrameSource, DataPanelSource
-from zipline.utils.api_support import ZiplineAPI, api_method
+from zipline.utils.api_support import (
+    api_method,
+    require_not_initialized,
+    ZiplineAPI,
+)
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
@@ -202,6 +210,21 @@ class TradingAlgorithm(object):
         )
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
+
+        ffc_loader = kwargs.get('ffc_loader', None)
+        if ffc_loader is not None:
+            self.engine = SimpleFFCEngine(
+                ffc_loader,
+                self.trading_environment.trading_days,
+                self.asset_finder,
+            )
+        else:
+            self.engine = NoOpFFCEngine()
+
+        # Maps from name to Term
+        self._filters = {}
+        self._factors = {}
+        self._classifiers = {}
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -1222,6 +1245,49 @@ class TradingAlgorithm(object):
         Set a rule specifying that this algorithm cannot take short positions.
         """
         self.register_trading_control(LongOnly())
+
+    ###########
+    # FFC API #
+    ###########
+    @api_method
+    @require_not_initialized(AddTermPostInit())
+    def add_factor(self, factor, name):
+        if name in self._factors:
+            raise ValueError("Name %r is already a factor!" % name)
+        self._factors[name] = factor
+
+    @api_method
+    @require_not_initialized(AddTermPostInit())
+    def add_filter(self, filter):
+        name = "anon_filter_%d" % len(self._filters)
+        self._filters[name] = filter
+
+    # Note: add_classifier is not yet implemented since you can't do anything
+    # useful with classifiers yet.
+
+    def _all_terms(self):
+        # Merge all three dicts.
+        return dict(
+            chain.from_iterable(
+                iteritems(terms)
+                for terms in (self._filters, self._factors, self._classifiers)
+            )
+        )
+
+    def compute_factor_matrix(self, start_date):
+        """
+        Compute a factor matrix starting at start_date.
+        """
+        days = self.trading_environment.trading_days
+        start_date_loc = days.get_loc(start_date)
+        sim_end = self.sim_params.period_end
+        end_loc = min(start_date_loc + 252, days.get_loc(sim_end))
+        end_date = days[end_loc]
+        return self.engine.factor_matrix(
+            self._all_terms(),
+            start_date,
+            end_date,
+        ), end_date
 
     def current_universe(self):
         return self._current_universe
