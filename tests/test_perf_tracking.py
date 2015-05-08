@@ -38,13 +38,12 @@ import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
-from zipline.assets import Equity, Future
 
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from zipline.utils.factory import create_random_simulation_parameters
 import zipline.protocol as zp
 from zipline.protocol import Event
@@ -127,7 +126,8 @@ def create_txn(trade_event, price, amount):
     return create_transaction(trade_event, mock_order, price, amount)
 
 
-def benchmark_events_in_range(sim_params):
+@with_environment()
+def benchmark_events_in_range(sim_params, env=None):
     return [
         Event({'dt': dt,
                'returns': ret,
@@ -135,7 +135,7 @@ def benchmark_events_in_range(sim_params):
                # We explicitly rely on the behavior that benchmarks sort before
                # any other events.
                'source_id': '1Abenchmarks'})
-        for dt, ret in trading.environment.benchmark_returns.iteritems()
+        for dt, ret in env.benchmark_returns.iteritems()
         if dt.date() >= sim_params.period_start.date() and
         dt.date() <= sim_params.period_end.date()
     ]
@@ -368,79 +368,78 @@ class TestCommissionEvents(unittest.TestCase):
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
     def test_commission_event(self):
-        with trading.TradingEnvironment():
-            events = factory.create_trade_history(
-                1,
-                [10, 10, 10, 10, 10],
-                [100, 100, 100, 100, 100],
-                oneday,
-                self.sim_params
-            )
+        events = factory.create_trade_history(
+            1,
+            [10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100],
+            oneday,
+            self.sim_params
+        )
 
-            # Test commission models and validate result
-            # Expected commission amounts:
-            # PerShare commission:  1.00, 1.00, 1.50 = $3.50
-            # PerTrade commission:  5.00, 5.00, 5.00 = $15.00
-            # PerDollar commission: 1.50, 3.00, 4.50 = $9.00
-            # Total commission = $3.50 + $15.00 + $9.00 = $27.50
+        # Test commission models and validate result
+        # Expected commission amounts:
+        # PerShare commission:  1.00, 1.00, 1.50 = $3.50
+        # PerTrade commission:  5.00, 5.00, 5.00 = $15.00
+        # PerDollar commission: 1.50, 3.00, 4.50 = $9.00
+        # Total commission = $3.50 + $15.00 + $9.00 = $27.50
 
-            # Create 3 transactions:  50, 100, 150 shares traded @ $20
-            transactions = [create_txn(events[0], 20, i)
-                            for i in [50, 100, 150]]
+        # Create 3 transactions:  50, 100, 150 shares traded @ $20
+        transactions = [create_txn(events[0], 20, i)
+                        for i in [50, 100, 150]]
 
-            # Create commission models and validate that produce expected
-            # commissions.
-            models = [PerShare(cost=0.01, min_trade_cost=1.00),
-                      PerTrade(cost=5.00),
-                      PerDollar(cost=0.0015)]
-            expected_results = [3.50, 15.0, 9.0]
+        # Create commission models and validate that produce expected
+        # commissions.
+        models = [PerShare(cost=0.01, min_trade_cost=1.00),
+                  PerTrade(cost=5.00),
+                  PerDollar(cost=0.0015)]
+        expected_results = [3.50, 15.0, 9.0]
 
-            for model, expected in zip(models, expected_results):
-                total_commission = 0
-                for trade in transactions:
-                    total_commission += model.calculate(trade)[1]
-                self.assertEqual(total_commission, expected)
+        for model, expected in zip(models, expected_results):
+            total_commission = 0
+            for trade in transactions:
+                total_commission += model.calculate(trade)[1]
+            self.assertEqual(total_commission, expected)
 
-            # Verify that commission events are handled correctly by
-            # PerformanceTracker.
-            cash_adj_dt = events[0].dt
-            cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
-            events.append(cash_adjustment)
+        # Verify that commission events are handled correctly by
+        # PerformanceTracker.
+        cash_adj_dt = events[0].dt
+        cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
+        events.append(cash_adjustment)
 
-            # Insert a purchase order.
-            txns = [create_txn(events[0], 20, 1)]
-            results = calculate_results(self, events, txns=txns)
+        # Insert a purchase order.
+        txns = [create_txn(events[0], 20, 1)]
+        results = calculate_results(self, events, txns=txns)
 
-            # Validate that we lost 320 dollars from our cash pool.
-            self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
-                             9680)
-            # Validate that the cost basis of our position changed.
-            self.assertEqual(results[-1]['daily_perf']['positions']
-                             [0]['cost_basis'], 320.0)
-            # Validate that the account attributes were updated.
-            account = results[1]['account']
-            self.assertEqual(float('inf'), account['day_trades_remaining'])
-            np.testing.assert_allclose(0.001, account['leverage'], rtol=1e-3,
-                                       atol=1e-4)
-            np.testing.assert_allclose(9680, account['regt_equity'], rtol=1e-3)
-            self.assertEqual(float('inf'), account['regt_margin'])
-            np.testing.assert_allclose(9680, account['available_funds'],
-                                       rtol=1e-3)
-            self.assertEqual(0, account['maintenance_margin_requirement'])
-            np.testing.assert_allclose(9690,
-                                       account['equity_with_loan'], rtol=1e-3)
-            self.assertEqual(float('inf'), account['buying_power'])
-            self.assertEqual(0, account['initial_margin_requirement'])
-            np.testing.assert_allclose(9680, account['excess_liquidity'],
-                                       rtol=1e-3)
-            np.testing.assert_allclose(9680, account['settled_cash'],
-                                       rtol=1e-3)
-            np.testing.assert_allclose(9690, account['net_liquidation'],
-                                       rtol=1e-3)
-            np.testing.assert_allclose(0.999, account['cushion'], rtol=1e-3)
-            np.testing.assert_allclose(10, account['total_positions_value'],
-                                       rtol=1e-3)
-            self.assertEqual(0, account['accrued_interest'])
+        # Validate that we lost 320 dollars from our cash pool.
+        self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
+                         9680)
+        # Validate that the cost basis of our position changed.
+        self.assertEqual(results[-1]['daily_perf']['positions']
+                         [0]['cost_basis'], 320.0)
+        # Validate that the account attributes were updated.
+        account = results[1]['account']
+        self.assertEqual(float('inf'), account['day_trades_remaining'])
+        np.testing.assert_allclose(0.001, account['leverage'], rtol=1e-3,
+                                   atol=1e-4)
+        np.testing.assert_allclose(9680, account['regt_equity'], rtol=1e-3)
+        self.assertEqual(float('inf'), account['regt_margin'])
+        np.testing.assert_allclose(9680, account['available_funds'],
+                                   rtol=1e-3)
+        self.assertEqual(0, account['maintenance_margin_requirement'])
+        np.testing.assert_allclose(9690,
+                                   account['equity_with_loan'], rtol=1e-3)
+        self.assertEqual(float('inf'), account['buying_power'])
+        self.assertEqual(0, account['initial_margin_requirement'])
+        np.testing.assert_allclose(9680, account['excess_liquidity'],
+                                   rtol=1e-3)
+        np.testing.assert_allclose(9680, account['settled_cash'],
+                                   rtol=1e-3)
+        np.testing.assert_allclose(9690, account['net_liquidation'],
+                                   rtol=1e-3)
+        np.testing.assert_allclose(0.999, account['cushion'], rtol=1e-3)
+        np.testing.assert_allclose(10, account['total_positions_value'],
+                                   rtol=1e-3)
+        self.assertEqual(0, account['accrued_interest'])
 
     def test_commission_zero_position(self):
         """
@@ -476,24 +475,23 @@ class TestCommissionEvents(unittest.TestCase):
         """
         Ensure no position-not-found or sid-not-found errors.
         """
-        with trading.TradingEnvironment():
-            events = factory.create_trade_history(
-                1,
-                [10, 10, 10, 10, 10],
-                [100, 100, 100, 100, 100],
-                oneday,
-                self.sim_params
-            )
+        events = factory.create_trade_history(
+            1,
+            [10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100],
+            oneday,
+            self.sim_params
+        )
 
-            # Add a cash adjustment at the time of event[3].
-            cash_adj_dt = events[3].dt
-            cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
-            events.append(cash_adjustment)
+        # Add a cash adjustment at the time of event[3].
+        cash_adj_dt = events[3].dt
+        cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
+        events.append(cash_adjustment)
 
-            results = calculate_results(self, events)
-            # Validate that we lost 300 dollars from our cash pool.
-            self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
-                             9700)
+        results = calculate_results(self, events)
+        # Validate that we lost 300 dollars from our cash pool.
+        self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
+                         9700)
 
 
 class TestDividendPerformance(unittest.TestCase):
@@ -508,117 +506,114 @@ class TestDividendPerformance(unittest.TestCase):
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
     def test_market_hours_calculations(self):
-        with trading.TradingEnvironment():
-            # DST in US/Eastern began on Sunday March 14, 2010
-            before = datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
-            after = factory.get_next_trading_dt(
-                before,
-                timedelta(days=1)
-            )
-            self.assertEqual(after.hour, 13)
+        # DST in US/Eastern began on Sunday March 14, 2010
+        before = datetime(2010, 3, 12, 14, 31, tzinfo=pytz.utc)
+        after = factory.get_next_trading_dt(
+            before,
+            timedelta(days=1)
+        )
+        self.assertEqual(after.hour, 13)
 
     def test_long_position_receives_dividend(self):
-        with trading.TradingEnvironment():
-            # post some trades in the market
-            events = factory.create_trade_history(
-                1,
-                [10, 10, 10, 10, 10],
-                [100, 100, 100, 100, 100],
-                oneday,
-                self.sim_params
-            )
-            dividend = factory.create_dividend(
-                1,
-                10.00,
-                # declared date, when the algorithm finds out about
-                # the dividend
-                events[0].dt,
-                # ex_date, the date before which the algorithm must hold stock
-                # to receive the dividend
-                events[1].dt,
-                # pay date, when the algorithm receives the dividend.
-                events[2].dt
-            )
+        # post some trades in the market
+        events = factory.create_trade_history(
+            1,
+            [10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100],
+            oneday,
+            self.sim_params
+        )
+        dividend = factory.create_dividend(
+            1,
+            10.00,
+            # declared date, when the algorithm finds out about
+            # the dividend
+            events[0].dt,
+            # ex_date, the date before which the algorithm must hold stock
+            # to receive the dividend
+            events[1].dt,
+            # pay date, when the algorithm receives the dividend.
+            events[2].dt
+        )
 
-            # Simulate a transaction being filled prior to the ex_date.
-            txns = [create_txn(events[0], 10.0, 100)]
-            results = calculate_results(
-                self,
-                events,
-                dividend_events=[dividend],
-                txns=txns,
-            )
+        # Simulate a transaction being filled prior to the ex_date.
+        txns = [create_txn(events[0], 10.0, 100)]
+        results = calculate_results(
+            self,
+            events,
+            dividend_events=[dividend],
+            txns=txns,
+        )
 
-            self.assertEqual(len(results), 5)
-            cumulative_returns = \
-                [event['cumulative_perf']['returns'] for event in results]
-            self.assertEqual(cumulative_returns, [0.0, 0.0, 0.1, 0.1, 0.1])
-            daily_returns = [event['daily_perf']['returns']
-                             for event in results]
-            self.assertEqual(daily_returns, [0.0, 0.0, 0.10, 0.0, 0.0])
-            cash_flows = [event['daily_perf']['capital_used']
-                          for event in results]
-            self.assertEqual(cash_flows, [-1000, 0, 1000, 0, 0])
-            cumulative_cash_flows = \
-                [event['cumulative_perf']['capital_used'] for event in results]
-            self.assertEqual(cumulative_cash_flows, [-1000, -1000, 0, 0, 0])
-            cash_pos = \
-                [event['cumulative_perf']['ending_cash'] for event in results]
-            self.assertEqual(cash_pos, [9000, 9000, 10000, 10000, 10000])
+        self.assertEqual(len(results), 5)
+        cumulative_returns = \
+            [event['cumulative_perf']['returns'] for event in results]
+        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.1, 0.1, 0.1])
+        daily_returns = [event['daily_perf']['returns']
+                         for event in results]
+        self.assertEqual(daily_returns, [0.0, 0.0, 0.10, 0.0, 0.0])
+        cash_flows = [event['daily_perf']['capital_used']
+                      for event in results]
+        self.assertEqual(cash_flows, [-1000, 0, 1000, 0, 0])
+        cumulative_cash_flows = \
+            [event['cumulative_perf']['capital_used'] for event in results]
+        self.assertEqual(cumulative_cash_flows, [-1000, -1000, 0, 0, 0])
+        cash_pos = \
+            [event['cumulative_perf']['ending_cash'] for event in results]
+        self.assertEqual(cash_pos, [9000, 9000, 10000, 10000, 10000])
 
     def test_long_position_receives_stock_dividend(self):
-        with trading.TradingEnvironment():
-            # post some trades in the market
-            events = []
-            for sid in (1, 2):
-                events.extend(
-                    factory.create_trade_history(
-                        sid,
-                        [10, 10, 10, 10, 10],
-                        [100, 100, 100, 100, 100],
-                        oneday,
-                        self.sim_params)
-                )
-
-            dividend = factory.create_stock_dividend(
-                1,
-                payment_sid=2,
-                ratio=2,
-                # declared date, when the algorithm finds out about
-                # the dividend
-                declared_date=events[0].dt,
-                # ex_date, the date before which the algorithm must hold stock
-                # to receive the dividend
-                ex_date=events[1].dt,
-                # pay date, when the algorithm receives the dividend.
-                pay_date=events[2].dt
+        # post some trades in the market
+        events = []
+        for sid in (1, 2):
+            events.extend(
+                factory.create_trade_history(
+                    sid,
+                    [10, 10, 10, 10, 10],
+                    [100, 100, 100, 100, 100],
+                    oneday,
+                    self.sim_params)
             )
 
-            txns = [create_txn(events[0], 10.0, 100)]
+        dividend = factory.create_stock_dividend(
+            1,
+            payment_sid=2,
+            ratio=2,
+            # declared date, when the algorithm finds out about
+            # the dividend
+            declared_date=events[0].dt,
+            # ex_date, the date before which the algorithm must hold stock
+            # to receive the dividend
+            ex_date=events[1].dt,
+            # pay date, when the algorithm receives the dividend.
+            pay_date=events[2].dt
+        )
 
-            results = calculate_results(
-                self,
-                events,
-                dividend_events=[dividend],
-                txns=txns,
-            )
+        txns = [create_txn(events[0], 10.0, 100)]
 
-            self.assertEqual(len(results), 5)
-            cumulative_returns = \
-                [event['cumulative_perf']['returns'] for event in results]
-            self.assertEqual(cumulative_returns, [0.0, 0.0, 0.2, 0.2, 0.2])
-            daily_returns = [event['daily_perf']['returns']
-                             for event in results]
-            self.assertEqual(daily_returns, [0.0, 0.0, 0.2, 0.0, 0.0])
-            cash_flows = [event['daily_perf']['capital_used']
-                          for event in results]
-            self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0])
-            cumulative_cash_flows = \
-                [event['cumulative_perf']['capital_used'] for event in results]
-            self.assertEqual(cumulative_cash_flows, [-1000] * 5)
-            cash_pos = \
-                [event['cumulative_perf']['ending_cash'] for event in results]
-            self.assertEqual(cash_pos, [9000] * 5)
+        results = calculate_results(
+            self,
+            events,
+            dividend_events=[dividend],
+            txns=txns,
+        )
+
+        self.assertEqual(len(results), 5)
+        cumulative_returns = \
+            [event['cumulative_perf']['returns'] for event in results]
+        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.2, 0.2, 0.2])
+        daily_returns = [event['daily_perf']['returns']
+                         for event in results]
+        self.assertEqual(daily_returns, [0.0, 0.0, 0.2, 0.0, 0.0])
+        cash_flows = [event['daily_perf']['capital_used']
+                      for event in results]
+        self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0])
+        cumulative_cash_flows = \
+            [event['cumulative_perf']['capital_used'] for event in results]
+        self.assertEqual(cumulative_cash_flows, [-1000] * 5)
+        cash_pos = \
+            [event['cumulative_perf']['ending_cash'] for event in results]
+        self.assertEqual(cash_pos, [9000] * 5)
 
     def test_long_position_purchased_on_ex_date_receives_no_dividend(self):
         # post some trades in the market
@@ -1831,118 +1826,115 @@ class TestPerformanceTracker(unittest.TestCase):
             else:
                 yield event
 
-    def test_minute_tracker(self):
+    @with_environment()
+    def test_minute_tracker(self, env=None):
         """ Tests minute performance tracking."""
-        with trading.TradingEnvironment():
-            start_dt = trading.environment.exchange_dt_in_utc(
-                datetime(2013, 3, 1, 9, 31))
-            end_dt = trading.environment.exchange_dt_in_utc(
-                datetime(2013, 3, 1, 16, 0))
+        start_dt = env.exchange_dt_in_utc(datetime(2013, 3, 1, 9, 31))
+        end_dt = env.exchange_dt_in_utc(datetime(2013, 3, 1, 16, 0))
 
-            sim_params = SimulationParameters(
-                period_start=start_dt,
-                period_end=end_dt,
-                emission_rate='minute'
-            )
-            tracker = perf.PerformanceTracker(sim_params)
+        sim_params = SimulationParameters(
+            period_start=start_dt,
+            period_end=end_dt,
+            emission_rate='minute'
+        )
+        tracker = perf.PerformanceTracker(sim_params)
 
-            foosid = 1
-            barsid = 2
+        foosid = 1
+        barsid = 2
 
-            trading.environment.update_asset_finder(
-                identifiers=[foosid, barsid])
+        env.update_asset_finder(identifiers=[foosid, barsid])
 
-            foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
-            order_event_1 = Order(sid=foo_event_1.sid,
+        foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
+        order_event_1 = Order(sid=foo_event_1.sid,
+                              amount=-25,
+                              dt=foo_event_1.dt)
+        bar_event_1 = factory.create_trade(barsid, 100.0, 200, start_dt)
+        txn_event_1 = Transaction(sid=foo_event_1.sid,
                                   amount=-25,
-                                  dt=foo_event_1.dt)
-            bar_event_1 = factory.create_trade(barsid, 100.0, 200, start_dt)
-            txn_event_1 = Transaction(sid=foo_event_1.sid,
-                                      amount=-25,
-                                      dt=foo_event_1.dt,
-                                      price=10.0,
-                                      commission=0.50,
-                                      order_id=order_event_1.id)
-            benchmark_event_1 = Event({
-                'dt': start_dt,
-                'returns': 0.01,
-                'type': zp.DATASOURCE_TYPE.BENCHMARK
-            })
+                                  dt=foo_event_1.dt,
+                                  price=10.0,
+                                  commission=0.50,
+                                  order_id=order_event_1.id)
+        benchmark_event_1 = Event({
+            'dt': start_dt,
+            'returns': 0.01,
+            'type': zp.DATASOURCE_TYPE.BENCHMARK
+        })
 
-            foo_event_2 = factory.create_trade(
-                foosid, 11.0, 20, start_dt + timedelta(minutes=1))
-            bar_event_2 = factory.create_trade(
-                barsid, 11.0, 20, start_dt + timedelta(minutes=1))
-            benchmark_event_2 = Event({
-                'dt': start_dt + timedelta(minutes=1),
-                'returns': 0.02,
-                'type': zp.DATASOURCE_TYPE.BENCHMARK
-            })
+        foo_event_2 = factory.create_trade(
+            foosid, 11.0, 20, start_dt + timedelta(minutes=1))
+        bar_event_2 = factory.create_trade(
+            barsid, 11.0, 20, start_dt + timedelta(minutes=1))
+        benchmark_event_2 = Event({
+            'dt': start_dt + timedelta(minutes=1),
+            'returns': 0.02,
+            'type': zp.DATASOURCE_TYPE.BENCHMARK
+        })
 
-            events = [
-                foo_event_1,
-                order_event_1,
-                benchmark_event_1,
-                txn_event_1,
-                bar_event_1,
-                foo_event_2,
-                benchmark_event_2,
-                bar_event_2,
-            ]
+        events = [
+            foo_event_1,
+            order_event_1,
+            benchmark_event_1,
+            txn_event_1,
+            bar_event_1,
+            foo_event_2,
+            benchmark_event_2,
+            bar_event_2,
+        ]
 
-            grouped_events = itertools.groupby(
-                events, operator.attrgetter('dt'))
+        grouped_events = itertools.groupby(
+            events, operator.attrgetter('dt'))
 
-            messages = {}
-            for date, group in grouped_events:
-                tracker.set_date(date)
-                for event in group:
-                    if event.type == zp.DATASOURCE_TYPE.TRADE:
-                        tracker.process_trade(event)
-                    elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-                        tracker.process_benchmark(event)
-                    elif event.type == zp.DATASOURCE_TYPE.ORDER:
-                        tracker.process_order(event)
-                    elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
-                        tracker.process_transaction(event)
-                tracker.handle_minute_close(date)
-                msg = tracker.to_dict()
-                messages[date] = msg
+        messages = {}
+        for date, group in grouped_events:
+            tracker.set_date(date)
+            for event in group:
+                if event.type == zp.DATASOURCE_TYPE.TRADE:
+                    tracker.process_trade(event)
+                elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
+                    tracker.process_benchmark(event)
+                elif event.type == zp.DATASOURCE_TYPE.ORDER:
+                    tracker.process_order(event)
+                elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
+                    tracker.process_transaction(event)
+            tracker.handle_minute_close(date)
+            msg = tracker.to_dict()
+            messages[date] = msg
 
-            self.assertEquals(2, len(messages))
+        self.assertEquals(2, len(messages))
 
-            msg_1 = messages[foo_event_1.dt]
-            msg_2 = messages[foo_event_2.dt]
+        msg_1 = messages[foo_event_1.dt]
+        msg_2 = messages[foo_event_2.dt]
 
-            self.assertEquals(1, len(msg_1['minute_perf']['transactions']),
-                              "The first message should contain one "
-                              "transaction.")
-            # Check that transactions aren't emitted for previous events.
-            self.assertEquals(0, len(msg_2['minute_perf']['transactions']),
-                              "The second message should have no "
-                              "transactions.")
+        self.assertEquals(1, len(msg_1['minute_perf']['transactions']),
+                          "The first message should contain one "
+                          "transaction.")
+        # Check that transactions aren't emitted for previous events.
+        self.assertEquals(0, len(msg_2['minute_perf']['transactions']),
+                          "The second message should have no "
+                          "transactions.")
 
-            self.assertEquals(1, len(msg_1['minute_perf']['orders']),
-                              "The first message should contain one orders.")
-            # Check that orders aren't emitted for previous events.
-            self.assertEquals(0, len(msg_2['minute_perf']['orders']),
-                              "The second message should have no orders.")
+        self.assertEquals(1, len(msg_1['minute_perf']['orders']),
+                          "The first message should contain one orders.")
+        # Check that orders aren't emitted for previous events.
+        self.assertEquals(0, len(msg_2['minute_perf']['orders']),
+                          "The second message should have no orders.")
 
-            # Ensure that period_close moves through time.
-            # Also, ensure that the period_closes are the expected dts.
-            self.assertEquals(foo_event_1.dt,
-                              msg_1['minute_perf']['period_close'])
-            self.assertEquals(foo_event_2.dt,
-                              msg_2['minute_perf']['period_close'])
+        # Ensure that period_close moves through time.
+        # Also, ensure that the period_closes are the expected dts.
+        self.assertEquals(foo_event_1.dt,
+                          msg_1['minute_perf']['period_close'])
+        self.assertEquals(foo_event_2.dt,
+                          msg_2['minute_perf']['period_close'])
 
-            # In this test event1 transactions arrive on the first bar.
-            # This leads to no returns as the price is constant.
-            # Sharpe ratio cannot be computed and is None.
-            # In the second bar we can start establishing a sharpe ratio.
-            self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
-            self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
+        # In this test event1 transactions arrive on the first bar.
+        # This leads to no returns as the price is constant.
+        # Sharpe ratio cannot be computed and is None.
+        # In the second bar we can start establishing a sharpe ratio.
+        self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
+        self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
 
-            check_perf_tracker_serialization(tracker)
+        check_perf_tracker_serialization(tracker)
 
     def test_serialization(self):
         start_dt = datetime(year=2008,
@@ -2011,13 +2003,12 @@ class TestPositionTracker(unittest.TestCase):
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
 
-    def test_update_last_sale(self):
+    @with_environment()
+    def test_update_last_sale(self, env=None):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        if trading.environment is None:
-            trading.environment = trading.TradingEnvironment()
-        trading.environment.update_asset_finder(asset_metadata=metadata)
+        env.update_asset_finder(asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(100.0),
@@ -2037,16 +2028,15 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(0, pt.update_last_sale(event1))
         self.assertEqual(100000, pt.update_last_sale(event2))
 
-    def test_position_values_and_exposures(self):
+    @with_environment()
+    def test_position_values_and_exposures(self, env=None):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'equity'},
                     3: {'asset_type': 'future',
                         'contract_multiplier': 1000},
                     4: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        if trading.environment is None:
-            trading.environment = trading.TradingEnvironment()
-        trading.environment.update_asset_finder(asset_metadata=metadata)
+        env.update_asset_finder(asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(10.0),
@@ -2075,14 +2065,12 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(100 + 200 + 300000 + 400000, pt._gross_exposure())
         self.assertEqual(100 - 200 + 300000 - 400000, pt._net_exposure())
 
-
-    def test_generate_end_sid_transaction(self):
+    @with_environment()
+    def test_generate_end_sid_transaction(self, env=None):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        if trading.environment is None:
-            trading.environment = trading.TradingEnvironment()
-        trading.environment.update_asset_finder(asset_metadata=metadata)
+        env.update_asset_finder(asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),
@@ -2102,13 +2090,12 @@ class TestPositionTracker(unittest.TestCase):
         # Test not-owned SID
         self.assertIsNone(pt._generate_end_sid_transaction(3, dt))
 
-    def test_serialization(self):
+    @with_environment()
+    def test_serialization(self, env=None):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        if trading.environment is None:
-            trading.environment = trading.TradingEnvironment()
-        trading.environment.update_asset_finder(asset_metadata=metadata)
+        env.update_asset_finder(asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),

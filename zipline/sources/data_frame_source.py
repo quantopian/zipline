@@ -22,7 +22,7 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 
 
 class DataFrameSource(DataSource):
@@ -37,7 +37,8 @@ class DataFrameSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    def __init__(self, data, **kwargs):
+    @with_environment()
+    def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
         self.data = data.fillna(method='ffill')
@@ -47,9 +48,9 @@ class DataFrameSource(DataSource):
 
         # Remap sids based on the trading environment
         self.identifiers = kwargs.get('sids', self.data.columns)
-        trading.environment.update_asset_finder(identifiers=self.identifiers)
+        env.update_asset_finder(identifiers=self.identifiers)
         self.data.columns = [
-            trading.environment.asset_finder.lookup_generic(
+            env.asset_finder.lookup_generic(
                 identifier,
                 as_of_date=self.end)[0].sid
             for identifier in self.data.columns
@@ -116,7 +117,8 @@ class DataPanelSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    def __init__(self, data, **kwargs):
+    @with_environment()
+    def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
 
         self.data = data.fillna(method='ffill', axis=0)
@@ -126,9 +128,9 @@ class DataPanelSource(DataSource):
 
         # Remap sids based on the trading environment
         self.identifiers = kwargs.get('sids', self.data.items)
-        trading.environment.update_asset_finder(identifiers=self.identifiers)
+        env.update_asset_finder(identifiers=self.identifiers)
         self.data.items = [
-            trading.environment.asset_finder.lookup_generic(
+            env.asset_finder.lookup_generic(
                 identifier,
                 as_of_date=self.end)[0].sid
             for identifier in self.data.items

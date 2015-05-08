@@ -6,7 +6,7 @@ from unittest import TestCase
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.sources import SpecificEquityTrades
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from zipline.utils.test_utils import (
     setup_logger, teardown_logger, security_list_copy, add_security_data)
 from zipline.utils import factory
@@ -59,13 +59,14 @@ class IterateRLAlgo(TradingAlgorithm):
 
 class SecurityListTestCase(TestCase):
 
-    def setUp(self):
+    @with_environment()
+    def setUp(self, env=None):
         self.extra_knowledge_date = \
             datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
         self.trading_day_before_first_kd = datetime(
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
-        trading.TradingEnvironment().update_asset_finder(
+        env.update_asset_finder(
             erase_existing=True,
             identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"])
 
@@ -90,7 +91,8 @@ class SecurityListTestCase(TestCase):
         algo.run(self.source)
         self.assertTrue(algo.found)
 
-    def test_security_list(self):
+    @with_environment()
+    def test_security_list(self, env=None):
 
         # set the knowledge date to the first day of the
         # leveraged etf knowledge date.
@@ -101,7 +103,7 @@ class SecurityListTestCase(TestCase):
         # assert that a sample from the leveraged list are in restricted
         should_exist = [
             asset.sid for asset in
-            trading.environment.asset_finder.lookup_generic(
+            env.asset_finder.lookup_generic(
                 ["BZQ", "URTY", "JFT"],
                 as_of_date=self.extra_knowledge_date)[0]
         ]
@@ -111,14 +113,15 @@ class SecurityListTestCase(TestCase):
         # assert that a sample of allowed stocks are not in restricted
         shouldnt_exist = [
             asset.sid for asset in
-            trading.environment.asset_finder.lookup_generic(
+            env.asset_finder.lookup_generic(
                 ["AAPL", "GOOG"],
                 as_of_date=self.extra_knowledge_date)[0]
         ]
         for sid in shouldnt_exist:
             self.assertNotIn(sid, rl.leveraged_etf_list)
 
-    def test_security_add(self):
+    @with_environment()
+    def test_security_add(self, env=None):
         def get_datetime():
             return datetime(2015, 1, 27, tzinfo=pytz.utc)
         with security_list_copy():
@@ -126,7 +129,7 @@ class SecurityListTestCase(TestCase):
             rl = SecurityListSet(get_datetime)
             should_exist = [
                 asset.sid for asset in
-                trading.environment.asset_finder.lookup_generic(
+                env.asset_finder.lookup_generic(
                     ["AAPL", "GOOG", "BZQ", "URTY"],
                     as_of_date=self.extra_knowledge_date)[0]
             ]

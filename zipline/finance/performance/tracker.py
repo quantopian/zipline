@@ -68,7 +68,7 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 import zipline.finance.risk as risk
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from . period import PerformancePeriod
 
 from zipline.utils.serialization_utils import (
@@ -83,7 +83,8 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params):
+    @with_environment()
+    def __init__(self, sim_params, env=None):
 
         self.sim_params = sim_params
 
@@ -91,16 +92,16 @@ class PerformanceTracker(object):
         self.period_end = self.sim_params.period_end
         self.last_close = self.sim_params.last_close
         first_open = self.sim_params.first_open.tz_convert(
-            trading.environment.exchange_tz)
+            env.exchange_tz)
         self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
                                          first_open.day), tz='UTC')
         self.market_open, self.market_close = \
-            trading.environment.get_open_and_close(self.day)
+            env.get_open_and_close(self.day)
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
-        all_trading_days = trading.environment.trading_days
+        all_trading_days = env.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
                 (all_trading_days <= normalize_date(self.period_end)))
 
@@ -209,12 +210,13 @@ class PerformanceTracker(object):
             self.saved_dt = date
             self.todays_performance.period_close = self.saved_dt
 
-    def _update_asset(self, sid):
+    @with_environment()
+    def _update_asset(self, sid, env=None):
         if sid in self._known_asset_sids:
             return
         self._known_asset_sids.add(sid)
         # Collect the end date of the asset
-        asset = trading.environment.asset_finder.retrieve_asset(sid)
+        asset = env.asset_finder.retrieve_asset(sid)
         if asset.end_date:
             try:
                 date_sids = self._asset_ends[asset.end_date]
@@ -472,7 +474,8 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
 
-    def handle_market_close_daily(self):
+    @with_environment()
+    def handle_market_close_daily(self, env=None):
         """
         Function called after handle_data when running with daily emission
         rate.
@@ -503,8 +506,8 @@ class PerformanceTracker(object):
 
         # move the market day markers forward
         self.market_open, self.market_close = \
-            trading.environment.next_open_and_close(self.day)
-        self.day = trading.environment.next_trading_day(self.day)
+            env.next_open_and_close(self.market_open)
+        self.day = env.next_trading_day(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()

@@ -42,7 +42,7 @@ from zipline.errors import (
     SidNotFound
 )
 
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.controls import (
@@ -119,6 +119,7 @@ class TradingAlgorithm(object):
     # of the overriding subclass to set initialized = true
     AUTO_INITIALIZE = True
 
+    @with_environment()
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
 
@@ -182,8 +183,9 @@ class TradingAlgorithm(object):
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
 
-        # Update the TradingEnvironment with the provided metadata\
-        trading.environment.update_asset_finder(
+        # Update the TradingEnvironment with the provided metadata
+        self.trading_environment = kwargs.pop('env')
+        self.trading_environment.update_asset_finder(
             asset_finder=kwargs.pop('asset_finder', None),
             asset_metadata=kwargs.pop('asset_metadata', None),
             identifiers=kwargs.pop('identifiers', None)
@@ -350,7 +352,7 @@ class TradingAlgorithm(object):
             if sim_params.data_frequency == 'minute' or \
                sim_params.emission_rate == 'minute':
                 def update_time(date):
-                    return trading.environment.get_open_and_close(date)[1]
+                    return self.trading_environment.get_open_and_close(date)[1]
             else:
                 def update_time(date):
                     return date
@@ -360,7 +362,7 @@ class TradingAlgorithm(object):
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
                 for dt, ret in
-                trading.environment.benchmark_returns.iteritems()
+                self.trading_environment.benchmark_returns.iteritems()
                 if dt.date() >= sim_params.period_start.date() and
                 dt.date() <= sim_params.period_end.date()
             ]
@@ -487,7 +489,7 @@ class TradingAlgorithm(object):
             # the AssetFinder
             for sid in self.sim_params.sids:
                 try:
-                    trading.environment.asset_finder.retrieve_asset(sid)
+                    self.trading_environment.asset_finder.retrieve_asset(sid)
                 except SidNotFound:
                     warnings.warn("No Asset found for sid '%s'. Make sure "
                                   "that the correct identifiers and asset "
@@ -653,7 +655,7 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the Asset (e.g. yahoo finance).
         """
-        asset, _ = trading.environment.asset_finder.lookup_generic(
+        asset, _ = self.trading_environment.asset_finder.lookup_generic(
             asset_convertible_or_iterable=symbol_str,
             as_of_date=self.datetime,
             )
@@ -665,10 +667,7 @@ class TradingAlgorithm(object):
         Default symbols lookup for any source that directly maps the
         symbol to the Asset (e.g. yahoo finance).
         """
-        result = []
-        for identifier in args:
-            result.append(self.symbol(identifier))
-        return result
+        return [self.symbol(identifier) for identifier in args]
 
     @api_method
     def sid(self, sid):
@@ -676,7 +675,7 @@ class TradingAlgorithm(object):
         Default sid lookup for any source that directly maps the integer sid
         to the Asset.
         """
-        return trading.environment.asset_finder.retrieve_asset(sid)
+        return self.trading_environment.asset_finder.retrieve_asset(sid)
 
     @api_method
     def order(self, sid, amount,

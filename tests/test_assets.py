@@ -33,15 +33,12 @@ import pandas as pd
 
 from nose_parameterized import parameterized
 
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 from zipline.assets import Asset, Future, AssetFinder, AssetMetaData
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
 )
-
-trading.environment = trading.TradingEnvironment()
-env = trading.environment
 
 
 class FakeTable(object):
@@ -100,7 +97,8 @@ class FakeTableFromRecords(object):
         return self.df.to_records()
 
 
-def build_lookup_generic_cases():
+@with_environment()
+def build_lookup_generic_cases(env=None):
     """
     Generate test cases for AssetFinder test_lookup_generic.
     """
@@ -329,7 +327,8 @@ class TestFuture(TestCase):
 
 class AssetFinderTestCase(TestCase):
 
-    def test_lookup_symbol_fuzzy(self):
+    @with_environment()
+    def test_lookup_symbol_fuzzy(self, env=None):
         fuzzy_str = '@'
         as_of_date = datetime(2013, 1, 1, tzinfo=pytz.utc)
         table = FakeTable(uuid.uuid4().hex, 2, as_of_date,
@@ -353,7 +352,8 @@ class AssetFinderTestCase(TestCase):
         finally:
             AssetFinder.clear_cache()
 
-    def test_lookup_symbol_resolve_multiple(self):
+    @with_environment()
+    def test_lookup_symbol_resolve_multiple(self, env=None):
 
         as_of_dates = [
             pd.Timestamp('2013-01-01', tz='UTC') + timedelta(days=i)
@@ -392,7 +392,8 @@ class AssetFinderTestCase(TestCase):
         finally:
             AssetFinder.clear_cache()
 
-    def test_lookup_symbol_nasdaq_underscore_collisions(self):
+    @with_environment()
+    def test_lookup_symbol_nasdaq_underscore_collisions(self, env=None):
         """
         Ensure that each NASDAQ symbol without underscores maps back to the
         original symbol when using fuzzy matching.
@@ -431,7 +432,9 @@ class AssetFinderTestCase(TestCase):
     @parameterized.expand(
         build_lookup_generic_cases()
     )
-    def test_lookup_generic(self, table, symbols, reference_date, expected):
+    @with_environment()
+    def test_lookup_generic(self, table, symbols, reference_date, expected,
+                            env=None):
         """
         Ensure that lookup_generic works with various permutations of inputs.
         """
@@ -444,7 +447,9 @@ class AssetFinderTestCase(TestCase):
         finally:
             AssetFinder.clear_cache()
 
-    def test_lookup_generic_handle_missing(self):
+
+    @with_environment()
+    def test_lookup_generic_handle_missing(self, env=None):
         try:
             table = FakeTableFromRecords(
                 [

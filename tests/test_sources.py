@@ -26,7 +26,7 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
-from zipline.finance import trading
+from zipline.finance.trading import with_environment
 
 
 class TestDataFrameSource(TestCase):
@@ -61,7 +61,8 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['volume'], int))
             self.assertTrue(isinstance(event['arbitrary'], float))
 
-    def test_yahoo_bars_to_panel_source(self):
+    @with_environment()
+    def test_yahoo_bars_to_panel_source(self, env=None):
         stocks = ['AAPL', 'GE']
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
@@ -75,8 +76,7 @@ class TestDataFrameSource(TestCase):
         source = DataPanelSource(data)
         sids = [
             asset.sid for asset in
-            trading.environment.asset_finder.lookup_generic(
-                stocks, as_of_date=end)[0]
+            env.asset_finder.lookup_generic(stocks, as_of_date=end)[0]
         ]
         stocks_iter = cycle(sids)
         for event in source:
@@ -85,8 +85,9 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['volume'], (integer_types)))
             self.assertEqual(next(stocks_iter), event['sid'])
 
-    def test_nan_filter_dataframe(self):
-        trading.environment.update_asset_finder(identifiers=[4, 5])
+    @with_environment()
+    def test_nan_filter_dataframe(self, env=None):
+        env.update_asset_finder(identifiers=[4, 5])
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.DataFrame(np.random.randn(2, 2),
                           index=dates,
@@ -104,8 +105,9 @@ class TestDataFrameSource(TestCase):
         self.assertEqual(5, event.sid)
         self.assertFalse(np.isnan(event.price))
 
-    def test_nan_filter_panel(self):
-        trading.environment.update_asset_finder(identifiers=[4, 5])
+    @with_environment()
+    def test_nan_filter_panel(self, env=None):
+        env.update_asset_finder(identifiers=[4, 5])
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.Panel(np.random.randn(2, 2, 2),
                       major_axis=dates,
