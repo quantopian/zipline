@@ -1206,18 +1206,29 @@ class TestTradingControls(TestCase):
         algo.run(self.source)
         self.source.rewind()
 
-    def test_expired_sid(self):
+    def test_asset_date_bounds(self):
 
         # Run the algorithm with a sid that ends far in the future
         df_source, _ = factory.create_test_df_source(self.sim_params)
-        metadata = {0: {'end_date': '2020-01-01'}}
+        metadata = {0: {'start_date': '1990-01-01',
+                        'end_date': '2020-01-01'}}
         algo = TestOrderAlgorithm(asset_metadata=metadata,
                                   sim_params=self.sim_params)
         algo.run(df_source)
 
         # Run the algorithm with a sid that has already ended
         df_source, _ = factory.create_test_df_source(self.sim_params)
-        metadata = {0: {'end_date': '1990-01-01'}}
+        metadata = {0: {'start_date': '1989-01-01',
+                        'end_date': '1990-01-01'}}
+        algo = TestOrderAlgorithm(asset_metadata=metadata,
+                                  sim_params=self.sim_params)
+        with self.assertRaises(TradingControlViolation):
+            algo.run(df_source)
+
+        # Run the algorithm with a sid that has not started
+        df_source, _ = factory.create_test_df_source(self.sim_params)
+        metadata = {0: {'start_date': '2020-01-01',
+                        'end_date': '2021-01-01'}}
         algo = TestOrderAlgorithm(asset_metadata=metadata,
                                   sim_params=self.sim_params)
         with self.assertRaises(TradingControlViolation):

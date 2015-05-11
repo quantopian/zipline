@@ -52,7 +52,7 @@ from zipline.finance.controls import (
     MaxPositionSize,
     MaxLeverage,
     RestrictedListOrder,
-    ExpiredSID
+    AssetDateBounds
 )
 from zipline.finance.execution import (
     LimitOrder,
@@ -267,7 +267,7 @@ class TradingAlgorithm(object):
         self.initialized = False
 
         # Register any default TradingControl objects
-        self.register_trading_control(ExpiredSID())
+        self.register_trading_control(AssetDateBounds())
 
         # Subclasses that override initialize should only worry about
         # setting self.initialized = True if AUTO_INITIALIZE is

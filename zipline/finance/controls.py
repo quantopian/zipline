@@ -269,10 +269,10 @@ class LongOnly(TradingControl):
             self.fail(sid, amount)
 
 
-class ExpiredSID(TradingControl):
+class AssetDateBounds(TradingControl):
     """
-    TradingControl representing a prohibition against ordering a SID that has
-    passed its end_date.
+    TradingControl representing a prohibition against ordering an asset before
+    its start_date, or after its end_date.
     """
 
     def validate(self,
@@ -284,11 +284,11 @@ class ExpiredSID(TradingControl):
         """
         Fail if the algo has passed this Asset's end_date.
         """
-        # No failure if the Asset has no end_date
-        if not sid.end_date:
-            return
+        # Fail if the algo is before this Asset's start_date
+        if sid.start_date and (algo_datetime < sid.start_date):
+            self.fail(sid, amount)
         # Fail if the algo has passed this Asset's end_date
-        if algo_datetime >= sid.end_date:
+        if sid.end_date and (algo_datetime >= sid.end_date):
             self.fail(sid, amount)
 
 
