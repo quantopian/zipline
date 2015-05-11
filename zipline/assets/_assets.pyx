@@ -24,7 +24,7 @@ cimport numpy as np
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
-CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.cache'
+CACHE_FILE_TEMPLATE = '~/.zipline/.%s-%s.v4.cache'
 
 cdef class Asset:
 
@@ -178,12 +178,12 @@ cdef class Asset:
             'exchange': self.exchange,
         }
 
-    @staticmethod
-    def from_dict(dict_):
+    @classmethod
+    def from_dict(cls, dict_):
         """
         Build an Asset instance from a dict.
         """
-        return Asset(**dict_)
+        return cls(**dict_)
 
 
 cdef class Equity(Asset):
@@ -202,13 +202,6 @@ cdef class Equity(Asset):
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
         params = ', '.join(strings)
         return 'Equity(%d, %s)' % (self.sid, params)
-
-    @staticmethod
-    def from_dict(dict_):
-        """
-        Build an Equity instance from a dict.
-        """
-        return Equity(**dict_)
 
 
 cdef class Future(Asset):
@@ -280,13 +273,6 @@ cdef class Future(Asset):
         super_dict['expiration_date'] = self.expiration_date
         super_dict['contract_multiplier'] = self.contract_multiplier
         return super_dict
-
-    @staticmethod
-    def from_dict(dict_):
-        """
-        Build a Future instance from a dict.
-        """
-        return Future(**dict_)
 
 
 def make_asset_array(int size, Asset asset):
