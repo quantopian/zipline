@@ -66,7 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets import Asset, Future
+from zipline.assets import Asset, Future, Equity
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -677,6 +677,29 @@ class TradingAlgorithm(object):
         """
         return self.trading_environment.asset_finder.retrieve_asset(sid)
 
+    def _calculate_order_value_amount(self, asset, value):
+        """
+        Calculates how many shares/contracts to order based on the type of
+        asset being ordered.
+        """
+        last_price = self.trading_client.current_data[asset].price
+
+        if np.allclose(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=asset
+            )
+            if self.logger:
+                self.logger.debug(zero_message)
+            # Don't place any order
+            return 0
+
+        if isinstance(asset, Future):
+            value_multiplier = asset.contract_multiplier
+        else:
+            value_multiplier = 1
+
+        return value / (last_price * value_multiplier)
+
     @api_method
     def order(self, sid, amount,
               limit_price=None,
@@ -795,26 +818,11 @@ class TradingAlgorithm(object):
         Stop order:      order(sid, value, None, stop_price)
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
-        last_price = self.trading_client.current_data[sid].price
-
-        value_multiplier = 1
-        if isinstance(sid, Future):
-            value_multiplier = sid.contract_multiplier
-
-        if np.allclose(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(
-                psid=sid
-            )
-            if self.logger:
-                self.logger.debug(zero_message)
-            # Don't place any order
-            return
-        else:
-            amount = value / (last_price * value_multiplier)
-            return self.order(sid, amount,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
+        amount = self._calculate_order_value_amount(sid, value)
+        return self.order(sid, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
 
     @property
     def recorded_vars(self):
@@ -975,20 +983,7 @@ class TradingAlgorithm(object):
         If the Asset being ordered is a Future, the 'target value' calculated
         is actually the target exposure, as Futures have no 'value'.
         """
-        last_price = self.trading_client.current_data[sid].price
-
-        value_multiplier = 1
-        if isinstance(sid, Future):
-            value_multiplier = sid.contract_multiplier
-
-        if np.allclose(last_price, 0):
-            # Don't place an order
-            if self.logger:
-                zero_message = "Price of 0 for {psid}; can't infer value"
-                self.logger.debug(zero_message.format(psid=sid))
-            return
-
-        target_amount = target / (last_price * value_multiplier)
+        target_amount = self._calculate_order_value_amount(sid, target)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,
