@@ -426,7 +426,7 @@ class PerformanceTracker(object):
                 continue
             self._past_asset_end_dates.add(date)
             for sid in sids:
-                txn = self.position_tracker._generate_end_sid_transaction(
+                txn = self.position_tracker._maybe_create_end_sid_transaction(
                     sid=sid,
                     dt=next_trading_day
                 )

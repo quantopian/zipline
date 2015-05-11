@@ -36,8 +36,8 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
-        self._position_value_multiplier = OrderedDict()
-        self._position_exposure_multiplier = OrderedDict()
+        self._position_value_multipliers = OrderedDict()
+        self._position_exposure_multipliers = OrderedDict()
         self._unpaid_dividends = pd.DataFrame(
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
@@ -64,11 +64,11 @@ class PositionTracker(object):
         # Collect the value multipliers from applicable sids
         asset = self._retrieve_asset(sid)
         if isinstance(asset, Equity):
-            self._position_value_multiplier[asset.sid] = 1
-            self._position_exposure_multiplier[asset.sid] = 1
+            self._position_value_multipliers[asset.sid] = 1
+            self._position_exposure_multipliers[asset.sid] = 1
         if isinstance(asset, Future):
-            self._position_value_multiplier[asset.sid] = 0
-            self._position_exposure_multiplier[asset.sid] = \
+            self._position_value_multipliers[asset.sid] = 0
+            self._position_exposure_multipliers[asset.sid] = \
                 asset.contract_multiplier
 
     def update_last_sale(self, event):
@@ -154,7 +154,7 @@ class PositionTracker(object):
         if self._position_values is None:
             # Apply value multipliers to quantities
             vals = map(mul, self._position_amounts.values(),
-                       self._position_value_multiplier.values())
+                       self._position_value_multipliers.values())
             # Apply last sale prices to quantities
             vals = list(map(mul, vals,
                             self._position_last_sale_prices.values()))
@@ -170,7 +170,7 @@ class PositionTracker(object):
         if self._position_exposures is None:
             # Apply exposure multipliers to quantities
             vals = map(mul, self._position_amounts.values(),
-                       self._position_exposure_multiplier.values())
+                       self._position_exposure_multipliers.values())
             # Apply last sale prices to quantities
             vals = list(map(mul, vals,
                             self._position_last_sale_prices.values()))
@@ -306,9 +306,8 @@ class PositionTracker(object):
         net_cash_payment = payments['cash_amount'].fillna(0).sum()
         return net_cash_payment
 
-    def _generate_end_sid_transaction(self, sid, dt):
-        if (sid not in self._position_amounts) or \
-                (self._position_amounts[sid] == 0):
+    def _maybe_create_end_sid_transaction(self, sid, dt):
+        if not self._position_amounts.get(sid):
             return None
         txn = Transaction(
             sid=sid,
@@ -379,8 +378,8 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
-        self._position_value_multiplier = OrderedDict()
-        self._position_exposure_multiplier = OrderedDict()
+        self._position_value_multipliers = OrderedDict()
+        self._position_exposure_multipliers = OrderedDict()
         self._known_asset_sids = set()
         self._invalidate_cache()
 
