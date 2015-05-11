@@ -41,20 +41,17 @@ log = Logger('assets.py')
 
 class AssetFinder(object):
 
-    shared_caches = {'by_sid': {}, 'by_symbol': {}, 'fuzzy_match': {}}
-
     def __init__(self,
                  metadata,
-                 trading_calendar=tradingcalendar,
-                 force_populate=False):
+                 trading_calendar=tradingcalendar):
 
         # Any particular instance of AssetFinder should be
         # consistent throughout its lifetime, so we grab a reference
         # to our cache now. That way, if the cache is refreshed later,
         # our instance will continue to use the old one.
-        self.cache = self.shared_caches['by_sid']
-        self.sym_cache = self.shared_caches['by_symbol']
-        self.fuzzy_match = self.shared_caches['fuzzy_match']
+        self.cache = {}
+        self.sym_cache = {}
+        self.fuzzy_match = {}
 
         self.trading_calendar = trading_calendar
 
@@ -62,7 +59,7 @@ class AssetFinder(object):
             self.metadata = metadata
         else:
             self.metadata = AssetMetaData(metadata)
-        self.populate_cache(force_populate)
+        self.populate_cache()
 
     def _next_free_sid(self):
         if len(self.cache) > 0:
@@ -199,14 +196,11 @@ class AssetFinder(object):
                 else:
                     self.fuzzy_match[(symbol, fuzzy, as_of_date)] = None
 
-    def populate_cache(self, force=False):
+    def populate_cache(self):
         """
         Populates the asset cache with all values in the assets
         collection.
         """
-        if not force and any(c for c in self.shared_caches.items()
-                             if c is not None):
-            return
 
         # Wipe caches before repopulating
         self.cache = {}
@@ -219,65 +213,92 @@ class AssetFinder(object):
             self.spawn_asset(identifier=identifier, **row)
             counter += 1
 
-        self.shared_caches.update(
-            {'by_sid': self.cache,
-             'by_symbol': self.sym_cache,
-             'fuzzy_match': {}}
-        )
-
     def spawn_asset(self, identifier, **kwargs):
 
-        # Check if the identifier is an int
-        if isinstance(identifier, int) and ('sid' not in kwargs.keys()):
-            kwargs['sid'] = identifier
-
-        # Make sure that the sid exists in the kwargs
-        if 'sid' not in kwargs.keys():
-            kwargs['sid'] = self._assign_sid(identifier)
+        # Check if the sid is declared
+        try:
+            kwargs['sid']
+            pass
+        except KeyError:
+            # Assign the identifier as the sid, if applicable
+            if isinstance(identifier, int):
+                kwargs['sid'] = identifier
+            # If the identifier is not a sid, assign one
+            else:
+                kwargs['sid'] = self._assign_sid(identifier)
 
         # If the identifier coming in was a string and there is no defined
-        # symbol yet, set the symbol to the incoming sid
-        if isinstance(identifier, str) and ('symbol' not in kwargs.keys()):
-            kwargs['symbol'] = identifier
+        # symbol yet, set the symbol to the incoming identifier
+        try:
+            kwargs['symbol']
+            pass
+        except KeyError:
+            if isinstance(identifier, str):
+                kwargs['symbol'] = identifier
 
         # If the file_name is in the kwargs, it may be the symbol
-        if 'file_name' in kwargs.keys():
+        try:
             file_name = kwargs.pop('file_name')
-            if 'symbol' not in kwargs.keys():
+            try:
+                kwargs['symbol']
+            except KeyError:
                 kwargs['symbol'] = file_name
+        except KeyError:
+            pass
 
         # If the company_name is in the kwargs, it may be the asset_name
-        if 'company_name' in kwargs.keys():
+        try:
             company_name = kwargs.pop('company_name')
-            if 'asset_name' not in kwargs.keys():
+            try:
+                kwargs['asset_name']
+            except KeyError:
                 kwargs['asset_name'] = company_name
+        except KeyError:
+            pass
 
         # If dates are given as nanos, pop them
-        if 'start_date_nano' in kwargs.keys():
+        try:
             kwargs['start_date'] = kwargs.pop('start_date_nano')
-        if 'end_date_nano' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['end_date'] = kwargs.pop('end_date_nano')
-        if 'notice_date_nano' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['notice_date'] = kwargs.pop('notice_date_nano')
-        if 'expiration_date_nano' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['expiration_date'] = kwargs.pop('expiration_date_nano')
+        except KeyError:
+            pass
 
         # Process dates
-        if 'start_date' in kwargs.keys():
+        try:
             kwargs['start_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['start_date']))
-        if 'end_date' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['end_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['end_date']))
-        if 'notice_date' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['notice_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['notice_date']))
-        if 'expiration_date' in kwargs.keys():
+        except KeyError:
+            pass
+        try:
             kwargs['expiration_date'] = self.trading_calendar.\
                 canonicalize_datetime(pd.Timestamp(kwargs['expiration_date']))
+        except KeyError:
+            pass
 
-        asset_type = kwargs.pop('asset_type', None)
-        if (asset_type is None) or (asset_type.lower() == 'equity'):
+        # Build an Asset of the appropriate type
+        asset_type = kwargs.pop('asset_type', 'equity')
+        if asset_type.lower() == 'equity':
             asset = Equity(**kwargs)
         elif asset_type.lower() == 'future':
             asset = Future(**kwargs)
@@ -285,18 +306,12 @@ class AssetFinder(object):
             raise InvalidAssetType(asset_type=asset_type)
 
         self.cache[asset.sid] = asset
-        if 'symbol' in kwargs.keys():
+        if asset.symbol is not "":
             self.sym_cache.setdefault(asset.symbol, []).append(asset)
 
         # Update the metadata object with the new sid
         self.metadata.insert_metadata(identifier=identifier, sid=asset.sid)
         return asset
-
-    @classmethod
-    def clear_cache(cls):
-        cls.shared_caches.update(
-            {'by_sid': None, 'by_symbol': None, 'fuzzy_match': None}
-        )
 
     @property
     def sids(self):

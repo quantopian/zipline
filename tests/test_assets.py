@@ -149,7 +149,7 @@ def build_lookup_generic_cases(env=None):
     # This expansion code is run at module import time, which means we have to
     # clear the AssetFinder here or else it will interfere with the cache
     # for other tests.
-    AssetFinder.clear_cache()
+    env.update_asset_finder(erase_existing=True)
 
     dupe_0_start = dupe_0.start_date
     dupe_1_start = dupe_1.start_date
@@ -350,7 +350,7 @@ class AssetFinderTestCase(TestCase):
                 self.assertIsNotNone(sf.lookup_symbol(
                     'test%s' % 1, as_of_date, fuzzy=fuzzy_str))
         finally:
-            AssetFinder.clear_cache()
+            env.update_asset_finder(erase_existing=True)
 
     @with_environment()
     def test_lookup_symbol_resolve_multiple(self, env=None):
@@ -390,7 +390,7 @@ class AssetFinderTestCase(TestCase):
                     self.assertEqual(result.sid, i)
 
         finally:
-            AssetFinder.clear_cache()
+            env.update_asset_finder(erase_existing=True)
 
     @with_environment()
     def test_lookup_symbol_nasdaq_underscore_collisions(self, env=None):
@@ -427,7 +427,7 @@ class AssetFinderTestCase(TestCase):
                 pprint.pformat(unexpected_errors),
             )
         finally:
-            AssetFinder.clear_cache()
+            env.update_asset_finder(erase_existing=True)
 
     @parameterized.expand(
         build_lookup_generic_cases()
@@ -445,7 +445,7 @@ class AssetFinderTestCase(TestCase):
             self.assertEqual(results, expected)
             self.assertEqual(missing, [])
         finally:
-            AssetFinder.clear_cache()
+            env.update_asset_finder(erase_existing=True)
 
 
     @with_environment()
@@ -493,12 +493,11 @@ class AssetFinderTestCase(TestCase):
                 ]
             )
             env.update_asset_finder(asset_metadata=table.df)
-            finder = env.asset_finder
             symbols = [
                 'real', 1, 'fake', 'real_but_old', 'real_but_in_the_future',
             ]
 
-            results, missing = finder.lookup_generic(
+            results, missing = env.asset_finder.lookup_generic(
                 symbols,
                 pd.Timestamp('2013-02-01', tz='UTC'),
             )
@@ -514,7 +513,7 @@ class AssetFinderTestCase(TestCase):
             self.assertEqual(missing[1], 'real_but_in_the_future')
 
         finally:
-            AssetFinder.clear_cache()
+            env.update_asset_finder(erase_existing=True)
 
 
 class TestAssetMetaData(TestCase):

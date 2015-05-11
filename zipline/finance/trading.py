@@ -194,7 +194,7 @@ class TradingEnvironment(object):
             self.asset_finder.metadata.consume_identifiers(identifiers)
             populate = True
         if populate:
-            self.asset_finder.populate_cache(force=True)
+            self.asset_finder.populate_cache()
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
