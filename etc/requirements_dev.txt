@@ -2,7 +2,7 @@
 nose==1.3.6
 nose-parameterized==0.3.5
 nose-ignore-docstring==0.2
--e git://github.com/quantopian/xlrd.git@f9b34b7ea3506fb941335577982e2fc8e30f7673#egg=xlrd-master
+-e git://github.com/quantopian/xlrd.git@d42038a963daba7338fa0b9b615635bfdc90bcbe#egg=xlrd-master
 mock==1.0.1
 
 # Linting
