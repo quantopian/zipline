@@ -1,5 +1,5 @@
 # Logging
-Logbook==0.6.0
+Logbook==0.9.1
 
 # Scientific Libraries
 
