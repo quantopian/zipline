@@ -61,7 +61,7 @@ DIVIDEND_PAYMENT_FIELDS = [
     'id',
     'payment_sid',
     'cash_amount',
-    'share_count'
+    'share_count',
 ]
 
 

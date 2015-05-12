@@ -66,7 +66,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets import Asset, Future, Equity
+from zipline.assets import Asset, Future
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
