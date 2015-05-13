@@ -10,8 +10,9 @@ try:
     from cyordereddict import OrderedDict
 except ImportError:
     from collections import OrderedDict
-from six import iteritems
+from six import iteritems, itervalues
 from six.moves import map, filter
+from itertools import izip
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -151,6 +152,7 @@ class PositionTracker(object):
         Invalidate any time self._position_amounts or
         self._position_last_sale_prices is changed.
         """
+        # TODO improve perf
         if self._position_values is None:
             # Apply value multipliers to quantities
             vals = map(mul, self._position_amounts.values(),
@@ -167,6 +169,7 @@ class PositionTracker(object):
         Invalidate any time self._position_amounts or
         self._position_last_sale_prices is changed.
         """
+        # TODO improve perf
         if self._position_exposures is None:
             # Apply exposure multipliers to quantities
             vals = map(mul, self._position_amounts.values(),
@@ -190,22 +193,22 @@ class PositionTracker(object):
         return sum(self.position_exposures)
 
     def _longs_count(self):
-        return sum(map(lambda x: x > 0, self.position_exposures))
+        return sum(1 for i in self.position_exposures if i > 0)
 
     def _long_exposure(self):
-        return sum(filter(lambda x: x > 0, self.position_exposures))
+        return sum(i for i in self.position_exposures if i > 0)
 
     def _long_value(self):
-        return sum(filter(lambda x: x > 0, self.position_values))
+        return sum(i for i in self.position_values if i > 0)
 
     def _shorts_count(self):
-        return sum(map(lambda x: x < 0, self.position_exposures))
+        return sum(1 for i in self.position_exposures if i < 0)
 
     def _short_exposure(self):
-        return sum(filter(lambda x: x < 0, self.position_exposures))
+        return sum(i for i in self.position_exposures if i < 0)
 
     def _short_value(self):
-        return sum(filter(lambda x: x < 0, self.position_values))
+        return sum(i for i in self.position_values if i < 0)
 
     def _gross_exposure(self):
         return self._long_exposure() + abs(self._short_exposure())
