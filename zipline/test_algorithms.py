@@ -725,8 +725,7 @@ class BatchTransformAlgorithm(TradingAlgorithm):
                 self.return_nan.handle_data(data))
         else:
             nan_data = deepcopy(data)
-            for sidint in nan_data.iterkeys():
-                nan_data[sidint].price = np.nan
+            nan_data.price = np.nan
             self.history_return_nan.append(
                 self.return_nan.handle_data(nan_data))
 
