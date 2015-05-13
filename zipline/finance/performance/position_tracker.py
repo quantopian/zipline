@@ -1,5 +1,4 @@
 from __future__ import division
-from operator import mul
 
 import logbook
 import numpy as np
@@ -11,7 +10,6 @@ try:
 except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
-from six.moves import map, filter
 from itertools import izip
 
 from zipline.utils.serialization_utils import (
