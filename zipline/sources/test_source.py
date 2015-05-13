@@ -22,7 +22,6 @@ import pytz
 from itertools import cycle
 from six.moves import filter, zip
 from datetime import datetime, timedelta
-import numpy as np
 
 from six.moves import range
 

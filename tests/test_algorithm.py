@@ -37,7 +37,6 @@ from zipline.errors import (
     TradingControlViolation,
     AccountControlViolation,
     SymbolNotFound,
-    SidNotFound,
 )
 from zipline.test_algorithms import (
     access_account_in_init,

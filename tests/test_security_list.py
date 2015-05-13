@@ -106,8 +106,7 @@ class SecurityListTestCase(TestCase):
             [env.asset_finder.lookup_symbol(
                 symbol,
                 as_of_date=self.extra_knowledge_date)
-             for symbol in ["BZQ", "URTY", "JFT"]
-            ]
+             for symbol in ["BZQ", "URTY", "JFT"]]
         ]
         for sid in should_exist:
             self.assertIn(sid, rl.leveraged_etf_list)
@@ -118,8 +117,7 @@ class SecurityListTestCase(TestCase):
             [env.asset_finder.lookup_symbol(
                 symbol,
                 as_of_date=self.extra_knowledge_date)
-             for symbol in ["AAPL", "GOOG"]
-            ]
+             for symbol in ["AAPL", "GOOG"]]
         ]
         for sid in shouldnt_exist:
             self.assertNotIn(sid, rl.leveraged_etf_list)
@@ -136,9 +134,7 @@ class SecurityListTestCase(TestCase):
                 [env.asset_finder.lookup_symbol(
                     symbol,
                     as_of_date=self.extra_knowledge_date
-                )
-                 for symbol in ["AAPL", "GOOG", "BZQ", "URTY"]
-                ]
+                ) for symbol in ["AAPL", "GOOG", "BZQ", "URTY"]]
             ]
             for sid in should_exist:
                 self.assertIn(sid, rl.leveraged_etf_list)

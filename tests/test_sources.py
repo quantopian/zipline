@@ -77,8 +77,7 @@ class TestDataFrameSource(TestCase):
         sids = [
             asset.sid for asset in
             [env.asset_finder.lookup_symbol(symbol, as_of_date=end)
-             for symbol in stocks
-            ]
+             for symbol in stocks]
         ]
         stocks_iter = cycle(sids)
         for event in source:

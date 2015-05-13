@@ -34,7 +34,7 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.finance.trading import with_environment
-from zipline.assets import Asset, Future, AssetFinder, AssetMetaData
+from zipline.assets import Asset, Future, AssetMetaData
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -447,7 +447,6 @@ class AssetFinderTestCase(TestCase):
         finally:
             env.update_asset_finder(erase_existing=True)
 
-
     @with_environment()
     def test_lookup_generic_handle_missing(self, env=None):
         try:
@@ -578,4 +577,3 @@ class TestAssetMetaData(TestCase):
         self.assertEqual('AAPL', amd.retrieve_metadata(2)['symbol'])
         # Check that old data survived
         self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
-
