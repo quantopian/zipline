@@ -119,7 +119,8 @@ class DataPanelSource(DataSource):
     def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
 
-        self.data = data.fillna(method='ffill', axis=0)
+        self.data = data.fillna(value={'volume':0})
+        self.data = self.data.fillna(method='ffill')
         # Unpack config dictionary with default values.
         self.start = kwargs.get('start', self.data.major_axis[0])
         self.end = kwargs.get('end', self.data.major_axis[-1])
