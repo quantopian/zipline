@@ -48,8 +48,6 @@ class PositionTracker(object):
         self._position_values = None
         self._position_exposures = None
 
-        self._known_asset_sids = set()
-
     def _invalidate_cache(self):
         self._position_values = None
         self._position_exposures = None
@@ -58,19 +56,20 @@ class PositionTracker(object):
     def _retrieve_asset(self, sid, env=None):
         return env.asset_finder.retrieve_asset(sid)
 
-    def _update_asset(self, sid):
-        if sid in self._known_asset_sids:
-            return
-        self._known_asset_sids.add(sid)
-        # Collect the value multipliers from applicable sids
-        asset = self._retrieve_asset(sid)
-        if isinstance(asset, Equity):
-            self._position_value_multipliers[asset.sid] = 1
-            self._position_exposure_multipliers[asset.sid] = 1
-        if isinstance(asset, Future):
-            self._position_value_multipliers[asset.sid] = 0
-            self._position_exposure_multipliers[asset.sid] = \
-                asset.contract_multiplier
+    def _update_multipliers(self, sid):
+        try:
+            self._position_value_multipliers[sid]
+            self._position_exposure_multipliers[sid]
+        except KeyError:
+            # Collect the value multipliers from applicable sids
+            asset = self._retrieve_asset(sid)
+            if isinstance(asset, Equity):
+                self._position_value_multipliers[sid] = 1
+                self._position_exposure_multipliers[sid] = 1
+            if isinstance(asset, Future):
+                self._position_value_multipliers[sid] = 0
+                self._position_exposure_multipliers[sid] = \
+                    asset.contract_multiplier
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
@@ -108,25 +107,8 @@ class PositionTracker(object):
         for sid, pos in iteritems(positions):
             self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
+            self._update_multipliers(sid)
             self._invalidate_cache()
-            self._update_asset(sid)
-
-    def update_position(self, sid, amount=None, last_sale_price=None,
-                        last_sale_date=None, cost_basis=None):
-        pos = self.positions[sid]
-
-        if amount is not None:
-            pos.amount = amount
-            self._position_amounts[sid] = amount
-            self._invalidate_cache()
-        if last_sale_price is not None:
-            pos.last_sale_price = last_sale_price
-            self._position_last_sale_prices[sid] = last_sale_price
-            self._invalidate_cache()
-        if last_sale_date is not None:
-            pos.last_sale_date = last_sale_date
-        if cost_basis is not None:
-            pos.cost_basis = cost_basis
 
     def execute_transaction(self, txn):
         # Update Position
@@ -136,9 +118,8 @@ class PositionTracker(object):
         position.update(txn)
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
+        self._update_multipliers(sid)
         self._invalidate_cache()
-        if position.amount != 0:
-            self._update_asset(sid)
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it
@@ -152,15 +133,16 @@ class PositionTracker(object):
         Invalidate any time self._position_amounts or
         self._position_last_sale_prices is changed.
         """
-        # TODO improve perf
         if self._position_values is None:
-            # Apply value multipliers to quantities
-            vals = map(mul, self._position_amounts.values(),
-                       self._position_value_multipliers.values())
-            # Apply last sale prices to quantities
-            vals = list(map(mul, vals,
-                            self._position_last_sale_prices.values()))
-            self._position_values = vals
+            iter_amount_price_multiplier = izip(
+                itervalues(self._position_amounts),
+                itervalues(self._position_last_sale_prices),
+                itervalues(self._position_value_multipliers),
+            )
+            self._position_values = [
+                price * amount * multiplier for
+                price, amount, multiplier in iter_amount_price_multiplier
+            ]
         return self._position_values
 
     @property
@@ -169,15 +151,16 @@ class PositionTracker(object):
         Invalidate any time self._position_amounts or
         self._position_last_sale_prices is changed.
         """
-        # TODO improve perf
         if self._position_exposures is None:
-            # Apply exposure multipliers to quantities
-            vals = map(mul, self._position_amounts.values(),
-                       self._position_exposure_multipliers.values())
-            # Apply last sale prices to quantities
-            vals = list(map(mul, vals,
-                            self._position_last_sale_prices.values()))
-            self._position_exposures = vals
+            iter_amount_price_multiplier = izip(
+                itervalues(self._position_amounts),
+                itervalues(self._position_last_sale_prices),
+                itervalues(self._position_exposure_multipliers),
+            )
+            self._position_exposures = [
+                price * amount * multiplier for
+                price, amount, multiplier in iter_amount_price_multiplier
+            ]
         return self._position_exposures
 
     def calculate_positions_value(self):
@@ -231,8 +214,8 @@ class PositionTracker(object):
             self._position_amounts[split.sid] = position.amount
             self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
+            self._update_multipliers(split.sid)
             self._invalidate_cache()
-            self._update_asset(split.sid)
             return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
@@ -299,7 +282,7 @@ class PositionTracker(object):
             position.amount += share_count
             self._position_amounts[stock] = position.amount
             self._position_last_sale_prices[stock] = position.last_sale_price
-            self._update_asset(stock)
+            self._update_multipliers(stock)
             self._invalidate_cache()
 
         # Add cash equal to the net cash payed from all dividends.  Note that
@@ -383,7 +366,6 @@ class PositionTracker(object):
         self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._known_asset_sids = set()
         self._invalidate_cache()
 
         self.update_positions(state['positions'])
