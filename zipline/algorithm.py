@@ -140,6 +140,8 @@ class TradingAlgorithm(object):
                How much capital to start with.
             instant_fill : bool <default: False>
                Whether to fill orders immediately or on next bar.
+            asset_finder : An AssetFinder object
+                A new AssetFinder object to be used in this TradingEnvironment
             asset_metadata : AssetMetaData, dict, or DataFrame
                 The metadata for all assets that may be used
             identifiers : List
