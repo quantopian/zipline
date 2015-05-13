@@ -741,7 +741,7 @@ class TradingAlgorithm(object):
         return self.blotter.order(sid, amount, style)
 
     def validate_order_params(self,
-                              sid,
+                              asset,
                               amount,
                               limit_price,
                               stop_price,
@@ -768,14 +768,14 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
-        if not isinstance(sid, Asset):
+        if not isinstance(asset, Asset):
             raise UnsupportedOrderParameters(
                 msg="Passing non-Asset argument to 'order()' is not supported."
                     " Use 'sid()' or 'symbol()' methods to look up an Asset."
             )
 
         for control in self.trading_controls:
-            control.validate(sid,
+            control.validate(asset,
                              amount,
                              self.updated_portfolio(),
                              self.get_datetime(),
@@ -1145,7 +1145,7 @@ class TradingAlgorithm(object):
         increasing the absolute value of shares/dollar value exceeding one of
         these limits, raise a TradingControlException.
         """
-        control = MaxPositionSize(sid=sid,
+        control = MaxPositionSize(asset=sid,
                                   max_shares=max_shares,
                                   max_notional=max_notional)
         self.register_trading_control(control)
@@ -1160,7 +1160,7 @@ class TradingAlgorithm(object):
         If an algorithm attempts to place an order that would result in
         exceeding one of these limits, raise a TradingControlException.
         """
-        control = MaxOrderSize(sid=sid,
+        control = MaxOrderSize(asset=sid,
                                max_shares=max_shares,
                                max_notional=max_notional)
         self.register_trading_control(control)

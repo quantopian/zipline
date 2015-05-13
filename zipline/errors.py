@@ -175,7 +175,7 @@ class TradingControlViolation(ZiplineError):
     Raised if an order would violate a constraint set by a TradingControl.
     """
     msg = """
-Order for {amount} shares of {sid} violates trading constraint {constraint}.
+Order for {amount} shares of {asset} violates trading constraint {constraint}.
 """.strip()
 
 
