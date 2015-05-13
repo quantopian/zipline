@@ -269,3 +269,14 @@ class NoSourceError(ZiplineError):
     msg = """
 No data source given.
 """.strip()
+
+
+class PipelineDateError(ZiplineError):
+    """
+    Raised when only one date is passed to the pipeline
+    """
+    msg = """
+Only one simulation date given. Please specify both the 'start' and 'end' for
+the simulation, or neither. If neither is given, the start and end of the
+DataSource will be used. Given start = '{start}', end = '{end}'
+""".strip()

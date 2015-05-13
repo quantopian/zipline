@@ -31,15 +31,15 @@ except:
     PYGMENTS = False
 
 import zipline
-from zipline.errors import NoSourceError
+from zipline.errors import NoSourceError, PipelineDateError
 
 DEFAULTS = {
-    'start': '2012-01-01',
-    'end': '2012-12-31',
     'data_frequency': 'daily',
     'capital_base': '10e6',
     'source': 'yahoo',
-    'symbols': 'AAPL'
+    'symbols': 'AAPL',
+    'metadata_index': 'symbol',
+    'source_time_column': 'Date',
 }
 
 
@@ -157,13 +157,27 @@ def run_pipeline(print_algo=True, **kwargs):
            pygments syntax coloring if pygments is found.
 
     """
-    start = pd.Timestamp(kwargs['start'], tz='UTC')
-    end = pd.Timestamp(kwargs['end'], tz='UTC')
+    start = kwargs['start']
+    end = kwargs['end']
+    # Compare against None because strings/timestamps may have been given
+    if start is not None:
+        start = pd.Timestamp(start, tz='UTC')
+    if end is not None:
+        end = pd.Timestamp(end, tz='UTC')
+
+    # Fail out if only one bound is provided
+    if ((start is None) or (end is None)) and (start != end):
+        raise PipelineDateError(start=start, end=end)
+
+    # Check if start and end are provided, and if the sim_params need to read
+    # a start and end from the DataSource
+    if start is None:
+        overwrite_sim_params = True
+    else:
+        overwrite_sim_params = False
 
     symbols = kwargs['symbols'].split(',')
     asset_identifier = kwargs['metadata_index']
-    if asset_identifier is None:
-        asset_identifier = 'symbol'
 
     # Pull asset metadata
     asset_metadata = kwargs.get('asset_metadata', None)
@@ -176,8 +190,6 @@ def run_pipeline(print_algo=True, **kwargs):
 
     source_arg = kwargs['source']
     source_time_column = kwargs['source_time_column']
-    if source_time_column is None:
-        source_time_column = 'Date'
 
     if source_arg is None:
         raise NoSourceError()
@@ -231,7 +243,7 @@ def run_pipeline(print_algo=True, **kwargs):
                                     start=start,
                                     end=end)
 
-    perf = algo.run(source, overwrite_sim_params=False)
+    perf = algo.run(source, overwrite_sim_params=overwrite_sim_params)
 
     output_fname = kwargs.get('output', None)
     if output_fname is not None:
