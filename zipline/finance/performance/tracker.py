@@ -87,7 +87,6 @@ class PerformanceTracker(object):
     def __init__(self, sim_params, env=None):
 
         self.sim_params = sim_params
-        self._env = env
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
@@ -102,7 +101,7 @@ class PerformanceTracker(object):
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
-        all_trading_days = self._env.trading_days
+        all_trading_days = env.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
                 (all_trading_days <= normalize_date(self.period_end)))
 
@@ -211,12 +210,13 @@ class PerformanceTracker(object):
             self.saved_dt = date
             self.todays_performance.period_close = self.saved_dt
 
-    def _update_asset(self, sid):
+    @with_environment()
+    def _update_asset(self, sid, env=None):
         if sid in self._known_asset_sids:
             return
         self._known_asset_sids.add(sid)
         # Collect the end date of the asset
-        asset = self._env.asset_finder.retrieve_asset(sid)
+        asset = env.asset_finder.retrieve_asset(sid)
         if asset.end_date:
             try:
                 date_sids = self._asset_ends[asset.end_date]
@@ -419,7 +419,8 @@ class PerformanceTracker(object):
         while len(self._past_asset_end_dates) > 0:
             self._asset_ends.pop(self._past_asset_end_dates.pop())
 
-    def handle_minute_close(self, dt):
+    @with_environment()
+    def handle_minute_close(self, dt, env=None):
         self.update_performance()
         todays_date = normalize_date(dt)
         account = self.get_account(True)
@@ -438,7 +439,7 @@ class PerformanceTracker(object):
         # if this is the close, save the returns objects for cumulative risk
         # calculations and update dividends for the next day.
         if dt == self.market_close:
-            next_trading_day = self._env.next_trading_day(todays_date)
+            next_trading_day = env.next_trading_day(todays_date)
             if next_trading_day:
                 self.check_upcoming_dividends(next_trading_day)
                 self.close_expired_asset_positions(next_trading_day)
@@ -457,7 +458,8 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
 
-    def handle_market_close_daily(self):
+    @with_environment()
+    def handle_market_close_daily(self, env=None):
         """
         Function called after handle_data when running with daily emission
         rate.
@@ -488,15 +490,15 @@ class PerformanceTracker(object):
 
         # move the market day markers forward
         self.market_open, self.market_close = \
-            self._env.next_open_and_close(self.market_open)
-        self.day = self._env.next_trading_day(self.day)
+            env.next_open_and_close(self.market_open)
+        self.day = env.next_trading_day(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        next_trading_day = self._env.next_trading_day(completed_date)
+        next_trading_day = env.next_trading_day(completed_date)
         if next_trading_day:
             self.check_upcoming_dividends(next_trading_day)
             self.close_expired_asset_positions(next_trading_day)
