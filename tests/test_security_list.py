@@ -103,9 +103,11 @@ class SecurityListTestCase(TestCase):
         # assert that a sample from the leveraged list are in restricted
         should_exist = [
             asset.sid for asset in
-            env.asset_finder.lookup_generic(
-                ["BZQ", "URTY", "JFT"],
-                as_of_date=self.extra_knowledge_date)[0]
+            [env.asset_finder.lookup_symbol(
+                symbol,
+                as_of_date=self.extra_knowledge_date)
+             for symbol in ["BZQ", "URTY", "JFT"]
+            ]
         ]
         for sid in should_exist:
             self.assertIn(sid, rl.leveraged_etf_list)
@@ -113,9 +115,11 @@ class SecurityListTestCase(TestCase):
         # assert that a sample of allowed stocks are not in restricted
         shouldnt_exist = [
             asset.sid for asset in
-            env.asset_finder.lookup_generic(
-                ["AAPL", "GOOG"],
-                as_of_date=self.extra_knowledge_date)[0]
+            [env.asset_finder.lookup_symbol(
+                symbol,
+                as_of_date=self.extra_knowledge_date)
+             for symbol in ["AAPL", "GOOG"]
+            ]
         ]
         for sid in shouldnt_exist:
             self.assertNotIn(sid, rl.leveraged_etf_list)
@@ -129,9 +133,12 @@ class SecurityListTestCase(TestCase):
             rl = SecurityListSet(get_datetime)
             should_exist = [
                 asset.sid for asset in
-                env.asset_finder.lookup_generic(
-                    ["AAPL", "GOOG", "BZQ", "URTY"],
-                    as_of_date=self.extra_knowledge_date)[0]
+                [env.asset_finder.lookup_symbol(
+                    symbol,
+                    as_of_date=self.extra_knowledge_date
+                )
+                 for symbol in ["AAPL", "GOOG", "BZQ", "URTY"]
+                ]
             ]
             for sid in should_exist:
                 self.assertIn(sid, rl.leveraged_etf_list)

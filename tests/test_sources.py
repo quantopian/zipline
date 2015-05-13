@@ -76,7 +76,9 @@ class TestDataFrameSource(TestCase):
         source = DataPanelSource(data)
         sids = [
             asset.sid for asset in
-            env.asset_finder.lookup_generic(stocks, as_of_date=end)[0]
+            [env.asset_finder.lookup_symbol(symbol, as_of_date=end)
+             for symbol in stocks
+            ]
         ]
         stocks_iter = cycle(sids)
         for event in source:

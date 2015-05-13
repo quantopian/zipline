@@ -72,14 +72,14 @@ class SecurityList(object):
     @with_environment()
     def update_current(self, effective_date, symbols, change_func, env=None):
         for symbol in symbols:
-            try:
-                sid = env.asset_finder.lookup_generic(
-                    symbol,
-                    as_of_date=effective_date
-                )[0].sid
-                change_func(sid)
-            except SymbolNotFound:
+            asset = env.asset_finder.lookup_symbol(
+                symbol,
+                as_of_date=effective_date
+            )
+            # Pass if no Asset exists for the symbol
+            if asset is None:
                 continue
+            change_func(asset.sid)
 
 
 class SecurityListSet(object):

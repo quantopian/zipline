@@ -28,8 +28,9 @@ from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
     SidNotFound,
+    IdentifierNotFound,
     ConsumeAssetMetaDataError,
-    InvalidAssetType
+    InvalidAssetType,
 )
 from zipline.utils import tradingcalendar
 from zipline.assets._assets import (
@@ -51,6 +52,7 @@ class AssetFinder(object):
         # our instance will continue to use the old one.
         self.cache = {}
         self.sym_cache = {}
+        self.identifier_cache = {}
         self.fuzzy_match = {}
 
         self.trading_calendar = trading_calendar
@@ -80,6 +82,15 @@ class AssetFinder(object):
             return asset
         else:
             raise SidNotFound(sid=sid)
+
+    def retrieve_asset_by_identifier(self, identifier):
+        if isinstance(identifier, Asset):
+            return identifier
+        asset = self.identifier_cache.get(identifier)
+        if asset is not None:
+            return asset
+        else:
+            raise IdentifierNotFound(identifier=identifier)
 
     @staticmethod
     def _lookup_symbol_in_infos(infos, as_of_date):
@@ -205,6 +216,7 @@ class AssetFinder(object):
         # Wipe caches before repopulating
         self.cache = {}
         self.sym_cache = {}
+        self.identifier_cache = {}
         self.fuzzy_match = {}
 
         counter = 0
@@ -306,6 +318,7 @@ class AssetFinder(object):
             raise InvalidAssetType(asset_type=asset_type)
 
         self.cache[asset.sid] = asset
+        self.identifier_cache[identifier] = asset
         if asset.symbol is not "":
             self.sym_cache.setdefault(asset.symbol, []).append(asset)
 

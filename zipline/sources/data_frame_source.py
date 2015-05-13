@@ -50,9 +50,7 @@ class DataFrameSource(DataSource):
         self.identifiers = kwargs.get('sids', self.data.columns)
         env.update_asset_finder(identifiers=self.identifiers)
         self.data.columns = [
-            env.asset_finder.lookup_generic(
-                identifier,
-                as_of_date=self.end)[0].sid
+            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
             for identifier in self.data.columns
         ]
         self.sids = self.data.columns
@@ -130,9 +128,7 @@ class DataPanelSource(DataSource):
         self.identifiers = kwargs.get('sids', self.data.items)
         env.update_asset_finder(identifiers=self.identifiers)
         self.data.items = [
-            env.asset_finder.lookup_generic(
-                identifier,
-                as_of_date=self.end)[0].sid
+            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
             for identifier in self.data.items
         ]
         self.sids = self.data.items
