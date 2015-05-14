@@ -239,15 +239,6 @@ class AssetFinder(object):
             else:
                 kwargs['sid'] = self._assign_sid(identifier)
 
-        # If the identifier coming in was a string and there is no defined
-        # symbol yet, set the symbol to the incoming identifier
-        try:
-            kwargs['symbol']
-            pass
-        except KeyError:
-            if isinstance(identifier, str):
-                kwargs['symbol'] = identifier
-
         # If the file_name is in the kwargs, it may be the symbol
         try:
             file_name = kwargs.pop('file_name')
@@ -257,6 +248,15 @@ class AssetFinder(object):
                 kwargs['symbol'] = file_name
         except KeyError:
             pass
+
+        # If the identifier coming in was a string and there is no defined
+        # symbol yet, set the symbol to the incoming identifier
+        try:
+            kwargs['symbol']
+            pass
+        except KeyError:
+            if isinstance(identifier, str):
+                kwargs['symbol'] = identifier
 
         # If the company_name is in the kwargs, it may be the asset_name
         try:
@@ -486,7 +486,10 @@ class AssetMetaData(object):
             metadata_dict = {}
             for field in self.fields:
                 try:
-                    metadata_dict[field] = row[field]
+                    row_value = row[field]
+                    # Avoid passing placeholders
+                    if row_value and (row_value is not 'None'):
+                        metadata_dict[field] = row[field]
                 except KeyError:
                     continue
                 except IndexError:
