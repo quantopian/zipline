@@ -232,10 +232,6 @@ class PerformancePeriod(object):
     def position_amounts(self):
         return self.position_tracker.position_amounts
 
-    @property
-    def position_last_sale_prices(self):
-        return self.position_tracker.position_last_sale_prices
-
     @position_proxy
     def calculate_positions_value(self):
         raise ProxyError()
