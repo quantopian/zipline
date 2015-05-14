@@ -10,7 +10,6 @@ try:
 except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
-from itertools import izip
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -132,7 +131,7 @@ class PositionTracker(object):
         self._position_last_sale_prices is changed.
         """
         if self._position_values is None:
-            iter_amount_price_multiplier = izip(
+            iter_amount_price_multiplier = zip(
                 itervalues(self._position_amounts),
                 itervalues(self._position_last_sale_prices),
                 itervalues(self._position_value_multipliers),
@@ -150,7 +149,7 @@ class PositionTracker(object):
         self._position_last_sale_prices is changed.
         """
         if self._position_exposures is None:
-            iter_amount_price_multiplier = izip(
+            iter_amount_price_multiplier = zip(
                 itervalues(self._position_amounts),
                 itervalues(self._position_last_sale_prices),
                 itervalues(self._position_exposure_multipliers),
