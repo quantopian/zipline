@@ -3,7 +3,7 @@ Logbook==0.9.1
 
 # Scientific Libraries
 
-pytz==2015.2
+pytz==2015.4
 numpy==1.9.2
 
 # scipy and pandas are required for statsmodels,
