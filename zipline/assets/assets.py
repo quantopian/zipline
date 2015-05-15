@@ -74,12 +74,14 @@ class AssetFinder(object):
         if isinstance(identifier, str):
             return self._next_free_sid()
 
-    def retrieve_asset(self, sid):
+    def retrieve_asset(self, sid, default_none=False):
         if isinstance(sid, Asset):
             return sid
         asset = self.cache.get(sid)
         if asset is not None:
             return asset
+        elif default_none:
+            return None
         else:
             raise SidNotFound(sid=sid)
 
@@ -144,7 +146,6 @@ class AssetFinder(object):
         If no Asset was active at as_of_date, and allow_expired is False
         raises SymbolNotFound.
         """
-
         if as_of_date is not None:
             as_of_date = normalize_date(as_of_date)
 
