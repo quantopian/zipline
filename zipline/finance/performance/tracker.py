@@ -248,16 +248,18 @@ class PerformanceTracker(object):
     def get_portfolio(self, performance_needs_update):
         if performance_needs_update:
             self.update_performance()
+            self.account_needs_update = True
         return self.cumulative_performance.as_portfolio()
 
     def get_account(self, performance_needs_update):
-        if self.account_needs_update:
-            self._get_account(performance_needs_update)
-        return self._account
-
-    def _get_account(self, performance_needs_update):
         if performance_needs_update:
             self.update_performance()
+            self.account_needs_update = True
+        if self.account_needs_update:
+            self._update_account()
+        return self._account
+
+    def _update_account(self):
         self._account = self.cumulative_performance.as_account()
         self.account_needs_update = False
 
@@ -389,7 +391,7 @@ class PerformanceTracker(object):
     def handle_minute_close(self, dt):
         self.update_performance()
         todays_date = normalize_date(dt)
-        account = self.get_account(True)
+        account = self.get_account(False)
 
         self.minute_performance.rollover()
 
@@ -407,8 +409,6 @@ class PerformanceTracker(object):
         if dt == self.market_close:
             self.check_upcoming_dividends(todays_date)
 
-        self.account_needs_update = True
-
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
         Function called at market close only when emitting at minutely
@@ -419,8 +419,6 @@ class PerformanceTracker(object):
         self.market_open = new_mkt_open
         self.market_close = new_mkt_close
 
-        self.account_needs_update = True
-
     def handle_market_close_daily(self):
         """
         Function called after handle_data when running with daily emission
@@ -428,7 +426,7 @@ class PerformanceTracker(object):
         """
         self.update_performance()
         completed_date = self.day
-        account = self.get_account(True)
+        account = self.get_account(False)
 
         # update risk metrics for cumulative performance
         self.cumulative_risk_metrics.update(
@@ -461,8 +459,6 @@ class PerformanceTracker(object):
         self.todays_performance.period_close = self.market_close
 
         self.check_upcoming_dividends(completed_date)
-
-        self.account_needs_update = True
 
         return daily_update
 
