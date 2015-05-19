@@ -25,10 +25,15 @@ def create_test_zipline(**config):
              :py:mod:`zipline.finance.trading`
        """
     assert isinstance(config, dict)
-    sid_list = config.get('sid_list')
-    if not sid_list:
-        sid = config.get('sid')
-        sid_list = [sid]
+
+    try:
+        sid_list = config['sid_list']
+    except KeyError:
+        try:
+            sid_list = [config['sid']]
+        except KeyError:
+            raise Exception("simfactory create_test_zipline() requires "
+                            "argument 'sid_list' or 'sid'")
 
     concurrent_trades = config.get('concurrent_trades', False)
 
