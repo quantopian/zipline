@@ -7,7 +7,7 @@ mock==1.0.1
 
 # Linting
 
-flake8==2.4.0
+flake8==2.4.1
 mccabe==0.3
 # Note: Old version of pep8 required by flake8 2.4.0
 pep8==1.5.7
