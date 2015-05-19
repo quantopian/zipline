@@ -107,6 +107,24 @@ class PositionTracker(object):
             self._update_multipliers(sid)
             self._invalidate_cache()
 
+    def update_position(self, sid, amount=None, last_sale_price=None,
+                        last_sale_date=None, cost_basis=None):
+        pos = self.positions[sid]
+
+        if amount is not None:
+            pos.amount = amount
+            self._position_amounts[sid] = amount
+            self._position_values = None  # invalidate cache
+            self._update_multipliers(sid=sid)
+        if last_sale_price is not None:
+            pos.last_sale_price = last_sale_price
+            self._position_last_sale_prices[sid] = last_sale_price
+            self._position_values = None  # invalidate cache
+        if last_sale_date is not None:
+            pos.last_sale_date = last_sale_date
+        if cost_basis is not None:
+            pos.cost_basis = cost_basis
+
     def execute_transaction(self, txn):
         # Update Position
         # ----------------

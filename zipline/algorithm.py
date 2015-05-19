@@ -672,12 +672,12 @@ class TradingAlgorithm(object):
         return [self.symbol(identifier) for identifier in args]
 
     @api_method
-    def sid(self, sid):
+    def sid(self, a_sid):
         """
         Default sid lookup for any source that directly maps the integer sid
         to the Asset.
         """
-        return self.trading_environment.asset_finder.retrieve_asset(sid)
+        return self.trading_environment.asset_finder.retrieve_asset(a_sid)
 
     def _calculate_order_value_amount(self, asset, value):
         """

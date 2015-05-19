@@ -414,7 +414,7 @@ class PerformanceTracker(object):
                     dt=next_trading_day
                 )
                 if txn:
-                    self.process_event(txn)
+                    self.process_transaction(txn)
 
         while len(self._past_asset_end_dates) > 0:
             self._asset_ends.pop(self._past_asset_end_dates.pop())
