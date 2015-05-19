@@ -49,7 +49,7 @@
   > Example:
 ```python
 # The standard deviation of the price in the last 3 days.
-data[security].stdev(3)
+data[security].stddev(3)
 ```
 
 ### New fields in Performance Period [PR464](https://github.com/quantopian/zipline/pull/464)
