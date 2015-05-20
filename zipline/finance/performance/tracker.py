@@ -61,6 +61,7 @@ from __future__ import division
 import logbook
 import pickle
 from six import iteritems
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -92,9 +93,12 @@ class PerformanceTracker(object):
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
         self.last_close = self.sim_params.last_close
-        first_day = self.sim_params.first_open
+        first_open = self.sim_params.first_open.tz_convert(
+            trading.environment.exchange_tz)
+        self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
+                                         first_open.day), tz='UTC')
         self.market_open, self.market_close = \
-            trading.environment.get_open_and_close(first_day)
+            trading.environment.get_open_and_close(self.day)
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
@@ -423,7 +427,7 @@ class PerformanceTracker(object):
         rate.
         """
         self.update_performance()
-        completed_date = normalize_date(self.market_close)
+        completed_date = self.day
         account = self.get_account(True)
 
         # update risk metrics for cumulative performance
@@ -448,7 +452,8 @@ class PerformanceTracker(object):
 
         # move the market day markers forward
         self.market_open, self.market_close = \
-            trading.environment.next_open_and_close(self.market_open)
+            trading.environment.next_open_and_close(self.day)
+        self.day = trading.environment.next_trading_day(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
