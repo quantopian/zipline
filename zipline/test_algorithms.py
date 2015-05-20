@@ -119,7 +119,7 @@ class TestAlgorithm(TradingAlgorithm):
         if sid_filter:
             self.sid_filter = sid_filter
         else:
-            self.sid_filter = [self.sid]
+            self.sid_filter = [self.asset.sid]
 
         if slippage is not None:
             self.set_slippage(slippage)

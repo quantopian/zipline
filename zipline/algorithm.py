@@ -142,8 +142,22 @@ class TradingAlgorithm(object):
                Whether to fill orders immediately or on next bar.
             asset_finder : An AssetFinder object
                 A new AssetFinder object to be used in this TradingEnvironment
-            asset_metadata : AssetMetaData, dict, or DataFrame
-                The metadata for all assets that may be used
+            asset_metadata: can be either:
+                            - dict
+                            - pandas.DataFrame
+                            - object with 'read' property
+                If dict is provided, it must have the following structure:
+                * keys are the identifiers
+                * values are dicts containing the metadata, with the metadata
+                  field name as the key
+                If pandas.DataFrame is provided, it must have the
+                following structure:
+                * column names must be the metadata fields
+                * index must be the different asset identifiers
+                * array contents should be the metadata value
+                If an object with a 'read' property is provided, 'read' must
+                return rows containing at least one of 'sid' or 'symbol' along
+                with the other metadata fields.
             identifiers : List
                 Any asset identifiers that are not provided in the
                 asset_metadata, but will be traded by this TradingAlgorithm
@@ -436,22 +450,6 @@ class TradingAlgorithm(object):
                * column names must be the different asset identifiers
                * index must be DatetimeIndex
                * array contents should be price info.
-
-            asset_metadata: can be either:
-                            - dict
-                            - pandas.DataFrame
-                            - zipline AssetMetaData
-
-                If dict is provided, it must have the following structure:
-                * keys are the identifiers
-                * values are dicts containing the metadata, with the metadata
-                  field name as the key
-
-                If pandas.DataFrame is provided, it must have the
-                following structure:
-                * column names must be the metadata fields
-                * index must be the different asset identifiers
-                * array contents should be the metadata value
 
         :Returns:
             daily_stats : pandas.DataFrame

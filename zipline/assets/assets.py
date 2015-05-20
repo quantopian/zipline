@@ -39,11 +39,31 @@ from zipline.assets._assets import (
 
 log = Logger('assets.py')
 
+# Expected fields for an Asset's metadata
+ASSET_FIELDS = [
+    'sid',
+    'asset_type',
+    'symbol',
+    'asset_name',
+    'start_date',
+    'end_date',
+    'first_traded',
+    'exchange',
+    'notice_date',
+    'expiration_date',
+    'contract_multiplier',
+    # The following fields are for compatibility with other systems
+    'file_name', # Used as symbol
+    'company_name', # Used as asset_name
+    'start_date_nano', # Used as start_date
+    'end_date_nano', # Used as end_date
+]
+
 
 class AssetFinder(object):
 
     def __init__(self,
-                 metadata,
+                 metadata=None,
                  trading_calendar=tradingcalendar):
 
         # Any particular instance of AssetFinder should be
@@ -55,12 +75,13 @@ class AssetFinder(object):
         self.identifier_cache = {}
         self.fuzzy_match = {}
 
-        self.trading_calendar = trading_calendar
+        # The AssetFinder also holds a nested-dict of all metadata for
+        # reference when building Assets
+        self.metadata_cache = {}
+        if metadata:
+            self.consume_metadata(metadata)
 
-        if isinstance(metadata, AssetMetaData):
-            self.metadata = metadata
-        else:
-            self.metadata = AssetMetaData(metadata)
+        self.trading_calendar = trading_calendar
         self.populate_cache()
 
     def _next_free_sid(self):
@@ -221,8 +242,7 @@ class AssetFinder(object):
         self.fuzzy_match = {}
 
         counter = 0
-        for identifier in self.metadata:
-            row = self.metadata.retrieve_metadata(identifier=identifier)
+        for identifier, row in self.metadata_cache.items():
             self.spawn_asset(identifier=identifier, **row)
             counter += 1
 
@@ -239,6 +259,8 @@ class AssetFinder(object):
             # If the identifier is not a sid, assign one
             else:
                 kwargs['sid'] = self._assign_sid(identifier)
+                # Update the metadata object with the new sid
+                self.insert_metadata(identifier=identifier, sid=kwargs['sid'])
 
         # If the file_name is in the kwargs, it may be the symbol
         try:
@@ -323,8 +345,6 @@ class AssetFinder(object):
         if asset.symbol is not "":
             self.sym_cache.setdefault(asset.symbol, []).append(asset)
 
-        # Update the metadata object with the new sid
-        self.metadata.insert_metadata(identifier=identifier, sid=asset.sid)
         return asset
 
     @property
@@ -422,70 +442,68 @@ class AssetFinder(object):
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
+    def insert_metadata(self, identifier, **kwargs):
+        """
+        Inserts the given metadata kwargs to the entry for the given
+        identifier. Matching fields in the existing entry will be overwritten.
+        :param identifier: The identifier for which to insert metadata
+        :param kwargs: The keyed metadata to insert
+        """
+        entry = self.metadata_cache.get(identifier, {})
 
-class AssetConvertible(with_metaclass(ABCMeta)):
-    """
-    ABC for types that are convertible to integer-representations of
-    Assets.
+        for key, value in kwargs.items():
+            # Do not accept invalid fields
+            if key not in ASSET_FIELDS:
+                continue
+            # Do not accept Nones
+            if value is None:
+                continue
+            # Do not accept nans from dataframes
+            if isinstance(value, float) and np.isnan(value):
+                continue
+            entry[key] = value
 
-    Includes Asset, str, and Integral
-    """
-    pass
-AssetConvertible.register(Integral)
-AssetConvertible.register(str)
-AssetConvertible.register(Asset)
+        self.metadata_cache[identifier] = entry
 
+    def consume_identifiers(self, identifiers):
+        for identifier in identifiers:
+            self.insert_metadata(identifier)
 
-class NotAssetConvertible(ValueError):
-    pass
+    def consume_metadata(self, metadata):
+        """
+        Consumes the provided metadata in to the metadata cache. The
+        existing values in the cache will be overwritten when there
+        is a conflict.
+        :param metadata: The metadata to be consumed
+        """
+        # Handle dicts
+        if isinstance(metadata, dict):
+            self._insert_metadata_dict(metadata)
+        # Handle DataFrames
+        elif isinstance(metadata, pd.DataFrame):
+            self._insert_metadata_dataframe(metadata)
+        # Handle readables
+        elif hasattr(metadata, 'read'):
+            self._insert_metadata_readable(metadata)
+        else:
+            raise ConsumeAssetMetaDataError(obj=metadata)
 
+    def clear_metadata(self):
+        self.metadata_cache = {}
 
-class AssetMetaData(object):
-
-    fields = (
-        # The following fields are the properties of an Asset or its extensions
-        "sid",
-        "asset_type",
-        "symbol",
-        "asset_name",
-        "start_date",
-        "end_date",
-        "first_traded",
-        "exchange",
-        "notice_date",
-        "expiration_date",
-        "contract_multiplier",
-        # The following fields are for compatibility with other systems
-        "file_name",
-        "company_name",
-        "start_date_nano",
-        "end_date_nano",
-    )
-
-    def __init__(self, data=None, identifiers=None):
-
-        self.cache = {}
-        if data is not None:
-            self.consume_metadata(data)
-        if identifiers is not None:
-            self.consume_identifiers(identifiers)
-
-    def __iter__(self):
-        return self.cache.__iter__()
-
-    def _insert_dataframe(self, dataframe):
+    def _insert_metadata_dataframe(self, dataframe):
         for identifier, row in dataframe.iterrows():
             self.insert_metadata(identifier, **row)
 
-    def _insert_dict(self, dict):
+    def _insert_metadata_dict(self, dict):
         for identifier, entry in dict.items():
             self.insert_metadata(identifier, **entry)
 
-    def _insert_readable(self, readable):
+    def _insert_metadata_readable(self, readable):
         for row in readable.read():
             # Parse out the row of the readable object
             metadata_dict = {}
-            for field in self.fields:
+            for field in ASSET_FIELDS:
                 try:
                     row_value = row[field]
                     # Avoid passing placeholders
@@ -504,64 +522,19 @@ class AssetMetaData(object):
                 raise ConsumeAssetMetaDataError(obj=row)
             self.insert_metadata(identifier, **metadata_dict)
 
-    def read(self):
-        return self.cache.items()
 
-    def retrieve_metadata(self, identifier):
-        return self.cache.get(identifier)
+class AssetConvertible(with_metaclass(ABCMeta)):
+    """
+    ABC for types that are convertible to integer-representations of
+    Assets.
 
-    def insert_metadata(self, identifier, **kwargs):
-        entry = self.retrieve_metadata(identifier)
-        if entry is None:
-            entry = {}
+    Includes Asset, str, and Integral
+    """
+    pass
+AssetConvertible.register(Integral)
+AssetConvertible.register(str)
+AssetConvertible.register(Asset)
 
-        for key, value in kwargs.items():
-            # Do not accept invalid fields
-            if key not in self.fields:
-                continue
-            # Do not accept Nones
-            if value is None:
-                continue
-            # Do not accept nans from dataframes
-            if isinstance(value, float) and np.isnan(value):
-                continue
-            entry[key] = value
 
-        self.cache[identifier] = entry
-
-    def consume_identifiers(self, identifiers):
-        for identifier in identifiers:
-            self.insert_metadata(identifier)
-
-    def consume_metadata(self, metadata):
-        """
-        Consumes the provided metadata in to this AssetMetaData object. The
-        existing values in this AssetMetaData will be overwritten when there
-        is a conflict.
-        :param metadata: The metadata to be consumed
-        """
-        # Handle full AssetMetaData objects
-        if isinstance(metadata, AssetMetaData):
-            for identifier in metadata:
-                self.insert_metadata(
-                    identifier,
-                    **metadata.retrieve_metadata(identifier)
-                )
-        # Handle dicts
-        elif isinstance(metadata, dict):
-            self._insert_dict(metadata)
-        # Handle DataFrames
-        elif isinstance(metadata, pd.DataFrame):
-            self._insert_dataframe(metadata)
-        # Handle readables
-        elif hasattr(metadata, 'read'):
-            self._insert_readable(metadata)
-        else:
-            raise ConsumeAssetMetaDataError(obj=metadata)
-
-    def consume_data_source(self, source):
-        if hasattr(source, 'identifiers'):
-            self.consume_identifiers(source.identifiers)
-
-    def erase(self):
-        self.cache = {}
+class NotAssetConvertible(ValueError):
+    pass

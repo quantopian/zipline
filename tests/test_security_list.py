@@ -67,8 +67,9 @@ class SecurityListTestCase(TestCase):
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
         env.update_asset_finder(
-            erase_existing=True,
-            identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"])
+            clear_metadata=True,
+            identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"]
+        )
 
         setup_logger(self)
 

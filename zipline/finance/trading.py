@@ -23,7 +23,7 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
-from zipline.assets import AssetFinder, AssetMetaData
+from zipline.assets import AssetFinder
 from zipline.errors import UpdateAssetFinderTypeError
 
 
@@ -136,7 +136,7 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.asset_finder = AssetFinder(AssetMetaData(), env_trading_calendar)
+        self.asset_finder = AssetFinder(trading_calendar=env_trading_calendar)
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -154,45 +154,48 @@ class TradingEnvironment(object):
         return False
 
     def update_asset_finder(self,
-                            erase_existing=False,
+                            clear_metadata=False,
                             asset_finder=None,
                             asset_metadata=None,
                             identifiers=None):
         """
         Updates the AssetFinder using the provided asset metadata and
         identifiers.
+        If clear_metadata is True, all metadata and assets held in the
+        asset_finder will be erased before new metadata is provided.
         If asset_finder is provided, the existing asset_finder will be replaced
         outright with the new asset_finder.
-        If asset_metadata is provided, the existing metadata will be replaced
-        with the provided metadata.
+        If asset_metadata is provided, the existing metadata will be cleared and
+        replaced with the provided metadata.
         All identifiers will be inserted in the asset metadata if they are not
         already present.
-        If erase_existing is True, all metadata and assets held in the
-        asset_finder will be erased.
 
-        :param erase_existing: A boolean
+        :param clear_metadata: A boolean
         :param asset_finder: An AssetFinder object to replace the environment's
         existing asset_finder
-        :param asset_metadata: A zipline AssetMetaData, dict, or DataFrame
+        :param asset_metadata: A dict, DataFrame, or readable object
         :param identifiers: A list of identifiers to be inserted
         :return:
         """
         populate = False
-        if erase_existing:
-            self.asset_finder.metadata.erase()
+        if clear_metadata:
+            self.asset_finder.clear_metadata()
             populate = True
+
         if asset_finder is not None:
             if not isinstance(asset_finder, AssetFinder):
                 raise UpdateAssetFinderTypeError(cls=asset_finder.__class__)
             self.asset_finder = asset_finder
+
         if asset_metadata is not None:
-            if not isinstance(asset_metadata, AssetMetaData):
-                asset_metadata = AssetMetaData(asset_metadata)
-            self.asset_finder.metadata = asset_metadata
+            self.asset_finder.clear_metadata()
+            self.asset_finder.consume_metadata(asset_metadata)
             populate = True
+
         if identifiers is not None:
-            self.asset_finder.metadata.consume_identifiers(identifiers)
+            self.asset_finder.consume_identifiers(identifiers)
             populate = True
+
         if populate:
             self.asset_finder.populate_cache()
 

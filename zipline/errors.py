@@ -239,7 +239,7 @@ class InvalidAssetType(ZiplineError):
     AssetType.
     """
     msg = """
-AssetMetaData contained an invalid Asset type: '{asset_type}'.
+Asset metadata contained an invalid Asset type: '{asset_type}'.
 """.strip()
 
 
@@ -255,10 +255,12 @@ TradingEnvironment can not set asset_finder to object of class {cls}.
 
 class ConsumeAssetMetaDataError(ZiplineError):
     """
-    Raised when AssetMetaData.consume() is called on a non-AssetMetaData object
+    Raised when AsssetFinder.consume_metadata() is called on an invalid object.
     """
     msg = """
-AssetMetaData can not consume {obj}.
+AssetFinder can not consume {obj}. Metadata must be a dict, a DataFrame, or a
+readable object. If the MetaData is a readable object, the rows of the object
+must contain fields for at least one of 'sid' or 'symbol'.
 """.strip()
 
 

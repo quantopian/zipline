@@ -61,7 +61,7 @@ def create_test_zipline(**config):
         test_algo = config['algorithm']
     else:
         test_algo = TestAlgorithm(
-            sid,
+            sid_list[0],
             order_amount,
             order_count,
             sim_params=config.get('sim_params',

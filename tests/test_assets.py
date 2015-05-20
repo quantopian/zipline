@@ -34,7 +34,7 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.finance.trading import with_environment
-from zipline.assets import Asset, Future, AssetMetaData
+from zipline.assets import Asset, Future, AssetFinder
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -149,7 +149,7 @@ def build_lookup_generic_cases(env=None):
     # This expansion code is run at module import time, which means we have to
     # clear the AssetFinder here or else it will interfere with the cache
     # for other tests.
-    env.update_asset_finder(erase_existing=True)
+    env.update_asset_finder(clear_metadata=True)
 
     dupe_0_start = dupe_0.start_date
     dupe_1_start = dupe_1.start_date
@@ -350,7 +350,7 @@ class AssetFinderTestCase(TestCase):
                 self.assertIsNotNone(sf.lookup_symbol(
                     'test%s' % 1, as_of_date, fuzzy=fuzzy_str))
         finally:
-            env.update_asset_finder(erase_existing=True)
+            env.update_asset_finder(clear_metadata=True)
 
     @with_environment()
     def test_lookup_symbol_resolve_multiple(self, env=None):
@@ -390,7 +390,7 @@ class AssetFinderTestCase(TestCase):
                     self.assertEqual(result.sid, i)
 
         finally:
-            env.update_asset_finder(erase_existing=True)
+            env.update_asset_finder(clear_metadata=True)
 
     @with_environment()
     def test_lookup_symbol_nasdaq_underscore_collisions(self, env=None):
@@ -427,7 +427,7 @@ class AssetFinderTestCase(TestCase):
                 pprint.pformat(unexpected_errors),
             )
         finally:
-            env.update_asset_finder(erase_existing=True)
+            env.update_asset_finder(clear_metadata=True)
 
     @parameterized.expand(
         build_lookup_generic_cases()
@@ -445,7 +445,7 @@ class AssetFinderTestCase(TestCase):
             self.assertEqual(results, expected)
             self.assertEqual(missing, [])
         finally:
-            env.update_asset_finder(erase_existing=True)
+            env.update_asset_finder(clear_metadata=True)
 
     @with_environment()
     def test_lookup_generic_handle_missing(self, env=None):
@@ -512,52 +512,49 @@ class AssetFinderTestCase(TestCase):
             self.assertEqual(missing[1], 'real_but_in_the_future')
 
         finally:
-            env.update_asset_finder(erase_existing=True)
-
-
-class TestAssetMetaData(TestCase):
+            env.update_asset_finder(clear_metadata=True)
 
     def test_insert_metadata(self):
-        amd = AssetMetaData()
-        amd.insert_metadata(0,
-                            asset_type='equity',
-                            start_date='2014-01-01',
-                            end_date='2015-01-01',
-                            symbol="PLAY",
-                            foo_data="FOO"
-                            )
+        finder = AssetFinder()
+        finder.insert_metadata(0,
+                               asset_type='equity',
+                               start_date='2014-01-01',
+                               end_date='2015-01-01',
+                               symbol="PLAY",
+                               foo_data="FOO",
+        )
 
         # Test proper insertion
-        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
-        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
-        self.assertEqual('2015-01-01', amd.retrieve_metadata(0)['end_date'])
+        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
+        self.assertEqual('PLAY', finder.metadata_cache[0]['symbol'])
+        self.assertEqual('2015-01-01', finder.metadata_cache[0]['end_date'])
 
         # Test invalid field
-        self.assertFalse('foo_data' in amd.retrieve_metadata(0))
+        self.assertFalse('foo_data' in finder.metadata_cache[0])
 
         # Test updating fields
-        amd.insert_metadata(0,
-                            asset_type='equity',
-                            start_date='2014-01-01',
-                            end_date='2015-02-01',
-                            symbol="PLAY",
-                            exchange="NYSE"
-                            )
-        self.assertEqual('2015-02-01', amd.retrieve_metadata(0)['end_date'])
-        self.assertEqual('NYSE', amd.retrieve_metadata(0)['exchange'])
+        finder.insert_metadata(0,
+                               asset_type='equity',
+                               start_date='2014-01-01',
+                               end_date='2015-02-01',
+                               symbol="PLAY",
+                               exchange="NYSE",
+        )
+        self.assertEqual('2015-02-01', finder.metadata_cache[0]['end_date'])
+        self.assertEqual('NYSE', finder.metadata_cache[0]['exchange'])
 
         # Check that old data survived
-        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
+        self.assertEqual('PLAY', finder.metadata_cache[0]['symbol'])
 
     def test_consume_metadata(self):
 
         # Test dict consumption
-        amd = AssetMetaData({0: {'asset_type': 'equity'}})
+        finder = AssetFinder({0: {'asset_type': 'equity'}})
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
-        amd.consume_metadata(dict_to_consume)
-        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
-        self.assertEqual('PLAY', amd.retrieve_metadata(0)['symbol'])
+        finder.consume_metadata(dict_to_consume)
+        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
+        self.assertEqual('PLAY', finder.metadata_cache[0]['symbol'])
 
         # Test dataframe consumption
         df = pd.DataFrame(columns=['asset_name', 'exchange'], index=[0, 1])
@@ -565,15 +562,8 @@ class TestAssetMetaData(TestCase):
         df['exchange'][0] = "NASDAQ"
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
-        amd.consume_metadata(df)
-        self.assertEqual('NASDAQ', amd.retrieve_metadata(0)['exchange'])
-        self.assertEqual('Microsoft', amd.retrieve_metadata(1)['asset_name'])
+        finder.consume_metadata(df)
+        self.assertEqual('NASDAQ', finder.metadata_cache[0]['exchange'])
+        self.assertEqual('Microsoft', finder.metadata_cache[1]['asset_name'])
         # Check that old data survived
-        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
-
-        # Test AssetMetaData consumption
-        amd2 = AssetMetaData({2: {'symbol': 'AAPL'}})
-        amd.consume_metadata(amd2)
-        self.assertEqual('AAPL', amd.retrieve_metadata(2)['symbol'])
-        # Check that old data survived
-        self.assertEqual('equity', amd.retrieve_metadata(0)['asset_type'])
+        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
