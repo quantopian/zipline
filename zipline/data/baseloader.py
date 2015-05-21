@@ -14,4 +14,4 @@ class DataLoader(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def load_chunk(self, columns, assets, dates):
-        raise NotImplementedError
+        pass

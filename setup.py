@@ -24,6 +24,16 @@ ext_modules = [
         ['zipline/assets/_assets.pyx'],
         include_dirs=[np.get_include()],
     ),
+    Extension(
+        'zipline.data.chunkerator',
+        ['zipline/data/chunkerator.pyx'],
+        include_dirs=[np.get_include()],
+    ),
+    Extension(
+        'zipline.data.adjustment',
+        ['zipline/data/adjustment.pyx'],
+        include_dirs=[np.get_include()],
+    ),
 ]
 
 setup(
