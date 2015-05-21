@@ -304,7 +304,6 @@ class PerformanceTracker(object):
 
     def process_trade(self, event):
         # update last sale, and pay out a cash adjustment
-        self.position_tracker.update_last_sale(event)
         cash_adjustment = self.position_tracker.update_last_sale(event)
         if cash_adjustment != 0:
             for perf_period in self.perf_periods:
