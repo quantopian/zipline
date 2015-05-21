@@ -173,20 +173,35 @@ class ObjectIdentityTestCase(TestCase):
             SomeFactor(lookback=SomeFactor.lookback + 1),
         )
 
+        self.assertIs(
+            SomeFactor(dtype=int),
+            SomeFactor(dtype=int),
+        )
+
+        self.assertIs(
+            SomeFactor(inputs=[SomeFactor.inputs[1], SomeFactor.inputs[0]]),
+            SomeFactor(inputs=[SomeFactor.inputs[1], SomeFactor.inputs[0]]),
+        )
+
     def test_instance_non_caching(self):
 
+        f = SomeFactor()
+
+        # Different lookback.
         self.assertIsNot(
-            SomeFactor(),
+            f,
             SomeFactor(lookback=SomeFactor.lookback + 1),
         )
+
+        # Different dtype
         self.assertIsNot(
-            SomeFactor(lookback=SomeFactor.lookback),
-            SomeFactor(lookback=SomeFactor.lookback + 1),
+            f,
+            SomeFactor(dtype=int)
         )
 
         # Reordering inputs changes semantics.
         self.assertIsNot(
-            SomeFactor(inputs=[SomeFactor.inputs[0], SomeFactor.inputs[1]]),
+            f,
             SomeFactor(inputs=[SomeFactor.inputs[1], SomeFactor.inputs[0]]),
         )
 

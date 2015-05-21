@@ -39,7 +39,7 @@ class SumLastThree(Factor):
         return (foo[-3:] + bar[-3:]).sum()
 
 
-class ConstantLoaderTestCase(TestCase):
+class SimpleFFCEngineTestCase(TestCase):
 
     def setUp(self):
         self.loader = ConstantLoader(1)
@@ -60,4 +60,4 @@ class ConstantLoaderTestCase(TestCase):
 
         assets = [1, 2, 3, 4]
         # Compute for february days so that lookback stretches into jan days.
-        results = self.engine.compute_chunk(assets, self.feb)
+        results = self.engine.compute_chunk(self.feb, assets)

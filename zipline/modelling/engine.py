@@ -88,7 +88,7 @@ class SimpleFFCEngine(object):
         '_lookbacks',
     ]
 
-    def __init__(self, loader, trading_days):
+    def __init__(self, loader, trading_days, asset_metadata):
 
         self._loader = loader
         self._trading_days = trading_days
@@ -143,7 +143,7 @@ class SimpleFFCEngine(object):
         return self._lookbacks[term]
 
     @require_frozen
-    def compute_chunk(self, assets, dates):
+    def compute_chunk(self, dates, assets):
         """
         Compute our factors on a chunk of assets and dates.
         """
@@ -152,7 +152,9 @@ class SimpleFFCEngine(object):
 
         for term in self._resolution_order:
             if term.atomic:
-                workspace[term] = loader.load_chunk([term], assets, dates)[0]
+                workspace[term] = loader.load_moving_windows(
+                    [term], dates, assets
+                )[0]
             else:
                 workspace[term] = term.compute_chunk(
                     assets,
