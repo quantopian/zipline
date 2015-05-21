@@ -40,24 +40,18 @@ class BoundColumn(Term):
             name=name,
         )
 
-    def _init(self, dtype, dataset, name, *args, **kwargs):
-        self._dtype = dtype
+    def _init(self, dataset, name, *args, **kwargs):
         self._dataset = dataset
         self._name = name
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, dtype, dataset, name, *args, **kwargs):
+    def static_identity(cls, dataset, name, *args, **kwargs):
         return (
             super(BoundColumn, cls).static_identity(*args, **kwargs),
-            dtype,
             dataset,
             name,
         )
-
-    @property
-    def dtype(self):
-        return self._dtype
 
     @property
     def dataset(self):

@@ -22,10 +22,16 @@ class SyntheticDataLoader(DataLoader):
 
     make_column(dtype: np.dtype, nrows: int, ncols: int, idx: int) -> ndarray
     """
-    def __init__(self):
+    def __init__(self, known_assets):
+        """
+        Params
+        ------
+        known_assets: dict from dt -> list of sids.
+        """
         self._log = []
+        self._known_assets = known_assets
 
-    def load_chunk(self, columns, assets, dates):
+    def load_baseline_and_adjustments(self, columns, assets, dates):
         """
         Load each column with self.make_column.
         """
@@ -34,7 +40,7 @@ class SyntheticDataLoader(DataLoader):
         nrows = len(assets)
         ncols = len(dates)
         return [
-            self.make_column(col.dtype, nrows, ncols, idx)
+            (self.make_column(col.dtype, nrows, ncols, idx), None)
             for idx, col in enumerate(columns)
         ]
 

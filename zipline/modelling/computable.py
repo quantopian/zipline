@@ -1,6 +1,7 @@
 """
 Base class for Filters, Factors and Classifiers
 """
+from numpy import float64
 from zipline.errors import TrailingWindowInvalidLookback
 
 
@@ -16,10 +17,17 @@ class Term(object):
     inputs = ()
     lookback = 0
     domain = None
+    dtype = float64
 
     _term_cache = {}
 
-    def __new__(cls, inputs=None, lookback=None, domain=None, *args, **kwargs):
+    def __new__(cls,
+                inputs=None,
+                lookback=None,
+                domain=None,
+                dtype=None,
+                *args,
+                **kwargs):
         """
         Memoized constructor for Terms.
 
@@ -34,11 +42,13 @@ class Term(object):
         inputs = tuple(inputs or cls.inputs)
         lookback = lookback or cls.lookback
         domain = domain or cls.domain
+        dtype = dtype or cls.dtype
 
         identity = cls.static_identity(
             inputs=inputs,
             lookback=lookback,
             domain=domain,
+            dtype=dtype,
             *args, **kwargs
         )
 
@@ -49,6 +59,7 @@ class Term(object):
                 inputs=inputs,
                 lookback=lookback,
                 domain=domain,
+                dtype=dtype,
                 *args, **kwargs
             )
             cls._term_cache[identity] = new_instance
@@ -61,15 +72,20 @@ class Term(object):
 
         When a class' __new__ returns an instance of that class, Python will
         automatically call __init__ on the object, even if a new object wasn't
-        actually constructed.  In our case, we pre-compute the static identity
-        of the Term to be constructed and
+        actually constructed.  Because we memoize instances, we often return an
+        object that was already initialized from __new__, in which case we
+        don't want to call __init__ again.
+
+        Subclasses that need to initialize new instances should override _init,
+        which is guaranteed to be called only once.
         """
         pass
 
-    def _init(self, inputs, lookback, domain):
+    def _init(self, inputs, lookback, domain, dtype):
         self.inputs = inputs
         self.lookback = lookback
         self.domain = domain
+        self.dtype = dtype
         return self
 
     @property
@@ -82,7 +98,7 @@ class Term(object):
         return len(self.inputs) == 0
 
     @classmethod
-    def static_identity(cls, inputs, lookback, domain):
+    def static_identity(cls, inputs, lookback, domain, dtype):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -94,7 +110,7 @@ class Term(object):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, inputs, lookback, domain)
+        return (cls, inputs, lookback, domain, dtype)
 
     def _update_dependency_graph(self,
                                  dependencies,
@@ -129,14 +145,20 @@ class Term(object):
 
         parents.remove(self)
 
-    def compute_chunk(self, assets, dates, *dependencies):
-        expected_shape = len(assets), len(dates) + self.lookback
+    def compute_chunk(self, dates, assets, dependencies):
+        """
+        """
+        lookback = self.lookback
+        expected_shape = len(dates) + lookback, len(assets)
         for dep in dependencies:
             assert dep.shape == expected_shape
 
         for offset, date in enumerate(dates):
-            # FIXME:
-            window = slice(None, offset)
+            self.compute_single_date(
+                date,
+                assets,
+                *[dep[offset:lookback + offset, :] for dep in dependencies]
+            )
 
     def __repr__(self):
         return (
@@ -148,3 +170,10 @@ class Term(object):
             lookback=self.lookback,
             domain=self.domain,
         )
+
+
+class TrailingWindowTermMixin(Term):
+    """
+    Base class for terms that are computed on a trailing window of data.
+    """
+    pass
