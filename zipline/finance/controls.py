@@ -55,12 +55,13 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
         """
         raise NotImplementedError
 
-    def fail(self, asset, amount):
+    def fail(self, asset, amount, datetime):
         """
         Raise a TradingControlViolation with information about the failure.
         """
         raise TradingControlViolation(asset=asset,
                                       amount=amount,
+                                      datetime=datetime,
                                       constraint=repr(self))
 
     def __repr__(self):
@@ -98,7 +99,7 @@ class MaxOrderCount(TradingControl):
         self.current_date = algo_date
 
         if self.orders_placed >= self.max_count:
-            self.fail(asset, amount)
+            self.fail(asset, amount, algo_datetime)
         self.orders_placed += 1
 
 
@@ -128,7 +129,7 @@ class RestrictedListOrder(TradingControl):
         Fail if the asset is in the restricted_list.
         """
         if asset in self.restricted_list:
-            self.fail(asset, amount)
+            self.fail(asset, amount, _algo_datetime)
 
 
 class MaxOrderSize(TradingControl):
@@ -176,7 +177,7 @@ class MaxOrderSize(TradingControl):
             return
 
         if self.max_shares is not None and abs(amount) > self.max_shares:
-            self.fail(asset, amount)
+            self.fail(asset, amount, _algo_datetime)
 
         current_asset_price = algo_current_data[asset].price
         order_value = amount * current_asset_price
@@ -185,7 +186,7 @@ class MaxOrderSize(TradingControl):
                           abs(order_value) > self.max_notional)
 
         if too_much_value:
-            self.fail(asset, amount)
+            self.fail(asset, amount, _algo_datetime)
 
 
 class MaxPositionSize(TradingControl):
@@ -238,7 +239,7 @@ class MaxPositionSize(TradingControl):
         too_many_shares = (self.max_shares is not None and
                            abs(shares_post_order) > self.max_shares)
         if too_many_shares:
-            self.fail(asset, amount)
+            self.fail(asset, amount, algo_datetime)
 
         current_price = algo_current_data[asset].price
         value_post_order = shares_post_order * current_price
@@ -247,7 +248,7 @@ class MaxPositionSize(TradingControl):
                           abs(value_post_order) > self.max_notional)
 
         if too_much_value:
-            self.fail(asset, amount)
+            self.fail(asset, amount, algo_datetime)
 
 
 class LongOnly(TradingControl):
@@ -266,7 +267,7 @@ class LongOnly(TradingControl):
         order.
         """
         if portfolio.positions[asset].amount + amount < 0:
-            self.fail(asset, amount)
+            self.fail(asset, amount, _algo_datetime)
 
 
 class AssetDateBounds(TradingControl):
@@ -287,10 +288,10 @@ class AssetDateBounds(TradingControl):
         """
         # Fail if the algo is before this Asset's start_date
         if asset.start_date and (algo_datetime < asset.start_date):
-            self.fail(asset, amount)
+            self.fail(asset, amount, algo_datetime)
         # Fail if the algo has passed this Asset's end_date
         if asset.end_date and (algo_datetime >= asset.end_date):
-            self.fail(asset, amount)
+            self.fail(asset, amount, algo_datetime)
 
 
 class AccountControl(with_metaclass(abc.ABCMeta)):

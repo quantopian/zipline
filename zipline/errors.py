@@ -175,7 +175,8 @@ class TradingControlViolation(ZiplineError):
     Raised if an order would violate a constraint set by a TradingControl.
     """
     msg = """
-Order for {amount} shares of {asset} violates trading constraint {constraint}.
+Order for {amount} shares of {asset} at {datetime} violates trading constraint
+{constraint}.
 """.strip()
 
 
@@ -239,7 +240,7 @@ class InvalidAssetType(ZiplineError):
     AssetType.
     """
     msg = """
-Asset metadata contained an invalid Asset type: '{asset_type}'.
+AssetMetaData contained an invalid Asset type: '{asset_type}'.
 """.strip()
 
 
@@ -255,12 +256,10 @@ TradingEnvironment can not set asset_finder to object of class {cls}.
 
 class ConsumeAssetMetaDataError(ZiplineError):
     """
-    Raised when AsssetFinder.consume_metadata() is called on an invalid object.
+    Raised when AssetMetaData.consume() is called on an invalid object.
     """
     msg = """
-AssetFinder can not consume {obj}. Metadata must be a dict, a DataFrame, or a
-readable object. If the MetaData is a readable object, the rows of the object
-must contain fields for at least one of 'sid' or 'symbol'.
+AssetMetaData can not consume {obj}. MetaData must be a dict, a DataFrame, or
 """.strip()
 
 
