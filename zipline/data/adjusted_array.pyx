@@ -42,9 +42,9 @@ cdef class Float64AdjustedArray:
     """
     Adjusted array of float64.
     """
-
-    cdef readonly float64_t[:, ::1] data
-    cdef readonly dict adjustments
+    cdef:
+        readonly float64_t[:, ::1] data
+        readonly dict adjustments
 
     def __cinit__(self,
                   float64_t[:, ::1] data not None,
@@ -62,6 +62,16 @@ cdef class Float64AdjustedArray:
 
 
 cdef class _Float64AdjustedArrayWindow:
+    """
+    An iterator representing a moving view over an AdjustedArray.
+
+    This object stores a copy of the data from the AdjustedArray over which
+    it's iterating.  At each step in the iteration, it mutates its copy to
+    allow us to show different data when looking back over the array.
+
+    The arrays yielded by this iterator are always views over the underlying
+    data.
+    """
 
     cdef float64_t[:, ::1] data
     cdef readonly int lookback
@@ -119,6 +129,7 @@ cdef class _Float64AdjustedArrayWindow:
                 self.next_adj = self.max_anchor
 
         out = asarray(self.data[self.anchor - self.lookback: self.anchor])
+        out.setflags(write=0)
         self.anchor += 1
         return out
 

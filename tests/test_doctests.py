@@ -15,7 +15,7 @@ class DoctestTestCase(TestCase):
             )
             print results
         except doctest.UnexpectedException as e:
-            raise e.exc_info[0]
+            raise e.exc_info[1]
 
     def test_adjustment(self):
         self._check_docs(adjustment)

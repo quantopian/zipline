@@ -2,7 +2,6 @@
 Base class for Filters, Factors and Classifiers
 """
 from numpy import float64
-from zipline.errors import TrailingWindowInvalidLookback
 
 
 class CyclicDependency(Exception):
@@ -170,10 +169,3 @@ class Term(object):
             lookback=self.lookback,
             domain=self.domain,
         )
-
-
-class TrailingWindowTermMixin(Term):
-    """
-    Base class for terms that are computed on a trailing window of data.
-    """
-    pass
