@@ -13,6 +13,9 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
     """
     Compute indices suitable for passing to an Adjustment constructor.
 
+    If the specified dates aren't in dates_index, we return the index of the
+    first date **BEFORE** the supplied date.
+
     Example:
 
     >>> from pandas import date_range, Int64Index, Timestamp
@@ -27,12 +30,18 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
     ... )
     (2, 4, 3)
     """
+    cdef int start_date_loc
+    if start_date is None:
+        start_date_loc = 0
+    else:
+        start_date_loc = dates_index.get_loc(start_date, method='ffill')
+
     return (
         # start_date is allowed to be None, indicating "everything
         # before the end_date"
-        0 if start_date is None else dates_index.get_loc(start_date),
-        dates_index.get_loc(end_date),
-        assets_index.get_loc(asset_id),
+        start_date_loc,
+        dates_index.get_loc(end_date, method='ffill'),
+        assets_index.get_loc(asset_id),  # Must be exact match.
     )
 
 
@@ -101,9 +110,6 @@ cdef class Float64Overwrite(Float64Adjustment):
     """
     An adjustment that overwrites with a scalar.
 
-    Examples
-    --------
-
     Example
     -------
 
@@ -114,7 +120,7 @@ cdef class Float64Overwrite(Float64Adjustment):
            [ 3.,  4.,  5.],
            [ 6.,  7.,  8.]])
 
-    >>> adj = Float64(first_row=1, last_row=2, col=1, value=0.0)
+    >>> adj = Float64Overwrite(first_row=1, last_row=2, col=1, value=0.0)
     >>> adj.mutate(arr)
     >>> arr
     array([[ 0.,  1.,  2.],
