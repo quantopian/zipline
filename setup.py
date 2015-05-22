@@ -25,8 +25,8 @@ ext_modules = [
         include_dirs=[np.get_include()],
     ),
     Extension(
-        'zipline.data.chunkerator',
-        ['zipline/data/chunkerator.pyx'],
+        'zipline.data.adjusted_array',
+        ['zipline/data/adjusted_array.pyx'],
         include_dirs=[np.get_include()],
     ),
     Extension(

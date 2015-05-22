@@ -151,6 +151,11 @@ class SimpleFFCEngine(object):
         workspace = {term: None for term in self._resolution_order}
 
         for term in self._resolution_order:
+
+            # TODO: Extend dates backward based on lookback.
+
+            # Potential Optimization: Scan the resolution order for terms in
+            # the same dataset and load them here as well.
             if term.atomic:
                 workspace[term] = loader.load_moving_windows(
                     [term], dates, assets
