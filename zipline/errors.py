@@ -295,11 +295,21 @@ DataSource will be used. Given start = '{start}', end = '{end}'
 """.strip()
 
 
-class TrailingWindowInvalidLookback(ZiplineError):
+class LookbackTooLong(ZiplineError):
     """
-    Raised when a TrailingWindowTerm is instantiated with a lookback of less
-    than 1.
+    Raised when a trailing window is instantiated with a lookback greater than
+    the length of the underlying array.
     """
-    mgs = """
-TrailingWindowTerm of type {name} can't be created with lookback of {lookback}.
-""".strip()
+    msg = (
+        "Can't construct a rolling window of length "
+        "{windowlen} on an array of length {nrows}."
+    ).strip()
+
+
+class LookbackNotPositive(ZiplineError):
+    """
+    Raised when a trailing window is instantiated with a lookback less than 1.
+    """
+    msg = (
+        "Rolling window lookback must be greater than 0, got {windowlen}."
+    ).strip()

@@ -87,7 +87,7 @@ cdef class Float64Multiply(Float64Adjustment):
            [  6.,  28.,   8.]])
     """
 
-    cpdef mutate(self, float64_t[:, ::1] data):
+    cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
         col = self.col
 
@@ -114,15 +114,15 @@ cdef class Float64Overwrite(Float64Adjustment):
            [ 3.,  4.,  5.],
            [ 6.,  7.,  8.]])
 
-    >>> adj = Float64Multiply(first_row=1, last_row=2, col=1, value=4.0)
+    >>> adj = Float64(first_row=1, last_row=2, col=1, value=0.0)
     >>> adj.mutate(arr)
     >>> arr
-    array([[  0.,   1.,   2.],
-           [  3.,  16.,   5.],
-           [  6.,  28.,   8.]])
+    array([[ 0.,  1.,  2.],
+           [ 3.,  0.,  5.],
+           [ 6.,  0.,  8.]])
     """
 
-    cpdef mutate(self, float64_t[:, ::1] data):
+    cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
         col = self.col
 
