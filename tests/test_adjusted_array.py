@@ -234,7 +234,7 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
         )
 
 
-class ChunkedDataTestCase(TestCase):
+class AdjustedArrayTestCase(TestCase):
 
     @parameterized.expand(_gen_unadjusted_cases(float))
     def test_no_adjustments(self,
@@ -284,3 +284,12 @@ class ChunkedDataTestCase(TestCase):
 
         with self.assertRaises(LookbackNotPositive):
             adj_array.traverse(-1)
+
+    def test_array_views_arent_writable(self):
+
+        data = arange(30, dtype=float).reshape(6, 5)
+        adj_array = adjusted_array(data, {})
+
+        for frame in adj_array.traverse(3):
+            with self.assertRaises(ValueError):
+                frame[0, 0] = 5.0
