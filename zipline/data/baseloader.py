@@ -13,5 +13,5 @@ from six import with_metaclass
 class DataLoader(with_metaclass(ABCMeta)):
 
     @abstractmethod
-    def load_adjusted_array(self, columns, dates, assets, lookback):
+    def load_adjusted_array(self, columns, dates, assets):
         pass
