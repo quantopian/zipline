@@ -1,7 +1,13 @@
 """
 Base class for Filters, Factors and Classifiers
 """
-from numpy import float64
+from numpy import (
+    asarray,
+    empty,
+    float64,
+)
+
+from zipline.errors import InputTermNotAtomic
 
 
 class CyclicDependency(Exception):
@@ -85,7 +91,21 @@ class Term(object):
         self.lookback = lookback
         self.domain = domain
         self.dtype = dtype
+
+        self._validate()
         return self
+
+    def _validate(self):
+        """
+        Assert that this term is well-formed. This currently means the
+        following:
+
+        - If we have a lookback window, all of our inputs are atomic.
+        """
+        if self.lookback:
+            for child in self.inputs:
+                if not child.atomic:
+                    raise InputTermNotAtomic(parent=self, child=child)
 
     @property
     def atomic(self):
@@ -114,50 +134,77 @@ class Term(object):
     def _update_dependency_graph(self,
                                  dependencies,
                                  parents,
-                                 parent_lookback):
+                                 extra_rows):
         """
         Add this term and all its inputs to dependencies.
         """
-
         # If we've seen this node already as a parent of the current traversal,
-        # it means we have an unsatisifiable dependency.
+        # it means we have an unsatisifiable dependency.  This should only be
+        # possible if the term's inputs are mutated after construction.
         if self in parents:
             raise CyclicDependency(self)
         parents.add(self)
 
-        # If we're already in the graph because we're a dependency of a
-        # processed node, ensure that we load enough lookback data for our
-        # dependencies.
+        # Add ourself to the graph with the specified number of extra rows.  If
+        # we're already in the graph because we have multiple parents, ensure
+        # that we have enough extra rows to satisfy both of our parents.
         try:
             existing = dependencies.node[self]
-            existing['lookback'] = max(parent_lookback, existing['lookback'])
         except KeyError:
-            dependencies.add_node(self, lookback=parent_lookback)
+            dependencies.add_node(self, extra_rows=extra_rows)
+        else:
+            existing['extra_rows'] = max(extra_rows, existing['extra_rows'])
 
         for term in self.inputs:
             term._update_dependency_graph(
                 dependencies,
                 parents,
-                parent_lookback=parent_lookback + self.lookback,
+                # Each lookback row after the first requires us to load/compute
+                # an extra row from each of our dependencies.
+                extra_rows=extra_rows + max(0, self.lookback - 1),
             )
             dependencies.add_edge(term, self)
 
         parents.remove(self)
 
-    def compute_chunk(self, dates, assets, dependencies):
+    def _compute_chunk(self, dates, assets, dependencies):
         """
+        Compute the given term for dates/assets.
         """
         lookback = self.lookback
-        expected_shape = len(dates) + lookback, len(assets)
-        for dep in dependencies:
-            assert dep.shape == expected_shape
+        outbuf = empty(
+            (len(dates), len(assets))
+        )
 
-        for offset, date in enumerate(dates):
-            self.compute_single_date(
-                date,
+        # Traverse trailing windows.
+        if self.lookback:
+            return self.compute_from_windows(
+                outbuf,
+                dates,
                 assets,
-                *[dep[offset:lookback + offset, :] for dep in dependencies]
+                [dep.traverse(lookback) for dep in dependencies],
             )
+        else:
+            return self.compute_from_baselines(
+                outbuf,
+                dates,
+                assets,
+                [asarray(dep.data) for dep in dependencies],
+            )
+
+    def compute_from_windows(self, outbuf, dates, assets, windows):
+        """
+        Subclasses should implement this for computations requiring moving
+        windows.
+        """
+        raise NotImplementedError()
+
+    def compute_from_baselines(self, outbuf, dates, assets, arrays):
+        """
+        Subclasses should implement this for computations that can be expressed
+        directly as array computations.
+        """
+        raise NotImplementedError()
 
     def __repr__(self):
         return (

@@ -2,7 +2,10 @@
 Compute Engine for FFC API
 """
 from functools import wraps
-from itertools import chain
+from itertools import (
+    chain,
+    izip_longest,
+)
 
 from networkx import (
     DiGraph,
@@ -18,7 +21,7 @@ def build_dependency_graph(filters, classifiers, factors):
         term._update_dependency_graph(
             dependencies,
             parents,
-            parent_lookback=0,
+            extra_rows=0,
         )
 
     # No parents should be left at the end of the run.
@@ -74,7 +77,7 @@ def require_frozen(method):
 
 class SimpleFFCEngine(object):
     """
-    Class capable of computing terms of an FFC dependency graph.
+    FFC Engine class that computes each term independently.
     """
     __slots__ = [
         '_loader',
@@ -85,10 +88,11 @@ class SimpleFFCEngine(object):
         '_frozen',
         '_graph',
         '_resolution_order',
-        '_lookbacks',
+        '_extra_row_counts',
+        '_max_extra_row_count',
     ]
 
-    def __init__(self, loader, trading_days, asset_metadata):
+    def __init__(self, loader, trading_days):
 
         self._loader = loader
         self._trading_days = trading_days
@@ -102,8 +106,9 @@ class SimpleFFCEngine(object):
         self._frozen = False
         self._graph = None
         self._resolution_order = None
-        self._lookbacks = None
+        self._extra_row_counts = None
 
+    # Thawed Methods
     @require_thawed
     def add_filter(self, filter):
         self._filters.append(filter)
@@ -121,6 +126,9 @@ class SimpleFFCEngine(object):
         """
         Called by TradingAlgorithm to signify that no more FFC Terms will be
         added to the graph.
+
+        This is where we determine in what order and with what lookbacks we
+        will compute our dependencies.
         """
         self._filters = frozenset(self._filters)
         self._classifiers = frozenset(self._classifiers)
@@ -132,42 +140,65 @@ class SimpleFFCEngine(object):
             self._factors,
         )
         self._resolution_order = topological_sort(self._graph)
-        self._lookbacks = get_node_attributes(self._graph, 'lookback')
+
+        self._extra_row_counts = get_node_attributes(self._graph, 'extra_rows')
+        self._max_extra_row_count = max(self._extra_row_counts.values())
+
         self._frozen = True
 
+    # Frozen Methods
     @require_frozen
-    def lookback(self, term):
+    def extra_row_count(self, term):
         """
-        Get the amount of lookback needed by parents of this term.
+        Get the number extra rows to compute for the given term.
         """
-        return self._lookbacks[term]
+        return self._extra_row_counts[term]
 
     @require_frozen
-    def compute_chunk(self, dates, assets):
+    def compute_chunk(self, start_date, end_date, assets):
         """
         Compute our factors on a chunk of assets and dates.
         """
         loader = self._loader
+        trading_days = self._trading_days
         workspace = {term: None for term in self._resolution_order}
 
+        start_idx = trading_days.get_loc(start_date)
+        # +1 because we use this as the upper bound of a slice.
+        end_idx = trading_days.get_loc(end_date) + 1
+        if start_idx < self._max_extra_row_count:
+            # TODO: Use NoFurtherDataError from trading.py
+            raise ValueError(
+                "Insufficient data to compute FFC Matrix: "
+                "start date was %s, "
+                "earliest known date was %s, "
+                "Required extra rows was %d" % (
+                    start_date, trading_days[0], self._max_extra_row_count,
+                ),
+            )
+
+        all_dates = trading_days[start_idx - self._max_extra_row_count:end_idx]
+
         for term in self._resolution_order:
+            # len(term_dates) == (end_idx - start_idx) + extra_row_count(term)
+            term_start = self._max_extra_row_count - self.extra_row_count(term)
+            term_dates = all_dates[term_start:]
 
-            # TODO: Extend dates backward based on lookback.
-            lookback = 5
-
-            # Potential Optimization: Scan the resolution order for terms in
-            # the same dataset and load them here as well.
             if term.atomic:
-                workspace[term] = loader.load_adjusted_array(
-                    [term],
-                    dates,
+                # FUTURE OPTIMIZATION: Scan the resolution order for terms in
+                # the same dataset and load them here as well.
+                to_load = [term]
+                loaded = loader.load_adjusted_array(
+                    to_load,
+                    term_dates,
                     assets,
-                    lookback,
-                )[0]
+                )
+                for loaded_term, adj_array in izip_longest(to_load, loaded):
+                    workspace[loaded_term] = adj_array
             else:
-                workspace[term] = term.compute_chunk(
+                workspace[term] = term._compute_chunk(
+                    term_dates,
                     assets,
-                    dates,
                     [workspace[input_] for input_ in term.inputs],
                 )
 

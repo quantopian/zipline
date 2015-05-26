@@ -104,9 +104,6 @@ cdef class Float64Multiply(Float64Adjustment):
         for row in range(self.first_row, self.last_row + 1):
             data[row, col] *= self.value
 
-    cpdef mutate_mask(self, uint8_t[:, :] data):
-        pass
-
 
 cdef class Float64Overwrite(Float64Adjustment):
     """
@@ -137,14 +134,6 @@ cdef class Float64Overwrite(Float64Adjustment):
         # last_row + 1 because last_row should also be affected.
         for row in range(self.first_row, self.last_row + 1):
             data[row, col] = self.value
-
-    cpdef mutate_mask(self, uint8_t[:, :] data):
-        cdef Py_ssize_t row, col
-        col = self.col
-
-        # last_row + 1 because last_row should also be affected.
-        for row in range(self.first_row, self.last_row + 1):
-            data[row, col] = 1
 
 
 cpdef Float64Multiply from_assets_and_dates_f64mul(DatetimeIndex_t dates_index,

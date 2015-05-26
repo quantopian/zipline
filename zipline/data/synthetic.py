@@ -9,7 +9,10 @@ from numpy import (
     full,
 )
 
-from zipline.data.adjusted_array import adjusted_array
+from zipline.data.adjusted_array import (
+    adjusted_array,
+    NOMASK,
+)
 from zipline.data.baseloader import DataLoader
 
 
@@ -18,10 +21,6 @@ class SyntheticDataLoader(DataLoader):
     DataLoader subclass that builds synthetic data based only on the shape of
     the desired output.  Keeps a log of all calls to load_columns() for use in
     testing.
-
-    Subclasses should implement the following methods:
-
-    make_column(dtype: np.dtype, nrows: int, ncols: int, idx: int) -> ndarray
     """
     def __init__(self, known_assets, adjustments):
         """
@@ -33,48 +32,49 @@ class SyntheticDataLoader(DataLoader):
         self._known_assets = known_assets
         self._adjustments = {}
 
-    def load_adjusted_array(self, columns, dates, assets, lookback):
+    def load_adjusted_array(self, columns, dates, assets):
         """
         Load each column with self.make_column.
         """
-        self._log.append((columns, dates, assets, lookback))
+        self._log.append((columns, dates, assets))
 
         nrows = len(dates)
         ncols = len(assets)
         return [
             adjusted_array(
-                self.make_baseline(col.dtype, nrows, ncols),
+                self.make_baseline(col, nrows, ncols),
+                NOMASK,
                 self._adjustments,
             )
-            self.make_column(col.dtype, nrows, ncols, lookback)
             for col in columns
         ]
 
     @abstractmethod
-    def make_baseline(self, dtype, nrows, ncols):
+    def make_baseline(self, column, nrows, ncols):
         """
-        Returns an ndarray of dtype dtype and shape (nrows, ncols).
-
-        idx is incremented and passed for each unique field loaded.
+        Returns an ndarray of shape nrows, ncols for the given column.
         """
         pass
 
 
 class ConstantLoader(SyntheticDataLoader):
     """
-    SyntheticDataLoader that returns a constant value for each sid/column.
+    SyntheticDataLoader that returns a constant value for each column.
     """
 
-    def __init__(self, n, known_assets, adjustments):
+    def __init__(self, known_assets, adjustments, constants):
         super(ConstantLoader, self).__init__(
             known_assets=known_assets,
             adjustments=adjustments,
         )
-        self.n = n
+        self._constants = constants
 
-    def make_column(self, dtype, nrows, ncols, lookback):
-        baseline = full((nrows, ncols), self.n, dtype=dtype)
-        return adjusted_array(baseline, self._adjustments).traverse(lookback)
+    def make_baseline(self, column, nrows, ncols):
+        return full(
+            (nrows, ncols),
+            self._constants[column],
+            dtype=column.dtype,
+        )
 
 
 class ARangeLoader(SyntheticDataLoader):
