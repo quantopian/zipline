@@ -1,4 +1,4 @@
-from numpy cimport float64_t
+from numpy cimport float64_t, uint8_t
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -100,10 +100,12 @@ cdef class Float64Multiply(Float64Adjustment):
         cdef Py_ssize_t row, col
         col = self.col
 
-        # last_row + 1 because last_row is the last index that **should be**
-        # affected.
+        # last_row + 1 because last_row should also be affected.
         for row in range(self.first_row, self.last_row + 1):
             data[row, col] *= self.value
+
+    cpdef mutate_mask(self, uint8_t[:, :] data):
+        pass
 
 
 cdef class Float64Overwrite(Float64Adjustment):
@@ -132,10 +134,17 @@ cdef class Float64Overwrite(Float64Adjustment):
         cdef Py_ssize_t row, col
         col = self.col
 
-        # last_row + 1 because last_row is the last index that **should be**
-        # affected.
+        # last_row + 1 because last_row should also be affected.
         for row in range(self.first_row, self.last_row + 1):
             data[row, col] = self.value
+
+    cpdef mutate_mask(self, uint8_t[:, :] data):
+        cdef Py_ssize_t row, col
+        col = self.col
+
+        # last_row + 1 because last_row should also be affected.
+        for row in range(self.first_row, self.last_row + 1):
+            data[row, col] = 1
 
 
 cpdef Float64Multiply from_assets_and_dates_f64mul(DatetimeIndex_t dates_index,
