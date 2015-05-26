@@ -7,7 +7,6 @@ from numpy import (
     full,
     uint8,
 )
-from numpy.ma import masked_array
 from numpy cimport (
     float64_t,
     ndarray,
@@ -18,6 +17,12 @@ from zipline.errors import (
     LookbackNotPositive,
     LookbackTooLong,
 )
+
+cdef extern from "math.h" nogil:
+    float NAN
+
+
+NOMASK = None
 
 
 cpdef adjusted_array(ndarray data, uint8_t[:, :] mask, dict adjustments):
@@ -32,9 +37,7 @@ cpdef adjusted_array(ndarray data, uint8_t[:, :] mask, dict adjustments):
     if data.dtype == float64:
         return Float64AdjustedArray(data, mask, adjustments)
     else:
-        raise TypeError(
-            "Can't generate window iterator for array of dtype %s" % data.dtype
-        )
+        return Float64AdjustedArray(data.astype(float64), mask, adjustments)
 
 
 cdef _check_lookback(object data, int lookback):
@@ -51,27 +54,26 @@ cdef class Float64AdjustedArray:
     Adjusted array of float64.
     """
     cdef:
-        float64_t[:, :] data
-        uint8_t[:, :] mask
+        readonly float64_t[:, :] data
         dict adjustments
 
     def __cinit__(self,
                   float64_t[:, :] data not None,
-                  uint8_t[:, :] mask,  # None is equivalent to all 1s.
+                  uint8_t[:, :] mask,  # None is equivalent to all 0s.
                   dict adjustments):
+        cdef Py_ssize_t row, col
 
         self.data = data
         self.adjustments = adjustments
-        if mask is None:
-            self.mask = full((data.shape[0], data.shape[1]), 1, dtype=uint8)
-        else:
+        if mask is not NOMASK:
             assert mask.shape == data.shape
-            self.mask = mask
+            for row in range(mask.shape[0]):
+                for col in range(mask.shape[1]):
+                    self.data[row, col] = NAN
 
     cpdef traverse(self, int lookback):
         return _Float64AdjustedArrayWindow(
             self.data.copy(),
-            self.mask.copy(),
             lookback,
             self.adjustments,
         )
@@ -90,7 +92,6 @@ cdef class _Float64AdjustedArrayWindow:
     """
 
     cdef float64_t[:, :] data
-    cdef uint8_t[:, :] mask
     cdef readonly int lookback
     cdef Py_ssize_t anchor, max_anchor, next_adj
     cdef dict adjustments
@@ -98,14 +99,12 @@ cdef class _Float64AdjustedArrayWindow:
 
     def __cinit__(self,
                   float64_t[:, :] data,
-                  uint8_t[:, :] mask,
                   int lookback,
                   dict adjustments):
 
         _check_lookback(data, lookback)
 
         self.data = data
-        self.mask = mask
         self.lookback = lookback
 
         # anchor is the index of the row **after** the row from which we're
@@ -141,7 +140,6 @@ cdef class _Float64AdjustedArrayWindow:
 
             for adjustment in self.adjustments[self.next_adj]:
                 adjustment.mutate(self.data)
-                adjustment.mutate_mask(self.mask)
 
             if len(self.adjustment_indices) > 0:
                 self.next_adj = self.adjustment_indices.pop()
@@ -149,11 +147,11 @@ cdef class _Float64AdjustedArrayWindow:
                 self.next_adj = self.max_anchor
 
         start = anchor - self.lookback
-        out = asarray(self.data[start: self.anchor])
-        mask_out = asarray(self.mask[start: self.anchor])
+        out = asarray(self.data[start:self.anchor])
+        out.setflags(write=False)
 
         self.anchor += 1
-        return out, mask_out
+        return out
 
     def __repr__(self):
         return "%s(lookback=%d, anchor=%d, max_anchor=%d)" % (

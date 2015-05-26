@@ -208,3 +208,13 @@ class LookbackNotPositive(ZiplineError):
     msg = (
         "Rolling window lookback must be greater than 0, got {windowlen}."
     ).strip()
+
+
+class InputTermNotAtomic(ZiplineError):
+    """
+    Raised when a non-atomic term is specified as an input to an FFC term with
+    a lookback window.
+    """
+    msg = (
+        "Can't compute {parent} with non-atomic input {child}."
+    )
