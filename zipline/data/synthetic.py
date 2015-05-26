@@ -9,6 +9,7 @@ from numpy import (
     full,
 )
 
+from zipline.data.adjusted_array import adjusted_array
 from zipline.data.baseloader import DataLoader
 
 
@@ -22,7 +23,7 @@ class SyntheticDataLoader(DataLoader):
 
     make_column(dtype: np.dtype, nrows: int, ncols: int, idx: int) -> ndarray
     """
-    def __init__(self, known_assets):
+    def __init__(self, known_assets, adjustments):
         """
         Params
         ------
@@ -30,22 +31,27 @@ class SyntheticDataLoader(DataLoader):
         """
         self._log = []
         self._known_assets = known_assets
+        self._adjustments = {}
 
-    def load_baseline_and_adjustments(self, columns, assets, dates):
+    def load_adjusted_array(self, columns, dates, assets, lookback):
         """
         Load each column with self.make_column.
         """
-        self._log.append((columns, assets, dates))
+        self._log.append((columns, dates, assets, lookback))
 
-        nrows = len(assets)
-        ncols = len(dates)
+        nrows = len(dates)
+        ncols = len(assets)
         return [
-            (self.make_column(col.dtype, nrows, ncols, idx), None)
-            for idx, col in enumerate(columns)
+            adjusted_array(
+                self.make_baseline(col.dtype, nrows, ncols),
+                self._adjustments,
+            )
+            self.make_column(col.dtype, nrows, ncols, lookback)
+            for col in columns
         ]
 
     @abstractmethod
-    def make_column(self, dtype, nrows, ncols, idx):
+    def make_baseline(self, dtype, nrows, ncols):
         """
         Returns an ndarray of dtype dtype and shape (nrows, ncols).
 
@@ -59,16 +65,16 @@ class ConstantLoader(SyntheticDataLoader):
     SyntheticDataLoader that returns a constant value for each sid/column.
     """
 
-    def __init__(self, n):
-        super(ConstantLoader, self).__init__()
+    def __init__(self, n, known_assets, adjustments):
+        super(ConstantLoader, self).__init__(
+            known_assets=known_assets,
+            adjustments=adjustments,
+        )
         self.n = n
 
-    def make_column(self, dtype, nrows, ncols, idx):
-        return full(
-            (nrows, ncols),
-            self.n,
-            dtype=dtype,
-        )
+    def make_column(self, dtype, nrows, ncols, lookback):
+        baseline = full((nrows, ncols), self.n, dtype=dtype)
+        return adjusted_array(baseline, self._adjustments).traverse(lookback)
 
 
 class ARangeLoader(SyntheticDataLoader):

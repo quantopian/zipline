@@ -11,6 +11,7 @@ from numpy import (
     arange,
     array,
     full,
+    uint8,
 )
 from numpy.testing import assert_array_equal
 
@@ -205,10 +206,22 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2,  6,  2],
                              [2,  2,  2]], dtype=dtype)
 
-    return _gen_expectations(baseline, adjustments, buffer_as_of, nrows)
+    # Use an empty mask for all of these tests.
+    mask_as_of = [
+        full(baseline.shape, 0, dtype=uint8)
+        for i in range(len(buffer_as_of))
+    ]
+
+    return _gen_expectations(
+        baseline,
+        adjustments,
+        buffer_as_of,
+        mask_as_of,
+        nrows,
+    )
 
 
-def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
+def _gen_expectations(baseline, adjustments, buffer_as_of, mask_as_of, nrows):
 
     for windowlen in valid_window_lengths(nrows):
 
@@ -230,6 +243,10 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
                 # of the data, which will be (offset + windowlen - 1).
                 buffer_as_of[offset + windowlen - 1][offset:offset + windowlen]
                 for offset in range(num_legal_windows)
+            ],
+            [
+                mask_as_of[offset + windowlen - 1][offset:offset + windowlen]
+                for offset in range(num_legal_windows)
             ]
         )
 
@@ -244,7 +261,11 @@ class AdjustedArrayTestCase(TestCase):
                             adjustments,
                             expected):
 
-        window_iter = adjusted_array(data, adjustments).traverse(lookback)
+        window_iter = adjusted_array(
+            data,
+            None,
+            adjustments,
+        ).traverse(lookback)
         for yielded, expected_yield in izip_longest(window_iter, expected):
             assert_array_equal(yielded, expected_yield)
 
@@ -255,10 +276,13 @@ class AdjustedArrayTestCase(TestCase):
                                         lookback,
                                         adjustments,
                                         expected):
-
-        window_iter = adjusted_array(data, adjustments).traverse(lookback)
+        window_iter = adjusted_array(
+            data,
+            None,
+            adjustments,
+        ).traverse(lookback)
         for yielded, expected_yield in izip_longest(window_iter, expected):
-            assert_array_equal(yielded, expected_yield)
+            assert_array_equal(yielded_data, expected_yield)
 
     @parameterized.expand(_gen_overwrite_adjustment_cases(float))
     def test_overwrite_adjustment_cases(self,
@@ -267,14 +291,18 @@ class AdjustedArrayTestCase(TestCase):
                                         lookback,
                                         adjustments,
                                         expected):
-        window_iter = adjusted_array(data, adjustments).traverse(lookback)
+        window_iter = adjusted_array(
+            data,
+            None,
+            adjustments,
+        ).traverse(lookback)
         for yielded, expected_yield in izip_longest(window_iter, expected):
             assert_array_equal(yielded, expected_yield)
 
     def test_invalid_lookback(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = adjusted_array(data, {})
+        adj_array = adjusted_array(data, None, {})
 
         with self.assertRaises(LookbackTooLong):
             adj_array.traverse(7)
@@ -288,7 +316,7 @@ class AdjustedArrayTestCase(TestCase):
     def test_array_views_arent_writable(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = adjusted_array(data, {})
+        adj_array = adjusted_array(data, None, {})
 
         for frame in adj_array.traverse(3):
             with self.assertRaises(ValueError):
