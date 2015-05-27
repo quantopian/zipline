@@ -15,10 +15,9 @@ from zipline.data.dataset import (
     Column,
     DataSet,
 )
-# from zipline.modelling.classifier import Classifier
+from zipline.errors import InputTermNotAtomic
 from zipline.modelling.engine import build_dependency_graph
 from zipline.modelling.factor import Factor
-# from zipline.modelling.filter import Filter
 
 
 class SomeDataSet(DataSet):
@@ -29,12 +28,16 @@ class SomeDataSet(DataSet):
 
 
 class SomeFactor(Factor):
-    lookback = 5
+    window_length = 5
     inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
 
+class NoLookbackFactor(Factor):
+    window_length = 0
+
+
 class SomeOtherFactor(Factor):
-    lookback = 5
+    window_length = 5
     inputs = [SomeDataSet.bar, SomeDataSet.buzz]
 
 
@@ -51,12 +54,12 @@ def gen_equivalent_factors():
     yield SomeFactor(SomeFactor.inputs)
     yield SomeFactor(inputs=SomeFactor.inputs)
     yield SomeFactor([SomeDataSet.foo, SomeDataSet.bar])
-    yield SomeFactor(lookback=SomeFactor.lookback)
-    yield SomeFactor(lookback=None)
-    yield SomeFactor([SomeDataSet.foo, SomeDataSet.bar], lookback=None)
+    yield SomeFactor(window_length=SomeFactor.window_length)
+    yield SomeFactor(window_length=None)
+    yield SomeFactor([SomeDataSet.foo, SomeDataSet.bar], window_length=None)
     yield SomeFactor(
         [SomeDataSet.foo, SomeDataSet.bar],
-        lookback=SomeFactor.lookback,
+        window_length=SomeFactor.window_length,
     )
     yield SomeFactorAlias()
 
@@ -86,8 +89,8 @@ class DependencyResolutionTestCase(TestCase):
                 set([SomeDataSet.foo, SomeDataSet.bar]),
             )
             self.assertEqual(resolution_order[-1], SomeFactor())
-            self.assertEqual(graph.node[SomeDataSet.foo]['lookback'], 5)
-            self.assertEqual(graph.node[SomeDataSet.bar]['lookback'], 5)
+            self.assertEqual(graph.node[SomeDataSet.foo]['extra_rows'], 4)
+            self.assertEqual(graph.node[SomeDataSet.bar]['extra_rows'], 4)
 
         for foobar in gen_equivalent_factors():
             check_output(build_dependency_graph([], [], [foobar]))
@@ -99,7 +102,7 @@ class DependencyResolutionTestCase(TestCase):
         """
         graph = build_dependency_graph(
             [], [],
-            [SomeFactor([SomeDataSet.bar, SomeDataSet.buzz], lookback=5)]
+            [SomeFactor([SomeDataSet.bar, SomeDataSet.buzz], window_length=5)]
         )
         resolution_order = topological_sort(graph)
 
@@ -110,10 +113,10 @@ class DependencyResolutionTestCase(TestCase):
         )
         self.assertEqual(
             resolution_order[-1],
-            SomeFactor([SomeDataSet.bar, SomeDataSet.buzz], lookback=5),
+            SomeFactor([SomeDataSet.bar, SomeDataSet.buzz], window_length=5),
         )
-        self.assertEqual(graph.node[SomeDataSet.bar]['lookback'], 5)
-        self.assertEqual(graph.node[SomeDataSet.buzz]['lookback'], 5)
+        self.assertEqual(graph.node[SomeDataSet.bar]['extra_rows'], 4)
+        self.assertEqual(graph.node[SomeDataSet.buzz]['extra_rows'], 4)
 
     def test_reuse_atomic_terms(self):
         """
@@ -140,22 +143,10 @@ class DependencyResolutionTestCase(TestCase):
         self.assertLess(indices[SomeDataSet.bar], indices[f2])
         self.assertLess(indices[SomeDataSet.buzz], indices[f2])
 
-    def test_factor_with_self_as_argument(self):
-        """
-        Test that an instance of a factor can be passed as an input to another
-        factor.
-        """
-        f1 = SomeFactor()
-        f2 = SomeFactor([f1, SomeDataSet.foo])
+    def test_disallow_recursive_lookback(self):
 
-        graph = build_dependency_graph([], [], [f1, f2])
-        resolution_order = topological_sort(graph)
-
-        self.assertEqual(
-            set(resolution_order[:2]),
-            set([SomeDataSet.foo, SomeDataSet.bar]),
-        )
-        self.assertEqual(resolution_order[2:], [f1, f2])
+        with self.assertRaises(InputTermNotAtomic):
+            SomeFactor(inputs=[SomeFactor(), SomeDataSet.foo])
 
 
 class ObjectIdentityTestCase(TestCase):
@@ -169,8 +160,8 @@ class ObjectIdentityTestCase(TestCase):
 
         self.assertSameObject(*gen_equivalent_factors())
         self.assertIs(
-            SomeFactor(lookback=SomeFactor.lookback + 1),
-            SomeFactor(lookback=SomeFactor.lookback + 1),
+            SomeFactor(window_length=SomeFactor.window_length + 1),
+            SomeFactor(window_length=SomeFactor.window_length + 1),
         )
 
         self.assertIs(
@@ -187,10 +178,10 @@ class ObjectIdentityTestCase(TestCase):
 
         f = SomeFactor()
 
-        # Different lookback.
+        # Different window_length.
         self.assertIsNot(
             f,
-            SomeFactor(lookback=SomeFactor.lookback + 1),
+            SomeFactor(window_length=SomeFactor.window_length + 1),
         )
 
         # Different dtype
@@ -210,7 +201,7 @@ class ObjectIdentityTestCase(TestCase):
         orig_foobar_instance = SomeFactorAlias()
 
         class SomeFactor(Factor):
-            lookback = 5
+            window_length = 5
             inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
         self.assertIsNot(orig_foobar_instance, SomeFactor())

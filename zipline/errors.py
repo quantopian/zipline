@@ -190,23 +190,23 @@ at frequency '{data_frequency}'.
 """.strip()
 
 
-class LookbackTooLong(ZiplineError):
+class WindowLengthTooLong(ZiplineError):
     """
     Raised when a trailing window is instantiated with a lookback greater than
     the length of the underlying array.
     """
     msg = (
         "Can't construct a rolling window of length "
-        "{windowlen} on an array of length {nrows}."
+        "{window_length} on an array of length {nrows}."
     ).strip()
 
 
-class LookbackNotPositive(ZiplineError):
+class WindowLengthNotPositive(ZiplineError):
     """
-    Raised when a trailing window is instantiated with a lookback less than 1.
+    Raised when a trailing window is instantiated with a length less than 1.
     """
     msg = (
-        "Rolling window lookback must be greater than 0, got {windowlen}."
+        "Rolling window lookback must be greater than 0, got {window_length}."
     ).strip()
 
 
@@ -217,4 +217,22 @@ class InputTermNotAtomic(ZiplineError):
     """
     msg = (
         "Can't compute {parent} with non-atomic input {child}."
+    )
+
+
+class TermInputsNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = "{termname} requires inputs, but no inputs list was passed."
+
+
+class WindowLengthNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = (
+        "{termname} requires a window_length, but no window_length was passed."
     )
