@@ -20,7 +20,7 @@ class TestFactor(Factor):
     def compute_from_windows(self, windows, outbuf, dates, assets):
 
         for idx, _ in enumerate(dates):
-            result = self.compute(*(next(w) for w in windows))
+            result = self.from_windows(*(next(w) for w in windows))
             assert result.shape == (len(assets),)
             outbuf[idx] = result
 
