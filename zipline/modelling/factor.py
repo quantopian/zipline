@@ -17,7 +17,7 @@ class TestFactor(Factor):
     Base class for testing that asserts all inputs are correctly shaped.
     """
 
-    def compute_from_windows(self, outbuf, dates, assets, windows):
+    def compute_from_windows(self, windows, outbuf, dates, assets):
 
         for idx, _ in enumerate(dates):
             result = self.compute(*(next(w) for w in windows))

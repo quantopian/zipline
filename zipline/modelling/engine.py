@@ -12,6 +12,10 @@ from networkx import (
     get_node_attributes,
     topological_sort,
 )
+from numpy import (
+    asarray,
+    empty,
+)
 
 
 def build_dependency_graph(filters, classifiers, factors):
@@ -81,7 +85,7 @@ class SimpleFFCEngine(object):
     """
     __slots__ = [
         '_loader',
-        '_trading_days',
+        '_calendar',
         '_filters',
         '_classifiers',
         '_factors',
@@ -89,13 +93,12 @@ class SimpleFFCEngine(object):
         '_graph',
         '_resolution_order',
         '_extra_row_counts',
-        '_max_extra_row_count',
     ]
 
-    def __init__(self, loader, trading_days):
+    def __init__(self, loader, calendar):
 
         self._loader = loader
-        self._trading_days = trading_days
+        self._calendar = calendar
 
         self._filters = []
         self._classifiers = []
@@ -127,23 +130,19 @@ class SimpleFFCEngine(object):
         Called by TradingAlgorithm to signify that no more FFC Terms will be
         added to the graph.
 
-        This is where we determine in what order and with what lookbacks we
-        will compute our dependencies.
+        This is where we determine in what order and with what window lengths
+        we will compute our dependencies.
         """
         self._filters = frozenset(self._filters)
         self._classifiers = frozenset(self._classifiers)
         self._factors = frozenset(self._factors)
-
         self._graph = build_dependency_graph(
             self._filters,
             self._classifiers,
             self._factors,
         )
         self._resolution_order = topological_sort(self._graph)
-
         self._extra_row_counts = get_node_attributes(self._graph, 'extra_rows')
-        self._max_extra_row_count = max(self._extra_row_counts.values())
-
         self._frozen = True
 
     # Frozen Methods
@@ -154,52 +153,102 @@ class SimpleFFCEngine(object):
         """
         return self._extra_row_counts[term]
 
-    @require_frozen
-    def compute_chunk(self, start_date, end_date, assets):
+    def _date_slice_bounds(self, start_date, end_date):
         """
-        Compute our factors on a chunk of assets and dates.
-        """
-        loader = self._loader
-        trading_days = self._trading_days
-        workspace = {term: None for term in self._resolution_order}
+        Helper for compute_chunk.
 
-        start_idx = trading_days.get_loc(start_date)
-        # +1 because we use this as the upper bound of a slice.
-        end_idx = trading_days.get_loc(end_date) + 1
-        if start_idx < self._max_extra_row_count:
+        Get indices (start_idx, end_idx) from our calendar such that:
+        self._calendar[start_idx:end_idx] returns dates between start_date and
+        end_date, inclusive.
+        """
+        calendar = self._calendar
+        start_date_idx = calendar.get_loc(start_date)
+        end_date_idx = calendar.get_loc(end_date)
+        max_extra_rows = max(self._extra_row_counts.values())
+        if start_date_idx < max_extra_rows:
             # TODO: Use NoFurtherDataError from trading.py
             raise ValueError(
                 "Insufficient data to compute FFC Matrix: "
                 "start date was %s, "
                 "earliest known date was %s, "
                 "Required extra rows was %d" % (
-                    start_date, trading_days[0], self._max_extra_row_count,
+                    start_date, calendar[0], max_extra_rows,
                 ),
             )
+        # Increment end_date_idx by 1 so that slicing with [start:end] includes
+        # end_date.
+        return start_date_idx, end_date_idx + 1
 
-        all_dates = trading_days[start_idx - self._max_extra_row_count:end_idx]
+    @require_frozen
+    def _inputs_for_term(self, term, workspace, windowed):
+        """
+        Compute inputs for the given term.
+
+        This is mostly complicated by the fact that, for each input, we store
+        as many rows as will be necessary to serve any term requiring that
+        input.  Thus if Factor A needs 5 extra rows of price, and Factor B
+        needs 3 extra rows of price, we need to remove 2 leading rows from our
+        stored prices before passing them to Factor B.
+        """
+        term_extra_rows = term.extra_input_rows
+        if windowed:
+            return [
+                workspace[input_].traverse(
+                    term.window_length,
+                    offset=self.extra_row_count(input_) - term_extra_rows
+                )
+                for input_ in term.inputs
+            ]
+        else:
+            return [
+                asarray(
+                    workspace[input_].data[
+                        self.extra_row_count(input_) - term_extra_rows
+                    ]
+                )
+                for input_ in term.inputs
+            ]
+
+    @require_frozen
+    def compute_chunk(self, start_date, end_date, assets):
+        """
+        Compute our factors on a chunk of assets and dates.
+        """
+        loader = self._loader
+        calendar = self._calendar
+        workspace = {term: None for term in self._resolution_order}
+        start_idx, end_idx = self._date_slice_bounds(start_date, end_date)
 
         for term in self._resolution_order:
-            # len(term_dates) == (end_idx - start_idx) + extra_row_count(term)
-            term_start = self._max_extra_row_count - self.extra_row_count(term)
-            term_dates = all_dates[term_start:]
-
+            dates = calendar[start_idx - self.extra_row_count(term):end_idx]
             if term.atomic:
                 # FUTURE OPTIMIZATION: Scan the resolution order for terms in
                 # the same dataset and load them here as well.
                 to_load = [term]
                 loaded = loader.load_adjusted_array(
                     to_load,
-                    term_dates,
+                    dates,
                     assets,
                 )
                 for loaded_term, adj_array in izip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
-            else:
-                workspace[term] = term._compute_chunk(
-                    term_dates,
+            elif term.windowed:
+                outbuf = empty(
+                    shape=(len(dates), len(assets)),
+                    dtype=term.dtype
+                )
+                workspace[term] = term.compute_from_windows(
+                    self._inputs_for_term(term, workspace, windowed=True),
+                    outbuf,
+                    dates,
                     assets,
-                    [workspace[input_] for input_ in term.inputs],
+                )
+            else:
+                workspace[term] = term.compute_from_arrays(
+                    self._inputs_for_term(term, workspace, windowed=False),
+                    outbuf,
+                    dates,
+                    assets,
                 )
 
         return workspace

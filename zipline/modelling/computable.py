@@ -7,7 +7,12 @@ from numpy import (
     float64,
 )
 
-from zipline.errors import InputTermNotAtomic
+from zipline.errors import (
+    InputTermNotAtomic,
+    TermInputsNotSpecified,
+    WindowLengthNotSpecified,
+)
+from zipline.utils.lazyval import lazyval
 
 
 class CyclicDependency(Exception):
@@ -15,12 +20,15 @@ class CyclicDependency(Exception):
     pass
 
 
+NotSpecified = (object(),)
+
+
 class Term(object):
     """
     Base class for terms in an FFC API compute graph.
     """
-    inputs = ()
-    lookback = 0
+    inputs = NotSpecified
+    window_length = NotSpecified
     domain = None
     dtype = float64
 
@@ -28,7 +36,7 @@ class Term(object):
 
     def __new__(cls,
                 inputs=None,
-                lookback=None,
+                window_length=None,
                 domain=None,
                 dtype=None,
                 *args,
@@ -40,18 +48,26 @@ class Term(object):
         only compute equivalent sub-expressions once when traversing an FFC
         dependency graph.
 
-        Caching previously-constructed Terms is **sane** because they're
-        conceptually immutable.
+        Caching previously-constructed Terms is **sane** because terms and
+        their inputs are both conceptually immutable.
         """
+        if inputs is None:
+            inputs = tuple(cls.inputs)
+        else:
+            inputs = tuple(inputs)
 
-        inputs = tuple(inputs or cls.inputs)
-        lookback = lookback or cls.lookback
-        domain = domain or cls.domain
-        dtype = dtype or cls.dtype
+        if window_length is None:
+            window_length = cls.window_length
+
+        if domain is None:
+            domain = cls.domain
+
+        if dtype is None:
+            dtype = cls.dtype
 
         identity = cls.static_identity(
             inputs=inputs,
-            lookback=lookback,
+            window_length=window_length,
             domain=domain,
             dtype=dtype,
             *args, **kwargs
@@ -62,7 +78,7 @@ class Term(object):
         except KeyError:
             new_instance = super(Term, cls).__new__(cls)._init(
                 inputs=inputs,
-                lookback=lookback,
+                window_length=window_length,
                 domain=domain,
                 dtype=dtype,
                 *args, **kwargs
@@ -86,38 +102,17 @@ class Term(object):
         """
         pass
 
-    def _init(self, inputs, lookback, domain, dtype):
+    def _init(self, inputs, window_length, domain, dtype):
         self.inputs = inputs
-        self.lookback = lookback
+        self.window_length = window_length
         self.domain = domain
         self.dtype = dtype
 
         self._validate()
         return self
 
-    def _validate(self):
-        """
-        Assert that this term is well-formed. This currently means the
-        following:
-
-        - If we have a lookback window, all of our inputs are atomic.
-        """
-        if self.lookback:
-            for child in self.inputs:
-                if not child.atomic:
-                    raise InputTermNotAtomic(parent=self, child=child)
-
-    @property
-    def atomic(self):
-        """
-        Whether or not this term has dependencies.
-
-        If term.atomic is truthy, it should have dataset and dtype attributes.
-        """
-        return len(self.inputs) == 0
-
     @classmethod
-    def static_identity(cls, inputs, lookback, domain, dtype):
+    def static_identity(cls, inputs, window_length, domain, dtype):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -129,7 +124,52 @@ class Term(object):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, inputs, lookback, domain, dtype)
+        return (cls, inputs, window_length, domain, dtype)
+
+    def _validate(self):
+        """
+        Assert that this term is well-formed.  This should be called exactly
+        once, at the end of Term._init().
+        """
+        if self.inputs is NotSpecified:
+            raise TermInputsNotSpecified(termname=type(self).__name__)
+        if self.window_length is NotSpecified:
+            raise WindowLengthNotSpecified(termname=type(self).__name__)
+
+        if self.window_length:
+            for child in self.inputs:
+                if not child.atomic:
+                    raise InputTermNotAtomic(parent=self, child=child)
+
+    @lazyval
+    def atomic(self):
+        """
+        Whether or not this term has dependencies.
+
+        If term.atomic is truthy, it should have dataset and dtype attributes.
+        """
+        return len(self.inputs) == 0
+
+    @lazyval
+    def windowed(self):
+        """
+        Whether or not this term represents a trailing window computation.
+
+        If term.windowed is truthy, its compute_from_windows method will be
+        called with instances of AdjustedArray as inputs.
+
+        If term.windowed is falsey, its compute_from_baseline will be called
+        with instances of np.ndarray as inputs.
+        """
+        return self.window_length > 0
+
+    @lazyval
+    def extra_input_rows(self):
+        """
+        The number of extra rows needed for each of our inputs to compute this
+        term.
+        """
+        return max(0, self.window_length - 1)
 
     def _update_dependency_graph(self,
                                  dependencies,
@@ -145,61 +185,36 @@ class Term(object):
             raise CyclicDependency(self)
         parents.add(self)
 
-        # Add ourself to the graph with the specified number of extra rows.  If
-        # we're already in the graph because we have multiple parents, ensure
-        # that we have enough extra rows to satisfy both of our parents.
         try:
             existing = dependencies.node[self]
         except KeyError:
+            # We're not yet in the graph: add ourself with the specified number
+            # of extra rows.
             dependencies.add_node(self, extra_rows=extra_rows)
         else:
+            # We're already in the graph because we've been traversed by
+            # another parent.  Ensure that we have enough extra rows to satisfy
+            # all of our parents.
             existing['extra_rows'] = max(extra_rows, existing['extra_rows'])
 
         for term in self.inputs:
             term._update_dependency_graph(
                 dependencies,
                 parents,
-                # Each lookback row after the first requires us to load/compute
-                # an extra row from each of our dependencies.
-                extra_rows=extra_rows + max(0, self.lookback - 1),
+                extra_rows=extra_rows + self.extra_input_rows,
             )
             dependencies.add_edge(term, self)
 
         parents.remove(self)
 
-    def _compute_chunk(self, dates, assets, dependencies):
-        """
-        Compute the given term for dates/assets.
-        """
-        lookback = self.lookback
-        outbuf = empty(
-            (len(dates), len(assets))
-        )
-
-        # Traverse trailing windows.
-        if self.lookback:
-            return self.compute_from_windows(
-                outbuf,
-                dates,
-                assets,
-                [dep.traverse(lookback) for dep in dependencies],
-            )
-        else:
-            return self.compute_from_baselines(
-                outbuf,
-                dates,
-                assets,
-                [asarray(dep.data) for dep in dependencies],
-            )
-
-    def compute_from_windows(self, outbuf, dates, assets, windows):
+    def compute_from_windows(self, windows, outbuf, dates, assets):
         """
         Subclasses should implement this for computations requiring moving
         windows.
         """
         raise NotImplementedError()
 
-    def compute_from_baselines(self, outbuf, dates, assets, arrays):
+    def compute_from_arrays(self, arrays, outbuf, dates, assets):
         """
         Subclasses should implement this for computations that can be expressed
         directly as array computations.
@@ -209,10 +224,10 @@ class Term(object):
     def __repr__(self):
         return (
             "{type}(inputs={inputs}, "
-            "lookback={lookback}, domain={domain})"
+            "window_length={window_length}, domain={domain})"
         ).format(
             type=type(self).__name__,
             inputs=self.inputs,
-            lookback=self.lookback,
+            window_length=self.window_length,
             domain=self.domain,
         )
