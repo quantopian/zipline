@@ -33,7 +33,7 @@ class BoundColumn(Term):
         return super(BoundColumn, cls).__new__(
             cls,
             inputs=(),
-            lookback=0,
+            window_length=0,
             domain=dataset.domain,
             dtype=dtype,
             dataset=dataset,

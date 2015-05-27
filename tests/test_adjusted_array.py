@@ -23,8 +23,8 @@ from zipline.data.adjusted_array import (
     NOMASK,
 )
 from zipline.errors import (
-    LookbackNotPositive,
-    LookbackTooLong,
+    WindowLengthNotPositive,
+    WindowLengthTooLong,
 )
 
 
@@ -295,13 +295,13 @@ class AdjustedArrayTestCase(TestCase):
         data = arange(30, dtype=float).reshape(6, 5)
         adj_array = adjusted_array(data, NOMASK, {})
 
-        with self.assertRaises(LookbackTooLong):
+        with self.assertRaises(WindowLengthTooLong):
             adj_array.traverse(7)
 
-        with self.assertRaises(LookbackNotPositive):
+        with self.assertRaises(WindowLengthNotPositive):
             adj_array.traverse(0)
 
-        with self.assertRaises(LookbackNotPositive):
+        with self.assertRaises(WindowLengthNotPositive):
             adj_array.traverse(-1)
 
     def test_array_views_arent_writable(self):

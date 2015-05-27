@@ -14,8 +14,8 @@ from numpy cimport (
 )
 
 from zipline.errors import (
-    LookbackNotPositive,
-    LookbackTooLong,
+    WindowLengthNotPositive,
+    WindowLengthTooLong,
 )
 
 cdef extern from "math.h" nogil:
@@ -40,13 +40,16 @@ cpdef adjusted_array(ndarray data, uint8_t[:, :] mask, dict adjustments):
         return Float64AdjustedArray(data.astype(float64), mask, adjustments)
 
 
-cdef _check_lookback(object data, int lookback):
+cdef _check_window_length(object data, int window_length):
 
-    if lookback < 1:
-        raise LookbackNotPositive(windowlen=lookback)
+    if window_length < 1:
+        raise WindowLengthNotPositive(window_length=window_length)
 
-    if lookback > data.shape[0]:
-        raise LookbackTooLong(nrows=data.shape[0], windowlen=lookback)
+    if window_length > data.shape[0]:
+        raise WindowLengthTooLong(
+            nrows=data.shape[0],
+            window_length=window_length,
+        )
 
 
 cdef class Float64AdjustedArray:
@@ -71,11 +74,12 @@ cdef class Float64AdjustedArray:
                 for col in range(mask.shape[1]):
                     self.data[row, col] = NAN
 
-    cpdef traverse(self, int lookback):
+    cpdef traverse(self, Py_ssize_t window_length, Py_ssize_t offset=0):
         return _Float64AdjustedArrayWindow(
             self.data.copy(),
-            lookback,
             self.adjustments,
+            window_length,
+            offset,
         )
 
 
@@ -92,24 +96,25 @@ cdef class _Float64AdjustedArrayWindow:
     """
 
     cdef float64_t[:, :] data
-    cdef readonly int lookback
+    cdef readonly Py_ssize_t window_length
     cdef Py_ssize_t anchor, max_anchor, next_adj
     cdef dict adjustments
     cdef list adjustment_indices
 
     def __cinit__(self,
                   float64_t[:, :] data,
-                  int lookback,
-                  dict adjustments):
+                  dict adjustments,
+                  Py_ssize_t window_length,
+                  Py_ssize_t offset):
 
-        _check_lookback(data, lookback)
+        _check_window_length(data, window_length)
 
         self.data = data
-        self.lookback = lookback
+        self.window_length = window_length
 
         # anchor is the index of the row **after** the row from which we're
         # looking back.
-        self.anchor = lookback
+        self.anchor = window_length + offset
         self.max_anchor = data.shape[0]
 
         self.adjustments = adjustments
@@ -146,7 +151,7 @@ cdef class _Float64AdjustedArrayWindow:
             else:
                 self.next_adj = self.max_anchor
 
-        start = anchor - self.lookback
+        start = anchor - self.window_length
         out = asarray(self.data[start:self.anchor])
         out.setflags(write=False)
 
@@ -154,9 +159,9 @@ cdef class _Float64AdjustedArrayWindow:
         return out
 
     def __repr__(self):
-        return "%s(lookback=%d, anchor=%d, max_anchor=%d)" % (
+        return "%s(window_length=%d, anchor=%d, max_anchor=%d)" % (
             type(self).__name__,
-            self.lookback,
+            self.window_length,
             self.anchor,
             self.max_anchor,
         )
