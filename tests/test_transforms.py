@@ -41,6 +41,7 @@ def handle_data_wrapper(f):
         else:
             context.mins_for_days[-1] += 1
 
+        hist = context.history(2, '1d', 'close_price')
         for n in (1, 2, 3):
             if n in data:
                 if data[n].dt == dt:
@@ -53,7 +54,7 @@ def handle_data_wrapper(f):
                 context.price_bars[n].append(np.nan)
                 context.vol_bars[n].append(0)
 
-            context.last_close_prices[n] = context.price_bars[n][-2]
+            context.last_close_prices[n] = hist[n][0]
 
         if context.warmup < 0:
             return f(context, data)
@@ -101,6 +102,7 @@ def with_algo(f):
             initialize=initialize_with(self, tfm_name, days),
             handle_data=handle_data_wrapper(f),
             sim_params=sim_params,
+            identifiers=[1, 2, 3]
         )
         algo.run(source)
 
@@ -131,12 +133,10 @@ class TransformTestCase(TestCase):
         cls.sim_and_source = {
             'minute': (minute_sim_ps, factory.create_minutely_trade_source(
                 cls.sids,
-                trade_count=45,
                 sim_params=minute_sim_ps,
             )),
             'daily': (daily_sim_ps, factory.create_trade_source(
                 cls.sids,
-                trade_count=90,
                 trade_time_increment=timedelta(days=1),
                 sim_params=daily_sim_ps,
             )),

@@ -135,7 +135,6 @@ class TestMiscellaneousAPI(TestCase):
         )
         self.source = factory.create_minutely_trade_source(
             sids,
-            trade_count=100,
             sim_params=self.sim_params,
             concurrent=True,
         )

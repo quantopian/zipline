@@ -72,7 +72,6 @@ class FinanceTestCase(TestCase):
         sim_params = factory.create_simulation_parameters()
         trade_source = factory.create_daily_trade_source(
             [133],
-            200,
             sim_params
         )
         prev = None

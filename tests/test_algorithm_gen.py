@@ -134,7 +134,6 @@ class AlgorithmGeneratorTestCase(TestCase):
         algo = TestAlgo(self, sim_params=sim_params)
         trade_source = factory.create_daily_trade_source(
             [8229],
-            200,
             sim_params
         )
         algo.set_sources([trade_source])
@@ -205,7 +204,6 @@ class AlgorithmGeneratorTestCase(TestCase):
         algo = TestAlgo(self, sim_params=sim_params)
         trade_source = factory.create_daily_trade_source(
             [8229],
-            3,
             sim_params
         )
         algo.set_sources([trade_source])

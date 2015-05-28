@@ -42,13 +42,6 @@ def create_test_zipline(**config):
     else:
         order_amount = 100
 
-    if 'trade_count' in config:
-        trade_count = config['trade_count']
-    else:
-        # to ensure all orders are filled, we provide one more
-        # trade than order
-        trade_count = 101
-
     # -------------------
     # Create the Algo
     # -------------------
@@ -72,7 +65,6 @@ def create_test_zipline(**config):
     else:
         trade_source = factory.create_daily_trade_source(
             sid_list,
-            trade_count,
             test_algo.sim_params,
             concurrent=concurrent_trades
         )
