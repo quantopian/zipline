@@ -489,7 +489,7 @@ class PerformanceTracker(object):
 
         # move the market day markers forward
         self.market_open, self.market_close = \
-            env.next_open_and_close(self.market_open)
+            env.next_open_and_close(self.day)
         self.day = env.next_trading_day(self.day)
 
         # Roll over positions to current day.
