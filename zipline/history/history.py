@@ -14,10 +14,14 @@
 # limitations under the License.
 
 from __future__ import division
+try:
+    from collections.abc import Hashable
+except ImportError:
+    from collections import Hashable
+import re
 
 import numpy as np
 import pandas as pd
-import re
 
 from zipline.finance import trading
 from zipline.finance.trading import with_environment
@@ -266,6 +270,9 @@ class HistorySpec(object):
                  data_frequency='daily'):
 
         # Number of bars to look back.
+        if not isinstance(bar_count, int):
+            raise ValueError('bar_count must be an int')
+
         self.bar_count = bar_count
         if isinstance(frequency, str):
             frequency = Frequency(frequency, data_frequency)
@@ -278,6 +285,8 @@ class HistorySpec(object):
         # The frequency at which the data is sampled.
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
+        if not isinstance(field, Hashable):
+            raise ValueError('field must be hashable')
         self.field = field
         # Whether or not to forward fill nan data.  Only has an effect if this
         # spec's field is in FORWARD_FILLABLE.
