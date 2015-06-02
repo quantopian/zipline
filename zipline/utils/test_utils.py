@@ -1,13 +1,10 @@
 from contextlib import contextmanager
-from functools import partial
 from logbook import FileHandler
 from mock import patch
-from nose.plugins.attribute import attr
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
 from six import (
-    iteritems,
     itervalues,
 )
 
