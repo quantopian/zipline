@@ -1,4 +1,3 @@
-import math
 from operator import methodcaller
 from unittest import TestCase
 

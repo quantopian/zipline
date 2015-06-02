@@ -253,7 +253,6 @@ class NumericalExpression(Factor):
                 [],
             ),
             expr=expr,
-
         )
 
     @classmethod
