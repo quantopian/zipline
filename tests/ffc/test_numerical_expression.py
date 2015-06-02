@@ -1,8 +1,12 @@
+import math
+from operator import methodcaller
 from unittest import TestCase
 
+import numpy
 from numpy import (
     empty,
     full,
+    isnan,
 )
 from numpy.testing import assert_array_equal
 from pandas import (
@@ -12,6 +16,7 @@ from pandas import (
 
 from zipline.modelling.factor import (
     NumericalExpression,
+    NUMEXPR_MATH_FUNCS,
     TestFactor,
 )
 
@@ -44,6 +49,7 @@ class NumericalExpressionTestCase(TestCase):
         }
 
     def check_constant_output(self, expr, expected):
+        self.assertFalse(isnan(expected))
         outbuf = empty(shape=(5, 5), dtype=float)
         expr.compute_from_arrays(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
@@ -266,3 +272,44 @@ class NumericalExpressionTestCase(TestCase):
         self.check_constant_output((f ** g) ** (g ** f), 9.0 ** 8.0)
         self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
         self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
+
+    def test_math_functions(self):
+        f, g = self.f, self.g
+
+        fake_raw_data = self.fake_raw_data
+        alt_fake_raw_data = {
+            self.f: full((5, 5), .5),
+            self.g: full((5, 5), -.5),
+        }
+
+        for funcname in NUMEXPR_MATH_FUNCS:
+            method = methodcaller(funcname)
+            func = getattr(numpy, funcname)
+
+            # These methods have domains in [0, 1], so we need alternate inputs
+            # that are in the domain.
+            if funcname in ('arcsin', 'arccos', 'arctanh'):
+                self.fake_raw_data = alt_fake_raw_data
+            else:
+                self.fake_raw_data = fake_raw_data
+
+            f_val = self.fake_raw_data[f][0, 0]
+            g_val = self.fake_raw_data[g][0, 0]
+
+            self.check_constant_output(method(f), func(f_val))
+            self.check_constant_output(method(g), func(g_val))
+
+            self.check_constant_output(method(f) + 1, func(f_val) + 1)
+            self.check_constant_output(1 + method(f), 1 + func(f_val))
+
+            self.check_constant_output(method(f + .25), func(f_val + .25))
+            self.check_constant_output(method(.25 + f), func(.25 + f_val))
+
+            self.check_constant_output(
+                method(f) + method(g),
+                func(f_val) + func(g_val),
+            )
+            self.check_constant_output(
+                method(f + g),
+                func(f_val + g_val),
+            )
