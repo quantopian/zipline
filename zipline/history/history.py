@@ -271,7 +271,12 @@ class HistorySpec(object):
 
         # Number of bars to look back.
         if not isinstance(bar_count, int):
-            raise ValueError('bar_count must be an int')
+            raise ValueError(
+                "bar_count={bc} must be an 'int', not: '{tp}'".format(
+                    bc=bar_count,
+                    tp=type(bar_count).__name__,
+                ),
+            )
 
         self.bar_count = bar_count
         if isinstance(frequency, str):
@@ -286,7 +291,7 @@ class HistorySpec(object):
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
         if not isinstance(field, Hashable):
-            raise ValueError('field must be hashable')
+            raise ValueError('field={fd} must be hashable'.format(fd=field))
         self.field = field
         # Whether or not to forward fill nan data.  Only has an effect if this
         # spec's field is in FORWARD_FILLABLE.
