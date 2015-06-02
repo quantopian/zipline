@@ -18,7 +18,7 @@ class TestFactor(Factor):
     """
 
     def compute_from_windows(self, windows, outbuf, dates, assets):
-
+        assert self.window_length > 0
         for idx, _ in enumerate(dates):
             result = self.from_windows(*(next(w) for w in windows))
             assert result.shape == (len(assets),)
@@ -32,3 +32,9 @@ class TestFactor(Factor):
             else:
                 raise AssertionError("window %s was not exhausted" % window)
         return outbuf
+
+    def compute_from_arrays(self, arrays, outbuf, dates, assets):
+        assert self.window_length == 0
+        for array in arrays:
+            assert array.shape == len(dates), len(assets) == outbuf.shape
+        outbuf[:] = self.from_arrays(*arrays)

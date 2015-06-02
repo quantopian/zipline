@@ -38,7 +38,8 @@ def require_thawed(method):
     Decorator for FFCEngine methods that should only be called when the engine
     is not yet frozen.
 
-    Usage:
+    Usage
+    -----
 
     @require_thawed
     def some_method(self, arg):
@@ -61,7 +62,8 @@ def require_frozen(method):
     Decorator for FFCEngine methods that should only be called once the engine
     has been frozen.
 
-    Usage:
+    Usage
+    -----
 
     @require_frozen
     def some_method(self, arg):
@@ -203,7 +205,7 @@ class SimpleFFCEngine(object):
             return [
                 asarray(
                     workspace[input_].data[
-                        self.extra_row_count(input_) - term_extra_rows
+                        self.extra_row_count(input_) - term_extra_rows:
                     ]
                 )
                 for input_ in term.inputs
@@ -244,6 +246,10 @@ class SimpleFFCEngine(object):
                     assets,
                 )
             else:
+                outbuf = empty(
+                    shape=(len(dates), len(assets)),
+                    dtype=term.dtype
+                )
                 workspace[term] = term.compute_from_arrays(
                     self._inputs_for_term(term, workspace, windowed=False),
                     outbuf,

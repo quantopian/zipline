@@ -19,7 +19,7 @@ from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.factor import TestFactor
 
 
-class SumDifference(TestFactor):
+class RollingSumDifference(TestFactor):
     window_length = 3
     inputs = [USEquityPricing.open, USEquityPricing.close]
 
@@ -31,29 +31,29 @@ class SumDifference(TestFactor):
 class ConstantInputTestCase(TestCase):
 
     def setUp(self):
-        self.known_assets = [1, 2, 3]
-        self.adjustments = {}
-        self.loader = ConstantLoader(
-            self.known_assets,
-            self.adjustments,
-            constants={
-                # Every day, assume every stock starts at 2, goes down to 1,
-                # goes up to 4, and finishes at 3.
-                USEquityPricing.low: 1,
-                USEquityPricing.open: 2,
-                USEquityPricing.close: 3,
-                USEquityPricing.high: 4,
-            },
-        )
+        self.constants = {
+            # Every day, assume every stock starts at 2, goes down to 1,
+            # goes up to 4, and finishes at 3.
+            USEquityPricing.low: 1,
+            USEquityPricing.open: 2,
+            USEquityPricing.close: 3,
+            USEquityPricing.high: 4,
+        }
+        self.assets = [1, 2, 3]
         self.dates = date_range('2014-01-01', '2014-02-01', freq='D')
-        self.engine = SimpleFFCEngine(self.loader, self.dates)
 
     def test_single_factor(self):
 
-        engine = self.engine
-        factor = SumDifference()
-        shape = (num_dates, num_assets) = (2, len(self.known_assets))
+        loader = ConstantLoader(
+            known_assets=self.assets,
+            adjustments={},
+            constants=self.constants,
+        )
+        engine = SimpleFFCEngine(loader, self.dates)
+        shape = (num_dates, num_assets) = (5, len(self.assets))
         dates = self.dates[10:10 + num_dates]
+
+        factor = RollingSumDifference()
 
         engine.add_factor(factor)
         engine.freeze()
@@ -67,7 +67,7 @@ class ConstantInputTestCase(TestCase):
         results = engine.compute_chunk(
             dates[0],
             dates[-1],
-            self.known_assets,
+            self.assets,
         )
 
         self.assertEqual(
@@ -86,14 +86,20 @@ class ConstantInputTestCase(TestCase):
             full(shape, -factor.window_length),
         )
 
-    def test_multiple_factors(self):
+    def test_multiple_rolling_factors(self):
 
-        engine = self.engine
-        shape = num_dates, num_assets = (2, len(self.known_assets))
+        loader = ConstantLoader(
+            known_assets=self.assets,
+            adjustments={},
+            constants=self.constants,
+        )
+        engine = SimpleFFCEngine(loader, self.dates)
+        shape = num_dates, num_assets = (5, len(self.assets))
         dates = self.dates[10:10 + num_dates]
-        short_factor = SumDifference(window_length=3)
-        long_factor = SumDifference(window_length=5)
-        high_factor = SumDifference(
+
+        short_factor = RollingSumDifference(window_length=3)
+        long_factor = RollingSumDifference(window_length=5)
+        high_factor = RollingSumDifference(
             window_length=3,
             inputs=[USEquityPricing.open, USEquityPricing.high],
         )
@@ -121,7 +127,7 @@ class ConstantInputTestCase(TestCase):
         results = engine.compute_chunk(
             dates[0],
             dates[-1],
-            self.known_assets,
+            self.assets,
         )
 
         self.assertEqual(

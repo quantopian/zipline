@@ -24,13 +24,21 @@ class SyntheticDataLoader(DataLoader):
     """
     def __init__(self, known_assets, adjustments):
         """
-        Params
-        ------
-        known_assets: dict from dt -> list of sids.
+        known_assets: #TODO: Explain
+        adjustments: #TODO:  Explain
         """
         self._log = []
         self._known_assets = known_assets
         self._adjustments = {}
+
+    def _adjustments_for_dates(self, column, dates):
+        adjustments = self._adjustments.get(column, {})
+        out = {}
+        for idx, dt in enumerate(dates):
+            adjustments_for_dt = adjustments.get(dt, None)
+            if adjustments_for_dt is not None:
+                out[dt] = adjustments_for_dt
+        return out
 
     def load_adjusted_array(self, columns, dates, assets):
         """
@@ -44,7 +52,7 @@ class SyntheticDataLoader(DataLoader):
             adjusted_array(
                 self.make_baseline(col, nrows, ncols),
                 NOMASK,
-                self._adjustments,
+                self._adjustments_for_dates(col, dates),
             )
             for col in columns
         ]
