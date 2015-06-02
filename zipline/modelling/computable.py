@@ -51,6 +51,7 @@ class Term(object):
         Caching previously-constructed Terms is **sane** because terms and
         their inputs are both conceptually immutable.
         """
+        # TODO: Default-construct instances when passed a class?
         if inputs is None:
             inputs = tuple(cls.inputs)
         else:
