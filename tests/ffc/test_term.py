@@ -1,7 +1,7 @@
 """
-Tests for the FFC API.
+Tests for Term.
 """
-# TODO: Rename this shit.
+from itertools import product
 from unittest import TestCase
 
 from networkx import topological_sort
@@ -17,7 +17,10 @@ from zipline.data.dataset import (
 )
 from zipline.errors import InputTermNotAtomic
 from zipline.modelling.engine import build_dependency_graph
-from zipline.modelling.factor import Factor
+from zipline.modelling.factor import (
+    Factor,
+    NUMEXPR_MATH_FUNCS,
+)
 
 
 class SomeDataSet(DataSet):
@@ -205,3 +208,42 @@ class ObjectIdentityTestCase(TestCase):
             inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
         self.assertIsNot(orig_foobar_instance, SomeFactor())
+
+    def test_instance_caching_binops(self):
+        f = SomeFactor()
+        g = SomeOtherFactor()
+        for lhs, rhs in product([f, g], [f, g]):
+            self.assertIs((lhs + rhs), (lhs + rhs))
+            self.assertIs((lhs - rhs), (lhs - rhs))
+            self.assertIs((lhs * rhs), (lhs * rhs))
+            self.assertIs((lhs / rhs), (lhs / rhs))
+            self.assertIs((lhs ** rhs), (lhs ** rhs))
+
+        self.assertIs((1 + rhs), (1 + rhs))
+        self.assertIs((rhs + 1), (rhs + 1))
+
+        self.assertIs((1 - rhs), (1 - rhs))
+        self.assertIs((rhs - 1), (rhs - 1))
+
+        self.assertIs((2 * rhs), (2 * rhs))
+        self.assertIs((rhs * 2), (rhs * 2))
+
+        self.assertIs((2 / rhs), (2 / rhs))
+        self.assertIs((rhs / 2), (rhs / 2))
+
+        self.assertIs((2 ** rhs), (2 ** rhs))
+        self.assertIs((rhs ** 2), (rhs ** 2))
+
+        self.assertIs((f + g) + (f + g), (f + g) + (f + g))
+
+    def test_instance_caching_unary_ops(self):
+        f = SomeFactor()
+        self.assertIs(-f, -f)
+        self.assertIs(--f, --f)
+        self.assertIs(---f, ---f)
+
+    def test_instance_caching_math_funcs(self):
+        f = SomeFactor()
+        for funcname in NUMEXPR_MATH_FUNCS:
+            method = getattr(f, funcname)
+            self.assertIs(method(), method())

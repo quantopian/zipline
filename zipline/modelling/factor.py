@@ -1,6 +1,7 @@
 """
 factor.py
 """
+from collections import Counter
 from itertools import chain
 import re
 from operator import attrgetter
@@ -61,7 +62,6 @@ def _ensure_element(tup, elem):
 
 
 def _bad_op(op, left, right):
-
     return TypeError(
         "Can't compute {left} {op} {right}".format(
             op=op,
@@ -89,6 +89,13 @@ def _factor_binary_operators(op):
             # right-binding operator with ourself as the input.
             return right_bind_method_getter(other)(self)
         elif isinstance(other, Factor):
+            # FUTURE OPTIMIZATION: Detect commutative operations and normalize
+            # term order for better caching.
+            if other == self:
+                return NumericalExpression(
+                    "x_0 {op} x_0".format(op=op),
+                    (self,),
+                )
             return NumericalExpression(
                 "x_0 {op} x_1".format(op=op),
                 (self, other),
