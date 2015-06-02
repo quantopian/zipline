@@ -97,6 +97,24 @@ class NumericalExpressionTestCase(TestCase):
         with self.assertRaises(TypeError):
             f + "2"
 
+    def test_negate(self):
+        f, g = self.f, self.g
+
+        self.check_constant_output(-f, -3.0)
+        self.check_constant_output(--f, 3.0)
+        self.check_constant_output(---f, -3.0)
+
+        self.check_constant_output(-(f + f), -6.0)
+        self.check_constant_output(-f + -f, -6.0)
+        self.check_constant_output(-(-f + -f), 6.0)
+
+        self.check_constant_output(f + -g, 1.0)
+        self.check_constant_output(f - -g, 5.0)
+
+        self.check_constant_output(-(f + g) + (f + g), 0.0)
+        self.check_constant_output((f + g) + -(f + g), 0.0)
+        self.check_constant_output(-(f + g) + -(f + g), -10.0)
+
     def test_add(self):
         f, g = self.f, self.g
 
@@ -230,3 +248,21 @@ class NumericalExpressionTestCase(TestCase):
             (g / f) / (g / f),
             (2.0 / 3.0) / (2.0 / 3.0),
         )
+
+    def test_pow(self):
+        f, g = self.f, self.g
+
+        self.check_constant_output(f ** g, 3.0 ** 2)
+        self.check_constant_output(2 ** f, 2.0 ** 3)
+        self.check_constant_output(f ** 2, 3.0 ** 2)
+
+        self.check_constant_output((f + g) ** 2, (3.0 + 2.0) ** 2)
+        self.check_constant_output(2 ** (f + g), 2 ** (3.0 + 2.0))
+
+        self.check_constant_output(f ** (f ** g), 3.0 ** (3.0 ** 2.0))
+        self.check_constant_output((f ** f) ** g, (3.0 ** 3.0) ** 2.0)
+
+        self.check_constant_output((f ** g) ** (f ** g), 9.0 ** 9.0)
+        self.check_constant_output((f ** g) ** (g ** f), 9.0 ** 8.0)
+        self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
+        self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
