@@ -251,14 +251,15 @@ class AdjustedArrayTestCase(TestCase):
                             lookback,
                             adjustments,
                             expected):
-
-        window_iter = adjusted_array(
+        array = adjusted_array(
             data,
             NOMASK,
             adjustments,
-        ).traverse(lookback)
-        for yielded, expected_yield in izip_longest(window_iter, expected):
-            assert_array_equal(yielded, expected_yield)
+        )
+        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
+            window_iter = array.traverse(lookback)
+            for yielded, expected_yield in izip_longest(window_iter, expected):
+                assert_array_equal(yielded, expected_yield)
 
     @parameterized.expand(_gen_multiplicative_adjustment_cases(float))
     def test_multiplicative_adjustments(self,
@@ -267,13 +268,15 @@ class AdjustedArrayTestCase(TestCase):
                                         lookback,
                                         adjustments,
                                         expected):
-        window_iter = adjusted_array(
+        array = adjusted_array(
             data,
             NOMASK,
             adjustments,
-        ).traverse(lookback)
-        for yielded, expected_yield in izip_longest(window_iter, expected):
-            assert_array_equal(yielded, expected_yield)
+        )
+        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
+            window_iter = array.traverse(lookback)
+            for yielded, expected_yield in izip_longest(window_iter, expected):
+                assert_array_equal(yielded, expected_yield)
 
     @parameterized.expand(_gen_overwrite_adjustment_cases(float))
     def test_overwrite_adjustment_cases(self,
@@ -282,13 +285,15 @@ class AdjustedArrayTestCase(TestCase):
                                         lookback,
                                         adjustments,
                                         expected):
-        window_iter = adjusted_array(
+        array = adjusted_array(
             data,
             NOMASK,
             adjustments,
-        ).traverse(lookback)
-        for yielded, expected_yield in izip_longest(window_iter, expected):
-            assert_array_equal(yielded, expected_yield)
+        )
+        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
+            window_iter = array.traverse(lookback)
+            for yielded, expected_yield in izip_longest(window_iter, expected):
+                assert_array_equal(yielded, expected_yield)
 
     def test_invalid_lookback(self):
 
