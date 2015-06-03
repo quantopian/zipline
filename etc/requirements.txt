@@ -1,3 +1,6 @@
+# Incompatible with earlier PIP versions
+pip>=7.0.3
+
 # Logging
 Logbook==0.9.1
 
