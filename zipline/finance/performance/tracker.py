@@ -339,7 +339,8 @@ class PerformanceTracker(object):
 
     def process_close_position(self, event):
         txn = self.position_tracker.create_close_position_transaction(event)
-        self.process_transaction(txn)
+        if txn:
+            self.process_transaction(txn)
 
     def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
         """
