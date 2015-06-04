@@ -13,6 +13,7 @@ except ImportError:
 from six import iteritems
 from six.moves import map, filter
 
+from zipline.finance.slippage import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -216,6 +217,19 @@ class PositionTracker(object):
         # the stock for any dividends paid while borrowing.
         net_cash_payment = payments['cash_amount'].fillna(0).sum()
         return net_cash_payment
+
+    def create_close_position_transaction(self, event):
+        if not self._position_amounts.get(event.sid):
+            return None
+        txn = Transaction(
+            sid=event.sid,
+            amount=(-1 * self._position_amounts[event.sid]),
+            dt=event.dt,
+            price=event.price,
+            commission=0,
+            order_id=0
+        )
+        return txn
 
     def get_positions(self):
 

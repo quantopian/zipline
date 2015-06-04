@@ -46,7 +46,8 @@ from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance import trading
 from zipline.utils.factory import create_random_simulation_parameters
 import zipline.protocol as zp
-from zipline.protocol import Event
+from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.sources.data_frame_source import DataPanelSource
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -1936,6 +1937,37 @@ class TestPerformanceTracker(unittest.TestCase):
             self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
 
             check_perf_tracker_serialization(tracker)
+
+    def test_close_position_event(self):
+        pt = perf.PositionTracker()
+        dt = pd.Timestamp("1984/03/06 3:00PM")
+        pos1 = perf.Position(1, amount=np.float64(120.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pos2 = perf.Position(2, amount=np.float64(-100.0),
+                             last_sale_date=dt, last_sale_price=3.4)
+        pt.update_positions({1: pos1, 2: pos2})
+
+        event_type = DATASOURCE_TYPE.CLOSE_POSITION
+        index = [dt + timedelta(days=1)]
+        pan = pd.Panel({1: pd.DataFrame({'price': 1, 'volume': 0,
+                                         'type': event_type}, index=index),
+                        2: pd.DataFrame({'price': 1, 'volume': 0,
+                                         'type': event_type}, index=index),
+                        3: pd.DataFrame({'price': 1, 'volume': 0,
+                                         'type': event_type}, index=index)})
+
+        source = DataPanelSource(pan)
+        for i, event in enumerate(source):
+            txn = pt.create_close_position_transaction(event)
+            if event.sid == 1:
+                # Test owned long
+                self.assertEqual(-120, txn.amount)
+            elif event.sid == 2:
+                # Test owned short
+                self.assertEqual(100, txn.amount)
+            elif event.sid == 3:
+                # Test not-owned SID
+                self.assertIsNone(txn)
 
     def test_serialization(self):
         start_dt = datetime(year=2008,
