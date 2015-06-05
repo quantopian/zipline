@@ -76,6 +76,7 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
+from zipline.utils.math_utils import tolerant_equals
 
 import zipline.protocol
 from zipline.protocol import Event
@@ -728,7 +729,7 @@ class TradingAlgorithm(object):
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
         last_price = self.trading_client.current_data[sid].price
-        if np.allclose(last_price, 0):
+        if tolerant_equals(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
                 psid=sid
             )
@@ -901,7 +902,7 @@ class TradingAlgorithm(object):
         current value.
         """
         last_price = self.trading_client.current_data[sid].price
-        if np.allclose(last_price, 0):
+        if tolerant_equals(last_price, 0):
             # Don't place an order
             if self.logger:
                 zero_message = "Price of 0 for {psid}; can't infer value"
