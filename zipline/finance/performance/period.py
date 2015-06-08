@@ -31,7 +31,7 @@ omitted).
     |               | end of the period                                    |
     +---------------+------------------------------------------------------+
     | cash_flow     | the cash flow in the period (negative means spent)   |
-    |               | from buying and selling securities in the period.    |
+    |               | from buying and selling assets in the period.        |
     |               | Includes dividend payments in the period as well.    |
     +---------------+------------------------------------------------------+
     | starting_value| the total market value of the positions held at the  |
@@ -74,6 +74,9 @@ from __future__ import division
 import logbook
 
 import numpy as np
+
+from zipline.finance.trading import TradingEnvironment
+from zipline.assets import Future
 
 try:
     # optional cython based OrderedDict
@@ -128,6 +131,7 @@ class PerformancePeriod(object):
         self.period_close = period_close
 
         self.ending_value = 0.0
+        self.ending_exposure = 0.0
         self.period_cash_flow = 0.0
         self.pnl = 0.0
 
@@ -160,6 +164,7 @@ class PerformancePeriod(object):
 
     def rollover(self):
         self.starting_value = self.ending_value
+        self.starting_exposure = self.ending_exposure
         self.starting_cash = self.ending_cash
         self.period_cash_flow = 0.0
         self.pnl = 0.0
@@ -187,6 +192,7 @@ class PerformancePeriod(object):
 
     def calculate_performance(self):
         self.ending_value = self.calculate_positions_value()
+        self.ending_exposure = self.calculate_positions_exposure()
 
         total_at_start = self.starting_cash + self.starting_value
         self.ending_cash = self.starting_cash + self.period_cash_flow
@@ -215,7 +221,12 @@ class PerformancePeriod(object):
             self.orders_by_id[order.id] = order
 
     def handle_execution(self, txn):
-        self.period_cash_flow -= txn.price * txn.amount
+        asset = TradingEnvironment.instance().asset_finder.\
+            retrieve_asset(txn.sid)
+
+        # Futures experience no cash flow on transactions
+        if not isinstance(asset, Future):
+            self.period_cash_flow -= txn.price * txn.amount
 
         if self.keep_transactions:
             try:
@@ -233,6 +244,10 @@ class PerformancePeriod(object):
         return self.position_tracker.position_amounts
 
     @position_proxy
+    def calculate_positions_exposure(self):
+        raise ProxyError()
+
+    @position_proxy
     def calculate_positions_value(self):
         raise ProxyError()
 
@@ -245,6 +260,10 @@ class PerformancePeriod(object):
         raise ProxyError()
 
     @position_proxy
+    def _long_value(self):
+        raise ProxyError()
+
+    @position_proxy
     def _shorts_count(self):
         raise ProxyError()
 
@@ -253,18 +272,28 @@ class PerformancePeriod(object):
         raise ProxyError()
 
     @position_proxy
+    def _short_value(self):
+        raise ProxyError()
+
+    @position_proxy
     def _gross_exposure(self):
+        raise ProxyError()
+
+    @position_proxy
+    def _gross_value(self):
         raise ProxyError()
 
     @position_proxy
     def _net_exposure(self):
         raise ProxyError()
 
+    @position_proxy
+    def _net_value(self):
+        raise ProxyError()
+
     @property
     def _net_liquidation_value(self):
-        return self.ending_cash + \
-            self._long_exposure() + \
-            self._short_exposure()
+        return self.ending_cash + self._long_value() + self._short_value()
 
     def _gross_leverage(self):
         net_liq = self._net_liquidation_value
@@ -283,10 +312,12 @@ class PerformancePeriod(object):
     def __core_dict(self):
         rval = {
             'ending_value': self.ending_value,
+            'ending_exposure': self.ending_exposure,
             # this field is renamed to capital_used for backward
             # compatibility.
             'capital_used': self.period_cash_flow,
             'starting_value': self.starting_value,
+            'starting_exposure': self.starting_exposure,
             'starting_cash': self.starting_cash,
             'ending_cash': self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
@@ -298,6 +329,8 @@ class PerformancePeriod(object):
             'net_leverage': self._net_leverage(),
             'short_exposure': self._short_exposure(),
             'long_exposure': self._long_exposure(),
+            'short_value': self._short_value(),
+            'long_value': self._long_value(),
             'longs_count': self._longs_count(),
             'shorts_count': self._shorts_count()
         }
@@ -372,6 +405,7 @@ class PerformancePeriod(object):
         portfolio.start_date = self.period_open
         portfolio.positions = self.get_positions()
         portfolio.positions_value = self.ending_value
+        portfolio.positions_exposure = self.ending_exposure
         return portfolio
 
     def as_account(self):
@@ -393,6 +427,8 @@ class PerformancePeriod(object):
                     self.ending_cash + self.ending_value)
         account.total_positions_value = \
             getattr(self, 'total_positions_value', self.ending_value)
+        account.total_positions_value = \
+            getattr(self, 'total_positions_exposure', self.ending_exposure)
         account.regt_equity = \
             getattr(self, 'regt_equity', self.ending_cash)
         account.regt_margin = \

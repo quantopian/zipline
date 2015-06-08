@@ -175,7 +175,8 @@ class TradingControlViolation(ZiplineError):
     Raised if an order would violate a constraint set by a TradingControl.
     """
     msg = """
-Order for {amount} shares of {sid} violates trading constraint {constraint}.
+Order for {amount} shares of {asset} at {datetime} violates trading constraint
+{constraint}.
 """.strip()
 
 
@@ -187,4 +188,96 @@ class IncompatibleHistoryFrequency(ZiplineError):
     msg = """
 Requested history at frequency '{frequency}' cannot be created with data
 at frequency '{data_frequency}'.
+""".strip()
+
+
+class MultipleSymbolsFound(ZiplineError):
+    """
+    Raised when a symbol() call contains a symbol that changed over
+    time and is thus not resolvable without additional information
+    provided via as_of_date.
+    """
+    msg = """
+Multiple symbols with the name '{symbol}' found. Use the
+as_of_date' argument to to specify when the date symbol-lookup
+should be valid.
+
+Possible options:{options}
+    """.strip()
+
+
+class SymbolNotFound(ZiplineError):
+    """
+    Raised when a symbol() call contains a non-existant symbol.
+    """
+    msg = """
+Symbol '{symbol}' was not found.
+""".strip()
+
+
+class SidNotFound(ZiplineError):
+    """
+    Raised when a retrieve_asset() call contains a non-existent sid.
+    """
+    msg = """
+Asset with sid '{sid}' was not found.
+""".strip()
+
+
+class IdentifierNotFound(ZiplineError):
+    """
+    Raised when a retrieve_asset_by_identifier() call contains a non-existent
+    identifier.
+    """
+    msg = """
+Asset with identifier '{identifier}' was not found.
+""".strip()
+
+
+class InvalidAssetType(ZiplineError):
+    """
+    Raised when an AssetFinder tries to build an Asset with an invalid
+    AssetType.
+    """
+    msg = """
+AssetMetaData contained an invalid Asset type: '{asset_type}'.
+""".strip()
+
+
+class UpdateAssetFinderTypeError(ZiplineError):
+    """
+    Raised when TradingEnvironment.update_asset_finder() gets an asset_finder
+    arg that is not of AssetFinder class.
+    """
+    msg = """
+TradingEnvironment can not set asset_finder to object of class {cls}.
+""".strip()
+
+
+class ConsumeAssetMetaDataError(ZiplineError):
+    """
+    Raised when AssetMetaData.consume() is called on an invalid object.
+    """
+    msg = """
+AssetMetaData can not consume {obj}. MetaData must be a dict, a DataFrame, or
+""".strip()
+
+
+class NoSourceError(ZiplineError):
+    """
+    Raised when no source is given to the pipeline
+    """
+    msg = """
+No data source given.
+""".strip()
+
+
+class PipelineDateError(ZiplineError):
+    """
+    Raised when only one date is passed to the pipeline
+    """
+    msg = """
+Only one simulation date given. Please specify both the 'start' and 'end' for
+the simulation, or neither. If neither is given, the start and end of the
+DataSource will be used. Given start = '{start}', end = '{end}'
 """.strip()

@@ -217,7 +217,7 @@ class HistoryContainer(object):
           history_specs (dict[Frequency:HistorySpec]): The starting history
             specs that this container should be able to service.
 
-          initial_sids (set[Security or Int]): The starting sids to watch.
+          initial_sids (set[Asset or Int]): The starting sids to watch.
 
           initial_dt (datetime): The datetime to start collecting history from.
 
