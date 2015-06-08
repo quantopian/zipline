@@ -68,10 +68,9 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 import zipline.finance.risk as risk
-from zipline.finance import trading
+from zipline.finance.trading import TradingEnvironment
 from . period import PerformancePeriod
 
-from zipline.finance.trading import with_environment
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -84,26 +83,23 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-
-    @with_environment()
-    def __init__(self, sim_params, env=None):
+    def __init__(self, sim_params):
 
         self.sim_params = sim_params
+        env = TradingEnvironment.instance()
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
         self.last_close = self.sim_params.last_close
-        first_open = self.sim_params.first_open.tz_convert(
-            trading.environment.exchange_tz)
+        first_open = self.sim_params.first_open.tz_convert(env.exchange_tz)
         self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
                                          first_open.day), tz='UTC')
-        self.market_open, self.market_close = \
-            trading.environment.get_open_and_close(self.day)
+        self.market_open, self.market_close = env.get_open_and_close(self.day)
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
-        all_trading_days = trading.environment.trading_days
+        all_trading_days = env.trading_days
         mask = ((all_trading_days >= normalize_date(self.period_start)) &
                 (all_trading_days <= normalize_date(self.period_end)))
 
@@ -287,10 +283,13 @@ class PerformanceTracker(object):
         return _dict
 
     def process_trade(self, event):
-        self.position_tracker.update_last_sale(event)
+        # update last sale, and pay out a cash adjustment
+        cash_adjustment = self.position_tracker.update_last_sale(event)
+        if cash_adjustment != 0:
+            for perf_period in self.perf_periods:
+                perf_period.handle_cash_payment(cash_adjustment)
 
     def process_transaction(self, event):
-
         self.txn_count += 1
         self.position_tracker.execute_transaction(event)
         for perf_period in self.perf_periods:
@@ -342,7 +341,7 @@ class PerformanceTracker(object):
         if txn:
             self.process_transaction(txn)
 
-    def check_upcoming_dividends(self, midnight_of_date_that_just_ended):
+    def check_upcoming_dividends(self, next_trading_day):
         """
         Check if we currently own any stocks with dividends whose ex_date is
         the next trading day.  Track how much we should be payed on those
@@ -355,17 +354,6 @@ class PerformanceTracker(object):
         if len(self.dividend_frame) == 0:
             # We don't currently know about any dividends for this simulation
             # period, so bail.
-            return
-
-        next_trading_day_idx = self.trading_days.get_loc(
-            midnight_of_date_that_just_ended,
-        ) + 1
-
-        if next_trading_day_idx < len(self.trading_days):
-            next_trading_day = self.trading_days[next_trading_day_idx]
-        else:
-            # Bail if the next trading day is outside our trading range, since
-            # we won't simulate the next day.
             return
 
         # Dividends whose ex_date is the next trading day.  We need to check if
@@ -412,7 +400,10 @@ class PerformanceTracker(object):
         # if this is the close, save the returns objects for cumulative risk
         # calculations and update dividends for the next day.
         if dt == self.market_close:
-            self.check_upcoming_dividends(todays_date)
+            next_trading_day = TradingEnvironment.instance().\
+                next_trading_day(todays_date)
+            if next_trading_day:
+                self.check_upcoming_dividends(next_trading_day)
 
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
@@ -454,16 +445,19 @@ class PerformanceTracker(object):
             return daily_update
 
         # move the market day markers forward
+        env = TradingEnvironment.instance()
         self.market_open, self.market_close = \
-            trading.environment.next_open_and_close(self.day)
-        self.day = trading.environment.next_trading_day(self.day)
+            env.next_open_and_close(self.day)
+        self.day = env.next_trading_day(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        self.check_upcoming_dividends(completed_date)
+        next_trading_day = env.next_trading_day(completed_date)
+        if next_trading_day:
+            self.check_upcoming_dividends(next_trading_day)
 
         return daily_update
 

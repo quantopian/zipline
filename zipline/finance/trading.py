@@ -23,6 +23,8 @@ import numpy as np
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
+from zipline.assets import AssetFinder
+from zipline.errors import UpdateAssetFinderTypeError
 
 
 log = logbook.Logger('Trading')
@@ -134,6 +136,8 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
+        self.asset_finder = AssetFinder(trading_calendar=env_trading_calendar)
+
     def __enter__(self, *args, **kwargs):
         global environment
         self.prev_environment = environment
@@ -148,6 +152,52 @@ class TradingEnvironment(object):
         # signal that any exceptions need to be propagated up the
         # stack.
         return False
+
+    def update_asset_finder(self,
+                            clear_metadata=False,
+                            asset_finder=None,
+                            asset_metadata=None,
+                            identifiers=None):
+        """
+        Updates the AssetFinder using the provided asset metadata and
+        identifiers.
+        If clear_metadata is True, all metadata and assets held in the
+        asset_finder will be erased before new metadata is provided.
+        If asset_finder is provided, the existing asset_finder will be replaced
+        outright with the new asset_finder.
+        If asset_metadata is provided, the existing metadata will be cleared
+        and replaced with the provided metadata.
+        All identifiers will be inserted in the asset metadata if they are not
+        already present.
+
+        :param clear_metadata: A boolean
+        :param asset_finder: An AssetFinder object to replace the environment's
+        existing asset_finder
+        :param asset_metadata: A dict, DataFrame, or readable object
+        :param identifiers: A list of identifiers to be inserted
+        :return:
+        """
+        populate = False
+        if clear_metadata:
+            self.asset_finder.clear_metadata()
+            populate = True
+
+        if asset_finder is not None:
+            if not isinstance(asset_finder, AssetFinder):
+                raise UpdateAssetFinderTypeError(cls=asset_finder.__class__)
+            self.asset_finder = asset_finder
+
+        if asset_metadata is not None:
+            self.asset_finder.clear_metadata()
+            self.asset_finder.consume_metadata(asset_metadata)
+            populate = True
+
+        if identifiers is not None:
+            self.asset_finder.consume_identifiers(identifiers)
+            populate = True
+
+        if populate:
+            self.asset_finder.populate_cache()
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
