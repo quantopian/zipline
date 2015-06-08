@@ -37,7 +37,7 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
 
     @abc.abstractmethod
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  portfolio,
                  algo_datetime,
@@ -46,21 +46,22 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
         Before any order is executed by TradingAlgorithm, this method should be
         called *exactly once* on each registered TradingControl object.
 
-        If the specified sid and amount do not violate this TradingControl's
+        If the specified asset and amount do not violate this TradingControl's
         restraint given the information in `portfolio`, this method should
         return None and have no externally-visible side-effects.
 
         If the desired order violates this TradingControl's contraint, this
-        method should call self.fail(sid, amount).
+        method should call self.fail(asset, amount).
         """
         raise NotImplementedError
 
-    def fail(self, sid, amount):
+    def fail(self, asset, amount, datetime):
         """
         Raise a TradingControlViolation with information about the failure.
         """
-        raise TradingControlViolation(sid=sid,
+        raise TradingControlViolation(asset=asset,
                                       amount=amount,
+                                      datetime=datetime,
                                       constraint=repr(self))
 
     def __repr__(self):
@@ -82,7 +83,7 @@ class MaxOrderCount(TradingControl):
         self.current_date = None
 
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  _portfolio,
                  algo_datetime,
@@ -98,13 +99,13 @@ class MaxOrderCount(TradingControl):
         self.current_date = algo_date
 
         if self.orders_placed >= self.max_count:
-            self.fail(sid, amount)
+            self.fail(asset, amount, algo_datetime)
         self.orders_placed += 1
 
 
 class RestrictedListOrder(TradingControl):
     """
-    TradingControl representing a restricted list of securities that
+    TradingControl representing a restricted list of assets that
     cannot be ordered by the algorithm.
     """
 
@@ -119,30 +120,30 @@ class RestrictedListOrder(TradingControl):
         self.restricted_list = restricted_list
 
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  _portfolio,
                  _algo_datetime,
                  _algo_current_data):
         """
-        Fail if the sid is in the restricted_list.
+        Fail if the asset is in the restricted_list.
         """
-        if sid in self.restricted_list:
-            self.fail(sid, amount)
+        if asset in self.restricted_list:
+            self.fail(asset, amount, _algo_datetime)
 
 
 class MaxOrderSize(TradingControl):
     """
     TradingControl representing a limit on the magnitude of any single order
-    placed with the given security.  Can be specified by share or by dollar
+    placed with the given asset.  Can be specified by share or by dollar
     value.
     """
 
-    def __init__(self, sid=None, max_shares=None, max_notional=None):
-        super(MaxOrderSize, self).__init__(sid=sid,
+    def __init__(self, asset=None, max_shares=None, max_notional=None):
+        super(MaxOrderSize, self).__init__(asset=asset,
                                            max_shares=max_shares,
                                            max_notional=max_notional)
-        self.sid = sid
+        self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
 
@@ -162,7 +163,7 @@ class MaxOrderSize(TradingControl):
             )
 
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  portfolio,
                  _algo_datetime,
@@ -172,33 +173,33 @@ class MaxOrderSize(TradingControl):
         or self.max_notional.
         """
 
-        if self.sid is not None and self.sid != sid:
+        if self.asset is not None and self.asset != asset:
             return
 
         if self.max_shares is not None and abs(amount) > self.max_shares:
-            self.fail(sid, amount)
+            self.fail(asset, amount, _algo_datetime)
 
-        current_sid_price = algo_current_data[sid].price
-        order_value = amount * current_sid_price
+        current_asset_price = algo_current_data[asset].price
+        order_value = amount * current_asset_price
 
         too_much_value = (self.max_notional is not None and
                           abs(order_value) > self.max_notional)
 
         if too_much_value:
-            self.fail(sid, amount)
+            self.fail(asset, amount, _algo_datetime)
 
 
 class MaxPositionSize(TradingControl):
     """
     TradingControl representing a limit on the maximum position size that can
-    be held by an algo for a given security.
+    be held by an algo for a given asset.
     """
 
-    def __init__(self, sid=None, max_shares=None, max_notional=None):
-        super(MaxPositionSize, self).__init__(sid=sid,
+    def __init__(self, asset=None, max_shares=None, max_notional=None):
+        super(MaxPositionSize, self).__init__(asset=asset,
                                               max_shares=max_shares,
                                               max_notional=max_notional)
-        self.sid = sid
+        self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
 
@@ -218,7 +219,7 @@ class MaxPositionSize(TradingControl):
             )
 
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  portfolio,
                  algo_datetime,
@@ -229,25 +230,25 @@ class MaxPositionSize(TradingControl):
         self.max_notional.
         """
 
-        if self.sid is not None and self.sid != sid:
+        if self.asset is not None and self.asset != asset:
             return
 
-        current_share_count = portfolio.positions[sid].amount
+        current_share_count = portfolio.positions[asset].amount
         shares_post_order = current_share_count + amount
 
         too_many_shares = (self.max_shares is not None and
                            abs(shares_post_order) > self.max_shares)
         if too_many_shares:
-            self.fail(sid, amount)
+            self.fail(asset, amount, algo_datetime)
 
-        current_price = algo_current_data[sid].price
+        current_price = algo_current_data[asset].price
         value_post_order = shares_post_order * current_price
 
         too_much_value = (self.max_notional is not None and
                           abs(value_post_order) > self.max_notional)
 
         if too_much_value:
-            self.fail(sid, amount)
+            self.fail(asset, amount, algo_datetime)
 
 
 class LongOnly(TradingControl):
@@ -256,17 +257,41 @@ class LongOnly(TradingControl):
     """
 
     def validate(self,
-                 sid,
+                 asset,
                  amount,
                  portfolio,
                  _algo_datetime,
                  _algo_current_data):
         """
-        Fail if we would hold negative shares of sid after completing this
+        Fail if we would hold negative shares of asset after completing this
         order.
         """
-        if portfolio.positions[sid].amount + amount < 0:
-            self.fail(sid, amount)
+        if portfolio.positions[asset].amount + amount < 0:
+            self.fail(asset, amount, _algo_datetime)
+
+
+class AssetDateBounds(TradingControl):
+    """
+    TradingControl representing a prohibition against ordering an asset before
+    its start_date, or after its end_date.
+    """
+
+    def validate(self,
+                 asset,
+                 amount,
+                 portfolio,
+                 algo_datetime,
+                 algo_current_data):
+        """
+        Fail if the algo has passed this Asset's end_date, or before the
+        Asset's start date.
+        """
+        # Fail if the algo is before this Asset's start_date
+        if asset.start_date and (algo_datetime < asset.start_date):
+            self.fail(asset, amount, algo_datetime)
+        # Fail if the algo has passed this Asset's end_date
+        if asset.end_date and (algo_datetime >= asset.end_date):
+            self.fail(asset, amount, algo_datetime)
 
 
 class AccountControl(with_metaclass(abc.ABCMeta)):

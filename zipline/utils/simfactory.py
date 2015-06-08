@@ -7,7 +7,7 @@ def create_test_zipline(**config):
     """
        :param config: A configuration object that is a dict with:
 
-           - sid - an integer, which will be used as the security ID.
+           - sid - an integer, which will be used as the asset ID.
            - order_count - the number of orders the test algo will place,
              defaults to 100
            - order_amount - the number of shares per order, defaults to 100
@@ -25,10 +25,15 @@ def create_test_zipline(**config):
              :py:mod:`zipline.finance.trading`
        """
     assert isinstance(config, dict)
-    sid_list = config.get('sid_list')
-    if not sid_list:
-        sid = config.get('sid')
-        sid_list = [sid]
+
+    try:
+        sid_list = config['sid_list']
+    except KeyError:
+        try:
+            sid_list = [config['sid']]
+        except KeyError:
+            raise Exception("simfactory create_test_zipline() requires "
+                            "argument 'sid_list' or 'sid'")
 
     concurrent_trades = config.get('concurrent_trades', False)
 
@@ -49,12 +54,13 @@ def create_test_zipline(**config):
         test_algo = config['algorithm']
     else:
         test_algo = TestAlgorithm(
-            sid,
+            sid_list[0],
             order_amount,
             order_count,
             sim_params=config.get('sim_params',
                                   factory.create_simulation_parameters()),
             slippage=config.get('slippage'),
+            identifiers=sid_list
         )
 
     # -------------------
