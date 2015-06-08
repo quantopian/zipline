@@ -26,6 +26,7 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
+from zipline.finance.trading import with_environment
 
 
 class TestDataFrameSource(TestCase):
@@ -62,7 +63,8 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['volume'], int))
             self.assertTrue(isinstance(event['arbitrary'], float))
 
-    def test_yahoo_bars_to_panel_source(self):
+    @with_environment()
+    def test_yahoo_bars_to_panel_source(self, env=None):
         stocks = ['AAPL', 'GE']
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
@@ -74,45 +76,58 @@ class TestDataFrameSource(TestCase):
         check_fields = ['sid', 'open', 'high', 'low', 'close',
                         'volume', 'price']
         source = DataPanelSource(data)
-        stocks_iter = cycle(stocks)
+        sids = [
+            asset.sid for asset in
+            [env.asset_finder.lookup_symbol(symbol, as_of_date=end)
+             for symbol in stocks]
+        ]
+        stocks_iter = cycle(sids)
         for event in source:
             for check_field in check_fields:
                 self.assertIn(check_field, event)
             self.assertTrue(isinstance(event['volume'], (integer_types)))
             self.assertEqual(next(stocks_iter), event['sid'])
 
-    def test_nan_filter_dataframe(self):
+    @with_environment()
+    def test_nan_filter_dataframe(self, env=None):
+        env.update_asset_finder(identifiers=[4, 5])
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.DataFrame(np.random.randn(2, 2),
                           index=dates,
-                          columns=['A', 'B'])
-        df.loc[dates[0], 'A'] = np.nan  # should be filtered
-        df.loc[dates[1], 'B'] = np.nan  # should not be filtered
+                          columns=[4, 5])
+        # should be filtered
+        df.loc[dates[0], 4] = np.nan
+        # should not be filtered, should have been ffilled
+        df.loc[dates[1], 5] = np.nan
         source = DataFrameSource(df)
         event = next(source)
-        self.assertEqual('B', event.sid)
+        self.assertEqual(5, event.sid)
         event = next(source)
-        self.assertEqual('A', event.sid)
+        self.assertEqual(4, event.sid)
         event = next(source)
-        self.assertEqual('B', event.sid)
-        self.assertTrue(np.isnan(event.price))
+        self.assertEqual(5, event.sid)
+        self.assertFalse(np.isnan(event.price))
 
-    def test_nan_filter_panel(self):
+    @with_environment()
+    def test_nan_filter_panel(self, env=None):
+        env.update_asset_finder(identifiers=[4, 5])
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.Panel(np.random.randn(2, 2, 2),
                       major_axis=dates,
-                      items=['A', 'B'],
+                      items=[4, 5],
                       minor_axis=['price', 'volume'])
-        df.loc['A', dates[0], 'price'] = np.nan  # should be filtered
-        df.loc['B', dates[1], 'price'] = np.nan  # should not be filtered
+        # should be filtered
+        df.loc[4, dates[0], 'price'] = np.nan
+        # should not be filtered, should have been ffilled
+        df.loc[5, dates[1], 'price'] = np.nan
         source = DataPanelSource(df)
         event = next(source)
-        self.assertEqual('B', event.sid)
+        self.assertEqual(5, event.sid)
         event = next(source)
-        self.assertEqual('A', event.sid)
+        self.assertEqual(4, event.sid)
         event = next(source)
-        self.assertEqual('B', event.sid)
-        self.assertTrue(np.isnan(event.price))
+        self.assertEqual(5, event.sid)
+        self.assertFalse(np.isnan(event.price))
 
 
 class TestRandomWalkSource(TestCase):
