@@ -37,7 +37,7 @@ class BuyAndHoldAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         if not self.holding:
-            self.order(self.SID_TO_BUY_AND_HOLD, 100)
+            self.order(self.sid(self.SID_TO_BUY_AND_HOLD), 100)
             self.holding = True
 
 
@@ -68,6 +68,7 @@ class TestEventsThroughRisk(unittest.TestCase):
         )
 
         algo = BuyAndHoldAlgorithm(
+            identifiers=[1],
             sim_params=sim_params)
 
         first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
@@ -188,6 +189,7 @@ class TestEventsThroughRisk(unittest.TestCase):
                 data_frequency='minute')
 
             algo = BuyAndHoldAlgorithm(
+                identifiers=[1],
                 sim_params=sim_params)
 
             first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)

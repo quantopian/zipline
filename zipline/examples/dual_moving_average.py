@@ -31,6 +31,8 @@ def initialize(context):
     add_history(100, '1d', 'price')
     add_history(300, '1d', 'price')
 
+    context.sym = symbol('AAPL')
+
     context.i = 0
 
 
@@ -46,17 +48,15 @@ def handle_data(context, data):
     short_mavg = history(100, '1d', 'price').mean()
     long_mavg = history(300, '1d', 'price').mean()
 
-    sym = symbol('AAPL')
-
     # Trading logic
-    if short_mavg[sym] > long_mavg[sym]:
+    if short_mavg[context.sym] > long_mavg[context.sym]:
         # order_target orders as many shares as needed to
         # achieve the desired number of shares.
-        order_target(sym, 100)
-    elif short_mavg[sym] < long_mavg[sym]:
-        order_target(sym, 0)
+        order_target(context.sym, 100)
+    elif short_mavg[context.sym] < long_mavg[context.sym]:
+        order_target(context.sym, 0)
 
     # Save values for later inspection
-    record(AAPL=data[sym].price,
-           short_mavg=short_mavg[sym],
-           long_mavg=long_mavg[sym])
+    record(AAPL=data[context.sym].price,
+           short_mavg=short_mavg[context.sym],
+           long_mavg=long_mavg[context.sym])

@@ -57,7 +57,12 @@ DIVIDEND_FIELDS = [
     'sid',
 ]
 # Expected fields/index values for a dividend payment Series.
-DIVIDEND_PAYMENT_FIELDS = ['id', 'payment_sid', 'cash_amount', 'share_count']
+DIVIDEND_PAYMENT_FIELDS = [
+    'id',
+    'payment_sid',
+    'cash_amount',
+    'share_count',
+]
 
 
 def dividend_payment(data=None):
@@ -72,7 +77,7 @@ def dividend_payment(data=None):
     payment.
 
     Additionally, if @data is non-empty, either data['cash_amount'] should be
-    nonzero or data['payment_sid'] should be a security identifier and
+    nonzero or data['payment_sid'] should be an asset identifier and
     data['share_count'] should be nonzero.
 
     The returned Series is given its id value as a name so that concatenating
@@ -288,7 +293,6 @@ class SIDData(object):
 
     def __init__(self, sid, initial_values=None):
         self._sid = sid
-
         self._freqstr = None
 
         # To check if we have data, we use the __len__ which depends on the

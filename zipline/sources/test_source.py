@@ -22,7 +22,6 @@ import pytz
 from six.moves import filter
 from datetime import datetime, timedelta
 import itertools
-import numpy as np
 
 from six.moves import range
 
@@ -112,8 +111,8 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-
-    def __init__(self, *args, **kwargs):
+    @with_environment()
+    def __init__(self, env=None, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
 
@@ -125,9 +124,7 @@ class SpecificEquityTrades(object):
             # This isn't really clean and ultimately I think this
             # class should serve a single purpose (either take an
             # event_list or autocreate events).
-            self.sids = kwargs.get(
-                'sids',
-                np.unique([event.sid for event in self.event_list]).tolist())
+            self.count = kwargs.get('count', len(self.event_list))
             self.start = kwargs.get('start', self.event_list[0].dt)
             self.end = kwargs.get('end', self.event_list[-1].dt)
             self.delta = kwargs.get(
@@ -135,9 +132,22 @@ class SpecificEquityTrades(object):
                 self.event_list[1].dt - self.event_list[0].dt)
             self.concurrent = kwargs.get('concurrent', False)
 
+            self.identifiers = kwargs.get(
+                'sids',
+                set(event.sid for event in self.event_list)
+            )
+            env.update_asset_finder(identifiers=self.identifiers)
+            self.sids = [
+                env.asset_finder.retrieve_asset_by_identifier(identifier).sid
+                for identifier in self.identifiers
+            ]
+            for event in self.event_list:
+                event.sid = env.asset_finder.\
+                    retrieve_asset_by_identifier(event.sid).sid
+
         else:
             # Unpack config dictionary with default values.
-            self.sids = kwargs.get('sids', [1, 2])
+            self.count = kwargs.get('count', 500)
             self.start = kwargs.get(
                 'start',
                 datetime(2008, 6, 6, 15, tzinfo=pytz.utc))
@@ -148,6 +158,13 @@ class SpecificEquityTrades(object):
                 'delta',
                 timedelta(minutes=1))
             self.concurrent = kwargs.get('concurrent', False)
+
+            self.identifiers = kwargs.get('sids', [1, 2])
+            env.update_asset_finder(identifiers=self.identifiers)
+            self.sids = [
+                env.asset_finder.retrieve_asset_by_identifier(identifier).sid
+                for identifier in self.identifiers
+            ]
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
