@@ -45,11 +45,12 @@ class DataSource(with_metaclass(ABCMeta)):
         """
         Override this to hand craft conversion of row.
         """
-        row = {target: mapping_func(raw_row[source_key])
-               for target, (mapping_func, source_key)
-               in self.mapping.items()}
-        row.update({'source_id': self.get_hash()})
+        row = {}
         row.update({'type': self.event_type})
+        row.update({target: mapping_func(raw_row[source_key])
+                    for target, (mapping_func, source_key)
+                    in self.mapping.items()})
+        row.update({'source_id': self.get_hash()})
         return row
 
     @property

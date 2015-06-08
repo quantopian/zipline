@@ -315,7 +315,7 @@ def create_test_df_source(sim_params=None, bars='daily'):
     return DataFrameSource(df), df
 
 
-def create_test_panel_source(sim_params=None):
+def create_test_panel_source(sim_params=None, source_type=None):
     start = sim_params.first_open \
         if sim_params else pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
 
@@ -329,12 +329,17 @@ def create_test_panel_source(sim_params=None):
 
     price = np.arange(0, len(index))
     volume = np.ones(len(index)) * 1000
+
     arbitrary = np.ones(len(index))
 
     df = pd.DataFrame({'price': price,
                        'volume': volume,
                        'arbitrary': arbitrary},
                       index=index)
+    if source_type:
+        source_types = np.full(len(index), source_type)
+        df['type'] = source_types
+
     panel = pd.Panel.from_dict({0: df})
 
     return DataPanelSource(panel), panel

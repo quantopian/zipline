@@ -204,6 +204,8 @@ class AlgorithmSimulator(object):
         perf_process_split = self.algo.perf_tracker.process_split
         perf_process_dividend = self.algo.perf_tracker.process_dividend
         perf_process_commission = self.algo.perf_tracker.process_commission
+        perf_process_close_position = \
+            self.algo.perf_tracker.process_close_position
         blotter_process_trade = self.algo.blotter.process_trade
         blotter_process_benchmark = self.algo.blotter.process_benchmark
 
@@ -219,6 +221,7 @@ class AlgorithmSimulator(object):
         # custom events.
         trades = []
         customs = []
+        closes = []
 
         # splits and dividends are processed once a day.
         #
@@ -247,6 +250,8 @@ class AlgorithmSimulator(object):
                 if dividends is None:
                     dividends = []
                 dividends.append(event)
+            elif event.type == DATASOURCE_TYPE.CLOSE_POSITION:
+                closes.append(event)
             else:
                 raise log.warn("Unrecognized event=%s".format(event))
 
@@ -281,6 +286,10 @@ class AlgorithmSimulator(object):
 
         for custom in customs:
             self.update_universe(custom)
+
+        for close in closes:
+            self.update_universe(close)
+            perf_process_close_position(close)
 
         if splits is not None:
             for split in splits:

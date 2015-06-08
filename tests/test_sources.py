@@ -47,14 +47,16 @@ class TestDataFrameSource(TestCase):
             "DataFrameSource should only stream selected sid 0, not sid 1."
 
     def test_panel_source(self):
-        source, panel = factory.create_test_panel_source()
+        source, panel = factory.create_test_panel_source(source_type=5)
         assert isinstance(source.start, pd.lib.Timestamp)
         assert isinstance(source.end, pd.lib.Timestamp)
         for event in source:
             self.assertTrue('sid' in event)
             self.assertTrue('arbitrary' in event)
+            self.assertTrue('type' in event)
             self.assertTrue(hasattr(event, 'volume'))
             self.assertTrue(hasattr(event, 'price'))
+            self.assertEquals(event['type'], 5)
             self.assertEquals(event['arbitrary'], 1.)
             self.assertEquals(event['sid'], 0)
             self.assertTrue(isinstance(event['volume'], int))

@@ -42,7 +42,8 @@ DATASOURCE_TYPE = Enum(
     'DONE',
     'CUSTOM',
     'BENCHMARK',
-    'COMMISSION'
+    'COMMISSION',
+    'CLOSE_POSITION'
 )
 
 # Expected fields/index values for a dividend Series.
