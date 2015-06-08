@@ -46,7 +46,8 @@ start=1990-1-1
             self.assertEqual(args['algofile'], 'test.py')
             self.assertEqual(args['symbols'], 'test_symbols')
             self.assertEqual(args['start'], '1990-1-1')
-            self.assertEqual(args['end'], cli.DEFAULTS['end'])
+            self.assertEqual(args['data_frequency'],
+                             cli.DEFAULTS['data_frequency'])
         finally:
             os.remove('test.conf')
 
@@ -63,6 +64,7 @@ start=1990-1-1
             # Non-overwritten values
             self.assertEqual(args['symbols'], 'test_symbols')
             # Default values
-            self.assertEqual(args['end'], cli.DEFAULTS['end'])
+            self.assertEqual(args['data_frequency'],
+                             cli.DEFAULTS['data_frequency'])
         finally:
             os.remove('test.conf')
