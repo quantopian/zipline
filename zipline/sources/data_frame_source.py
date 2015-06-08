@@ -22,6 +22,7 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
+from zipline.finance.trading import with_environment
 
 
 class DataFrameSource(DataSource):
@@ -36,14 +37,23 @@ class DataFrameSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    def __init__(self, data, **kwargs):
+    @with_environment()
+    def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(method='ffill')
         # Unpack config dictionary with default values.
-        self.sids = kwargs.get('sids', data.columns)
-        self.start = kwargs.get('start', data.index[0])
-        self.end = kwargs.get('end', data.index[-1])
+        self.start = kwargs.get('start', self.data.index[0])
+        self.end = kwargs.get('end', self.data.index[-1])
+
+        # Remap sids based on the trading environment
+        self.identifiers = kwargs.get('sids', self.data.columns)
+        env.update_asset_finder(identifiers=self.identifiers)
+        self.data.columns = [
+            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
+            for identifier in self.data.columns
+        ]
+        self.sids = self.data.columns
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)
@@ -105,14 +115,24 @@ class DataPanelSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    def __init__(self, data, **kwargs):
+    @with_environment()
+    def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
 
-        self.data = data
+        self.data = data.fillna(value={'volume': 0})
+        self.data = self.data.fillna(method='ffill')
         # Unpack config dictionary with default values.
-        self.sids = kwargs.get('sids', data.items)
-        self.start = kwargs.get('start', data.major_axis[0])
-        self.end = kwargs.get('end', data.major_axis[-1])
+        self.start = kwargs.get('start', self.data.major_axis[0])
+        self.end = kwargs.get('end', self.data.major_axis[-1])
+
+        # Remap sids based on the trading environment
+        self.identifiers = kwargs.get('sids', self.data.items)
+        env.update_asset_finder(identifiers=self.identifiers)
+        self.data.items = [
+            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
+            for identifier in self.data.items
+        ]
+        self.sids = self.data.items
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(data, **kwargs)

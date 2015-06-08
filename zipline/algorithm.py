@@ -39,9 +39,10 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
+    SidNotFound,
 )
 
-from zipline.finance import trading
+from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.controls import (
@@ -64,6 +65,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
+from zipline.assets import Asset, Future
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -133,8 +135,27 @@ class TradingAlgorithm(object):
                How much capital to start with.
             instant_fill : bool <default: False>
                Whether to fill orders immediately or on next bar.
-            environment : str <default: 'zipline'>
-               The environment that this algorithm is running in.
+            asset_finder : An AssetFinder object
+                A new AssetFinder object to be used in this TradingEnvironment
+            asset_metadata: can be either:
+                            - dict
+                            - pandas.DataFrame
+                            - object with 'read' property
+                If dict is provided, it must have the following structure:
+                * keys are the identifiers
+                * values are dicts containing the metadata, with the metadata
+                  field name as the key
+                If pandas.DataFrame is provided, it must have the
+                following structure:
+                * column names must be the metadata fields
+                * index must be the different asset identifiers
+                * array contents should be the metadata value
+                If an object with a 'read' property is provided, 'read' must
+                return rows containing at least one of 'sid' or 'symbol' along
+                with the other metadata fields.
+            identifiers : List
+                Any asset identifiers that are not provided in the
+                asset_metadata, but will be traded by this TradingAlgorithm
         """
         self.datetime = None
 
@@ -167,9 +188,22 @@ class TradingAlgorithm(object):
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
             self.sim_params = create_simulation_parameters(
-                capital_base=self.capital_base
+                capital_base=self.capital_base,
+                start=kwargs.pop('start', None),
+                end=kwargs.pop('end', None)
             )
         self.perf_tracker = PerformanceTracker(self.sim_params)
+
+        # Update the TradingEnvironment with the provided asset metadata
+        self.trading_environment = kwargs.pop('env',
+                                              TradingEnvironment.instance())
+        self.trading_environment.update_asset_finder(
+            asset_finder=kwargs.pop('asset_finder', None),
+            asset_metadata=kwargs.pop('asset_metadata', None),
+            identifiers=kwargs.pop('identifiers', None)
+        )
+        # Pull in the environment's new AssetFinder for quick reference
+        self.asset_finder = self.trading_environment.asset_finder
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -322,11 +356,10 @@ class TradingAlgorithm(object):
             sim_params = self.sim_params
 
         if self.benchmark_return_source is None:
-            env = trading.environment
             if sim_params.data_frequency == 'minute' or \
                sim_params.emission_rate == 'minute':
                 def update_time(date):
-                    return env.get_open_and_close(date)[1]
+                    return self.trading_environment.get_open_and_close(date)[1]
             else:
                 def update_time(date):
                     return date
@@ -336,7 +369,7 @@ class TradingAlgorithm(object):
                        'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                        'source_id': 'benchmarks'})
                 for dt, ret in
-                trading.environment.benchmark_returns.iteritems()
+                self.trading_environment.benchmark_returns.iteritems()
                 if dt.date() >= sim_params.period_start.date() and
                 dt.date() <= sim_params.period_end.date()
             ]
@@ -410,8 +443,7 @@ class TradingAlgorithm(object):
 
                If pandas.DataFrame is provided, it must have the
                following structure:
-               * column names must consist of ints representing the
-                 different sids
+               * column names must be the different asset identifiers
                * index must be DatetimeIndex
                * array contents should be price info.
 
@@ -420,9 +452,11 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
+
+        # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract sids, and start and end
+                warnings.warn("""List of sources passed, will not attempt to extract start and end
  dates. Make sure to set the correct fields in sim_params passed to
  __init__().""", UserWarning)
                 overwrite_sim_params = False
@@ -443,8 +477,19 @@ class TradingAlgorithm(object):
                 self.sim_params.period_start = source.start
             if hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
+            # The sids field of the source is the canonical reference for
+            # sids in this run
             all_sids = [sid for s in self.sources for sid in s.sids]
             self.sim_params.sids = set(all_sids)
+            # Check that all sids from the source are accounted for in
+            # the AssetFinder
+            for sid in self.sim_params.sids:
+                try:
+                    self.asset_finder.retrieve_asset(sid)
+                except SidNotFound:
+                    warnings.warn("No Asset found for sid '%s'. Make sure "
+                                  "that the correct identifiers and asset "
+                                  "metadata are passed to __init__()." % sid)
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
             self.sim_params._update_internal()
@@ -604,17 +649,52 @@ class TradingAlgorithm(object):
     def symbol(self, symbol_str):
         """
         Default symbol lookup for any source that directly maps the
-        symbol to the identifier (e.g. yahoo finance).
+        symbol to the Asset (e.g. yahoo finance).
         """
-        return symbol_str
+        asset, _ = self.asset_finder.lookup_generic(
+            asset_convertible_or_iterable=symbol_str,
+            as_of_date=self.datetime,
+            )
+        return asset
 
     @api_method
     def symbols(self, *args):
         """
         Default symbols lookup for any source that directly maps the
-        symbol to the identifier (e.g. yahoo finance).
+        symbol to the Asset (e.g. yahoo finance).
         """
-        return args
+        return [self.symbol(identifier) for identifier in args]
+
+    @api_method
+    def sid(self, a_sid):
+        """
+        Default sid lookup for any source that directly maps the integer sid
+        to the Asset.
+        """
+        return self.asset_finder.retrieve_asset(a_sid)
+
+    def _calculate_order_value_amount(self, asset, value):
+        """
+        Calculates how many shares/contracts to order based on the type of
+        asset being ordered.
+        """
+        last_price = self.trading_client.current_data[asset].price
+
+        if tolerant_equals(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=asset
+            )
+            if self.logger:
+                self.logger.debug(zero_message)
+            # Don't place any order
+            return 0
+
+        if isinstance(asset, Future):
+            value_multiplier = asset.contract_multiplier
+        else:
+            value_multiplier = 1
+
+        return value / (last_price * value_multiplier)
 
     @api_method
     def order(self, sid, amount,
@@ -655,7 +735,7 @@ class TradingAlgorithm(object):
         return self.blotter.order(sid, amount, style)
 
     def validate_order_params(self,
-                              sid,
+                              asset,
                               amount,
                               limit_price,
                               stop_price,
@@ -682,8 +762,14 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
+        if not isinstance(asset, Asset):
+            raise UnsupportedOrderParameters(
+                msg="Passing non-Asset argument to 'order()' is not supported."
+                    " Use 'sid()' or 'symbol()' methods to look up an Asset."
+            )
+
         for control in self.trading_controls:
-            control.validate(sid,
+            control.validate(asset,
                              amount,
                              self.updated_portfolio(),
                              self.get_datetime(),
@@ -718,6 +804,8 @@ class TradingAlgorithm(object):
         Place an order by desired value rather than desired number of shares.
         If the requested sid is found in the universe, the requested value is
         divided by its price to imply the number of shares to transact.
+        If the Asset being ordered is a Future, the 'value' calculated
+        is actually the exposure, as Futures have no 'value'.
 
         value > 0 :: Buy/Cover
         value < 0 :: Sell/Short
@@ -726,21 +814,11 @@ class TradingAlgorithm(object):
         Stop order:      order(sid, value, None, stop_price)
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
-        last_price = self.trading_client.current_data[sid].price
-        if tolerant_equals(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(
-                psid=sid
-            )
-            if self.logger:
-                self.logger.debug(zero_message)
-            # Don't place any order
-            return
-        else:
-            amount = value / last_price
-            return self.order(sid, amount,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
+        amount = self._calculate_order_value_amount(sid, value)
+        return self.order(sid, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
 
     @property
     def recorded_vars(self):
@@ -855,7 +933,7 @@ class TradingAlgorithm(object):
     def order_percent(self, sid, percent,
                       limit_price=None, stop_price=None, style=None):
         """
-        Place an order in the specified security corresponding to the given
+        Place an order in the specified asset corresponding to the given
         percent of the current portfolio value.
 
         Note that percent must expressed as a decimal (0.50 means 50\%).
@@ -898,15 +976,10 @@ class TradingAlgorithm(object):
         order. If the position does exist, this is equivalent to placing an
         order for the difference between the target value and the
         current value.
+        If the Asset being ordered is a Future, the 'target value' calculated
+        is actually the target exposure, as Futures have no 'value'.
         """
-        last_price = self.trading_client.current_data[sid].price
-        if tolerant_equals(last_price, 0):
-            # Don't place an order
-            if self.logger:
-                zero_message = "Price of 0 for {psid}; can't infer value"
-                self.logger.debug(zero_message.format(psid=sid))
-            return
-        target_amount = target / last_price
+        target_amount = self._calculate_order_value_amount(sid, target)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,
@@ -1066,7 +1139,7 @@ class TradingAlgorithm(object):
         increasing the absolute value of shares/dollar value exceeding one of
         these limits, raise a TradingControlException.
         """
-        control = MaxPositionSize(sid=sid,
+        control = MaxPositionSize(asset=sid,
                                   max_shares=max_shares,
                                   max_notional=max_notional)
         self.register_trading_control(control)
@@ -1081,7 +1154,7 @@ class TradingAlgorithm(object):
         If an algorithm attempts to place an order that would result in
         exceeding one of these limits, raise a TradingControlException.
         """
-        control = MaxOrderSize(sid=sid,
+        control = MaxOrderSize(asset=sid,
                                max_shares=max_shares,
                                max_notional=max_notional)
         self.register_trading_control(control)
