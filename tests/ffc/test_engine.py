@@ -12,7 +12,7 @@ from pandas import (
 )
 
 from zipline.data.equities import USEquityPricing
-from zipline.data.synthetic import (
+from zipline.data.ffc.synthetic import (
     ConstantLoader,
 )
 from zipline.modelling.engine import SimpleFFCEngine

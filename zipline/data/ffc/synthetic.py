@@ -4,8 +4,6 @@ Synthetic data loaders for testing.
 from abc import abstractmethod
 
 from numpy import (
-    arange,
-    empty,
     full,
 )
 
@@ -13,10 +11,10 @@ from zipline.data.adjusted_array import (
     adjusted_array,
     NOMASK,
 )
-from zipline.data.baseloader import DataLoader
+from zipline.data.ffc.base import FFCLoader
 
 
-class SyntheticDataLoader(DataLoader):
+class SyntheticDataLoader(FFCLoader):
     """
     DataLoader subclass that builds synthetic data based only on the shape of
     the desired output.  Keeps a log of all calls to load_columns() for use in
@@ -83,17 +81,3 @@ class ConstantLoader(SyntheticDataLoader):
             self._constants[column],
             dtype=column.dtype,
         )
-
-
-class ARangeLoader(SyntheticDataLoader):
-    """
-    SyntheticDataLoader that returns np.aranges.
-    """
-
-    def make_column(self, dtype, nrows, ncols, idx):
-        buf = empty(
-            (nrows, ncols),
-            dtype=dtype,
-        )
-        buf[:] = arange(1, ncols + 1)
-        return buf

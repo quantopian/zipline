@@ -10,7 +10,7 @@ from abc import (
 from six import with_metaclass
 
 
-class DataLoader(with_metaclass(ABCMeta)):
+class FFCLoader(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def load_adjusted_array(self, columns, dates, assets):
