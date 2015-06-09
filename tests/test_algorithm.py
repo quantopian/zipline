@@ -46,6 +46,7 @@ from zipline.test_algorithms import (
     RecordAlgorithm,
     TestOrderAlgorithm,
     TestOrderInstantAlgorithm,
+    TestOrderTargetAlgorithm,
     TestOrderPercentAlgorithm,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
@@ -383,6 +384,7 @@ class TestTransformAlgorithm(TestCase):
         AlgoClasses = [TestOrderAlgorithm,
                        TestOrderValueAlgorithm,
                        TestTargetAlgorithm,
+                       TestOrderTargetAlgorithm,
                        TestOrderPercentAlgorithm,
                        TestTargetPercentAlgorithm,
                        TestTargetValueAlgorithm]

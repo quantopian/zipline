@@ -36,7 +36,7 @@ The algorithm must expose methods:
     of the current state of the simulation universe. An example data object:
 
         ..  This outputs the table as an HTML table but for some reason there
-            is no bounding box. Make the previous paraagraph ending colon a
+            is no bounding box. Make the previous paragraph ending colon a
             double-colon to turn this back into blockquoted table in ASCII art.
 
         +-----------------+--------------+----------------+-------------------+
@@ -349,6 +349,21 @@ class TestTargetAlgorithm(TradingAlgorithm):
                 data[0].price, "Orders not filled at current price."
         self.target_shares = np.random.randint(1, 30)
         self.order_target(0, self.target_shares)
+
+
+class TestOrderTargetAlgorithm(TradingAlgorithm):
+    def initialize(self):
+        self.target_shares = 0
+
+    def handle_data(self, data):
+        if self.target_shares == 0:
+            assert 0 not in self.portfolio.positions
+            self.order_target(0, 10)
+            self.order_target(0, 10)
+            self.target_shares = 10
+        else:
+            assert self.portfolio.positions[0]['amount'] == \
+                self.target_shares, "Not accounting for open market orders."
 
 
 class TestOrderPercentAlgorithm(TradingAlgorithm):

@@ -878,15 +878,22 @@ class TradingAlgorithm(object):
         order for the difference between the target number of shares and the
         current number of shares.
         """
+        # record the number of open market orders for this sid
+        open_market_orders = sum(
+            order.amount - order.filled
+            for order in self.blotter.open_orders[sid]
+            if order.stop is None and order.limit is None
+        )
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
-            req_shares = target - current_position
+            req_shares = target - (current_position + open_market_orders)
             return self.order(sid, req_shares,
                               limit_price=limit_price,
                               stop_price=stop_price,
                               style=style)
         else:
-            return self.order(sid, target,
+            req_shares = target - open_market_orders
+            return self.order(sid, req_shares,
                               limit_price=limit_price,
                               stop_price=stop_price,
                               style=style)
