@@ -92,8 +92,8 @@ class PositionTracker(object):
         self._invalidate_cache()
 
         # Calculate cash adjustment on assets with multipliers
-        return (price - old_price) * self._position_payout_multipliers[sid] \
-               * pos.amount
+        return ((price - old_price) * self._position_payout_multipliers[sid]
+                * pos.amount)
 
     def update_positions(self, positions):
         # update positions in batch
