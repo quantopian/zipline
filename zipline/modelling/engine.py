@@ -13,12 +13,31 @@ from networkx import (
     topological_sort,
 )
 from numpy import (
-    asarray,
     empty,
 )
 
+from zipline.data.adjusted_array import ensure_ndarray
+
 
 def build_dependency_graph(filters, classifiers, factors):
+    """
+    Build a dependency graph containing the given filters, classifiers,
+    factors, and all their dependencies.
+
+    Parameters
+    ----------
+    filters: list
+        A list of Filter objects.
+    classifiers: list
+        A list of Classifier objects.
+    factors: list
+        A list of Factor objects.
+
+    Returns
+    -------
+    dependencies : networkx.DiGraph
+        A directed graph representing the dependencies of the desired inputs.
+    """
     dependencies = DiGraph()
     parents = set()
     for term in chain(filters, classifiers, factors):
@@ -186,7 +205,7 @@ class SimpleFFCEngine(object):
         """
         Compute inputs for the given term.
 
-        This is mostly complicated by the fact that, for each input, we store
+        This is mostly complicated by the fact that for each input we store
         as many rows as will be necessary to serve any term requiring that
         input.  Thus if Factor A needs 5 extra rows of price, and Factor B
         needs 3 extra rows of price, we need to remove 2 leading rows from our
@@ -203,10 +222,10 @@ class SimpleFFCEngine(object):
             ]
         else:
             return [
-                asarray(
-                    workspace[input_].data[
+                ensure_ndarray(
+                    workspace[input_][
                         self.extra_row_count(input_) - term_extra_rows:
-                    ]
+                    ],
                 )
                 for input_ in term.inputs
             ]
@@ -235,24 +254,24 @@ class SimpleFFCEngine(object):
                 for loaded_term, adj_array in izip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
             elif term.windowed:
-                outbuf = empty(
+                workspace[term] = empty(
                     shape=(len(dates), len(assets)),
                     dtype=term.dtype
                 )
-                workspace[term] = term.compute_from_windows(
+                term.compute_from_windows(
                     self._inputs_for_term(term, workspace, windowed=True),
-                    outbuf,
+                    workspace[term],
                     dates,
                     assets,
                 )
             else:
-                outbuf = empty(
+                workspace[term] = empty(
                     shape=(len(dates), len(assets)),
                     dtype=term.dtype
                 )
-                workspace[term] = term.compute_from_arrays(
+                term.compute_from_arrays(
                     self._inputs_for_term(term, workspace, windowed=False),
-                    outbuf,
+                    workspace[term],
                     dates,
                     assets,
                 )

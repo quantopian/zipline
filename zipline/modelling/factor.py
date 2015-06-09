@@ -223,6 +223,12 @@ class Factor(Term):
     for funcname in NUMEXPR_MATH_FUNCS:
         clsdict[funcname] = _factor_math_function(funcname)
 
+    def greater_than(self, N):
+        """
+        Return a filter matching values greater than N.
+        """
+        pass
+
 
 class NumericalExpression(Factor):
     """
@@ -296,6 +302,9 @@ class NumericalExpression(Factor):
             )
 
     def compute_from_arrays(self, arrays, outbuf, dates, assets):
+        """
+        Compute directly into outbuf via numexpr.
+        """
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,
@@ -374,7 +383,6 @@ class TestFactor(Factor):
                 pass
             else:
                 raise AssertionError("window %s was not exhausted" % window)
-        return outbuf
 
     def compute_from_arrays(self, arrays, outbuf, dates, assets):
         assert self.window_length == 0

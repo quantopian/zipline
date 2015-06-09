@@ -50,7 +50,7 @@ class ConstantInputTestCase(TestCase):
             constants=self.constants,
         )
         engine = SimpleFFCEngine(loader, self.dates)
-        shape = (num_dates, num_assets) = (5, len(self.assets))
+        result_shape = (num_dates, num_assets) = (5, len(self.assets))
         dates = self.dates[10:10 + num_dates]
 
         factor = RollingSumDifference()
@@ -76,14 +76,14 @@ class ConstantInputTestCase(TestCase):
         )
 
         for window in results[USEquityPricing.open].traverse(num_dates):
-            assert_array_equal(window, full(shape, 2))
+            assert_array_equal(window, full(result_shape, 2))
 
         for window in results[USEquityPricing.close].traverse(num_dates):
-            assert_array_equal(window, full(shape, 3))
+            assert_array_equal(window, full(result_shape, 3))
 
         assert_array_equal(
             results[factor],
-            full(shape, -factor.window_length),
+            full(result_shape, -factor.window_length),
         )
 
     def test_multiple_rolling_factors(self):
@@ -156,3 +156,41 @@ class ConstantInputTestCase(TestCase):
             results[high_factor],
             full(shape, -2 * high_factor.window_length),
         )
+
+    def test_numeric_factor(self):
+        constants = self.constants
+        loader = ConstantLoader(
+            known_assets=self.assets,
+            adjustments={},
+            constants=constants,
+        )
+        engine = SimpleFFCEngine(loader, self.dates)
+        shape = num_dates, num_assets = (5, len(self.assets))
+        dates = self.dates[10:10 + num_dates]
+        high, low = USEquityPricing.high, USEquityPricing.low
+        open, close = USEquityPricing.open, USEquityPricing.close
+
+        high_minus_low = RollingSumDifference(inputs=[high, low])
+        open_minus_close = RollingSumDifference(inputs=[open, close])
+        avg = (high_minus_low + open_minus_close) / 2
+
+        engine.add_factor(avg)
+        engine.freeze()
+
+        results = engine.compute_chunk(
+            dates[0],
+            dates[-1],
+            self.assets,
+        )
+
+        high_low_result = results[high_minus_low]
+        expected_high_low = 3 * (constants[high] - constants[low])
+        assert_array_equal(high_low_result, full(shape, expected_high_low))
+
+        open_close_result = results[open_minus_close]
+        expected_open_close = 3 * (constants[open] - constants[close])
+        assert_array_equal(open_close_result, full(shape, expected_open_close))
+
+        avg_result = results[avg]
+        expected_avg = (expected_high_low + expected_open_close) / 2.0
+        assert_array_equal(avg_result, full(shape, expected_avg))
