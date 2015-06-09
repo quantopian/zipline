@@ -27,7 +27,7 @@ backports.ssl-match-hostname==3.4.0.2;python_version<'3.0'
 certifi==2015.4.28
 
 # tornado and pyparsing are required by matplotlib
-tornado==4.1
+tornado==4.2
 pyparsing==2.0.3
 
 matplotlib==1.4.3
@@ -37,4 +37,4 @@ Markdown==2.6.2
 # This --allow syntax is for compatibility with pip >= 1.5
 # However, this is backwards incompatible change, since previous
 # versions of pip do not support that flag.
---allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
+TA-Lib==0.4.9
