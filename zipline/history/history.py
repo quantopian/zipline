@@ -14,10 +14,7 @@
 # limitations under the License.
 
 from __future__ import division
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections import Hashable
+
 import re
 
 import numpy as np
@@ -257,6 +254,9 @@ class HistorySpec(object):
     """
 
     FORWARD_FILLABLE = frozenset({'price'})
+    VALID_FIELDS = frozenset({
+        'price', 'open_price', 'volume', 'high', 'low', 'close_price',
+    })
 
     @classmethod
     def spec_key(cls, bar_count, freq_str, field, ffill):
@@ -271,7 +271,7 @@ class HistorySpec(object):
 
         # Number of bars to look back.
         if not isinstance(bar_count, int):
-            raise ValueError(
+            raise TypeError(
                 "bar_count={bc} must be an 'int', not: '{tp}'".format(
                     bc=bar_count,
                     tp=type(bar_count).__name__,
@@ -290,8 +290,11 @@ class HistorySpec(object):
         # The frequency at which the data is sampled.
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
-        if not isinstance(field, Hashable):
-            raise ValueError('field={fd} must be hashable'.format(fd=field))
+        if field not in self.VALID_FIELDS:
+            raise ValueError('field={fd} must be one of: {vf}'.format(
+                fd=field,
+                vf=self.VALID_FIELDS,
+            ))
         self.field = field
         # Whether or not to forward fill nan data.  Only has an effect if this
         # spec's field is in FORWARD_FILLABLE.

@@ -199,9 +199,7 @@ class HistoryContainer(object):
 
     Entry point for the algoscript is the result of `get_history`.
     """
-    VALID_FIELDS = {
-        'price', 'open_price', 'volume', 'high', 'low', 'close_price',
-    }
+    VALID_FIELDS = HistorySpec.VALID_FIELDS
 
     def __init__(self,
                  history_specs,
