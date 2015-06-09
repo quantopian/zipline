@@ -9,9 +9,10 @@ mock==1.0.1
 
 flake8==2.4.1
 mccabe==0.3
-# Note: Old version of pep8 required by flake8 2.4.0
+# Note: Old version of pep8 required by flake8 2.4.1
 pep8==1.5.7
-pyflakes==0.9.0
+# Note: Old version of pyflakes required by flake8 2.4.1
+pyflakes==0.8.1
 
 # Documentation Conversion
 
