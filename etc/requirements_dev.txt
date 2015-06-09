@@ -4,6 +4,7 @@ nose-parameterized==0.3.5
 nose-ignore-docstring==0.2
 -e git://github.com/python-excel/xlrd.git@b9239bf2bfc42e088dd2a75c22164757cca9cc4f#egg=xlrd-master
 mock==1.0.1
+testfixtures==4.1.2
 
 # Linting
 
