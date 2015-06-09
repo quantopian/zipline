@@ -36,6 +36,7 @@ class PositionTracker(object):
         self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
+        self._position_payout_multipliers = OrderedDict()
         self._unpaid_dividends = pd.DataFrame(
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
@@ -57,15 +58,19 @@ class PositionTracker(object):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
+            self._position_payout_multipliers[sid]
         except KeyError:
             # Collect the value multipliers from applicable sids
             asset = self._retrieve_asset(sid)
             if isinstance(asset, Equity):
                 self._position_value_multipliers[sid] = 1
                 self._position_exposure_multipliers[sid] = 1
+                self._position_payout_multipliers[sid] = 0
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
                 self._position_exposure_multipliers[sid] = \
+                    asset.contract_multiplier
+                self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
 
     def update_last_sale(self, event):
@@ -86,17 +91,9 @@ class PositionTracker(object):
         self._position_last_sale_prices[sid] = price
         self._invalidate_cache()
 
-        asset = self._retrieve_asset(sid)
-        if asset is None:
-            return 0
-
-        # Calculate cash adjustment on futures
-        cash_adjustment = 0
-        if isinstance(asset, Future):
-            price_change = price - old_price
-            cash_adjustment = \
-                price_change * asset.contract_multiplier * pos.amount
-        return cash_adjustment
+        # Calculate cash adjustment on assets with multipliers
+        return (price - old_price) * self._position_payout_multipliers[sid] \
+               * pos.amount
 
     def update_positions(self, positions):
         # update positions in batch
@@ -381,6 +378,7 @@ class PositionTracker(object):
         self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
+        self._position_payout_multipliers = OrderedDict()
         self._invalidate_cache()
 
         self.update_positions(state['positions'])
