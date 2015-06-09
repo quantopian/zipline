@@ -2,8 +2,6 @@
 Base class for Filters, Factors and Classifiers
 """
 from numpy import (
-    asarray,
-    empty,
     float64,
 )
 
@@ -232,3 +230,11 @@ class Term(object):
             window_length=self.window_length,
             domain=self.domain,
         )
+
+
+class SingleInputMixin(object):
+
+    def _validate(self):
+        if len(self.inputs) != 1:
+            raise ValueError("inputs must be of length 1")
+        return super(SingleInputMixin, self)._validate()
