@@ -148,6 +148,10 @@ class PerformancePeriod(object):
         self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
 
+        # This dict contains the known cash flow multipliers for sids and is
+        # keyed on sid
+        self._execution_cash_flow_multipliers = {}
+
     _position_tracker = None
 
     @property
@@ -221,18 +225,34 @@ class PerformancePeriod(object):
             self.orders_by_id[order.id] = order
 
     def handle_execution(self, txn):
-        asset = TradingEnvironment.instance().asset_finder.\
-            retrieve_asset(txn.sid)
-
-        # Futures experience no cash flow on transactions
-        if not isinstance(asset, Future):
-            self.period_cash_flow -= txn.price * txn.amount
+        self.period_cash_flow += self._calculate_execution_cash_flow(txn)
 
         if self.keep_transactions:
             try:
                 self.processed_transactions[txn.dt].append(txn)
             except KeyError:
                 self.processed_transactions[txn.dt] = [txn]
+
+    def _calculate_execution_cash_flow(self, txn):
+        """
+        Calculates the cash flow from executing the given transaction
+        """
+        # Check if the multiplier is cached. If it is not, look up the asset
+        # and cache the multiplier.
+        try:
+            multiplier = self._execution_cash_flow_multipliers[txn.sid]
+        except KeyError:
+            asset = TradingEnvironment.instance().asset_finder.\
+                retrieve_asset(txn.sid)
+            # Futures experience no cash flow on transactions
+            if isinstance(asset, Future):
+                multiplier = 0
+            else:
+                multiplier = 1
+            self._execution_cash_flow_multipliers[txn.sid] = multiplier
+
+        # Calculate and return the cash flow given the multiplier
+        return -1 * txn.price * txn.amount * multiplier
 
     # backwards compat. TODO: remove?
     @property
@@ -498,6 +518,8 @@ class PerformancePeriod(object):
         self.processed_transactions = processed_transactions
         self.orders_by_id = orders_by_id
         self.orders_by_modified = orders_by_modified
+
+        self._execution_cash_flow_multipliers = {}
 
         # pop positions to use for v1
         positions = state.pop('positions', None)
