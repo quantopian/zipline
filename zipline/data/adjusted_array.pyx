@@ -25,6 +25,32 @@ cdef extern from "math.h" nogil:
 NOMASK = None
 
 
+def ensure_ndarray(ndarray_or_adjusted_array):
+    """
+    Return the input as a numpy ndarray.
+
+    This is a no-op if the input is already an ndarray.  If the input is an
+    adjusted_array, this extracts a read-only view of its internal data buffer.
+
+    Parameters
+    ----------
+    ndarray_or_adjusted_array : numpy.ndarray | zipline.data.adjusted_array
+
+    Returns
+    -------
+    out : The input, converted to an ndarray.
+    """
+    if isinstance(ndarray_or_adjusted_array, ndarray):
+        return ndarray_or_adjusted_array
+    elif isinstance(ndarray_or_adjusted_array, AdjustedArray):
+        return ndarray_or_adjusted_array.data
+    else:
+        raise TypeError(
+            "Can't convert %s to ndarray" %
+            type(ndarray_or_adjusted_array).__name__
+        )
+
+
 cpdef adjusted_array(ndarray data, uint8_t[:, :] mask, dict adjustments):
     """
     Factory function for producing adjusted arrays on inputs of different
@@ -52,12 +78,21 @@ cdef _check_window_length(object data, int window_length):
         )
 
 
-cdef class Float64AdjustedArray:
+cdef class AdjustedArray:
+
+    property data:
+        def __get__(self):
+            out = asarray(self._data, dtype=self.dtype)
+            out.setflags(write=False)
+            return out
+
+
+cdef class Float64AdjustedArray(AdjustedArray):
     """
     Adjusted array of float64.
     """
     cdef:
-        readonly float64_t[:, :] data
+        float64_t[:, :] _data
         dict adjustments
 
     def __cinit__(self,
@@ -66,17 +101,22 @@ cdef class Float64AdjustedArray:
                   dict adjustments):
         cdef Py_ssize_t row, col
 
-        self.data = data
-        self.adjustments = adjustments
         if mask is not NOMASK:
             assert mask.shape == data.shape
             for row in range(mask.shape[0]):
                 for col in range(mask.shape[1]):
-                    self.data[row, col] = NAN
+                    data[row, col] = NAN
+
+        self._data = data
+        self.adjustments = adjustments
+
+    property dtype:
+        def __get__(self):
+            return float64
 
     cpdef traverse(self, Py_ssize_t window_length, Py_ssize_t offset=0):
         return _Float64AdjustedArrayWindow(
-            self.data.copy(),
+            self._data.copy(),
             self.adjustments,
             window_length,
             offset,
