@@ -290,7 +290,7 @@ class HistorySpec(object):
         # The frequency at which the data is sampled.
         self.frequency = frequency
         # The field, e.g. 'price', 'volume', etc.
-        if field not in self.VALID_FIELDS:
+        if field not in self.VALID_FIELDS | {None}:
             raise ValueError('field={fd} must be one of: {vf}'.format(
                 fd=field,
                 vf=self.VALID_FIELDS,
