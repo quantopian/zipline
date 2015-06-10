@@ -244,10 +244,10 @@ class TestBatchTransform(TestCase):
     def test_passing_of_args(self):
         algo = BatchTransformAlgorithm(1, kwarg='str',
                                        sim_params=self.sim_params)
+        algo.run(self.source)
         self.assertEqual(algo.args, (1,))
         self.assertEqual(algo.kwargs, {'kwarg': 'str'})
 
-        algo.run(self.source)
         expected_item = ((1, ), {'kwarg': 'str'})
         self.assertEqual(
             algo.history_return_args,

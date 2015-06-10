@@ -113,10 +113,6 @@ class TradingAlgorithm(object):
 
     """
 
-    # If this is set to false then it is the responsibility
-    # of the overriding subclass to set initialized = true
-    AUTO_INITIALIZE = True
-
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
 
@@ -248,13 +244,10 @@ class TradingAlgorithm(object):
 
         self._most_recent_data = None
 
-        # Subclasses that override initialize should only worry about
-        # setting self.initialized = True if AUTO_INITIALIZE is
-        # is manually set to False.
+        # Prepare the algo for initialization
         self.initialized = False
-        self.initialize(*args, **kwargs)
-        if self.AUTO_INITIALIZE:
-            self.initialized = True
+        self.initialize_args = args
+        self.initialize_kwargs = kwargs
 
     def initialize(self, *args, **kwargs):
         """
@@ -371,6 +364,11 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+
+        if not self.initialized:
+            self.initialize(*self.initialize_args, **self.initialize_kwargs)
+            self.initialized = True
+
         if self.perf_tracker is None:
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
@@ -451,6 +449,13 @@ class TradingAlgorithm(object):
             # of first_open and last_close.
             self.sim_params._update_internal()
 
+        # force a reset of the performance tracker, in case
+        # this is a repeat run of the algorithm.
+        self.perf_tracker = None
+
+        # create zipline
+        self.gen = self._create_generator(self.sim_params)
+
         # Create history containers
         if self.history_specs:
             self.history_container = self.history_container_class(
@@ -459,13 +464,6 @@ class TradingAlgorithm(object):
                 self.sim_params.first_open,
                 self.sim_params.data_frequency,
             )
-
-        # force a reset of the performance tracker, in case
-        # this is a repeat run of the algorithm.
-        self.perf_tracker = None
-
-        # create zipline
-        self.gen = self._create_generator(self.sim_params)
 
         with ZiplineAPI(self):
             # loop through simulated_trading, each iteration returns a

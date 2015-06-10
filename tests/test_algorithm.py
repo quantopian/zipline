@@ -733,6 +733,7 @@ def handle_data(context, data):
                 sim_params=self.sim_params,
             )
             set_algo_instance(test_algo)
+            test_algo.run(self.source)
 
     def test_portfolio_in_init(self):
         """

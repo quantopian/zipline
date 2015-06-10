@@ -472,11 +472,13 @@ def handle_data(context, data):
             start=start, end=end)
 
         with self.assertRaises(IncompatibleHistoryFrequency):
-            TradingAlgorithm(
+            algo = TradingAlgorithm(
                 script=algo_text,
                 data_frequency='daily',
                 sim_params=sim_params
             )
+            source = RandomWalkSource(start=start, end=end)
+            algo.run(source)
 
     def test_basic_history(self):
         algo_text = """
