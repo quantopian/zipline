@@ -108,7 +108,8 @@ class TestAlgorithm(TradingAlgorithm):
                    amount,
                    order_count,
                    sid_filter=None,
-                   slippage=None):
+                   slippage=None,
+                   commission=None):
         self.count = order_count
         self.sid = sid
         self.amount = amount
@@ -121,6 +122,9 @@ class TestAlgorithm(TradingAlgorithm):
 
         if slippage is not None:
             self.set_slippage(slippage)
+
+        if commission is not None:
+            self.set_commission(commission)
 
     def handle_data(self, data):
         # place an order for amount shares of sid
