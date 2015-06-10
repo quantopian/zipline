@@ -1290,7 +1290,6 @@ class TestAccountControls(TestCase):
         algo = SetMaxLeverageAlgorithm(1)
         self.check_algo_succeeds(algo, handle_data)
 
-
 class TestClosePosAlgo(TestCase):
 
     def setUp(self):
@@ -1303,10 +1302,15 @@ class TestClosePosAlgo(TestCase):
                      DATASOURCE_TYPE.CLOSE_POSITION]},
             index=self.index)
         })
-
         self.data = DataPanelSource(pan)
+
+        metadata = {1: {'symbol': 'TEST',
+                        'asset_type': 'future',
+                        'notice_date': days[2],
+                        'expiration_date': days[3]}}
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0))
+                                  instant_fill=True, commission=PerShare(0),
+                                  asset_metadata=metadata)
         self.results = self.run_algo()
         self.expected_positions = [1, 1, 0]
         self.expected_pnl = [0, 1, 2]
