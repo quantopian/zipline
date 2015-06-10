@@ -42,14 +42,6 @@ class PositionTracker(object):
         )
         self._positions_store = zp.Positions()
 
-        # Cached for fast property calculation
-        self._position_values = None
-        self._position_exposures = None
-
-    def _invalidate_cache(self):
-        self._position_values = None
-        self._position_exposures = None
-
     @with_environment()
     def _retrieve_asset(self, sid, env=None):
         return env.asset_finder.retrieve_asset(sid)
@@ -89,7 +81,6 @@ class PositionTracker(object):
         pos.last_sale_date = event.dt
         pos.last_sale_price = price
         self._position_last_sale_prices[sid] = price
-        self._invalidate_cache()
 
         # Calculate cash adjustment on assets with multipliers
         return ((price - old_price) * self._position_payout_multipliers[sid]
@@ -102,7 +93,6 @@ class PositionTracker(object):
             self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
             self._update_multipliers(sid)
-            self._invalidate_cache()
 
     def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):
@@ -131,7 +121,6 @@ class PositionTracker(object):
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
         self._update_multipliers(sid)
-        self._invalidate_cache()
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it
@@ -141,39 +130,27 @@ class PositionTracker(object):
 
     @property
     def position_values(self):
-        """
-        Invalidate any time self._position_amounts or
-        self._position_last_sale_prices is changed.
-        """
-        if self._position_values is None:
-            iter_amount_price_multiplier = zip(
-                itervalues(self._position_amounts),
-                itervalues(self._position_last_sale_prices),
-                itervalues(self._position_value_multipliers),
-            )
-            self._position_values = [
-                price * amount * multiplier for
-                price, amount, multiplier in iter_amount_price_multiplier
-            ]
-        return self._position_values
+        iter_amount_price_multiplier = zip(
+            itervalues(self._position_amounts),
+            itervalues(self._position_last_sale_prices),
+            itervalues(self._position_value_multipliers),
+        )
+        return [
+            price * amount * multiplier for
+            price, amount, multiplier in iter_amount_price_multiplier
+        ]
 
     @property
     def position_exposures(self):
-        """
-        Invalidate any time self._position_amounts or
-        self._position_last_sale_prices is changed.
-        """
-        if self._position_exposures is None:
-            iter_amount_price_multiplier = zip(
-                itervalues(self._position_amounts),
-                itervalues(self._position_last_sale_prices),
-                itervalues(self._position_exposure_multipliers),
-            )
-            self._position_exposures = [
-                price * amount * multiplier for
-                price, amount, multiplier in iter_amount_price_multiplier
-            ]
-        return self._position_exposures
+        iter_amount_price_multiplier = zip(
+            itervalues(self._position_amounts),
+            itervalues(self._position_last_sale_prices),
+            itervalues(self._position_exposure_multipliers),
+        )
+        return [
+            price * amount * multiplier for
+            price, amount, multiplier in iter_amount_price_multiplier
+        ]
 
     def calculate_positions_value(self):
         if len(self.position_values) == 0:
@@ -227,7 +204,6 @@ class PositionTracker(object):
             self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
             self._update_multipliers(split.sid)
-            self._invalidate_cache()
             return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
@@ -295,7 +271,6 @@ class PositionTracker(object):
             self._position_amounts[stock] = position.amount
             self._position_last_sale_prices[stock] = position.last_sale_price
             self._update_multipliers(stock)
-            self._invalidate_cache()
 
         # Add cash equal to the net cash payed from all dividends.  Note that
         # "negative cash" is effectively paid if we're short an asset,
@@ -379,6 +354,5 @@ class PositionTracker(object):
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
-        self._invalidate_cache()
 
         self.update_positions(state['positions'])
