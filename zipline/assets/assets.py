@@ -25,12 +25,13 @@ from pandas.tseries.tools import normalize_date
 from six import with_metaclass, string_types
 
 from zipline.errors import (
-    SymbolNotFound,
-    MultipleSymbolsFound,
-    SidNotFound,
-    IdentifierNotFound,
     ConsumeAssetMetaDataError,
+    IdentifierNotFound,
     InvalidAssetType,
+    MultipleSymbolsFound,
+    SidAssignmentError,
+    SidNotFound,
+    SymbolNotFound,
 )
 from zipline.utils import tradingcalendar
 from zipline.assets._assets import (
@@ -64,7 +65,8 @@ class AssetFinder(object):
 
     def __init__(self,
                  metadata=None,
-                 trading_calendar=tradingcalendar):
+                 trading_calendar=tradingcalendar,
+                 allow_sid_assignment=True):
 
         # Any particular instance of AssetFinder should be
         # consistent throughout its lifetime, so we grab a reference
@@ -74,6 +76,11 @@ class AssetFinder(object):
         self.sym_cache = {}
         self.identifier_cache = {}
         self.fuzzy_match = {}
+
+        # This flag controls if the AssetFinder is allowed to generate its own
+        # sids. If False, metadata that does not contain a sid will raise an
+        # exception when building assets.
+        self.allow_sid_assignment = allow_sid_assignment
 
         # The AssetFinder also holds a nested-dict of all metadata for
         # reference when building Assets
@@ -92,6 +99,8 @@ class AssetFinder(object):
     def _assign_sid(self, identifier):
         if hasattr(identifier, '__int__'):
             return identifier.__int__()
+        if not self.allow_sid_assignment:
+            raise SidAssignmentError(identifier=identifier)
         if isinstance(identifier, string_types):
             return self._next_free_sid()
 
@@ -253,14 +262,10 @@ class AssetFinder(object):
             kwargs['sid']
             pass
         except KeyError:
-            # Assign the identifier as the sid, if applicable
-            if isinstance(identifier, int):
-                kwargs['sid'] = identifier
             # If the identifier is not a sid, assign one
-            else:
-                kwargs['sid'] = self._assign_sid(identifier)
-                # Update the metadata object with the new sid
-                self.insert_metadata(identifier=identifier, sid=kwargs['sid'])
+            kwargs['sid'] = self._assign_sid(identifier)
+            # Update the metadata object with the new sid
+            self.insert_metadata(identifier=identifier, sid=kwargs['sid'])
 
         # If the file_name is in the kwargs, it may be the symbol
         try:
@@ -329,7 +334,7 @@ class AssetFinder(object):
         except KeyError:
             pass
 
-        # Build an Asset of the appropriate type
+        # Build an Asset of the appropriate type, default to Equity
         asset_type = kwargs.pop('asset_type', 'equity')
         if asset_type.lower() == 'equity':
             asset = Equity(**kwargs)
@@ -340,7 +345,7 @@ class AssetFinder(object):
 
         self.cache[asset.sid] = asset
         self.identifier_cache[identifier] = asset
-        if asset.symbol is not "":
+        if asset.symbol is not '':
             self.sym_cache.setdefault(asset.symbol, []).append(asset)
 
         return asset
@@ -456,6 +461,9 @@ class AssetFinder(object):
             # Do not accept Nones
             if value is None:
                 continue
+            # Do not accept empty strings
+            if value == '':
+                continue
             # Do not accept nans from dataframes
             if isinstance(value, float) and np.isnan(value):
                 continue
@@ -464,8 +472,21 @@ class AssetFinder(object):
         self.metadata_cache[identifier] = entry
 
     def consume_identifiers(self, identifiers):
+        """
+        Consumes the given identifiers in to the metadata cache of this
+        AssetFinder.
+        """
         for identifier in identifiers:
-            self.insert_metadata(identifier)
+            # Handle case where full Assets are passed in
+            # For example, in the creation of a DataFrameSource, the source's
+            # 'sid' args may be full Assets
+            if isinstance(identifier, Asset):
+                sid = identifier.sid
+                metadata = identifier.to_dict()
+                metadata['asset_type'] = identifier.__class__.__name__
+                self.insert_metadata(identifier=sid, **metadata)
+            else:
+                self.insert_metadata(identifier)
 
     def consume_metadata(self, metadata):
         """

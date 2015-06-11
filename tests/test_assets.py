@@ -34,10 +34,11 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.finance.trading import with_environment
-from zipline.assets import Asset, Future, AssetFinder
+from zipline.assets import Asset, Equity, Future, AssetFinder
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
+    SidAssignmentError,
 )
 
 
@@ -565,3 +566,47 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual('Microsoft', finder.metadata_cache[1]['asset_name'])
         # Check that old data survived
         self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
+
+    def test_consume_asset_as_identifier(self):
+
+        # Build some end dates
+        eq_end = pd.Timestamp('2012-01-01', tz='UTC')
+        fut_end = pd.Timestamp('2008-01-01', tz='UTC')
+
+        # Build some simple Assets
+        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
+        future_asset = Future(200, symbol="TESTFUT", end_date=fut_end)
+
+        # Consume the Assets
+        finder = AssetFinder()
+        finder.consume_identifiers([equity_asset, future_asset])
+        finder.populate_cache()
+
+        # Test equality with newly built Assets
+        self.assertEqual(equity_asset, finder.retrieve_asset(1))
+        self.assertEqual(future_asset, finder.retrieve_asset(200))
+        self.assertEqual(eq_end, finder.retrieve_asset(1).end_date)
+        self.assertEqual(fut_end, finder.retrieve_asset(200).end_date)
+
+    def test_sid_assignment(self):
+
+        # This metadata does not contain SIDs
+        metadata = {'PLAY': {'symbol': 'PLAY'},
+                    'MSFT': {'symbol': 'MSFT'}}
+
+        # Build a finder that is allowed to assign sids
+        finder = AssetFinder(metadata=metadata, allow_sid_assignment=True)
+
+        # Verify that Assets were built
+        play = finder.retrieve_asset_by_identifier('PLAY')
+        self.assertEqual('PLAY', play.symbol)
+
+    def test_sid_assignment_failure(self):
+
+        # This metadata does not contain SIDs
+        metadata = {'PLAY': {'symbol': 'PLAY'},
+                    'MSFT': {'symbol': 'MSFT'}}
+
+        # Build a finder that is not allowed to assign sids, asserting failure
+        with self.assertRaises(SidAssignmentError):
+            AssetFinder(metadata=metadata, allow_sid_assignment=False)

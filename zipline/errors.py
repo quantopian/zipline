@@ -263,6 +263,16 @@ AssetMetaData can not consume {obj}. MetaData must be a dict, a DataFrame, or
 """.strip()
 
 
+class SidAssignmentError(ZiplineError):
+    """
+    Raised when an AssetFinder tries to build an Asset that does not have a sid
+    and that AssetFinder is not permitted to assign sids.
+    """
+    msg = """
+AssetFinder metadata is missing a SID for identifier '{identifier}'.
+""".strip()
+
+
 class NoSourceError(ZiplineError):
     """
     Raised when no source is given to the pipeline
