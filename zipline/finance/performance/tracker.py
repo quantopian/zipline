@@ -337,6 +337,11 @@ class PerformanceTracker(object):
         self.all_benchmark_returns[midnight] = event.returns
 
     def process_close_position(self, event):
+
+        # CLOSE_POSITION events contain prices that must be handled as a final
+        # trade event
+        self.process_trade(event)
+
         txn = self.position_tracker.create_close_position_transaction(event)
         if txn:
             self.process_transaction(txn)

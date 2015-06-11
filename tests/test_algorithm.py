@@ -1290,6 +1290,7 @@ class TestAccountControls(TestCase):
         algo = SetMaxLeverageAlgorithm(1)
         self.check_algo_succeeds(algo, handle_data)
 
+
 class TestClosePosAlgo(TestCase):
 
     def setUp(self):
