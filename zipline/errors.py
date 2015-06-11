@@ -188,3 +188,51 @@ class IncompatibleHistoryFrequency(ZiplineError):
 Requested history at frequency '{frequency}' cannot be created with data
 at frequency '{data_frequency}'.
 """.strip()
+
+
+class WindowLengthTooLong(ZiplineError):
+    """
+    Raised when a trailing window is instantiated with a lookback greater than
+    the length of the underlying array.
+    """
+    msg = (
+        "Can't construct a rolling window of length "
+        "{window_length} on an array of length {nrows}."
+    ).strip()
+
+
+class WindowLengthNotPositive(ZiplineError):
+    """
+    Raised when a trailing window is instantiated with a length less than 1.
+    """
+    msg = (
+        "Rolling window lookback must be greater than 0, got {window_length}."
+    ).strip()
+
+
+class InputTermNotAtomic(ZiplineError):
+    """
+    Raised when a non-atomic term is specified as an input to an FFC term with
+    a lookback window.
+    """
+    msg = (
+        "Can't compute {parent} with non-atomic input {child}."
+    )
+
+
+class TermInputsNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = "{termname} requires inputs, but no inputs list was passed."
+
+
+class WindowLengthNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying inputs and
+    that term does not have class-level default inputs.
+    """
+    msg = (
+        "{termname} requires a window_length, but no window_length was passed."
+    )

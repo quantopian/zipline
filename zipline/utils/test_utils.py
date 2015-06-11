@@ -4,7 +4,9 @@ from mock import patch
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
-from six import itervalues
+from six import (
+    itervalues,
+)
 
 import os
 import pandas as pd
