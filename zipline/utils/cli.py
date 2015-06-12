@@ -102,6 +102,8 @@ def parse_args(argv, ipython_mode=False):
     parser.add_argument('--source', choices=('yahoo',))
     parser.add_argument('--symbols')
     parser.add_argument('--output', '-o')
+    parser.add_argument('--print-algo', '-p', dest='print_algo', action='store_true')
+    parser.add_argument('--no-print-algo', '-q', dest='print_algo', action='store_false')
     if ipython_mode:
         parser.add_argument('--local_namespace', action='store_true')
 
