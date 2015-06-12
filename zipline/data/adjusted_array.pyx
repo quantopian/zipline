@@ -92,7 +92,7 @@ cdef class Float64AdjustedArray(AdjustedArray):
     Adjusted array of float64.
     """
     cdef:
-        float64_t[:, :] _data
+        readonly float64_t[:, :] _data
         dict adjustments
 
     def __cinit__(self,
