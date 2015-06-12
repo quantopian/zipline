@@ -267,13 +267,9 @@ class AssetFinder(object):
             # Update the metadata object with the new sid
             self.insert_metadata(identifier=identifier, sid=kwargs['sid'])
 
-        # If the file_name is in the kwargs, it may be the symbol
+        # If the file_name is in the kwargs, it will be used as the symbol
         try:
-            file_name = kwargs.pop('file_name')
-            try:
-                kwargs['symbol']
-            except KeyError:
-                kwargs['symbol'] = file_name
+            kwargs['symbol'] = kwargs.pop('file_name')
         except KeyError:
             pass
 
