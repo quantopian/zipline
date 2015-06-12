@@ -1937,7 +1937,9 @@ class TestPerformanceTracker(unittest.TestCase):
 
         check_perf_tracker_serialization(tracker)
 
-    def test_close_position_event(self):
+    @with_environment()
+    def test_close_position_event(self, env=None):
+        env.update_asset_finder(identifiers=[1, 2])
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),
