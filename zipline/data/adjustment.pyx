@@ -1,3 +1,6 @@
+from cpython cimport Py_EQ
+
+from pandas import isnull
 from numpy cimport float64_t, uint8_t
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
@@ -31,18 +34,61 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
     (2, 4, 3)
     """
     cdef int start_date_loc
-    if start_date is None:
+    # None or NaT signifies "All values before the end_date".
+    if isnull(start_date):
         start_date_loc = 0
     else:
-        start_date_loc = dates_index.get_loc(start_date, method='ffill')
+        # Location of earliest date on or after start_date.
+        start_date_loc = dates_index.get_loc(start_date, method='bfill')
 
     return (
         # start_date is allowed to be None, indicating "everything
         # before the end_date"
         start_date_loc,
+        # Location of latest date on or before start_date.
         dates_index.get_loc(end_date, method='ffill'),
         assets_index.get_loc(asset_id),  # Must be exact match.
     )
+
+
+cpdef _from_assets_and_dates(cls,
+                             DatetimeIndex_t dates_index,
+                             Int64Index_t assets_index,
+                             Timestamp_t start_date,
+                             Timestamp_t end_date,
+                             int asset_id,
+                             object value):
+    """
+    Helper for constructing an Adjustment instance from coordinates in
+    assets/dates indices.
+
+    Example
+    -------
+
+    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> dates = date_range('2014-01-01', '2014-01-07')
+    >>> assets = Int64Index(range(10))
+    >>> Float64Multiply.from_assets_and_dates(
+    ...     dates,
+    ...     assets,
+    ...     Timestamp('2014-01-03'),
+    ...     Timestamp('2014-01-05'),
+    ...     3,
+    ...     0.5,
+    ... )
+    Float64Multiply(first_row=2, last_row=4, col=3, value=0.500000)
+    """
+    cdef:
+        Py_ssize_t first_row, last_row, col
+
+    first_row, last_row, col = get_adjustment_locs(
+        dates_index,
+        assets_index,
+        start_date,
+        end_date,
+        asset_id,
+    )
+    return cls(first_row, last_row, col, value)
 
 
 cdef class Float64Adjustment:
@@ -57,12 +103,14 @@ cdef class Float64Adjustment:
                   Py_ssize_t first_row,
                   Py_ssize_t last_row,
                   Py_ssize_t col,
-                  float64_t value):
+                  object value):
 
         self.first_row = first_row
         self.last_row = last_row
         self.col = col
-        self.value = value
+        self.value = float(value)
+
+    from_assets_and_dates = classmethod(_from_assets_and_dates)
 
     def __repr__(self):
         return "%s(first_row=%d, last_row=%d, col=%d, value=%f)" % (
@@ -73,6 +121,17 @@ cdef class Float64Adjustment:
             self.value,
         )
 
+    def __richcmp__(self, object other, int op):
+        """
+        Rich comparison method.  Only Equality is defined.
+        """
+        if op != Py_EQ or type(self) != type(other):
+            return NotImplemented
+
+        return (
+            (self.first_row, self.last_row, self.col, self.value) == \
+            (other.first_row, other.last_row, other.col, other.value)
+        )
 
 cdef class Float64Multiply(Float64Adjustment):
     """
@@ -136,40 +195,32 @@ cdef class Float64Overwrite(Float64Adjustment):
             data[row, col] = self.value
 
 
-cpdef Float64Multiply from_assets_and_dates_f64mul(DatetimeIndex_t dates_index,
-                                                   Int64Index_t assets_index,
-                                                   Timestamp_t start_date,
-                                                   Timestamp_t end_date,
-                                                   int asset_id,
-                                                   float64_t value):
+cdef class Float64Add(Float64Adjustment):
     """
-    Helper for constructing a Float64Multiply instance from coordinates in
-    assets/dates indices.
+    An adjustment that adds a scalar.
 
     Example
     -------
 
-    >>> from pandas import date_range, Int64Index, Timestamp
-    >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
-    >>> from_assets_and_dates_f64mul(
-    ...     dates,
-    ...     assets,
-    ...     Timestamp('2014-01-03'),
-    ...     Timestamp('2014-01-05'),
-    ...     3,
-    ...     0.5,
-    ... )
-    Float64Multiply(first_row=2, last_row=4, col=3, value=0.500000)
-    """
-    cdef:
-        Py_ssize_t first_row, last_row, col
+    >>> import numpy as np
+    >>> arr = np.arange(9, dtype=float).reshape(3, 3)
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7.,  8.]])
 
-    first_row, last_row, col = get_adjustment_locs(
-        dates_index,
-        assets_index,
-        start_date,
-        end_date,
-        asset_id,
-    )
-    return Float64Multiply(first_row, last_row, col, value)
+    >>> adj = Float64Add(first_row=1, last_row=2, col=1, value=1.0)
+    >>> adj.mutate(arr)
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  5.,  5.],
+           [ 6.,  8.,  8.]])
+    """
+
+    cpdef mutate(self, float64_t[:, :] data):
+        cdef Py_ssize_t row, col
+        col = self.col
+
+        # last_row + 1 because last_row should also be affected.
+        for row in range(self.first_row, self.last_row + 1):
+            data[row, col] += self.value
