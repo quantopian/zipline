@@ -239,6 +239,13 @@ def select_treasury_duration(start_date, end_date):
 
 def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
                     compound=True):
+    """
+    Find the latest known interest rate for a given duration within a date
+    range.
+
+    If we find one but it's more than a trading day ago from the date we're
+    looking for, then we log a warning
+    """
     treasury_duration = select_treasury(start_date, end_date)
     end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     search_day = None
