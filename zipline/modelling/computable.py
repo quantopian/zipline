@@ -223,7 +223,7 @@ class Term(object):
     def __repr__(self):
         return (
             "{type}(inputs={inputs}, "
-            "window_length={window_length}, domain={domain})"
+            "window_length={window_length})"
         ).format(
             type=type(self).__name__,
             inputs=self.inputs,
