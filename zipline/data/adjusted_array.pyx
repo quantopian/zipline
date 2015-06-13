@@ -1,6 +1,10 @@
 """
 Class capable of yielding adjusted chunks of an ndarray.
 """
+from cpython cimport (
+    Py_EQ,
+    PyObject_RichCompare,
+)
 from numpy import (
     asarray,
     float64,
@@ -102,7 +106,7 @@ cdef class Float64AdjustedArray(AdjustedArray):
         cdef Py_ssize_t row, col
 
         if mask is not NOMASK:
-            assert mask.shape == data.shape
+            PyObject_RichCompare(mask.shape, data.shape, Py_EQ)
             for row in range(mask.shape[0]):
                 for col in range(mask.shape[1]):
                     data[row, col] = NAN
@@ -179,8 +183,8 @@ cdef class _Float64AdjustedArrayWindow:
             raise StopIteration()
 
         # Apply any adjustments that occured before our current anchor.
-        # Equivalently, apply any adjustments known on or before the date for
-        # which we're calculating a window.
+        # Equivalently, apply any adjustments known **on or before** the date
+        # for which we're calculating a window.
         while self.next_adj < anchor:
 
             for adjustment in self.adjustments[self.next_adj]:
