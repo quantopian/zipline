@@ -1,11 +1,23 @@
-from operator import methodcaller
+from operator import (
+    and_,
+    ge,
+    gt,
+    le,
+    lt,
+    methodcaller,
+    ne,
+    or_,
+)
 from unittest import TestCase
 
 import numpy
 from numpy import (
+    arange,
     empty,
+    eye,
     full,
     isnan,
+    zeros,
 )
 from numpy.testing import assert_array_equal
 from pandas import (
@@ -42,14 +54,15 @@ class NumericalExpressionTestCase(TestCase):
         self.assets = Int64Index(range(5))
         self.f = F()
         self.g = G()
+        self.h = H()
         self.fake_raw_data = {
             self.f: full((5, 5), 3),
             self.g: full((5, 5), 2),
+            self.h: full((5, 5), 1),
         }
 
-    def check_constant_output(self, expr, expected):
-        self.assertFalse(isnan(expected))
-        outbuf = empty(shape=(5, 5), dtype=float)
+    def check_output(self, expr, expected, out_dtype=float):
+        outbuf = empty(shape=(5, 5), dtype=out_dtype)
         expr.compute_from_arrays(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
             outbuf,
@@ -57,6 +70,12 @@ class NumericalExpressionTestCase(TestCase):
             self.assets,
         )
         assert_array_equal(outbuf, full((5, 5), expected))
+
+    def check_constant_output(self, expr, expected, out_dtype=float):
+        self.assertFalse(isnan(expected))
+        return self.check_output(
+            expr, full((5, 5), expected), out_dtype=out_dtype,
+        )
 
     def test_validate_good(self):
         f = self.f
@@ -101,6 +120,14 @@ class NumericalExpressionTestCase(TestCase):
             "2" + f
         with self.assertRaises(TypeError):
             f + "2"
+        with self.assertRaises(TypeError):
+            f > "2"
+
+        # Boolean binary operators must be between filters.
+        with self.assertRaises(TypeError):
+            f + (f > 2)
+        with self.assertRaises(TypeError):
+            (f > f) > f
 
     def test_negate(self):
         f, g = self.f, self.g
@@ -311,4 +338,63 @@ class NumericalExpressionTestCase(TestCase):
             self.check_constant_output(
                 method(f + g),
                 func(f_val + g_val),
+            )
+
+    def test_comparisons(self):
+        f, g, h = self.f, self.g, self.h
+        self.fake_raw_data = {
+            f: arange(25).reshape(5, 5),
+            g: arange(25).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5),
+        }
+        f_data = self.fake_raw_data[f]
+        g_data = self.fake_raw_data[g]
+
+        cases = [
+            # Sanity Check with hand-computed values.
+            (f, g, eye(5), zeros((5, 5))),
+            (f, 10, f_data, 10),
+            (10, f, 10, f_data),
+            (f, f, f_data, f_data),
+            (f + 1, f, f_data + 1, f_data),
+            (1 + f, f, 1 + f_data, f_data),
+            (f, g, f_data, g_data),
+            (f + 1, g, f_data + 1, g_data),
+            (f, g + 1, f_data, g_data + 1),
+            (f + 1, g + 1, f_data + 1, g_data + 1),
+            ((f + g) / 2, f ** 2, (f_data + g_data) / 2, f_data ** 2),
+        ]
+        for op in (gt, ge, lt, le, ne):
+            for expr_lhs, expr_rhs, expected_lhs, expected_rhs in cases:
+                self.check_output(
+                    op(expr_lhs, expr_rhs),
+                    op(expected_lhs, expected_rhs),
+                    out_dtype=bool,
+                )
+
+    def test_boolean_binops(self):
+        f, g, h = self.f, self.g, self.h
+        self.fake_raw_data = {
+            f: arange(25).reshape(5, 5),
+            g: arange(25).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5),
+        }
+
+        # Should be True on the diagonal.
+        eye_filter = f > g
+        # Should be True in the first row only.
+        first_row_filter = f < h
+
+        eye_mask = eye(5, dtype=bool)
+        first_row_mask = zeros((5, 5), dtype=bool)
+        first_row_mask[0] = 1
+
+        self.check_output(eye_filter, eye_mask, out_dtype=bool)
+        self.check_output(first_row_filter, first_row_mask, out_dtype=bool)
+
+        for op in (and_, or_):  # NumExpr doesn't support xor.
+            self.check_output(
+                op(eye_filter, first_row_filter),
+                op(eye_mask, first_row_mask),
+                out_dtype=bool,
             )
