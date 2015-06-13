@@ -2,6 +2,7 @@ import doctest
 from unittest import TestCase
 
 from zipline.data import adjustment
+from zipline.modelling import expression
 
 
 class DoctestTestCase(TestCase):
@@ -19,3 +20,6 @@ class DoctestTestCase(TestCase):
 
     def test_adjustment(self):
         self._check_docs(adjustment)
+
+    def test_modelling(self):
+        self._check_docs(expression)
