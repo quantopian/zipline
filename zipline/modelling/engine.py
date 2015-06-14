@@ -12,9 +12,6 @@ from networkx import (
     get_node_attributes,
     topological_sort,
 )
-from numpy import (
-    empty,
-)
 
 from zipline.data.adjusted_array import ensure_ndarray
 
@@ -254,24 +251,16 @@ class SimpleFFCEngine(object):
                 for loaded_term, adj_array in izip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
             elif term.windowed:
-                workspace[term] = empty(
-                    shape=(len(dates), len(assets)),
-                    dtype=term.dtype
-                )
-                term.compute_from_windows(
+                workspace[term] = term.compute_from_windows(
                     self._inputs_for_term(term, workspace, windowed=True),
-                    workspace[term],
+                    term.dtype,
                     dates,
                     assets,
                 )
             else:
-                workspace[term] = empty(
-                    shape=(len(dates), len(assets)),
-                    dtype=term.dtype
-                )
-                term.compute_from_arrays(
+                workspace[term] = term.compute_from_arrays(
                     self._inputs_for_term(term, workspace, windowed=False),
-                    workspace[term],
+                    term.dtype,
                     dates,
                     assets,
                 )
