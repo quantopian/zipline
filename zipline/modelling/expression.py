@@ -6,7 +6,10 @@ import re
 
 import numexpr
 from numexpr.necompiler import getExprNames
-from numpy import find_common_type
+from numpy import (
+    empty,
+    find_common_type,
+)
 
 from zipline.modelling.computable import Term
 
@@ -213,10 +216,11 @@ class NumericalExpression(Term):
                 )
             )
 
-    def compute_from_arrays(self, arrays, outbuf, dates, assets):
+    def compute_from_arrays(self, arrays, dtype, dates, assets):
         """
         Compute directly into outbuf via numexpr.
         """
+        out = empty((len(dates), len(assets)), dtype=dtype)
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,
@@ -225,8 +229,9 @@ class NumericalExpression(Term):
                 for idx, array in enumerate(arrays)
             },
             global_dict={},
-            out=outbuf,
+            out=out,
         )
+        return out
 
     def _rebind_variables(self, new_inputs):
         """

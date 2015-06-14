@@ -206,14 +206,14 @@ class Term(object):
 
         parents.remove(self)
 
-    def compute_from_windows(self, windows, outbuf, dates, assets):
+    def compute_from_windows(self, windows, dtype, dates, assets):
         """
         Subclasses should implement this for computations requiring moving
         windows.
         """
         raise NotImplementedError()
 
-    def compute_from_arrays(self, arrays, outbuf, dates, assets):
+    def compute_from_arrays(self, arrays, dtype, dates, assets):
         """
         Subclasses should implement this for computations that can be expressed
         directly as array computations.

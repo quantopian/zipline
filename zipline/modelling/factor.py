@@ -2,6 +2,9 @@
 factor.py
 """
 from operator import attrgetter
+from numpy import (
+    empty,
+)
 
 from zipline.modelling.computable import Term
 from zipline.modelling.expression import (
@@ -210,11 +213,12 @@ class NumExprFactor(Factor, NumericalExpression):
 
 class TestFactor(Factor):
     """
-    Base class for testing that asserts all inputs are correctly shaped.
+    Base testing engines that asserts all inputs are correctly shaped.
     """
 
-    def compute_from_windows(self, windows, outbuf, dates, assets):
+    def compute_from_windows(self, windows, dtype, dates, assets):
         assert self.window_length > 0
+        outbuf = empty((len(dates), len(assets)), dtype=dtype)
         for idx, _ in enumerate(dates):
             result = self.from_windows(*(next(w) for w in windows))
             assert result.shape == (len(assets),)
@@ -227,9 +231,12 @@ class TestFactor(Factor):
                 pass
             else:
                 raise AssertionError("window %s was not exhausted" % window)
+        return outbuf
 
-    def compute_from_arrays(self, arrays, outbuf, dates, assets):
+    def compute_from_arrays(self, arrays, dtype, dates, assets):
         assert self.window_length == 0
+        outbuf = empty((len(dates), len(assets)), dtype=dtype)
         for array in arrays:
-            assert array.shape == len(dates), len(assets) == outbuf.shape
+            assert array.shape == outbuf.shape
         outbuf[:] = self.from_arrays(*arrays)
+        return outbuf

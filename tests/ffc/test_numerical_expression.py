@@ -62,14 +62,13 @@ class NumericalExpressionTestCase(TestCase):
         }
 
     def check_output(self, expr, expected, out_dtype=float):
-        outbuf = empty(shape=(5, 5), dtype=out_dtype)
-        expr.compute_from_arrays(
+        result = expr.compute_from_arrays(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
-            outbuf,
+            out_dtype,
             self.dates,
             self.assets,
         )
-        assert_array_equal(outbuf, full((5, 5), expected))
+        assert_array_equal(result, full((5, 5), expected))
 
     def check_constant_output(self, expr, expected, out_dtype=float):
         self.assertFalse(isnan(expected))
