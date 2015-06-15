@@ -8,7 +8,7 @@ mock==1.0.1
 # Linting
 
 flake8==2.4.1
-mccabe==0.3
+mccabe==0.3.1
 # Note: Old version of pep8 required by flake8 2.4.1
 pep8==1.5.7
 # Note: Old version of pyflakes required by flake8 2.4.1
