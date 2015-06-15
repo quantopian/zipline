@@ -183,16 +183,16 @@ class NumericalExpression(Term):
             expr=expr,
         )
 
+    def _init(self, expr, *args, **kwargs):
+        self._expr = expr
+        return super(NumericalExpression, self)._init(*args, **kwargs)
+
     @classmethod
     def static_identity(cls, expr, *args, **kwargs):
         return (
             super(NumericalExpression, cls).static_identity(*args, **kwargs),
             expr,
         )
-
-    def _init(self, expr, *args, **kwargs):
-        self._expr = expr
-        return super(NumericalExpression, self)._init(*args, **kwargs)
 
     def _validate(self):
         """
@@ -218,7 +218,7 @@ class NumericalExpression(Term):
 
     def compute_from_arrays(self, arrays, dtype, dates, assets):
         """
-        Compute directly into outbuf via numexpr.
+        Compute our stored expression string with numexpr.
         """
         out = empty((len(dates), len(assets)), dtype=dtype)
         # This writes directly into our output buffer.
