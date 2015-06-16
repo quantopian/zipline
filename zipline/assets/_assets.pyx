@@ -19,6 +19,7 @@ Cythonized Asset object.
 cimport cython
 
 import numpy as np
+import warnings
 cimport numpy as np
 
 # IMPORTANT NOTE: You must change this template if you change
@@ -66,22 +67,6 @@ cdef class Asset:
 
     def __hash__(self):
         return self.sid_hash
-
-    property asset_start_date:
-        """
-        Alias for start_date to disambiguate from other `start_date`s in the
-        system.
-        """
-        def __get__(self):
-            return self.start_date
-
-    property asset_end_date:
-        """
-        Alias for end_date to disambiguate from other `end_date`s in the
-        system.
-        """
-        def __get__(self):
-            return self.end_date
 
     def __richcmp__(x, y, int op):
         """
@@ -202,6 +187,39 @@ cdef class Equity(Asset):
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
         params = ', '.join(strings)
         return 'Equity(%d, %s)' % (self.sid, params)
+
+    property security_start_date:
+        """
+        DEPRECATION: This property should be deprecated and is only present for
+        backwards compatibility
+        """
+        def __get__(self):
+            warnings.warn("The security_start_date property will soon be "
+            "retired. Please use the start_date property instead.",
+            DeprecationWarning)
+            return self.start_date
+
+    property security_end_date:
+        """
+        DEPRECATION: This property should be deprecated and is only present for
+        backwards compatibility
+        """
+        def __get__(self):
+            warnings.warn("The security_end_date property will soon be "
+            "retired. Please use the end_date property instead.",
+            DeprecationWarning)
+            return self.end_date
+
+    property security_name:
+        """
+        DEPRECATION: This property should be deprecated and is only present for
+        backwards compatibility
+        """
+        def __get__(self):
+            warnings.warn("The security_name property will soon be "
+            "retired. Please use the asset_name property instead.",
+            DeprecationWarning)
+            return self.asset_name
 
 
 cdef class Future(Asset):

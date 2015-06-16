@@ -28,7 +28,7 @@ import pickle
 import pprint
 import pytz
 import uuid
-
+import warnings
 import pandas as pd
 
 from nose_parameterized import parameterized
@@ -223,9 +223,9 @@ class AssetTestCase(TestCase):
         attrs_to_check = ['end_date',
                           'exchange',
                           'first_traded',
-                          'asset_end_date',
+                          'end_date',
                           'asset_name',
-                          'asset_start_date',
+                          'start_date',
                           'sid',
                           'start_date',
                           'symbol']
@@ -610,3 +610,22 @@ class AssetFinderTestCase(TestCase):
         # Build a finder that is not allowed to assign sids, asserting failure
         with self.assertRaises(SidAssignmentError):
             AssetFinder(metadata=metadata, allow_sid_assignment=False)
+
+    def test_security_dates_warning(self):
+
+        # Build an asset with an end_date
+        eq_end = pd.Timestamp('2012-01-01', tz='UTC')
+        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
+
+        # Catch all warnings
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered
+            warnings.simplefilter("always")
+            equity_asset.security_start_date
+            equity_asset.security_end_date
+            equity_asset.security_name
+            # Verify the warning
+            self.assertEqual(3, len(w))
+            for warning in w:
+                self.assertTrue(issubclass(warning.category,
+                                           DeprecationWarning))
