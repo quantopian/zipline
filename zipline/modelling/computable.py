@@ -222,8 +222,7 @@ class Term(object):
 
     def __repr__(self):
         return (
-            "{type}(inputs={inputs}, "
-            "window_length={window_length})"
+            "{type}({inputs}, window_length={window_length})"
         ).format(
             type=type(self).__name__,
             inputs=self.inputs,
@@ -235,6 +234,13 @@ class Term(object):
 class SingleInputMixin(object):
 
     def _validate(self):
-        if len(self.inputs) != 1:
-            raise ValueError("inputs must be of length 1")
+        num_inputs = len(self.inputs)
+        if num_inputs != 1:
+            raise ValueError(
+                "{typename} expects inputs of length 1, "
+                "but received {num_inputs} instead.".format(
+                    typename=type(self).__name__,
+                    num_inputs=num_inputs
+                )
+            )
         return super(SingleInputMixin, self)._validate()
