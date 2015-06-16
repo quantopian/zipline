@@ -1,10 +1,17 @@
 """
 filter.py
 """
-from numpy import uint8
+from numpy import (
+    percentile,
+    bool_,
+)
 from operator import attrgetter
 
+from zipline.errors import (
+    BadPercentileBounds,
+)
 from zipline.modelling.computable import (
+    SingleInputMixin,
     Term,
 )
 from zipline.modelling.expression import (
@@ -68,9 +75,8 @@ class Filter(Term):
     """
     A boolean predicate on a universe of Assets.
     """
-    window_length = 0
     domain = None
-    dtype = uint8
+    dtype = bool_
 
     clsdict = locals()
     clsdict.update(
@@ -83,6 +89,71 @@ class Filter(Term):
 
 class NumExprFilter(Filter, NumericalExpression):
     """
-    A Filter computed from a numexp expression.
+    A Filter computed from a numexpr expression.
     """
-    pass
+    window_length = 0
+
+
+class PercentileFilter(Filter, SingleInputMixin):
+    """
+    A Filter representing assets falling between percentile bounds of a Factor.
+
+    Parameters
+    ----------
+    factor : zipline.modelling.factor.Factor
+        The factor over which to compute percentile bounds.
+    min_percentile : float [0.0, 1.0]
+        The minimum percentile rank of an asset that will pass the filter.
+    max_percentile : float [0.0, 1.0]
+        The maxiumum percentile rank of an asset that will pass the filter.
+    """
+
+    def __new__(cls, rank_factor, min_percentile, max_percentile):
+        return super(PercentileFilter, cls).__new__(
+            cls,
+            inputs=(rank_factor,),
+            window_length=cls.window_length,
+            domain=cls.domain,
+            dtype=cls.dtype,
+            min_percentile=min_percentile,
+            max_percentile=max_percentile,
+        )
+
+    def _init(self, min_percentile, max_percentile, *args, **kwargs):
+        self._min_percentile = min_percentile
+        self._max_percentile = max_percentile
+        return super(PercentileFilter, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, min_percentile, max_percentile, *args, **kwargs):
+        return (
+            super(PercentileFilter, cls).static_identity(*args, **kwargs),
+            min_percentile,
+            max_percentile,
+        )
+
+    def _validate(self):
+        """
+        Ensure that our percentile bounds are well-formed.
+        """
+        if not 0.0 <= self._min_percentile < self._max_percentile <= 100.0:
+            raise BadPercentileBounds(
+                min_percentile=self._min_percentile,
+                max_percentile=self._max_percentile,
+            )
+
+    def compute_from_arrays(self, arrays, dtype, dates, assets):
+        """
+        For each row in the input, compute a mask of all values falling between
+        the given percentiles.
+        """
+        # TODO: Review whether there's a better way of handling small numbers
+        # of columns.
+        data = arrays[0]
+        lower_bounds, upper_bounds = percentile(
+            data,
+            [self._min_percentile, self._max_percentile],
+            axis=1,
+            keepdims=True,
+        )
+        return (lower_bounds <= data) & (data <= upper_bounds)

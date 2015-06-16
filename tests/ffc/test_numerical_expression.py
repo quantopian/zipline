@@ -13,7 +13,6 @@ from unittest import TestCase
 import numpy
 from numpy import (
     arange,
-    empty,
     eye,
     full,
     isnan,
