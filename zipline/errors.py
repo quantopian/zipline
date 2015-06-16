@@ -236,3 +236,26 @@ class WindowLengthNotSpecified(ZiplineError):
     msg = (
         "{termname} requires a window_length, but no window_length was passed."
     )
+
+
+class BadPercentileBounds(ZiplineError):
+    """
+    Raised by API functions accepting percentile bounds when the passed bounds
+    are invalid.
+    """
+    msg = (
+        "Percentile bounds must fall between 0.0 and 100.0, and min must be "
+        "less than max."
+        "\nInputs were min={min_percentile}, max={max_percentile}."
+    )
+
+
+class UnknownRankMethod(ZiplineError):
+    """
+    Raised during construction of a Rank factor when supplied a bad Rank
+    method.
+    """
+    msg = (
+        "Unknown ranking method: '{method}'. "
+        "`method` must be one of {choices}"
+    )

@@ -3,10 +3,17 @@ factor.py
 """
 from operator import attrgetter
 from numpy import (
+    apply_along_axis,
     empty,
+    intp,
 )
+from scipy.stats import rankdata
 
-from zipline.modelling.computable import Term
+from zipline.errors import UnknownRankMethod
+from zipline.modelling.computable import (
+    SingleInputMixin,
+    Term,
+)
 from zipline.modelling.expression import (
     bad_op,
     COMPARISONS,
@@ -20,7 +27,10 @@ from zipline.modelling.expression import (
 )
 from zipline.modelling.filter import (
     NumExprFilter,
+    PercentileFilter,
 )
+
+_RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
 
 
 def binop_return_type(op):
@@ -194,6 +204,62 @@ class Factor(Term):
         }
     )
 
+    def rank(self, method='ordinal'):
+        """
+        Construct a new Factor representing the sorted rank of each column
+        within each row.
+
+        Returns
+        -------
+        ranks : zipline.modelling.factor.Rank
+            A new factor that will compute the sorted indices of the data
+            produced by `self`.
+        method : str, {'ordinal', 'min', 'max', 'dense', 'average'}
+            The method used to assign ranks to tied elements. Default is
+            'ordinal'.  See `scipy.stats.rankdata` for a full description of
+            the semantics for each ranking method.
+
+            The default is 'ordinal'.
+
+        Notes
+        -----
+        The default value for `method` is different from the default for
+        `scipy.stats.rankdata`.  See that function's documentation for a full
+        description of the valid inputs to `method`.
+
+        See Also
+        --------
+        scipy.stats.rankdata : Underlying ranking algorithm.
+        zipline.modelling.factor.Rank : Class implementing core functionality.
+        """
+        return Rank(self, method=method)
+
+    def percentile_between(self, min_percentile, max_percentile):
+        """
+        Construct a new Filter representing entries from the output of this
+        Factor that fall within the percentile range defined by min_percentile
+        and max_percentile.
+
+        Parameters
+        ----------
+        min_percentile : float [0.0, 100.0]
+        max_percentile : float [0.0, 100.0]
+
+        Returns
+        -------
+        out : zipline.modelling.filter.PercentileFilter
+            A new filter that will compute the specified percentile-range mask.
+
+        See Also
+        --------
+        zipline.modelling.filter.PercentileFilter
+        """
+        return PercentileFilter(
+            self,
+            min_percentile=min_percentile,
+            max_percentile=max_percentile,
+        )
+
 
 class NumExprFactor(Factor, NumericalExpression):
     """
@@ -209,6 +275,89 @@ class NumExprFactor(Factor, NumericalExpression):
        A tuple of factors to use as inputs.
     """
     pass
+
+
+class Rank(Factor, SingleInputMixin):
+    """
+    A Factor representing the row-wise rank data of another Factor.
+
+    Parameters
+    ----------
+    factor : zipline.modelling.factor.Factor
+        The factor on which to compute ranks.
+    method : str, {'average', 'min', 'max', 'dense', 'ordinal'}
+        The method used to assign ranks to tied elements.  See
+        `scipy.stats.rankdata` for a full description of the semantics for each
+        ranking method.
+
+    Returns
+    -------
+    rank_factor : zipline.modelling.factor.Rank
+        A new factor that will compute row-wise ranks on the input data.
+
+    See Also
+    --------
+    scipy.stats.rankdata : Underlying ranking algorithm.
+    zipline.factor.Factor.rank : Method-style interface to same functionality.
+        Most users should call Factor.rank rather than directly construct an
+        instance of this class.
+    """
+    dtype = intp
+    window_length = 0
+    domain = None
+
+    def __new__(cls, factor, method):
+        return super(Rank, cls).__new__(
+            cls,
+            inputs=(factor,),
+            window_length=0,
+            domain=cls.domain,
+            dtype=cls.dtype,
+            method=method,
+        )
+
+    def _init(self, method, *args, **kwargs):
+        self._method = method
+        return super(Rank, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, method, *args, **kwargs):
+        return (
+            super(Rank, cls).static_identity(*args, **kwargs),
+            method,
+        )
+
+    def _validate(self):
+        """
+        Verify that the stored rank method is valid.
+        """
+        if self._method not in _RANK_METHODS:
+            raise UnknownRankMethod(
+                method=self._method,
+                choices=set(_RANK_METHODS),
+            )
+
+    def compute_from_arrays(self, arrays, dtype, dates, assets):
+        """
+        For each row in the input, compute a like-shaped array of per-row
+        ranks.
+        """
+        # FUTURE OPTIMIZATION:
+        # Write a less general `apply_to_rows` method in
+        # Cython that doesn't do all the extra work that apply_over_axis does.
+        return apply_along_axis(
+            rankdata,
+            1,
+            arrays[0],
+            method=self._method,
+        )
+
+    def __repr__(self):
+        return "{type}({input_}, method='{method}')".format(
+            type=type(self).__name__,
+            input_=self.inputs[0],
+            method=self._method,
+        )
 
 
 class TestFactor(Factor):
