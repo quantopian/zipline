@@ -98,24 +98,6 @@ log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
-def position_proxy(func):
-    def _proxied(self, *args, **kwargs):
-        meth_name = func.__name__
-        meth = getattr(self.position_tracker, meth_name)
-        return meth(*args, **kwargs)
-    return _proxied
-
-
-class ProxyError(Exception):
-    def __init__(self):
-        import inspect
-
-        meth_name = inspect.stack()[1][3]
-        TEMPLATE = "{meth_name} should have been proxied to position_tracker."
-        msg = TEMPLATE.format(meth_name=meth_name)
-        super(ProxyError, self).__init__(msg)
-
-
 class PerformancePeriod(object):
 
     def __init__(
@@ -195,8 +177,9 @@ class PerformancePeriod(object):
         setattr(self, field, value)
 
     def calculate_performance(self):
-        self.ending_value = self.calculate_positions_value()
-        self.ending_exposure = self.calculate_positions_exposure()
+        pt = self.position_tracker
+        self.ending_value = pt.calculate_positions_value()
+        self.ending_exposure = pt.calculate_positions_exposure()
 
         total_at_start = self.starting_cash + self.starting_value
         self.ending_cash = self.starting_cash + self.period_cash_flow
@@ -263,73 +246,27 @@ class PerformancePeriod(object):
     def position_amounts(self):
         return self.position_tracker.position_amounts
 
-    @position_proxy
-    def calculate_positions_exposure(self):
-        raise ProxyError()
-
-    @position_proxy
-    def calculate_positions_value(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _longs_count(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _long_exposure(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _long_value(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _shorts_count(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _short_exposure(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _short_value(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _gross_exposure(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _gross_value(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _net_exposure(self):
-        raise ProxyError()
-
-    @position_proxy
-    def _net_value(self):
-        raise ProxyError()
-
     @property
     def _net_liquidation_value(self):
-        return self.ending_cash + self._long_value() + self._short_value()
+        pt = self.position_tracker
+        return self.ending_cash + pt._long_value() + pt._short_value()
 
     def _gross_leverage(self):
         net_liq = self._net_liquidation_value
         if net_liq != 0:
-            return self._gross_exposure() / net_liq
+            return self.position_tracker._gross_exposure() / net_liq
 
         return np.inf
 
     def _net_leverage(self):
         net_liq = self._net_liquidation_value
         if net_liq != 0:
-            return self._net_exposure() / net_liq
+            return self.position_tracker._net_exposure() / net_liq
 
         return np.inf
 
     def __core_dict(self):
+        pt = self.position_tracker
         rval = {
             'ending_value': self.ending_value,
             'ending_exposure': self.ending_exposure,
@@ -347,12 +284,12 @@ class PerformancePeriod(object):
             'period_close': self.period_close,
             'gross_leverage': self._gross_leverage(),
             'net_leverage': self._net_leverage(),
-            'short_exposure': self._short_exposure(),
-            'long_exposure': self._long_exposure(),
-            'short_value': self._short_value(),
-            'long_value': self._long_value(),
-            'longs_count': self._longs_count(),
-            'shorts_count': self._shorts_count()
+            'short_exposure': pt._short_exposure(),
+            'long_exposure': pt._long_exposure(),
+            'short_value': pt._short_value(),
+            'long_value': pt._long_value(),
+            'longs_count': pt._longs_count(),
+            'shorts_count': pt._shorts_count()
         }
 
         return rval
@@ -368,7 +305,7 @@ class PerformancePeriod(object):
         rval = self.__core_dict()
 
         if self.serialize_positions:
-            positions = self.get_positions_list()
+            positions = self.position_tracker.get_positions_list()
             rval['positions'] = positions
 
         # we want the key to be absent, not just empty
@@ -423,7 +360,7 @@ class PerformancePeriod(object):
         portfolio.returns = self.returns
         portfolio.cash = self.ending_cash
         portfolio.start_date = self.period_open
-        portfolio.positions = self.get_positions()
+        portfolio.positions = self.position_tracker.get_positions()
         portfolio.positions_value = self.ending_value
         portfolio.positions_exposure = self.ending_exposure
         return portfolio
@@ -472,14 +409,6 @@ class PerformancePeriod(object):
         account.net_liquidation = \
             getattr(self, 'net_liquidation', self._net_liquidation_value)
         return account
-
-    @position_proxy
-    def get_positions(self):
-        raise ProxyError()
-
-    @position_proxy
-    def get_positions_list(self):
-        raise ProxyError()
 
     def __getstate__(self):
         state_dict = {k: v for k, v in iteritems(self.__dict__)
