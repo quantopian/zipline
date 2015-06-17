@@ -12,18 +12,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cpython cimport (
+    PyList_New,
+    PyList_Size,
+)
 
 import pandas as pd
 
 import bcolz
 cimport cython
-import numpy as np
-cimport numpy as np
+from numpy import (
+    array,
+    float64,
+    intp,
+    uint32,
+    zeros,
+)
+from numpy cimport (
+    float64_t,
+    intp_t,
+    ndarray,
+    uint32_t,
+    uint8_t,
+)
 
 from zipline.data.adjusted_array import (
     adjusted_array,
     NOMASK,
 )
+
+ctypedef object ctable_t
+ctypedef object DatetimeIndex_t
+ctypedef object Int64Index_t
+
+DEF NaN = float('nan')
 
 
 from zipline.data.adjustment import Float64Multiply
@@ -60,8 +82,11 @@ cpdef _get_dividend_sids(adjustments_db, start_date, end_date):
     c.execute(query)
     return set([sid[0] for sid in c.fetchall()])
 
-cpdef _adjustments(adjustments_db, split_sids, merger_sids, dividends_sids,
-                   assets, dates):
+cpdef _adjustments(adjustments_db,
+                   split_sids,
+                   merger_sids,
+                   dividends_sids,
+                   dates, assets):
     start_date = (dates[0] - EPOCH).total_seconds()
     end_date = (dates[-1] - EPOCH).total_seconds()
 
@@ -106,7 +131,7 @@ cpdef _adjustments(adjustments_db, split_sids, merger_sids, dividends_sids,
     return splits_results, mergers_results, dividends_results
 
 
-cpdef load_adjustments_from_sqlite(adjustments_db, columns, assets, dates):
+cpdef load_adjustments_from_sqlite(adjustments_db, columns, dates, assets):
     start_date = dates[0]
     end_date = dates[len(dates) - 1]
     start_date_str = start_date.strftime('%s')
@@ -127,8 +152,8 @@ cpdef load_adjustments_from_sqlite(adjustments_db, columns, assets, dates):
         split_sids,
         merger_sids,
         dividend_sids,
-        assets,
-        dates)
+        dates,
+        assets,)
 
     cdef dict col_adjustments = {col.name: {} for col in columns}
 
@@ -186,7 +211,7 @@ cpdef load_adjustments_from_sqlite(adjustments_db, columns, assets, dates):
                     col_adj[date_loc] = [adj]
 
     for dividend in dividends:
-        # mergers affect prices
+        # dividends affect prices
         effective_date = pd.Timestamp(dividend[2], unit='s', tz='UTC')
         date_loc = dates.searchsorted(effective_date)
         sid = dividend[0]
@@ -208,131 +233,158 @@ cpdef load_adjustments_from_sqlite(adjustments_db, columns, assets, dates):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef load_raw_arrays_from_bcolz(daily_bar_table,
-                                 start_pos,
-                                 start_day_offset,
-                                 end_day_offset,
-                                 trading_days,
-                                 columns,
-                                 assets,
-                                 dates):
+cpdef _compute_row_slices(dict asset_starts_absolute,
+                          dict asset_ends_absolute,
+                          dict asset_starts_calendar,
+                          intp_t query_start,
+                          intp_t query_end,
+                          Int64Index_t requested_assets):
     """
-    Load each column from bcolsz table, @daily_bar_table.
+    Core indexing functionality for loading raw data from bcolz.
 
-    @daily_bar_index is an index of the start position and dates of each
-    asset from the table.
+    Parameters
+    ----------
+    asset_starts_absolute : dict
+        Dictionary containing the index of the first row of each asset in the
+        bcolz file from which we will query.
 
-    @trading_days is the trading days allowed by the query, with the first
-    date being the first date in the provided dataset.
+    asset_ends_absolute : dict
+        Dictionary containing the index of the last row of each asset in the
+        bcolz file from which we will query.
 
-    @columns, @assets, @dates are the same values as passed to
-    load_adjusted_array
+    asset_starts_calendar : dict
+        Dictionary containing the index of in our calendar corresponding to the
+        start date of each asset
+
+    query_start : intp
+    query_end : intp
+        Start and end indices in our calendar of the dates for which we're
+        querying.
+
+    requested_assets : pandas.Int64Index
+        The assets for which we want to load data.
+
+    For each asset in requested assets, computes three values:
+    1.) The index in the raw bcolz data of first row to load.
+    2.) The index in the raw bcolz data of the last row to load.
+    3.) The index in the dates of our query corresponding to the first row for
+        each asset. This is non-zero iff the asset's lifetime begins partway
+        through the requested query dates.
+
+    Returns
+    -------
+    first_rows, last_rows, offsets : 3-tuple of ndarrays
     """
-    nrows = dates.shape[0]
-    ncols = len(assets)
+    cdef:
+        intp_t nassets = len(requested_assets)
 
-    cdef np.intp_t query_start_offset = trading_days.searchsorted(dates[0])
-    cdef np.intp_t date_len = dates.shape[0]
-    cdef np.intp_t query_end_offset = query_start_offset + date_len
+        # For each sid, we need to compute the following:
+        ndarray[dtype=intp_t, ndim=1] first_row_a = zeros(nassets, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] last_row_a = zeros(nassets, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] offset_a = zeros(nassets, dtype=intp)
 
-    cdef np.intp_t start, end
-    cdef np.intp_t i
+        # Loop variables.
+        intp_t i
+        intp_t asset
+        intp_t asset_start_data
+        intp_t asset_end_data
+        intp_t asset_start_calendar
+        intp_t asset_end_calendar
 
-    cdef np.intp_t asset_start, asset_start_day_offset, asset_end_day_offset
-    cdef np.intp_t start_ix, end_ix, offset_ix
-    cdef np.ndarray[dtype=np.intp_t, ndim=1] asset_start_ix = np.zeros(
-        ncols, dtype=np.intp)
-    cdef np.ndarray[dtype=np.intp_t, ndim=1] asset_end_ix = np.zeros(
-        ncols, dtype=np.intp)
-    cdef np.ndarray[dtype=np.intp_t, ndim=1] asset_offset_ix = np.zeros(
-        ncols, dtype=np.intp)
+    for i, asset in enumerate(requested_assets):
+        asset_start_data = asset_starts_absolute[asset]
+        asset_end_data = asset_ends_absolute[asset]
+        asset_start_calendar = asset_starts_calendar[asset]
+        asset_end_calendar = (
+            asset_start_calendar + (asset_end_data - asset_start_data)
+        )
 
-    for i, asset in enumerate(assets):
-        # There are 6 cases to handle.
-        # 1) The equity's trades cover all query dates.
-        # 2) The equity's trades are all before the start of the query.
-        # 3) The equity's trades start before the query start, but stop
-        #    before the query end.
-        # 4) The equity's trades start after query start and ends before
-        #    the query end.
-        # 5) The equity's trades start after query start, but trade through or
-        #    past the query end
-        # 6) The equity's trades are start after query end.
-        #
-        asset_start = start_pos[asset]
-        asset_start_day_offset = start_day_offset[asset]
-        asset_end_day_offset = end_day_offset[asset]
+        # If the asset started during the query, then start with the asset's
+        # first row.
+        # Otherwise start with the asset's first row + the number of rows
+        # before the query on which the asset existed.
+        first_row_a[i] = (
+            asset_start_data + max(0, (query_start - asset_start_calendar))
+        )
+        # If the asset ended during the query, the end with the asset's last
+        # row.
+        # Otherwise, end with the asset's last row minus the number of rows
+        # after the query for which the asset
+        last_row_a[i] = (
+            asset_end_data - max(0, asset_end_calendar - query_end)
+        )
+        # If the asset existed on or before the query, no offset.
+        # Otherwise, offset by the number of rows in the query in which the
+        # asset did not yet exist.
+        offset_a[i] = max(0, asset_start_calendar - query_start)
 
-        if asset_start_day_offset > query_end_offset:
-            # case 6
-            # Leave values as 0, for empty set.
-            continue
-        if asset_end_day_offset < query_start_offset:
-            # case 2
-            # Leave values as 0, for empty set.
-            continue
-        if asset_start_day_offset <= query_start_offset:
-            # case 1 or 3
-            #
-            # requires no offset in the container
-            #
-            # calculate start_ix based on distance between query start
-            # and date offset
-            #
-            # requires no container offset
-            offset_ix = 0
-            start_ix = asset_start + (query_start_offset - \
-                                      asset_start_day_offset)
+    return first_row_a, last_row_a, offset_a
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef _read_bcolz_data(ctable_t table,
+                       tuple shape,
+                       list columns,
+                       intp_t[:] first_rows,
+                       intp_t[:] last_rows,
+                       intp_t[:] offsets):
+    """
+    Load raw bcolz data for the given columns and indices.
+
+    Parameters
+    ----------
+    table : bcolz.ctable
+        The table from which to read.
+    shape : tuple (length 2)
+        The shape of the expected output arrays.
+    columns : list[str]
+        List of column names to read.
+
+    first_rows : ndarray[intp]
+    last_rows : ndarray[intp]
+    offsets : ndarray[intp
+        Arrays in the format returned by _compute_row_slices.
+
+    Returns
+    -------
+    results : list of ndarray
+        A 2D array of shape `shape` for each column in `columns`.
+    """
+    cdef:
+        int nassets
+        str column_name
+        ndarray[dtype=uint32_t, ndim=1] raw_data
+        ndarray[dtype=uint32_t, ndim=2] outbuf
+        ndarray[dtype=uint8_t, ndim=2, cast=True] where_nan
+        ndarray[dtype=float64_t, ndim=2] outbuf_as_float
+        intp_t asset
+        intp_t out_idx
+        intp_t raw_idx
+        intp_t first_row
+        intp_t last_row
+        intp_t offset
+        list results = []
+
+    nassets = shape[1]
+    if not nassets== len(first_rows) == len(last_rows) == len(offsets):
+        raise ValueError("Incompatible index arrays.")
+
+    for column_name in columns:
+        raw_data = table[column_name][:]
+        outbuf = zeros(shape=shape, dtype=uint32)
+        for asset in range(nassets):
+            first_row = first_rows[asset];
+            last_row = last_rows[asset];
+            offset = offsets[asset];
+            for out_idx, raw_idx in enumerate(range(first_row, last_row + 1)):
+                outbuf[out_idx + offset, asset] = raw_data[raw_idx]
+
+        if column_name in {'open', 'high', 'low', 'close'}:
+            where_nan = (outbuf == 0)
+            outbuf_as_float = outbuf.astype(float64) / 1000.0
+            outbuf_as_float[where_nan] = NaN
+            results.append(outbuf_as_float)
         else:
-            # case 4 or 5
-            #
-            # requires offset in the container, since the trading starts
-            # after the container range
-            #
-            # calculate start_ix based on distance between query start
-            # and date offset
-            #
-            start_ix = asset_start
-            offset_ix = asset_start_day_offset - query_start_offset
-
-        if asset_end_day_offset >= query_end_offset:
-            # case 1 or 5, just clip at the end of the query
-            end_ix = asset_start + (query_end_offset - asset_start_day_offset)
-        else:
-            # case 3 or 4 , data ends before query end
-            end_ix = asset_start + (
-                asset_end_day_offset - asset_start_day_offset) + 1
-
-        asset_offset_ix[i] = offset_ix
-        asset_start_ix[i] = start_ix
-        asset_end_ix[i] = end_ix
-
-    cdef list data_arrays = []
-
-    for col in columns:
-        data_col = daily_bar_table[col.name][:]
-        col_array = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-        for i in range(ncols):
-            start_ix = asset_start_ix[i]
-            end_ix = asset_end_ix[i]
-            if start_ix == end_ix:
-                continue
-            asset_data = data_col[start_ix:end_ix]
-
-            # Asset data may not necessarily be the same shape as the number
-            # of dates if the asset has an earlier end date.
-            start = asset_offset_ix[i]
-            end = start + (end_ix - start_ix)
-            col_array[start:end, i] = asset_data
-
-        if col.dtype == np.float32:
-            # Use int for nan check for better precision.
-            where_nan = col_array == 0
-            col_array = col_array.astype(np.float) * 0.001
-            col_array[where_nan] = np.nan
-
-        data_arrays.append(col_array)
-
-        del data_col
-
-    return data_arrays
+            results.append(outbuf)
+    return results
