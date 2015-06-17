@@ -259,7 +259,9 @@ class ConsumeAssetMetaDataError(ZiplineError):
     Raised when AssetMetaData.consume() is called on an invalid object.
     """
     msg = """
-AssetMetaData can not consume {obj}. MetaData must be a dict, a DataFrame, or
+AssetFinder can not consume metadata of type {obj}. Metadata must be a dict, a
+DataFrame, or a tables.Table. If the provided metadata is a Table, the rows
+must contain both or one of 'sid' or 'symbol'.
 """.strip()
 
 
