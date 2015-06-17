@@ -62,6 +62,8 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from six import iteritems
 
+import pandas as pd
+
 from . period import RiskMetricsPeriod
 
 from zipline.utils.serialization_utils import (
