@@ -12,8 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from bcolz import ctable
+from six import (
+    iteritems,
+    string_types,
+)
 
-from zipline.data.baseloader import DataLoader
+from zipline.data.ffc.base import FFCLoader
 from zipline.data.ffc.loaders._us_equity_pricing import (
     load_raw_arrays_from_bcolz,
     load_adjustments_from_sqlite
@@ -25,7 +30,7 @@ from zipline.data.adjusted_array import (
 )
 
 
-class USEquityPricingLoader(DataLoader):
+class USEquityPricingLoader(FFCLoader):
 
     def __init__(self, raw_price_loader, adjustments_loader):
         self.raw_price_loader = raw_price_loader
@@ -44,7 +49,7 @@ class USEquityPricingLoader(DataLoader):
         ]
 
 
-class BcolzRawPriceLoader(object):
+class BcolzOHLCVReader(object):
     """
     Returns the raw pricing information using a bcolz table.
 
@@ -95,14 +100,17 @@ class BcolzRawPriceLoader(object):
     including values from the next block of data.
     """
     def __init__(self, table, trading_days):
+        if isinstance(table, string_types):
+            table = ctable(rootdir=table, mode='r')
+
         self.table = table
         self.trading_days = trading_days
-        self.start_pos = {int(k): v for k, v in
-                          table.attrs['start_pos'].iteritems()}
+        self.start_pos = {int(k): v
+                          for k, v in iteritems(table.attrs['start_pos'])}
         self.start_day_offset = {int(k): v for k, v in
-                                 table.attrs['start_day_offset'].iteritems()}
+                                 iteritems(table.attrs['start_day_offset'])}
         self.end_day_offset = {int(k): v for k, v in
-                               table.attrs['end_day_offset'].iteritems()}
+                               iteritems(table.attrs['end_day_offset'])}
 
     def load_raw_arrays(self, columns, assets, dates):
         return load_raw_arrays_from_bcolz(self.table,

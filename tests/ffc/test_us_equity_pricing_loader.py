@@ -16,25 +16,32 @@
 """
 Tests for zipline.data.ffc.loaders.us_equity_pricing
 """
-from collections import OrderedDict
 import os
 import sqlite3
 from unittest import TestCase
 
 import bcolz
 import numpy as np
+from numpy import (
+    arange,
+    datetime64,
+)
 import pandas as pd
+from pandas import (
+    DataFrame,
+    date_range,
+)
 from testfixtures import TempDirectory
 
 from zipline.data.adjustment import Float64Multiply
 from zipline.data.equities import USEquityPricing
 from zipline.data.ffc.loaders.us_equity_pricing import (
-    BcolzRawPriceLoader,
+    BcolzOHLCVReader,
     SQLiteAdjustmentLoader,
 )
 
 # Custom trading calendar for us equity test.
-TEST_TRADING_DAYS = pd.date_range('2015-05-31', '2015-06-10', tz='UTC')
+TEST_TRADING_DAYS = date_range('2015-05-31', '2015-06-10', tz='UTC')
 
 # Query is smaller than the entire trading days, so that equities that go
 # beyond the range are tested..
@@ -42,43 +49,28 @@ TEST_QUERY_RANGE = pd.date_range('2015-06-04', '2015-06-08', tz='UTC')
 TEST_QUERY_COLUMNS = [USEquityPricing.close, USEquityPricing.volume]
 
 # The keys are the asset id.
-EQUITY_INFO = OrderedDict((
-    # 1) This equity's data covers all dates in range.
-    (1, {
-        'start_date': '2015-06-01',
-        'end_date': '2015-06-10',
-    }),
-    # 2) The equity's trades are all before the start of the query.
-    (2, {
-        'start_date': '2015-06-01',
-        'end_date': '2015-06-03',
-    }),
-    # 3) The equity's trades start before the query start, but stop
-    #    before the query end.
-    (3, {
-        'start_date': '2015-06-01',
-        'end_date': '2015-06-05',
-    }),
-    # 4) The equity's trades start after query start and ends before
-    #    the query end.
-    (4, {
-        'start_date': '2015-06-05',
-        'end_date': '2015-06-06',
-    }),
-    # 5) The equity's trades start after query start, but trade through or
-    #    past the query end
-    (5, {
-        'start_date': '2015-06-05',
-        'end_date': '2015-06-10',
-    }),
-    # 6) The equity's trades start and end after query end.
-    (6, {
-        'start_date': '2015-06-09',
-        'end_date': '2015-06-10',
-    }),
-))
-
-TEST_QUERY_ASSETS = pd.Int64Index(EQUITY_INFO.keys())
+EQUITY_INFO = DataFrame(
+    [
+        # 1) This equity's data covers all dates in range.
+        {'start_date': '2015-06-01', 'end_date': '2015-06-10'},
+        # 2) The equity's trades are all before the start of the query.
+        {'start_date': '2015-06-01', 'end_date': '2015-06-03'},
+        # 3) The equity's trades start before the query start, but stop
+        #    before the query end.
+        {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
+        # 4) The equity's trades start after query start and ends before
+        #    the query end.
+        {'start_date': '2015-06-05', 'end_date': '2015-06-06'},
+        # 5) The equity's trades start after query start, but trade through or
+        #    past the query end
+        {'start_date': '2015-06-05', 'end_date': '2015-06-10'},
+        # 6) The equity's trades start and end after query end.
+        {'start_date': '2015-06-09', 'end_date': '2015-06-10'},
+    ],
+    index=arange(1, 7),
+    columns=['start_date', 'end_date'],
+).astype(datetime64)
+TEST_QUERY_ASSETS = EQUITY_INFO.index
 
 # price type identifiers
 PT_OPEN, PT_HIGH, PT_LOW, PT_CLOSE, PT_VOLUME = range(1000, 6000, 1000)
@@ -97,9 +89,9 @@ def create_bcolz_data(test_data_dir):
     start_day_offset = {}
     end_day_offset = {}
 
-    for asset, info in EQUITY_INFO.iteritems():
-        asset_day_range = pd.date_range(info['start_date'],
-                                        info['end_date'])
+    for asset, (start_date, end_date) in EQUITY_INFO.iterrows():
+
+        asset_day_range = pd.date_range(start_date, end_date)
         asset_len = len(asset_day_range)
         start_pos[asset] = len(sid_col)
         sid_col.extend([asset] * asset_len)
@@ -111,6 +103,7 @@ def create_bcolz_data(test_data_dir):
 
         for day in asset_day_range:
             days.append(int(day.strftime("%s")))
+
         # Prices are 1000 times the equity float, except for volume which is
         # the integer of the float.
         #
@@ -319,14 +312,14 @@ class UsEquityPricingLoaderTestCase(TestCase):
         # 5) The equity's trades start after query start, but trade through or
         #    past the query end
         # 6) The equity's trades are start after query end.
-        assets = pd.Int64Index(EQUITY_INFO.keys())
+        assets = TEST_QUERY_ASSETS
         columns = TEST_QUERY_COLUMNS
         query_dates = TEST_QUERY_RANGE
         table = bcolz.ctable(
             rootdir=self.bcolz_test_data_path,
             mode='r')
         trading_days = TEST_TRADING_DAYS
-        raw_price_loader = BcolzRawPriceLoader(table, trading_days)
+        raw_price_loader = BcolzOHLCVReader(table, trading_days)
         raw_arrays = raw_price_loader.load_raw_arrays(
             columns,
             assets,
