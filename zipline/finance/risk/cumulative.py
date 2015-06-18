@@ -174,6 +174,9 @@ class RiskMetricsCumulative(object):
         self.drawdowns = pd.Series(index=cont_index)
         self.max_drawdowns = pd.Series(index=cont_index)
         self.max_drawdown = 0
+        self.drawdown_duration = 0
+        self.max_drawdown_durations = pd.Series(index=cont_index)
+        self.max_drawdown_duration = 0
         self.max_leverages = pd.Series(index=cont_index)
         self.max_leverage = 0
         self.current_max = -np.inf
@@ -320,6 +323,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.metrics.information[dt] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
         self.max_drawdowns[dt] = self.max_drawdown
+        self.max_drawdown_duration = self.calculate_max_drawdown_duration()
+        self.max_drawdown_durations[dt] = self.max_drawdown_duration
         self.max_leverage = self.calculate_max_leverage()
         self.max_leverages[dt] = self.max_leverage
 
@@ -348,6 +353,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'information': self.metrics.information[dt],
             'excess_return': self.excess_returns[dt],
             'max_drawdown': self.max_drawdown,
+            'max_drawdown_duration': self.max_drawdown_duration,
             'max_leverage': self.max_leverage,
             'period_label': period_label
         }
@@ -400,6 +406,21 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             return cur_drawdown
         else:
             return self.max_drawdown
+
+    def calculate_max_drawdown_duration(self):
+        if len(self.algorithm_cumulative_returns) == 0:
+            return self.drawdown_duration
+
+        cur_cum_returns = self.algorithm_cumulative_returns[self.latest_dt]
+        if cur_cum_returns < self.current_max:
+            self.drawdown_duration = max(self.drawdown_duration, 1) + 1
+        else:
+            self.drawdown_duration = 0
+
+        if self.drawdown_duration > self.max_drawdown_duration:
+            return self.drawdown_duration
+        else:
+            return self.max_drawdown_duration
 
     def calculate_max_leverage(self):
         # The leverage is defined as: the gross_exposure/net_liquidation

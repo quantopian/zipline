@@ -134,6 +134,7 @@ class RiskMetricsPeriod(object):
         self.excess_return = self.algorithm_period_returns - \
             self.treasury_period_return
         self.max_drawdown = self.calculate_max_drawdown()
+        self.max_drawdown_duration = self.calculate_max_drawdown_duration()
         self.max_leverage = self.calculate_max_leverage()
 
     def to_dict(self):
@@ -156,6 +157,7 @@ class RiskMetricsPeriod(object):
             'alpha': self.alpha,
             'excess_return': self.excess_return,
             'max_drawdown': self.max_drawdown,
+            'max_drawdown_duration': self.max_drawdown_duration,
             'max_leverage': self.max_leverage,
             'period_label': period_label
         }
@@ -180,6 +182,7 @@ class RiskMetricsPeriod(object):
             "beta",
             "alpha",
             "max_drawdown",
+            "max_drawdown_duration",
             "max_leverage",
             "algorithm_returns",
             "benchmark_returns",
@@ -313,6 +316,39 @@ class RiskMetricsPeriod(object):
             return 0.0
 
         return 1.0 - math.exp(max_drawdown)
+
+    def calculate_max_drawdown_duration(self):
+        compounded_returns = []
+        cur_return = 0.0
+        for r in self.algorithm_returns:
+            try:
+                cur_return += math.log(1.0 + r)
+            # this is a guard for a single day returning -100%, if returns are
+            # greater than -1.0 it will throw an error because you cannot take
+            # the log of a negative number
+            except ValueError:
+                log.debug("{cur} return, zeroing the returns".format(
+                    cur=cur_return))
+                cur_return = 0.0
+            compounded_returns.append(cur_return)
+
+        cur_max = None
+        max_days = None
+        days = 0
+        for cur in compounded_returns:
+            if cur_max is None or cur > cur_max:
+                cur_max = cur
+                days = 0
+            else:
+                days = max(days, 1) + 1
+
+            if max_days is None or days > max_days:
+                max_days = days
+
+        if max_days is None:
+            return 0.0
+
+        return max_days
 
     def calculate_max_leverage(self):
         if self.algorithm_leverages is None:

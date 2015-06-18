@@ -17,6 +17,7 @@ import unittest
 
 import datetime
 import numpy as np
+import pandas as pd
 import pytz
 import zipline.finance.risk as risk
 from zipline.utils import factory
@@ -116,3 +117,21 @@ class TestRisk(unittest.TestCase):
                 self.cumulative_metrics_06.max_drawdowns[dt],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
+
+    def test_drawdown_duration(self):
+        returns = factory.create_returns_from_list(
+            [1.0, -0.5, 0.8, .17, 1.0, -0.1, -0.45], self.sim_params)
+        # 200, 100, 180, 210.6, 421.2, 379.8, 208.494
+        drawdown_duration = pd.Series(
+            [0, 2, 3, 3, 3, 3, 3], index=returns.index)
+
+        metrics = risk.RiskMetricsCumulative(self.sim_params)
+
+        for dt, value in returns.iteritems():
+            metrics.update(dt,
+                           value,
+                           0,  # benchmark used so set to zero
+                           {'leverage': 0.0})
+
+        for dt, value in drawdown_duration.iteritems():
+            self.assertEqual(metrics.max_drawdown_durations[dt], value)

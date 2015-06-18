@@ -51,10 +51,13 @@ Risk Report
     |                 | for the portfolio returns between self.start_date  |
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
+    | max_drawdown\   | The longest drawdown period (must not necessarily  |
+    | _duration       | be the period that contains max_drawdown but it    |
+    |                 | can be).                                           |
+    +-----------------+----------------------------------------------------+
     | max_leverage    | The largest gross leverage between self.start_date |
     |                 | and self.end_date                                  |
     +-----------------+----------------------------------------------------+
-
 
 """
 
