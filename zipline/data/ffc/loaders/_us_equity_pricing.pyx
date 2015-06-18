@@ -29,36 +29,44 @@ from zipline.data.adjusted_array import (
 from zipline.data.adjustment import Float64Multiply
 
 SID_QUERY_TEMPLATE = """
-SELECT DISTINCT sid FROM {0}
-WHERE effective_date >= {1} AND effective_date <= {2}
+SELECT DISTINCT sid FROM {table_name}
+WHERE effective_date >= (?) AND effective_date <= (?)
 """
 
 ADJ_QUERY_TEMPLATE = """
 SELECT sid, ratio, effective_date
-FROM {0}
-WHERE sid IN ({1}) AND effective_date >= {2} AND effective_date <= {3}
+FROM {table_name}
+WHERE sid IN ({question_marks})
+AND effective_date >= (?) AND effective_date <= (?)
 """
 
 SQLITE_MAX_IN_STATEMENT = 999
 EPOCH = pd.Timestamp(0, tz='UTC')
 
-cpdef _get_split_sids(adjustments_db, start_date, end_date):
+cpdef _get_adjustment_sids(adjustments_db, table_name, start_date, end_date):
     c = adjustments_db.cursor()
-    query = SID_QUERY_TEMPLATE.format('splits', start_date, end_date)
-    c.execute(query)
+    c.execute(SID_QUERY_TEMPLATE.format(table_name=table_name),
+              (start_date, end_date))
     return set([sid[0] for sid in c.fetchall()])
 
-cpdef _get_merger_sids(adjustments_db, start_date, end_date):
-    c = adjustments_db.cursor()
-    query = SID_QUERY_TEMPLATE.format('mergers', start_date, end_date)
-    c.execute(query)
-    return set([sid[0] for sid in c.fetchall()])
-
-cpdef _get_dividend_sids(adjustments_db, start_date, end_date):
-    c = adjustments_db.cursor()
-    query = SID_QUERY_TEMPLATE.format('dividends', start_date, end_date)
-    c.execute(query)
-    return set([sid[0] for sid in c.fetchall()])
+cpdef _query_adjustments_in_range(c, table_name, assets, start_date, end_date):
+    assets_to_query = [str(a) for a in assets if a in assets]
+    results = []
+    while assets_to_query:
+        query_len = min(len(assets_to_query), SQLITE_MAX_IN_STATEMENT)
+        query_assets = assets_to_query[:query_len]
+        # The SQL query is parameterized by both the assets and the start and
+        # end dates of the date range.
+        t = [str(a) for a in query_assets]
+        t.extend([start_date, end_date])
+        statement = ADJ_QUERY_TEMPLATE.format(
+            table_name=table_name,
+            question_marks=",".join(['?' for _ in query_assets]))
+        print statement
+        c.execute(statement, t)
+        assets_to_query = assets_to_query[query_len:]
+        results.extend(c.fetchall())
+    return results
 
 cpdef _adjustments(adjustments_db, split_sids, merger_sids, dividends_sids,
                    assets, dates):
@@ -67,41 +75,12 @@ cpdef _adjustments(adjustments_db, split_sids, merger_sids, dividends_sids,
 
     c = adjustments_db.cursor()
 
-    splits_to_query = [str(a) for a in assets if a in split_sids]
-    splits_results = []
-    while splits_to_query:
-        query_len = min(len(splits_to_query), SQLITE_MAX_IN_STATEMENT)
-        query_assets = splits_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('splits',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
-        c.execute(statement, t)
-        splits_to_query = splits_to_query[query_len:]
-        splits_results.extend(c.fetchall())
-
-    mergers_to_query = [str(a) for a in assets if a in merger_sids]
-    mergers_results = []
-    while mergers_to_query:
-        query_len = min(len(mergers_to_query), SQLITE_MAX_IN_STATEMENT)
-        query_assets = mergers_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('mergers',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
-        c.execute(statement, t)
-        mergers_to_query = mergers_to_query[query_len:]
-        mergers_results.extend(c.fetchall())
-
-    dividends_to_query = [str(a) for a in assets if a in dividends_sids]
-    dividends_results = []
-    while dividends_to_query:
-        query_len = min(len(dividends_to_query), SQLITE_MAX_IN_STATEMENT)
-        query_assets = dividends_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('dividends',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
-        c.execute(statement, t)
-        dividends_to_query = dividends_to_query[query_len:]
-        dividends_results.extend(c.fetchall())
+    splits_results = _query_adjustments_in_range(
+        c, 'splits', split_sids, start_date, end_date)
+    mergers_results = _query_adjustments_in_range(
+        c, 'mergers', merger_sids, start_date, end_date)
+    dividends_results = _query_adjustments_in_range(
+        c, 'dividends', merger_sids, start_date, end_date)
 
     return splits_results, mergers_results, dividends_results
 
@@ -112,15 +91,18 @@ cpdef load_adjustments_from_sqlite(adjustments_db, columns, assets, dates):
     start_date_str = start_date.strftime('%s')
     end_date_str = end_date.strftime('%s')
 
-    split_sids = _get_split_sids(adjustments_db,
-                                 start_date_str,
-                                 end_date_str)
-    merger_sids = _get_merger_sids(adjustments_db,
+    split_sids = _get_adjustment_sids(adjustments_db,
+                                      'splits',
+                                      start_date_str,
+                                      end_date_str)
+    merger_sids = _get_adjustment_sids(adjustments_db,
+                                   'mergers',
                                    start_date_str,
                                    end_date_str)
-    dividend_sids = _get_dividend_sids(adjustments_db,
-                                       start_date_str,
-                                       end_date_str)
+    dividend_sids = _get_adjustment_sids(adjustments_db,
+                                         'dividends',
+                                         start_date_str,
+                                         end_date_str)
 
     splits, mergers, dividends = _adjustments(
         adjustments_db,
