@@ -34,6 +34,11 @@ ext_modules = [
         ['zipline/data/adjustment.pyx'],
         include_dirs=[np.get_include()],
     ),
+    Extension(
+        'zipline.data.ffc.loaders._us_equity_pricing',
+        ['zipline/data/ffc/loaders/_us_equity_pricing.pyx'],
+        include_dirs=[np.get_include()],
+    ),
 ]
 
 setup(
