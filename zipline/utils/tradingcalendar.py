@@ -248,7 +248,7 @@ def get_non_trading_days(start, end):
     return pd.DatetimeIndex(non_trading_days)
 
 non_trading_days = get_non_trading_days(start, end)
-trading_day = pd.tseries.offsets.CDay(holidays=non_trading_days)
+trading_day = pd.tseries.offsets.BDay(holidays=non_trading_days)
 
 
 def get_trading_days(start, end, trading_day=trading_day):
