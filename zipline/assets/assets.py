@@ -33,7 +33,6 @@ from zipline.errors import (
     SidNotFound,
     SymbolNotFound,
 )
-from zipline.utils import tradingcalendar
 from zipline.assets._assets import (
     Asset, Equity, Future
 )
@@ -63,10 +62,7 @@ ASSET_FIELDS = [
 
 class AssetFinder(object):
 
-    def __init__(self,
-                 metadata=None,
-                 trading_calendar=tradingcalendar,
-                 allow_sid_assignment=True):
+    def __init__(self, metadata=None, allow_sid_assignment=True):
 
         # Any particular instance of AssetFinder should be
         # consistent throughout its lifetime, so we grab a reference
@@ -85,10 +81,9 @@ class AssetFinder(object):
         # The AssetFinder also holds a nested-dict of all metadata for
         # reference when building Assets
         self.metadata_cache = {}
-        if metadata:
+        if metadata is not None:
             self.consume_metadata(metadata)
 
-        self.trading_calendar = trading_calendar
         self.populate_cache()
 
     def _next_free_sid(self):

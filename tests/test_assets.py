@@ -21,12 +21,10 @@ import sys
 from unittest import TestCase
 
 from datetime import (
-    datetime,
     timedelta,
 )
 import pickle
 import pprint
-import pytz
 import uuid
 import warnings
 import pandas as pd
@@ -66,40 +64,7 @@ class FakeTable(object):
         return self.df.to_records()
 
 
-class FakeTableIdenticalSymbols(object):
-    def __init__(self, name, as_of_dates):
-        self.name = name
-        self.as_of_dates = as_of_dates
-        self.df = pd.DataFrame.from_records(
-            [
-                {
-                    'sid': i,
-                    'file_name':  self.name,
-                    'company_name': self.name,
-                    'start_date_nano': date.value,
-                    'end_date_nano': (date + timedelta(days=1)).value,
-                    'exchange': self.name,
-                }
-                for i, date in enumerate(self.as_of_dates)
-            ]
-        )
-
-    def read(self, *args, **kwargs):
-        return self.df.to_records()
-
-
-class FakeTableFromRecords(object):
-
-    def __init__(self, records):
-        self.records = records
-        self.df = pd.DataFrame.from_records(self.records)
-
-    def read(self, *args, **kwargs):
-        return self.df.to_records()
-
-
-@with_environment()
-def build_lookup_generic_cases(env=None):
+def build_lookup_generic_cases():
     """
     Generate test cases for AssetFinder test_lookup_generic.
     """
@@ -113,7 +78,7 @@ def build_lookup_generic_cases(env=None):
     dupe_1_start = pd.Timestamp('2013-01-03', tz='UTC')
     dupe_1_end = dupe_1_start + timedelta(days=1)
 
-    table = FakeTableFromRecords(
+    frame = pd.DataFrame.from_records(
         [
             {
                 'sid': 0,
@@ -141,16 +106,11 @@ def build_lookup_generic_cases(env=None):
             },
         ],
     )
-    env.update_asset_finder(asset_metadata=table.df)
+    finder = AssetFinder(metadata=frame)
     dupe_0, dupe_1, unique = assets = [
-        env.asset_finder.retrieve_asset(i)
+        finder.retrieve_asset(i)
         for i in range(3)
     ]
-
-    # This expansion code is run at module import time, which means we have to
-    # clear the AssetFinder here or else it will interfere with the cache
-    # for other tests.
-    env.update_asset_finder(clear_metadata=True)
 
     dupe_0_start = dupe_0.start_date
     dupe_1_start = dupe_1.start_date
@@ -159,34 +119,34 @@ def build_lookup_generic_cases(env=None):
         # Scalars
 
         # Asset object
-        (table, assets[0], None, assets[0]),
-        (table, assets[1], None, assets[1]),
-        (table, assets[2], None, assets[2]),
+        (finder, assets[0], None, assets[0]),
+        (finder, assets[1], None, assets[1]),
+        (finder, assets[2], None, assets[2]),
         # int
-        (table, 0, None, assets[0]),
-        (table, 1, None, assets[1]),
-        (table, 2, None, assets[2]),
+        (finder, 0, None, assets[0]),
+        (finder, 1, None, assets[1]),
+        (finder, 2, None, assets[2]),
         # Duplicated symbol with resolution date
-        (table, 'duplicated', dupe_0_start, dupe_0),
-        (table, 'duplicated', dupe_1_start, dupe_1),
+        (finder, 'duplicated', dupe_0_start, dupe_0),
+        (finder, 'duplicated', dupe_1_start, dupe_1),
         # Unique symbol, with or without resolution date.
-        (table, 'unique', unique_start, unique),
-        (table, 'unique', None, unique),
+        (finder, 'unique', unique_start, unique),
+        (finder, 'unique', None, unique),
 
         ##
         # Iterables
 
         # Iterables of Asset objects.
-        (table, assets, None, assets),
-        (table, iter(assets), None, assets),
+        (finder, assets, None, assets),
+        (finder, iter(assets), None, assets),
         # Iterables of ints
-        (table, (0, 1), None, assets[:-1]),
-        (table, iter((0, 1)), None, assets[:-1]),
+        (finder, (0, 1), None, assets[:-1]),
+        (finder, iter((0, 1)), None, assets[:-1]),
         # Iterables of symbols.
-        (table, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
-        (table, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
+        (finder, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
+        (finder, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
         # Mixed types
-        (table,
+        (finder,
          ('duplicated', 2, 'unique', 1, dupe_1),
          dupe_0_start,
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
@@ -328,70 +288,86 @@ class TestFuture(TestCase):
 
 class AssetFinderTestCase(TestCase):
 
-    @with_environment()
-    def test_lookup_symbol_fuzzy(self, env=None):
-        fuzzy_str = '@'
-        as_of_date = datetime(2013, 1, 1, tzinfo=pytz.utc)
-        table = FakeTable(uuid.uuid4().hex, 2, as_of_date,
-                          fuzzy_str)
-        env.update_asset_finder(asset_metadata=table.df)
-        sf = env.asset_finder
-
-        try:
-            for i in range(2):  # we do it twice to test for caching bugs
-                self.assertIsNone(sf.lookup_symbol('test', as_of_date))
-                self.assertIsNotNone(sf.lookup_symbol(
-                    'test%s%s' % (fuzzy_str, 1), as_of_date))
-                self.assertIsNone(sf.lookup_symbol('test%s' % 1, as_of_date))
-
-                self.assertIsNone(sf.lookup_symbol(table.name, as_of_date,
-                                                   fuzzy=fuzzy_str))
-                self.assertIsNotNone(sf.lookup_symbol(
-                    'test%s%s' % (fuzzy_str, 1), as_of_date, fuzzy=fuzzy_str))
-                self.assertIsNotNone(sf.lookup_symbol(
-                    'test%s' % 1, as_of_date, fuzzy=fuzzy_str))
-        finally:
-            env.update_asset_finder(clear_metadata=True)
-
-    @with_environment()
-    def test_lookup_symbol_resolve_multiple(self, env=None):
-
-        as_of_dates = [
-            pd.Timestamp('2013-01-01', tz='UTC') + timedelta(days=i)
-            # Incrementing by two so that start and end dates for each
-            # generated Asset don't overlap (each Asset's end_date is the
-            # day after its start date.)
-            for i in range(0, 10, 2)
-        ]
-
-        table = FakeTableIdenticalSymbols(
-            name='existing',
-            as_of_dates=as_of_dates,
+    def test_lookup_symbol_fuzzy(self):
+        as_of = pd.Timestamp('2013-01-01', tz='UTC')
+        frame = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': i,
+                    'file_name':  'TEST@%d' % i,
+                    'company_name': "company%d" % i,
+                    'start_date_nano': as_of.value,
+                    'end_date_nano': as_of.value,
+                    'exchange': uuid.uuid4().hex,
+                }
+                for i in range(3)
+            ]
         )
-        env.update_asset_finder(asset_metadata=table.df)
-        sf = env.asset_finder
+        finder = AssetFinder(frame)
+        asset_0, asset_1, asset_2 = (
+            finder.retrieve_asset(i) for i in range(3)
+        )
 
-        try:
-            for _ in range(2):  # we do it twice to test for caching bugs
-                with self.assertRaises(SymbolNotFound):
-                    sf.lookup_symbol_resolve_multiple('non_existing',
-                                                      as_of_dates[0])
-                with self.assertRaises(MultipleSymbolsFound):
-                    sf.lookup_symbol_resolve_multiple('existing',
-                                                      None)
+        for i in range(2):  # we do it twice to test for caching bugs
+            self.assertIsNone(finder.lookup_symbol('test', as_of))
+            self.assertEqual(
+                asset_1,
+                finder.lookup_symbol('test@1', as_of)
+            )
 
-                for i, date in enumerate(as_of_dates):
-                    # Verify that we correctly resolve multiple symbols using
-                    # the supplied date
-                    result = sf.lookup_symbol_resolve_multiple(
-                        'existing',
-                        date,
-                    )
-                    self.assertEqual(result.symbol, 'existing')
-                    self.assertEqual(result.sid, i)
+            # Adding an unnecessary fuzzy shouldn't matter.
+            self.assertEqual(
+                asset_1,
+                finder.lookup_symbol('test@1', as_of, fuzzy='@')
+            )
 
-        finally:
-            env.update_asset_finder(clear_metadata=True)
+            # Shouldn't find this with no fuzzy_str passed.
+            self.assertIsNone(finder.lookup_symbol('test1', as_of))
+            # Shouldn't find this with an incorrect fuzzy_str.
+            self.assertIsNone(finder.lookup_symbol('test1', as_of, fuzzy='*'))
+            # Should find it with the correct fuzzy_str.
+            self.assertEqual(
+                asset_1,
+                finder.lookup_symbol('test1', as_of, fuzzy='@'),
+            )
+
+    def test_lookup_symbol_resolve_multiple(self):
+
+        # Incrementing by two so that start and end dates for each
+        # generated Asset don't overlap (each Asset's end_date is the
+        # day after its start date.)
+        dates = pd.date_range('2013-01-01', freq='2D', periods=5, tz='UTC')
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': i,
+                    'file_name':  'existing',
+                    'company_name': 'existing',
+                    'start_date_nano': date.value,
+                    'end_date_nano': (date + timedelta(days=1)).value,
+                    'exchange': 'NYSE',
+                }
+                for i, date in enumerate(dates)
+            ]
+        )
+
+        finder = AssetFinder(df)
+        for _ in range(2):  # Run checks twice to test for caching bugs.
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol_resolve_multiple('non_existing', dates[0])
+
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol_resolve_multiple('existing', None)
+
+            for i, date in enumerate(dates):
+                # Verify that we correctly resolve multiple symbols using
+                # the supplied date
+                result = finder.lookup_symbol_resolve_multiple(
+                    'existing',
+                    date,
+                )
+                self.assertEqual(result.symbol, 'existing')
+                self.assertEqual(result.sid, i)
 
     @with_environment()
     def test_lookup_symbol_nasdaq_underscore_collisions(self, env=None):
@@ -433,87 +409,71 @@ class AssetFinderTestCase(TestCase):
     @parameterized.expand(
         build_lookup_generic_cases()
     )
-    @with_environment()
-    def test_lookup_generic(self, table, symbols, reference_date, expected,
-                            env=None):
+    def test_lookup_generic(self, finder, symbols, reference_date, expected):
         """
         Ensure that lookup_generic works with various permutations of inputs.
         """
-        try:
-            env.update_asset_finder(asset_metadata=table.df)
-            finder = env.asset_finder
-            results, missing = finder.lookup_generic(symbols, reference_date)
-            self.assertEqual(results, expected)
-            self.assertEqual(missing, [])
-        finally:
-            env.update_asset_finder(clear_metadata=True)
+        results, missing = finder.lookup_generic(symbols, reference_date)
+        self.assertEqual(results, expected)
+        self.assertEqual(missing, [])
 
-    @with_environment()
-    def test_lookup_generic_handle_missing(self, env=None):
-        try:
-            table = FakeTableFromRecords(
-                [
-                    # Sids that will be found when we do lookups.
-                    {
-                        'sid': 0,
-                        'file_name': 'real',
-                        'company_name': 'real',
-                        'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
-                        'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
-                        'exchange': '',
-                    },
-                    {
-                        'sid': 1,
-                        'file_name': 'also_real',
-                        'company_name': 'also_real',
-                        'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
-                        'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
-                        'exchange': '',
-                    },
-                    # Sid whose end date is before our query date.  We should
-                    # still correctly find it.
-                    {
-                        'sid': 2,
-                        'file_name': 'real_but_old',
-                        'company_name': 'real_but_old',
-                        'start_date_nano': pd.Timestamp('2002-1-1', tz='UTC'),
-                        'end_date_nano': pd.Timestamp('2003-1-1', tz='UTC'),
-                        'exchange': '',
-                    },
-                    # Sid whose end date is before our query date.  We should
-                    # still correctly find it.
-                    {
-                        'sid': 3,
-                        'file_name': 'real_but_in_the_future',
-                        'company_name': 'real_but_in_the_future',
-                        'start_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
-                        'end_date_nano': pd.Timestamp('2020-1-1', tz='UTC'),
-                        'exchange': 'THE FUTURE',
-                    },
-                ]
-            )
-            env.update_asset_finder(asset_metadata=table.df)
-            symbols = [
-                'real', 1, 'fake', 'real_but_old', 'real_but_in_the_future',
+    def test_lookup_generic_handle_missing(self):
+        data = pd.DataFrame.from_records(
+            [
+                # Sids that will be found when we do lookups.
+                {
+                    'sid': 0,
+                    'file_name': 'real',
+                    'company_name': 'real',
+                    'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': '',
+                },
+                {
+                    'sid': 1,
+                    'file_name': 'also_real',
+                    'company_name': 'also_real',
+                    'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': '',
+                },
+                # Sid whose end date is before our query date.  We should
+                # still correctly find it.
+                {
+                    'sid': 2,
+                    'file_name': 'real_but_old',
+                    'company_name': 'real_but_old',
+                    'start_date_nano': pd.Timestamp('2002-1-1', tz='UTC'),
+                    'end_date_nano': pd.Timestamp('2003-1-1', tz='UTC'),
+                    'exchange': '',
+                },
+                # Sid whose end date is before our query date.  We should
+                # still correctly find it.
+                {
+                    'sid': 3,
+                    'file_name': 'real_but_in_the_future',
+                    'company_name': 'real_but_in_the_future',
+                    'start_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date_nano': pd.Timestamp('2020-1-1', tz='UTC'),
+                    'exchange': 'THE FUTURE',
+                },
             ]
+        )
+        finder = AssetFinder(data)
+        results, missing = finder.lookup_generic(
+            ['real', 1, 'fake', 'real_but_old', 'real_but_in_the_future'],
+            pd.Timestamp('2013-02-01', tz='UTC'),
+        )
 
-            results, missing = env.asset_finder.lookup_generic(
-                symbols,
-                pd.Timestamp('2013-02-01', tz='UTC'),
-            )
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results[0].symbol, 'real')
+        self.assertEqual(results[0].sid, 0)
+        self.assertEqual(results[1].symbol, 'also_real')
+        self.assertEqual(results[1].sid, 1)
 
-            self.assertEqual(len(results), 3)
-            self.assertEqual(results[0].symbol, 'real')
-            self.assertEqual(results[0].sid, 0)
-            self.assertEqual(results[1].symbol, 'also_real')
-            self.assertEqual(results[1].sid, 1)
-
-            self.assertEqual(len(missing), 2)
-            self.assertEqual(missing[0], 'fake')
-            self.assertEqual(missing[1], 'real_but_in_the_future')
-
-        finally:
-            env.update_asset_finder(clear_metadata=True)
+        self.assertEqual(len(missing), 2)
+        self.assertEqual(missing[0], 'fake')
+        self.assertEqual(missing[1], 'real_but_in_the_future')
 
     def test_insert_metadata(self):
         finder = AssetFinder()

@@ -136,7 +136,7 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.asset_finder = AssetFinder(trading_calendar=env_trading_calendar)
+        self.asset_finder = AssetFinder()
 
     def __enter__(self, *args, **kwargs):
         global environment
