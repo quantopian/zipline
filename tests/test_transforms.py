@@ -120,13 +120,11 @@ class TransformTestCase(TestCase):
 
         minute_sim_ps = factory.create_simulation_parameters(
             num_days=3,
-            sids=cls.sids,
             data_frequency='minute',
             emission_rate='minute',
         )
         daily_sim_ps = factory.create_simulation_parameters(
             num_days=30,
-            sids=cls.sids,
             data_frequency='daily',
             emission_rate='daily',
         )

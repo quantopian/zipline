@@ -138,7 +138,6 @@ class TestMiscellaneousAPI(TestCase):
         sids = [1, 2]
         self.sim_params = factory.create_simulation_parameters(
             num_days=2,
-            sids=sids,
             data_frequency='minute',
             emission_rate='minute',
         )

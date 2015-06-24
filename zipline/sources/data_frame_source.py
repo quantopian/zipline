@@ -48,8 +48,9 @@ class DataFrameSource(DataSource):
         self.end = kwargs.get('end', self.data.index[-1])
 
         # Remap sids based on the trading environment
-        self.identifiers = kwargs.get('sids', self.data.columns)
-        env.update_asset_finder(identifiers=self.identifiers)
+        env.update_asset_finder(
+            identifiers=kwargs.get('sids', self.data.columns)
+        )
         self.data.columns, _ = env.asset_finder.lookup_generic(
             self.data.columns, datetime.datetime.now()
         )
@@ -78,22 +79,21 @@ class DataFrameSource(DataSource):
     def raw_data_gen(self):
         for dt, series in self.data.iterrows():
             for sid, price in series.iteritems():
-                if sid in self.sids:
-                    # Skip SIDs that can not be forward filled
-                    if np.isnan(price) and \
-                       sid not in self.started_sids:
-                        continue
-                    self.started_sids.add(sid)
+                # Skip SIDs that can not be forward filled
+                if np.isnan(price) and \
+                   sid not in self.started_sids:
+                    continue
+                self.started_sids.add(sid)
 
-                    event = {
-                        'dt': dt,
-                        'sid': sid,
-                        'price': price,
-                        # Just chose something large
-                        # if no volume available.
-                        'volume': 1e9,
-                    }
-                    yield event
+                event = {
+                    'dt': dt,
+                    'sid': sid,
+                    'price': price,
+                    # Just chose something large
+                    # if no volume available.
+                    'volume': 1e9,
+                }
+                yield event
 
     @property
     def raw_data(self):
@@ -126,8 +126,9 @@ class DataPanelSource(DataSource):
         self.end = kwargs.get('end', self.data.major_axis[-1])
 
         # Remap sids based on the trading environment
-        self.identifiers = kwargs.get('sids', self.data.items)
-        env.update_asset_finder(identifiers=self.identifiers)
+        env.update_asset_finder(
+            identifiers=kwargs.get('sids', self.data.items)
+        )
         self.data.items, _ = env.asset_finder.lookup_generic(
             self.data.items, datetime.datetime.now()
         )
@@ -165,21 +166,20 @@ class DataPanelSource(DataSource):
         for dt in self.data.major_axis:
             df = self.data.major_xs(dt)
             for sid, series in df.iteritems():
-                if sid in self.sids:
-                    # Skip SIDs that can not be forward filled
-                    if np.isnan(series['price']) and \
-                       sid not in self.started_sids:
-                        continue
-                    self.started_sids.add(sid)
+                # Skip SIDs that can not be forward filled
+                if np.isnan(series['price']) and \
+                   sid not in self.started_sids:
+                    continue
+                self.started_sids.add(sid)
 
-                    event = {
-                        'dt': dt,
-                        'sid': sid,
-                    }
-                    for field_name, value in series.iteritems():
-                        event[field_name] = value
+                event = {
+                    'dt': dt,
+                    'sid': sid,
+                }
+                for field_name, value in series.iteritems():
+                    event[field_name] = value
 
-                    yield event
+                yield event
 
     @property
     def raw_data(self):

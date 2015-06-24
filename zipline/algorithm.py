@@ -477,22 +477,21 @@ class TradingAlgorithm(object):
                 self.sim_params.period_start = source.start
             if hasattr(source, 'end'):
                 self.sim_params.period_end = source.end
-            # The sids field of the source is the canonical reference for
-            # sids in this run
-            all_sids = [sid for s in self.sources for sid in s.sids]
-            self.sim_params.sids = set(all_sids)
-            # Check that all sids from the source are accounted for in
-            # the AssetFinder
-            for sid in self.sim_params.sids:
-                try:
-                    self.asset_finder.retrieve_asset(sid)
-                except SidNotFound:
-                    warnings.warn("No Asset found for sid '%s'. Make sure "
-                                  "that the correct identifiers and asset "
-                                  "metadata are passed to __init__()." % sid)
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
             self.sim_params._update_internal()
+
+        # The sids field of the source is the reference for the universe at
+        # the start of the run
+        self._current_universe = set()
+        for source in self.sources:
+            for sid in source.sids:
+                self._current_universe.add(sid)
+        # Check that all sids from the source are accounted for in
+        # the AssetFinder. This retrieve call will raise an exception if the
+        # sid is not found.
+        for sid in self._current_universe:
+            self.asset_finder.retrieve_asset(sid)
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
@@ -505,7 +504,7 @@ class TradingAlgorithm(object):
         if self.history_specs:
             self.history_container = self.history_container_class(
                 self.history_specs,
-                self.sim_params.sids,
+                self.current_universe(),
                 self.sim_params.first_open,
                 self.sim_params.data_frequency,
             )
@@ -1183,7 +1182,7 @@ class TradingAlgorithm(object):
         self.register_trading_control(LongOnly())
 
     def current_universe(self):
-        return self.sim_params.sids
+        return self._current_universe
 
     @classmethod
     def all_api_methods(cls):
