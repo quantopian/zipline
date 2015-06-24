@@ -64,10 +64,6 @@ class AssetFinder(object):
 
     def __init__(self, metadata=None, allow_sid_assignment=True):
 
-        # Any particular instance of AssetFinder should be
-        # consistent throughout its lifetime, so we grab a reference
-        # to our cache now. That way, if the cache is refreshed later,
-        # our instance will continue to use the old one.
         self.cache = {}
         self.sym_cache = {}
         self.identifier_cache = {}
