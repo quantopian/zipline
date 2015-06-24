@@ -242,12 +242,17 @@ class AssetFinder(object):
         self.identifier_cache = {}
         self.fuzzy_match = {}
 
-        counter = 0
         for identifier, row in self.metadata_cache.items():
-            self.spawn_asset(identifier=identifier, **row)
-            counter += 1
+            asset = self._spawn_asset(identifier=identifier, **row)
 
-    def spawn_asset(self, identifier, **kwargs):
+            # Insert asset into the various caches
+            self.cache[asset.sid] = asset
+            self.identifier_cache[identifier] = asset
+
+            if asset.symbol is not '':
+                self.sym_cache.setdefault(asset.symbol, []).append(asset)
+
+    def _spawn_asset(self, identifier, **kwargs):
 
         # Check if the sid is declared
         try:
@@ -330,11 +335,6 @@ class AssetFinder(object):
             asset = Future(**kwargs)
         else:
             raise InvalidAssetType(asset_type=asset_type)
-
-        self.cache[asset.sid] = asset
-        self.identifier_cache[identifier] = asset
-        if asset.symbol is not '':
-            self.sym_cache.setdefault(asset.symbol, []).append(asset)
 
         return asset
 
