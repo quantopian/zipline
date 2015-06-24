@@ -574,3 +574,125 @@ class AssetFinderTestCase(TestCase):
             for warning in w:
                 self.assertTrue(issubclass(warning.category,
                                            DeprecationWarning))
+
+    def test_lookup_future_in_chain(self):
+        metadata = {
+            2: {
+                'symbol': 'ADN15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+            },
+            1: {
+                'symbol': 'ADV15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+            },
+            0: {
+                'symbol': 'ADF16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+            },
+
+        }
+
+        finder = AssetFinder(metadata=metadata)
+        dt = pd.Timestamp('2015-06-19', tz='UTC')
+
+        # Check that the primary and secondary contracts are as expected
+        primary = finder.lookup_future_in_chain('AD', dt, 1)
+        secondary = finder.lookup_future_in_chain('AD', dt, 2)
+        self.assertEqual(primary.sid, 1)
+        self.assertEqual(secondary.sid, 0)
+
+        # Check that we get None for an invalid contract num
+        self.assertIsNone(finder.lookup_future_in_chain('AD', dt, 0))
+        self.assertIsNone(finder.lookup_future_in_chain('AD', dt, -10))
+        self.assertIsNone(finder.lookup_future_in_chain('AD', dt, 10))
+        self.assertIsNone(finder.lookup_future_in_chain('CL', dt, 1))
+
+    def test_lookup_future_chain(self):
+        metadata = {
+            2: {
+                'symbol': 'ADN15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+            },
+            1: {
+                'symbol': 'ADV15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+            },
+            0: {
+                'symbol': 'ADF16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+            },
+
+        }
+
+        finder = AssetFinder(metadata=metadata)
+        dt = pd.Timestamp('2015-06-19', tz='UTC')
+
+        # Check that we get the expected number of contract, in the
+        # right order
+        ad_contracts = finder.lookup_future_chain('AD', dt)
+        self.assertEqual(len(ad_contracts), 2)
+        self.assertEqual(ad_contracts[0].sid, 1)
+        self.assertEqual(ad_contracts[1].sid, 0)
+
+    def test_lookup_future_by_expiration(self):
+        metadata = {
+            2: {
+                'symbol': 'ADN15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+            },
+            1: {
+                'symbol': 'ADV15',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+            },
+            0: {
+                'symbol': 'ADF16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+            },
+
+        }
+
+        finder = AssetFinder(metadata=metadata)
+        dt = pd.Timestamp('2015-06-19', tz='UTC')
+
+        # First-of-the-month timestamps
+        may_15 = pd.Timestamp('2015-05-01', tz='UTC')
+        june_15 = pd.Timestamp('2015-06-01', tz='UTC')
+        sept_15 = pd.Timestamp('2015-09-01', tz='UTC')
+        dec_15 = pd.Timestamp('2015-12-01', tz='UTC')
+        jan_16 = pd.Timestamp('2016-01-01', tz='UTC')
+
+        # ADV15 is the next valid contract, so check that we get it
+        # for every ref_date before 9/14/15
+        contract = finder.lookup_future_by_expiration('AD', dt, may_15)
+        self.assertEqual(contract.sid, 1)
+
+        contract = finder.lookup_future_by_expiration('AD', dt, june_15)
+        self.assertEqual(contract.sid, 1)
+
+        contract = finder.lookup_future_by_expiration('AD', dt, sept_15)
+        self.assertEqual(contract.sid, 1)
+
+        # ADF16 has the next expiration date after 12/1/15
+        contract = finder.lookup_future_by_expiration('AD', dt, dec_15)
+        self.assertEqual(contract.sid, 0)
+
+        # No contracts exist after 12/14/2015, so we should get none
+        self.assertIsNone(finder.lookup_future_by_expiration('AD', dt, jan_16))
