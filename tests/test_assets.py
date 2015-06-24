@@ -227,24 +227,27 @@ class AssetTestCase(TestCase):
 
 
 class TestFuture(TestCase):
-
-    future = Future(2468,
-                    symbol='OMK15',
-                    notice_date='2014-01-20',
-                    expiration_date='2014-02-20',
-                    contract_multiplier=500)
+    future = Future(
+        2468,
+        symbol='OMH15',
+        notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
+        expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
+        contract_multiplier=500
+    )
 
     def test_str(self):
         strd = self.future.__str__()
-        self.assertEqual("Future(2468 [OMK15])", strd)
+        self.assertEqual("Future(2468 [OMH15])", strd)
 
     def test_repr(self):
         reprd = self.future.__repr__()
         self.assertTrue("Future" in reprd)
         self.assertTrue("2468" in reprd)
-        self.assertTrue("OMK15" in reprd)
-        self.assertTrue("notice_date='2014-01-20'" in reprd)
-        self.assertTrue("expiration_date='2014-02-20'" in reprd)
+        self.assertTrue("OMH15" in reprd)
+        self.assertTrue(("notice_date=Timestamp('2014-01-20 00:00:00+0000', "
+                        "tz='UTC')") in reprd)
+        self.assertTrue("expiration_date=Timestamp('2014-02-20 00:00:00+0000'"
+                        in reprd)
         self.assertTrue("contract_multiplier=500" in reprd)
 
     def test_reduce(self):
