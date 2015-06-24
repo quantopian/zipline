@@ -230,6 +230,7 @@ class TestFuture(TestCase):
     future = Future(
         2468,
         symbol='OMH15',
+        root_symbol='OM',
         notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
         expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
         contract_multiplier=500
@@ -244,6 +245,7 @@ class TestFuture(TestCase):
         self.assertTrue("Future" in reprd)
         self.assertTrue("2468" in reprd)
         self.assertTrue("OMH15" in reprd)
+        self.assertTrue("root_symbol='OM'" in reprd)
         self.assertTrue(("notice_date=Timestamp('2014-01-20 00:00:00+0000', "
                         "tz='UTC')") in reprd)
         self.assertTrue("expiration_date=Timestamp('2014-02-20 00:00:00+0000'"
@@ -256,6 +258,7 @@ class TestFuture(TestCase):
 
     def test_to_and_from_dict(self):
         dictd = self.future.to_dict()
+        self.assertTrue('root_symbol' in dictd)
         self.assertTrue('notice_date' in dictd)
         self.assertTrue('expiration_date' in dictd)
         self.assertTrue('contract_multiplier' in dictd)
@@ -263,6 +266,9 @@ class TestFuture(TestCase):
         from_dict = Future.from_dict(dictd)
         self.assertTrue(isinstance(from_dict, Future))
         self.assertEqual(self.future, from_dict)
+
+    def test_root_symbol(self):
+        self.assertEqual('OM', self.future.root_symbol)
 
 
 class AssetFinderTestCase(TestCase):

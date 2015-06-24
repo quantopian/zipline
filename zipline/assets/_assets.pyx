@@ -224,6 +224,7 @@ cdef class Equity(Asset):
 
 cdef class Future(Asset):
 
+    cdef readonly object root_symbol
     cdef readonly object notice_date
     cdef readonly object expiration_date
     cdef readonly int contract_multiplier
@@ -231,6 +232,7 @@ cdef class Future(Asset):
     def __cinit__(self,
                   int sid, # sid is required
                   object symbol="",
+                  object root_symbol="",
                   object asset_name="",
                   object start_date=None,
                   object end_date=None,
@@ -240,6 +242,7 @@ cdef class Future(Asset):
                   object exchange="",
                   int contract_multiplier=1):
 
+        self.root_symbol         = root_symbol
         self.notice_date         = notice_date
         self.expiration_date     = expiration_date
         self.contract_multiplier = contract_multiplier
@@ -255,7 +258,7 @@ cdef class Future(Asset):
             return 'Future(%d)' % self.sid
 
     def __repr__(self):
-        attrs = ('symbol', 'asset_name', 'exchange',
+        attrs = ('symbol', 'root_symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded', 'notice_date',
                  'expiration_date', 'contract_multiplier')
         tuples = ((attr, repr(getattr(self, attr, None)))
@@ -273,6 +276,7 @@ cdef class Future(Asset):
         """
         return (self.__class__, (self.sid,
                                  self.symbol,
+                                 self.root_symbol,
                                  self.asset_name,
                                  self.start_date,
                                  self.end_date,
@@ -287,6 +291,7 @@ cdef class Future(Asset):
         Convert to a python dict.
         """
         super_dict = super(Future, self).to_dict()
+        super_dict['root_symbol'] = self.root_symbol
         super_dict['notice_date'] = self.notice_date
         super_dict['expiration_date'] = self.expiration_date
         super_dict['contract_multiplier'] = self.contract_multiplier
