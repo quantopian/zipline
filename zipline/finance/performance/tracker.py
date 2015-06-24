@@ -346,7 +346,7 @@ class PerformanceTracker(object):
         if txn:
             self.process_transaction(txn)
 
-    def check_upcoming_dividends(self, next_trading_day):
+    def check_upcoming_dividends(self, completed_date):
         """
         Check if we currently own any stocks with dividends whose ex_date is
         the next trading day.  Track how much we should be payed on those
@@ -359,6 +359,13 @@ class PerformanceTracker(object):
         if len(self.dividend_frame) == 0:
             # We don't currently know about any dividends for this simulation
             # period, so bail.
+            return
+
+        # Get the next trading day and, if it is outside the bounds of the
+        # simulation, bail.
+        next_trading_day = TradingEnvironment.instance().\
+            next_trading_day(completed_date)
+        if (next_trading_day is None) or (next_trading_day >= self.last_close):
             return
 
         # Dividends whose ex_date is the next trading day.  We need to check if
@@ -402,13 +409,9 @@ class PerformanceTracker(object):
                                             bench_since_open,
                                             account)
 
-        # if this is the close, save the returns objects for cumulative risk
-        # calculations and update dividends for the next day.
+        # if this is the close, update dividends for the next day.
         if dt == self.market_close:
-            next_trading_day = TradingEnvironment.instance().\
-                next_trading_day(todays_date)
-            if next_trading_day:
-                self.check_upcoming_dividends(next_trading_day)
+            self.check_upcoming_dividends(todays_date)
 
     def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
         """
@@ -460,9 +463,8 @@ class PerformanceTracker(object):
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        next_trading_day = env.next_trading_day(completed_date)
-        if next_trading_day:
-            self.check_upcoming_dividends(next_trading_day)
+        # Check for any dividends
+        self.check_upcoming_dividends(completed_date)
 
         return daily_update
 

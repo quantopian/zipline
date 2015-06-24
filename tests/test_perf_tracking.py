@@ -862,6 +862,56 @@ class TestDividendPerformance(unittest.TestCase):
             [event['cumulative_perf']['capital_used'] for event in results]
         self.assertEqual(cumulative_cash_flows, [0, 0, 0, 0, 0])
 
+    @with_environment()
+    def test_no_dividend_at_simulation_end(self, env=None):
+        # post some trades in the market
+        events = factory.create_trade_history(
+            1,
+            [10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100],
+            oneday,
+            self.sim_params
+        )
+        dividend = factory.create_dividend(
+            1,
+            10.00,
+            # declared date, when the algorithm finds out about
+            # the dividend
+            events[-3].dt,
+            # ex_date, the date before which the algorithm must hold stock
+            # to receive the dividend
+            events[-2].dt,
+            # pay date, when the algorithm receives the dividend.
+            # This pays out on the day after the last event
+            env.next_trading_day(events[-1].dt)
+        )
+
+        # Set the last day to be the last event
+        self.sim_params.period_end = events[-1].dt
+        self.sim_params._update_internal()
+
+        # Simulate a transaction being filled prior to the ex_date.
+        txns = [create_txn(events[0], 10.0, 100)]
+        results = calculate_results(
+            self,
+            events,
+            dividend_events=[dividend],
+            txns=txns,
+        )
+
+        self.assertEqual(len(results), 5)
+        cumulative_returns = \
+            [event['cumulative_perf']['returns'] for event in results]
+        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        daily_returns = [event['daily_perf']['returns'] for event in results]
+        self.assertEqual(daily_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        cash_flows = [event['daily_perf']['capital_used'] for event in results]
+        self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0])
+        cumulative_cash_flows = \
+            [event['cumulative_perf']['capital_used'] for event in results]
+        self.assertEqual(cumulative_cash_flows,
+                         [-1000, -1000, -1000, -1000, -1000])
+
 
 class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
 
