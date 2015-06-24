@@ -224,16 +224,6 @@ Asset with sid '{sid}' was not found.
 """.strip()
 
 
-class IdentifierNotFound(ZiplineError):
-    """
-    Raised when a retrieve_asset_by_identifier() call contains a non-existent
-    identifier.
-    """
-    msg = """
-Asset with identifier '{identifier}' was not found.
-""".strip()
-
-
 class InvalidAssetType(ZiplineError):
     """
     Raised when an AssetFinder tries to build an Asset with an invalid

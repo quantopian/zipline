@@ -18,6 +18,7 @@ Tools to generate data sources.
 """
 import numpy as np
 import pandas as pd
+import datetime
 
 from zipline.gens.utils import hash_args
 
@@ -49,10 +50,9 @@ class DataFrameSource(DataSource):
         # Remap sids based on the trading environment
         self.identifiers = kwargs.get('sids', self.data.columns)
         env.update_asset_finder(identifiers=self.identifiers)
-        self.data.columns = [
-            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
-            for identifier in self.data.columns
-        ]
+        self.data.columns, _ = env.asset_finder.lookup_generic(
+            self.data.columns, datetime.datetime.now()
+        )
         self.sids = self.data.columns
 
         # Hash_value for downstream sorting.
@@ -128,10 +128,9 @@ class DataPanelSource(DataSource):
         # Remap sids based on the trading environment
         self.identifiers = kwargs.get('sids', self.data.items)
         env.update_asset_finder(identifiers=self.identifiers)
-        self.data.items = [
-            env.asset_finder.retrieve_asset_by_identifier(identifier).sid
-            for identifier in self.data.items
-        ]
+        self.data.items, _ = env.asset_finder.lookup_generic(
+            self.data.items, datetime.datetime.now()
+        )
         self.sids = self.data.items
 
         # Hash_value for downstream sorting.

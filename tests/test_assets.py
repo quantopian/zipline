@@ -22,6 +22,7 @@ from unittest import TestCase
 
 from datetime import (
     timedelta,
+    datetime
 )
 import pickle
 import pprint
@@ -542,9 +543,12 @@ class AssetFinderTestCase(TestCase):
         # Build a finder that is allowed to assign sids
         finder = AssetFinder(metadata=metadata, allow_sid_assignment=True)
 
-        # Verify that Assets were built
-        play = finder.retrieve_asset_by_identifier('PLAY')
+        # Verify that Assets were built and different sids were assigned
+        play = finder.lookup_symbol('PLAY', datetime.now())
+        msft = finder.lookup_symbol('MSFT', datetime.now())
         self.assertEqual('PLAY', play.symbol)
+        self.assertIsNotNone(play.sid)
+        self.assertNotEqual(play.sid, msft.sid)
 
     def test_sid_assignment_failure(self):
 

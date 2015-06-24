@@ -137,13 +137,13 @@ class SpecificEquityTrades(object):
                 set(event.sid for event in self.event_list)
             )
             env.update_asset_finder(identifiers=self.identifiers)
-            self.sids = [
-                env.asset_finder.retrieve_asset_by_identifier(identifier).sid
-                for identifier in self.identifiers
-            ]
+            assets_by_identifier = {}
+            for identifier in self.identifiers:
+                assets_by_identifier[identifier] = env.asset_finder.\
+                    lookup_generic(identifier, datetime.now())[0]
+            self.sids = [asset.sid for asset in assets_by_identifier.values()]
             for event in self.event_list:
-                event.sid = env.asset_finder.\
-                    retrieve_asset_by_identifier(event.sid).sid
+                event.sid = assets_by_identifier[event.sid].sid
 
         else:
             # Unpack config dictionary with default values.
@@ -161,10 +161,11 @@ class SpecificEquityTrades(object):
 
             self.identifiers = kwargs.get('sids', [1, 2])
             env.update_asset_finder(identifiers=self.identifiers)
-            self.sids = [
-                env.asset_finder.retrieve_asset_by_identifier(identifier).sid
-                for identifier in self.identifiers
-            ]
+            assets_by_identifier = {}
+            for identifier in self.identifiers:
+                assets_by_identifier[identifier] = env.asset_finder.\
+                    lookup_generic(identifier, datetime.now())[0]
+            self.sids = [asset.sid for asset in assets_by_identifier.values()]
 
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(*args, **kwargs)
