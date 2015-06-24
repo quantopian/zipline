@@ -40,30 +40,6 @@ from zipline.errors import (
 )
 
 
-class FakeTable(object):
-    def __init__(self, name, count, dt, fuzzy_str):
-        self.name = name
-        self.count = count
-        self.dt = dt
-        self.fuzzy_str = fuzzy_str
-        self.df = pd.DataFrame.from_records(
-            [
-                {
-                    'sid': i,
-                    'file_name':  'TEST%s%s' % (self.fuzzy_str, i),
-                    'company_name': self.name + str(i),
-                    'start_date_nano': pd.Timestamp(dt, tz='UTC').value,
-                    'end_date_nano': pd.Timestamp(dt, tz='UTC').value,
-                    'exchange': self.name,
-                }
-                for i in range(1, self.count + 1)
-            ]
-        )
-
-    def read(self, *args, **kwargs):
-        return self.df.to_records()
-
-
 def build_lookup_generic_cases():
     """
     Generate test cases for AssetFinder test_lookup_generic.
