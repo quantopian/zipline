@@ -1,6 +1,12 @@
 from contextlib import contextmanager
+from functools import partial
+from itertools import (
+    ifilter,
+    product,
+)
 from logbook import FileHandler
 from mock import patch
+import operator
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
@@ -161,3 +167,54 @@ def add_security_data(adds, deletes):
         for sym in adds:
             f.write(sym)
             f.write('\n')
+
+
+def all_pairs_matching_predicate(values, pred):
+    """
+    Return an iterator of all pairs, (v0, v1) from values such that
+
+    `pred(v0, v1) == True`
+
+    Parameters
+    ----------
+    values : iterable
+    pred : function
+
+    Returns
+    -------
+    pairs_iterator : generator
+       Generator yielding pairs matching `pred`.
+
+    Examples
+    --------
+    >>> from zipline.utils.test_utils import all_pairs_matching_predicate
+    >>> from operator import eq, lt
+    >>> list(all_pairs_matching_predicate(range(5), eq))
+    [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
+    >>> list(all_pairs_matching_predicate("abcd", lt))
+    [('a', 'b'), ('a', 'c'), ('a', 'd'), ('b', 'c'), ('b', 'd'), ('c', 'd')]
+    """
+    return ifilter(lambda pair: pred(*pair), product(values, repeat=2))
+
+
+def product_upper_triangle(values, include_diagonal=False):
+    """
+    Return an iterator over pairs, (v0, v1), drawn from values.
+
+    If `include_diagonal` is True, returns all pairs such that v0 <= v1.
+    If `include_diagonal` is False, returns all pairs such that v0 < v1.
+    """
+    return all_pairs_matching_predicate(
+        values,
+        operator.le if include_diagonal else operator.lt,
+    )
+
+
+def all_subindices(index):
+    """
+    Return all valid sub-indices of a pandas Index.
+    """
+    return (
+        index[start:stop]
+        for start, stop in product_upper_triangle(range(len(index) + 1))
+    )
