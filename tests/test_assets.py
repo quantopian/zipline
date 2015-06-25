@@ -23,7 +23,6 @@ from unittest import TestCase
 from datetime import (
     timedelta,
 )
-from itertools import product
 import pickle
 import pprint
 import uuid
@@ -42,7 +41,10 @@ from zipline.errors import (
     MultipleSymbolsFound,
     SidAssignmentError,
 )
-from zipline.utils.test_utils import all_subindices
+from zipline.utils.test_utils import (
+    all_subindices,
+    make_asset_info,
+)
 
 
 def build_lookup_generic_cases():
@@ -573,43 +575,28 @@ class AssetFinderTestCase(TestCase):
 
     @with_environment()
     def test_compute_lifetimes(self, env=None):
-        nassets = 4
-        days_between_new_assets = 3
-        asset_lifetime = 5
+        num_assets = 4
         trading_day = env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
-        frame = pd.DataFrame(
-            {
-                'sid': range(nassets),
-                'symbol': [chr(ord('A') + i) for i in range(nassets)],
-                'asset_type': ['equity'] * nassets,
-                # Start a new asset every `days_between_new_assets` days.
-                'start_date': pd.date_range(
-                    first_start,
-                    freq=(days_between_new_assets * trading_day),
-                    periods=nassets,
-                ),
-                # Each asset lasts for `asset_lifetime` days.
-                'end_date': pd.date_range(
-                    first_start + (asset_lifetime * trading_day),
-                    freq=(days_between_new_assets * trading_day),
-                    periods=nassets,
-                ),
-                'exchange': 'TEST',
-            }
+        frame = make_asset_info(
+            num_assets=num_assets,
+            first_start=first_start,
+            frequency=env.trading_day,
+            periods_between_starts=3,
+            asset_lifetime=5
         )
-
         finder = AssetFinder(frame)
+
         all_dates = pd.date_range(
             start=first_start,
-            end=frame.ix[nassets - 1, 'end_date'],
+            end=frame.end_date.max(),
             freq=trading_day,
         )
 
         for dates in all_subindices(all_dates):
             expected_mask = full(
-                shape=(len(dates), nassets),
+                shape=(len(dates), num_assets),
                 fill_value=False,
                 dtype=bool,
             )

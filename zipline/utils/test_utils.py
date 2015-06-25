@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from functools import partial
 from itertools import (
     ifilter,
     product,
@@ -217,4 +216,53 @@ def all_subindices(index):
     return (
         index[start:stop]
         for start, stop in product_upper_triangle(range(len(index) + 1))
+    )
+
+
+def make_asset_info(num_assets,
+                    first_start,
+                    frequency,
+                    periods_between_starts,
+                    asset_lifetime):
+    """
+    Create a DataFrame representing asset lifetime information suitable for
+    passing as metadata to an AssetFinder.
+
+    Parameters
+    ----------
+    num_assets : int
+        How many assets to create.
+    first_start : pd.Timestamp
+        The start date for the first asset.
+    frequency : str or pd.tseries.offsets.Offset (e.g. trading_day)
+        Frequency used to interpret next two arguments.
+    periods_between_starts : int
+        Create a new asset every `frequency` * `periods_between_new`
+    asset_lifetime : int
+        Each asset exists for `frequency` * `asset_lifetime` days.
+
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    return pd.DataFrame(
+        {
+            'sid': range(num_assets),
+            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
+            'asset_type': ['equity'] * num_assets,
+            # Start a new asset every `periods_between_starts` days.
+            'start_date': pd.date_range(
+                first_start,
+                freq=(periods_between_starts * frequency),
+                periods=num_assets,
+            ),
+            # Each asset lasts for `asset_lifetime` days.
+            'end_date': pd.date_range(
+                first_start + (asset_lifetime * frequency),
+                freq=(periods_between_starts * frequency),
+                periods=num_assets,
+            ),
+            'exchange': 'TEST',
+        }
     )
