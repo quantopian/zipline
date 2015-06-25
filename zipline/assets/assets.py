@@ -1,4 +1,3 @@
-#
 # Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,6 +67,7 @@ class AssetFinder(object):
         self.sym_cache = {}
         self.identifier_cache = {}
         self.fuzzy_match = {}
+        self._asset_lifetimes = None
 
         # This flag controls if the AssetFinder is allowed to generate its own
         # sids. If False, metadata that does not contain a sid will raise an
@@ -234,17 +234,28 @@ class AssetFinder(object):
         Populates the asset cache with all values in the assets
         collection.
         """
-
         # Wipe caches before repopulating
         self.cache = {}
         self.sym_cache = {}
         self.identifier_cache = {}
         self.fuzzy_match = {}
 
-        counter = 0
-        for identifier, row in self.metadata_cache.items():
-            self.spawn_asset(identifier=identifier, **row)
-            counter += 1
+        lifetimes = np.recarray(
+            shape=(len(self.metadata_cache),),
+            dtype=[('sid', 'i8'), ('start', 'i8'), ('end', 'i8')],
+        )
+
+        no_end = np.iinfo(int).max
+        for i, (identifier, row) in enumerate(self.metadata_cache.items()):
+            asset = self.spawn_asset(identifier=identifier, **row)
+            lifetimes[i] = (
+                asset.sid,
+                asset.start_date.value if asset.start_date is not None else 0,
+                asset.end_date.value if asset.end_date is not None else no_end,
+            )
+
+        lifetimes.sort(order='sid')
+        self._asset_lifetimes = lifetimes
 
     def spawn_asset(self, identifier, **kwargs):
 
@@ -528,6 +539,39 @@ class AssetFinder(object):
                 raise ConsumeAssetMetaDataError(obj=row)
             self.insert_metadata(identifier, **metadata_dict)
 
+    def lifetime_mask(self, dates):
+        """
+        Compute a DataFrame representing asset lifetimes for the specified date
+        range.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            The dates for which to compute lifetimes.
+
+        Notes
+        -----
+        The mask computed here is True when assets **DID NOT** exist, because
+        this is most commonly used with `np.putmask` to apply NaNs/sentinels to
+        the missing values.
+
+        Returns
+        -------
+        lifetimes : pd.DataFrame
+            A frame of dtype bool with `dates` as index and an Int64Index of
+            assets as columns.  The value at `lifetimes.loc[date, asset]` will
+            be True iff `asset` **DID NOT** on `date`.
+
+        See Also
+        --------
+        numpy.putmask
+        """
+        lifetimes = self._asset_lifetimes
+
+        raw_dates = dates.asi8[:, None]
+        mask = (lifetimes.start > raw_dates) | (lifetimes.end < raw_dates)
+        return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
+
 
 class AssetConvertible(with_metaclass(ABCMeta)):
     """
@@ -537,6 +581,7 @@ class AssetConvertible(with_metaclass(ABCMeta)):
     Includes Asset, six.string_types, and Integral
     """
     pass
+
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)

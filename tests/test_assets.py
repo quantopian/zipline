@@ -23,13 +23,17 @@ from unittest import TestCase
 from datetime import (
     timedelta,
 )
+from itertools import product
 import pickle
 import pprint
 import uuid
 import warnings
+
 import pandas as pd
+from pandas.util.testing import assert_frame_equal
 
 from nose_parameterized import parameterized
+from numpy import full
 
 from zipline.finance.trading import with_environment
 from zipline.assets import Asset, Equity, Future, AssetFinder
@@ -38,6 +42,7 @@ from zipline.errors import (
     MultipleSymbolsFound,
     SidAssignmentError,
 )
+from zipline.utils.test_utils import all_subindices
 
 
 def build_lookup_generic_cases():
@@ -565,3 +570,61 @@ class AssetFinderTestCase(TestCase):
             for warning in w:
                 self.assertTrue(issubclass(warning.category,
                                            DeprecationWarning))
+
+    @with_environment()
+    def test_compute_lifetimes(self, env=None):
+        nassets = 4
+        days_between_new_assets = 3
+        asset_lifetime = 5
+        trading_day = env.trading_day
+        first_start = pd.Timestamp('2015-04-01', tz='UTC')
+
+        frame = pd.DataFrame(
+            {
+                'sid': range(nassets),
+                'symbol': [chr(ord('A') + i) for i in range(nassets)],
+                'asset_type': ['equity'] * nassets,
+                # Start a new asset every `days_between_new_assets` days.
+                'start_date': pd.date_range(
+                    first_start,
+                    freq=(days_between_new_assets * trading_day),
+                    periods=nassets,
+                ),
+                # Each asset lasts for `asset_lifetime` days.
+                'end_date': pd.date_range(
+                    first_start + (asset_lifetime * trading_day),
+                    freq=(days_between_new_assets * trading_day),
+                    periods=nassets,
+                ),
+                'exchange': 'TEST',
+            }
+        )
+
+        finder = AssetFinder(frame)
+        all_dates = pd.date_range(
+            start=first_start,
+            end=frame.ix[nassets - 1, 'end_date'],
+            freq=trading_day,
+        )
+
+        for dates in all_subindices(all_dates):
+            expected_mask = full(
+                shape=(len(dates), nassets),
+                fill_value=False,
+                dtype=bool,
+            )
+
+            for i, date in enumerate(dates):
+                it = frame[['start_date', 'end_date']].itertuples()
+                for j, start, end in it:
+                    if not (start <= date <= end):
+                        expected_mask[i, j] = True
+
+            # Filter out columns with all-empty columns.
+            expected_result = pd.DataFrame(
+                data=expected_mask,
+                index=dates,
+                columns=frame.sid.values,
+            )
+            actual_result = finder.lifetime_mask(dates)
+            assert_frame_equal(actual_result, expected_result)
