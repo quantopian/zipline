@@ -14,7 +14,6 @@
 # limitations under the License.
 import pandas as pd
 import pytz
-from itertools import cycle
 import numpy as np
 
 from six import integer_types
@@ -26,7 +25,6 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
-from zipline.finance.trading import with_environment
 from zipline.assets import AssetFinder
 
 
@@ -78,25 +76,18 @@ class TestDataFrameSource(TestCase):
                         'volume', 'price']
 
         copy_panel = data.copy()
-        copy_panel.items = finder.map_identifier_list_to_sids(
+        sids = finder.map_identifier_list_to_sids(
             data.items, data.major_axis[0]
         )
+        copy_panel.items = sids
         source = DataPanelSource(copy_panel)
-        sids = [
-            asset.sid for asset in
-            [finder.lookup_symbol(symbol, as_of_date=end)
-             for symbol in stocks]
-        ]
-        stocks_iter = cycle(sids)
         for event in source:
             for check_field in check_fields:
                 self.assertIn(check_field, event)
             self.assertTrue(isinstance(event['volume'], (integer_types)))
-            self.assertEqual(next(stocks_iter), event['sid'])
+            self.assertTrue(event['sid'] in sids)
 
-    @with_environment()
-    def test_nan_filter_dataframe(self, env=None):
-        env.update_asset_finder(identifiers=[4, 5])
+    def test_nan_filter_dataframe(self):
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.DataFrame(np.random.randn(2, 2),
                           index=dates,
@@ -114,9 +105,7 @@ class TestDataFrameSource(TestCase):
         self.assertEqual(5, event.sid)
         self.assertFalse(np.isnan(event.price))
 
-    @with_environment()
-    def test_nan_filter_panel(self, env=None):
-        env.update_asset_finder(identifiers=[4, 5])
+    def test_nan_filter_panel(self):
         dates = pd.date_range('1/1/2000', periods=2, freq='B', tz='UTC')
         df = pd.Panel(np.random.randn(2, 2, 2),
                       major_axis=dates,

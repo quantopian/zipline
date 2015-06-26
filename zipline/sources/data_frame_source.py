@@ -22,7 +22,6 @@ import pandas as pd
 from zipline.gens.utils import hash_args
 
 from zipline.sources.data_source import DataSource
-from zipline.finance.trading import with_environment
 
 
 class DataFrameSource(DataSource):
@@ -37,9 +36,9 @@ class DataFrameSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    @with_environment()
-    def __init__(self, data, env=None, **kwargs):
+    def __init__(self, data, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
+        # Only accept integer SIDs as the items of the DataFrame
         assert isinstance(data.columns, pd.Int64Index)
         # TODO is ffilling correct/necessary?
         # Forward fill prices
@@ -108,8 +107,7 @@ class DataPanelSource(DataSource):
         Bars where the price is nan are filtered out.
     """
 
-    @with_environment()
-    def __init__(self, data, env=None, **kwargs):
+    def __init__(self, data, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
         # Only accept integer SIDs as the items of the Panel
         assert isinstance(data.items, pd.Int64Index)
