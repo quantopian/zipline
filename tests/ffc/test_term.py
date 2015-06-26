@@ -17,10 +17,8 @@ from zipline.data.dataset import (
 )
 from zipline.errors import InputTermNotAtomic
 from zipline.modelling.engine import build_dependency_graph
-from zipline.modelling.factor import (
-    Factor,
-    NUMEXPR_MATH_FUNCS,
-)
+from zipline.modelling.factor import Factor
+from zipline.modelling.expression import NUMEXPR_MATH_FUNCS
 
 
 class SomeDataSet(DataSet):

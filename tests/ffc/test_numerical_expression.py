@@ -24,11 +24,11 @@ from pandas import (
     Int64Index,
 )
 
-from zipline.modelling.factor import (
+from zipline.modelling.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
-    TestFactor,
 )
+from zipline.modelling.factor import TestFactor
 
 
 class F(TestFactor):
