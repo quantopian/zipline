@@ -12,11 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cpython cimport (
-    PyList_New,
-    PyList_Size,
-)
-
 import pandas as pd
 
 import bcolz
@@ -35,6 +30,7 @@ from numpy cimport (
     uint32_t,
     uint8_t,
 )
+from numpy.math cimport NAN
 
 from zipline.data.adjusted_array import (
     adjusted_array,
@@ -44,9 +40,6 @@ from zipline.data.adjusted_array import (
 ctypedef object ctable_t
 ctypedef object DatetimeIndex_t
 ctypedef object Int64Index_t
-
-DEF NaN = float('nan')
-
 
 from zipline.data.adjustment import Float64Multiply
 
@@ -374,16 +367,16 @@ cpdef _read_bcolz_data(ctable_t table,
         raw_data = table[column_name][:]
         outbuf = zeros(shape=shape, dtype=uint32)
         for asset in range(nassets):
-            first_row = first_rows[asset];
-            last_row = last_rows[asset];
-            offset = offsets[asset];
+            first_row = first_rows[asset]
+            last_row = last_rows[asset]
+            offset = offsets[asset]
             for out_idx, raw_idx in enumerate(range(first_row, last_row + 1)):
                 outbuf[out_idx + offset, asset] = raw_data[raw_idx]
 
         if column_name in {'open', 'high', 'low', 'close'}:
             where_nan = (outbuf == 0)
-            outbuf_as_float = outbuf.astype(float64) / 1000.0
-            outbuf_as_float[where_nan] = NaN
+            outbuf_as_float = outbuf.astype(float64) * .001
+            outbuf_as_float[where_nan] = NAN
             results.append(outbuf_as_float)
         else:
             results.append(outbuf)
