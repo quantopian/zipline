@@ -100,7 +100,7 @@ def str_to_seconds(s):
 
 
 def seconds_to_timestamp(seconds):
-    return Timestamp(0, tz='UTC') + Timedelta(seconds=seconds)
+    return EPOCH + Timedelta(seconds=seconds)
 
 
 class TestingDailyBarWriter(BcolzDailyBarWriter):
@@ -350,8 +350,8 @@ class DailyBarReaderWriterTestCase(TestCase):
         return data
 
     def _check_read_results(self, columns, assets, start_date, end_date):
-        result = self.writer.write(self.dest, self.trading_days, self.assets)
-        reader = BcolzDailyBarReader(result)
+        table = self.writer.write(self.dest, self.trading_days, self.assets)
+        reader = BcolzDailyBarReader(table)
         dates = self.trading_days_between(start_date, end_date)
         results = reader.load_raw_arrays(columns, dates, assets)
         for column, result in zip(columns, results):
@@ -546,16 +546,15 @@ class UsEquityPricingLoaderTestCase(TestCase):
             DIVIDENDS,
         )
 
+        cls.assets = TEST_QUERY_ASSETS
+        all_trading_days = TradingEnvironment.instance().trading_days
+        cls.trading_days = all_trading_days[
+            all_trading_days.slice_indexer(TEST_QUERY_START, TEST_QUERY_STOP)
+        ]
+
     @classmethod
     def tearDownClass(cls):
         cls.test_data_dir.cleanup()
-
-    def setUp(self):
-        self.assets = TEST_QUERY_ASSETS
-        all_trading_days = TradingEnvironment.instance().trading_days
-        self.trading_days = all_trading_days[
-            all_trading_days.slice_indexer(TEST_QUERY_START, TEST_QUERY_STOP)
-        ]
 
     def test_load_adjustments_from_sqlite(self):
         reader = SQLiteAdjustmentReader(self.db_path)

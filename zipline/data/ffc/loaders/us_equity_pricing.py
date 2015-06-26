@@ -31,6 +31,7 @@ from bcolz import (
 from click import progressbar
 from numpy import (
     array,
+    array_equal,
     full,
     uint32,
 )
@@ -315,7 +316,7 @@ class BcolzDailyBarReader(object):
         # This could be removed in the future if it's materially affecting
         # performance.
         query_dates = self._calendar[query_start:query_stop + 1]
-        if not (query_dates.values == dates.values).all():
+        if not array_equal(query_dates.values, dates.values):
             raise ValueError("Incompatible calendars!")
 
         # The core implementation of the logic here is implemented in Cython
