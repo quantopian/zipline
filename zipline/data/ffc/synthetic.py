@@ -6,6 +6,7 @@ from bcolz import ctable
 
 from numpy import (
     arange,
+    array,
     full,
     iinfo,
     uint32,
@@ -14,13 +15,18 @@ from pandas import (
     DataFrame,
     Timestamp,
 )
+from sqlite3 import connect as sqlite3_connect
 
 from zipline.data.adjusted_array import (
     adjusted_array,
     NOMASK,
 )
 from zipline.data.ffc.base import FFCLoader
-from zipline.data.ffc.loaders.us_equity_pricing import BcolzDailyBarWriter
+from zipline.data.ffc.loaders.us_equity_pricing import (
+    BcolzDailyBarWriter,
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+)
 
 
 UINT_32_MAX = iinfo(uint32).max
@@ -214,3 +220,21 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
             assert colname == 'volume', "Unknown column: %s" % colname
             return array
     # END SUPERCLASS INTERFACE
+
+
+class NullAdjustmentReader(SQLiteAdjustmentReader):
+    """
+    A SQLiteAdjustmentReader that stores no adjustments and uses in-memory
+    SQLite.
+    """
+
+    def __init__(self):
+        conn = sqlite3_connect(':memory:')
+        writer = SQLiteAdjustmentWriter(conn)
+        empty = DataFrame({
+            'sid': array([], dtype=uint32),
+            'effective_date': array([], dtype=uint32),
+            'ratio': array([], dtype=float),
+        })
+        writer.write(splits=empty, mergers=empty, dividends=empty)
+        super(NullAdjustmentReader, self).__init__(conn)

@@ -16,10 +16,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from contextlib import (
-    closing,
-    contextmanager,
-)
+from contextlib import contextmanager
 from errno import ENOENT
 from os import remove
 from os.path import exists
@@ -61,6 +58,8 @@ US_EQUITY_PRICING_BCOLZ_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume', 'day', 'id'
 ]
 DAILY_US_EQUITY_PRICING_DEFAULT_FILENAME = 'daily_us_equity_pricing.bcolz'
+SQLITE_ADJUSTMENT_COLUMNS = frozenset(['effective_date', 'ratio', 'sid'])
+SQLITE_ADJUSTMENT_TABLENAMES = frozenset(['splits', 'dividends', 'mergers'])
 
 
 @contextmanager
@@ -349,33 +348,64 @@ class SQLiteAdjustmentWriter(object):
     """
     Writer for data to be read by SQLiteAdjustmentWriter
 
+    Parameters
+    ----------
+    conn_or_path : str or sqlite3.Connection
+        A handle to the target sqlite database.
+    overwrite : bool, optional, default=False
+        If True and conn_or_path is a string, remove any existing files at the
+        given path before connecting.
+
     See Also
     --------
     SQLiteAdjustmentWriter.write
     SQLiteAdjustmentReader
     """
 
-    def write(self,
-              path,
-              splits,
-              mergers,
-              dividends,
-              remove_existing=False):
+    def __init__(self, conn_or_path, overwrite=False):
+        if isinstance(conn_or_path, sqlite3.Connection):
+            self.conn = conn_or_path
+        elif isinstance(conn_or_path, str):
+            if overwrite and exists(conn_or_path):
+                try:
+                    remove(conn_or_path)
+                except OSError as e:
+                    if e.errno != ENOENT:
+                        raise
+            self.conn = sqlite3.connect(conn_or_path)
+        else:
+            raise TypeError("Unknown connection type %s" % type(conn_or_path))
+
+    def write_frame(self, tablename, frame):
+        if frozenset(frame.columns) != SQLITE_ADJUSTMENT_COLUMNS:
+            raise ValueError(
+                "Unexpected frame columns:\n"
+                "Expected Columns: %s\n"
+                "Received Columns: %s" % (
+                    SQLITE_ADJUSTMENT_COLUMNS,
+                    frame.columns.tolist(),
+                )
+            )
+        elif tablename not in SQLITE_ADJUSTMENT_TABLENAMES:
+            raise ValueError(
+                "Adjustment table %s not in %s" % (
+                    tablename, SQLITE_ADJUSTMENT_TABLENAMES
+                )
+            )
+        return frame.to_sql(tablename, self.conn)
+
+    def write(self, splits, mergers, dividends):
         """
         Writes data to a SQLite file to be read by SQLiteAdjustmentReader.
 
         Parameters
         ----------
-        path : str
-            Path to the target database file.
         splits : pandas.DataFrame
             Dataframe containing split data.
         mergers : pandas.DataFrame
             DataFrame containing merger data.
         dividends : pandas.DataFrame
             DataFrame containing dividend data.
-        remove_existing : bool, optional
-            If True, remove any existing file at `path`.  Default is False.
 
         Notes
         -----
@@ -387,7 +417,7 @@ class SQLiteAdjustmentWriter(object):
             adjustment should be applied.
         ratio : float
             A value to apply to all data earlier than the effective date.
-        id : int
+        sid : int
             The asset id associated with this adjustment.
 
         The ratio column is interpreted as follows:
@@ -406,42 +436,36 @@ class SQLiteAdjustmentWriter(object):
         --------
         SQLiteAdjustmentReader : Consumer for the data written by this class
         """
-        if remove_existing and exists(path):
-            try:
-                remove(path)
-            except OSError as e:
-                if e.errno != ENOENT:
-                    raise
+        self.write_frame('splits', splits)
+        self.write_frame('mergers', mergers)
+        self.write_frame('dividends', dividends)
+        self.conn.execute(
+            "CREATE INDEX splits_sids "
+            "ON splits(sid)"
+        )
+        self.conn.execute(
+            "CREATE INDEX splits_effective_date "
+            "ON splits(effective_date)"
+        )
+        self.conn.execute(
+            "CREATE INDEX mergers_sids "
+            "ON mergers(sid)"
+        )
+        self.conn.execute(
+            "CREATE INDEX mergers_effective_date "
+            "ON mergers(effective_date)"
+        )
+        self.conn.execute(
+            "CREATE INDEX dividends_sid "
+            "ON dividends(sid)"
+        )
+        self.conn.execute(
+            "CREATE INDEX dividends_effective_date "
+            "ON dividends(effective_date)"
+        )
 
-        conn = sqlite3.connect(path)
-        with closing(conn):
-            splits.to_sql('splits', conn)
-            mergers.to_sql('mergers', conn)
-            dividends.to_sql('dividends', conn)
-            conn.execute(
-                "CREATE INDEX splits_sids "
-                "ON splits(sid)"
-            )
-            conn.execute(
-                "CREATE INDEX splits_effective_date "
-                "ON splits(effective_date)"
-            )
-            conn.execute(
-                "CREATE INDEX mergers_sids "
-                "ON mergers(sid)"
-            )
-            conn.execute(
-                "CREATE INDEX mergers_effective_date "
-                "ON mergers(effective_date)"
-            )
-            conn.execute(
-                "CREATE INDEX dividends_sid "
-                "ON dividends(sid)"
-            )
-            conn.execute(
-                "CREATE INDEX dividends_effective_date "
-                "ON dividends(effective_date)"
-            )
+    def close(self):
+        self.conn.close()
 
 
 class SQLiteAdjustmentReader(object):

@@ -38,7 +38,10 @@ from testfixtures import TempDirectory
 
 from zipline.data.adjustment import Float64Multiply
 from zipline.data.equities import USEquityPricing
-from zipline.data.ffc.synthetic import SyntheticDailyBarWriter
+from zipline.data.ffc.synthetic import (
+    NullAdjustmentReader,
+    SyntheticDailyBarWriter,
+)
 from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
     SQLiteAdjustmentReader,
@@ -413,13 +416,8 @@ class UsEquityPricingLoaderTestCase(TestCase):
     def setUpClass(cls):
         cls.test_data_dir = TempDirectory()
         cls.db_path = cls.test_data_dir.getpath('adjustments.db')
-        writer = SQLiteAdjustmentWriter()
-        writer.write(
-            cls.db_path,
-            SPLITS,
-            MERGERS,
-            DIVIDENDS,
-        )
+        writer = SQLiteAdjustmentWriter(cls.db_path)
+        writer.write(SPLITS, MERGERS, DIVIDENDS)
 
         cls.assets = TEST_QUERY_ASSETS
         all_trading_days = TradingEnvironment.instance().trading_days
@@ -503,3 +501,12 @@ class UsEquityPricingLoaderTestCase(TestCase):
 
         self.assertEqual(close_adjustments, EXPECTED_CLOSES)
         self.assertEqual(volume_adjustments, EXPECTED_VOLUMES)
+
+    def test_null_adjustments(self):
+        reader = NullAdjustmentReader()
+        adjustments = reader.load_adjustments(
+            TEST_QUERY_COLUMNS,
+            self.trading_days,
+            self.assets,
+        )
+        self.assertEqual(adjustments, [{}, {}])
