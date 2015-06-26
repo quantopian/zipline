@@ -27,6 +27,7 @@ from zipline.sources import (DataFrameSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
 from zipline.finance.trading import with_environment
+from zipline.assets import AssetFinder
 
 
 class TestDataFrameSource(TestCase):
@@ -43,7 +44,7 @@ class TestDataFrameSource(TestCase):
 
     def test_df_sid_filtering(self):
         _, df = factory.create_test_df_source()
-        source = DataFrameSource(df, sids=[0])
+        source = DataFrameSource(df)
         assert 1 not in [event.sid for event in source], \
             "DataFrameSource should only stream selected sid 0, not sid 1."
 
@@ -63,8 +64,8 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['volume'], int))
             self.assertTrue(isinstance(event['arbitrary'], float))
 
-    @with_environment()
-    def test_yahoo_bars_to_panel_source(self, env=None):
+    def test_yahoo_bars_to_panel_source(self):
+        finder = AssetFinder()
         stocks = ['AAPL', 'GE']
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
@@ -75,10 +76,15 @@ class TestDataFrameSource(TestCase):
 
         check_fields = ['sid', 'open', 'high', 'low', 'close',
                         'volume', 'price']
-        source = DataPanelSource(data)
+
+        copy_panel = data.copy()
+        copy_panel.items = finder.map_identifier_list_to_sids(
+            data.items, data.major_axis[0]
+        )
+        source = DataPanelSource(copy_panel)
         sids = [
             asset.sid for asset in
-            [env.asset_finder.lookup_symbol(symbol, as_of_date=end)
+            [finder.lookup_symbol(symbol, as_of_date=end)
              for symbol in stocks]
         ]
         stocks_iter = cycle(sids)

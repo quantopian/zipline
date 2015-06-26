@@ -18,7 +18,6 @@ Tools to generate data sources.
 """
 import numpy as np
 import pandas as pd
-import datetime
 
 from zipline.gens.utils import hash_args
 
@@ -41,19 +40,13 @@ class DataFrameSource(DataSource):
     @with_environment()
     def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.index, pd.tseries.index.DatetimeIndex)
-
+        assert isinstance(data.columns, pd.Int64Index)
+        # TODO is ffilling correct/necessary?
+        # Forward fill prices
         self.data = data.fillna(method='ffill')
         # Unpack config dictionary with default values.
         self.start = kwargs.get('start', self.data.index[0])
         self.end = kwargs.get('end', self.data.index[-1])
-
-        # Remap sids based on the trading environment
-        env.update_asset_finder(
-            identifiers=kwargs.get('sids', self.data.columns)
-        )
-        self.data.columns, _ = env.asset_finder.lookup_generic(
-            self.data.columns, datetime.datetime.now()
-        )
         self.sids = self.data.columns
 
         # Hash_value for downstream sorting.
@@ -118,20 +111,15 @@ class DataPanelSource(DataSource):
     @with_environment()
     def __init__(self, data, env=None, **kwargs):
         assert isinstance(data.major_axis, pd.tseries.index.DatetimeIndex)
-
+        # Only accept integer SIDs as the items of the Panel
+        assert isinstance(data.items, pd.Int64Index)
+        # TODO is ffilling correct/necessary?
+        # forward fill with volumes of 0
         self.data = data.fillna(value={'volume': 0})
         self.data = self.data.fillna(method='ffill')
         # Unpack config dictionary with default values.
         self.start = kwargs.get('start', self.data.major_axis[0])
         self.end = kwargs.get('end', self.data.major_axis[-1])
-
-        # Remap sids based on the trading environment
-        env.update_asset_finder(
-            identifiers=kwargs.get('sids', self.data.items)
-        )
-        self.data.items, _ = env.asset_finder.lookup_generic(
-            self.data.items, datetime.datetime.now()
-        )
         self.sids = self.data.items
 
         # Hash_value for downstream sorting.

@@ -18,6 +18,7 @@ from itertools import chain
 from numbers import Integral
 import numpy as np
 import operator
+import warnings
 
 from logbook import Logger
 import pandas as pd
@@ -530,6 +531,30 @@ class AssetFinder(object):
         for obj in iterator:
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
+
+    def map_identifier_list_to_sids(self, index, as_of_date):
+        """
+        This method is for use in sanitizing a user's DataFrame inputs.
+        Takes the given indices, inserts them in to the AssetFinder as
+        identifiers, rebuilds the Assets, and returns a new object that
+        contains the sids of the given identifiers.
+
+        :param index: The index to be mapped
+        :return: The new index of sids
+        """
+        # Populate the caches with the given indices
+        self.consume_identifiers(index)
+        self.populate_cache()
+
+        # Find all of the newly built assets corresponding to the indices
+        found, missing = self.lookup_generic(index, as_of_date)
+
+        # Handle missing assets
+        if len(missing) > 0:
+            warnings.warn("Missing assets for identifiers: " + missing)
+
+        # Return a list of the sids of the found assets
+        return [asset.sid for asset in found]
 
     def insert_metadata(self, identifier, **kwargs):
         """

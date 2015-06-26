@@ -98,7 +98,7 @@ class TestTALIB(TestCase):
         zipline_transforms = [ta.MA(timeperiod=10),
                               ta.MA(timeperiod=25)]
         talib_fn = talib.abstract.MA
-        algo = TALIBAlgorithm(talib=zipline_transforms)
+        algo = TALIBAlgorithm(talib=zipline_transforms, identifiers=[0])
         algo.run(self.source)
         # Test if computed values match those computed by pandas rolling mean.
         sid = 0

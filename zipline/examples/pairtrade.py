@@ -23,7 +23,6 @@ import pytz
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import batch_transform
 from zipline.utils.factory import load_from_yahoo
-from zipline.sources.data_frame_source import DataFrameSource
 
 
 @batch_transform
@@ -121,10 +120,9 @@ if __name__ == '__main__':
     end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},
                            start=start, end=end)
-    source = DataFrameSource(data)
 
     pairtrade = Pairtrade()
-    results = pairtrade.run(source)
+    results = pairtrade.run(data)
     data['spreads'] = np.nan
 
     ax1 = plt.subplot(211)

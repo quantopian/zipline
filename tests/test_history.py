@@ -437,7 +437,7 @@ def handle_data(context, data):
 
         _, df = factory.create_test_df_source(sim_params)
         df = df.astype(np.float64)
-        source = DataFrameSource(df, sids=[0])
+        source = DataFrameSource(df)
 
         test_algo = TradingAlgorithm(
             script=algo_text,

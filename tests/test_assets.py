@@ -718,3 +718,25 @@ class AssetFinderTestCase(TestCase):
 
         # No contracts exist after 12/14/2015, so we should get none
         self.assertIsNone(finder.lookup_future_by_expiration('AD', dt, jan_16))
+
+    def test_map_identifier_list_to_sids(self):
+
+        # Build an empty finder and some Assets
+        dt = pd.Timestamp('2014-01-01', tz='UTC')
+        finder = AssetFinder()
+        asset1 = Equity(1, symbol="AAPL")
+        asset2 = Equity(2, symbol="GOOG")
+        asset200 = Future(200, symbol="CLK15")
+        asset201 = Future(201, symbol="CLM15")
+
+        # Check for correct mapping and types
+        pre_map = [asset1, asset2, asset200, asset201]
+        post_map = finder.map_identifier_list_to_sids(pre_map, dt)
+        self.assertListEqual([1, 2, 200, 201], post_map)
+        for sid in post_map:
+            self.assertIsInstance(sid, int)
+
+        # Change order and check mapping again
+        pre_map = [asset201, asset2, asset200, asset1]
+        post_map = finder.map_identifier_list_to_sids(pre_map, dt)
+        self.assertListEqual([201, 2, 200, 1], post_map)
