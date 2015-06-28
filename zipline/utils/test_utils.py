@@ -119,18 +119,6 @@ class ExceptionSource(object):
 
 
 @contextmanager
-def nullctx():
-    """
-    Null context manager.  Useful for conditionally adding a contextmanager in
-    a single line, e.g.:
-
-    with SomeContextManager() if some_expr else nullctx():
-        do_stuff()
-    """
-    yield
-
-
-@contextmanager
 def security_list_copy():
     old_dir = security_list.SECURITY_LISTS_DIR
     new_dir = tempfile.mkdtemp()

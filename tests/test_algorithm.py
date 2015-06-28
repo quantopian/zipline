@@ -23,8 +23,8 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
-    nullctx,
     setup_logger,
     teardown_logger
 )
