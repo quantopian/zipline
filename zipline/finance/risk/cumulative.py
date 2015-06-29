@@ -38,7 +38,7 @@ from . risk import (
 log = logbook.Logger('Risk Cumulative')
 
 
-choose_treasury = functools.partial(choose_treasury, lambda *args: '10year',
+choose_treasury = functools.partial(choose_treasury, lambda *args: '3month',
                                     compound=False)
 
 
