@@ -581,19 +581,22 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             0: {
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
 
         }
@@ -602,13 +605,12 @@ class AssetFinderTestCase(TestCase):
         dt = pd.Timestamp('2015-06-19', tz='UTC')
 
         # Check that the primary and secondary contracts are as expected
-        primary = finder.lookup_future_in_chain('AD', dt, 1)
-        secondary = finder.lookup_future_in_chain('AD', dt, 2)
+        primary = finder.lookup_future_in_chain('AD', dt, 0)
+        secondary = finder.lookup_future_in_chain('AD', dt, 1)
         self.assertEqual(primary.sid, 1)
         self.assertEqual(secondary.sid, 0)
 
         # Check that we get None for an invalid contract num
-        self.assertIsNone(finder.lookup_future_in_chain('AD', dt, 0))
         self.assertIsNone(finder.lookup_future_in_chain('AD', dt, -10))
         self.assertIsNone(finder.lookup_future_in_chain('AD', dt, 10))
         self.assertIsNone(finder.lookup_future_in_chain('CL', dt, 1))
@@ -619,19 +621,32 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
+            # Starts trading today, so should be valid.
             0: {
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-06-19', tz='UTC')
+            },
+            # Copy of the above future, but starts trading in August,
+            # so it isn't valid.
+            3: {
+                'symbol': 'ADF16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
 
         }
@@ -652,19 +667,22 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             0: {
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC')
+                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
 
         }

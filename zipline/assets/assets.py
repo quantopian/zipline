@@ -247,7 +247,8 @@ class AssetFinder(object):
         """
         try:
             return [c for c in self.future_chains_cache[root_symbol]
-                    if c.expiration_date > as_of_date]
+                    if c.expiration_date and (c.expiration_date > as_of_date)
+                    and c.start_date and (c.start_date <= as_of_date)]
         except KeyError:
             return None
 
@@ -269,7 +270,7 @@ class AssetFinder(object):
         as_of_date = normalize_date(as_of_date)
         return self._valid_contracts(root_symbol, as_of_date)
 
-    def lookup_future_in_chain(self, root_symbol, as_of_date, contract_num=1):
+    def lookup_future_in_chain(self, root_symbol, as_of_date, contract_num=0):
         """ Find a specific contract in the futures chain for a given
         root symbol.
 
@@ -293,11 +294,10 @@ class AssetFinder(object):
         as_of_date = normalize_date(as_of_date)
 
         valid_contracts = self._valid_contracts(root_symbol, as_of_date)
-        contract_index = contract_num - 1
 
-        if valid_contracts and contract_index >= 0:
+        if valid_contracts and contract_num >= 0:
             try:
-                return valid_contracts[contract_index]
+                return valid_contracts[contract_num]
             except IndexError:
                 pass
 
