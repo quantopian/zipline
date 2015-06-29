@@ -26,9 +26,17 @@ try:
     nanmean = bn.nanmean
     nanstd = bn.nanstd
     nansum = bn.nansum
+    nanmax = bn.nanmax
+    nanmin = bn.nanmin
+    nanargmax = bn.nanargmax
+    nanargmin = bn.nanargmin
 except ImportError:
     # slower numpy
     import numpy as np
     nanmean = np.nanmean
     nanstd = np.nanstd
     nansum = np.nansum
+    nanmax = np.nanmax
+    nanmin = np.nanmin
+    nanargmax = np.nanargmax
+    nanargmin = np.nanargmin
