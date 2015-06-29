@@ -32,6 +32,7 @@ from zipline.errors import (
     SidAssignmentError,
     SidNotFound,
     SymbolNotFound,
+    MapAssetIdentifierIndexError,
 )
 from zipline.assets._assets import (
     Asset, Equity, Future
@@ -532,29 +533,57 @@ class AssetFinder(object):
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
-    def map_identifier_list_to_sids(self, index, as_of_date):
+    def map_identifier_index_to_sids(self, index, as_of_date):
         """
-        This method is for use in sanitizing a user's DataFrame inputs.
-        Takes the given indices, inserts them in to the AssetFinder as
-        identifiers, rebuilds the Assets, and returns a new object that
-        contains the sids of the given identifiers.
+        This method is for use in sanitizing a user's DataFrame or Panel
+        inputs.
 
-        :param index: The index to be mapped
-        :return: The new index of sids
+        Takes the given index of identifiers, checks their types, builds assets
+        if necessary, and returns a list of the sids that correspond to the
+        input index.
+
+        Parameters
+        __________
+        index : Iterable
+            An iterable containing ints, strings, or Assets
+        as_of_date : pandas.Timestamp
+            A date to be used to resolve any dual-mapped symbols
+
+        Returns
+        _______
+        List
+            A list of integer sids corresponding to the input index
         """
-        # Populate the caches with the given indices
+        # This method assumes that the type of the objects in the index is
+        # consistent and can, therefore, be taken from the first identifier
+        first_identifier = index[0]
+
+        # Ensure that input is AssetConvertible (integer, string, or Asset)
+        if not isinstance(first_identifier, AssetConvertible):
+            raise MapAssetIdentifierIndexError(obj=first_identifier)
+
+        # If sids are provided, no mapping is necessary
+        if isinstance(first_identifier, Integral):
+            return index
+
+        # If symbols or Assets are provided, construction and mapping is
+        # necessary
         self.consume_identifiers(index)
         self.populate_cache()
 
-        # Find all of the newly built assets corresponding to the indices
-        found, missing = self.lookup_generic(index, as_of_date)
+        # Look up all Assets for mapping
+        matches = []
+        missing = []
+        for identifier in index:
+            self._lookup_generic_scalar(identifier, as_of_date,
+                                        matches, missing)
 
         # Handle missing assets
         if len(missing) > 0:
             warnings.warn("Missing assets for identifiers: " + missing)
 
         # Return a list of the sids of the found assets
-        return [asset.sid for asset in found]
+        return [asset.sid for asset in matches]
 
     def insert_metadata(self, identifier, **kwargs):
         """

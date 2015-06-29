@@ -246,12 +246,23 @@ TradingEnvironment can not set asset_finder to object of class {cls}.
 
 class ConsumeAssetMetaDataError(ZiplineError):
     """
-    Raised when AssetMetaData.consume() is called on an invalid object.
+    Raised when AssetFinder.consume() is called on an invalid object.
     """
     msg = """
 AssetFinder can not consume metadata of type {obj}. Metadata must be a dict, a
 DataFrame, or a tables.Table. If the provided metadata is a Table, the rows
 must contain both or one of 'sid' or 'symbol'.
+""".strip()
+
+
+class MapAssetIdentifierIndexError(ZiplineError):
+    """
+    Raised when AssetMetaData.map_identifier_index_to_sids() is called on an
+    index of invalid objects.
+    """
+    msg = """
+AssetFinder can not map an index with values of type {obj}. Asset indices of
+DataFrames or Panels must be integer sids, string symbols, or Asset objects.
 """.strip()
 
 

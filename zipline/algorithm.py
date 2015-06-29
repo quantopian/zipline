@@ -463,16 +463,17 @@ class TradingAlgorithm(object):
             # if DataFrame provided, map columns to sids and wrap
             # in DataFrameSource
             copy_frame = source.copy()
-            copy_frame.columns = self.asset_finder.map_identifier_list_to_sids(
-                source.columns, source.index[0]
-            )
+            copy_frame.columns = \
+                self.asset_finder.map_identifier_index_to_sids(
+                    source.columns, source.index[0]
+                )
             source = DataFrameSource(copy_frame)
 
         elif isinstance(source, pd.Panel):
             # If Panel provided, map items to sids and wrap
             # in DataPanelSource
             copy_panel = source.copy()
-            copy_panel.items = self.asset_finder.map_identifier_list_to_sids(
+            copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
                 source.items, source.major_axis[0]
             )
             source = DataPanelSource(copy_panel)

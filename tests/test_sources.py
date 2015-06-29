@@ -76,7 +76,7 @@ class TestDataFrameSource(TestCase):
                         'volume', 'price']
 
         copy_panel = data.copy()
-        sids = finder.map_identifier_list_to_sids(
+        sids = finder.map_identifier_index_to_sids(
             data.items, data.major_axis[0]
         )
         copy_panel.items = sids
