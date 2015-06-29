@@ -318,7 +318,7 @@ class RiskMetricsPeriod(object):
         if self.algorithm_leverages is None:
             return 0.0
         else:
-            return max(self.algorithm_leverages.values)
+            return max(self.algorithm_leverages)
 
     def __getstate__(self):
         state_dict = \

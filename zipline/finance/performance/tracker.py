@@ -481,8 +481,12 @@ class PerformanceTracker(object):
         log.info("last close: {d}".format(
             d=self.sim_params.last_close))
 
-        bms = self.cumulative_risk_metrics.benchmark_returns
-        ars = self.cumulative_risk_metrics.algorithm_returns
+        bms = pd.Series(
+            index=self.cumulative_risk_metrics.cont_index,
+            data=self.cumulative_risk_metrics.benchmark_returns_cont)
+        ars = pd.Series(
+            index=self.cumulative_risk_metrics.cont_index,
+            data=self.cumulative_risk_metrics.algorithm_returns_cont)
         acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
         self.risk_report = risk.RiskReport(
             ars,

@@ -153,9 +153,10 @@ class TestEventsThroughRisk(unittest.TestCase):
         for bar in gen:
             current_dt = algo.datetime
             crm = algo.perf_tracker.cumulative_risk_metrics
+            dt_loc = crm.cont_index.get_loc(current_dt)
 
             np.testing.assert_almost_equal(
-                crm.algorithm_returns[current_dt],
+                crm.algorithm_returns[dt_loc],
                 expected_algorithm_returns[current_dt],
                 decimal=6)
 

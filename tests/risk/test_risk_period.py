@@ -61,7 +61,7 @@ class TestRisk(unittest.TestCase):
         self.metrics_06 = risk.RiskReport(
             self.algo_returns_06,
             self.sim_params,
-            benchmark_returns=self.benchmark_returns_06,
+            benchmark_returns=self.benchmark_returns_06
         )
 
         start_08 = datetime.datetime(

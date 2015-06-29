@@ -112,7 +112,8 @@ class TestRisk(unittest.TestCase):
 
     def test_max_drawdown_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.max_drawdown.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                self.cumulative_metrics_06.max_drawdowns[dt],
+                self.cumulative_metrics_06.max_drawdowns[dt_loc],
                 value,
                 err_msg="Mismatch at %s" % (dt,))

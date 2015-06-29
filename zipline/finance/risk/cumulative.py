@@ -141,15 +141,17 @@ class RiskMetricsCumulative(object):
             cont_index = self.get_minute_index(sim_params)
 
         self.cont_index = cont_index
+        self.cont_len = len(self.cont_index)
 
-        self.algorithm_returns_cont = pd.Series(index=cont_index)
-        self.benchmark_returns_cont = pd.Series(index=cont_index)
-        self.algorithm_cumulative_leverages_cont = pd.Series(index=cont_index)
-        self.mean_returns_cont = pd.Series(index=cont_index)
-        self.annualized_mean_returns_cont = pd.Series(index=cont_index)
-        self.mean_benchmark_returns_cont = pd.Series(index=cont_index)
-        self.annualized_mean_benchmark_returns_cont = pd.Series(
-            index=cont_index)
+        empty_cont = np.empty(self.cont_len) * np.nan
+
+        self.algorithm_returns_cont = empty_cont.copy()
+        self.benchmark_returns_cont = empty_cont.copy()
+        self.algorithm_cumulative_leverages_cont = empty_cont.copy()
+        self.mean_returns_cont = empty_cont.copy()
+        self.annualized_mean_returns_cont = empty_cont.copy()
+        self.mean_benchmark_returns_cont = empty_cont.copy()
+        self.annualized_mean_benchmark_returns_cont = empty_cont.copy()
 
         # The returns at a given time are read and reset from the respective
         # returns container.
@@ -160,21 +162,22 @@ class RiskMetricsCumulative(object):
         self.mean_benchmark_returns = None
         self.annualized_mean_benchmark_returns = None
 
-        self.algorithm_cumulative_returns = pd.Series(index=cont_index)
-        self.benchmark_cumulative_returns = pd.Series(index=cont_index)
-        self.algorithm_cumulative_leverages = pd.Series(index=cont_index)
-        self.excess_returns = pd.Series(index=cont_index)
+        self.algorithm_cumulative_returns = empty_cont.copy()
+        self.benchmark_cumulative_returns = empty_cont.copy()
+        self.algorithm_cumulative_leverages = empty_cont.copy()
+        self.excess_returns = empty_cont.copy()
 
+        self.latest_dt_loc = 0
         self.latest_dt = cont_index[0]
 
         self.metrics = pd.DataFrame(index=cont_index,
                                     columns=self.METRIC_NAMES,
                                     dtype=float)
 
-        self.drawdowns = pd.Series(index=cont_index)
-        self.max_drawdowns = pd.Series(index=cont_index)
+        self.drawdowns = empty_cont.copy()
+        self.max_drawdowns = empty_cont.copy()
         self.max_drawdown = 0
-        self.max_leverages = pd.Series(index=cont_index)
+        self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.trading_days)
@@ -204,81 +207,77 @@ class RiskMetricsCumulative(object):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
+        dt_loc = self.cont_index.get_loc(dt)
+        self.latest_dt_loc = dt_loc
 
-        self.algorithm_returns_cont[dt] = algorithm_returns
-        self.algorithm_returns = self.algorithm_returns_cont[:dt]
+        self.algorithm_returns_cont[dt_loc] = algorithm_returns
+        self.algorithm_returns = self.algorithm_returns_cont[:dt_loc + 1]
 
         self.num_trading_days = len(self.algorithm_returns)
 
         if self.create_first_day_stats:
             if len(self.algorithm_returns) == 1:
-                self.algorithm_returns = pd.Series(
-                    {self.day_before_start: 0.0}).append(
-                    self.algorithm_returns)
+                self.algorithm_returns = np.append(0.0, self.algorithm_returns)
 
-        self.algorithm_cumulative_returns[dt] = \
+        self.algorithm_cumulative_returns[dt_loc] = \
             self.calculate_cumulative_returns(self.algorithm_returns)
 
         algo_cumulative_returns_to_date = \
-            self.algorithm_cumulative_returns[:dt]
+            self.algorithm_cumulative_returns[:dt_loc + 1]
 
-        self.mean_returns_cont[dt] = \
-            algo_cumulative_returns_to_date[dt] / self.num_trading_days
+        self.mean_returns_cont[dt_loc] = \
+            algo_cumulative_returns_to_date[dt_loc] / self.num_trading_days
 
-        self.mean_returns = self.mean_returns_cont[:dt]
+        self.mean_returns = self.mean_returns_cont[:dt_loc + 1]
 
-        self.annualized_mean_returns_cont[dt] = \
-            self.mean_returns_cont[dt] * 252
+        self.annualized_mean_returns_cont[dt_loc] = \
+            self.mean_returns_cont[dt_loc] * 252
 
-        self.annualized_mean_returns = self.annualized_mean_returns_cont[:dt]
+        self.annualized_mean_returns = \
+            self.annualized_mean_returns_cont[:dt_loc + 1]
 
         if self.create_first_day_stats:
             if len(self.mean_returns) == 1:
-                self.mean_returns = pd.Series(
-                    {self.day_before_start: 0.0}).append(self.mean_returns)
-                self.annualized_mean_returns = pd.Series(
-                    {self.day_before_start: 0.0}).append(
-                    self.annualized_mean_returns)
+                self.mean_returns = np.append(0.0, self.mean_returns)
+                self.annualized_mean_returns = np.append(
+                    0.0, self.annualized_mean_returns)
 
-        self.benchmark_returns_cont[dt] = benchmark_returns
-        self.benchmark_returns = self.benchmark_returns_cont[:dt]
+        self.benchmark_returns_cont[dt_loc] = benchmark_returns
+        self.benchmark_returns = self.benchmark_returns_cont[:dt_loc + 1]
 
         if self.create_first_day_stats:
             if len(self.benchmark_returns) == 1:
-                self.benchmark_returns = pd.Series(
-                    {self.day_before_start: 0.0}).append(
-                    self.benchmark_returns)
+                self.benchmark_returns = np.append(0.0, self.benchmark_returns)
 
-        self.benchmark_cumulative_returns[dt] = \
+        self.benchmark_cumulative_returns[dt_loc] = \
             self.calculate_cumulative_returns(self.benchmark_returns)
 
         benchmark_cumulative_returns_to_date = \
-            self.benchmark_cumulative_returns[:dt]
+            self.benchmark_cumulative_returns[:dt_loc + 1]
 
-        self.mean_benchmark_returns_cont[dt] = \
-            benchmark_cumulative_returns_to_date[dt] / self.num_trading_days
+        self.mean_benchmark_returns_cont[dt_loc] = \
+            benchmark_cumulative_returns_to_date[dt_loc] / \
+            self.num_trading_days
 
-        self.mean_benchmark_returns = self.mean_benchmark_returns_cont[:dt]
+        self.mean_benchmark_returns = self.mean_benchmark_returns_cont[:dt_loc]
 
-        self.annualized_mean_benchmark_returns_cont[dt] = \
-            self.mean_benchmark_returns_cont[dt] * 252
+        self.annualized_mean_benchmark_returns_cont[dt_loc] = \
+            self.mean_benchmark_returns_cont[dt_loc] * 252
 
         self.annualized_mean_benchmark_returns = \
-            self.annualized_mean_benchmark_returns_cont[:dt]
+            self.annualized_mean_benchmark_returns_cont[:dt_loc + 1]
 
-        self.algorithm_cumulative_leverages_cont[dt] = account['leverage']
+        self.algorithm_cumulative_leverages_cont[dt_loc] = account['leverage']
         self.algorithm_cumulative_leverages = \
-            self.algorithm_cumulative_leverages_cont[:dt]
+            self.algorithm_cumulative_leverages_cont[:dt_loc + 1]
 
         if self.create_first_day_stats:
             if len(self.algorithm_cumulative_leverages) == 1:
-                self.algorithm_cumulative_leverages = pd.Series(
-                    {self.day_before_start: 0.0}).append(
+                self.algorithm_cumulative_leverages = np.append(
+                    0.0,
                     self.algorithm_cumulative_leverages)
 
-        if not self.algorithm_returns.index.equals(
-            self.benchmark_returns.index
-        ):
+        if not len(self.algorithm_returns) and len(self.benchmark_returns):
             message = "Mismatch between benchmark_returns ({bm_count}) and \
 algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             message = message.format(
@@ -291,9 +290,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             raise Exception(message)
 
         self.update_current_max()
-        self.metrics.benchmark_volatility[dt] = \
+        self.metrics.benchmark_volatility.iloc[dt_loc] = \
             self.calculate_volatility(self.benchmark_returns)
-        self.metrics.algorithm_volatility[dt] = \
+        self.metrics.algorithm_volatility.iloc[dt_loc] = \
             self.calculate_volatility(self.algorithm_returns)
 
         # caching the treasury rates for the minutely case is a
@@ -309,19 +308,20 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             )
             self.daily_treasury[treasury_end] = treasury_period_return
         self.treasury_period_return = self.daily_treasury[treasury_end]
-        self.excess_returns[self.latest_dt] = (
-            self.algorithm_cumulative_returns[self.latest_dt] -
+        self.excess_returns[dt_loc] = (
+            self.algorithm_cumulative_returns[dt_loc] -
             self.treasury_period_return)
-        self.metrics.beta[dt] = self.calculate_beta()
-        self.metrics.alpha[dt] = self.calculate_alpha()
-        self.metrics.sharpe[dt] = self.calculate_sharpe()
-        self.metrics.downside_risk[dt] = self.calculate_downside_risk()
-        self.metrics.sortino[dt] = self.calculate_sortino()
-        self.metrics.information[dt] = self.calculate_information()
+        self.metrics.beta.iloc[dt_loc] = self.calculate_beta()
+        self.metrics.alpha.iloc[dt_loc] = self.calculate_alpha()
+        self.metrics.sharpe.iloc[dt_loc] = self.calculate_sharpe()
+        self.metrics.downside_risk.iloc[dt_loc] = \
+            self.calculate_downside_risk()
+        self.metrics.sortino.iloc[dt_loc] = self.calculate_sortino()
+        self.metrics.information.iloc[dt_loc] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
-        self.max_drawdowns[dt] = self.max_drawdown
+        self.max_drawdowns[dt_loc] = self.max_drawdown
         self.max_leverage = self.calculate_max_leverage()
-        self.max_leverages[dt] = self.max_leverage
+        self.max_leverages[dt_loc] = self.max_leverage
 
     def to_dict(self):
         """
@@ -329,24 +329,29 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         Returns a dict object of the form:
         """
         dt = self.latest_dt
+        dt_loc = self.latest_dt_loc
         period_label = dt.strftime("%Y-%m")
         rval = {
             'trading_days': self.num_trading_days,
-            'benchmark_volatility': self.metrics.benchmark_volatility[dt],
-            'algo_volatility': self.metrics.algorithm_volatility[dt],
+            'benchmark_volatility':
+            self.metrics.benchmark_volatility.iloc[dt_loc],
+            'algo_volatility':
+            self.metrics.algorithm_volatility.iloc[dt_loc],
             'treasury_period_return': self.treasury_period_return,
             # Though the two following keys say period return,
             # they would be more accurately called the cumulative return.
             # However, the keys need to stay the same, for now, for backwards
             # compatibility with existing consumers.
-            'algorithm_period_return': self.algorithm_cumulative_returns[dt],
-            'benchmark_period_return': self.benchmark_cumulative_returns[dt],
-            'beta': self.metrics.beta[dt],
-            'alpha': self.metrics.alpha[dt],
-            'sharpe': self.metrics.sharpe[dt],
-            'sortino': self.metrics.sortino[dt],
-            'information': self.metrics.information[dt],
-            'excess_return': self.excess_returns[dt],
+            'algorithm_period_return':
+            self.algorithm_cumulative_returns[dt_loc],
+            'benchmark_period_return':
+            self.benchmark_cumulative_returns[dt_loc],
+            'beta': self.metrics.beta.iloc[dt_loc],
+            'alpha': self.metrics.alpha.iloc[dt_loc],
+            'sharpe': self.metrics.sharpe.iloc[dt_loc],
+            'sortino': self.metrics.sortino.iloc[dt_loc],
+            'information': self.metrics.information.iloc[dt_loc],
+            'excess_return': self.excess_returns[dt_loc],
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,
             'period_label': period_label
@@ -375,7 +380,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         if len(self.algorithm_cumulative_returns) == 0:
             return
         current_cumulative_return = \
-            self.algorithm_cumulative_returns[self.latest_dt]
+            self.algorithm_cumulative_returns[self.latest_dt_loc]
         if self.current_max < current_cumulative_return:
             self.current_max = current_cumulative_return
 
@@ -391,10 +396,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # exceed the previous max_drawdown iff the current return is lower than
         # the previous low in the current drawdown window.
         cur_drawdown = 1.0 - (
-            (1.0 + self.algorithm_cumulative_returns[self.latest_dt]) /
+            (1.0 + self.algorithm_cumulative_returns[self.latest_dt_loc])
+            /
             (1.0 + self.current_max))
 
-        self.drawdowns[self.latest_dt] = cur_drawdown
+        self.drawdowns[self.latest_dt_loc] = cur_drawdown
 
         if self.max_drawdown < cur_drawdown:
             return cur_drawdown
@@ -405,7 +411,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # The leverage is defined as: the gross_exposure/net_liquidation
         # gross_exposure = long_exposure + abs(short_exposure)
         # net_liquidation = ending_cash + long_exposure + short_exposure
-        cur_leverage = self.algorithm_cumulative_leverages[self.latest_dt]
+        cur_leverage = self.algorithm_cumulative_leverages_cont[
+            self.latest_dt_loc]
 
         return max(cur_leverage, self.max_leverage)
 
@@ -413,35 +420,38 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe_ratio(self.metrics.algorithm_volatility[self.latest_dt],
-                            self.annualized_mean_returns[self.latest_dt],
-                            self.daily_treasury[self.latest_dt.date()])
+        return sharpe_ratio(
+            self.metrics.algorithm_volatility[self.latest_dt_loc],
+            self.annualized_mean_returns_cont[self.latest_dt_loc],
+            self.daily_treasury[self.latest_dt.date()])
 
     def calculate_sortino(self):
         """
         http://en.wikipedia.org/wiki/Sortino_ratio
         """
-        return sortino_ratio(self.annualized_mean_returns[self.latest_dt],
-                             self.daily_treasury[self.latest_dt.date()],
-                             self.metrics.downside_risk[self.latest_dt])
+        return sortino_ratio(
+            self.annualized_mean_returns_cont[self.latest_dt_loc],
+            self.daily_treasury[self.latest_dt.date()],
+            self.metrics.downside_risk[self.latest_dt_loc])
 
     def calculate_information(self):
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
         return information_ratio(
-            self.metrics.algorithm_volatility[self.latest_dt],
-            self.annualized_mean_returns[self.latest_dt],
-            self.annualized_mean_benchmark_returns[self.latest_dt])
+            self.metrics.algorithm_volatility[self.latest_dt_loc],
+            self.annualized_mean_returns_cont[self.latest_dt_loc],
+            self.annualized_mean_benchmark_returns_cont[self.latest_dt_loc])
 
     def calculate_alpha(self):
         """
         http://en.wikipedia.org/wiki/Alpha_(investment)
         """
-        return alpha(self.annualized_mean_returns[self.latest_dt],
-                     self.treasury_period_return,
-                     self.annualized_mean_benchmark_returns[self.latest_dt],
-                     self.metrics.beta[self.latest_dt])
+        return alpha(
+            self.annualized_mean_returns_cont[self.latest_dt_loc],
+            self.treasury_period_return,
+            self.annualized_mean_benchmark_returns_cont[self.latest_dt_loc],
+            self.metrics.beta.iloc[self.latest_dt_loc])
 
     def calculate_volatility(self, daily_returns):
         if len(daily_returns) <= 1:
@@ -449,8 +459,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return np.std(daily_returns, ddof=1) * math.sqrt(252)
 
     def calculate_downside_risk(self):
-        return downside_risk(self.algorithm_returns.values,
-                             self.mean_returns.values,
+        return downside_risk(self.algorithm_returns,
+                             self.mean_returns,
                              252)
 
     def calculate_beta(self):
