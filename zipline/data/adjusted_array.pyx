@@ -106,10 +106,11 @@ cdef class Float64AdjustedArray(AdjustedArray):
         cdef Py_ssize_t row, col
 
         if mask is not NOMASK:
-            PyObject_RichCompare(mask.shape, data.shape, Py_EQ)
+            assert PyObject_RichCompare(mask.shape, data.shape, Py_EQ)
             for row in range(mask.shape[0]):
                 for col in range(mask.shape[1]):
-                    data[row, col] = NAN
+                    if mask[row, col]:
+                        data[row, col] = NAN
 
         self._data = data
         self.adjustments = adjustments

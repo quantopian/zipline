@@ -14,6 +14,7 @@ from networkx import (
 )
 
 from zipline.data.adjusted_array import ensure_ndarray
+from zipline.utils.lazyval import lazyval
 
 
 def build_dependency_graph(filters, classifiers, factors):
@@ -104,6 +105,7 @@ class SimpleFFCEngine(object):
     __slots__ = [
         '_loader',
         '_calendar',
+        '_finder',
         '_filters',
         '_classifiers',
         '_factors',
@@ -111,12 +113,14 @@ class SimpleFFCEngine(object):
         '_graph',
         '_resolution_order',
         '_extra_row_counts',
+        '__weakref__',
     ]
 
-    def __init__(self, loader, calendar):
+    def __init__(self, loader, calendar, asset_finder):
 
         self._loader = loader
         self._calendar = calendar
+        self._finder = asset_finder
 
         self._filters = []
         self._classifiers = []
@@ -171,6 +175,15 @@ class SimpleFFCEngine(object):
         """
         return self._extra_row_counts[term]
 
+    @lazyval
+    @require_frozen
+    def max_extra_rows(self):
+        """
+        The maxiumum number of extra rows required by any of our terms.
+        """
+        return max(self._extra_row_counts.values())
+
+    @require_frozen
     def _date_slice_bounds(self, start_date, end_date):
         """
         Helper for compute_chunk.
@@ -182,7 +195,8 @@ class SimpleFFCEngine(object):
         calendar = self._calendar
         start_date_idx = calendar.get_loc(start_date)
         end_date_idx = calendar.get_loc(end_date)
-        max_extra_rows = max(self._extra_row_counts.values())
+        max_extra_rows = self.max_extra_rows
+
         if start_date_idx < max_extra_rows:
             # TODO: Use NoFurtherDataError from trading.py
             raise ValueError(
@@ -228,41 +242,64 @@ class SimpleFFCEngine(object):
             ]
 
     @require_frozen
-    def compute_chunk(self, start_date, end_date, assets):
+    def build_lifetimes_matrix(self, start_date, end_date):
+        """
+        Compute a lifetimes matrix from our AssetFinder, then drop columns that
+        didn't exist at all during the query dates.
+        """
+        calendar = self._calendar
+        finder = self._finder
+        max_extra_rows = self.max_extra_rows
+        start_idx, end_idx = self._date_slice_bounds(start_date, end_date)
+
+        # Build lifetimes matrix reaching back as far start_date plus
+        # max_extra_rows.
+        lifetimes = finder.lifetimes(
+            calendar[start_idx - max_extra_rows:end_idx]
+        )
+        assert lifetimes.index[max_extra_rows] == start_date
+        assert lifetimes.index[-1] == end_date
+
+        # Filter out columns that didn't exist between the requested start and
+        # end dates.
+        existed = lifetimes.iloc[max_extra_rows:].any()
+        return lifetimes.loc[:, existed]
+
+    @require_frozen
+    def compute_chunk(self, start_date, end_date):
         """
         Compute our factors on a chunk of assets and dates.
         """
         loader = self._loader
-        calendar = self._calendar
         workspace = {term: None for term in self._resolution_order}
-        start_idx, end_idx = self._date_slice_bounds(start_date, end_date)
+
+        max_extra_rows = self.max_extra_rows
+        lifetimes = self.build_lifetimes_matrix(start_date, end_date)
 
         for term in self._resolution_order:
-            dates = calendar[start_idx - self.extra_row_count(term):end_idx]
+            offset = max_extra_rows - self.extra_row_count(term)
+            lifetimes_for_term = lifetimes.iloc[offset:]
             if term.atomic:
                 # FUTURE OPTIMIZATION: Scan the resolution order for terms in
                 # the same dataset and load them here as well.
                 to_load = [term]
                 loaded = loader.load_adjusted_array(
                     to_load,
-                    dates,
-                    assets,
+                    # TODO: Pass lifetimes matrix to loaders?
+                    lifetimes_for_term.index,
+                    lifetimes_for_term.columns,
                 )
                 for loaded_term, adj_array in izip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
             elif term.windowed:
                 workspace[term] = term.compute_from_windows(
                     self._inputs_for_term(term, workspace, windowed=True),
-                    term.dtype,
-                    dates,
-                    assets,
+                    lifetimes_for_term,
                 )
             else:
                 workspace[term] = term.compute_from_arrays(
                     self._inputs_for_term(term, workspace, windowed=False),
-                    term.dtype,
-                    dates,
-                    assets,
+                    lifetimes_for_term,
                 )
 
         return workspace

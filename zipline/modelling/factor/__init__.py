@@ -1,9 +1,11 @@
 from .factor import (
     Factor,
-    TestFactor,
+    TestingFactor,
+    CustomFactor,
 )
 
 __all__ = [
     'Factor',
-    'TestFactor',
+    'TestingFactor',
+    'CustomFactor',
 ]

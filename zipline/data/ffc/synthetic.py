@@ -7,6 +7,7 @@ from bcolz import ctable
 from numpy import (
     arange,
     array,
+    float64,
     full,
     iinfo,
     uint32,
@@ -144,7 +145,6 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
             asset_dates = calendar[
                 calendar.get_loc(start):calendar.get_loc(end) + 1
             ]
-
             opens, highs, lows, closes, volumes = self._make_raw_data(
                 asset_id,
                 asset_dates,
@@ -198,6 +198,46 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         from_colname = cls.OHLCV.index(colname) * (10 * 1000)
         from_date = (date - cls.PSEUDO_EPOCH).days
         return from_asset + from_colname + from_date
+
+    def asset_start(self, asset):
+        ret = self._asset_info.loc[asset]['start_date']
+        if ret.tz is None:
+            ret = ret.tz_localize('UTC')
+        assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+        return ret
+
+    def asset_end(self, asset):
+        ret = self._asset_info.loc[asset]['end_date']
+        if ret.tz is None:
+            ret = ret.tz_localize('UTC')
+        assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+        return ret
+
+    def expected_values_2d(self, dates, assets, colname):
+        """
+        Return an 2D array containing cls.expected_value(asset_id, date,
+        colname) for each date/asset pair in the inputs.
+
+        Values before/after an assets lifetime are filled with 0 for volume and
+        NaN for price columns.
+        """
+        if colname == 'volume':
+            dtype = uint32
+            missing = 0
+        else:
+            dtype = float64
+            missing = float('nan')
+
+        data = full((len(dates), len(assets)), missing, dtype=dtype)
+        for j, asset in enumerate(assets):
+            start, end = self.asset_start(asset), self.asset_end(asset)
+            for i, date in enumerate(dates):
+                # No value expected for dates outside the asset's start/end
+                # date.
+                if not (start <= date <= end):
+                    continue
+                data[i, j] = self.expected_value(asset, date, colname)
+        return data
 
     # BEGIN SUPERCLASS INTERFACE
     def gen_ctables(self, dates, assets):

@@ -4,15 +4,21 @@ factor.py
 from operator import attrgetter
 from numpy import (
     apply_along_axis,
-    empty,
-    intp,
+    float64,
+    nan,
 )
 from scipy.stats import rankdata
 
-from zipline.errors import UnknownRankMethod
+from zipline.errors import (
+    UnknownRankMethod,
+    UnsupportedDataType,
+)
 from zipline.modelling.computable import (
+    CustomTermMixin,
+    RequiredWindowLengthMixin,
     SingleInputMixin,
     Term,
+    TestingTermMixin,
 )
 from zipline.modelling.expression import (
     bad_op,
@@ -29,6 +35,8 @@ from zipline.modelling.filter import (
     NumExprFilter,
     PercentileFilter,
 )
+from zipline.utils.control_flow import nullctx
+
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
 
@@ -182,7 +190,9 @@ class Factor(Term):
     clsdict.update(
         {
             method_name_for_op(op): binary_operator(op)
-            for op in MATH_BINOPS.union(COMPARISONS)
+            # Don't override __eq__ because it breaks comparisons on tuples of
+            # Factors.
+            for op in MATH_BINOPS.union(COMPARISONS - {'=='})
         }
     )
     clsdict.update(
@@ -203,6 +213,8 @@ class Factor(Term):
             for funcname in NUMEXPR_MATH_FUNCS
         }
     )
+
+    eq = binary_operator('==')
 
     def rank(self, method='ordinal'):
         """
@@ -226,6 +238,9 @@ class Factor(Term):
         The default value for `method` is different from the default for
         `scipy.stats.rankdata`.  See that function's documentation for a full
         description of the valid inputs to `method`.
+
+        Missing or non-existent data will cause an asset to be given a rank of
+        NaN.
 
         See Also
         --------
@@ -261,7 +276,7 @@ class Factor(Term):
         )
 
 
-class NumExprFactor(Factor, NumericalExpression):
+class NumExprFactor(NumericalExpression, Factor):
     """
     Factor computed from a numexpr expression.
 
@@ -277,7 +292,7 @@ class NumExprFactor(Factor, NumericalExpression):
     pass
 
 
-class Rank(Factor, SingleInputMixin):
+class Rank(SingleInputMixin, Factor):
     """
     A Factor representing the row-wise rank data of another Factor.
 
@@ -290,11 +305,6 @@ class Rank(Factor, SingleInputMixin):
         `scipy.stats.rankdata` for a full description of the semantics for each
         ranking method.
 
-    Returns
-    -------
-    rank_factor : zipline.modelling.factor.Rank
-        A new factor that will compute row-wise ranks on the input data.
-
     See Also
     --------
     scipy.stats.rankdata : Underlying ranking algorithm.
@@ -302,7 +312,7 @@ class Rank(Factor, SingleInputMixin):
         Most users should call Factor.rank rather than directly construct an
         instance of this class.
     """
-    dtype = intp
+    dtype = float64
     window_length = 0
     domain = None
 
@@ -310,9 +320,6 @@ class Rank(Factor, SingleInputMixin):
         return super(Rank, cls).__new__(
             cls,
             inputs=(factor,),
-            window_length=0,
-            domain=cls.domain,
-            dtype=cls.dtype,
             method=method,
         )
 
@@ -336,8 +343,9 @@ class Rank(Factor, SingleInputMixin):
                 method=self._method,
                 choices=set(_RANK_METHODS),
             )
+        return super(Rank, self)._validate()
 
-    def compute_from_arrays(self, arrays, dtype, dates, assets):
+    def compute_from_arrays(self, arrays, mask):
         """
         For each row in the input, compute a like-shaped array of per-row
         ranks.
@@ -345,12 +353,20 @@ class Rank(Factor, SingleInputMixin):
         # FUTURE OPTIMIZATION:
         # Write a less general `apply_to_rows` method in
         # Cython that doesn't do all the extra work that apply_over_axis does.
-        return apply_along_axis(
+
+        # FUTURE OPTIMIZATION:
+        # Look at bottleneck.nanrankdata, which is ~30% faster than numpy here,
+        # and does what we want with NaNs, but doesn't support `method`.
+        result = apply_along_axis(
             rankdata,
             1,
             arrays[0],
             method=self._method,
         )
+        # rankdata will sort nan values into last place, but we want our nans
+        # to propagate, so explicitly re-apply
+        result[~mask.values] = nan
+        return result
 
     def __repr__(self):
         return "{type}({input_}, method='{method}')".format(
@@ -360,32 +376,27 @@ class Rank(Factor, SingleInputMixin):
         )
 
 
-class TestFactor(Factor):
+class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     """
-    Base testing engines that asserts all inputs are correctly shaped.
+    Base class for user-defined Factors operating on windows of raw data.
+
+    TODO: This is basically the most important class to document in the whole
+    FFC API...
+
+    We currently only support CustomFactors of type float64.
     """
+    dtype = float64
+    ctx = nullctx()
 
-    def compute_from_windows(self, windows, dtype, dates, assets):
-        assert self.window_length > 0
-        outbuf = empty((len(dates), len(assets)), dtype=dtype)
-        for idx, _ in enumerate(dates):
-            result = self.from_windows(*(next(w) for w in windows))
-            assert result.shape == (len(assets),)
-            outbuf[idx] = result
+    def _validate(self):
+        if self.dtype != float64:
+            raise UnsupportedDataType(self.dtype)
+        return super(CustomFactor, self)._validate()
 
-        for window in windows:
-            try:
-                next(window)
-            except StopIteration:
-                pass
-            else:
-                raise AssertionError("window %s was not exhausted" % window)
-        return outbuf
 
-    def compute_from_arrays(self, arrays, dtype, dates, assets):
-        assert self.window_length == 0
-        outbuf = empty((len(dates), len(assets)), dtype=dtype)
-        for array in arrays:
-            assert array.shape == outbuf.shape
-        outbuf[:] = self.from_arrays(*arrays)
-        return outbuf
+class TestingFactor(TestingTermMixin, Factor):
+    """
+    Base class for testing engines that asserts all inputs are correctly
+    shaped.
+    """
+    pass

@@ -2,12 +2,16 @@
 Base class for Filters, Factors and Classifiers
 """
 from numpy import (
+    empty,
     float64,
+    full,
+    nan,
 )
 
 from zipline.errors import (
     InputTermNotAtomic,
     TermInputsNotSpecified,
+    WindowLengthNotPositive,
     WindowLengthNotSpecified,
 )
 from zipline.utils.lazyval import lazyval
@@ -160,7 +164,10 @@ class Term(object):
         If term.windowed is falsey, its compute_from_baseline will be called
         with instances of np.ndarray as inputs.
         """
-        return self.window_length > 0
+        return (
+            self.window_length is not NotSpecified
+            and self.window_length > 0
+        )
 
     @lazyval
     def extra_input_rows(self):
@@ -206,14 +213,14 @@ class Term(object):
 
         parents.remove(self)
 
-    def compute_from_windows(self, windows, dtype, dates, assets):
+    def compute_from_windows(self, windows, mask):
         """
         Subclasses should implement this for computations requiring moving
-        windows.
+        windows of continually-adjusting data.
         """
         raise NotImplementedError()
 
-    def compute_from_arrays(self, arrays, dtype, dates, assets):
+    def compute_from_arrays(self, arrays, mask):
         """
         Subclasses should implement this for computations that can be expressed
         directly as array computations.
@@ -231,16 +238,100 @@ class Term(object):
         )
 
 
+# TODO: Move mixins to a separate file.
 class SingleInputMixin(object):
 
     def _validate(self):
         num_inputs = len(self.inputs)
         if num_inputs != 1:
             raise ValueError(
-                "{typename} expects inputs of length 1, "
+                "{typename} expects only one input, "
                 "but received {num_inputs} instead.".format(
                     typename=type(self).__name__,
                     num_inputs=num_inputs
                 )
             )
         return super(SingleInputMixin, self)._validate()
+
+
+class RequiredWindowLengthMixin(object):
+    def _validate(self):
+        if self.windowed:
+            return super(RequiredWindowLengthMixin, self)._validate()
+        if self.window_length is NotSpecified:
+            raise WindowLengthNotSpecified()
+        raise WindowLengthNotPositive(self.window_length)
+
+
+class CustomTermMixin(object):
+    """
+    Mixin for user-defined rolling-window Terms.
+
+    Implements `compute_from_windows` in terms of a user-defined `compute`
+    function, which is mapped over the input windows.
+
+    Used by CustomFactor, CustomFilter, CustomClassifier, etc.
+    """
+
+    def compute(self, today, assets, out, *arrays):
+        """
+        Override this method with a function that writes a value into `out`.
+        """
+        raise NotImplementedError()
+
+    def compute_from_windows(self, windows, mask):
+        """
+        Call the user's `compute` function on each window with a pre-built
+        output array.
+        """
+        # TODO: Make mask available to user's `compute`.
+        compute = self.compute
+        dates, assets = mask.index, mask.columns
+        out = full(mask.shape, nan, dtype=self.dtype)
+        with self.ctx:
+            # TODO: Consider pre-filtering columns that are all-nan at each
+            # time-step?
+            for idx, date in enumerate(dates):
+                compute(
+                    date,
+                    assets,
+                    out[idx],
+                    *(next(w) for w in windows)
+                )
+
+        out[~mask.values] = nan
+        return out
+
+
+class TestingTermMixin(object):
+    """
+    Mixin for Term subclasses testing engines that asserts all inputs are
+    correctly shaped.
+
+    Used by TestingTerm, TestingFilter, TestingClassifier, etc.
+    """
+    def compute_from_windows(self, windows, mask):
+        assert self.window_length > 0
+        dates, assets = mask.index, mask.columns
+        outbuf = empty(mask.shape, dtype=self.dtype)
+        for idx, _ in enumerate(dates):
+            result = self.from_windows(*(next(w) for w in windows))
+            assert result.shape == (len(assets),)
+            outbuf[idx] = result
+
+        for window in windows:
+            try:
+                next(window)
+            except StopIteration:
+                pass
+            else:
+                raise AssertionError("window %s was not exhausted" % window)
+        return outbuf
+
+    def compute_from_arrays(self, arrays, mask):
+        assert self.window_length == 0
+        outbuf = empty(mask.shape, dtype=self.dtype)
+        for array in arrays:
+            assert array.shape == outbuf.shape
+        outbuf[:] = self.from_arrays(*arrays)
+        return outbuf

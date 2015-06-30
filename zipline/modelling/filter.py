@@ -2,9 +2,12 @@
 filter.py
 """
 from numpy import (
-    percentile,
     bool_,
+    float64,
+    nan,
+    nanpercentile,
 )
+from itertools import chain
 from operator import attrgetter
 
 from zipline.errors import (
@@ -13,6 +16,7 @@ from zipline.errors import (
 from zipline.modelling.computable import (
     SingleInputMixin,
     Term,
+    TestingTermMixin,
 )
 from zipline.modelling.expression import (
     bad_op,
@@ -20,6 +24,13 @@ from zipline.modelling.expression import (
     method_name_for_op,
     NumericalExpression,
 )
+
+
+def concat_tuples(*tuples):
+    """
+    Concatenate a sequence of tuples into one tuple.
+    """
+    return tuple(chain(*tuples))
 
 
 def binary_operator(op):
@@ -86,15 +97,45 @@ class Filter(Term):
         }
     )
 
+    def then(self, other):
+        """
+        Create a new filter by computing `self`, then computing `other` on the
+        data that survived the first filter.
 
-class NumExprFilter(Filter, NumericalExpression):
+        Parameters
+        ----------
+        other : zipline.modelling.filter.Filter
+            The Filter to apply next.
+
+        Returns
+        -------
+        filter : zipline.modelling.filter.SequencedFilter
+            A filter which will compute `self` and then `other`.
+
+        See Also
+        --------
+        zipline.modelling.filter.SequencedFilter
+        """
+        return SequencedFilter(self, other)
+
+
+class NumExprFilter(NumericalExpression, Filter):
     """
     A Filter computed from a numexpr expression.
     """
-    window_length = 0
+
+    def compute_from_arrays(self, arrays, mask):
+        """
+        Compute our result with numexpr, then apply `mask`.
+        """
+        numexpr_result = super(NumExprFilter, self).compute_from_arrays(
+            arrays,
+            mask,
+        )
+        return numexpr_result & mask
 
 
-class PercentileFilter(Filter, SingleInputMixin):
+class PercentileFilter(SingleInputMixin, Filter):
     """
     A Filter representing assets falling between percentile bounds of a Factor.
 
@@ -107,14 +148,12 @@ class PercentileFilter(Filter, SingleInputMixin):
     max_percentile : float [0.0, 1.0]
         The maxiumum percentile rank of an asset that will pass the filter.
     """
+    window_length = 0
 
-    def __new__(cls, rank_factor, min_percentile, max_percentile):
+    def __new__(cls, factor, min_percentile, max_percentile):
         return super(PercentileFilter, cls).__new__(
             cls,
-            inputs=(rank_factor,),
-            window_length=cls.window_length,
-            domain=cls.domain,
-            dtype=cls.dtype,
+            inputs=(factor,),
             min_percentile=min_percentile,
             max_percentile=max_percentile,
         )
@@ -141,19 +180,103 @@ class PercentileFilter(Filter, SingleInputMixin):
                 min_percentile=self._min_percentile,
                 max_percentile=self._max_percentile,
             )
+        return super(PercentileFilter, self)._validate()
 
-    def compute_from_arrays(self, arrays, dtype, dates, assets):
+    def compute_from_arrays(self, arrays, mask):
         """
         For each row in the input, compute a mask of all values falling between
         the given percentiles.
         """
         # TODO: Review whether there's a better way of handling small numbers
         # of columns.
-        data = arrays[0]
-        lower_bounds, upper_bounds = percentile(
+        data = arrays[0].astype(float64)
+        data[~mask.values] = nan
+
+        # FIXME: np.nanpercentile **should** support computing multiple bounds
+        # at once, but there's a bug in the logic for multiple bounds in numpy
+        # 1.9.2.  It will be fixed in 1.10.
+        # c.f. https://github.com/numpy/numpy/pull/5981
+        lower_bounds = nanpercentile(
             data,
-            [self._min_percentile, self._max_percentile],
+            self._min_percentile,
+            axis=1,
+            keepdims=True,
+        )
+        upper_bounds = nanpercentile(
+            data,
+            self._max_percentile,
             axis=1,
             keepdims=True,
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
+
+
+class SequencedFilter(Filter):
+    """
+    Term representing sequenced computation of two Filters.
+
+    Parameters
+    ----------
+    first : zipline.modelling.filter.Filter
+        The first filter to compute.
+    second : zipline.modelling.filter.Filter
+        The second filter to compute.
+
+    Notes
+    -----
+    In general, users should rarely have to construct SequencedFilter instances
+    directly.  Instead, prefer construction via `Filter.then`.
+
+    See Also
+    --------
+    Filter.then
+    """
+    window_length = 0
+
+    def __new__(cls, first, then):
+        return super(SequencedFilter, cls).__new__(
+            cls,
+            inputs=concat_tuples((first,), then.inputs),
+            then=then,
+        )
+
+    def _init(self, then, *args, **kwargs):
+        self._then = then
+        return super(SequencedFilter, self)._init(*args, **kwargs)
+
+    def _validate(self):
+        """
+        Ensure that we're actually sequencing filters.
+        """
+        first, then = self.inputs[0], self._then
+        if not isinstance(first, Filter):
+            raise TypeError("Expected Filter, got %s" % type(first).__name__)
+        if not isinstance(then, Filter):
+            raise TypeError("Expected Filter, got %s" % type(then).__name__)
+        return super(SequencedFilter, self)._validate()
+
+    @classmethod
+    def static_identity(cls, then, *args, **kwargs):
+        return (
+            super(SequencedFilter, cls).static_identity(*args, **kwargs),
+            then,
+        )
+
+    def compute_from_arrays(self, arrays, mask):
+        """
+        Call our second filter on its inputs, masking out any inputs rejected
+        by our first filter.
+        """
+        first_result, then_inputs = arrays[0], arrays[1:]
+        return self._then.compute_from_arrays(
+            then_inputs,
+            mask & first_result,
+        )
+
+
+class TestingFilter(TestingTermMixin, Filter):
+    """
+    Base class for testing engines that asserts all inputs are correctly
+    shaped.
+    """
+    pass

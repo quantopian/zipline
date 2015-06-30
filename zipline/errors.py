@@ -308,10 +308,11 @@ class WindowLengthTooLong(ZiplineError):
 
 class WindowLengthNotPositive(ZiplineError):
     """
-    Raised when a trailing window is instantiated with a length less than 1.
+    Raised when a trailing window would be instantiated with a length less than
+    1.
     """
     msg = (
-        "Rolling window lookback must be greater than 0, got {window_length}."
+        "Expected a window_length greater than 0, got {window_length}."
     ).strip()
 
 
@@ -364,6 +365,13 @@ class UnknownRankMethod(ZiplineError):
         "Unknown ranking method: '{method}'. "
         "`method` must be one of {choices}"
     )
+
+
+class UnsupportedDataType(ZiplineError):
+    """
+    Raised by FFC CustomFactors with unsupported dtypes.
+    """
+    msg = "CustomFactors with dtype {dtype} are not supported."
 
 
 class NoFurtherDataError(ZiplineError):

@@ -20,6 +20,7 @@ from numpy import (
 )
 from numpy.testing import assert_array_equal
 from pandas import (
+    DataFrame,
     date_range,
     Int64Index,
 )
@@ -28,20 +29,20 @@ from zipline.modelling.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-from zipline.modelling.factor import TestFactor
+from zipline.modelling.factor import TestingFactor
 
 
-class F(TestFactor):
+class F(TestingFactor):
     inputs = ()
     window_length = 0
 
 
-class G(TestFactor):
+class G(TestingFactor):
     inputs = ()
     window_length = 0
 
 
-class H(TestFactor):
+class H(TestingFactor):
     inputs = ()
     window_length = 0
 
@@ -59,21 +60,18 @@ class NumericalExpressionTestCase(TestCase):
             self.g: full((5, 5), 2),
             self.h: full((5, 5), 1),
         }
+        self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
-    def check_output(self, expr, expected, out_dtype=float):
+    def check_output(self, expr, expected):
         result = expr.compute_from_arrays(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
-            out_dtype,
-            self.dates,
-            self.assets,
+            self.mask,
         )
         assert_array_equal(result, full((5, 5), expected))
 
-    def check_constant_output(self, expr, expected, out_dtype=float):
+    def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))
-        return self.check_output(
-            expr, full((5, 5), expected), out_dtype=out_dtype,
-        )
+        return self.check_output(expr, full((5, 5), expected))
 
     def test_validate_good(self):
         f = self.f
@@ -297,6 +295,21 @@ class NumericalExpressionTestCase(TestCase):
         self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
         self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
 
+    def test_mod(self):
+        f, g = self.f, self.g
+
+        self.check_constant_output(f % g, 3.0 % 2.0)
+        self.check_constant_output(f % 2.0, 3.0 % 2.0)
+        self.check_constant_output(g % f, 2.0 % 3.0)
+
+        self.check_constant_output((f + g) % 2, (3.0 + 2.0) % 2)
+        self.check_constant_output(2 % (f + g), 2 % (3.0 + 2.0))
+
+        self.check_constant_output(f % (f % g), 3.0 % (3.0 % 2.0))
+        self.check_constant_output((f % f) % g, (3.0 % 3.0) % 2.0)
+
+        self.check_constant_output((f + g) % (f * g), 5.0 % 6.0)
+
     def test_math_functions(self):
         f, g = self.f, self.g
 
@@ -367,7 +380,6 @@ class NumericalExpressionTestCase(TestCase):
                 self.check_output(
                     op(expr_lhs, expr_rhs),
                     op(expected_lhs, expected_rhs),
-                    out_dtype=bool,
                 )
 
     def test_boolean_binops(self):
@@ -387,12 +399,11 @@ class NumericalExpressionTestCase(TestCase):
         first_row_mask = zeros((5, 5), dtype=bool)
         first_row_mask[0] = 1
 
-        self.check_output(eye_filter, eye_mask, out_dtype=bool)
-        self.check_output(first_row_filter, first_row_mask, out_dtype=bool)
+        self.check_output(eye_filter, eye_mask)
+        self.check_output(first_row_filter, first_row_mask)
 
         for op in (and_, or_):  # NumExpr doesn't support xor.
             self.check_output(
                 op(eye_filter, first_row_filter),
                 op(eye_mask, first_row_mask),
-                out_dtype=bool,
             )

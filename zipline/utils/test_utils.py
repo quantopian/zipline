@@ -207,14 +207,14 @@ def all_subindices(index):
     )
 
 
-def make_asset_info(num_assets,
-                    first_start,
-                    frequency,
-                    periods_between_starts,
-                    asset_lifetime):
+def make_rotating_asset_info(num_assets,
+                             first_start,
+                             frequency,
+                             periods_between_starts,
+                             asset_lifetime):
     """
-    Create a DataFrame representing asset lifetime information suitable for
-    passing as metadata to an AssetFinder.
+    Create a DataFrame representing lifetimes of assets that are constantly
+    rotating in and out of existence.
 
     Parameters
     ----------
@@ -251,6 +251,36 @@ def make_asset_info(num_assets,
                 freq=(periods_between_starts * frequency),
                 periods=num_assets,
             ),
+            'exchange': 'TEST',
+        }
+    )
+
+
+def make_simple_asset_info(assets, start_date, end_date):
+    """
+    Create a DataFrame representing assets that exist for the full duration of
+    `dates`.
+
+    Parameters
+    ----------
+    assets : array-like
+        The asset ids to use.
+    dates : pd.DatetimeIndex
+        The dates on which all specified assets existed.
+
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    num_assets = len(assets)
+    return pd.DataFrame(
+        {
+            'sid': assets,
+            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
+            'asset_type': ['equity'] * num_assets,
+            'start_date': [start_date] * num_assets,
+            'end_date': [end_date] * num_assets,
             'exchange': 'TEST',
         }
     )

@@ -21,6 +21,7 @@ _ops_to_methods = {
     '-': '__sub__',
     '*': '__mul__',
     '/': '__div__',
+    '%': '__mod__',
     '**': '__pow__',
     '&': '__and__',
     '|': '__or__',
@@ -39,6 +40,7 @@ _ops_to_commuted_methods = {
     '-': '__rsub__',
     '*': '__rmul__',
     '/': '__rdiv__',
+    '%': '__rmod__',
     '**': '__rpow__',
     '&': '__rand__',
     '|': '__ror__',
@@ -51,9 +53,9 @@ _ops_to_commuted_methods = {
     '>': '__lt__',
 }
 UNARY_OPS = {'-'}
-MATH_BINOPS = {'+', '-', '*', '/', '**'}
+MATH_BINOPS = {'+', '-', '*', '/', '**', '%'}
 FILTER_BINOPS = {'&', '|'}  # NumExpr doesn't support xor.
-COMPARISONS = {'<', '<=', '!=', '>=', '>'}
+COMPARISONS = {'<', '<=', '!=', '>=', '>', '=='}
 
 NUMERIC_TYPES = (int, float, long)
 NUMEXPR_MATH_FUNCS = {
@@ -169,18 +171,30 @@ class NumericalExpression(Term):
     binds : tuple
        A tuple of factors to use as inputs.
     """
+    window_length = 0
 
     def __new__(cls, expr, binds):
+
+        # If our class doesn't have an explicit dtype set, infer one from the
+        # inputs.
+
+        # FIXME: This doesn't take into account dtypes of constants, so it will
+        # break if we have something like
+        #     factor(int64) + factor(int64) + 2.5.
+        # The real fix for this is probably for the calling context to specify
+        # dtypes.
+        if cls.dtype is not None:
+            dtype = cls.dtype
+        else:
+            dtype = find_common_type(
+                [factor.dtype for factor in binds],
+                [],
+            )
         return super(NumericalExpression, cls).__new__(
             cls,
             inputs=binds,
-            window_length=0,
-            domain=None,
-            dtype=find_common_type(
-                [factor.dtype for factor in binds],
-                [],
-            ),
             expr=expr,
+            dtype=dtype,
         )
 
     def _init(self, expr, *args, **kwargs):
@@ -215,12 +229,13 @@ class NumericalExpression(Term):
                     expected_indices, expr_indices,
                 )
             )
+        return super(NumericalExpression, self)._validate()
 
-    def compute_from_arrays(self, arrays, dtype, dates, assets):
+    def compute_from_arrays(self, arrays, mask):
         """
         Compute our stored expression string with numexpr.
         """
-        out = empty((len(dates), len(assets)), dtype=dtype)
+        out = empty(mask.shape, dtype=self.dtype)
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,

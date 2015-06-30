@@ -43,7 +43,7 @@ from zipline.errors import (
 )
 from zipline.utils.test_utils import (
     all_subindices,
-    make_asset_info,
+    make_rotating_asset_info,
 )
 
 
@@ -579,7 +579,7 @@ class AssetFinderTestCase(TestCase):
         trading_day = env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
-        frame = make_asset_info(
+        frame = make_rotating_asset_info(
             num_assets=num_assets,
             first_start=first_start,
             frequency=env.trading_day,
@@ -604,7 +604,7 @@ class AssetFinderTestCase(TestCase):
             for i, date in enumerate(dates):
                 it = frame[['start_date', 'end_date']].itertuples()
                 for j, start, end in it:
-                    if not (start <= date <= end):
+                    if start <= date <= end:
                         expected_mask[i, j] = True
 
             # Filter out columns with all-empty columns.
@@ -613,5 +613,5 @@ class AssetFinderTestCase(TestCase):
                 index=dates,
                 columns=frame.sid.values,
             )
-            actual_result = finder.lifetime_mask(dates)
+            actual_result = finder.lifetimes(dates)
             assert_frame_equal(actual_result, expected_result)

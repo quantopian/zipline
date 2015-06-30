@@ -47,11 +47,11 @@ from zipline.data.ffc.loaders._us_equity_pricing import (
     _read_bcolz_data,
     load_adjustments_from_sqlite,
 )
-
 from zipline.data.adjusted_array import (
     adjusted_array,
     NOMASK,
 )
+from zipline.errors import NoFurtherDataError
 
 
 US_EQUITY_PRICING_BCOLZ_COLUMNS = [
@@ -279,6 +279,39 @@ class BcolzDailyBarReader(object):
             for id_, offset in iteritems(table.attrs['calendar_offset'])
         }
 
+    def _slice_locs(self, start_date, end_date):
+        try:
+            start = self._calendar.get_loc(start_date)
+        except KeyError:
+            if start_date < self._calendar[0]:
+                raise NoFurtherDataError(
+                    msg=(
+                        "FFC Query requesting data starting on {query_start}, "
+                        "but first known date is {calendar_start}"
+                    ).format(
+                        query_start=str(start_date),
+                        calendar_start=str(self._calendar[0]),
+                    )
+                )
+            else:
+                raise ValueError("Query start %s not in calendar" % start_date)
+        try:
+            stop = self._calendar.get_loc(end_date)
+        except:
+            if end_date > self._calendar[-1]:
+                raise NoFurtherDataError(
+                    msg=(
+                        "FFC Query requesting data up to {query_end}, "
+                        "but last known date is {calendar_end}"
+                    ).format(
+                        query_end=end_date,
+                        calendar_end=self._calendar[-1],
+                    )
+                )
+            else:
+                raise ValueError("Query end %s not in calendar" % end_date)
+        return start, stop
+
     def _compute_slices(self, dates, assets):
         """
         Compute the raw row indices to load for each asset on a query for the
@@ -308,13 +341,12 @@ class BcolzDailyBarReader(object):
             of a query.  Otherwise, offset[i] will be equal to the number of
             entries in `dates` for which the asset did not yet exist.
         """
-        query_start = self._calendar.get_loc(dates[0])
-        query_stop = self._calendar.get_loc(dates[-1])
+        start, stop = self._slice_locs(dates[0], dates[-1])
 
         # Sanity check that the requested date range matches our calendar.
         # This could be removed in the future if it's materially affecting
         # performance.
-        query_dates = self._calendar[query_start:query_stop + 1]
+        query_dates = self._calendar[start:stop + 1]
         if not array_equal(query_dates.values, dates.values):
             raise ValueError("Incompatible calendars!")
 
@@ -324,8 +356,8 @@ class BcolzDailyBarReader(object):
             self._first_rows,
             self._last_rows,
             self._calendar_offsets,
-            query_start,
-            query_stop,
+            start,
+            stop,
             assets,
         )
 

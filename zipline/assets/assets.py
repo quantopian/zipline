@@ -539,7 +539,7 @@ class AssetFinder(object):
                 raise ConsumeAssetMetaDataError(obj=row)
             self.insert_metadata(identifier, **metadata_dict)
 
-    def lifetime_mask(self, dates):
+    def lifetimes(self, dates):
         """
         Compute a DataFrame representing asset lifetimes for the specified date
         range.
@@ -549,18 +549,12 @@ class AssetFinder(object):
         dates : pd.DatetimeIndex
             The dates for which to compute lifetimes.
 
-        Notes
-        -----
-        The mask computed here is True when assets **DID NOT** exist, because
-        this is most commonly used with `np.putmask` to apply NaNs/sentinels to
-        the missing values.
-
         Returns
         -------
         lifetimes : pd.DataFrame
             A frame of dtype bool with `dates` as index and an Int64Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
-            be True iff `asset` **DID NOT** on `date`.
+            be True iff `asset` existed on `data`.
 
         See Also
         --------
@@ -569,7 +563,7 @@ class AssetFinder(object):
         lifetimes = self._asset_lifetimes
 
         raw_dates = dates.asi8[:, None]
-        mask = (lifetimes.start > raw_dates) | (lifetimes.end < raw_dates)
+        mask = (lifetimes.start <= raw_dates) & (raw_dates <= lifetimes.end)
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
 

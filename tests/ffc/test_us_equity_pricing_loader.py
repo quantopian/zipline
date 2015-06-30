@@ -21,9 +21,6 @@ from nose_parameterized import parameterized
 from numpy import (
     arange,
     datetime64,
-    float64,
-    full,
-    uint32,
 )
 from numpy.testing import assert_array_equal
 import pandas as pd
@@ -127,10 +124,10 @@ class DailyBarReaderWriterTestCase(TestCase):
         return self.trading_days[self.trading_days.slice_indexer(start, end)]
 
     def asset_start(self, asset_id):
-        return self.asset_info.loc[asset_id]['start_date'].tz_localize('UTC')
+        return self.writer.asset_start(asset_id)
 
     def asset_end(self, asset_id):
-        return self.asset_info.loc[asset_id]['end_date'].tz_localize('UTC')
+        return self.writer.asset_end(asset_id)
 
     def dates_for_asset(self, asset_id):
         start, end = self.asset_start(asset_id), self.asset_end(asset_id)
@@ -203,30 +200,6 @@ class DailyBarReaderWriterTestCase(TestCase):
             DatetimeIndex(result.attrs['calendar'], tz='UTC'),
         )
 
-    def expected_read_values(self, dates, assets, column):
-        if column == 'volume':
-            dtype = uint32
-            missing = 0
-        else:
-            dtype = float64
-            missing = float('nan')
-
-        data = full((len(dates), len(assets)), missing, dtype=dtype)
-        for j, asset in enumerate(assets):
-            start = self.asset_start(asset)
-            stop = self.asset_end(asset)
-            for i, date in enumerate(dates):
-                # No value expected for dates outside the asset's start/end
-                # date.
-                if not (start <= date <= stop):
-                    continue
-                data[i, j] = SyntheticDailyBarWriter.expected_value(
-                    asset,
-                    date,
-                    column,
-                )
-        return data
-
     def _check_read_results(self, columns, assets, start_date, end_date):
         table = self.writer.write(self.dest, self.trading_days, self.assets)
         reader = BcolzDailyBarReader(table)
@@ -235,7 +208,11 @@ class DailyBarReaderWriterTestCase(TestCase):
         for column, result in zip(columns, results):
             assert_array_equal(
                 result,
-                self.expected_read_values(dates, assets, column.name),
+                self.writer.expected_values_2d(
+                    dates,
+                    assets,
+                    column.name,
+                )
             )
 
     @parameterized.expand([
