@@ -132,22 +132,16 @@ class TestEventsThroughRisk(unittest.TestCase):
         algo.set_sources(list([trade_bar_data]))
         gen = algo._create_generator(sim_params)
 
-        # TODO: Hand derive these results.
-        #       Currently, the output from the time of this writing to
-        #       at least be an early warning against changes.
         expected_algorithm_returns = {
             first_date: 0.0,
             second_date: -0.000350,
             third_date: -0.050018
         }
 
-        # TODO: Hand derive these results.
-        #       Currently, the output from the time of this writing to
-        #       at least be an early warning against changes.
         expected_sharpe = {
             first_date: np.nan,
             second_date: -22.322677,
-            third_date: -9.353741
+            third_date: -9.356960
         }
 
         for bar in gen:
