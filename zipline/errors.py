@@ -215,6 +215,15 @@ Symbol '{symbol}' was not found.
 """.strip()
 
 
+class RootSymbolNotFound(ZiplineError):
+    """
+    Raised when a lookup_future_chain() call contains a non-existant symbol.
+    """
+    msg = """
+Root symbol '{root_symbol}' was not found.
+""".strip()
+
+
 class SidNotFound(ZiplineError):
     """
     Raised when a retrieve_asset() call contains a non-existent sid.

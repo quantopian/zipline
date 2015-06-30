@@ -29,6 +29,7 @@ from zipline.errors import (
     ConsumeAssetMetaDataError,
     InvalidAssetType,
     MultipleSymbolsFound,
+    RootSymbolNotFound,
     SidAssignmentError,
     SidNotFound,
     SymbolNotFound,
@@ -231,19 +232,7 @@ class AssetFinder(object):
         for root_symbol in self.future_chains_cache:
             self.future_chains_cache[root_symbol].sort(key=exp_key)
 
-    def _valid_contracts(self, root_symbol, as_of_date):
-        """ Returns  a list of the currently valid futures contracts
-        for a given root symbol, sorted by expiration date (the
-        contracts are sorted when the AssetFinder is built).
-        """
-        try:
-            return [c for c in self.future_chains_cache[root_symbol]
-                    if c.expiration_date and (c.expiration_date > as_of_date)
-                    and c.start_date and (c.start_date <= as_of_date)]
-        except KeyError:
-            return None
-
-    def lookup_future_chain(self, root_symbol, as_of_date):
+    def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
 
         Parameters
@@ -251,77 +240,24 @@ class AssetFinder(object):
         root_symbol : str
             Root symbol of the desired future.
         as_of_date : pd.Timestamp
-            Date at the time of the lookup.
+            Date at which the chain determination is rooted. I.e. the
+            existing contract that expires first after (or on) this date is
+            the primary contract, etc.
+        knowledge_date : pd.Timestamp
+            Date for determining which contracts exist for inclusion in
+            this chain. Contracts exist only if they have a start_date
+            on or before this date.
 
         Returns
         -------
         [Future]
         """
-        root_symbol.upper()
-        as_of_date = normalize_date(as_of_date)
-        return self._valid_contracts(root_symbol, as_of_date)
-
-    def lookup_future_in_chain(self, root_symbol, as_of_date, contract_num=0):
-        """ Find a specific contract in the futures chain for a given
-        root symbol.
-
-        Parameters
-        ----------
-        root_symbol : str
-            Root symbol of the desired future.
-        as_of_date : pd.Timestamp
-            Date at the time of the lookup.
-        contract_num : int
-            1 for the primary contract, 2 for the secondary, etc.,
-            relative to as_of_date.
-
-        Returns
-        -------
-        Future
-            The (contract_num)th contract in the futures chain. If none
-            exits, returns None.
-        """
-        root_symbol.upper()
-        as_of_date = normalize_date(as_of_date)
-
-        valid_contracts = self._valid_contracts(root_symbol, as_of_date)
-
-        if valid_contracts and contract_num >= 0:
-            try:
-                return valid_contracts[contract_num]
-            except IndexError:
-                pass
-
-        return None
-
-    def lookup_future_by_expiration(self, root_symbol, as_of_date, ref_date):
-        """ Find a specific contract in the futures chain by expiration
-        date.
-
-        Parameters
-        ----------
-        root_symbol : str
-            Root symbol of the desired future.
-        as_of_date : pd.Timestamp
-            Date at the time of the lookup.
-        ref_date : pd.Timestamp
-            Reference point for expiration dates.
-
-        Returns
-        -------
-        Future
-            The valid contract the has the closest expiration date
-            after ref_date. If none exists, returns None.
-        """
-        root_symbol.upper()
-        as_of_date = normalize_date(as_of_date)
-        ref_date = normalize_date(ref_date)
-
-        valid_contracts = self._valid_contracts(root_symbol, as_of_date)
-
-        contracts_after_date = (c for c in valid_contracts
-                                if c.expiration_date > ref_date)
-        return next(contracts_after_date, None)
+        try:
+            return [c for c in self.future_chains_cache[root_symbol]
+                    if c.expiration_date and (as_of_date <= c.expiration_date)
+                    and c.start_date and (c.start_date <= knowledge_date)]
+        except KeyError:
+            raise RootSymbolNotFound(root_symbol=root_symbol)
 
     def populate_cache(self):
         """
