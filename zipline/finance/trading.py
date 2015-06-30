@@ -210,11 +210,12 @@ class TradingEnvironment(object):
         return pd.Timestamp(dt, tz=self.exchange_tz).tz_convert('UTC')
 
     def is_market_hours(self, test_date):
-        if not self.is_trading_day(test_date):
+        day = pd.Timestamp(self.utc_dt_in_exchange(test_date).date(), tz='UTC')
+        if not self.is_trading_day(day):
             return False
 
-        mkt_open, mkt_close = self.get_open_and_close(test_date)
-        return test_date >= mkt_open and test_date <= mkt_close
+        mkt_open, mkt_close = self.get_open_and_close(day)
+        return mkt_close >= test_date >= mkt_open
 
     def is_trading_day(self, test_date):
         dt = self.normalize_date(test_date)
