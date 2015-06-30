@@ -13,8 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib2 import ExitStack
+
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
+
+from zipline.utils.api_support import ZiplineAPI
 
 from zipline.finance import trading
 from zipline.protocol import (
@@ -81,7 +85,11 @@ class AlgorithmSimulator(object):
 
         # inject the current algo
         # snapshot time to any log record generated.
-        with self.processor.threadbound():
+
+        with ExitStack() as stack:
+            stack.enter_context(self.processor.threadbound())
+            stack.enter_context(ZiplineAPI(self.algo))
+
             data_frequency = self.sim_params.data_frequency
 
             self._call_before_trading_start(mkt_open)

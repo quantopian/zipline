@@ -31,3 +31,5 @@ cyordereddict==0.2.2
 
 # faster array ops.
 bottleneck==1.0.0
+
+contextlib2==0.4.0
