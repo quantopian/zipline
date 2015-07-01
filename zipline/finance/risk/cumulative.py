@@ -290,9 +290,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             raise Exception(message)
 
         self.update_current_max()
-        self.metrics.benchmark_volatility.iloc[dt_loc] = \
+        metrics = self.metrics
+        metrics.benchmark_volatility.iloc[dt_loc] = \
             self.calculate_volatility(self.benchmark_returns)
-        self.metrics.algorithm_volatility.iloc[dt_loc] = \
+        metrics.algorithm_volatility.iloc[dt_loc] = \
             self.calculate_volatility(self.algorithm_returns)
 
         # caching the treasury rates for the minutely case is a
@@ -311,13 +312,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.excess_returns[dt_loc] = (
             self.algorithm_cumulative_returns[dt_loc] -
             self.treasury_period_return)
-        self.metrics.beta.iloc[dt_loc] = self.calculate_beta()
-        self.metrics.alpha.iloc[dt_loc] = self.calculate_alpha()
-        self.metrics.sharpe.iloc[dt_loc] = self.calculate_sharpe()
-        self.metrics.downside_risk.iloc[dt_loc] = \
+        metrics.beta.iloc[dt_loc] = self.calculate_beta()
+        metrics.alpha.iloc[dt_loc] = self.calculate_alpha()
+        metrics.sharpe.iloc[dt_loc] = self.calculate_sharpe()
+        metrics.downside_risk.iloc[dt_loc] = \
             self.calculate_downside_risk()
-        self.metrics.sortino.iloc[dt_loc] = self.calculate_sortino()
-        self.metrics.information.iloc[dt_loc] = self.calculate_information()
+        metrics.sortino.iloc[dt_loc] = self.calculate_sortino()
+        metrics.information.iloc[dt_loc] = self.calculate_information()
         self.max_drawdown = self.calculate_max_drawdown()
         self.max_drawdowns[dt_loc] = self.max_drawdown
         self.max_leverage = self.calculate_max_leverage()
@@ -331,12 +332,13 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         dt = self.latest_dt
         dt_loc = self.latest_dt_loc
         period_label = dt.strftime("%Y-%m")
+        metrics = self.metrics
         rval = {
             'trading_days': self.num_trading_days,
             'benchmark_volatility':
-            self.metrics.benchmark_volatility.iloc[dt_loc],
+            metrics.benchmark_volatility.iloc[dt_loc],
             'algo_volatility':
-            self.metrics.algorithm_volatility.iloc[dt_loc],
+            metrics.algorithm_volatility.iloc[dt_loc],
             'treasury_period_return': self.treasury_period_return,
             # Though the two following keys say period return,
             # they would be more accurately called the cumulative return.
@@ -346,11 +348,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.algorithm_cumulative_returns[dt_loc],
             'benchmark_period_return':
             self.benchmark_cumulative_returns[dt_loc],
-            'beta': self.metrics.beta.iloc[dt_loc],
-            'alpha': self.metrics.alpha.iloc[dt_loc],
-            'sharpe': self.metrics.sharpe.iloc[dt_loc],
-            'sortino': self.metrics.sortino.iloc[dt_loc],
-            'information': self.metrics.information.iloc[dt_loc],
+            'beta': metrics.beta.iloc[dt_loc],
+            'alpha': metrics.alpha.iloc[dt_loc],
+            'sharpe': metrics.sharpe.iloc[dt_loc],
+            'sortino': metrics.sortino.iloc[dt_loc],
+            'information': metrics.information.iloc[dt_loc],
             'excess_return': self.excess_returns[dt_loc],
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,
