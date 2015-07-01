@@ -143,7 +143,7 @@ class RiskMetricsCumulative(object):
         self.cont_index = cont_index
         self.cont_len = len(self.cont_index)
 
-        empty_cont = np.empty(self.cont_len) * np.nan
+        empty_cont = np.full(self.cont_len, np.nan)
 
         self.algorithm_returns_cont = empty_cont.copy()
         self.benchmark_returns_cont = empty_cont.copy()
