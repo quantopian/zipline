@@ -284,6 +284,28 @@ class Blotter(object):
 
         self.__dict__.update(state)
 
+    @staticmethod
+    def fill_from_saved_state(blotter, blotter_state):
+        """
+        Fills the newly created blotter with some state deserialized
+        from the previously serialized blotter, as there are
+        certain state we do not want carried over from previous day.
+        """
+
+        old_blotter = type(blotter).__new__(type(blotter))
+        old_blotter.__setstate__(blotter_state)
+
+        fields = ['new_orders', 'open_orders', 'orders', '_status']
+
+        if hasattr(blotter, 'state_to_save'):
+            fields = fields + blotter.state_to_save
+
+        for field in fields:
+            value = old_blotter.__dict__.get(field)
+            setattr(blotter, field, value)
+
+        return blotter
+
 
 class Order(object):
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
