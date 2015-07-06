@@ -25,14 +25,12 @@ from datetime import (
     datetime
 )
 import pickle
-import pprint
 import uuid
 import warnings
 import pandas as pd
 
 from nose_parameterized import parameterized
 
-from zipline.finance.trading import with_environment
 from zipline.assets import Asset, Equity, Future, AssetFinder
 from zipline.errors import (
     SymbolNotFound,
@@ -354,43 +352,6 @@ class AssetFinderTestCase(TestCase):
                 )
                 self.assertEqual(result.symbol, 'existing')
                 self.assertEqual(result.sid, i)
-
-    @with_environment()
-    def test_lookup_symbol_nasdaq_underscore_collisions(self, env=None):
-        """
-        Ensure that each NASDAQ symbol without underscores maps back to the
-        original symbol when using fuzzy matching.
-        """
-        sf = env.asset_finder
-        fuzzy_str = '_'
-        collisions = []
-
-        try:
-            for sid in sf.sids:
-                sec = sf.retrieve_asset(sid)
-                if sec.exchange.startswith('NASDAQ'):
-                    found = sf.lookup_symbol(sec.symbol.replace(fuzzy_str, ''),
-                                             sec.end_date, fuzzy=fuzzy_str)
-                    if found != sec:
-                        collisions.append((found, sec))
-
-            # KNOWN BUG: Filter out assets that have intersections in their
-            # start and end dates.  We can't correctly resolve these.
-            unexpected_errors = []
-            for first, second in collisions:
-                overlapping_dates = (
-                    first.end_date >= second.start_date or
-                    second.end_date >= first.end_date
-                )
-                if not overlapping_dates:
-                    unexpected_errors.append((first, second))
-
-            self.assertFalse(
-                unexpected_errors,
-                pprint.pformat(unexpected_errors),
-            )
-        finally:
-            env.update_asset_finder(clear_metadata=True)
 
     @parameterized.expand(
         build_lookup_generic_cases()
