@@ -156,8 +156,6 @@ class TradingAlgorithm(object):
                 Any asset identifiers that are not provided in the
                 asset_metadata, but will be traded by this TradingAlgorithm
         """
-        self.datetime = None
-
         self.sources = []
 
         # List of trading controls to be used to validate orders.
@@ -207,6 +205,9 @@ class TradingAlgorithm(object):
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
             self.blotter = Blotter()
+
+        # Set the dt initally to the period start by forcing it to change
+        self.on_dt_changed(self.sim_params.period_start)
 
         self.portfolio_needs_update = True
         self.account_needs_update = True
