@@ -202,7 +202,7 @@ Multiple symbols with the name '{symbol}' found. Use the
 as_of_date' argument to to specify when the date symbol-lookup
 should be valid.
 
-Possible options:{options}
+Possible options:{options_str}
     """.strip()
 
 

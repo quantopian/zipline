@@ -173,7 +173,8 @@ class AssetFinder(object):
                 return infos[0]
             else:
                 raise MultipleSymbolsFound(symbol=symbol,
-                                           options=str(infos))
+                                           options=infos,
+                                           options_str=str(infos))
 
         # Try to find symbol matching as_of_date
         asset, _ = self._lookup_symbol_in_infos(infos, as_of_date)
