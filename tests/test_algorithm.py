@@ -597,13 +597,19 @@ class TestAlgoScript(TestCase):
 
     def test_api_get_environment(self):
         platform = 'zipline'
+        metadata = {0: {'symbol': 'TEST',
+                        'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
+                                asset_metadata=metadata,
                                 platform=platform)
         algo.run(self.df)
         self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
-        algo = TradingAlgorithm(script=api_symbol_algo)
+        metadata = {0: {'symbol': 'TEST',
+                        'asset_type': 'equity'}}
+        algo = TradingAlgorithm(script=api_symbol_algo,
+                                asset_metadata=metadata)
         algo.run(self.df)
 
     def test_fixed_slippage(self):

@@ -662,11 +662,9 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the Asset (e.g. yahoo finance).
         """
-        asset, _ = self.asset_finder.lookup_generic(
-            asset_convertible_or_iterable=symbol_str,
-            as_of_date=self.datetime,
-            )
-        return asset
+        return self.asset_finder.lookup_symbol_resolve_multiple(
+            symbol_str,
+            as_of_date=self.datetime)
 
     @api_method
     def symbols(self, *args):

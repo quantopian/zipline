@@ -1003,7 +1003,7 @@ from zipline.api import get_environment, order, symbol
 def initialize(context):
     context.environment = get_environment()
 
-handle_data = lambda context, data: order(symbol(0), 1)
+handle_data = lambda context, data: order(symbol('TEST'), 1)
 """
 
 api_symbol_algo = """
@@ -1014,7 +1014,7 @@ def initialize(context):
     pass
 
 def handle_data(context, data):
-    order(symbol(0), 1)
+    order(symbol('TEST'), 1)
 """
 
 call_order_in_init = """
