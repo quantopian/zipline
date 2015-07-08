@@ -85,19 +85,6 @@ class AssetFinder(object):
 
         self.populate_cache()
 
-    def _next_free_sid(self):
-        if len(self.cache) > 0:
-            return max(self.cache.keys()) + 1
-        return 0
-
-    def _assign_sid(self, identifier):
-        if hasattr(identifier, '__int__'):
-            return identifier.__int__()
-        if not self.allow_sid_assignment:
-            raise SidAssignmentError(identifier=identifier)
-        if isinstance(identifier, string_types):
-            return self._next_free_sid()
-
     def retrieve_asset(self, sid, default_none=False):
         if isinstance(sid, Asset):
             return sid
@@ -289,16 +276,6 @@ class AssetFinder(object):
         self._sort_future_chains()
 
     def _spawn_asset(self, identifier, **kwargs):
-
-        # Check if the sid is declared
-        try:
-            kwargs['sid']
-            pass
-        except KeyError:
-            # If the identifier is not a sid, assign one
-            kwargs['sid'] = self._assign_sid(identifier)
-            # Update the metadata object with the new sid
-            self.insert_metadata(identifier=identifier, sid=kwargs['sid'])
 
         # If the file_name is in the kwargs, it will be used as the symbol
         try:
@@ -544,6 +521,21 @@ class AssetFinder(object):
             if isinstance(value, float) and np.isnan(value):
                 continue
             entry[key] = value
+
+        # Check if the sid is declared
+        try:
+            entry['sid']
+        except KeyError:
+            # If the identifier is not a sid, assign one
+            if hasattr(identifier, '__int__'):
+                entry['sid'] = identifier.__int__()
+            else:
+                if self.allow_sid_assignment:
+                    # Assign the sid the value of its insertion order.
+                    # This assumes that we are assigning values to all assets.
+                    entry['sid'] = len(self.metadata_cache)
+                else:
+                    raise SidAssignmentError(identifier=identifier)
 
         self.metadata_cache[identifier] = entry
 
