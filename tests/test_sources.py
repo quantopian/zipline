@@ -25,7 +25,7 @@ from zipline.sources import (DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
-from zipline.assets import AssetFinder
+from zipline.assets import AssetFinder, populate_finder_from_identifier_index
 
 
 class TestDataFrameSource(TestCase):
@@ -76,9 +76,8 @@ class TestDataFrameSource(TestCase):
                         'volume', 'price']
 
         copy_panel = data.copy()
-        sids = finder.map_identifier_index_to_sids(
-            data.items, data.major_axis[0]
-        )
+        sids = populate_finder_from_identifier_index(
+            finder, data.items, data.major_axis[0])
         copy_panel.items = sids
         source = DataPanelSource(copy_panel)
         for event in source:

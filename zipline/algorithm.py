@@ -64,7 +64,11 @@ from zipline.finance.slippage import (
     SlippageModel,
     transact_partial
 )
-from zipline.assets import Asset, Future
+from zipline.assets import (
+    Asset,
+    Future,
+    populate_finder_from_identifier_index
+)
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -460,10 +464,9 @@ class TradingAlgorithm(object):
             # if DataFrame provided, map columns to sids and wrap
             # in DataFrameSource
             copy_frame = source.copy()
-            copy_frame.columns = \
-                self.asset_finder.map_identifier_index_to_sids(
-                    source.columns, source.index[0]
-                )
+            asset_sids = populate_finder_from_identifier_index(
+                self.asset_finder, source.columns, source.index[0])
+            copy_frame.columns = asset_sids
             for sid in copy_frame.columns:
                 self.asset_finder.insert_metadata(sid)
             self.asset_finder.populate_cache()
@@ -473,9 +476,9 @@ class TradingAlgorithm(object):
             # If Panel provided, map items to sids and wrap
             # in DataPanelSource
             copy_panel = source.copy()
-            copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
-                source.items, source.major_axis[0]
-            )
+            asset_sids = populate_finder_from_identifier_index(
+                self.asset_finder, source.items, source.major_axis[0])
+            copy_panel.items = asset_sids
             for sid in copy_panel.items:
                 self.asset_finder.insert_metadata(sid)
             self.asset_finder.populate_cache()

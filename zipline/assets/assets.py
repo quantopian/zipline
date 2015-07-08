@@ -63,6 +63,63 @@ ASSET_FIELDS = [
 ]
 
 
+def populate_finder_from_identifier_index(asset_finder, index, as_of_date):
+    """
+    This method is for use in populating an asset finder from user's DataFrame
+    or Panel inputs.
+
+    Takes the given index of identifiers, checks their types, builds assets
+    if necessary, and returns a list of the sids that correspond to the
+    input index.
+
+    Parameters
+    __________
+    index : Iterable
+        An iterable containing ints, strings, or Assets
+    as_of_date : pandas.Timestamp
+        A date to be used to resolve any dual-mapped symbols
+
+    Returns
+    _______
+    A list of integer sids corresponding to the input index
+    """
+    # This method assumes that the type of the objects in the index is
+    # consistent and can, therefore, be taken from the first identifier
+    first_identifier = index[0]
+
+    # Ensure that input is AssetConvertible (integer, string, or Asset)
+    if not isinstance(first_identifier, AssetConvertible):
+        raise MapAssetIdentifierIndexError(obj=first_identifier)
+
+    # If symbols or Assets are provided, construction and mapping is
+    # necessary
+    for identifier in index:
+        # Handle case where full Assets are passed in
+        # For example, in the creation of a DataFrameSource, the source's
+        # 'sid' args may be full Assets
+        if isinstance(identifier, Asset):
+            sid = identifier.sid
+            metadata = identifier.to_dict()
+            metadata['asset_type'] = identifier.__class__.__name__
+            asset_finder.insert_metadata(identifier=sid, **metadata)
+        else:
+            asset_finder.insert_metadata(identifier)
+
+    asset_finder.populate_cache()
+
+    # Look up all Assets for mapping
+    matches = []
+    missing = []
+    for identifier in index:
+        asset_finder._lookup_generic_scalar(identifier, as_of_date,
+                                            matches, missing)
+    # Handle missing assets
+    if len(missing) > 0:
+        warnings.warn("Missing assets for identifiers: " + missing)
+
+    return [asset.sid for asset in matches]
+
+
 class AssetFinder(object):
 
     def __init__(self, metadata=None, allow_sid_assignment=True):
@@ -445,69 +502,6 @@ class AssetFinder(object):
         for obj in iterator:
             self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
-
-    def map_identifier_index_to_sids(self, index, as_of_date):
-        """
-        This method is for use in sanitizing a user's DataFrame or Panel
-        inputs.
-
-        Takes the given index of identifiers, checks their types, builds assets
-        if necessary, and returns a list of the sids that correspond to the
-        input index.
-
-        Parameters
-        __________
-        index : Iterable
-            An iterable containing ints, strings, or Assets
-        as_of_date : pandas.Timestamp
-            A date to be used to resolve any dual-mapped symbols
-
-        Returns
-        _______
-        List
-            A list of integer sids corresponding to the input index
-        """
-        # This method assumes that the type of the objects in the index is
-        # consistent and can, therefore, be taken from the first identifier
-        first_identifier = index[0]
-
-        # Ensure that input is AssetConvertible (integer, string, or Asset)
-        if not isinstance(first_identifier, AssetConvertible):
-            raise MapAssetIdentifierIndexError(obj=first_identifier)
-
-        # If sids are provided, no mapping is necessary
-        if isinstance(first_identifier, Integral):
-            return index
-
-        # If symbols or Assets are provided, construction and mapping is
-        # necessary
-        for identifier in index:
-            # Handle case where full Assets are passed in
-            # For example, in the creation of a DataFrameSource, the source's
-            # 'sid' args may be full Assets
-            if isinstance(identifier, Asset):
-                sid = identifier.sid
-                metadata = identifier.to_dict()
-                metadata['asset_type'] = identifier.__class__.__name__
-                self.insert_metadata(identifier=sid, **metadata)
-            else:
-                self.insert_metadata(identifier)
-
-        self.populate_cache()
-
-        # Look up all Assets for mapping
-        matches = []
-        missing = []
-        for identifier in index:
-            self._lookup_generic_scalar(identifier, as_of_date,
-                                        matches, missing)
-
-        # Handle missing assets
-        if len(missing) > 0:
-            warnings.warn("Missing assets for identifiers: " + missing)
-
-        # Return a list of the sids of the found assets
-        return [asset.sid for asset in matches]
 
     def insert_metadata(self, identifier, **kwargs):
         """
