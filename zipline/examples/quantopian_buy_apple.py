@@ -40,8 +40,8 @@ if __name__ == '__main__':
                            end=end)
     data = data.dropna()
     algo = TradingAlgorithm(initialize=initialize,
-                            handle_data=handle_date,
-                            identifiers=['AAPL'])
+                            handle_data=handle_date)
+    algo.asset_finder.insert_metadata('AAPL')
     results = algo.run(data)
     results.portfolio_value.plot()
     pl.show()

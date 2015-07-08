@@ -60,8 +60,10 @@ def create_test_zipline(**config):
             sim_params=config.get('sim_params',
                                   factory.create_simulation_parameters()),
             slippage=config.get('slippage'),
-            identifiers=sid_list
         )
+        for sid in sid_list:
+            test_algo.asset_finder.insert_metadata(sid)
+            test_algo.asset_finder.populate_cache()
 
     # -------------------
     # Trade Source

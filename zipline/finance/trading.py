@@ -156,8 +156,7 @@ class TradingEnvironment(object):
     def update_asset_finder(self,
                             clear_metadata=False,
                             asset_finder=None,
-                            asset_metadata=None,
-                            identifiers=None):
+                            asset_metadata=None):
         """
         Updates the AssetFinder using the provided asset metadata and
         identifiers.
@@ -167,14 +166,11 @@ class TradingEnvironment(object):
         outright with the new asset_finder.
         If asset_metadata is provided, the existing metadata will be cleared
         and replaced with the provided metadata.
-        All identifiers will be inserted in the asset metadata if they are not
-        already present.
 
         :param clear_metadata: A boolean
         :param asset_finder: An AssetFinder object to replace the environment's
         existing asset_finder
         :param asset_metadata: A dict, DataFrame, or readable object
-        :param identifiers: A list of identifiers to be inserted
         :return:
         """
         populate = False
@@ -190,10 +186,6 @@ class TradingEnvironment(object):
         if asset_metadata is not None:
             self.asset_finder.clear_metadata()
             self.asset_finder.consume_metadata(asset_metadata)
-            populate = True
-
-        if identifiers is not None:
-            self.asset_finder.consume_identifiers(identifiers)
             populate = True
 
         if populate:

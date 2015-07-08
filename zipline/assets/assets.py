@@ -481,7 +481,18 @@ class AssetFinder(object):
 
         # If symbols or Assets are provided, construction and mapping is
         # necessary
-        self.consume_identifiers(index)
+        for identifier in index:
+            # Handle case where full Assets are passed in
+            # For example, in the creation of a DataFrameSource, the source's
+            # 'sid' args may be full Assets
+            if isinstance(identifier, Asset):
+                sid = identifier.sid
+                metadata = identifier.to_dict()
+                metadata['asset_type'] = identifier.__class__.__name__
+                self.insert_metadata(identifier=sid, **metadata)
+            else:
+                self.insert_metadata(identifier)
+
         self.populate_cache()
 
         # Look up all Assets for mapping
@@ -538,23 +549,6 @@ class AssetFinder(object):
                     raise SidAssignmentError(identifier=identifier)
 
         self.metadata_cache[identifier] = entry
-
-    def consume_identifiers(self, identifiers):
-        """
-        Consumes the given identifiers in to the metadata cache of this
-        AssetFinder.
-        """
-        for identifier in identifiers:
-            # Handle case where full Assets are passed in
-            # For example, in the creation of a DataFrameSource, the source's
-            # 'sid' args may be full Assets
-            if isinstance(identifier, Asset):
-                sid = identifier.sid
-                metadata = identifier.to_dict()
-                metadata['asset_type'] = identifier.__class__.__name__
-                self.insert_metadata(identifier=sid, **metadata)
-            else:
-                self.insert_metadata(identifier)
 
     def consume_metadata(self, metadata):
         """

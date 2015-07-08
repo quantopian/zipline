@@ -68,8 +68,9 @@ class TestEventsThroughRisk(unittest.TestCase):
         )
 
         algo = BuyAndHoldAlgorithm(
-            identifiers=[1],
             sim_params=sim_params)
+        algo.asset_finder.insert_metadata(1)
+        algo.asset_finder.populate_cache()
 
         first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
         second_date = datetime.datetime(2006, 1, 4, tzinfo=pytz.utc)
@@ -130,6 +131,8 @@ class TestEventsThroughRisk(unittest.TestCase):
 
         algo.benchmark_return_source = benchmark_data
         algo.set_sources(list([trade_bar_data]))
+        algo.asset_finder.insert_metadata(1)
+        algo.asset_finder.populate_cache()
         gen = algo._create_generator(sim_params)
 
         # TODO: Hand derive these results.
@@ -189,9 +192,9 @@ class TestEventsThroughRisk(unittest.TestCase):
                 emission_rate='daily',
                 data_frequency='minute')
 
-            algo = BuyAndHoldAlgorithm(
-                identifiers=[1],
-                sim_params=sim_params)
+            algo = BuyAndHoldAlgorithm(sim_params=sim_params)
+            algo.asset_finder.insert_metadata(1)
+            algo.asset_finder.populate_cache()
 
             first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
             first_open, first_close = \
@@ -291,6 +294,8 @@ class TestEventsThroughRisk(unittest.TestCase):
 
             algo.benchmark_return_source = benchmark_data
             algo.set_sources(list([trade_bar_data]))
+            algo.asset_finder.insert_metadata(1)
+            algo.asset_finder.populate_cache()
             gen = algo._create_generator(sim_params)
 
             crm = algo.perf_tracker.cumulative_risk_metrics

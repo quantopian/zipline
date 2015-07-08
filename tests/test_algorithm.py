@@ -957,7 +957,6 @@ class TestGetDatetime(TestCase):
         algo = TradingAlgorithm(
             script=algo,
             sim_params=sim_params,
-            identifiers=[1]
         )
         algo.run(source)
         self.assertFalse(algo.first_bar)

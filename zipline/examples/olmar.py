@@ -156,8 +156,7 @@ if __name__ == '__main__':
     data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
     data = data.dropna()
     olmar = TradingAlgorithm(handle_data=handle_data,
-                             initialize=initialize,
-                             identifiers=STOCKS)
+                             initialize=initialize)
     results = olmar.run(data)
     results.portfolio_value.plot()
     pl.show()

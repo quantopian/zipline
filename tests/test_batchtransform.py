@@ -114,8 +114,11 @@ class TestChangeOfSids(TestCase):
     def test_all_sids_passed(self):
         algo = BatchTransformAlgorithmSetSid(
             sim_params=self.sim_params,
-            identifiers=[i for i in range(0, 90)]
         )
+        for sid in [i for i in range(0, 90)]:
+            algo.asset_finder.insert_metadata(sid)
+        algo.asset_finder.populate_cache()
+
         source = DifferentSidSource()
         algo.run(source)
         for i, (df, date) in enumerate(zip(algo.history, source.trading_days)):

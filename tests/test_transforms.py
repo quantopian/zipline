@@ -102,7 +102,6 @@ def with_algo(f):
             initialize=initialize_with(self, tfm_name, days),
             handle_data=handle_data_wrapper(f),
             sim_params=sim_params,
-            identifiers=[1, 2, 3]
         )
         algo.run(source)
 

@@ -77,8 +77,9 @@ if __name__ == '__main__':
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
                            end=end)
 
-    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data,
-                            identifiers=['AAPL'])
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
+    algo.asset_finder.insert_metadata('AAPL')
+    algo.asset_finder.populate_cache()
     results = algo.run(data).dropna()
 
     fig = plt.figure()

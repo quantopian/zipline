@@ -486,7 +486,8 @@ class AssetFinderTestCase(TestCase):
 
         # Consume the Assets
         finder = AssetFinder()
-        finder.consume_identifiers([equity_asset, future_asset])
+        finder.insert_metadata(equity_asset, **equity_asset.to_dict())
+        finder.insert_metadata(future_asset, **future_asset.to_dict())
         finder.populate_cache()
 
         # Test equality with newly built Assets

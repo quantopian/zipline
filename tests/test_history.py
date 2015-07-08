@@ -510,7 +510,6 @@ def handle_data(context, data):
             script=algo_text,
             data_frequency='minute',
             sim_params=sim_params,
-            identifiers=[0]
         )
 
         source = RandomWalkSource(start=start,

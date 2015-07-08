@@ -152,9 +152,6 @@ class TradingAlgorithm(object):
                 If an object with a 'read' property is provided, 'read' must
                 return rows containing at least one of 'sid' or 'symbol' along
                 with the other metadata fields.
-            identifiers : List
-                Any asset identifiers that are not provided in the
-                asset_metadata, but will be traded by this TradingAlgorithm
         """
         self.sources = []
 
@@ -197,7 +194,6 @@ class TradingAlgorithm(object):
         self.trading_environment.update_asset_finder(
             asset_finder=kwargs.pop('asset_finder', None),
             asset_metadata=kwargs.pop('asset_metadata', None),
-            identifiers=kwargs.pop('identifiers', None)
         )
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
@@ -468,6 +464,9 @@ class TradingAlgorithm(object):
                 self.asset_finder.map_identifier_index_to_sids(
                     source.columns, source.index[0]
                 )
+            for sid in copy_frame.columns:
+                self.asset_finder.insert_metadata(sid)
+            self.asset_finder.populate_cache()
             source = DataFrameSource(copy_frame)
 
         elif isinstance(source, pd.Panel):
@@ -477,12 +476,23 @@ class TradingAlgorithm(object):
             copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
                 source.items, source.major_axis[0]
             )
+            for sid in copy_panel.items:
+                self.asset_finder.insert_metadata(sid)
+            self.asset_finder.populate_cache()
             source = DataPanelSource(copy_panel)
 
         if isinstance(source, list):
             self.set_sources(source)
+            # This is actually "source in sources"
+            for s in source:
+                for sid in s.sids:
+                    self.asset_finder.insert_metadata(sid)
+            self.asset_finder.populate_cache()
         else:
             self.set_sources([source])
+            for sid in source.sids:
+                self.asset_finder.insert_metadata(sid)
+            self.asset_finder.populate_cache()
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
