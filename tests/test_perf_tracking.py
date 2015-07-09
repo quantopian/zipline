@@ -34,6 +34,7 @@ import pandas as pd
 import numpy as np
 from six.moves import range, zip
 
+from zipline.assets import AssetFinder
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
@@ -2132,7 +2133,10 @@ class TestPositionTracker(unittest.TestCase):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        env.update_asset_finder(asset_metadata=metadata)
+        asset_finder = AssetFinder()
+        env.update_asset_finder(
+            asset_finder=asset_finder,
+            asset_metadata=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(100.0),
