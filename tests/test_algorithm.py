@@ -23,6 +23,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.assets import AssetFinder
 from zipline.utils.test_utils import (
     nullctx,
     setup_logger,
@@ -87,9 +88,7 @@ from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
-from zipline.assets import (
-    Equity, Future
-)
+from zipline.assets import Equity
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
@@ -1210,16 +1209,22 @@ class TestTradingControls(TestCase):
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '1990-01-01',
                         'end_date': '2020-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(asset_metadata=metadata,
-                                           sim_params=self.sim_params,)
+        asset_finder = AssetFinder()
+        algo = SetAssetDateBoundsAlgorithm(
+            asset_finder=asset_finder,
+            asset_metadata=metadata,
+            sim_params=self.sim_params,)
         algo.run(df_source)
 
         # Run the algorithm with a sid that has already ended
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '1989-01-01',
                         'end_date': '1990-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(asset_metadata=metadata,
-                                           sim_params=self.sim_params,)
+        asset_finder = AssetFinder()
+        algo = SetAssetDateBoundsAlgorithm(
+            asset_finder=asset_finder,
+            asset_metadata=metadata,
+            sim_params=self.sim_params,)
         with self.assertRaises(TradingControlViolation):
             algo.run(df_source)
 
@@ -1227,8 +1232,10 @@ class TestTradingControls(TestCase):
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '2020-01-01',
                         'end_date': '2021-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(asset_metadata=metadata,
-                                           sim_params=self.sim_params,)
+        algo = SetAssetDateBoundsAlgorithm(
+            asset_finder=asset_finder,
+            asset_metadata=metadata,
+            sim_params=self.sim_params,)
         with self.assertRaises(TradingControlViolation):
             algo.run(df_source)
 
