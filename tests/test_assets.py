@@ -542,19 +542,19 @@ class AssetFinderTestCase(TestCase):
 
     def test_lookup_future_chain(self):
         metadata = {
-            # Expires today, so should be valid
+            # Notice day is today, so not valid
             2: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-06-15', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             # Starts trading today, so should be valid.
@@ -562,8 +562,8 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
-                'start_date': pd.Timestamp('2015-06-15', tz='UTC')
+                'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
+                'start_date': pd.Timestamp('2015-05-14', tz='UTC')
             },
             # Copy of the above future, but starts trading in August,
             # so it isn't valid.
@@ -571,24 +571,23 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'expiration_date': pd.Timestamp('2015-12-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
 
         }
 
         finder = AssetFinder(metadata=metadata)
-        dt = pd.Timestamp('2015-06-15', tz='UTC')
+        dt = pd.Timestamp('2015-05-14', tz='UTC')
         last_year = pd.Timestamp('2014-01-01', tz='UTC')
         first_day = pd.Timestamp('2015-01-01', tz='UTC')
 
         # Check that we get the expected number of contracts, in the
         # right order
         ad_contracts = finder.lookup_future_chain('AD', dt, dt)
-        self.assertEqual(len(ad_contracts), 3)
-        self.assertEqual(ad_contracts[0].sid, 2)
-        self.assertEqual(ad_contracts[1].sid, 1)
-        self.assertEqual(ad_contracts[2].sid, 0)
+        self.assertEqual(len(ad_contracts), 2)
+        self.assertEqual(ad_contracts[0].sid, 1)
+        self.assertEqual(ad_contracts[1].sid, 0)
 
         # Check that we get nothing if our knowledge date is last year
         ad_contracts = finder.lookup_future_chain('AD', dt, last_year)
@@ -596,7 +595,7 @@ class AssetFinderTestCase(TestCase):
 
         # Check that we get things that start on the knowledge date
         ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
-        self.assertEqual(len(ad_contracts), 2)
+        self.assertEqual(len(ad_contracts), 1)
 
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets

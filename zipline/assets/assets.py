@@ -214,10 +214,10 @@ class AssetFinder(object):
         """ Sort by increasing expiration date the list of contracts
         for each root symbol in the future cache.
         """
-        exp_key = operator.attrgetter('expiration_date')
+        notice_key = operator.attrgetter('notice_date')
 
         for root_symbol in self.future_chains_cache:
-            self.future_chains_cache[root_symbol].sort(key=exp_key)
+            self.future_chains_cache[root_symbol].sort(key=notice_key)
 
     def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
@@ -241,7 +241,7 @@ class AssetFinder(object):
         """
         try:
             return [c for c in self.future_chains_cache[root_symbol]
-                    if c.expiration_date and (as_of_date <= c.expiration_date)
+                    if c.notice_date and (as_of_date < c.notice_date)
                     and c.start_date and (c.start_date <= knowledge_date)]
         except KeyError:
             raise RootSymbolNotFound(root_symbol=root_symbol)
