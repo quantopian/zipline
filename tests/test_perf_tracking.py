@@ -2020,6 +2020,46 @@ class TestPerformanceTracker(unittest.TestCase):
                 # Test not-owned SID
                 self.assertIsNone(txn)
 
+    def test_handle_sid_removed_from_universe(self):
+        # post some trades in the market
+        sim_params, _, _ = create_random_simulation_parameters()
+        events = factory.create_trade_history(
+            1,
+            [10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100],
+            oneday,
+            sim_params
+        )
+
+        # Create a tracker and a dividend
+        perf_tracker = perf.PerformanceTracker(sim_params)
+        dividend = factory.create_dividend(
+            1,
+            10.00,
+            # declared date, when the algorithm finds out about
+            # the dividend
+            events[0].dt,
+            # ex_date, the date before which the algorithm must hold stock
+            # to receive the dividend
+            events[1].dt,
+            # pay date, when the algorithm receives the dividend.
+            events[2].dt
+        )
+        dividend_frame = pd.DataFrame(
+            [dividend.to_series(index=zp.DIVIDEND_FIELDS)],
+        )
+        perf_tracker.update_dividends(dividend_frame)
+
+        # Ensure that the dividend is in the tracker
+        self.assertIn(1, perf_tracker.dividend_frame['sid'].values)
+
+        # Inform the tracker that sid 1 has been removed from the universe
+        perf_tracker.handle_sid_removed_from_universe(1)
+
+        # Ensure that the dividend for sid 1 has been removed from dividend
+        # frame
+        self.assertNotIn(1, perf_tracker.dividend_frame['sid'].values)
+
     def test_serialization(self):
         start_dt = datetime(year=2008,
                             month=10,

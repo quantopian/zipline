@@ -236,6 +236,22 @@ class PerformanceTracker(object):
         self.dividend_frame = other.dividend_frame
         self._dividend_count = other._dividend_count
 
+    def handle_sid_removed_from_universe(self, sid):
+        """
+        This method handles any behaviors that must occur when a SID leaves the
+        universe of the TradingAlgorithm.
+
+        Parameters
+        __________
+        sid : int
+            The sid of the Asset being removed from the universe.
+        """
+
+        # Drop any dividends for the sid from the dividends frame
+        self.dividend_frame = self.dividend_frame[
+            self.dividend_frame.sid != sid
+        ]
+
     def update_performance(self):
         # calculate performance as of last trade
         for perf_period in self.perf_periods:
