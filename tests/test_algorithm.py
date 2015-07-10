@@ -87,9 +87,7 @@ from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
-from zipline.assets import (
-    Equity, Future
-)
+from zipline.assets import Equity
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
