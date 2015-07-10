@@ -211,7 +211,7 @@ class AssetFinder(object):
                     self.fuzzy_match[(symbol, fuzzy, as_of_date)] = None
 
     def _sort_future_chains(self):
-        """ Sort by increasing expiration date the list of contracts
+        """ Sort by increasing notice date the list of contracts
         for each root symbol in the future cache.
         """
         notice_key = operator.attrgetter('notice_date')
@@ -228,8 +228,8 @@ class AssetFinder(object):
             Root symbol of the desired future.
         as_of_date : pd.Timestamp
             Date at which the chain determination is rooted. I.e. the
-            existing contract that expires first after (or on) this date is
-            the primary contract, etc.
+            existing contract whose notice date is first after this
+            date is the primary contract, etc.
         knowledge_date : pd.Timestamp
             Date for determining which contracts exist for inclusion in
             this chain. Contracts exist only if they have a start_date
@@ -237,7 +237,15 @@ class AssetFinder(object):
 
         Returns
         -------
-        [Future]
+        list
+            A list of Future objects, the chain for the given
+            parameters.
+
+        Raises
+        ------
+        RootSymbolNotFound
+            Raised when a future chain could not be found for the given
+            root symbol.
         """
         try:
             return [c for c in self.future_chains_cache[root_symbol]

@@ -32,10 +32,12 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.assets import Asset, Equity, Future, AssetFinder
+from zipline.assets.futures import FutureChain
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
     SidAssignmentError,
+    RootSymbolNotFound,
 )
 
 
@@ -617,3 +619,198 @@ class AssetFinderTestCase(TestCase):
         pre_map = [asset201, asset2, asset200, asset1]
         post_map = finder.map_identifier_index_to_sids(pre_map, dt)
         self.assertListEqual([201, 2, 200, 1], post_map)
+
+
+class TestFutureChain(TestCase):
+    metadata = {
+        0: {
+            'symbol': 'CLG06',
+            'root_symbol': 'CL',
+            'asset_type': 'future',
+            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+            'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
+            'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
+        1: {
+            'root_symbol': 'CL',
+            'symbol': 'CLK06',
+            'asset_type': 'future',
+            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+            'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
+            'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
+        2: {
+            'symbol': 'CLQ06',
+            'root_symbol': 'CL',
+            'asset_type': 'future',
+            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+            'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
+            'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
+        3: {
+            'symbol': 'CLX06',
+            'root_symbol': 'CL',
+            'asset_type': 'future',
+            'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
+            'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
+            'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
+    }
+
+    asset_finder = AssetFinder(metadata=metadata)
+
+    def test_len(self):
+        """ Test the __len__ method of FutureChain.
+        """
+        # None of the contracts have started yet.
+        cl = FutureChain(self.asset_finder, lambda: '2005-11-30', 'CL')
+        self.assertEqual(len(cl), 0)
+
+        # Sids 0, 1, & 2 have started, 3 has not yet started.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        self.assertEqual(len(cl), 3)
+
+        # Sid 0 is still valid the day before its notice date.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        self.assertEqual(len(cl), 3)
+
+        # Sid 0 is now invalid, leaving only Sids 1 & 2 valid.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        self.assertEqual(len(cl), 2)
+
+        # Sid 3 has started, so 1, 2, & 3 are now valid.
+        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
+        self.assertEqual(len(cl), 3)
+
+        # All contracts are no longer valid.
+        cl = FutureChain(self.asset_finder, lambda: '2006-09-20', 'CL')
+        self.assertEqual(len(cl), 0)
+
+    def test_getitem(self):
+        """ Test the __getitem__ method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        self.assertEqual(cl[0], 0)
+        self.assertEqual(cl[1], 1)
+        self.assertEqual(cl[2], 2)
+        with self.assertRaises(IndexError):
+            cl[3]
+
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        self.assertEqual(cl[0], 0)
+
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        self.assertEqual(cl[0], 1)
+
+        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
+        self.assertEqual(cl[-1], 3)
+
+    def test_root_symbols(self):
+        """ Test that different variations on root symbols are handled
+        as expected.
+        """
+        # Make sure this successfully gets the chain for CL.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        self.assertEqual(cl.root_symbol, 'CL')
+
+        # These root symbols don't exist, so RootSymbolNotFound should
+        # be raised immediately.
+        with self.assertRaises(RootSymbolNotFound):
+            FutureChain(self.asset_finder, lambda: '2005-12-01', 'CLZ')
+
+        with self.assertRaises(RootSymbolNotFound):
+            FutureChain(self.asset_finder, lambda: '2005-12-01', '')
+
+    def test_repr(self):
+        """ Test the __repr__ method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl_feb = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL',
+                             as_of_date='2006-02-01')
+
+        # The default chain should not include the as of date.
+        self.assertEqual(repr(cl), "FutureChain(root_symbol='CL')")
+
+        # An explicit as of date should show up in the repr.
+        self.assertEqual(
+            repr(cl_feb),
+            ("FutureChain(root_symbol='CL', "
+             "as_of_date='2006-02-01 00:00:00+00:00')")
+        )
+
+    def test_as_of(self):
+        """ Test the as_of method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+
+        # Test that the as_of_date is set correctly to the future
+        feb = '2006-02-01'
+        cl_feb = cl.as_of(feb)
+        self.assertEqual(
+            cl_feb.as_of_date,
+            pd.Timestamp(feb, tz='UTC')
+        )
+
+        # Test that the as_of_date is set correctly to the past, with
+        # args of str, datetime.datetime, and pd.Timestamp.
+        feb_prev = '2005-02-01'
+        cl_feb_prev = cl.as_of(feb_prev)
+        self.assertEqual(
+            cl_feb_prev.as_of_date,
+            pd.Timestamp(feb_prev, tz='UTC')
+        )
+
+        feb_prev = datetime(year=2005, month=2, day=1)
+        cl_feb_prev = cl.as_of(feb_prev)
+        self.assertEqual(
+            cl_feb_prev.as_of_date,
+            pd.Timestamp(feb_prev, tz='UTC')
+        )
+
+        feb_prev = pd.Timestamp('2005-02-01')
+        cl_feb_prev = cl.as_of(feb_prev)
+        self.assertEqual(
+            cl_feb_prev.as_of_date,
+            pd.Timestamp(feb_prev, tz='UTC')
+        )
+
+        # The chain as of the current dt should always be the same as
+        # the defualt chain. Tests date as str, pd.Timestamp, and
+        # datetime.datetime.
+        self.assertEqual(cl[0], cl.as_of('2005-12-01')[0])
+        self.assertEqual(cl[0], cl.as_of(pd.Timestamp('2005-12-01'))[0])
+        self.assertEqual(
+            cl[0],
+            cl.as_of(datetime(year=2005, month=12, day=1))[0]
+        )
+
+    def test_offset(self):
+        """ Test the offset method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+
+        # Test that an offset forward sets as_of_date as expected
+        self.assertEqual(
+            cl.offset('3 days').as_of_date,
+            cl.as_of_date + pd.Timedelta(days=3)
+        )
+
+        # Test that an offset backward sets as_of_date as expected, with
+        # time delta given as str, datetime.timedelta, and pd.Timedelta.
+        self.assertEqual(
+            cl.offset('-1000 days').as_of_date,
+            cl.as_of_date + pd.Timedelta(days=-1000)
+        )
+        self.assertEqual(
+            cl.offset(timedelta(days=-1000)).as_of_date,
+            cl.as_of_date + pd.Timedelta(days=-1000)
+        )
+        self.assertEqual(
+            cl.offset(pd.Timedelta('-1000 days')).as_of_date,
+            cl.as_of_date + pd.Timedelta(days=-1000)
+        )
+
+        # An offset of zero should give the original chain.
+        self.assertEqual(cl[0], cl.offset(0)[0])
+        self.assertEqual(cl[0], cl.offset("0 days")[0])
+
+        # A string that doesn't represent a time delta should raise a
+        # ValueError.
+        with self.assertRaises(ValueError):
+            cl.offset("blah")

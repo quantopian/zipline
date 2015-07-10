@@ -65,6 +65,7 @@ from zipline.finance.slippage import (
     transact_partial
 )
 from zipline.assets import Asset, Future
+from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources import DataFrameSource, DataPanelSource
@@ -681,6 +682,36 @@ class TradingAlgorithm(object):
         to the Asset.
         """
         return self.asset_finder.retrieve_asset(a_sid)
+
+    @api_method
+    def future_chain(self, root_symbol, as_of_date=None):
+        """ Look up a future chain with the specified parameters.
+
+        Parameters
+        ----------
+        root_symbol : str
+            The root symbol of a future chain.
+        as_of_date : datetime.datetime or pandas.Timestamp or str, optional
+            Date at which the chain determination is rooted. I.e. the
+            existing contract whose notice date is first after this date is
+            the primary contract, etc.
+
+        Returns
+        -------
+        FutureChain
+            The future chain matching the specified parameters.
+
+        Raises
+        ------
+        RootSymbolNotFound
+            If a future chain could not be found for the given root symbol.
+        """
+        return FutureChain(
+            asset_finder=self.asset_finder,
+            get_datetime=self.get_datetime,
+            root_symbol=root_symbol.upper(),
+            as_of_date=as_of_date
+        )
 
     def _calculate_order_value_amount(self, asset, value):
         """

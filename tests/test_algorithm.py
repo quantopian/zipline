@@ -37,6 +37,7 @@ from zipline.errors import (
     TradingControlViolation,
     AccountControlViolation,
     SymbolNotFound,
+    RootSymbolNotFound,
 )
 from zipline.test_algorithms import (
     access_account_in_init,
@@ -334,6 +335,74 @@ class TestMiscellaneousAPI(TestCase):
         # Test lookup SID
         self.assertIsInstance(algo.sid(0), Equity)
         self.assertIsInstance(algo.sid(1), Equity)
+
+    def test_future_chain(self):
+        """ Tests the future_chain API function.
+        """
+
+        metadata = {
+            0: {
+                'symbol': 'CLG06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
+            1: {
+                'root_symbol': 'CL',
+                'symbol': 'CLK06',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
+            2: {
+                'symbol': 'CLQ06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
+            3: {
+                'symbol': 'CLX06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
+        }
+
+        algo = TradingAlgorithm(asset_metadata=metadata)
+        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+
+        # Check that the fields of the FutureChain object are set correctly
+        cl = algo.future_chain('CL')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.as_of_date, algo.datetime)
+
+        # Check the fields are set correctly if an as_of_date is supplied
+        as_of_date = pd.Timestamp('1952-08-11', tz='UTC')
+
+        cl = algo.future_chain('CL', as_of_date=as_of_date)
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.as_of_date, as_of_date)
+
+        cl = algo.future_chain('CL', as_of_date='1952-08-11')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.as_of_date, as_of_date)
+
+        # Check that weird capitalization is corrected
+        cl = algo.future_chain('cL')
+        self.assertEqual(cl.root_symbol, 'CL')
+
+        cl = algo.future_chain('cl')
+        self.assertEqual(cl.root_symbol, 'CL')
+
+        # Check that invalid root symbols raise RootSymbolNotFound
+        with self.assertRaises(RootSymbolNotFound):
+            algo.future_chain('CLZ')
+
+        with self.assertRaises(RootSymbolNotFound):
+            algo.future_chain('')
 
 
 class TestTransformAlgorithm(TestCase):
