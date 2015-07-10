@@ -1893,7 +1893,9 @@ class TestPerformanceTracker(unittest.TestCase):
         foosid = 1
         barsid = 2
 
-        env.update_asset_finder(identifiers=[foosid, barsid])
+        for sid in [foosid, barsid]:
+            env.asset_finder.insert_metadata(sid)
+        env.asset_finder.populate_cache()
 
         foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
         order_event_1 = Order(sid=foo_event_1.sid,
@@ -1989,7 +1991,9 @@ class TestPerformanceTracker(unittest.TestCase):
 
     @with_environment()
     def test_close_position_event(self, env=None):
-        env.update_asset_finder(identifiers=[1, 2])
+        for sid in [1, 2]:
+            env.asset_finder.insert_metadata(sid)
+        env.asset_finder.populate_cache()
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),

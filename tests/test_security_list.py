@@ -68,8 +68,10 @@ class SecurityListTestCase(TestCase):
 
         env.update_asset_finder(
             clear_metadata=True,
-            identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"]
         )
+        for sid in ["BZQ", "URTY", "JFT", "AAPL", "GOOG"]:
+            env.asset_finder.insert_metadata(sid)
+        env.asset_finder.populate_cache()
 
         setup_logger(self)
 

@@ -266,7 +266,7 @@ must contain both or one of 'sid' or 'symbol'.
 
 class MapAssetIdentifierIndexError(ZiplineError):
     """
-    Raised when AssetMetaData.map_identifier_index_to_sids() is called on an
+    Raised when populate_finder_from_identifier_index() is called on an
     index of invalid objects.
     """
     msg = """

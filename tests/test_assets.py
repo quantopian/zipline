@@ -31,7 +31,13 @@ import pandas as pd
 
 from nose_parameterized import parameterized
 
-from zipline.assets import Asset, Equity, Future, AssetFinder
+from zipline.assets import (
+    Asset,
+    Equity,
+    Future,
+    AssetFinder,
+    populate_finder_from_identifier_index
+)
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -486,7 +492,8 @@ class AssetFinderTestCase(TestCase):
 
         # Consume the Assets
         finder = AssetFinder()
-        finder.consume_identifiers([equity_asset, future_asset])
+        finder.insert_metadata(equity_asset, **equity_asset.to_dict())
+        finder.insert_metadata(future_asset, **future_asset.to_dict())
         finder.populate_cache()
 
         # Test equality with newly built Assets
@@ -597,7 +604,7 @@ class AssetFinderTestCase(TestCase):
         ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
         self.assertEqual(len(ad_contracts), 1)
 
-    def test_map_identifier_index_to_sids(self):
+    def test_populate_finder_from_identifier_index(self):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
         finder = AssetFinder()
@@ -607,13 +614,15 @@ class AssetFinderTestCase(TestCase):
         asset201 = Future(201, symbol="CLM15")
 
         # Check for correct mapping and types
-        pre_map = [asset1, asset2, asset200, asset201]
-        post_map = finder.map_identifier_index_to_sids(pre_map, dt)
-        self.assertListEqual([1, 2, 200, 201], post_map)
-        for sid in post_map:
+        pre_pop = [asset1, asset2, asset200, asset201]
+        post_pop = populate_finder_from_identifier_index(finder, pre_pop, dt)
+        self.assertListEqual([1, 2, 200, 201], post_pop)
+        for sid in post_pop:
             self.assertIsInstance(sid, int)
 
         # Change order and check mapping again
-        pre_map = [asset201, asset2, asset200, asset1]
-        post_map = finder.map_identifier_index_to_sids(pre_map, dt)
-        self.assertListEqual([201, 2, 200, 1], post_map)
+        pre_pop = [asset201, asset2, asset200, asset1]
+        post_pop = populate_finder_from_identifier_index(
+            finder, pre_pop, dt)
+        post_pop = populate_finder_from_identifier_index(finder, pre_pop, dt)
+        self.assertListEqual([201, 2, 200, 1], post_pop)
