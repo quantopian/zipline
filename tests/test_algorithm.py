@@ -304,49 +304,38 @@ class TestMiscellaneousAPI(TestCase):
                     1: {'symbol': 'PLAY',
                         'asset_type': 'equity',
                         'start_date': '2005-01-01',
-                        'end_date': '2006-01-01'},
-                    2: {'symbol': 'OMG15',
-                        'asset_type': 'future'}}
+                        'end_date': '2006-01-01'}}
         algo = TradingAlgorithm(asset_metadata=metadata)
 
         # Test before either PLAY existed
         algo.datetime = pd.Timestamp('2001-12-01', tz='UTC')
-        self.assertEqual(2, algo.symbol('OMG15'))
         with self.assertRaises(SymbolNotFound):
             algo.symbol('PLAY')
         with self.assertRaises(SymbolNotFound):
-            algo.symbols('PLAY', 'OMG15')
+            algo.symbols('PLAY')
 
         # Test when first PLAY exists
         algo.datetime = pd.Timestamp('2002-12-01', tz='UTC')
-        self.assertEqual(2, algo.symbol('OMG15'))
-        self.assertEqual(0, algo.symbol('PLAY'))
-        list_result = algo.symbols('PLAY', 'OMG15')
+        list_result = algo.symbols('PLAY')
         self.assertEqual(0, list_result[0])
-        self.assertEqual(2, list_result[1])
 
         # Test after first PLAY ends
         algo.datetime = pd.Timestamp('2004-12-01', tz='UTC')
-        self.assertEqual(2, algo.symbol('OMG15'))
         self.assertEqual(0, algo.symbol('PLAY'))
 
         # Test after second PLAY begins
         algo.datetime = pd.Timestamp('2005-12-01', tz='UTC')
-        self.assertEqual(2, algo.symbol('OMG15'))
         self.assertEqual(1, algo.symbol('PLAY'))
 
         # Test after second PLAY ends
         algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
-        self.assertEqual(2, algo.symbol('OMG15'))
         self.assertEqual(1, algo.symbol('PLAY'))
-        list_result = algo.symbols('PLAY', 'OMG15')
+        list_result = algo.symbols('PLAY')
         self.assertEqual(1, list_result[0])
-        self.assertEqual(2, list_result[1])
 
         # Test lookup SID
         self.assertIsInstance(algo.sid(0), Equity)
         self.assertIsInstance(algo.sid(1), Equity)
-        self.assertIsInstance(algo.sid(2), Future)
 
 
 class TestTransformAlgorithm(TestCase):
