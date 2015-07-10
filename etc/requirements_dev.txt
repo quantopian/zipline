@@ -4,7 +4,7 @@ nose-parameterized==0.5.0
 nose-ignore-docstring==0.2
 -e git://github.com/python-excel/xlrd.git@b9239bf2bfc42e088dd2a75c22164757cca9cc4f#egg=xlrd-master
 
-# These are required my bock or its dependencies
+# These are required by mock or its dependencies
 MarkupSafe==0.23
 Jinja2==2.7.3
 funcsigs==0.4
