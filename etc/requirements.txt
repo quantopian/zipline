@@ -33,3 +33,4 @@ cyordereddict==0.2.2
 bottleneck==1.0.0
 
 contextlib2==0.4.0
+functools32==3.2.3.post1

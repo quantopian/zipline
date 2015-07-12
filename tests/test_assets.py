@@ -20,14 +20,12 @@ Tests for the zipline.assets package
 import sys
 from unittest import TestCase
 
-from datetime import (
-    timedelta,
-    datetime
-)
+from datetime import timedelta
 import pickle
 import uuid
 import warnings
 import pandas as pd
+from pandas.tseries.tools import normalize_date
 
 from nose_parameterized import parameterized
 
@@ -287,7 +285,7 @@ class AssetFinderTestCase(TestCase):
                 for i in range(3)
             ]
         )
-        finder = AssetFinder(frame)
+        finder = AssetFinder(frame, fuzzy_char='@')
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
@@ -302,17 +300,15 @@ class AssetFinderTestCase(TestCase):
             # Adding an unnecessary fuzzy shouldn't matter.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test@1', as_of, fuzzy='@')
+                finder.lookup_symbol('test@1', as_of, fuzzy=True)
             )
 
             # Shouldn't find this with no fuzzy_str passed.
             self.assertIsNone(finder.lookup_symbol('test1', as_of))
-            # Shouldn't find this with an incorrect fuzzy_str.
-            self.assertIsNone(finder.lookup_symbol('test1', as_of, fuzzy='*'))
-            # Should find it with the correct fuzzy_str.
+            # Should find exact match.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test1', as_of, fuzzy='@'),
+                finder.lookup_symbol('test1', as_of, fuzzy=True),
             )
 
     def test_lookup_symbol_resolve_multiple(self):
@@ -432,9 +428,11 @@ class AssetFinderTestCase(TestCase):
                                foo_data="FOO",)
 
         # Test proper insertion
-        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
-        self.assertEqual('PLAY', finder.metadata_cache[0]['symbol'])
-        self.assertEqual('2015-01-01', finder.metadata_cache[0]['end_date'])
+        equity = finder.retrieve_asset(0)
+        self.assertIsInstance(equity, Equity)
+        self.assertEqual('PLAY', equity.symbol)
+        self.assertEqual(pd.Timestamp('2015-01-01', tz='UTC'),
+                         equity.end_date)
 
         # Test invalid field
         self.assertFalse('foo_data' in finder.metadata_cache[0])
@@ -446,7 +444,8 @@ class AssetFinderTestCase(TestCase):
                                end_date='2015-02-01',
                                symbol="PLAY",
                                exchange="NYSE",)
-        self.assertEqual('2015-02-01', finder.metadata_cache[0]['end_date'])
+        self.assertEqual(pd.Timestamp('2015-02-01', tz='UTC'),
+                         finder.metadata_cache[0]['end_date'])
         self.assertEqual('NYSE', finder.metadata_cache[0]['exchange'])
 
         # Check that old data survived
@@ -455,12 +454,16 @@ class AssetFinderTestCase(TestCase):
     def test_consume_metadata(self):
 
         # Test dict consumption
-        finder = AssetFinder({0: {'asset_type': 'equity'}})
+        finder = AssetFinder()
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
         finder.consume_metadata(dict_to_consume)
-        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
-        self.assertEqual('PLAY', finder.metadata_cache[0]['symbol'])
+
+        equity = finder.retrieve_asset(0)
+        self.assertIsInstance(equity, Equity)
+        self.assertEqual('PLAY', equity.symbol)
+
+        finder = AssetFinder()
 
         # Test dataframe consumption
         df = pd.DataFrame(columns=['asset_name', 'exchange'], index=[0, 1])
@@ -471,11 +474,8 @@ class AssetFinderTestCase(TestCase):
         finder.consume_metadata(df)
         self.assertEqual('NASDAQ', finder.metadata_cache[0]['exchange'])
         self.assertEqual('Microsoft', finder.metadata_cache[1]['asset_name'])
-        # Check that old data survived
-        self.assertEqual('equity', finder.metadata_cache[0]['asset_type'])
 
     def test_consume_asset_as_identifier(self):
-
         # Build some end dates
         eq_end = pd.Timestamp('2012-01-01', tz='UTC')
         fut_end = pd.Timestamp('2008-01-01', tz='UTC')
@@ -487,7 +487,6 @@ class AssetFinderTestCase(TestCase):
         # Consume the Assets
         finder = AssetFinder()
         finder.consume_identifiers([equity_asset, future_asset])
-        finder.populate_cache()
 
         # Test equality with newly built Assets
         self.assertEqual(equity_asset, finder.retrieve_asset(1))
@@ -501,12 +500,15 @@ class AssetFinderTestCase(TestCase):
         metadata = {'PLAY': {'symbol': 'PLAY'},
                     'MSFT': {'symbol': 'MSFT'}}
 
+        today = normalize_date(pd.Timestamp('2015-07-09', tz='UTC'))
+
         # Build a finder that is allowed to assign sids
-        finder = AssetFinder(metadata=metadata, allow_sid_assignment=True)
+        finder = AssetFinder(metadata=metadata,
+                             allow_sid_assignment=True)
 
         # Verify that Assets were built and different sids were assigned
-        play = finder.lookup_symbol('PLAY', datetime.now())
-        msft = finder.lookup_symbol('MSFT', datetime.now())
+        play = finder.lookup_symbol('PLAY', today)
+        msft = finder.lookup_symbol('MSFT', today)
         self.assertEqual('PLAY', play.symbol)
         self.assertIsNotNone(play.sid)
         self.assertNotEqual(play.sid, msft.sid)

@@ -177,10 +177,8 @@ class TradingEnvironment(object):
         :param identifiers: A list of identifiers to be inserted
         :return:
         """
-        populate = False
         if clear_metadata:
             self.asset_finder.clear_metadata()
-            populate = True
 
         if asset_finder is not None:
             if not isinstance(asset_finder, AssetFinder):
@@ -190,14 +188,9 @@ class TradingEnvironment(object):
         if asset_metadata is not None:
             self.asset_finder.clear_metadata()
             self.asset_finder.consume_metadata(asset_metadata)
-            populate = True
 
         if identifiers is not None:
             self.asset_finder.consume_identifiers(identifiers)
-            populate = True
-
-        if populate:
-            self.asset_finder.populate_cache()
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
