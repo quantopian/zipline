@@ -19,7 +19,10 @@ import numpy as np
 import sqlite3
 import warnings
 
-from functools32 import lru_cache
+try:
+    from functools import lru_cache
+except ImportError:
+    from functools32 import lru_cache
 from logbook import Logger
 import pandas as pd
 from pandas.tseries.tools import normalize_date
