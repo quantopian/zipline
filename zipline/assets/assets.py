@@ -630,8 +630,8 @@ class AssetConvertible(with_metaclass(ABCMeta)):
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)
 # Use six.string_types for Python2/3 compatibility
-for type in string_types:
-    AssetConvertible.register(type)
+for _type in string_types:
+    AssetConvertible.register(_type)
 
 
 class NotAssetConvertible(ValueError):
