@@ -210,9 +210,9 @@ class AssetFinder(object):
 
         asset_type = self.asset_type_by_sid(sid)
         if asset_type == 'equity':
-            asset = self.equity_for_id(sid)
+            asset = self._retrieve_equity(sid)
         elif asset_type == 'future':
-            asset = self.futures_contract_for_id(sid)
+            asset = self._retrieve_futures_contract(sid)
         else:
             asset = None
 
@@ -224,7 +224,7 @@ class AssetFinder(object):
             raise SidNotFound(sid=sid)
 
     @lru_cache(maxsize=None)
-    def equity_for_id(self, sid):
+    def _retrieve_equity(self, sid):
         c = self.conn.cursor()
         t = (sid,)
         c.row_factory = dict_factory
@@ -239,9 +239,10 @@ class AssetFinder(object):
                     data['end_date'], tz='UTC')
             return Equity(**data)
 
-    def futures_contract_for_id(self, contract_id):
+    @lru_cache(maxsize=None)
+    def _retrieve_futures_contract(self, sid):
         c = self.conn.cursor()
-        t = (contract_id,)
+        t = (sid,)
         c.row_factory = dict_factory
         c.execute(FUTURES_BY_ID_QUERY, t)
         data = c.fetchone()
@@ -291,7 +292,7 @@ class AssetFinder(object):
             candidates = c.fetchall()
 
             if len(candidates) == 1:
-                return self.equity_for_id(candidates[0]['sid'])
+                return self._retrieve_equity(candidates[0]['sid'])
 
             # If no SID exists for symbol, return SID with the
             # highest-but-not-over end_date
@@ -306,7 +307,7 @@ class AssetFinder(object):
                 data = c.fetchone()
 
                 if data:
-                    return self.equity_for_id(data['sid'])
+                    return self._retrieve_equity(data['sid'])
 
             # If multiple SIDs exist for symbol, return latest start_date with
             # end_date as a tie-breaker
@@ -321,7 +322,7 @@ class AssetFinder(object):
                 data = c.fetchone()
 
                 if data:
-                    return self.equity_for_id(data['sid'])
+                    return self._retrieve_equity(data['sid'])
 
             raise SymbolNotFound(symbol=symbol)
 
@@ -332,7 +333,7 @@ class AssetFinder(object):
             data = c.fetchall()
 
             if len(data) == 1:
-                return self.equity_for_id(data[0]['sid'])
+                return self._retrieve_equity(data[0]['sid'])
             elif not data:
                 raise SymbolNotFound(symbol=symbol)
             else:
@@ -370,7 +371,7 @@ class AssetFinder(object):
 
             # If one SID exists for symbol, return that symbol
             if len(candidates) == 1:
-                return self.equity_for_id(candidates[0]['sid'])
+                return self._retrieve_equity(candidates[0]['sid'])
 
             # If multiple SIDs exist for symbol, return latest start_date with
             # end_date as a tie-breaker
@@ -384,7 +385,7 @@ class AssetFinder(object):
                 c.execute(query, t)
                 data = c.fetchone()
                 if data:
-                    return self.equity_for_id(data['sid'])
+                    return self._retrieve_equity(data['sid'])
 
     def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
@@ -418,7 +419,7 @@ class AssetFinder(object):
         order by notice_date asc
         """, t)
         sids = [r[0] for r in c.fetchall()]
-        return [self.futures_contract_for_id(sid) for sid in sids]
+        return [self._retrieve_futures_contract(sid) for sid in sids]
 
     @property
     def sids(self):
