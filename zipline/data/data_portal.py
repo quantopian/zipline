@@ -1,6 +1,7 @@
 import bcolz
 import numpy as np
 import os
+import pandas as pd
 
 FINDATA_DIR = os.getenv("FINDATA_DIR")
 
@@ -8,6 +9,9 @@ FINDATA_DIR = os.getenv("FINDATA_DIR")
 class DataPortal(object):
 
     def __init__(self, algo):
+        self.data_start_date = pd.Timestamp('2002-01-02', tz='UTC')
+        # TODO: Need to make this work.
+        self.data_start_index = 0
         self.views = {}
         self.algo = algo
         self.current_bcolz_handle = None
@@ -23,31 +27,17 @@ class DataPortal(object):
         # hack
         self.benchmark_iter = iter(self.algo.benchmark_iter)
 
+        self.cur_data_offset = 0
+
     def get_current_price_data(self, asset, column):
-        dt = self.algo.datetime
-        path = "{0}/{1}/{2}/{3}_equity-minutes.bcolz".format(
-            FINDATA_DIR,
-            str(dt.year),
-            str(dt.month).zfill(2),
-            str(dt.date()))
+        path = "{0}/{1}.bcolz".format(FINDATA_DIR, int(asset))
         try:
             carray = self.carrays[column][path]
         except KeyError:
             carray = self.carrays[column][path] = bcolz.carray(
                 rootdir=path + "/" + column, mode='r')
-        try:
-            sid_carray = self.carrays['sid'][path]
-            dt_carray = self.carrays['dt'][path]
-        except KeyError:
-            sid_carray = self.carrays['sid'][path] = bcolz.carray(
-                rootdir=path + "/" + 'sid', mode='r')
-            dt_carray = self.carrays['dt'][path] = bcolz.carray(
-                rootdir=path + "/" + 'dt', mode='r')
-        where_sid = np.where(sid_carray[:] == int(asset))
-        where_dt = np.where(dt_carray[:] == int(dt.value / 10e8))
-        ix = np.intersect1d(where_sid, where_dt)
-        price = carray[ix]
-        return price
+
+        return carray[self.cur_data_offset] * 0.001
 
     def get_equity_price_view(self, asset):
         try:

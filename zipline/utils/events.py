@@ -329,6 +329,7 @@ class AfterOpen(StatelessRule):
         self._dt = None
 
     def should_trigger(self, dt):
+        dt = pd.Timestamp(dt, tz='UTC')
         return self._get_open(dt) + self.offset <= dt
 
     def _get_open(self, dt):
@@ -544,7 +545,7 @@ class OncePerDay(StatefulRule):
         super(OncePerDay, self).__init__(rule)
 
     def should_trigger(self, dt):
-        dt_date = dt.date()
+        dt_date = pd.Timestamp(dt).date()
         if self.date is None or self.date != dt_date:
             # initialize or reset for new date
             self.triggered = False

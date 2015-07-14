@@ -102,8 +102,10 @@ class AlgorithmSimulator(object):
 
         with self.processor.threadbound():
             for i, day in enumerate(trading_days):
-                for dt in day_engine.market_minutes(i):
+                day_offset = i * 390
+                for j, dt in enumerate(day_engine.market_minutes(i)):
                     algo.datetime = dt
+                    data_portal.cur_data_offset = day_offset + j
                     handle_data(algo, current_data, dt)
 
                 # Update benchmark before getting market close.
