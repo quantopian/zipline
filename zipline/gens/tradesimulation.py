@@ -14,6 +14,7 @@
 # limitations under the License.
 import math
 import numpy as np
+import pandas as pd
 
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
@@ -145,7 +146,7 @@ class AlgorithmSimulator(object):
                                             ((order.commission or 0.0) +
                                              txn.commission)
 
-                                    order.dt = txn.dt
+                                    order.dt = pd.Timestamp(txn.dt, tz='UTC')
                                     if not order.open:
                                         asset_orders.remove(order)
                             if not len(asset_orders):

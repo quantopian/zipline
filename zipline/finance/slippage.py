@@ -164,7 +164,7 @@ def create_transaction(event, dt, order, price, amount):
     transaction = Transaction(
         sid=event.sid,
         amount=int(amount),
-        dt=event,
+        dt=dt,
         price=price,
         order_id=order.id
     )
