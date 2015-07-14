@@ -2,7 +2,7 @@
 pip>=7.1.0
 
 # Logging
-Logbook==0.9.1
+Logbook==0.10.0
 
 # Scientific Libraries
 
