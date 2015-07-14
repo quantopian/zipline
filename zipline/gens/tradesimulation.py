@@ -101,6 +101,7 @@ class AlgorithmSimulator(object):
 
         blotter = self.algo.blotter
         perf_process_order = self.algo.perf_tracker.process_order
+        perf_process_txn = self.algo.perf_tracker.process_transaction
 
         slippage = self.algo.slippage
         # hot-wiring
@@ -146,7 +147,11 @@ class AlgorithmSimulator(object):
                                             ((order.commission or 0.0) +
                                              txn.commission)
 
-                                    order.dt = pd.Timestamp(txn.dt, tz='UTC')
+                                    txn.dt = pd.Timestamp(txn.dt, tz='UTC')
+                                    order.dt = order.dt
+
+                                    perf_process_txn(txn)
+
                                     if not order.open:
                                         asset_orders.remove(order)
                             if not len(asset_orders):
