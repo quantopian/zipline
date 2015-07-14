@@ -62,52 +62,59 @@ class TestRisk(unittest.TestCase):
     def test_algorithm_volatility_06(self):
         algo_vol_answers = answer_key.RISK_CUMULATIVE.volatility
         for dt, value in algo_vol_answers.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                self.cumulative_metrics_06.metrics.algorithm_volatility[dt],
+                self.cumulative_metrics_06.algorithm_volatility[dt_loc],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_sharpe_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.sharpe.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                self.cumulative_metrics_06.metrics.sharpe[dt],
+                self.cumulative_metrics_06.sharpe[dt_loc],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_downside_risk_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.downside_risk.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
                 value,
-                self.cumulative_metrics_06.metrics.downside_risk[dt],
+                self.cumulative_metrics_06.downside_risk[dt_loc],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_sortino_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.sortino.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                self.cumulative_metrics_06.metrics.sortino[dt],
+                self.cumulative_metrics_06.sortino[dt_loc],
                 value,
                 decimal=4,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_information_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.information.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
                 value,
-                self.cumulative_metrics_06.metrics.information[dt],
+                self.cumulative_metrics_06.information[dt_loc],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_alpha_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.alpha.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                self.cumulative_metrics_06.metrics.alpha[dt],
+                self.cumulative_metrics_06.alpha[dt_loc],
                 value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_beta_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.beta.iteritems():
+            dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
                 value,
-                self.cumulative_metrics_06.metrics.beta[dt],
+                self.cumulative_metrics_06.beta[dt_loc],
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_max_drawdown_06(self):

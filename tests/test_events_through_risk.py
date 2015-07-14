@@ -161,7 +161,7 @@ class TestEventsThroughRisk(unittest.TestCase):
                 decimal=6)
 
             np.testing.assert_almost_equal(
-                crm.metrics.sharpe[current_dt],
+                crm.sharpe[dt_loc],
                 expected_sharpe[current_dt],
                 decimal=6,
                 err_msg="Mismatch at %s" % (current_dt,))
@@ -294,6 +294,7 @@ class TestEventsThroughRisk(unittest.TestCase):
             gen = algo._create_generator(sim_params)
 
             crm = algo.perf_tracker.cumulative_risk_metrics
+            dt_loc = crm.cont_index.get_loc(algo.datetime)
 
             first_msg = next(gen)
 
@@ -309,7 +310,7 @@ class TestEventsThroughRisk(unittest.TestCase):
 
             self.assertEquals(
                 0,
-                crm.metrics.algorithm_volatility[algo.datetime.date()],
+                crm.algorithm_volatility[dt_loc],
                 "On the first day algorithm volatility does not exist.")
 
             second_msg = next(gen)
