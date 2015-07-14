@@ -97,6 +97,8 @@ class AlgorithmSimulator(object):
 
         day_engine = DayEngine(market_opens, market_closes)
 
+        blotter = self.algo.blotter
+
         # inject the current algo
         # snapshot time to any log record generated.
 
@@ -107,6 +109,10 @@ class AlgorithmSimulator(object):
                     algo.datetime = dt
                     data_portal.cur_data_offset = day_offset + j
                     handle_data(algo, current_data, dt)
+
+                    orders = blotter.new_orders
+                    if orders:
+                        blotter.new_orders = []
 
                 # Update benchmark before getting market close.
                 perf_tracker_benchmark_returns[day] =\
