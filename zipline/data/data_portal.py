@@ -36,7 +36,10 @@ class DataPortal(object):
             carray = self.carrays[column][path] = bcolz.carray(
                 rootdir=path + "/" + column, mode='r')
 
-        return carray[self.cur_data_offset] * 0.001
+        if column == 'volume':
+            return carray[self.cur_data_offset]
+        else:
+            return carray[self.cur_data_offset] * 0.001
 
     def get_equity_price_view(self, asset):
         try:

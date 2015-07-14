@@ -98,6 +98,12 @@ class AlgorithmSimulator(object):
         day_engine = DayEngine(market_opens, market_closes)
 
         blotter = self.algo.blotter
+        perf_process_order = self.algo.perf_tracker.process_order
+
+        slippage = self.algo.slippage
+        # hot-wiring
+        slippage.data_portal = data_portal
+        commission_model = self.algo.commission
 
         # inject the current algo
         # snapshot time to any log record generated.
@@ -111,8 +117,20 @@ class AlgorithmSimulator(object):
                     handle_data(algo, current_data, dt)
 
                     orders = blotter.new_orders
+                    # Reset orders.
+                    blotter.new_orders = []
+
                     if orders:
-                        blotter.new_orders = []
+                        for order in orders:
+                            perf_process_order(order)
+
+                    open_orders = blotter.open_orders
+                    if open_orders:
+                        for asset, asset_orders in open_orders.iteritems():
+                            for asset_order in asset_orders:
+                                for order, transaction in slippage(
+                                        None, asset_orders, dt):
+                                    assert True
 
                 # Update benchmark before getting market close.
                 perf_tracker_benchmark_returns[day] =\

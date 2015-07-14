@@ -151,7 +151,7 @@ class Transaction(object):
         self.__dict__.update(state)
 
 
-def create_transaction(event, order, price, amount):
+def create_transaction(event, dt, order, price, amount):
 
     # floor the amount to protect against non-whole number orders
     # TODO: Investigate whether we can add a robust check in blotter
@@ -164,7 +164,7 @@ def create_transaction(event, order, price, amount):
     transaction = Transaction(
         sid=event.sid,
         amount=int(amount),
-        dt=event.dt,
+        dt=event,
         price=price,
         order_id=order.id
     )
@@ -186,7 +186,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
     def process_order(self, event, order):
         pass
 
-    def simulate(self, event, current_orders):
+    def simulate(self, event, current_orders, dt):
 
         self._volume_for_bar = 0
 
@@ -200,7 +200,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 continue
 
             try:
-                txn = self.process_order(event, order)
+                txn = self.process_order(event, order, dt)
             except LiquidityExceeded:
                 break
 
@@ -208,8 +208,8 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, event, current_orders, **kwargs):
-        return self.simulate(event, current_orders, **kwargs)
+    def __call__(self, event, current_orders, dt, **kwargs):
+        return self.simulate(event, current_orders, dt, **kwargs)
 
 
 class VolumeShareSlippage(SlippageModel):
@@ -230,9 +230,11 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, event, order):
+    def process_order(self, event, order, dt):
 
-        max_volume = self.volume_limit * event.volume
+        volume = self.data_portal.get_current_price_data(order.sid, 'volume')
+        price = self.data_portal.get_current_price_data(order.sid, 'close')
+        max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
@@ -252,13 +254,13 @@ class VolumeShareSlippage(SlippageModel):
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / event.volume,
+        volume_share = min(total_volume / volume,
                            self.volume_limit)
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
-            * event.price
-        impacted_price = event.price + simulated_impact
+            * price
+        impacted_price = price + simulated_impact
 
         if order.limit:
             # this is tricky! if an order with a limit price has reached
@@ -274,7 +276,8 @@ class VolumeShareSlippage(SlippageModel):
                 return
 
         return create_transaction(
-            event,
+            order.sid,
+            dt,
             order,
             impacted_price,
             math.copysign(cur_volume, order.direction)
