@@ -308,27 +308,27 @@ class TestMiscellaneousAPI(TestCase):
         algo = TradingAlgorithm(asset_metadata=metadata)
 
         # Test before either PLAY existed
-        algo.datetime = pd.Timestamp('2001-12-01', tz='UTC')
+        algo.sim_params.period_end = pd.Timestamp('2001-12-01', tz='UTC')
         with self.assertRaises(SymbolNotFound):
             algo.symbol('PLAY')
         with self.assertRaises(SymbolNotFound):
             algo.symbols('PLAY')
 
         # Test when first PLAY exists
-        algo.datetime = pd.Timestamp('2002-12-01', tz='UTC')
+        algo.sim_params.period_end = pd.Timestamp('2002-12-01', tz='UTC')
         list_result = algo.symbols('PLAY')
         self.assertEqual(0, list_result[0])
 
         # Test after first PLAY ends
-        algo.datetime = pd.Timestamp('2004-12-01', tz='UTC')
+        algo.sim_params.period_end = pd.Timestamp('2004-12-01', tz='UTC')
         self.assertEqual(0, algo.symbol('PLAY'))
 
         # Test after second PLAY begins
-        algo.datetime = pd.Timestamp('2005-12-01', tz='UTC')
+        algo.sim_params.period_end = pd.Timestamp('2005-12-01', tz='UTC')
         self.assertEqual(1, algo.symbol('PLAY'))
 
         # Test after second PLAY ends
-        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+        algo.sim_params.period_end = pd.Timestamp('2006-12-01', tz='UTC')
         self.assertEqual(1, algo.symbol('PLAY'))
         list_result = algo.symbols('PLAY')
         self.assertEqual(1, list_result[0])
