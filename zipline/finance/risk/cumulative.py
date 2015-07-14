@@ -92,15 +92,8 @@ class RiskMetricsCumulative(object):
     )
 
     def __init__(self, sim_params,
-                 returns_frequency=None,
                  create_first_day_stats=False,
                  account=None):
-        """
-        - @returns_frequency allows for configuration of the whether
-        the benchmark and algorithm returns are in units of minutes or days,
-        if `None` defaults to the `emission_rate` in `sim_params`.
-        """
-
         self.treasury_curves = trading.environment.treasury_curves
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -130,15 +123,7 @@ class RiskMetricsCumulative(object):
 
         self.create_first_day_stats = create_first_day_stats
 
-        if returns_frequency is None:
-            returns_frequency = self.sim_params.emission_rate
-
-        self.returns_frequency = returns_frequency
-
-        if returns_frequency == 'daily':
-            cont_index = self.get_daily_index()
-        elif returns_frequency == 'minute':
-            cont_index = self.get_minute_index(sim_params)
+        cont_index = self.trading_days
 
         self.cont_index = cont_index
         self.cont_len = len(self.cont_index)
@@ -184,24 +169,6 @@ class RiskMetricsCumulative(object):
         self.treasury_period_return = np.nan
 
         self.num_trading_days = 0
-
-    def get_minute_index(self, sim_params):
-        """
-        Stitches together multiple days worth of business minutes into
-        one continous index.
-        """
-        trading_minutes = None
-        for day in self.trading_days:
-            minutes_for_day = trading.environment.market_minutes_for_day(day)
-            if trading_minutes is None:
-                # Create container for all minutes on first iteration
-                trading_minutes = minutes_for_day
-            else:
-                trading_minutes = trading_minutes.union(minutes_for_day)
-        return trading_minutes
-
-    def get_daily_index(self):
-        return self.trading_days
 
     def update(self, dt, algorithm_returns, benchmark_returns, account):
         # Keep track of latest dt for use in to_dict and other methods

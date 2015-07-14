@@ -125,7 +125,6 @@ class PerformanceTracker(object):
 
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params,
-                                           returns_frequency='daily',
                                            create_first_day_stats=True)
 
             self.minute_performance = PerformancePeriod(
