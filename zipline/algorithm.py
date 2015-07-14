@@ -695,7 +695,8 @@ class TradingAlgorithm(object):
         """
         return self.asset_finder.lookup_symbol_resolve_multiple(
             symbol_str,
-            as_of_date=self.datetime)
+            as_of_date=self.sim_params.period_end
+        )
 
     @api_method
     def symbols(self, *args):
