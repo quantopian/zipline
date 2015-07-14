@@ -877,7 +877,7 @@ class AssetFinder(object):
                 try:
                     row_value = row[field]
                     # Avoid passing placeholders
-                    if row_value and (row_value is not 'None'):
+                    if row_value and (row_value != 'None'):
                         metadata_dict[field] = row[field]
                 except KeyError:
                     continue
