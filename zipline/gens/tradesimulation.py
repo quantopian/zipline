@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import numpy as np
 
 from logbook import Logger, Processor
@@ -103,7 +104,7 @@ class AlgorithmSimulator(object):
         slippage = self.algo.slippage
         # hot-wiring
         slippage.data_portal = data_portal
-        commission_model = self.algo.commission
+        commission = self.algo.commission
 
         # inject the current algo
         # snapshot time to any log record generated.
@@ -126,11 +127,31 @@ class AlgorithmSimulator(object):
 
                     open_orders = blotter.open_orders
                     if open_orders:
+                        assets_to_close = []
                         for asset, asset_orders in open_orders.iteritems():
                             for asset_order in asset_orders:
-                                for order, transaction in slippage(
+                                for order, txn in slippage(
                                         None, asset_orders, dt):
-                                    assert True
+                                    direction = math.copysign(
+                                        1, txn.amount)
+                                    per_share, total_commission = commission.\
+                                        calculate(txn)
+                                    txn.price += per_share * direction
+                                    txn.commission = total_commission
+
+                                    order.filled += txn.amount
+                                    if txn.commission is not None:
+                                        order.commission = \
+                                            ((order.commission or 0.0) +
+                                             txn.commission)
+
+                                    order.dt = txn.dt
+                                    if not order.open:
+                                        asset_orders.remove(order)
+                            if not len(asset_orders):
+                                assets_to_close.append(asset)
+                        for asset in assets_to_close:
+                            del open_orders[asset]
 
                 # Update benchmark before getting market close.
                 perf_tracker_benchmark_returns[day] =\
