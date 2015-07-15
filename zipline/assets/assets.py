@@ -118,6 +118,10 @@ class AssetFinder(object):
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
 
+        # The AssetFinder also holds a nested-dict of all metadata for
+        # reference when building Assets
+        self.metadata_cache = {}
+
         # Create table and read in metadata.
         # Should we use flags like 'r', 'w', instead?
         # What we need to support is:
@@ -126,10 +130,6 @@ class AssetFinder(object):
         # - A 'read' mode where the asset finder uses a prexisting db.
         if create_table:
             self.create_db_tables()
-
-            # The AssetFinder also holds a nested-dict of all metadata for
-            # reference when building Assets
-            self.metadata_cache = {}
             if metadata is not None:
                 self.consume_metadata(metadata)
 
