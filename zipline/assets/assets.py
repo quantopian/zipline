@@ -116,6 +116,7 @@ class AssetFinder(object):
                 pd.Timestamp('now', tz='UTC'))
 
         self.conn = sqlite3.connect(db_path)
+        self.conn.text_factory = str
         self.cursor = self.conn.cursor()
 
         # The AssetFinder also holds a nested-dict of all metadata for
