@@ -108,6 +108,8 @@ class AlgorithmSimulator(object):
         slippage.data_portal = data_portal
         commission = self.algo.commission
 
+        perf_tracker.position_tracker.data_portal = data_portal
+
         # inject the current algo
         # snapshot time to any log record generated.
 
