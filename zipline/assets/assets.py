@@ -376,8 +376,13 @@ class AssetFinder(object):
             elif not data:
                 raise SymbolNotFound(symbol=symbol)
             else:
+                options = []
+                for row in data:
+                    sid = row[0]
+                    asset = self._retrieve_equity(sid)
+                    options.append(asset)
                 raise MultipleSymbolsFound(symbol=symbol,
-                                           options=str(data))
+                                           options=options)
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
