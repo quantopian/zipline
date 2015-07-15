@@ -750,8 +750,11 @@ class AssetFinder(object):
         # Build an Asset of the appropriate type, default to Equity
         asset_type = entry.pop('asset_type', 'equity')
         if asset_type.lower() == 'equity':
-            fuzzy = entry['symbol'].replace(self.fuzzy_char, '') \
-                if self.fuzzy_char else None
+            try:
+                fuzzy = entry['symbol'].replace(self.fuzzy_char, '') \
+                    if self.fuzzy_char else None
+            except KeyError:
+                fuzzy = None
             asset = Equity(**entry)
             c = self.conn.cursor()
             t = (asset.sid,
