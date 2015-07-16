@@ -150,7 +150,7 @@ class AssetFinder(object):
         self._asset_type_cache = {}
 
     def create_db_tables(self):
-        c = self.cursor
+        c = self.conn.cursor()
 
         c.execute("""
         CREATE TABLE equities(
@@ -202,7 +202,7 @@ class AssetFinder(object):
         except KeyError:
             pass
 
-        c = self.cursor
+        c = self.conn.cursor()
         # Python 3 compatibility required forcing to int for sid = 0.
         t = (int(sid),)
         query = 'select asset_type from asset_router where sid=:sid'
@@ -246,7 +246,7 @@ class AssetFinder(object):
         except KeyError:
             pass
 
-        c = self.cursor
+        c = self.conn.cursor()
         c.row_factory = Row
         t = (int(sid),)
         c.execute(EQUITY_BY_SID_QUERY, t)
@@ -275,7 +275,7 @@ class AssetFinder(object):
         except KeyError:
             pass
 
-        c = self.cursor
+        c = self.conn.cursor()
         t = (int(sid),)
         c.row_factory = Row
         c.execute(FUTURE_BY_SID_QUERY, t)
@@ -319,7 +319,7 @@ class AssetFinder(object):
         if as_of_date is not None:
             as_of_date = pd.Timestamp(normalize_date(as_of_date))
 
-        c = self.cursor
+        c = self.conn.cursor()
 
         if as_of_date:
             # If one SID exists for symbol, return that symbol
@@ -403,7 +403,7 @@ class AssetFinder(object):
             except SymbolNotFound:
                 return None
         else:
-            c = self.cursor
+            c = self.conn.cursor()
             fuzzy = symbol.replace(self.fuzzy_char, '')
             t = (fuzzy, as_of_date.value, as_of_date.value)
             query = ("select sid from equities "
@@ -459,7 +459,7 @@ class AssetFinder(object):
             Raised when a future chain could not be found for the given
             root symbol.
         """
-        c = self.cursor
+        c = self.conn.cursor()
         t = {'root_symbol': root_symbol,
              'as_of_date': as_of_date.value,
              'knowledge_date': knowledge_date.value}
@@ -486,7 +486,7 @@ class AssetFinder(object):
 
     @property
     def sids(self):
-        c = self.cursor
+        c = self.conn.cursor()
         query = 'select sid from asset_router'
         c.execute(query)
         return [r[0] for r in c.fetchall()]
@@ -756,7 +756,7 @@ class AssetFinder(object):
             except KeyError:
                 fuzzy = None
             asset = Equity(**entry)
-            c = self.cursor
+            c = self.conn.cursor()
             t = (asset.sid,
                  asset.symbol,
                  asset.asset_name,
@@ -783,7 +783,7 @@ class AssetFinder(object):
 
         elif asset_type.lower() == 'future':
             asset = Future(**entry)
-            c = self.cursor
+            c = self.conn.cursor()
             t = (asset.sid,
                  asset.symbol,
                  asset.asset_name,
@@ -862,7 +862,6 @@ class AssetFinder(object):
         self.metadata_cache = {}
 
         self.conn = sqlite3.connect(':memory:')
-        self.cursor = self.conn.cursor()
         self.create_db_tables()
 
     def insert_metadata(self, identifier, **kwargs):
