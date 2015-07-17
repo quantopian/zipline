@@ -14,11 +14,11 @@
 
 from abc import ABCMeta
 from numbers import Integral
-import numpy as np
 import sqlite3
 from sqlite3 import Row
 import warnings
 
+import numpy as np
 from logbook import Logger
 import pandas as pd
 from pandas.tseries.tools import normalize_date
@@ -26,112 +26,87 @@ from six import with_metaclass, string_types
 
 from zipline.errors import (
     ConsumeAssetMetaDataError,
-    InvalidAssetType,
     MultipleSymbolsFound,
     RootSymbolNotFound,
-    SidAssignmentError,
     SidNotFound,
     SymbolNotFound,
     MapAssetIdentifierIndexError,
 )
-from zipline.assets._assets import (
+from zipline.assets import (
     Asset, Equity, Future
+)
+from zipline.assets import (
+    NullAssetDBWriterLegacy,
+    AssetDBWriterLegacyFromList,
+    AssetDBWriterLegacyFromDictionary,
+    AssetDBWriterLegacyFromDataFrame,
+    AssetDBWriterLegacyFromReadable
+)
+from zipline.assets.asset_writer import (
+    FUTURE_TABLE_FIELDS,
+    EQUITY_TABLE_FIELDS
 )
 
 log = Logger('assets.py')
 
-# Expected fields for an Asset's metadata
-ASSET_FIELDS = [
-    'sid',
-    'asset_type',
-    'symbol',
-    'root_symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'exchange',
-    'notice_date',
-    'expiration_date',
-    'contract_multiplier',
-    # The following fields are for compatibility with other systems
-    'file_name',  # Used as symbol
-    'company_name',  # Used as asset_name
-    'start_date_nano',  # Used as start_date
-    'end_date_nano',  # Used as end_date
-]
-
-
-# Expected fields for an Asset's metadata
-ASSET_TABLE_FIELDS = [
-    'sid',
-    'symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'exchange',
-]
-
-
-# Expected fields for an Asset's metadata
-FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS + [
-    'root_symbol',
-    'notice_date',
-    'expiration_date',
-    'contract_multiplier',
-]
-
-EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
-
-
 # Create the query once from the fields, so that the join is not done
 # repeatedly.
-FUTURE_BY_SID_QUERY = 'select {0} from futures where sid=?'.format(
+FUTURE_BY_SID_QUERY = 'select {0} from futures_contracts where sid=?'.format(
     ", ".join(FUTURE_TABLE_FIELDS))
 
 EQUITY_BY_SID_QUERY = 'select {0} from equities where sid=?'.format(
     ", ".join(EQUITY_TABLE_FIELDS))
 
 
+def create_relevant_writer(metadata):
+    """ Create an instance of AssetDBWriter relevant to
+        processing metadata.
+        Will be deprecated in future versions of zipline.
+    """
+
+    if isinstance(metadata, dict):
+        return AssetDBWriterLegacyFromDictionary(metadata)
+    elif isinstance(metadata, pd.DataFrame):
+        return AssetDBWriterLegacyFromDataFrame(metadata)
+    elif isinstance(metadata, list):
+        return AssetDBWriterLegacyFromList(metadata)
+    elif hasattr(metadata, 'read'):
+        return AssetDBWriterLegacyFromReadable(metadata)
+    elif metadata is None:
+        return NullAssetDBWriterLegacy(metadata)
+    else:
+        raise ConsumeAssetMetaDataError(obj=metadata)
+
+
 class AssetFinder(object):
 
-    def __init__(self,
-                 metadata=None,
-                 allow_sid_assignment=True,
-                 fuzzy_char=None,
-                 db_path=':memory:',
-                 create_table=True):
+    def __init__(self, metadata=None, allow_sid_assignment=True,
+                 fuzzy_char=None, db_path=':memory:', create_table=True,
+                 asset_writer=None):
 
         self.fuzzy_char = fuzzy_char
-
-        # This flag controls if the AssetFinder is allowed to generate its own
-        # sids. If False, metadata that does not contain a sid will raise an
-        # exception when building assets.
         self.allow_sid_assignment = allow_sid_assignment
 
-        if allow_sid_assignment:
-            self.end_date_to_assign = normalize_date(
-                pd.Timestamp('now', tz='UTC'))
-
         self.conn = sqlite3.connect(db_path)
-        self.conn.text_factory = str
-        self.cursor = self.conn.cursor()
 
-        # The AssetFinder also holds a nested-dict of all metadata for
-        # reference when building Assets
-        self.metadata_cache = {}
+        # AssetFinder can optionally accept an instance of
+        # the AssetDBWriter class. If no writer is supplied,
+        # we create a relevant writer based on the supplied metadata.
+        # Note that this strucutre is for backward compatibility.
+        # Ultimately AssetDBWriter and AssetFinder will be completely
+        # separate, and AssetFinder will not instantiate AssetDBWriter.
+        if asset_writer is None:
+            _asset_writer = create_relevant_writer(metadata)
+        else:
+            _asset_writer = asset_writer
 
-        # Create table and read in metadata.
-        # Should we use flags like 'r', 'w', instead?
-        # What we need to support is:
-        # - A 'throwaway' mode where the metadata is read each run.
-        # - A 'write' mode where the data is written to the provided db_path
-        # - A 'read' mode where the asset finder uses a prexisting db.
+        # Create tables and read in metadata.
         if create_table:
-            self.create_db_tables()
+            _asset_writer.init_db(self.conn)
             if metadata is not None:
-                self.consume_metadata(metadata)
+                _asset_writer.write_all(self.conn,
+                                        self.fuzzy_char,
+                                        self.allow_sid_assignment)
 
         # Cache for lookup of assets by sid, the objects in the asset lookp may
         # be shared with the results from equity and future lookup caches.
@@ -151,54 +126,24 @@ class AssetFinder(object):
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
 
-    def create_db_tables(self):
-        c = self.conn.cursor()
-
-        c.execute("""
-        CREATE TABLE equities(
-        sid integer,
-        symbol text,
-        asset_name text,
-        start_date integer,
-        end_date integer,
-        first_traded integer,
-        exchange text,
-        fuzzy text
-        )""")
-
-        c.execute('CREATE INDEX equities_sid on equities(sid)')
-        c.execute('CREATE INDEX equities_symbol on equities(symbol)')
-        c.execute('CREATE INDEX equities_fuzzy on equities(fuzzy)')
-
-        c.execute("""
-        CREATE TABLE futures(
-        sid integer,
-        symbol text,
-        asset_name text,
-        start_date integer,
-        end_date integer,
-        first_traded integer,
-        exchange text,
-        root_symbol text,
-        notice_date integer,
-        expiration_date integer,
-        contract_multiplier real
-        )""")
-
-        c.execute('CREATE INDEX futures_sid on futures(sid)')
-        c.execute('CREATE INDEX futures_root_symbol on equities(symbol)')
-
-        c.execute("""
-        CREATE TABLE asset_router
-        (sid integer,
-        asset_type text)
-        """)
-
-        c.execute('CREATE INDEX asset_router_sid on asset_router(sid)')
-
-        self.conn.commit()
+    def clear_metadata(self):
+        """
+        Used for testing.
+        Will be deprecated in future versions of zipline.
+        """
+        # Close the database connection
+        self.conn.close()
+        # Create new database connection in memory.
+        self.conn = sqlite3.connect(':memory:')
+        # Initialize the database tables using the same connection
+        # as used by the AssetFinder.
+        _asset_writer = NullAssetDBWriterLegacy({})
+        _asset_writer.init_db(self.conn)
 
     def asset_type_by_sid(self, sid):
+        """
+        Retrieve the asset type of a given sid.
+        """
         try:
             return self._asset_type_cache[sid]
         except KeyError:
@@ -207,7 +152,7 @@ class AssetFinder(object):
         c = self.conn.cursor()
         # Python 3 compatibility required forcing to int for sid = 0.
         t = (int(sid),)
-        query = 'select asset_type from asset_router where sid=:sid'
+        query = 'SELECT asset_type FROM asset_router WHERE sid=:sid'
         c.execute(query, t)
         data = c.fetchone()
         if data is None:
@@ -219,6 +164,9 @@ class AssetFinder(object):
         return asset_type
 
     def retrieve_asset(self, sid, default_none=False):
+        """
+        Retrieve the Asset object of a given sid.
+        """
         if isinstance(sid, Asset):
             return sid
 
@@ -243,6 +191,9 @@ class AssetFinder(object):
             raise SidNotFound(sid=sid)
 
     def _retrieve_equity(self, sid):
+        """
+        Retrieve the Equity object of a given sid.
+        """
         try:
             return self._equity_cache[sid]
         except KeyError:
@@ -272,6 +223,9 @@ class AssetFinder(object):
         return equity
 
     def _retrieve_futures_contract(self, sid):
+        """
+        Retrieve the Future object of a given sid.
+        """
         try:
             return self._future_cache[sid]
         except KeyError:
@@ -326,10 +280,10 @@ class AssetFinder(object):
         if as_of_date:
             # If one SID exists for symbol, return that symbol
             t = (symbol, as_of_date.value, as_of_date.value)
-            query = ("select sid from equities "
-                     "where symbol=? "
-                     "and start_date<=? "
-                     "and end_date>=?")
+            query = ("SELECT sid FROM equities "
+                     "WHERE symbol=? "
+                     "AND start_date<=? "
+                     "AND end_date>=?")
             c.execute(query, t)
             candidates = c.fetchall()
 
@@ -340,11 +294,11 @@ class AssetFinder(object):
             # highest-but-not-over end_date
             if len(candidates) == 0:
                 t = (symbol, as_of_date.value)
-                query = ("select sid from equities "
-                         "where symbol=? "
-                         "and start_date<=? "
-                         "order by end_date desc "
-                         "limit 1")
+                query = ("SELECT sid FROM equities "
+                         "WHERE symbol=? "
+                         "AND start_date<=? "
+                         "ORDER BY end_date DESC "
+                         "LIMIT 1")
                 c.execute(query, t)
                 data = c.fetchone()
 
@@ -355,11 +309,11 @@ class AssetFinder(object):
             # end_date as a tie-breaker
             if len(candidates) > 1:
                 t = (symbol, as_of_date.value)
-                query = ("select sid from equities "
-                         "where symbol=? " +
-                         "and start_date<=? " +
-                         "order by start_date desc, end_date desc " +
-                         "limit 1")
+                query = ("SELECT sid FROM equities "
+                         "WHERE symbol=? " +
+                         "AND start_date<=? " +
+                         "ORDER BY start_date DESC, end_date DESC " +
+                         "LIMIT 1")
                 c.execute(query, t)
                 data = c.fetchone()
 
@@ -370,7 +324,7 @@ class AssetFinder(object):
 
         else:
             t = (symbol,)
-            query = ("select sid from equities where symbol=?")
+            query = ("SELECT sid FROM equities WHERE symbol=?")
             c.execute(query, t)
             data = c.fetchall()
 
@@ -408,10 +362,10 @@ class AssetFinder(object):
             c = self.conn.cursor()
             fuzzy = symbol.replace(self.fuzzy_char, '')
             t = (fuzzy, as_of_date.value, as_of_date.value)
-            query = ("select sid from equities "
-                     "where fuzzy=? " +
-                     "and start_date<=? " +
-                     "and end_date>=?")
+            query = ("SELECT sid FROM equities "
+                     "WHERE fuzzy=? " +
+                     "AND start_date<=? " +
+                     "AND end_date>=?")
             c.execute(query, t)
             candidates = c.fetchall()
 
@@ -423,11 +377,11 @@ class AssetFinder(object):
             # end_date as a tie-breaker
             if len(candidates) > 1:
                 t = (symbol, as_of_date.value)
-                query = ("select sid from equities "
-                         "where symbol=? " +
-                         "and start_date<=? " +
-                         "order by start_date desc, end_date desc" +
-                         "limit 1")
+                query = ("SELECT sid FROM equities "
+                         "WHERE symbol=? " +
+                         "AND start_date<=? " +
+                         "ORDER BY start_date desc, end_date desc" +
+                         "LIMIT 1")
                 c.execute(query, t)
                 data = c.fetchone()
                 if data:
@@ -466,7 +420,6 @@ class AssetFinder(object):
             root symbol.
         """
         c = self.conn.cursor()
-
         if as_of_date is pd.NaT:
             # If the as_of_date is NaT, get all contracts for this
             # root symbol.
@@ -498,7 +451,8 @@ class AssetFinder(object):
         if not sids:
             # Check if root symbol exists.
             c.execute("""
-            select count(sid) from futures where root_symbol=:root_symbol
+            SELECT COUNT(sid) FROM futures_contracts
+            WHERE root_symbol=:root_symbol
             """, t)
             count = c.fetchone()[0]
             if count == 0:
@@ -511,7 +465,7 @@ class AssetFinder(object):
     @property
     def sids(self):
         c = self.conn.cursor()
-        query = 'select sid from asset_router'
+        query = 'SELECT sid FROM asset_router'
         c.execute(query)
         return [r[0] for r in c.fetchall()]
 
@@ -612,14 +566,14 @@ class AssetFinder(object):
         input index.
 
         Parameters
-        __________
+        ----------
         index : Iterable
             An iterable containing ints, strings, or Assets
         as_of_date : pandas.Timestamp
             A date to be used to resolve any dual-mapped symbols
 
         Returns
-        _______
+        -------
         List
             A list of integer sids corresponding to the input index
         """
@@ -653,274 +607,49 @@ class AssetFinder(object):
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
 
-    def _insert_metadata(self, identifier, **kwargs):
-        """
-        Inserts the given metadata kwargs to the entry for the given
-        identifier. Matching fields in the existing entry will be overwritten.
-        :param identifier: The identifier for which to insert metadata
-        :param kwargs: The keyed metadata to insert
-        """
-        if identifier in self.metadata_cache:
-            # Multiple pass insertion no longer supported.
-            # This could and probably should raise an Exception, but is
-            # currently just a short-circuit for compatibility with existing
-            # testing structure in the test_algorithm module which creates
-            # multiple sources which all insert redundant metadata.
-            return
-
-        entry = {}
-
-        for key, value in kwargs.items():
-            # Do not accept invalid fields
-            if key not in ASSET_FIELDS:
-                continue
-            # Do not accept Nones
-            if value is None:
-                continue
-            # Do not accept empty strings
-            if value == '':
-                continue
-            # Do not accept nans from dataframes
-            if isinstance(value, float) and np.isnan(value):
-                continue
-            entry[key] = value
-
-        # Check if the sid is declared
-        try:
-            entry['sid']
-        except KeyError:
-            # If the identifier is not a sid, assign one
-            if hasattr(identifier, '__int__'):
-                entry['sid'] = identifier.__int__()
-            else:
-                if self.allow_sid_assignment:
-                    # Assign the sid the value of its insertion order.
-                    # This assumes that we are assigning values to all assets.
-                    entry['sid'] = len(self.metadata_cache)
-                else:
-                    raise SidAssignmentError(identifier=identifier)
-
-        # If the file_name is in the kwargs, it will be used as the symbol
-        try:
-            entry['symbol'] = entry.pop('file_name')
-        except KeyError:
-            pass
-
-        # If the identifier coming in was a string and there is no defined
-        # symbol yet, set the symbol to the incoming identifier
-        try:
-            entry['symbol']
-            pass
-        except KeyError:
-            if isinstance(identifier, string_types):
-                entry['symbol'] = identifier
-
-        # If the company_name is in the kwargs, it may be the asset_name
-        try:
-            company_name = entry.pop('company_name')
-            try:
-                entry['asset_name']
-            except KeyError:
-                entry['asset_name'] = company_name
-        except KeyError:
-            pass
-
-        # If dates are given as nanos, pop them
-        try:
-            entry['start_date'] = entry.pop('start_date_nano')
-        except KeyError:
-            pass
-        try:
-            entry['end_date'] = entry.pop('end_date_nano')
-        except KeyError:
-            pass
-        try:
-            entry['notice_date'] = entry.pop('notice_date_nano')
-        except KeyError:
-            pass
-        try:
-            entry['expiration_date'] = entry.pop('expiration_date_nano')
-        except KeyError:
-            pass
-
-        # Process dates to Timestamps
-        try:
-            entry['start_date'] = pd.Timestamp(entry['start_date'], tz='UTC')
-        except KeyError:
-            # Set a default start_date of the EPOCH, so that all date queries
-            # work when a start date is not provided.
-            entry['start_date'] = pd.Timestamp(0, tz='UTC')
-        try:
-            # Set a default end_date of 'now', so that all date queries
-            # work when a end date is not provided.
-            entry['end_date'] = pd.Timestamp(entry['end_date'], tz='UTC')
-        except KeyError:
-            entry['end_date'] = self.end_date_to_assign
-        try:
-            entry['notice_date'] = pd.Timestamp(entry['notice_date'],
-                                                tz='UTC')
-        except KeyError:
-            pass
-        try:
-            entry['expiration_date'] = pd.Timestamp(entry['expiration_date'],
-                                                    tz='UTC')
-        except KeyError:
-            pass
-
-        # Build an Asset of the appropriate type, default to Equity
-        asset_type = entry.pop('asset_type', 'equity')
-        if asset_type.lower() == 'equity':
-            try:
-                fuzzy = entry['symbol'].replace(self.fuzzy_char, '') \
-                    if self.fuzzy_char else None
-            except KeyError:
-                fuzzy = None
-            asset = Equity(**entry)
-            c = self.conn.cursor()
-            t = (asset.sid,
-                 asset.symbol,
-                 asset.asset_name,
-                 asset.start_date.value if asset.start_date else None,
-                 asset.end_date.value if asset.end_date else None,
-                 asset.first_traded.value if asset.first_traded else None,
-                 asset.exchange,
-                 fuzzy)
-            c.execute("""INSERT INTO equities(
-            sid,
-            symbol,
-            asset_name,
-            start_date,
-            end_date,
-            first_traded,
-            exchange,
-            fuzzy)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?)""", t)
-
-            t = (asset.sid,
-                 'equity')
-            c.execute("""INSERT INTO asset_router(sid, asset_type)
-            VALUES(?, ?)""", t)
-
-        elif asset_type.lower() == 'future':
-            asset = Future(**entry)
-            c = self.conn.cursor()
-            t = (asset.sid,
-                 asset.symbol,
-                 asset.asset_name,
-                 asset.start_date.value if asset.start_date else None,
-                 asset.end_date.value if asset.end_date else None,
-                 asset.first_traded.value if asset.first_traded else None,
-                 asset.exchange,
-                 asset.root_symbol,
-                 asset.notice_date.value if asset.notice_date else None,
-                 asset.expiration_date.value
-                 if asset.expiration_date else None,
-                 asset.contract_multiplier)
-            c.execute("""INSERT INTO futures(
-            sid,
-            symbol,
-            asset_name,
-            start_date,
-            end_date,
-            first_traded,
-            exchange,
-            root_symbol,
-            notice_date,
-            expiration_date,
-            contract_multiplier)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", t)
-
-            t = (asset.sid,
-                 'future')
-            c.execute("""INSERT INTO asset_router(sid, asset_type)
-            VALUES(?, ?)""", t)
-        else:
-            raise InvalidAssetType(asset_type=asset_type)
-
-        self.metadata_cache[identifier] = entry
-
     def consume_identifiers(self, identifiers):
         """
-        Consumes the given identifiers in to the metadata cache of this
-        AssetFinder.
+        Consumes the provided identifiers, passing them to
+        the asset writer to be added to the database.
+        Will be deprecated in future versions of zipline.
+
+        Parameters
+        ----------
+        identifiers
+            The data to be consumed.
         """
-        for identifier in identifiers:
-            # Handle case where full Assets are passed in
-            # For example, in the creation of a DataFrameSource, the source's
-            # 'sid' args may be full Assets
-            if isinstance(identifier, Asset):
-                sid = identifier.sid
-                metadata = identifier.to_dict()
-                metadata['asset_type'] = identifier.__class__.__name__
-                self.insert_metadata(identifier=sid, **metadata)
-            else:
-                self.insert_metadata(identifier)
+        _asset_writer = AssetDBWriterLegacyFromList(identifiers)
+        _asset_writer.consume_identifiers(self.conn,
+                                          self.fuzzy_char,
+                                          self.allow_sid_assignment)
 
     def consume_metadata(self, metadata):
         """
-        Consumes the provided metadata in to the metadata cache. The
-        existing values in the cache will be overwritten when there
-        is a conflict.
-        :param metadata: The metadata to be consumed
-        """
-        # Handle dicts
-        if isinstance(metadata, dict):
-            self._insert_metadata_dict(metadata)
-        # Handle DataFrames
-        elif isinstance(metadata, pd.DataFrame):
-            self._insert_metadata_dataframe(metadata)
-        # Handle readables
-        elif hasattr(metadata, 'read'):
-            self._insert_metadata_readable(metadata)
-        else:
-            raise ConsumeAssetMetaDataError(obj=metadata)
+        Consumes the provided metadata, passing it to
+        the asset writer to be added to the database.
+        Will be deprecated in future versions of zipline.
 
-    def clear_metadata(self):
+        Parameters
+        ----------
+        metadata
+            The data to be consumed.
         """
-        Used for testing.
-        """
-        self.metadata_cache = {}
-
-        self.conn = sqlite3.connect(':memory:')
-        self.create_db_tables()
+        _asset_writer = create_relevant_writer(metadata)
+        _asset_writer.write_all(self.conn,
+                                fuzzy_char=self.fuzzy_char,
+                                allow_sid_assignment=self.allow_sid_assignment)
 
     def insert_metadata(self, identifier, **kwargs):
-        self._insert_metadata(identifier, **kwargs)
-        self.conn.commit()
-
-    def _insert_metadata_dataframe(self, dataframe):
-        for identifier, row in dataframe.iterrows():
-            self._insert_metadata(identifier, **row)
-        self.conn.commit()
-
-    def _insert_metadata_dict(self, dict):
-        for identifier, entry in dict.items():
-            self._insert_metadata(identifier, **entry)
-        self.conn.commit()
-
-    def _insert_metadata_readable(self, readable):
-        for row in readable.read():
-            # Parse out the row of the readable object
-            metadata_dict = {}
-            for field in ASSET_FIELDS:
-                try:
-                    row_value = row[field]
-                    # Avoid passing placeholders
-                    if row_value and (row_value != 'None'):
-                        metadata_dict[field] = row[field]
-                except KeyError:
-                    continue
-                except IndexError:
-                    continue
-            # Locate the identifier, fail if not found
-            if 'sid' in metadata_dict:
-                identifier = metadata_dict['sid']
-            elif 'symbol' in metadata_dict:
-                identifier = metadata_dict['symbol']
-            else:
-                raise ConsumeAssetMetaDataError(obj=row)
-            self._insert_metadata(identifier, **metadata_dict)
-        self.conn.commit()
+        """
+        Insert information for a single identifier.
+        Will be deprecated in future versions of zipline.
+        """
+        metadata = {}
+        metadata[identifier] = kwargs
+        _asset_writer = create_relevant_writer(metadata)
+        _asset_writer.write_all(self.conn,
+                                fuzzy_char=self.fuzzy_char,
+                                allow_sid_assignment=self.allow_sid_assignment)
 
     def _compute_asset_lifetimes(self):
         """
