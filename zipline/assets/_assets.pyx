@@ -232,6 +232,7 @@ cdef class Future(Asset):
     def __cinit__(self,
                   int sid, # sid is required
                   object symbol="",
+                  object root_symbol_id = "",
                   object root_symbol="",
                   object asset_name="",
                   object start_date=None,
