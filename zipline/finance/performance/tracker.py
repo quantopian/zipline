@@ -298,7 +298,7 @@ class PerformanceTracker(object):
             _dict['minute_perf'] = self.todays_performance.to_dict(
                 self.saved_dt)
         else:
-            raise BaseException("Invalid emission type: %s" % emission_type)
+            raise ValueError("Invalid emission type: %s" % emission_type)
 
         return _dict
 

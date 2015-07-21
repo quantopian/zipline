@@ -121,9 +121,8 @@ class AlgorithmSimulator(object):
                     )
                     # Perf messages are only emitted if the snapshot contained
                     # a benchmark event.
-                    if messages is not None:
-                        for message in messages:
-                            yield message
+                    for message in messages:
+                        yield message
 
                     # When emitting minutely, we need to call
                     # before_trading_start before the next trading day begins
@@ -315,7 +314,7 @@ class AlgorithmSimulator(object):
         if benchmark_event_occurred:
             return self.generate_messages(dt)
         else:
-            return None
+            return ()
 
     def _call_handle_data(self):
         """
