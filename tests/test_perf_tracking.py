@@ -1949,8 +1949,7 @@ class TestPerformanceTracker(unittest.TestCase):
                     tracker.process_order(event)
                 elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
                     tracker.process_transaction(event)
-            tracker.handle_minute_close(date)
-            msg = tracker.to_dict()
+            msg, _ = tracker.handle_minute_close(date)
             messages[date] = msg
 
         self.assertEquals(2, len(messages))

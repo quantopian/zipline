@@ -279,8 +279,11 @@ class PerformanceTracker(object):
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form described in header comments.
         """
-        if not emission_type:
+
+        # Default to the emission rate of this tracker if no type is provided
+        if emission_type is None:
             emission_type = self.emission_rate
+
         _dict = {
             'period_start': self.period_start,
             'period_end': self.period_end,
@@ -294,6 +297,8 @@ class PerformanceTracker(object):
         elif emission_type == 'minute':
             _dict['minute_perf'] = self.todays_performance.to_dict(
                 self.saved_dt)
+        else:
+            raise BaseException("Invalid emission type: %s" % emission_type)
 
         return _dict
 
@@ -409,6 +414,22 @@ class PerformanceTracker(object):
             period.handle_dividends_paid(net_cash_payment)
 
     def handle_minute_close(self, dt):
+        """
+        Handles the close of the given minute. This includes handling
+        market-close functions if the given minute is the end of the market
+        day.
+
+        Parameters
+        __________
+        dt : Timestamp
+            The minute that is ending
+
+        Returns
+        _______
+        (dict, dict/None)
+            A tuple of the minute perf packet and daily perf packet.
+            If the market day has not ended, the daily perf packet is None.
+        """
         self.update_performance()
         todays_date = normalize_date(dt)
         account = self.get_account(False)
@@ -424,19 +445,14 @@ class PerformanceTracker(object):
                                             bench_since_open,
                                             account)
 
-        # if this is the close, update dividends for the next day.
-        if dt == self.market_close:
-            self.check_upcoming_dividends(todays_date)
+        minute_packet = self.to_dict(emission_type='minute')
 
-    def handle_intraday_market_close(self, new_mkt_open, new_mkt_close):
-        """
-        Function called at market close only when emitting at minutely
-        frequency.
-        """
-        # increment the day counter before we move markers forward.
-        self.day_count += 1.0
-        self.market_open = new_mkt_open
-        self.market_close = new_mkt_close
+        # if this is the close, update dividends for the next day.
+        # Return the performance tuple
+        if dt == self.market_close:
+            return (minute_packet, self._handle_market_close(todays_date))
+        else:
+            return (minute_packet, None)
 
     def handle_market_close_daily(self):
         """
@@ -454,12 +470,16 @@ class PerformanceTracker(object):
             self.all_benchmark_returns[completed_date],
             account)
 
+        return self._handle_market_close(completed_date)
+
+    def _handle_market_close(self, completed_date):
+
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
 
         # Take a snapshot of our current performance to return to the
         # browser.
-        daily_update = self.to_dict()
+        daily_update = self.to_dict(emission_type='daily')
 
         # On the last day of the test, don't create tomorrow's performance
         # period.  We may not be able to find the next trading day if we're at

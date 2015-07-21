@@ -114,29 +114,20 @@ class AlgorithmSimulator(object):
                             self.update_universe(event)
 
                 else:
-                    message = self._process_snapshot(
+                    messages = self._process_snapshot(
                         date,
                         snapshot,
                         self.algo.instant_fill,
                     )
                     # Perf messages are only emitted if the snapshot contained
                     # a benchmark event.
-                    if message is not None:
-                        yield message
+                    if messages is not None:
+                        for message in messages:
+                            yield message
 
-                    # When emitting minutely, we re-iterate the day as a
-                    # packet with the entire days performance rolled up.
+                    # When emitting minutely, we need to call
+                    # before_trading_start before the next trading day begins
                     if date == mkt_close:
-                        if self.algo.perf_tracker.emission_rate == 'minute':
-                            daily_rollup = self.algo.perf_tracker.to_dict(
-                                emission_type='daily'
-                            )
-                            daily_rollup['daily_perf']['recorded_vars'] = \
-                                self.algo.recorded_vars
-                            yield daily_rollup
-                            tp = self.algo.perf_tracker.todays_performance
-                            tp.rollover()
-
                         if mkt_close <= self.algo.perf_tracker.last_close:
                             before_last_close = \
                                 mkt_close < self.algo.perf_tracker.last_close
@@ -149,12 +140,6 @@ class AlgorithmSimulator(object):
                                 # If at the end of backtest history,
                                 # skip advancing market close.
                                 pass
-                            if self.algo.perf_tracker.emission_rate == \
-                               'minute':
-                                self.algo.perf_tracker\
-                                         .handle_intraday_market_close(
-                                             mkt_open,
-                                             mkt_close)
 
                             if before_last_close:
                                 self._call_before_trading_start(mkt_open)
@@ -328,7 +313,7 @@ class AlgorithmSimulator(object):
                 perf_process_trade(trade)
 
         if benchmark_event_occurred:
-            return self.get_message(dt)
+            return self.generate_messages(dt)
         else:
             return None
 
@@ -356,9 +341,9 @@ class AlgorithmSimulator(object):
         if self.algo.datetime != dt:
             self.algo.on_dt_changed(dt)
 
-    def get_message(self, dt):
+    def generate_messages(self, dt):
         """
-        Get a perf message for the given datetime.
+        Generator that yields perf messages for the given datetime.
         """
         # Ensure that updated_portfolio has been called at least once for this
         # dt before we emit a perf message.  This is a no-op if
@@ -371,13 +356,22 @@ class AlgorithmSimulator(object):
             perf_message = \
                 self.algo.perf_tracker.handle_market_close_daily()
             perf_message['daily_perf']['recorded_vars'] = rvars
-            return perf_message
+            yield perf_message
 
         elif self.algo.perf_tracker.emission_rate == 'minute':
-            self.algo.perf_tracker.handle_minute_close(dt)
-            perf_message = self.algo.perf_tracker.to_dict()
-            perf_message['minute_perf']['recorded_vars'] = rvars
-            return perf_message
+            # close the minute in the tracker, and collect the daily message if
+            # the minute is the close of the trading day
+            minute_message, daily_message = \
+                self.algo.perf_tracker.handle_minute_close(dt)
+
+            # collect and yield the minute's perf message
+            minute_message['minute_perf']['recorded_vars'] = rvars
+            yield minute_message
+
+            # if there was a daily perf message, collect and yield it
+            if daily_message:
+                daily_message['daily_perf']['recorded_vars'] = rvars
+                yield daily_message
 
     def update_universe(self, event):
         """
