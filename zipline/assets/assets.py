@@ -491,10 +491,6 @@ class AssetFinder(object):
         c.execute(query)
         return [r[0] for r in c.fetchall()]
 
-    @property
-    def assets(self):
-        return self.cache.values()
-
     def _lookup_generic_scalar(self,
                                asset_convertible,
                                as_of_date,
