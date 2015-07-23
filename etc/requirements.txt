@@ -14,7 +14,7 @@ numpy==1.9.2
 scipy==0.15.1
 pandas==0.16.1
 # Needed for parts of pandas.stats
-patsy==0.3.0
+patsy==0.4.0
 statsmodels==0.6.1
 
 # Don't use 2.4.0.
