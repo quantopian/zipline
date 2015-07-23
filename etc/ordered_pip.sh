@@ -5,7 +5,7 @@ while read line
 do     
     if [[ -n "$line" && "$line" != \#* ]] ; then
         # forward to pip any args after the reqs filename
-        pip install $line "${@:2}"
+        pip install --exists-action w $line "${@:2}"
         ((a = a + 1))
     fi
 done < $1
