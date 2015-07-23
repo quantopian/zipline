@@ -53,3 +53,8 @@ Markdown==2.6.2
 # However, this is backwards incompatible change, since previous
 # versions of pip do not support that flag.
 TA-Lib==0.4.9
+
+# Checking for old PIP packages
+futures==3.0.3
+requests-futures==0.9.5
+piprot==0.9.1
