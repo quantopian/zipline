@@ -32,7 +32,7 @@ setup(
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
-    packages=find_packages(),
+    packages=['zipline'],
     ext_modules=cythonize(ext_modules),
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
