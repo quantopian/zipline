@@ -23,8 +23,8 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from zipline.api_support import ZiplineAPI
 from zipline.assets import AssetFinder
+from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
     setup_logger,
@@ -135,7 +135,6 @@ class TestRecordAlgorithm(TestCase):
 class TestMiscellaneousAPI(TestCase):
     def setUp(self):
         setup_logger(self)
-
         sids = [1, 2]
         self.sim_params = factory.create_simulation_parameters(
             num_days=2,
