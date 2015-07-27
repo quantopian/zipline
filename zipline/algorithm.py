@@ -26,6 +26,7 @@ from six.moves import filter
 from six import (
     exec_,
     iteritems,
+    itervalues,
     string_types,
 )
 from operator import attrgetter
@@ -1297,5 +1298,7 @@ class TradingAlgorithm(object):
         """
         Return a list of all the TradingAlgorithm API methods.
         """
-        return [fn for fn in cls.__dict__.itervalues()
-                if getattr(fn, 'is_api_method', False)]
+        return [
+            fn for fn in itervalues(vars(cls))
+            if getattr(fn, 'is_api_method', False)
+        ]
