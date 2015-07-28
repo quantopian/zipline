@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logbook
 import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
@@ -116,6 +117,7 @@ class Pairtrade(TradingAlgorithm):
         self.order(self.PEP, -1 * pep_amount)
 
 if __name__ == '__main__':
+    logbook.StderrHandler().push_application()
     start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},

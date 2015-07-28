@@ -66,12 +66,14 @@ def handle_data(context, data):
 
 if __name__ == '__main__':
     from datetime import datetime
+    import logbook
     import matplotlib.pyplot as plt
     import pytz
     from zipline.algorithm import TradingAlgorithm
     from zipline.api import order, record, symbol
     from zipline.utils.factory import load_from_yahoo
 
+    logbook.StderrHandler().push_application()
     start = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2014, 11, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,

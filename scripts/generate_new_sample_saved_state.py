@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import datetime
+import logbook
 import os
 import pickle
 import pytz
@@ -136,6 +137,7 @@ def generate_object_state(cls, initargs):
 
 
 if __name__ == "__main__":
+    logbook.StderrHandler().push_application()
 
     for args in argument_list:
         generate_object_state(*args)

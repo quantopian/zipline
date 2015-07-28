@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from datetime import datetime
+import logbook
 import pytz
 
 from zipline import TradingAlgorithm
@@ -34,6 +35,7 @@ def handle_date(context, data):
 
 if __name__ == '__main__':
     import pylab as pl
+    logbook.StderrHandler().push_application()
     start = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
