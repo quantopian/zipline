@@ -7,6 +7,9 @@ from mock import patch
 import operator
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
+# FIXME: This is downstream compat.  If it's still here by August 5, 2015,
+# please yell at Scott Sanderson.
+from zipline.utils.control_flow import nullctx  # noqa
 
 from six import (
     itervalues,
