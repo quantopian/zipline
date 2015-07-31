@@ -1392,6 +1392,13 @@ class TestClosePosAlgo(TestCase):
                      DATASOURCE_TYPE.CLOSE_POSITION]},
             index=self.index)
         })
+        self.no_close_panel = pd.Panel({1: pd.DataFrame({
+            'price': [1, 2, 4], 'volume': [1e9, 0, 0],
+            'type': [DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE]},
+            index=self.index)
+        })
 
     def test_close_position_equity(self):
         metadata = {1: {'symbol': 'TEST',
@@ -1412,8 +1419,7 @@ class TestClosePosAlgo(TestCase):
     def test_close_position_future(self):
         metadata = {1: {'symbol': 'TEST',
                         'asset_type': 'future',
-                        'notice_date': self.days[2],
-                        'expiration_date': self.days[3]}}
+                        }}
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                                   instant_fill=True, commission=PerShare(0),
                                   asset_metadata=metadata)
@@ -1424,6 +1430,25 @@ class TestClosePosAlgo(TestCase):
         expected_pnl = [0, 1, 2]
         results = self.run_algo()
         self.check_algo_pnl(results, expected_pnl)
+        self.check_algo_positions(results, expected_positions)
+
+    def test_auto_close_future(self):
+        metadata = {1: {'symbol': 'TEST',
+                        'asset_type': 'future',
+                        'notice_date': self.days[3],
+                        'expiration_date': self.days[4]}}
+        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
+                                  instant_fill=True, commission=PerShare(0),
+                                  asset_metadata=metadata)
+        self.data = DataPanelSource(self.no_close_panel)
+
+        # Check results
+        results = self.run_algo()
+
+        expected_pnl = [0, 1, 2]
+        self.check_algo_pnl(results, expected_pnl)
+
+        expected_positions = [1, 1, 0]
         self.check_algo_positions(results, expected_positions)
 
     def run_algo(self):

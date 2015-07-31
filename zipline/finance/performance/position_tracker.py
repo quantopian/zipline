@@ -11,6 +11,7 @@ except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
 
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.finance.slippage import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -42,11 +43,15 @@ class PositionTracker(object):
         )
         self._positions_store = zp.Positions()
 
+        # Dict, keyed on dates, that contains lists of close position events
+        # for any Assets in this tracker's positions
+        self._auto_close_position_sids = {}
+
     @with_environment()
     def _retrieve_asset(self, sid, env=None):
         return env.asset_finder.retrieve_asset(sid)
 
-    def _update_multipliers(self, sid):
+    def _update_asset(self, sid):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
@@ -64,6 +69,70 @@ class PositionTracker(object):
                     asset.contract_multiplier
                 self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
+                # Futures are closed on their notice_date
+                if asset.notice_date:
+                    self._insert_auto_close_position_date(
+                        dt=asset.notice_date,
+                        sid=sid
+                    )
+                # If the Future does not have a notice_date, it will be closed
+                # on its expiration_date
+                elif asset.expiration_date:
+                    self._insert_auto_close_position_date(
+                        dt=asset.expiration_date,
+                        sid=sid
+                    )
+
+    def _insert_auto_close_position_date(self, dt, sid):
+        """
+        Inserts the given SID in to the list of positions to be auto-closed by
+        the given dt.
+
+        Parameters
+        ----------
+        dt : pandas.Timestamp
+            The date before-which the given SID will be auto-closed
+        sid : int
+            The SID of the Asset to be auto-closed
+        """
+        self._auto_close_position_sids.setdefault(dt, set()).add(sid)
+
+    def auto_close_position_events(self, next_trading_day):
+        """
+        Generates CLOSE_POSITION events for any SIDs whose auto-close date is
+        before or equal to the given date.
+
+        Parameters
+        ----------
+        next_trading_day : pandas.Timestamp
+            The time before-which certain Assets need to be closed
+
+        Yields
+        ------
+        Event
+            A close position event for any sids that should be closed before
+            the next_trading_day parameter
+        """
+        past_asset_end_dates = set()
+
+        # Check the auto_close_position_dates dict for SIDs to close
+        for date, sids in self._auto_close_position_sids.items():
+            if date > next_trading_day:
+                continue
+            past_asset_end_dates.add(date)
+
+            for sid in sids:
+                # Yield a CLOSE_POSITION event
+                event = Event({
+                    'dt': date,
+                    'type': DATASOURCE_TYPE.CLOSE_POSITION,
+                    'sid': sid,
+                })
+                yield event
+
+        # Clear out past dates
+        while past_asset_end_dates:
+            self._auto_close_position_sids.pop(past_asset_end_dates.pop())
 
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
@@ -92,7 +161,7 @@ class PositionTracker(object):
         for sid, pos in iteritems(positions):
             self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
-            self._update_multipliers(sid)
+            self._update_asset(sid)
 
     def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):
@@ -102,7 +171,7 @@ class PositionTracker(object):
             pos.amount = amount
             self._position_amounts[sid] = amount
             self._position_values = None  # invalidate cache
-            self._update_multipliers(sid=sid)
+            self._update_asset(sid=sid)
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
             self._position_last_sale_prices[sid] = last_sale_price
@@ -120,7 +189,7 @@ class PositionTracker(object):
         position.update(txn)
         self._position_amounts[sid] = position.amount
         self._position_last_sale_prices[sid] = position.last_sale_price
-        self._update_multipliers(sid)
+        self._update_asset(sid)
 
     def handle_commission(self, commission):
         # Adjust the cost basis of the stock if we own it
@@ -203,7 +272,7 @@ class PositionTracker(object):
             self._position_amounts[split.sid] = position.amount
             self._position_last_sale_prices[split.sid] = \
                 position.last_sale_price
-            self._update_multipliers(split.sid)
+            self._update_asset(split.sid)
             return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
@@ -270,7 +339,7 @@ class PositionTracker(object):
             position.amount += share_count
             self._position_amounts[stock] = position.amount
             self._position_last_sale_prices[stock] = position.last_sale_price
-            self._update_multipliers(stock)
+            self._update_asset(stock)
 
         # Add cash equal to the net cash payed from all dividends.  Note that
         # "negative cash" is effectively paid if we're short an asset,
@@ -279,14 +348,18 @@ class PositionTracker(object):
         net_cash_payment = payments['cash_amount'].fillna(0).sum()
         return net_cash_payment
 
-    def create_close_position_transaction(self, event):
+    def maybe_create_close_position_transaction(self, event):
         if not self._position_amounts.get(event.sid):
             return None
+        if 'price' in event:
+            price = event.price
+        else:
+            price = self._position_last_sale_prices[event.sid]
         txn = Transaction(
             sid=event.sid,
             amount=(-1 * self._position_amounts[event.sid]),
             dt=event.dt,
-            price=event.price,
+            price=price,
             commission=0,
             order_id=0
         )
@@ -354,5 +427,6 @@ class PositionTracker(object):
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
+        self._auto_close_position_sids = {}
 
         self.update_positions(state['positions'])

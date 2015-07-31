@@ -2009,7 +2009,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
         source = DataPanelSource(pan)
         for i, event in enumerate(source):
-            txn = pt.create_close_position_transaction(event)
+            txn = pt.maybe_create_close_position_transaction(event)
             if event.sid == 1:
                 # Test owned long
                 self.assertEqual(-120, txn.amount)

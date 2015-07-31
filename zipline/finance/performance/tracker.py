@@ -358,15 +358,17 @@ class PerformanceTracker(object):
 
     def process_close_position(self, event):
 
-        # CLOSE_POSITION events contain prices that must be handled as a final
-        # trade event
-        self.process_trade(event)
+        # CLOSE_POSITION events that contain prices that must be handled as
+        # a final trade event
+        if 'price' in event:
+            self.process_trade(event)
 
-        txn = self.position_tracker.create_close_position_transaction(event)
+        txn = self.position_tracker.\
+            maybe_create_close_position_transaction(event)
         if txn:
             self.process_transaction(txn)
 
-    def check_upcoming_dividends(self, completed_date):
+    def check_upcoming_dividends(self, next_trading_day):
         """
         Check if we currently own any stocks with dividends whose ex_date is
         the next trading day.  Track how much we should be payed on those
@@ -379,13 +381,6 @@ class PerformanceTracker(object):
         if len(self.dividend_frame) == 0:
             # We don't currently know about any dividends for this simulation
             # period, so bail.
-            return
-
-        # Get the next trading day and, if it is outside the bounds of the
-        # simulation, bail.
-        next_trading_day = TradingEnvironment.instance().\
-            next_trading_day(completed_date)
-        if (next_trading_day is None) or (next_trading_day >= self.last_close):
             return
 
         # Dividends whose ex_date is the next trading day.  We need to check if
@@ -412,6 +407,22 @@ class PerformanceTracker(object):
         for period in self.perf_periods:
             # notify periods to update their stats
             period.handle_dividends_paid(net_cash_payment)
+
+    def check_asset_auto_closes(self, next_trading_day):
+        """
+        Check if the position tracker currently owns any Assets with an
+        auto-close date that is the next trading day.  Close those positions.
+
+        Parameters
+        ----------
+        next_trading_day : pandas.Timestamp
+            The next trading day of the simulation
+        """
+        auto_close_events = self.position_tracker.auto_close_position_events(
+            next_trading_day=next_trading_day
+        )
+        for event in auto_close_events:
+            self.process_close_position(event)
 
     def handle_minute_close(self, dt):
         """
@@ -477,6 +488,16 @@ class PerformanceTracker(object):
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
 
+        # Get the next trading day and, if it is past the bounds of this
+        # simulation, return the daily perf packet
+        next_trading_day = TradingEnvironment.instance().\
+            next_trading_day(completed_date)
+
+        # Check if any assets need to be auto-closed before generating today's
+        # perf period
+        if next_trading_day:
+            self.check_asset_auto_closes(next_trading_day=next_trading_day)
+
         # Take a snapshot of our current performance to return to the
         # browser.
         daily_update = self.to_dict(emission_type='daily')
@@ -498,9 +519,13 @@ class PerformanceTracker(object):
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        # Check for any dividends
-        self.check_upcoming_dividends(completed_date)
+        # If the next trading day is irrelevant, then return the daily packet
+        if (next_trading_day is None) or (next_trading_day >= self.last_close):
+            return daily_update
 
+        # Check for any dividends and auto-closes, then return the daily perf
+        # packet
+        self.check_upcoming_dividends(next_trading_day=next_trading_day)
         return daily_update
 
     def handle_simulation_end(self):
