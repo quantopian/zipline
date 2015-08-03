@@ -212,7 +212,7 @@ class TradingAlgorithm(object):
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
-        ffc_loader = kwargs.get('ffc_loader', None)
+        ffc_loader = kwargs.pop('ffc_loader', None)
         if ffc_loader is not None:
             self.engine = SimpleFFCEngine(
                 ffc_loader,
