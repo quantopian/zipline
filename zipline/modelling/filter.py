@@ -128,11 +128,10 @@ class NumExprFilter(NumericalExpression, Filter):
         """
         Compute our result with numexpr, then apply `mask`.
         """
-        numexpr_result = super(NumExprFilter, self).compute_from_arrays(
+        return super(NumExprFilter, self).compute_from_arrays(
             arrays,
             mask,
-        )
-        return numexpr_result & mask
+        ) & mask.values
 
 
 class PercentileFilter(SingleInputMixin, Filter):

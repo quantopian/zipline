@@ -18,7 +18,6 @@ from numpy import (
     isnan,
     zeros,
 )
-from numpy.testing import assert_array_equal
 from pandas import (
     DataFrame,
     date_range,
@@ -30,6 +29,7 @@ from zipline.modelling.expression import (
     NUMEXPR_MATH_FUNCS,
 )
 from zipline.modelling.factor import TestingFactor
+from zipline.utils.test_utils import check_arrays
 
 
 class F(TestingFactor):
@@ -67,7 +67,7 @@ class NumericalExpressionTestCase(TestCase):
             [self.fake_raw_data[input_] for input_ in expr.inputs],
             self.mask,
         )
-        assert_array_equal(result, full((5, 5), expected))
+        check_arrays(result, expected)
 
     def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))

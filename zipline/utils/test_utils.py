@@ -4,6 +4,7 @@ from itertools import (
 )
 from logbook import FileHandler
 from mock import patch
+from numpy.testing import assert_array_equal
 import operator
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
@@ -311,3 +312,17 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
             'exchange': 'TEST',
         }
     )
+
+
+def check_arrays(left, right, err_msg='', verbose=True):
+    """
+    Wrapper around np.assert_array_equal that also verifies that inputs are
+    ndarrays.
+
+    See Also
+    --------
+    np.assert_array_equal
+    """
+    if type(left) != type(right):
+        raise AssertionError("%s != %s" % (type(left), type(right)))
+    return assert_array_equal(left, right, err_msg=err_msg, verbose=True)
