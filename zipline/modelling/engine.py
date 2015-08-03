@@ -27,6 +27,7 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
+    date_range,
     MultiIndex,
 )
 
@@ -149,7 +150,12 @@ class NoOpFFCEngine(FFCEngine):
     """
 
     def factor_matrix(self, terms, start, end):
-        return DataFrame(index=[], columns=sorted(terms.keys()))
+        return DataFrame(
+            index=MultiIndex.from_product(
+                [date_range(start=start, end=end, freq='D'), ()],
+            ),
+            columns=sorted(terms.keys())
+        )
 
 
 class SimpleFFCEngine(object):
