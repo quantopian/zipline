@@ -226,6 +226,12 @@ class SimpleFFCEngine(object):
         --------
         FFCEngine.factor_matrix
         """
+        if end_date <= start_date:
+            raise ValueError(
+                "start_date must be before end_date \n"
+                "start_date=%s, end_date=%s" % (start_date, end_date)
+            )
+
         graph = build_dependency_graph(terms.values())
         ordered_terms = topological_sort(graph)
         extra_row_counts = get_node_attributes(graph, 'extra_rows')

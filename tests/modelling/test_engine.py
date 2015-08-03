@@ -85,6 +85,16 @@ class ConstantInputTestCase(TestCase):
         )
         self.asset_finder = AssetFinder(self.asset_info)
 
+    def test_bad_dates(self):
+        loader = self.loader
+        engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
+
+        msg = "start_date must be before end_date .*"
+        with self.assertRaisesRegexp(ValueError, msg):
+            engine.factor_matrix({}, self.dates[2], self.dates[1])
+        with self.assertRaisesRegexp(ValueError, msg):
+            engine.factor_matrix({}, self.dates[2], self.dates[2])
+
     def test_single_factor(self):
         loader = self.loader
         engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
