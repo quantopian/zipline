@@ -440,14 +440,18 @@ class AssetFinder(object):
         ----------
         root_symbol : str
             Root symbol of the desired future.
-        as_of_date : pd.Timestamp
+        as_of_date : pd.Timestamp or pd.NaT
             Date at which the chain determination is rooted. I.e. the
             existing contract whose notice date is first after this
-            date is the primary contract, etc.
-        knowledge_date : pd.Timestamp
+            date is the primary contract, etc. If NaT is given, the
+            chain is unbounded, and all contracts for this root symbol
+            are returned.
+        knowledge_date : pd.Timestamp or pd.NaT
             Date for determining which contracts exist for inclusion in
             this chain. Contracts exist only if they have a start_date
-            on or before this date.
+            on or before this date. If NaT is given and as_of_date is
+            is not NaT, the value of as_of_date is used for
+            knowledge_date.
 
         Returns
         -------
@@ -462,16 +466,34 @@ class AssetFinder(object):
             root symbol.
         """
         c = self.conn.cursor()
-        t = {'root_symbol': root_symbol,
-             'as_of_date': as_of_date.value,
-             'knowledge_date': knowledge_date.value}
-        c.execute("""
-        select sid from futures
-        where root_symbol=:root_symbol
-        and :as_of_date < notice_date
-        and start_date <= :knowledge_date
-        order by notice_date asc
-        """, t)
+
+        if as_of_date is pd.NaT:
+            # If the as_of_date is NaT, get all contracts for this
+            # root symbol.
+            t = {'root_symbol': root_symbol}
+            c.execute("""
+            select sid from futures
+            where root_symbol=:root_symbol
+            order by notice_date asc
+            """, t)
+        else:
+            if knowledge_date is pd.NaT:
+                # If knowledge_date is NaT, default to using as_of_date
+                t = {'root_symbol': root_symbol,
+                     'as_of_date': as_of_date.value,
+                     'knowledge_date': as_of_date.value}
+            else:
+                t = {'root_symbol': root_symbol,
+                     'as_of_date': as_of_date.value,
+                     'knowledge_date': knowledge_date.value}
+
+            c.execute("""
+            select sid from futures
+            where root_symbol=:root_symbol
+            and :as_of_date < notice_date
+            and start_date <= :knowledge_date
+            order by notice_date asc
+            """, t)
         sids = [r[0] for r in c.fetchall()]
         if not sids:
             # Check if root symbol exists.

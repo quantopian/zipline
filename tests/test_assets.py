@@ -587,6 +587,10 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(ad_contracts[0].sid, 1)
         self.assertEqual(ad_contracts[1].sid, 0)
 
+        # Check that pd.NaT for knowledge_date uses the value of as_of_date
+        ad_contracts = finder.lookup_future_chain('AD', dt, pd.NaT)
+        self.assertEqual(len(ad_contracts), 2)
+
         # Check that we get nothing if our knowledge date is last year
         ad_contracts = finder.lookup_future_chain('AD', dt, last_year)
         self.assertEqual(len(ad_contracts), 0)
@@ -594,6 +598,10 @@ class AssetFinderTestCase(TestCase):
         # Check that we get things that start on the knowledge date
         ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
         self.assertEqual(len(ad_contracts), 1)
+
+        # Check that pd.NaT for as_of_date gives the whole chain
+        ad_contracts = finder.lookup_future_chain('AD', pd.NaT, first_day)
+        self.assertEqual(len(ad_contracts), 4)
 
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
