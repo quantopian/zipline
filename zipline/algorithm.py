@@ -1281,7 +1281,7 @@ class TradingAlgorithm(object):
         """
         days = self.trading_environment.trading_days
         start_date_loc = days.get_loc(start_date)
-        sim_end = self.sim_params.period_end
+        sim_end = self.sim_params.last_close.normalize()
         end_loc = min(start_date_loc + 252, days.get_loc(sim_end))
         end_date = days[end_loc]
         return self.engine.factor_matrix(
