@@ -105,7 +105,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             If True, create SQL ForeignKey and Index constraints.
 
         """
-
+        self.fuzzy_char = fuzzy_char
         self.allow_sid_assignment = allow_sid_assignment
         if allow_sid_assignment:
             ts = normalize_date(pd.Timestamp('now', tz='UTC'))
@@ -139,6 +139,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def _write_exchanges(self, exchanges, db_conn):
 
         data = [tuple(x) for x in exchanges.to_records()]
+
         c = db_conn.cursor()
         # The OR IGNORE syntax means we do not insert data
         # which would violate an SQL constraint.
@@ -175,7 +176,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     def _write_equities(self, equities, db_conn):
 
+        # Apply fuzzy matching.
+        if self.fuzzy_char:
+            equities['fuzzy'] = equities['symbol'].str.\
+                replace(self.fuzzy_char, '')
+
         data = [tuple(x) for x in equities.to_records()]
+
         c = db_conn.cursor()
         c.executemany("""
             INSERT OR IGNORE INTO equities
@@ -256,6 +263,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             asset_type text
         )""")
 
+        # Note: Would be optimal to use INTEGER PRIMARY KEY here, but SQLite
+        # tables cannot be modified after creation. Using CREATE UNIQUE INDEX
+        # only marginally less performant.
         if constraints:
 
             c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_equities_sid '
