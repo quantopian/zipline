@@ -88,8 +88,7 @@ def build_lookup_generic_cases():
             },
         ],
         index='sid')
-    from nose.tools import set_trace; set_trace()
-    db_path = '/Users/stewart/temp.db'
+    db_path = '~/temp.db'
     conn = sqlite3.connect(db_path)
     asset_writer = AssetDBWriterFromDataFrame(equities=frame)
     asset_writer.write_all(conn)
