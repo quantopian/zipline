@@ -14,7 +14,6 @@
 
 from abc import ABCMeta
 from numbers import Integral
-# import sqlite3
 from sqlite3 import Row
 import warnings
 
