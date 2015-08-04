@@ -41,7 +41,7 @@ networkx==1.9.1
 numexpr==2.4.3
 
 # On disk storage format for modelling data.
-bcolz==0.9.0
+bcolz==0.10.0
 
 # Command line interface helper
 click==4.0.0
