@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 
