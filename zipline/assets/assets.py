@@ -14,7 +14,7 @@
 
 from abc import ABCMeta
 from numbers import Integral
-import sqlite3
+# import sqlite3
 from sqlite3 import Row
 import warnings
 
@@ -25,7 +25,6 @@ from pandas.tseries.tools import normalize_date
 from six import with_metaclass, string_types
 
 from zipline.errors import (
-    ConsumeAssetMetaDataError,
     MultipleSymbolsFound,
     RootSymbolNotFound,
     SidNotFound,
@@ -34,13 +33,6 @@ from zipline.errors import (
 )
 from zipline.assets import (
     Asset, Equity, Future
-)
-from zipline.assets import (
-    NullAssetDBWriterLegacy,
-    AssetDBWriterLegacyFromList,
-    AssetDBWriterLegacyFromDictionary,
-    AssetDBWriterLegacyFromDataFrame,
-    AssetDBWriterLegacyFromReadable
 )
 from zipline.assets.asset_writer import (
     FUTURE_TABLE_FIELDS,
@@ -58,55 +50,15 @@ EQUITY_BY_SID_QUERY = 'select {0} from equities where sid=?'.format(
     ", ".join(EQUITY_TABLE_FIELDS))
 
 
-def create_relevant_writer(metadata):
-    """ Create an instance of AssetDBWriter relevant to
-        processing metadata.
-        Will be deprecated in future versions of zipline.
-    """
-
-    if isinstance(metadata, dict):
-        return AssetDBWriterLegacyFromDictionary(metadata)
-    elif isinstance(metadata, pd.DataFrame):
-        return AssetDBWriterLegacyFromDataFrame(metadata)
-    elif isinstance(metadata, list):
-        return AssetDBWriterLegacyFromList(metadata)
-    elif hasattr(metadata, 'read'):
-        return AssetDBWriterLegacyFromReadable(metadata)
-    elif metadata is None:
-        return NullAssetDBWriterLegacy(metadata)
-    else:
-        raise ConsumeAssetMetaDataError(obj=metadata)
-
-
 class AssetFinder(object):
 
-    def __init__(self, metadata=None, allow_sid_assignment=True,
-                 fuzzy_char=None, db_path=':memory:', create_table=True,
-                 asset_writer=None):
+    def __init__(self, conn, allow_sid_assignment=True,
+                 fuzzy_char=None):
 
         self.fuzzy_char = fuzzy_char
         self.allow_sid_assignment = allow_sid_assignment
 
-        self.conn = sqlite3.connect(db_path)
-
-        # AssetFinder can optionally accept an instance of
-        # the AssetDBWriter class. If no writer is supplied,
-        # we create a relevant writer based on the supplied metadata.
-        # Note that this strucutre is for backward compatibility.
-        # Ultimately AssetDBWriter and AssetFinder will be completely
-        # separate, and AssetFinder will not instantiate AssetDBWriter.
-        if asset_writer is None:
-            _asset_writer = create_relevant_writer(metadata)
-        else:
-            _asset_writer = asset_writer
-
-        # Create tables and read in metadata.
-        if create_table:
-            _asset_writer.init_db(self.conn)
-            if metadata is not None:
-                _asset_writer.write_all(self.conn,
-                                        self.fuzzy_char,
-                                        self.allow_sid_assignment)
+        self.conn = conn
 
         # Cache for lookup of assets by sid, the objects in the asset lookp may
         # be shared with the results from equity and future lookup caches.
@@ -125,20 +77,6 @@ class AssetFinder(object):
 
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
-
-    def clear_metadata(self):
-        """
-        Used for testing.
-        Will be deprecated in future versions of zipline.
-        """
-        # Close the database connection
-        self.conn.close()
-        # Create new database connection in memory.
-        self.conn = sqlite3.connect(':memory:')
-        # Initialize the database tables using the same connection
-        # as used by the AssetFinder.
-        _asset_writer = NullAssetDBWriterLegacy({})
-        _asset_writer.init_db(self.conn)
 
     def asset_type_by_sid(self, sid):
         """
@@ -606,50 +544,6 @@ class AssetFinder(object):
 
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
-
-    def consume_identifiers(self, identifiers):
-        """
-        Consumes the provided identifiers, passing them to
-        the asset writer to be added to the database.
-        Will be deprecated in future versions of zipline.
-
-        Parameters
-        ----------
-        identifiers
-            The data to be consumed.
-        """
-        _asset_writer = AssetDBWriterLegacyFromList(identifiers)
-        _asset_writer.consume_identifiers(self.conn,
-                                          self.fuzzy_char,
-                                          self.allow_sid_assignment)
-
-    def consume_metadata(self, metadata):
-        """
-        Consumes the provided metadata, passing it to
-        the asset writer to be added to the database.
-        Will be deprecated in future versions of zipline.
-
-        Parameters
-        ----------
-        metadata
-            The data to be consumed.
-        """
-        _asset_writer = create_relevant_writer(metadata)
-        _asset_writer.write_all(self.conn,
-                                fuzzy_char=self.fuzzy_char,
-                                allow_sid_assignment=self.allow_sid_assignment)
-
-    def insert_metadata(self, identifier, **kwargs):
-        """
-        Insert information for a single identifier.
-        Will be deprecated in future versions of zipline.
-        """
-        metadata = {}
-        metadata[identifier] = kwargs
-        _asset_writer = create_relevant_writer(metadata)
-        _asset_writer.write_all(self.conn,
-                                fuzzy_char=self.fuzzy_char,
-                                allow_sid_assignment=self.allow_sid_assignment)
 
     def _compute_asset_lifetimes(self):
         """
