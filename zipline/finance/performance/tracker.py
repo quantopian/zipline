@@ -368,6 +368,19 @@ class PerformanceTracker(object):
         if txn:
             self.process_transaction(txn)
 
+    def process_cascade_position(self, event):
+
+        # CLOSE_POSITION events that contain prices that must be handled as
+        # a final trade event
+        if 'price' in event:
+            self.process_trade(event)
+
+        txns = self.position_tracker.\
+            maybe_create_cascade_transaction(event)
+        if txns:
+            for txn in txns:
+                self.process_transaction(txn)
+
     def check_upcoming_dividends(self, next_trading_day):
         """
         Check if we currently own any stocks with dividends whose ex_date is

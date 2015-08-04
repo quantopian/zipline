@@ -41,6 +41,7 @@ cdef class Asset:
     cdef public object first_traded
 
     cdef readonly object exchange
+    cdef readonly object children
 
     def __cinit__(self,
                   int sid, # sid is required
@@ -50,6 +51,7 @@ cdef class Asset:
                   object end_date=None,
                   object first_traded=None,
                   object exchange="",
+                  object children=None,
                   *args,
                   **kwargs):
 
@@ -61,6 +63,7 @@ cdef class Asset:
         self.start_date    = start_date
         self.end_date      = end_date
         self.first_traded  = first_traded
+        self.children = children
 
     def __int__(self):
         return self.sid
@@ -127,7 +130,7 @@ cdef class Asset:
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded')
+                 'start_date', 'end_date', 'first_traded', 'children')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -147,7 +150,8 @@ cdef class Asset:
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
-                                 self.exchange,))
+                                 self.exchange,
+                                 self.children))
 
     cpdef to_dict(self):
         """
@@ -161,6 +165,7 @@ cdef class Asset:
             'end_date': self.end_date,
             'first_traded': self.first_traded,
             'exchange': self.exchange,
+            'children': self.children,
         }
 
     @classmethod
@@ -240,7 +245,8 @@ cdef class Future(Asset):
                   object expiration_date=None,
                   object first_traded=None,
                   object exchange="",
-                  int contract_multiplier=1):
+                  int contract_multiplier=1,
+                  object children=None):
 
         self.root_symbol         = root_symbol
         self.notice_date         = notice_date
@@ -260,7 +266,7 @@ cdef class Future(Asset):
     def __repr__(self):
         attrs = ('symbol', 'root_symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded', 'notice_date',
-                 'expiration_date', 'contract_multiplier')
+                 'expiration_date', 'contract_multiplier', 'children')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -284,7 +290,8 @@ cdef class Future(Asset):
                                  self.expiration_date,
                                  self.first_traded,
                                  self.exchange,
-                                 self.contract_multiplier,))
+                                 self.contract_multiplier,
+                                 self.children,))
 
     cpdef to_dict(self):
         """
