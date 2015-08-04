@@ -464,13 +464,13 @@ class SimpleFFCEngine(object):
         bounds = add.accumulate(unioned.sum(axis=1))
         for dt_idx, dt_end in enumerate(bounds):
 
-            bounds = slice(dt_start, dt_end)
-            column_indices = nonzero_ys[bounds]
+            row_bounds = slice(dt_start, dt_end)
+            column_indices = nonzero_ys[row_bounds]
 
-            raw_dates_index[bounds] = dates[dt_idx]
-            raw_assets_index[bounds] = assets[column_indices]
+            raw_dates_index[row_bounds] = dates[dt_idx]
+            raw_assets_index[row_bounds] = assets[column_indices]
             for computed, output in zip(factor_data, factor_outputs):
-                output[bounds] = computed[dt_idx, column_indices]
+                output[row_bounds] = computed[dt_idx, column_indices]
 
             # Upper bound of current row becomes lower bound for next row.
             dt_start = dt_end
