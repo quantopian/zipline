@@ -540,16 +540,22 @@ class StatefulRule(EventRule):
 
 class OncePerDay(StatefulRule):
     def __init__(self, rule=None):
-        self.date = None
+        #self.date = None
         self.triggered = False
+
+        self.date_ns = None
+        self.next_date_ns = None
+
         super(OncePerDay, self).__init__(rule)
 
     def should_trigger(self, dt):
-        dt_date = pd.Timestamp(dt).date()
-        if self.date is None or self.date != dt_date:
+        if self.date_ns is None or dt >= self.next_date_ns:
             # initialize or reset for new date
             self.triggered = False
-            self.date = dt_date
+            self.date_ns = pd.Timestamp(dt).value
+
+            next_day = pd.Timestamp(dt).date() + datetime.timedelta(days=1)
+            self.next_date_ns = pd.Timestamp(next_day).value
 
         if not self.triggered and self.rule.should_trigger(dt):
             self.triggered = True

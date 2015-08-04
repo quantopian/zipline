@@ -170,20 +170,21 @@ class AlgorithmSimulator(object):
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message
 
-    def _call_handle_data(self):
-        """
-        Call the user's handle_data, returning any orders placed by the algo
-        during the call.
-        """
-        self.algo.event_manager.handle_data(
-            self.algo,
-            self.current_data,
-            self.simulation_dt,
-        )
-        orders = self.algo.blotter.new_orders
-        self.algo.blotter.new_orders = []
-        return orders
+    # def _call_handle_data(self):
+    #     """
+    #     Call the user's handle_data, returning any orders placed by the algo
+    #     during the call.
+    #     """
+    #     self.algo.event_manager.handle_data(
+    #         self.algo,
+    #         self.current_data,
+    #         self.simulation_dt,
+    #     )
+    #     orders = self.algo.blotter.new_orders
+    #     self.algo.blotter.new_orders = []
+    #     return orders
 
+    # FIXME nobody calls this
     def _call_before_trading_start(self, dt):
         dt = normalize_date(dt)
         self.simulation_dt = dt

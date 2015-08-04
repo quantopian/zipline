@@ -2,7 +2,8 @@ import bcolz
 import os
 import pandas as pd
 
-FINDATA_DIR = os.getenv("FINDATA_DIR")
+#FINDATA_DIR = os.getenv("FINDATA_DIR")
+FINDATA_DIR = "/Users/jean/repo/findata/by_sid"
 
 
 class DataPortal(object):
@@ -15,11 +16,11 @@ class DataPortal(object):
         self.algo = algo
         self.current_bcolz_handle = None
         self.carrays = {
-            'open': {},
-            'high': {},
-            'low': {},
-            'close': {},
-            'volume': {},
+            'opens': {},
+            'highs': {},
+            'lows': {},
+            'closes': {},
+            'volumes': {},
             'sid': {},
             'dt': {},
         }
@@ -28,15 +29,33 @@ class DataPortal(object):
 
         self.cur_data_offset = 0
 
+        self.column_lookup = {
+            'opens': 'opens',
+            'highs': 'highs',
+            'lows': 'lows',
+            'closes': 'closes',
+            'close': 'closes',
+            'volumes': 'volumes',
+            'volume': 'volumes',
+            'open_price': 'opens',
+            'close_price': 'closes'
+        }
+
     def get_current_price_data(self, asset, column):
         path = "{0}/{1}.bcolz".format(FINDATA_DIR, int(asset))
-        try:
-            carray = self.carrays[column][path]
-        except KeyError:
-            carray = self.carrays[column][path] = bcolz.carray(
-                rootdir=path + "/" + column, mode='r')
 
-        if column == 'volume':
+        if column not in self.column_lookup:
+            raise KeyError("Invalid column: " + str(column))
+
+        column_to_use = self.column_lookup[column]
+
+        try:
+            carray = self.carrays[column_to_use][path]
+        except KeyError:
+            carray = self.carrays[column_to_use][path] = bcolz.carray(
+                rootdir=path + "/" + column_to_use, mode='r')
+
+        if column_to_use == 'volume':
             return carray[self.cur_data_offset]
         else:
             return carray[self.cur_data_offset] * 0.001
@@ -52,7 +71,8 @@ class DataPortal(object):
     def get_benchmark_returns_for_day(self, day):
         # For now use benchamrk iterator, and assume this is only called
         # once a day.
-        return next(self.benchmark_iter).returns
+        return 0
+        #return next(self.benchmark_iter).returns
 
 
 class DataPortalSidView(object):
