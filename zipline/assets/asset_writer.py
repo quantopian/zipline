@@ -163,7 +163,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     def _write_futures(self, futures, db_conn):
 
+        # Retrieve the data to add to the futures_contracts table
         data = [tuple(x) for x in futures.to_records()]
+
+        # Retrieve the data to add to the asset_router table
+        sids = [x[0] for x in data]
+        futs = ['future'] * len(sids)
+        to_insert = zip(sids, futs)
 
         c = db_conn.cursor()
         c.executemany("""
@@ -174,6 +180,12 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, data)
 
+        c.executemany("""
+            INSERT INTO asset_router
+            ('sid', 'asset_type')
+            VALUES(?,?)
+        """, to_insert)
+
     def _write_equities(self, equities, db_conn):
 
         # Apply fuzzy matching.
@@ -181,7 +193,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             equities['fuzzy'] = equities['symbol'].str.\
                 replace(self.fuzzy_char, '')
 
+        # Retrieve the data to add to the equitites table
         data = [tuple(x) for x in equities.to_records()]
+
+        # Retrieve the data to add to the asset_router table
+        sids = [x[0] for x in data]
+        eqs = ['equity'] * len(sids)
+        to_insert = zip(sids, eqs)
 
         c = db_conn.cursor()
         c.executemany("""
@@ -190,6 +208,12 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
              'end_date', 'first_traded', 'exchange', 'fuzzy')
             VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         """, data)
+
+        c.executemany("""
+            INSERT INTO asset_router
+            ('sid', 'asset_type')
+            VALUES(?,?)
+        """, to_insert)
 
     def init_db(self,
                 db_conn,
