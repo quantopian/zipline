@@ -214,10 +214,8 @@ class SingleInputMixin(object):
 
 class RequiredWindowLengthMixin(object):
     def _validate(self):
-        if self.windowed:
+        if self.windowed or self.window_length is NotSpecified:
             return super(RequiredWindowLengthMixin, self)._validate()
-        if self.window_length is NotSpecified:
-            raise WindowLengthNotSpecified()
         raise WindowLengthNotPositive(window_length=self.window_length)
 
 

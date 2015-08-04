@@ -15,7 +15,11 @@ from zipline.data.dataset import (
     Column,
     DataSet,
 )
-from zipline.errors import InputTermNotAtomic
+from zipline.errors import (
+    InputTermNotAtomic,
+    TermInputsNotSpecified,
+    WindowLengthNotSpecified,
+)
 from zipline.modelling.engine import build_dependency_graph
 from zipline.modelling.factor import Factor
 from zipline.modelling.expression import NUMEXPR_MATH_FUNCS
@@ -244,3 +248,26 @@ class ObjectIdentityTestCase(TestCase):
         for funcname in NUMEXPR_MATH_FUNCS:
             method = getattr(f, funcname)
             self.assertIs(method(), method())
+
+    def test_bad_input(self):
+
+        class SomeFactor(Factor):
+            pass
+
+        class SomeFactorDefaultInputs(Factor):
+            inputs = (SomeDataSet.foo, SomeDataSet.bar)
+
+        class SomeFactorDefaultLength(Factor):
+            window_length = 10
+
+        with self.assertRaises(TermInputsNotSpecified):
+            SomeFactor(window_length=1)
+
+        with self.assertRaises(TermInputsNotSpecified):
+            SomeFactorDefaultLength()
+
+        with self.assertRaises(WindowLengthNotSpecified):
+            SomeFactor(inputs=(SomeDataSet.foo,))
+
+        with self.assertRaises(WindowLengthNotSpecified):
+            SomeFactorDefaultInputs()
