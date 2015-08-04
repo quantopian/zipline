@@ -17,6 +17,7 @@ import bisect
 import logbook
 import datetime
 from functools import wraps
+import sqlite3
 
 import pandas as pd
 import numpy as np
@@ -24,6 +25,10 @@ import numpy as np
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
 from zipline.assets import AssetFinder
+from zipline.assets.asset_writer import (
+    AssetDBWriterFromList,
+    AssetDBWriterFromDictionary,
+    AssetDBWriterFromDataFrame)
 from zipline.errors import (
     NoFurtherDataError,
     UpdateAssetFinderTypeError,
@@ -132,7 +137,10 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.asset_finder = AssetFinder()
+        self.conn = sqlite3.connect(':memory:')
+        asset_writer = AssetDBWriterFromDictionary()
+        asset_writer.write_all(self.conn)
+        self.asset_finder = AssetFinder(self.conn)
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -174,7 +182,7 @@ class TradingEnvironment(object):
         :return:
         """
         if clear_metadata:
-            self.asset_finder.clear_metadata()
+            self.conn = sqlite3.connect(':memory:')
 
         if asset_finder is not None:
             if not isinstance(asset_finder, AssetFinder):
@@ -182,11 +190,18 @@ class TradingEnvironment(object):
             self.asset_finder = asset_finder
 
         if asset_metadata is not None:
-            self.asset_finder.clear_metadata()
-            self.asset_finder.consume_metadata(asset_metadata)
+            self.conn = sqlite3.connect(':memory:')
+            if isinstance(asset_metadata, dict):
+                asset_writer = AssetDBWriterFromDictionary(
+                    equities=asset_metadata)
+            elif isinstance(asset_metadata, pd.DataFrame):
+                asset_writer = AssetDBWriterFromDataFrame(
+                    equities=asset_metadata)
+            asset_writer.write_all(self.conn)
 
         if identifiers is not None:
-            self.asset_finder.consume_identifiers(identifiers)
+            asset_writer = AssetDBWriterFromList(equities=identifiers)
+            asset_writer.write_all(self.conn)
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
