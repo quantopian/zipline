@@ -1,11 +1,13 @@
-import pandas as pd
-import numpy as np
-from pandas.tseries.tools import normalize_date
-from six import with_metaclass, string_types
 from abc import (
     ABCMeta,
     abstractmethod,
 )
+
+import pandas as pd
+import numpy as np
+from pandas.tseries.tools import normalize_date
+from six import with_metaclass, string_types
+
 from zipline.errors import (
     ConsumeAssetMetaDataError,
     InvalidAssetType,
@@ -322,6 +324,59 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         raise NotImplementedError('load_data')
 
 
+class AssetDBWriterFromList(AssetDBWriter):
+    """
+    Class used to write list data to SQLite database.
+    """
+
+    def __init__(self, equities=[], futures=[], exchanges=[], root_symbols=[]):
+
+        self._equities = equities
+        self._futures = futures
+        self._exchanges = exchanges
+        self._root_symbols = root_symbols
+
+    def load_data(self):
+
+        equities_data = pd.DataFrame(index=self._equities)
+
+        futures_data = pd.DataFrame(index=self._futures)
+
+        exchange_data = pd.DataFrame(index=self._exchanges)
+
+        root_symbol_data = pd.DataFrame(index=self._root_symbols)
+
+        # Assume the keys are the exchange_ids
+        exchange_cols = ['exchange', 'timezone']
+        exchanges = pd.DataFrame(columns=exchange_cols)
+
+        # Assume the keys are the root_symbol_ids
+        root_symbols_cols = ['root_symbol', 'sector',
+                             'description', 'exchange_id']
+        root_symbols = pd.DataFrame(columns=root_symbols_cols)
+
+        # Assume the keys are the sids
+        futures_cols = ['symbol', 'root_symbol', 'asset_name',
+                        'start_date', 'end_date', 'first_traded', 'exchange',
+                        'notice_date', 'expiration_date',
+                        'contract_multiplier']
+        futures = pd.DataFrame(columns=futures_cols)
+
+        # Assume the keys are the sids
+        equities_cols = ['symbol', 'asset_name', 'start_date',
+                         'end_date', 'first_traded', 'exchange', 'fuzzy']
+        equities = pd.DataFrame(columns=equities_cols)
+
+        # Append any data the user has provided.
+        exchanges = exchanges.append(exchange_data, verify_integrity=True)
+        root_symbols = root_symbols.append(root_symbol_data,
+                                           verify_integrity=True)
+        futures = futures.append(futures_data, verify_integrity=True)
+        equities = equities.append(equities_data, verify_integrity=True)
+
+        return equities, futures, exchanges, root_symbols
+
+
 class AssetDBWriterFromDictionary(AssetDBWriter):
     """
     Class used to write dictionary data to SQLite database.
@@ -379,6 +434,55 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
                                            verify_integrity=True)
         futures = futures.append(futures_data, verify_integrity=True)
         equities = equities.append(equities_data, verify_integrity=True)
+
+        return equities, futures, exchanges, root_symbols
+
+
+class AssetDBWriterFromDataFrame(AssetDBWriter):
+    """
+    Class used to write pandas.DataFrame data to SQLite database.
+    """
+
+    def __init__(self, equities=pd.DataFrame(), futures=pd.DataFrame(),
+                 exchanges=pd.DataFrame(), root_symbols=pd.DataFrame()):
+
+        self._equities = equities
+        self._futures = futures
+        self._exchanges = exchanges
+        self._root_symbols = root_symbols
+
+    def load_data(self):
+        """
+        Convert our nested  to pandas DataFrames.
+        """
+
+        # Assume the keys are the exchange_ids
+        exchange_cols = ['exchange', 'timezone']
+        exchanges = pd.DataFrame(columns=exchange_cols)
+
+        # Assume the keys are the root_symbol_ids
+        root_symbols_cols = ['root_symbol', 'sector',
+                             'description', 'exchange_id']
+        root_symbols = pd.DataFrame(columns=root_symbols_cols)
+
+        # Assume the keys are the sids
+        futures_cols = ['symbol', 'root_symbol', 'asset_name',
+                        'start_date', 'end_date', 'first_traded', 'exchange',
+                        'notice_date', 'expiration_date',
+                        'contract_multiplier']
+        futures = pd.DataFrame(columns=futures_cols)
+
+        # Assume the keys are the sids
+        equities_cols = ['symbol', 'asset_name', 'start_date',
+                         'end_date', 'first_traded', 'exchange', 'fuzzy']
+        equities = pd.DataFrame(columns=equities_cols)
+
+        # Append any data the user has provided.
+        exchanges = exchanges.append(self._exchanges, verify_integrity=True)
+        root_symbols = root_symbols.append(self._root_symbols,
+                                           verify_integrity=True)
+        futures = futures.append(self._futures, verify_integrity=True)
+        equities = equities.append(self._equities, verify_integrity=True)
 
         return equities, futures, exchanges, root_symbols
 
