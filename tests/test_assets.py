@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 import pickle
 import uuid
 import warnings
+import sqlite3
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
@@ -34,6 +35,7 @@ from numpy import full
 
 from zipline.assets import Asset, Equity, Future, AssetFinder
 from zipline.assets.futures import FutureChain
+from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -65,31 +67,33 @@ def build_lookup_generic_cases():
         [
             {
                 'sid': 0,
-                'file_name':  'duplicated',
-                'company_name': 'duplicated_0',
-                'start_date_nano': dupe_0_start.value,
-                'end_date_nano': dupe_0_end.value,
+                'asset_name': 'duplicated_0',
+                'start_date': dupe_0_start.value,
+                'end_date': dupe_0_end.value,
                 'exchange': '',
             },
             {
                 'sid': 1,
-                'file_name':  'duplicated',
-                'company_name': 'duplicated_1',
-                'start_date_nano': dupe_1_start.value,
-                'end_date_nano': dupe_1_end.value,
+                'asset_name': 'duplicated_1',
+                'start_date': dupe_1_start.value,
+                'end_date': dupe_1_end.value,
                 'exchange': '',
             },
             {
                 'sid': 2,
-                'file_name':  'unique',
-                'company_name': 'unique',
-                'start_date_nano': unique_start.value,
-                'end_date_nano': unique_end.value,
+                'asset_name': 'unique',
+                'start_date': unique_start.value,
+                'end_date': unique_end.value,
                 'exchange': '',
             },
         ],
-    )
-    finder = AssetFinder(metadata=frame)
+        index='sid')
+    from nose.tools import set_trace; set_trace()
+    db_path = '/Users/stewart/temp.db'
+    conn = sqlite3.connect(db_path)
+    asset_writer = AssetDBWriterFromDataFrame(equities=frame)
+    asset_writer.write_all(conn)
+    finder = AssetFinder(conn)
     dupe_0, dupe_1, unique = assets = [
         finder.retrieve_asset(i)
         for i in range(3)
