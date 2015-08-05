@@ -45,3 +45,5 @@ bcolz==0.10.0
 
 # Command line interface helper
 click==4.0.0
+
+toolz==0.7.2
