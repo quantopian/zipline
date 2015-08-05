@@ -540,7 +540,6 @@ class StatefulRule(EventRule):
 
 class OncePerDay(StatefulRule):
     def __init__(self, rule=None):
-        #self.date = None
         self.triggered = False
 
         self.date_ns = None
@@ -554,6 +553,8 @@ class OncePerDay(StatefulRule):
             self.triggered = False
             self.date_ns = pd.Timestamp(dt).value
 
+            # record the timestamp for the next day, so that we can use it to know
+            # if we've moved to the next day
             next_day = pd.Timestamp(dt).date() + datetime.timedelta(days=1)
             self.next_date_ns = pd.Timestamp(next_day).value
 
