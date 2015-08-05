@@ -445,7 +445,8 @@ class AssetFinderTestCase(TestCase):
                          equity.end_date)
 
         # Test invalid field
-        self.assertFalse('foo_data' in finder.metadata_cache[0])
+        with self.assertRaises(AttributeError):
+            equity.foo_data
 
     def test_consume_metadata(self):
 
@@ -468,8 +469,8 @@ class AssetFinderTestCase(TestCase):
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
         finder.consume_metadata(df)
-        self.assertEqual('NASDAQ', finder.metadata_cache[0]['exchange'])
-        self.assertEqual('Microsoft', finder.metadata_cache[1]['asset_name'])
+        self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
+        self.assertEqual('Microsoft', finder.retrieve_asset(1).asset_name)
 
     def test_consume_asset_as_identifier(self):
         # Build some end dates
