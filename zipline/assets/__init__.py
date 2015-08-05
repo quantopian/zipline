@@ -20,14 +20,6 @@ from ._assets import (
     make_asset_array,
     CACHE_FILE_TEMPLATE
 )
-from .asset_writer import (
-    AssetDBWriterFromDictionary,
-    NullAssetDBWriterLegacy,
-    AssetDBWriterLegacyFromList,
-    AssetDBWriterLegacyFromDictionary,
-    AssetDBWriterLegacyFromDataFrame,
-    AssetDBWriterLegacyFromReadable
-)
 from .assets import (
     AssetFinder,
     AssetConvertible
@@ -37,12 +29,6 @@ __all__ = [
     'Asset',
     'Equity',
     'Future',
-    'AssetDBWriterFromDictionary',
-    'NullAssetDBWriterLegacy',
-    'AssetDBWriterLegacyFromList',
-    'AssetDBWriterLegacyFromDictionary',
-    'AssetDBWriterLegacyFromDataFrame',
-    'AssetDBWriterLegacyFromReadable',
     'AssetFinder',
     'AssetConvertible',
     'make_asset_array',
