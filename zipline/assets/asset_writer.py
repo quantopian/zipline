@@ -3,10 +3,11 @@ from abc import (
     abstractmethod,
 )
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pandas.tseries.tools import normalize_date
 from six import with_metaclass, string_types
+import sqlalchemy as sa
 
 from zipline.errors import (
     ConsumeAssetMetaDataError,
@@ -17,7 +18,7 @@ from zipline.assets import (
     Asset, Equity, Future
 )
 
-ASSET_FIELDS = [
+ASSET_FIELDS = frozenset({
     'sid',
     'asset_type',
     'symbol',
@@ -34,43 +35,44 @@ ASSET_FIELDS = [
     'file_name',  # Used as symbol
     'company_name',  # Used as asset_name
     'start_date_nano',  # Used as start_date
-    'end_date_nano'  # Used as end_date
-]
+    'end_date_nano',  # Used as end_date
+})
 
 # Expected fields for an Asset's metadata
-ASSET_TABLE_FIELDS = [
+ASSET_TABLE_FIELDS = frozenset({
     'sid',
     'symbol',
     'asset_name',
     'start_date',
     'end_date',
     'first_traded',
-    'exchange'
-]
+    'exchange',
+})
+
 
 # Expected fields for an Asset's metadata
-FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS + [
+FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
     'root_symbol_id',
     'notice_date',
     'expiration_date',
     'contract_multiplier',
-]
+}
 
 EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
 
-EXCHANGE_TABLE_FIELDS = [
+EXCHANGE_TABLE_FIELDS = frozenset({
     'exchange_id',
     'exchange',
     'timezone'
-]
+})
 
-ROOT_SYMBOL_TABLE_FIELDS = [
+ROOT_SYMBOL_TABLE_FIELDS = ({
     'root_symbol_id',
     'root_symbol',
     'sector',
     'description',
     'exchange_id'
-]
+})
 
 
 class AssetDBWriter(with_metaclass(ABCMeta)):
@@ -81,237 +83,173 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     Methods
     -------
-    write_all(db_conn, fuzzy_char=None, allow_sid_assignment=True,
+    write_all(engine, fuzzy_char=None, allow_sid_assignment=True,
               constraints=False)
         Write the data supplied at initialization to the database.
-    init_db(db_conn, constraints=False)
+    init_db(engine, constraints=False)
         Create the SQLite tables (called by write_all).
     load_data()
         Returns data in standard format.
 
     """
+    def __init__(self):
+        self.sql_metadata = None
 
-    def write_all(self, db_conn, fuzzy_char=None, allow_sid_assignment=True,
+    def write_all(self,
+                  engine,
+                  fuzzy_char=None,
                   constraints=False):
         """ Write pre-supplied data to SQLite.
 
         Parameters
         ----------
-        db_conn: sqlite3.Connection
-            A connection to a SQLite database.
-        fuzzy_char: string
+        engine : Engine
+            An engine to a SQL database.
+        fuzzy_char : str, optional
             A string for use in fuzzy matching.
-        allow_sid_assignment: boolean
+        allow_sid_assignment: bool, optional
             If True then the class can assign sids where necessary.
-        constraints: boolean
+        constraints : bool, optional
             If True, create SQL ForeignKey and Index constraints.
 
         """
-        self.fuzzy_char = fuzzy_char
-        self.allow_sid_assignment = allow_sid_assignment
-        if allow_sid_assignment:
-            ts = normalize_date(pd.Timestamp('now', tz='UTC'))
-            # Store as seconds since UNIX Epoch for compatibility
-            # with SQL.
-            self.end_date_to_assign = (ts.value // 10 ** 9)
-
-        # Store a nested-dict of all metadata for
-        # reference when building Assets
-        self.metadata_cache = {}
-
         # Create SQL tables
-        self.init_db(db_conn, constraints)
-
+        self.init_db(engine, constraints)
         # Get the data to add to SQL
         equities, futures, exchanges, root_symbols = self.load_data()
+        with engine.begin() as txn:
+            self._write_exchanges(exchanges, txn)
+            self._write_root_symbols(root_symbols, txn)
+            self._write_futures(futures, txn)
+            self._write_equities(equities, txn)
 
-        c = db_conn.cursor()
-        # Write to the SQL tables, using the raw SQL driver instead
-        # of the pandas.DataFrame.to_sql method, as the former
-        # allows us to create an SQL transaction
-        c.execute('BEGIN')
-        # Everything between here and the db_conn.commit()
-        # will be part of of the same SQL transaction.
-        self._write_exchanges(exchanges, db_conn)
-        self._write_root_symbols(root_symbols, db_conn)
-        self._write_futures(futures, db_conn)
-        self._write_equities(equities, db_conn)
-        db_conn.commit()
+    def _write_exchanges(self, exchanges, bind=None):
+        self.futures_exchanges.insert().values(
+            exchanges.to_records(),
+        ).execute(bind=bind)
 
-    def _write_exchanges(self, exchanges, db_conn):
+    def _write_root_symbols(self, root_symbols, bind=None):
+        self.futures_root_symbols.insert().values(
+            root_symbols.to_records(),
+        ).execute(bind=bind)
 
-        data = [tuple(x) for x in exchanges.to_records()]
+    def _write_futures(self, futures, bind=None):
+        recs = futures.to_records()
+        self.futures_contracts.insert().values(recs).execute(bind=bind)
+        self.asset_router.insert().values([
+            (rec['sid'], 'future') for rec in recs
+        ]).execute(bind=bind)
 
-        c = db_conn.cursor()
-        # The OR IGNORE syntax means we do not insert data
-        # which would violate an SQL constraint.
-        c.executemany("""
-            INSERT OR IGNORE INTO futures_exchanges
-            ('exchange_id', 'exchange', 'timezone')
-            VALUES (?, ?, ?)
-            """, data)
-
-    def _write_root_symbols(self, root_symbols, db_conn):
-
-        data = [tuple(x) for x in root_symbols.to_records()]
-
-        c = db_conn.cursor()
-        c.executemany("""
-            INSERT OR IGNORE INTO futures_root_symbols
-            ('root_symbol_id', 'root_symbol', 'sector',
-             'description', 'exchange_id')
-            VALUES(?, ?, ?, ?, ?)
-        """, data)
-
-    def _write_futures(self, futures, db_conn):
-
-        # Retrieve the data to add to the futures_contracts table
-        data = [tuple(x) for x in futures.to_records()]
-
-        # Retrieve the data to add to the asset_router table
-        sids = [x[0] for x in data]
-        futs = ['future'] * len(sids)
-        to_insert = zip(sids, futs)
-
-        c = db_conn.cursor()
-        c.executemany("""
-            INSERT OR IGNORE INTO futures_contracts
-            ('sid', 'symbol', 'root_symbol', 'asset_name',
-             'start_date', 'end_date', 'first_traded', 'exchange',
-             'notice_date', 'expiration_date', 'contract_multiplier')
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, data)
-
-        c.executemany("""
-            INSERT INTO asset_router
-            ('sid', 'asset_type')
-            VALUES(?,?)
-        """, to_insert)
-
-    def _write_equities(self, equities, db_conn):
-
+    def _write_equities(self, equities, fuzzy_char, bind=None):
         # Apply fuzzy matching.
-        if self.fuzzy_char:
-            equities['fuzzy'] = equities['symbol'].str.\
-                replace(self.fuzzy_char, '')
+        if fuzzy_char:
+            equities['fuzzy'] = equities['symbol'].str.replace(fuzzy_char, '')
 
-        # Retrieve the data to add to the equitites table
-        data = [tuple(x) for x in equities.to_records()]
+        recs = equities.to_records()
+        self.equities.insert().values(recs).execute(bind=bind)
+        self.asset_router.insert().values([
+            (rec['sid'], 'equity') for rec in recs
+        ]).execute(bind=bind)
 
-        # Retrieve the data to add to the asset_router table
-        sids = [x[0] for x in data]
-        eqs = ['equity'] * len(sids)
-        to_insert = zip(sids, eqs)
-
-        c = db_conn.cursor()
-        c.executemany("""
-            INSERT OR IGNORE INTO equities
-            ('sid', 'symbol', 'asset_name', 'start_date',
-             'end_date', 'first_traded', 'exchange', 'fuzzy')
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-        """, data)
-
-        c.executemany("""
-            INSERT INTO asset_router
-            ('sid', 'asset_type')
-            VALUES(?,?)
-        """, to_insert)
-
-    def init_db(self,
-                db_conn,
-                constraints=False):
+    def init_db(self, engine, constraints=False):
         """Connect to database and create tables.
 
         Parameters
         ----------
-        db_conn: sqlite3.Connection
-            A connection to a SQLite database.
-        constraints: boolean
+        engine : Engine
+            An engine to a SQL database.
+        constraints : bool
             If True, create SQL ForeignKey and Index constraints.
         """
-
-        c = db_conn.cursor()
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS equities (
-            sid INTEGER NOT NULL,
-            symbol TEXT,
-            asset_name TEXT,
-            start_date INTEGER DEFAULT 0,
-            end_date INTEGER,
-            first_traded INTEGER,
-            exchange TEXT,
-            fuzzy TEXT
-        )""")
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS futures_exchanges (
-            exchange_id INTEGER NOT NULL,
-            exchange TEXT,
-            timezone TEXT
-        )""")
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS futures_root_symbols (
-            root_symbol_id INTEGER NOT NULL,
-            root_symbol TEXT,
-            sector TEXT,
-            description TEXT,
-            exchange_id INTEGER{fk}
-        )""".format(fk=", FOREIGN KEY(exchange_id) REFERENCES "
-                    "futures_exchanges(exchange_id)"
-                    if constraints else ""))
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS futures_contracts (
-            sid INTEGER NOT NULL,
-            symbol TEXT,
-            root_symbol_id INTEGER,
-            root_symbol TEXT,
-            asset_name TEXT,
-            start_date INTEGER DEFAULT 0,
-            end_date INTEGER,
-            first_traded INTEGER,
-            exchange_id INTEGER,
-            exchange TEXT,
-            notice_date INTEGER,
-            expiration_date INTEGER,
-            contract_multiplier REAL{fk}
-        )""".format(fk=", FOREIGN KEY(exchange_id) REFERENCES "
-                    "futures_exchanges(exchange_id), "
-                    "FOREIGN KEY(root_symbol_id) REFERENCES "
-                    "futures_root_symbols(root_symbol_id)"
-                    if constraints else ""))
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS asset_router
-            (sid integer,
-            asset_type text
-        )""")
-
-        # Note: Would be optimal to use INTEGER PRIMARY KEY here, but SQLite
-        # tables cannot be modified after creation. Using CREATE UNIQUE INDEX
-        # only marginally less performant.
-        if constraints:
-
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_equities_sid '
-                      'ON equities(sid)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_equities_symbol '
-                      'ON equities(symbol)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_equities_fuzzy '
-                      'ON equities(fuzzy)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_futures_exchanges_en '   # noqa
-                      'ON futures_exchanges(exchange_id)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_futures_contracts_sid '  # noqa
-                      'ON futures_contracts(sid)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_futures_root_symbols_id '  # noqa
-                      'ON futures_root_symbols(root_symbol_id)')
-            c.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_asset_router_sid  '
-                      'ON asset_router(sid)')
-
-        # Note: Also need a max_date table.
-
-        db_conn.commit()
+        self.sql_metadata = metadata = sa.MetaData(bind=engine)
+        self.equities = sa.Table(
+            'equities',
+            metadata,
+            sa.Column(
+                'sid',
+                sa.Integer,
+                nullable=False,  # in case constraints is False
+                primary_key=constraints,
+            ),
+            sa.Column('symbol', sa.Text),
+            sa.Column('asset_name', sa.Text),
+            sa.Column('start_date', sa.Integer, default=0),
+            sa.Column('end_date', sa.Integer),
+            sa.Column('first_traded', sa.Integer),
+            sa.Column('exchange', sa.Text),
+            sa.Column('fuzzy', sa.Text),
+        )
+        self.futures_exchanges = sa.Table(
+            'futures_exchanges',
+            metadata,
+            sa.Column(
+                'exchange_id',
+                sa.Integer,
+                nullable=False,  # in case constraints is False
+                primary_key=constraints,
+            ),
+            sa.Column('exchange', sa.Text),
+            sa.Column('timezone', sa.Text),
+        )
+        self.futures_root_symbols = sa.Table(
+            'futures_root_symbols',
+            metadata,
+            sa.Column(
+                'root_symbol_id',
+                sa.Integer,
+                nullable=False,  # in case constraints is False
+                primary_key=constraints,
+            ),
+            sa.Column('root_symbol', sa.Text),
+            sa.Column('sector', sa.Text),
+            sa.Column('description', sa.Text),
+            sa.Column(
+                'exchange_id',
+                sa.Integer,
+                *((sa.ForeignKey(self.futures_exchanges.c.exchange_id),)
+                  if constraints else ())
+            ),
+        )
+        self.futures_contracts = sa.Table(
+            'futures_contracts',
+            metadata,
+            sa.Column(
+                'sid',
+                sa.Integer,
+                nullable=False,  # in case constraints is False
+                primary_key=constraints,
+            ),
+            sa.Column('symbol', sa.Text),
+            sa.Column(
+                'root_symbol_id',
+                sa.Integer,
+                *((sa.ForeignKey(self.futures_root_symbols.c.root_symbol_id),)
+                  if constraints else ())
+            ),
+            sa.Column('root_symbol', sa.Text),
+            sa.Column('asset_name', sa.Text),
+            sa.Column('start_date', sa.Integer, default=0),
+            sa.Column('end_date', sa.Integer),
+            sa.Column('first_traded', sa.Integer),
+            sa.Column(
+                'exchange_id',
+                sa.Integer,
+                *((sa.ForeignKey(self.futures_exchanges.c.exchange_id),)
+                  if constraints else ())
+            ),
+            sa.column('exchange', sa.Text),
+            sa.Column('notice_date', sa.Integer),
+            sa.Column('expiration_date', sa.Integer),
+            sa.Column('contract_multiplier', sa.Float),
+        )
+        self.asset_router = sa.Table(
+            'asset_router',
+            metadata,
+            sa.Column('sid', sa.Integer, primary_key=constraints),
+            sa.Column('asset_type', sa.Text),
+        )
+        metadata.create_all(checkfirst=True)
+        return metadata
 
     @staticmethod
     def dict_subset(dict_, subset):
