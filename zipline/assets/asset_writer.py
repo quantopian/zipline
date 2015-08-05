@@ -86,7 +86,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Write the data supplied at initialization to the database.
     init_db(db_conn, constraints=False)
         Create the SQLite tables (called by write_all).
-    load_data(self)
+    load_data()
         Returns data in standard format.
 
     """
@@ -317,7 +317,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def dict_subset(dict_, subset):
         res = {}
         for k in subset:
-           res[k] = dict_[k]
+            res[k] = dict_[k]
         return res
 
     @abstractmethod
@@ -694,13 +694,13 @@ class AssetDBWriterLegacy(AssetDBWriter):
     write_all(db_conn, fuzzy_char=None, allow_sid_assignment=True,
               constraints=False)
         Write the data supplied at initialization to the database.
-    write_block(self, identifier, **kwargs)
+    write_block(identifier, **kwargs)
         Inserts the given metadata kwargs to the entry for the given
         sid. Matching fields in the existing entry will be overwritten.
         Will be deprecated in future versions of zipline.
     init_db(db_conn, constraints=False)
         Create the SQLite tables (called by write_all).
-    load_data(self, equities, futures, exchanges, root_symbols)
+    load_data(equities, futures, exchanges, root_symbols)
         Returns data in standard format.
     consume_identifiers(self, db_conn, fuzzy_char=None,
                         allow_sid_assignment=True,
@@ -1017,11 +1017,11 @@ class AssetDBWriterLegacyFromDictionary(AssetDBWriterLegacy):
         {id_0: {start_date : ...}, id_1: {start_data: ...}, ...}
     """
 
-    def load_data(self, dict):
+    def load_data(self, dict_):
         """
         Returns a generator yielding pairs of (identifier, metadata)
         """
-        for identifier, metadata in dict.items():
+        for identifier, metadata in dict_.items():
             yield identifier, metadata
 
 
