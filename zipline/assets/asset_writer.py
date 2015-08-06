@@ -98,7 +98,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def write_all(self,
                   engine,
                   fuzzy_char=None,
-                  constraints=False):
+                  constraints=True):
         """ Write pre-supplied data to SQLite.
 
         Parameters
@@ -163,7 +163,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             (rec['sid'], 'equity') for rec in recs
         ]).execute(bind=bind)
 
-    def init_db(self, engine, constraints=False):
+    def init_db(self, engine, constraints=True):
         """Connect to database and create tables.
 
         Parameters
