@@ -46,4 +46,8 @@ bcolz==0.10.0
 # Command line interface helper
 click==4.0.0
 
+# FUNctional programming utilities
 toolz==0.7.2
+
+# Asset writer and finder
+sqlalchemy==1.0.8
