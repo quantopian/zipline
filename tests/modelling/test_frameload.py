@@ -79,7 +79,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
 
         dates_slice = slice(None, 10, None)
         sids_slice = slice(1, 3, None)
-        adj_array = loader.load_adjusted_array(
+        [adj_array] = loader.load_adjusted_array(
             [USEquityPricing.close],
             self.mask.iloc[dates_slice, sids_slice]
         )
