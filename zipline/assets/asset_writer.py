@@ -180,6 +180,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'sid',
                 sa.Integer,
+                unique=True,
+                nullable=False,
                 primary_key=constraints,
             ),
             sa.Column('symbol', sa.Text),
@@ -196,6 +198,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'exchange_id',
                 sa.Integer,
+                unique=True,
+                nullable=False,
                 primary_key=constraints,
             ),
             sa.Column('exchange', sa.Text),
@@ -207,6 +211,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'root_symbol_id',
                 sa.Integer,
+                unique=True,
+                nullable=False,
                 primary_key=constraints,
             ),
             sa.Column('root_symbol', sa.Text),
@@ -225,6 +231,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'sid',
                 sa.Integer,
+                unique=True,
+                nullable=False,
                 primary_key=constraints,
             ),
             sa.Column('symbol', sa.Text),
