@@ -325,6 +325,10 @@ class SimpleFFCEngine(object):
         )
         assert lifetimes.index[extra_rows] == start_date
         assert lifetimes.index[-1] == end_date
+        if not lifetimes.columns.unique:
+            columns = lifetimes.columns
+            duplicated = columns[columns.duplicated()].unique()
+            raise AssertionError("Duplicated sids: %d" % duplicated)
 
         # Filter out columns that didn't exist between the requested start and
         # end dates.
