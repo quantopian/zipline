@@ -52,7 +52,7 @@ class AssetFinder(object):
         self.allow_sid_assignment = allow_sid_assignment
 
         self.engine = engine
-        metadata = sa.Metadata(bind=engine)
+        metadata = sa.MetaData(bind=engine)
         self.equities = equities = sa.Table(
             'equities',
             metadata,
@@ -131,7 +131,7 @@ class AssetFinder(object):
 
         asset_type = sa.select((self.asset_router.c.asset_type,)).where(
             self.asset_router.c.sid == int(sid),
-        ).scalar().execute()
+        ).scalar()
 
         if asset_type is not None:
             self._asset_type_cache[sid] = asset_type
@@ -261,7 +261,7 @@ class AssetFinder(object):
                     (equities_cols.start_date <= ad_value),
                 ).order_by(
                     equities_cols.end_date.desc(),
-                ).scalar().execute()
+                ).scalar()
                 if sid:
                     return self._retrieve_equity(sid)
 
@@ -274,7 +274,7 @@ class AssetFinder(object):
                 ).order_by(
                     equities_cols.start_date.desc(),
                     equities_cols.end_date.desc(),
-                ).scalar().execute()
+                ).scalar()
                 if sid:
                     return self._retrieve_equity(sid)
 
@@ -335,7 +335,7 @@ class AssetFinder(object):
             ).order_by(
                 equities_cols.start_date.desc(),
                 equities_cols.end_date.desc(),
-            ).scalar().execute()
+            ).scalar()
             if sid:
                 return self._retrieve_equity(sid)
 
@@ -409,7 +409,7 @@ class AssetFinder(object):
             # Check if root symbol exists.
             count = sa.select((sa.func.count(fc_cols.sid),)).where(
                 fc_cols.root_symbol == root_symbol,
-            ).scalar().execute()
+            ).scalar()
             if count == 0:
                 raise RootSymbolNotFound(root_symbol=root_symbol)
 

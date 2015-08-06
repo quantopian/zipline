@@ -121,23 +121,32 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_exchanges(exchanges, txn)
             self._write_root_symbols(root_symbols, txn)
             self._write_futures(futures, txn)
-            self._write_equities(equities, txn)
+            self._write_equities(equities, fuzzy_char, txn)
 
     def _write_exchanges(self, exchanges, bind=None):
         self.futures_exchanges.insert().values(
-            exchanges.to_records(),
+            exchanges.reset_index().rename_axis(
+                {'index': 'exchange_id'},
+                1,
+            ).to_dict('records'),
         ).execute(bind=bind)
 
     def _write_root_symbols(self, root_symbols, bind=None):
         self.futures_root_symbols.insert().values(
-            root_symbols.to_records(),
+            root_symbols.reset_index().rename_axis(
+                {'index': 'root_symbol_id'},
+                1,
+            ).to_dict('records'),
         ).execute(bind=bind)
 
     def _write_futures(self, futures, bind=None):
-        recs = futures.to_records()
+        recs = futures.reset_index().rename_axis(
+            {'index': 'sid'},
+            1,
+        ).to_dict('records')
         self.futures_contracts.insert().values(recs).execute(bind=bind)
         self.asset_router.insert().values([
-            (rec['sid'], 'future') for rec in recs
+            (rec['index'], 'future') for rec in recs
         ]).execute(bind=bind)
 
     def _write_equities(self, equities, fuzzy_char, bind=None):
@@ -145,7 +154,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         if fuzzy_char:
             equities['fuzzy'] = equities['symbol'].str.replace(fuzzy_char, '')
 
-        recs = equities.to_records()
+        recs = equities.reset_index().rename_axis(
+            {'index': 'sid'},
+            1,
+        ).to_dict('records')
         self.equities.insert().values(recs).execute(bind=bind)
         self.asset_router.insert().values([
             (rec['sid'], 'equity') for rec in recs
@@ -233,7 +245,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 *((sa.ForeignKey(self.futures_exchanges.c.exchange_id),)
                   if constraints else ())
             ),
-            sa.column('exchange', sa.Text),
+            sa.Column('exchange', sa.Text),
             sa.Column('notice_date', sa.Integer),
             sa.Column('expiration_date', sa.Integer),
             sa.Column('contract_multiplier', sa.Float),
