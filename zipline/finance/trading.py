@@ -21,6 +21,7 @@ import sqlite3
 
 import pandas as pd
 import numpy as np
+from sqlalchemy import create_engine
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
@@ -137,10 +138,9 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.conn = sqlite3.connect(':memory:')
-        asset_writer = AssetDBWriterFromDictionary()
-        asset_writer.write_all(self.conn)
-        self.asset_finder = AssetFinder(self.conn)
+        self.engine = engine = create_engine('sqlite:///:memory:')
+        AssetDBWriterFromDictionary().write_all(engine)
+        self.asset_finder = AssetFinder(engine)
 
     def __enter__(self, *args, **kwargs):
         global environment
@@ -182,7 +182,7 @@ class TradingEnvironment(object):
         :return:
         """
         if clear_metadata:
-            self.conn = sqlite3.connect(':memory:')
+            self.engine = create_engine('sqlite:///:memory:')
 
         if asset_finder is not None:
             if not isinstance(asset_finder, AssetFinder):
@@ -190,18 +190,18 @@ class TradingEnvironment(object):
             self.asset_finder = asset_finder
 
         if asset_metadata is not None:
-            self.conn = sqlite3.connect(':memory:')
+            self.engine = create_engine('sqlite:///:memory:')
             if isinstance(asset_metadata, dict):
                 asset_writer = AssetDBWriterFromDictionary(
                     equities=asset_metadata)
             elif isinstance(asset_metadata, pd.DataFrame):
                 asset_writer = AssetDBWriterFromDataFrame(
                     equities=asset_metadata)
-            asset_writer.write_all(self.conn)
+            asset_writer.write_all(self.engine)
 
         if identifiers is not None:
             asset_writer = AssetDBWriterFromList(equities=identifiers)
-            asset_writer.write_all(self.conn)
+            asset_writer.write_all(self.engine)
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
