@@ -87,7 +87,7 @@ class AlgorithmSimulator(object):
         # snapshot time to any log record generated.
 
         with ExitStack() as stack:
-            stack.enter_context(self.processor.threadbound())
+            stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
 
             data_frequency = self.sim_params.data_frequency
