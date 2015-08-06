@@ -16,6 +16,7 @@ from pandas import (
     Int64Index,
     rolling_mean,
     Timestamp,
+    Series,
 )
 from pandas.util.testing import assert_frame_equal
 from testfixtures import TempDirectory
@@ -48,6 +49,7 @@ from zipline.utils.test_utils import (
     make_rotating_asset_info,
     make_simple_asset_info,
     product_upper_triangle,
+    check_arrays,
 )
 
 
@@ -430,3 +432,42 @@ class SyntheticBcolzTestCase(TestCase):
                 columns=assets,
             ),
         )
+
+
+class MultiColumnLoaderTestCase(TestCase):
+    def setUp(self):
+        self.assets = [1, 2, 3]
+        self.dates = date_range('2014-01-01', '2014-02-01', freq='D', tz='UTC')
+
+        asset_info = make_simple_asset_info(
+            self.assets,
+            start_date=self.dates[0],
+            end_date=self.dates[-1],
+        )
+        self.asset_finder = AssetFinder(asset_info)
+
+    def test_engine_with_multicolumn_loader(self):
+        open_, close = USEquityPricing.open, USEquityPricing.close
+
+        loader = MultiColumnLoader({
+            open_: ConstantLoader(dates=self.dates,
+                                  assets=self.assets,
+                                  constants={open_: 1}),
+            close: ConstantLoader(dates=self.dates,
+                                  assets=self.assets,
+                                  constants={close: 2})
+        })
+
+        engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
+
+        factor = RollingSumDifference()
+
+        result = engine.factor_matrix({'f': factor},
+                                      self.dates[2],
+                                      self.dates[-1])
+        self.assertIsNotNone(result)
+        self.assertEqual({'f'}, set(result.columns))
+        # (close - open) * window = (1 - 2) * 3 = -3
+        # skipped 2 from the start, so that the window is full
+        check_arrays(result['f'],
+                     Series([-3] * len(self.assets) * (len(self.dates) - 2)))

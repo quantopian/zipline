@@ -58,7 +58,7 @@ class MultiColumnLoader(FFCLoader):
                 loader = self._loaders[column]
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % column)
-            out.append(loader.load_adjusted_array([column], mask))
+            out.extend(loader.load_adjusted_array([column], mask))
         return out
 
 
