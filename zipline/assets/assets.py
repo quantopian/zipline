@@ -13,9 +13,9 @@
 # limitations under the License.
 
 from abc import ABCMeta
-from functools import partial, itemgetter
+from functools import partial
 from numbers import Integral
-from operator import getitem
+from operator import getitem, itemgetter
 import warnings
 
 from logbook import Logger
