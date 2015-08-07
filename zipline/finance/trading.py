@@ -139,7 +139,7 @@ class TradingEnvironment(object):
         self.exchange_tz = exchange_tz
 
         self.engine = engine = create_engine('sqlite:///:memory:')
-        AssetDBWriterFromDictionary().write_all(engine)
+        AssetDBWriterFromDictionary().init_db(engine)
         self.asset_finder = AssetFinder(engine)
 
     def __enter__(self, *args, **kwargs):
