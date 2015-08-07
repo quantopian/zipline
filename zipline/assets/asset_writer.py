@@ -66,6 +66,21 @@ ROOT_SYMBOL_TABLE_FIELDS = ({
 })
 
 
+class AssetData(object):
+    """ Class to store collection of asset data.
+    """
+    def __init__(self, equities=None, futures=None,
+                 exchanges=None, root_symbols=None):
+        """
+        Data supplied to this object should be of a consistent type.
+        """
+
+        self.equities = equities
+        self.futures = futures
+        self.exchanges = exchanges
+        self.root_symbols = root_symbols
+
+
 class AssetDBWriter(with_metaclass(ABCMeta)):
     """
     Class used to write arbitrary data to SQLite database.
@@ -260,6 +275,149 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         metadata.create_all(checkfirst=True)
         return metadata
 
+    def load_data(self):
+        """
+        Returns a standard set of pandas.DataFrames:
+        equities, futures, exchanges, root_symbols
+        """
+
+        equities_data, futures_data, exchanges_data, root_symbols_data = \
+            self._load_data()
+
+        # ******** Generate equities data ********
+
+        equities_defaults = {
+            'symbol': None,
+            'asset_name': None,
+            'start_date': 0,
+            'end_date': None,
+            'first_traded': None,
+            'exchange': None,
+            'fuzzy': None,
+        }
+        equities_cols = {'symbol', 'asset_name', 'start_date',
+                         'end_date', 'first_traded', 'exchange', 'fuzzy'}
+
+        cols = set(data.equities.columns)
+
+        # Drop columns with unrecognised headers.
+        data.equities.drop(cols - (cols & equities_cols), axis=1,
+                           inplace=True)
+
+        # Get those columns which we need but
+        # for which no data has been supplied.
+        need = equities_cols - set(data.equities.columns)
+
+        # Combine the users supplied data with our required columns.
+        equities_output = pd.concat(
+            (data.equities, pd.DataFrame(
+                self.dict_subset(equities_defaults, need),
+                data.equities.index,
+            )),
+            axis=1,
+            copy=False
+        )
+
+        # ******** Generate futures data ********
+
+        futures_defaults = {
+            'symbol': None,
+            'root_symbol': None,
+            'asset_name': None,
+            'start_date': 0,
+            'end_date': None,
+            'first_traded': None,
+            'exchange': None,
+            'notice_date': None,
+            'expiration_date': None,
+            'contract_multiplier': 1,
+        }
+        futures_cols = {'symbol', 'root_symbol', 'asset_name',
+                        'start_date', 'end_date', 'first_traded', 'exchange',
+                        'notice_date', 'expiration_date',
+                        'contract_multiplier'}
+
+        cols = set(data.futures.columns)
+
+        # Drop columns with unrecognised headers.
+        data.futures.drop(cols - (cols & futures_cols), axis=1,
+                          inplace=True)
+
+        # Get those columns which we need but
+        # for which no data has been supplied.
+        need = futures_cols - set(data.futures.columns)
+
+        # Combine the users supplied data with our required columns.
+        futures_output = pd.concat(
+            (data.futures, pd.DataFrame(
+                self.dict_subset(futures_defaults, need),
+                data.futures.index,
+            )),
+            axis=1,
+            copy=False
+        )
+
+        # ******** Generate exchanges data ********
+
+        exchanges_defaults = {
+            'exchange': None,
+            'timezone': None,
+        }
+        exchanges_cols = {'exchange', 'timezone', }
+
+        cols = set(data.exchanges.columns)
+
+        # Drop columns with unrecognised headers.
+        data.exchanges.drop(cols - (cols & exchanges_cols), axis=1,
+                            inplace=True)
+
+        # Get those columns which we need but
+        # for which no data has been supplied.
+        need = exchanges_cols - set(data.exchanges.columns)
+
+        # Combine the users supplied data with our required columns.
+        exchanges_output = pd.concat(
+            (data.exchanges, pd.DataFrame(
+                self.dict_subset(exchanges_defaults, need),
+                data.exchanges.index,
+            )),
+            axis=1,
+            copy=False
+        )
+
+        # ******** Generate root symbols data ********
+
+        root_symbols_defaults = {
+            'root_symbol': None,
+            'sector': None,
+            'description': None,
+            'exchange_id': None,
+        }
+        root_symbols_cols = {'root_symbol', 'sector',
+                             'description', 'exchange_id'}
+
+        cols = set(data.root_symbols.columns)
+
+        # Drop columns with unrecognised headers.
+        data.root_symbols.drop(cols - (cols & root_symbols_cols), axis=1,
+                               inplace=True)
+
+        # Get those columns which we need but
+        # for which no data has been supplied.
+        need = root_symbols_cols - set(data.root_symbols.columns)
+
+        # Combine the users supplied data with our required columns.
+        root_symbols_output = pd.concat(
+            (data.root_symbols, pd.DataFrame(
+                self.dict_subset(root_symbols_defaults, need),
+                data.root_symbols.index,
+            )),
+            axis=1,
+            copy=False
+        )
+
+        return equities_data, futures_data, exchanges_data, root_symbols_data
+
     @staticmethod
     def dict_subset(dict_, subset):
         res = {}
@@ -268,7 +426,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         return res
 
     @abstractmethod
-    def load_data(self):
+    def _load_data(self):
         """
         Subclasses should implement this method to return data in a standard
         format: a pandas.DataFrame for each of the following tables:
@@ -290,7 +448,7 @@ class AssetDBWriterFromList(AssetDBWriter):
         self._exchanges = exchanges
         self._root_symbols = root_symbols
 
-    def load_data(self):
+    def _load_data(self):
 
         # 0) Instantiate empty dictionaries
         _equities, _futures, _exchanges, _root_symbols = {}, {}, {}, {}
@@ -326,134 +484,16 @@ class AssetDBWriterFromList(AssetDBWriter):
                     {'root_symbol': identifier}
                 root_symbol_counter += 1
 
-        # ******** Generate equities data ********
-        equities_defaults = {
-            'symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'fuzzy': None,
-        }
-        equities_cols = {'symbol', 'asset_name', 'start_date',
-                         'end_date', 'first_traded', 'exchange', 'fuzzy'}
-        equities_data = pd.DataFrame.from_dict(_equities, orient='index')
-        cols = set(equities_data.columns)
+        # Convert dictionaries to pandas.DataFrames
+        _equities = pd.DataFrame.from_dict(_equities, orient='index')
+        _futures = pd.DataFrame.from_dict(_futures, orient='index')
+        _exchanges = pd.DataFrame.from_dict(_exchanges, orient='index')
+        _root_symbols = pd.DataFrame.from_dict(_root_symbols, orient='index')
 
-        # Drop columns with unrecognised headers.
-        equities_data.drop(cols - (cols & equities_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = equities_cols - set(equities_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        equities_data = pd.concat(
-            (equities_data, pd.DataFrame(
-                self.dict_subset(equities_defaults, need),
-                equities_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate futures data ********
-        futures_defaults = {
-            'symbol': None,
-            'root_symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'notice_date': None,
-            'expiration_date': None,
-            'contract_multiplier': 1,
-        }
-        futures_cols = {'symbol', 'root_symbol', 'asset_name',
-                        'start_date', 'end_date', 'first_traded', 'exchange',
-                        'notice_date', 'expiration_date',
-                        'contract_multiplier'}
-        futures_data = pd.DataFrame.from_dict(_futures, orient='index')
-        cols = set(futures_data.columns)
-
-        # Drop columns with unrecognised headers.
-        futures_data.drop(cols - (cols & futures_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = futures_cols - set(futures_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        futures_data = pd.concat(
-            (futures_data, pd.DataFrame(
-                self.dict_subset(futures_defaults, need),
-                futures_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate exchanges data ********
-        exchanges_defaults = {
-            'exchange': None,
-            'timezone': None,
-        }
-        exchanges_cols = {'exchange', 'timezone', }
-        exchanges_data = pd.DataFrame.from_dict(_exchanges, orient='index')
-        cols = set(exchanges_data.columns)
-
-        # Drop columns with unrecognised headers.
-        exchanges_data.drop(cols - (cols & exchanges_cols), axis=1,
-                            inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = exchanges_cols - set(exchanges_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        exchanges_data = pd.concat(
-            (exchanges_data, pd.DataFrame(
-                self.dict_subset(exchanges_defaults, need),
-                exchanges_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate root symbols data ********
-        root_symbols_defaults = {
-            'root_symbol': None,
-            'sector': None,
-            'description': None,
-            'exchange_id': None,
-        }
-        root_symbols_cols = {'root_symbol', 'sector',
-                             'description', 'exchange_id'}
-        root_symbols_data = pd.DataFrame.from_dict(_root_symbols,
-                                                   orient='index')
-        cols = set(root_symbols_data.columns)
-
-        # Drop columns with unrecognised headers.
-        root_symbols_data.drop(cols - (cols & root_symbols_cols), axis=1,
-                               inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = root_symbols_cols - set(root_symbols_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        root_symbols_data = pd.concat(
-            (root_symbols_data, pd.DataFrame(
-                self.dict_subset(root_symbols_defaults, need),
-                root_symbols_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        return equities_data, futures_data, exchanges_data, root_symbols_data
+        return asset_data(equities=_equities,
+                          futures=_futures,
+                          exchanges=_exchanges,
+                          root_symbols=_root_symbols)
 
 
 class AssetDBWriterFromDictionary(AssetDBWriter):
@@ -473,140 +513,15 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
         self._exchanges = exchanges
         self._root_symbols = root_symbols
 
-    def load_data(self):
-        """
-        Convert our nested dictionaries to pandas DataFrames.
-        """
+    def _load_data(self):
 
-        # ******** Generate equities data ********
-        equities_defaults = {
-            'symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'fuzzy': None,
-        }
-        equities_cols = {'symbol', 'asset_name', 'start_date',
-                         'end_date', 'first_traded', 'exchange', 'fuzzy'}
-        equities_data = pd.DataFrame.from_dict(self._equities, orient='index')
-        cols = set(equities_data.columns)
+        _equities = pd.DataFrame.from_dict(self._equities, orient='index')
+        _futures = pd.DataFrame.from_dict(self._futures, orient='index')
+        _exchanges = pd.DataFrame.from_dict(self._exchanges, orient='index')
+        _root_symbols = pd.DataFrame.from_dict(self._root_symbols,
+                                               orient='index')
 
-        # Drop columns with unrecognised headers.
-        equities_data.drop(cols - (cols & equities_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = equities_cols - set(equities_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        equities_data = pd.concat(
-            (equities_data, pd.DataFrame(
-                self.dict_subset(equities_defaults, need),
-                equities_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate futures data ********
-        futures_defaults = {
-            'symbol': None,
-            'root_symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'notice_date': None,
-            'expiration_date': None,
-            'contract_multiplier': 1,
-        }
-        futures_cols = {'symbol', 'root_symbol', 'asset_name',
-                        'start_date', 'end_date', 'first_traded', 'exchange',
-                        'notice_date', 'expiration_date',
-                        'contract_multiplier'}
-        futures_data = pd.DataFrame.from_dict(self._futures, orient='index')
-        cols = set(futures_data.columns)
-
-        # Drop columns with unrecognised headers.
-        futures_data.drop(cols - (cols & futures_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = futures_cols - set(futures_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        futures_data = pd.concat(
-            (futures_data, pd.DataFrame(
-                self.dict_subset(futures_defaults, need),
-                futures_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate exchanges data ********
-        exchanges_defaults = {
-            'exchange': None,
-            'timezone': None,
-        }
-        exchanges_cols = {'exchange', 'timezone', }
-        exchanges_data = pd.DataFrame.from_dict(self._exchanges,
-                                                orient='index')
-        cols = set(exchanges_data.columns)
-
-        # Drop columns with unrecognised headers.
-        exchanges_data.drop(cols - (cols & exchanges_cols), axis=1,
-                            inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = exchanges_cols - set(exchanges_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        exchanges_data = pd.concat(
-            (exchanges_data, pd.DataFrame(
-                self.dict_subset(exchanges_defaults, need),
-                exchanges_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate root symbols data ********
-        root_symbols_defaults = {
-            'root_symbol': None,
-            'sector': None,
-            'description': None,
-            'exchange_id': None,
-        }
-        root_symbols_cols = {'root_symbol', 'sector',
-                             'description', 'exchange_id'}
-        root_symbols_data = pd.DataFrame.from_dict(self._root_symbols,
-                                                   orient='index')
-        cols = set(root_symbols_data.columns)
-
-        # Drop columns with unrecognised headers.
-        root_symbols_data.drop(cols - (cols & root_symbols_cols), axis=1,
-                               inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = root_symbols_cols - set(root_symbols_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        root_symbols_data = pd.concat(
-            (root_symbols_data, pd.DataFrame(
-                self.dict_subset(root_symbols_defaults, need),
-                root_symbols_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        return equities_data, futures_data, exchanges_data, root_symbols_data
+        return _equities, _futures, _exchanges, _root_symbols
 
 
 class AssetDBWriterFromDataFrame(AssetDBWriter):
@@ -622,135 +537,7 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
         self._exchanges = exchanges
         self._root_symbols = root_symbols
 
-    def load_data(self):
-        """
-        Convert our nested  to pandas DataFrames.
-        """
+    def _load_data(self):
 
-        # ******** Generate equities data ********
-        equities_defaults = {
-            'symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'fuzzy': None,
-        }
-        equities_cols = {'symbol', 'asset_name', 'start_date',
-                         'end_date', 'first_traded', 'exchange', 'fuzzy'}
-        equities_data = self._equities
-        cols = set(equities_data.columns)
-
-        # Drop columns with unrecognised headers.
-        equities_data.drop(cols - (cols & equities_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = equities_cols - set(equities_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        equities_data = pd.concat(
-            (equities_data, pd.DataFrame(
-                self.dict_subset(equities_defaults, need),
-                equities_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate futures data ********
-        futures_defaults = {
-            'symbol': None,
-            'root_symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': None,
-            'first_traded': None,
-            'exchange': None,
-            'notice_date': None,
-            'expiration_date': None,
-            'contract_multiplier': 1,
-        }
-        futures_cols = {'symbol', 'root_symbol', 'asset_name',
-                        'start_date', 'end_date', 'first_traded', 'exchange',
-                        'notice_date', 'expiration_date',
-                        'contract_multiplier'}
-        futures_data = self._futures
-        cols = set(futures_data.columns)
-
-        # Drop columns with unrecognised headers.
-        futures_data.drop(cols - (cols & futures_cols), axis=1, inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = futures_cols - set(futures_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        futures_data = pd.concat(
-            (futures_data, pd.DataFrame(
-                self.dict_subset(futures_defaults, need),
-                futures_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate exchanges data ********
-        exchanges_defaults = {
-            'exchange': None,
-            'timezone': None,
-        }
-        exchanges_cols = {'exchange', 'timezone', }
-        exchanges_data = self._exchanges
-        cols = set(exchanges_data.columns)
-
-        # Drop columns with unrecognised headers.
-        exchanges_data.drop(cols - (cols & exchanges_cols), axis=1,
-                            inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = exchanges_cols - set(exchanges_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        exchanges_data = pd.concat(
-            (exchanges_data, pd.DataFrame(
-                self.dict_subset(exchanges_defaults, need),
-                exchanges_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        # ******** Generate root symbols data ********
-        root_symbols_defaults = {
-            'root_symbol': None,
-            'sector': None,
-            'description': None,
-            'exchange_id': None,
-        }
-        root_symbols_cols = {'root_symbol', 'sector',
-                             'description', 'exchange_id'}
-        root_symbols_data = self._root_symbols
-        cols = set(root_symbols_data.columns)
-
-        # Drop columns with unrecognised headers.
-        root_symbols_data.drop(cols - (cols & root_symbols_cols), axis=1,
-                               inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = root_symbols_cols - set(root_symbols_data.columns)
-
-        # Combine the users supplied data with our required columns.
-        root_symbols_data = pd.concat(
-            (root_symbols_data, pd.DataFrame(
-                self.dict_subset(root_symbols_defaults, need),
-                root_symbols_data.index,
-            )),
-            axis=1,
-            copy=False
-        )
-
-        return equities_data, futures_data, exchanges_data, root_symbols_data
+        return self._equities, self._futures, self._exchanges,
+        self._root_symbols
