@@ -108,7 +108,9 @@ class PerformanceTracker(object):
         self.dividend_frame = pd.DataFrame()
         self._dividend_count = 0
 
-        self.position_tracker = PositionTracker()
+        self.auto_close = sim_params.auto_close
+
+        self.position_tracker = PositionTracker(auto_close=self.auto_close)
 
         self.perf_periods = []
 
@@ -495,7 +497,7 @@ class PerformanceTracker(object):
 
         # Check if any assets need to be auto-closed before generating today's
         # perf period
-        if next_trading_day:
+        if next_trading_day and self.auto_close:
             self.check_asset_auto_closes(next_trading_day=next_trading_day)
 
         # Take a snapshot of our current performance to return to the

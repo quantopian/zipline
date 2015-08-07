@@ -433,7 +433,8 @@ class SimulationParameters(object):
     def __init__(self, period_start, period_end,
                  capital_base=10e3,
                  emission_rate='daily',
-                 data_frequency='daily'):
+                 data_frequency='daily',
+                 auto_close=True):
 
         self.period_start = period_start
         self.period_end = period_end
@@ -441,6 +442,7 @@ class SimulationParameters(object):
 
         self.emission_rate = emission_rate
         self.data_frequency = data_frequency
+        self.auto_close = auto_close
 
         # copied to algorithm's environment for runtime access
         self.arena = 'backtest'

@@ -44,7 +44,8 @@ def create_simulation_parameters(year=2006, start=None, end=None,
                                  capital_base=float("1.0e5"),
                                  num_days=None, load=None,
                                  data_frequency='daily',
-                                 emission_rate='daily'):
+                                 emission_rate='daily',
+                                 auto_close=True):
     """Construct a complete environment with reasonable defaults"""
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
@@ -62,6 +63,7 @@ def create_simulation_parameters(year=2006, start=None, end=None,
         capital_base=capital_base,
         data_frequency=data_frequency,
         emission_rate=emission_rate,
+        auto_close=auto_close,
     )
 
     return sim_params
