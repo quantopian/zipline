@@ -450,7 +450,7 @@ class AssetDBWriterFromList(AssetDBWriter):
                              (_futures, self._futures), ]:
             for identifier in data:
                 if hasattr(identifier, '__int__'):
-                    output[identifier.__int__()] = {}
+                    output[identifier.__int__()] = {'symbol': None}
                 else:
                     if self.allow_sid_assignment:
                         output[id_counter] = {'symbol': identifier}
