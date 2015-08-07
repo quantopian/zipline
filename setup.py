@@ -16,7 +16,7 @@
 
 import re
 import sys
-from operator import lt, gt, eq
+from operator import lt, gt, eq, le, ge
 from os.path import (
     abspath,
     dirname,
@@ -70,10 +70,17 @@ def _filter_requirements(lines_iter):
             requirement, version_spec = line.split(';')
             try:
                 groups = re.match(
-                    "(python_version)([<>=]+)(')([0-9\.]+)(')(.*)",
+                    "(python_version)([<>=]{1,2})(')([0-9\.]+)(')(.*)",
                     version_spec,
                 ).groups()
-                comp = {'<': lt, '=': eq, '>': gt}[groups[1]]
+                comp = {
+                    '<': lt,
+                    '<=': le,
+                    '=': eq,
+                    '==': eq,
+                    '>': gt,
+                    '>=': ge,
+                }[groups[1]]
                 version_spec = StrictVersion(groups[3])
             except Exception as e:
                 # My kingdom for a 'raise from'!
@@ -97,6 +104,13 @@ def read_requirements(path):
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
         return list(_filter_requirements(f.readlines()))
+
+
+def setup_requires():
+    requires = read_requirements('etc/requirements.txt')
+    numpy_req = [req for req in requires if 'numpy' in req]
+    assert len(numpy_req) == 1
+    return numpy_req
 
 
 def install_requires():
@@ -134,9 +148,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
     ],
-    setup_requires=[
-        'numpy==1.9.2',
-    ],
+    setup_requires=setup_requires(),
     install_requires=install_requires(),
     extras_require=extras_requires(),
     url="http://zipline.io"
