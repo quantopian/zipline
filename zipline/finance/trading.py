@@ -22,6 +22,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
+# from multipledispatch import dispatch
 
 from zipline.data.loader import load_market_data
 from zipline.utils import tradingcalendar
@@ -31,8 +32,7 @@ from zipline.assets.asset_writer import (
     AssetDBWriterFromDictionary,
     AssetDBWriterFromDataFrame)
 from zipline.errors import (
-    NoFurtherDataError,
-    UpdateAssetFinderTypeError,
+    NoFurtherDataError
 )
 
 
@@ -157,51 +157,67 @@ class TradingEnvironment(object):
         # stack.
         return False
 
-    def update_asset_finder(self,
-                            clear_metadata=False,
-                            asset_finder=None,
-                            asset_metadata=None,
-                            identifiers=None):
+    def write_data(self,
+                   engine=None,
+                   equities_data={},
+                   futures_data={},
+                   exchanges_data={},
+                   root_symbols_data={},
+                   equities_identifiers=[],
+                   futures_identifiers=[],
+                   exchanges_identifiers=[],
+                   root_symbols_identifiers=[]):
+        """ Write the supplied data to the database.
+
+        Parameters
+        ----------
+        equities_data: dict
+            A dictionary of equity metadata
+        futures_data: dict
+            A dictionary of futures metadata
+        exchanges_data: dict
+            A dictionary of exchanges metadata
+        root_symbols_data: dict
+            A dictionary of root symbols metadata
+        equities_identifiers: list
+            A list of equities identifiers (sids or symbols)
+        futures_identifiers: list
+            A list of futures identifiers (sids or symbols)
+        exchanges_identifiers: list
+            A list of exchanges identifiers (ids or names)
+        root_symbols_identifiers: list
+            A list of root symbols identifiers (ids or symbols)
         """
-        Updates the AssetFinder using the provided asset metadata and
-        identifiers.
-        If clear_metadata is True, all metadata and assets held in the
-        asset_finder will be erased before new metadata is provided.
-        If asset_finder is provided, the existing asset_finder will be replaced
-        outright with the new asset_finder.
-        If asset_metadata is provided, the existing metadata will be cleared
-        and replaced with the provided metadata.
-        All identifiers will be inserted in the asset metadata if they are not
-        already present.
 
-        :param clear_metadata: A boolean
-        :param asset_finder: An AssetFinder object to replace the environment's
-        existing asset_finder
-        :param asset_metadata: A dict, DataFrame, or readable object
-        :param identifiers: A list of identifiers to be inserted
-        :return:
-        """
-        if clear_metadata:
-            self.engine = create_engine('sqlite:///:memory:')
+        if engine:
+            self.engine = engine
 
-        if asset_finder is not None:
-            if not isinstance(asset_finder, AssetFinder):
-                raise UpdateAssetFinderTypeError(cls=asset_finder.__class__)
-            self.asset_finder = asset_finder
+        if (equities_data or futures_data or exchanges_data or
+                root_symbols_data):
+            self._write_data_dicts(equities_data, futures_data,
+                                   exchanges_data, root_symbols_data)
 
-        if asset_metadata is not None:
-            self.engine = create_engine('sqlite:///:memory:')
-            if isinstance(asset_metadata, dict):
-                asset_writer = AssetDBWriterFromDictionary(
-                    equities=asset_metadata)
-            elif isinstance(asset_metadata, pd.DataFrame):
-                asset_writer = AssetDBWriterFromDataFrame(
-                    equities=asset_metadata)
-            asset_writer.write_all(self.engine)
+        if (equities_identifiers or futures_identifiers or
+                exchanges_identifiers or root_symbols_identifiers):
+            self._write_data_lists(equities_identifiers,
+                                   futures_identifiers,
+                                   exchanges_identifiers,
+                                   root_symbols_identifiers)
 
-        if identifiers is not None:
-            asset_writer = AssetDBWriterFromList(equities=identifiers)
-            asset_writer.write_all(self.engine)
+    def _write_data_lists(self, equities=[], futures=[],
+                          exchanges=[], root_symbols=[]):
+        AssetDBWriterFromList(equities, futures, exchanges, root_symbols)\
+            .write_all(self.engine)
+
+    def _write_data_dicts(self, equities={}, futures={},
+                          exchanges={}, root_symbols={}):
+        AssetDBWriterFromDictionary(equities, futures, exchanges, root_symbols)\
+            .write_all(self.engine)
+
+    def _write_data_dataframes(self, equities, futures,
+                               exchanges, root_symbols):
+        AssetDBWriterFromDataFrame(equities, futures, exchanges, root_symbols)\
+            .write_all(self.engine)
 
     def normalize_date(self, test_date):
         test_date = pd.Timestamp(test_date, tz='UTC')
