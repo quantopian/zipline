@@ -136,7 +136,7 @@ class SpecificEquityTrades(object):
                 'sids',
                 set(event.sid for event in self.event_list)
             )
-            env.update_asset_finder(identifiers=self.identifiers)
+            env.write_data(equities_identifiers=self.identifiers)
             assets_by_identifier = {}
             for identifier in self.identifiers:
                 assets_by_identifier[identifier] = env.asset_finder.\
@@ -160,7 +160,7 @@ class SpecificEquityTrades(object):
             self.concurrent = kwargs.get('concurrent', False)
 
             self.identifiers = kwargs.get('sids', [1, 2])
-            env.update_asset_finder(identifiers=self.identifiers)
+            env.write_data(equities_identifiers=self.identifiers)
             assets_by_identifier = {}
             for identifier in self.identifiers:
                 assets_by_identifier[identifier] = env.asset_finder.\

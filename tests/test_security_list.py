@@ -66,9 +66,8 @@ class SecurityListTestCase(TestCase):
         self.trading_day_before_first_kd = datetime(
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
-        env.update_asset_finder(
-            clear_metadata=True,
-            identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"]
+        env.write_data(
+            equities_identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"]
         )
 
         setup_logger(self)
