@@ -119,7 +119,7 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
                          source_id="test_factory"):
     trades = []
     current = sim_params.first_open
-    trading.environment.update_asset_finder(identifiers=[sid])
+    trading.environment.write_data(equities_identifiers=[sid])
 
     oneday = timedelta(days=1)
     use_midnight = interval >= oneday
@@ -311,7 +311,7 @@ def create_test_df_source(sim_params=None, bars='daily'):
 
     df = pd.DataFrame(x, index=index, columns=[0])
 
-    trading.environment.update_asset_finder(identifiers=[0])
+    trading.environment.write_data(equities_identifiers=[0])
 
     return DataFrameSource(df), df
 

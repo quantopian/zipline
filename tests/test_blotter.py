@@ -38,7 +38,7 @@ class BlotterTestCase(TestCase):
     @with_environment()
     def setUp(self, env=None):
         setup_logger(self)
-        env.update_asset_finder(identifiers=[24])
+        env.write_data(equities_identifiers=[24])
 
     def tearDown(self):
         teardown_logger(self)

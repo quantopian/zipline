@@ -1894,7 +1894,7 @@ class TestPerformanceTracker(unittest.TestCase):
         foosid = 1
         barsid = 2
 
-        env.update_asset_finder(identifiers=[foosid, barsid])
+        env.write_data(equities_identifiers=[foosid, barsid])
 
         foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
         order_event_1 = Order(sid=foo_event_1.sid,
@@ -1989,7 +1989,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
     @with_environment()
     def test_close_position_event(self, env=None):
-        env.update_asset_finder(identifiers=[1, 2])
+        env.write_data(equities_identifiers=[1, 2])
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),
@@ -2133,9 +2133,7 @@ class TestPositionTracker(unittest.TestCase):
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
         asset_finder = AssetFinder()
-        env.update_asset_finder(
-            asset_finder=asset_finder,
-            asset_metadata=metadata)
+        env.write_data(equities_data=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(100.0),
@@ -2163,7 +2161,7 @@ class TestPositionTracker(unittest.TestCase):
                         'contract_multiplier': 1000},
                     4: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        env.update_asset_finder(asset_metadata=metadata)
+        env.write_data(equities_data=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(10.0),
@@ -2197,7 +2195,7 @@ class TestPositionTracker(unittest.TestCase):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        env.update_asset_finder(asset_metadata=metadata)
+        env.write_data(equities_data=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),

@@ -93,8 +93,8 @@ class RandomWalkSource(DataSource):
         self.sd = sd
 
         self.sids = self.start_prices.keys()
-        TradingEnvironment.instance().update_asset_finder(
-            identifiers=self.sids
+        TradingEnvironment.instance().write_data(
+            equities_identifiers=self.sids
         )
 
         self.open_and_closes = \

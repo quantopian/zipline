@@ -204,11 +204,11 @@ class TradingAlgorithm(object):
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment = kwargs.pop('env',
                                               TradingEnvironment.instance())
-        self.trading_environment.update_asset_finder(
-            asset_finder=kwargs.pop('asset_finder', None),
-            asset_metadata=kwargs.pop('asset_metadata', None),
-            identifiers=kwargs.pop('identifiers', None)
+        self.trading_environment.write_data(
+            equities_data=kwargs.pop('asset_metadata', None),
+            equities_identifiers=kwargs.pop('identifiers', None),
         )
+
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
         self.init_engine(kwargs.pop('ffc_loader', None))
