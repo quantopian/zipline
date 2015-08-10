@@ -283,7 +283,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             'symbol': None,
             'asset_name': None,
             'start_date': 0,
-            'end_date': None,
+            'end_date': 2 ** 63 - 1,
             'first_traded': None,
             'exchange': None,
             'fuzzy': None,
@@ -311,6 +311,14 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             copy=False
         )
 
+        # Convert date columns to UNIX Epoch integers (milliseconds)
+        equities_output['start_date'] = \
+            equities_output['start_date'].apply(self.convert_datetime)
+        equities_output['end_date'] = \
+            equities_output['end_date'].apply(self.convert_datetime)
+        equities_output['first_traded'] = \
+            equities_output['first_traded'].apply(self.convert_datetime)
+
         # ******** Generate futures data ********
 
         futures_defaults = {
@@ -318,7 +326,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             'root_symbol': None,
             'asset_name': None,
             'start_date': 0,
-            'end_date': None,
+            'end_date': 2 ** 63 - 1,
             'first_traded': None,
             'exchange': None,
             'notice_date': None,
@@ -349,6 +357,18 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             axis=1,
             copy=False
         )
+
+        # Convert date columns to UNIX Epoch integers (milliseconds)
+        futures_output['start_date'] = \
+            futures_output['start_date'].apply(self.convert_datetime)
+        futures_output['end_date'] = \
+            futures_output['end_date'].apply(self.convert_datetime)
+        futures_output['first_traded'] = \
+            futures_output['first_traded'].apply(self.convert_datetime)
+        futures_output['notice_date'] = \
+            futures_output['notice_date'].apply(self.convert_datetime)
+        futures_output['expiration_date'] = \
+            futures_output['expiration_date'].apply(self.convert_datetime)
 
         # ******** Generate exchanges data ********
 
@@ -413,6 +433,56 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                          futures=futures_output,
                          exchanges=exchanges_output,
                          root_symbols=root_symbols_output)
+
+    def convert_datetime(self, dt):
+        """Convert a datetime variable to integer of nanoseconds
+           since UNIX Epoch.
+
+        Parameters
+        ----------
+        dt
+            A string, int or pd.Timestamp instance representing a datetime.
+
+        Returns
+        -------
+        float
+            nanoseconds since UNIX Epoch.
+
+        """
+
+        if pd.isnull(dt):
+            return None
+
+        # If no timezone is specified, assumine UTC.
+        # Otherwise, convert to UTC.
+        try:
+            dt = pd.Timestamp(dt).tz_localize('UTC')
+        except TypeError:
+            dt = pd.Timestamp(dt).tz_convert('UTC')
+
+        # Get seconds from UNIX Epoch
+        total_seconds_from_epoch = self._seconds_from_unix_time(dt)
+
+        # Return nanoseconds since UNIX Epoch
+        return int(total_seconds_from_epoch * 1000000000)
+
+    def _seconds_from_unix_time(self, dt):
+        """Return seconds between dt and UNIX Epoch.
+
+        Parameters
+        ----------
+        dt: pandas.Timestamp
+            The time for which to calculate seconds since UNIX Epoch.
+
+        Returns
+        -------
+        float
+            Seconds between dt and UNIX Epoch.
+
+        """
+        epoch = pd.to_datetime(0, utc=True)
+        delta = dt - epoch
+        return delta.total_seconds()
 
     @staticmethod
     def dict_subset(dict_, subset):
