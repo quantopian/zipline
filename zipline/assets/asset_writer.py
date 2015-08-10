@@ -258,7 +258,12 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         self.asset_router = sa.Table(
             'asset_router',
             metadata,
-            sa.Column('sid', sa.Integer, primary_key=constraints),
+            sa.Column(
+                'sid',
+                sa.Integer,
+                unique=True,
+                nullable=False,
+                primary_key=constraints),
             sa.Column('asset_type', sa.Text),
         )
         metadata.create_all(checkfirst=True)
