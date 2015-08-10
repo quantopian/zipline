@@ -60,7 +60,7 @@ class AlgorithmSimulator(object):
         # We want an object that will have empty objects as default
         # values on missing keys.
         self.data_portal = DataPortal(self.algo)
-        self.current_data = BarData(self.data_portal)
+        self.current_data = BarData(data_portal=self.data_portal)
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -194,6 +194,29 @@ class AlgorithmSimulator(object):
     def on_dt_changed(self, dt):
         if self.algo.datetime != dt:
             self.algo.on_dt_changed(dt)
+
+    def get_message(self, dt):
+        """
+        Get a perf message for the given datetime.
+        """
+        # Ensure that updated_portfolio has been called at least once for this
+        # dt before we emit a perf message.  This is a no-op if
+        # updated_portfolio has already been called this dt.
+        self.algo.updated_portfolio()
+        self.algo.updated_account()
+
+        rvars = self.algo.recorded_vars
+        if self.algo.perf_tracker.emission_rate == 'daily':
+            perf_message = \
+                self.algo.perf_tracker.handle_market_close_daily()
+            perf_message['daily_perf']['recorded_vars'] = rvars
+            return perf_message
+
+        elif self.algo.perf_tracker.emission_rate == 'minute':
+            self.algo.perf_tracker.handle_minute_close(dt)
+            perf_message = self.algo.perf_tracker.to_dict()
+            perf_message['minute_perf']['recorded_vars'] = rvars
+            return perf_message
 
     def generate_messages(self, dt):
         """

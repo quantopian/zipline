@@ -39,7 +39,7 @@ ext_modules = [
         ['zipline/data/ffc/loaders/_us_equity_pricing.pyx'],
         include_dirs=[np.get_include()],
     ),
-    Extension()
+    Extension(
         'zipline.gens.sim_engine',
         ['zipline/gens/sim_engine.pyx'],
         include_dirs=[np.get_include()],
