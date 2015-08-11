@@ -311,7 +311,7 @@ class AssetFinder(object):
         so we can find a match by inserting an underscore.
         """
         symbol = symbol.upper()
-        ad_value = normalize_date(as_of_date).value
+        ad_value = pd.Timestamp(normalize_date(as_of_date)).value
 
         if fuzzy is None:
             try:
