@@ -174,6 +174,8 @@ class AssetFinder(object):
             pass
 
         data = self.select_equity_by_sid(sid).execute().fetchone()
+        # Convert 'data' from a RowProxy object to a dict, to allow assignment
+        data = dict(data.items())
         if data:
             if data['start_date']:
                 data['start_date'] = pd.Timestamp(data['start_date'], tz='UTC')
@@ -202,6 +204,8 @@ class AssetFinder(object):
             pass
 
         data = self.select_future_by_sid(sid).execute().fetchone()
+        # Convert 'data' from a RowProxy object to a dict, to allow assignment
+        data = dict(data.items())
         if data:
             if data['start_date']:
                 data['start_date'] = pd.Timestamp(data['start_date'], tz='UTC')
