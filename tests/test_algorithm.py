@@ -93,6 +93,7 @@ from zipline.sources import (SpecificEquityTrades,
 from zipline.assets import Equity
 
 from zipline.finance.execution import LimitOrder
+from zipline.finance import trading
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
 from zipline.utils.events import DateRuleFactory, TimeRuleFactory
@@ -105,6 +106,7 @@ from zipline.finance.commission import PerShare
 class TestRecordAlgorithm(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4)
+        trading.environment.write_data(equities_identifiers=[133])
         trade_history = factory.create_trade_history(
             133,
             [10.0, 10.0, 11.0, 11.0],
@@ -141,6 +143,7 @@ class TestMiscellaneousAPI(TestCase):
             data_frequency='minute',
             emission_rate='minute',
         )
+        trading.environment.write_data(equities_identifiers=sids)
         self.source = factory.create_minutely_trade_source(
             sids,
             sim_params=self.sim_params,
@@ -317,6 +320,8 @@ class TestMiscellaneousAPI(TestCase):
         self.assertIs(composer, zipline.utils.events.ComposedRule.lazy_and)
 
     def test_asset_lookup(self):
+
+        trading.environment = trading.TradingEnvironment()
         metadata = {0: {'symbol': 'PLAY',
                         'asset_type': 'equity',
                         'start_date': '2002-01-01',
@@ -360,7 +365,7 @@ class TestMiscellaneousAPI(TestCase):
     def test_future_chain(self):
         """ Tests the future_chain API function.
         """
-
+        trading.environment = trading.TradingEnvironment()
         metadata = {
             0: {
                 'symbol': 'CLG06',
@@ -392,7 +397,8 @@ class TestMiscellaneousAPI(TestCase):
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
         }
 
-        algo = TradingAlgorithm(asset_metadata=metadata)
+        trading.environment.write_data(futures_data=metadata)
+        algo = TradingAlgorithm()
         algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
 
         # Check that the fields of the FutureChain object are set correctly
@@ -430,6 +436,7 @@ class TestTransformAlgorithm(TestCase):
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(num_days=4)
+        trading.environment.write_data(equities_identifiers=[0, 1, 133])
 
         trade_history = factory.create_trade_history(
             133,
@@ -538,9 +545,9 @@ class TestTransformAlgorithm(TestCase):
         (TestTargetValueAlgorithm,),
     ])
     def test_order_methods_for_future(self, algo_class):
-        metadata = {0: {'asset_type': 'future',
+        # Use sid not already in test database.
+        metadata = {3: {'asset_type': 'future',
                         'contract_multiplier': 10}}
-
         algo = algo_class(
             sim_params=self.sim_params,
             asset_metadata=metadata
@@ -587,6 +594,7 @@ class TestPositions(TestCase):
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(num_days=4)
+        trading.environment.write_data(equities_identifiers=[0, 1, 133])
 
         trade_history = factory.create_trade_history(
             1,
@@ -631,9 +639,10 @@ class TestPositions(TestCase):
 class TestAlgoScript(TestCase):
     def setUp(self):
         days = 251
+        # Note that create_simulation_parameters creates a new TradingEnvironment
         self.sim_params = factory.create_simulation_parameters(num_days=days)
         setup_logger(self)
-
+        trading.environment.write_data(equities_identifiers=[0, 1, 133])
         trade_history = factory.create_trade_history(
             133,
             [10.0] * days,
@@ -674,7 +683,8 @@ class TestAlgoScript(TestCase):
 
     def test_api_get_environment(self):
         platform = 'zipline'
-        metadata = {0: {'symbol': 'TEST',
+        # Use sid not already in test database.
+        metadata = {3: {'symbol': 'TEST',
                         'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
                                 asset_metadata=metadata,
@@ -683,7 +693,8 @@ class TestAlgoScript(TestCase):
         self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
-        metadata = {0: {'symbol': 'TEST',
+        # Use sid not already in test database.
+        metadata = {3: {'symbol': 'TEST',
                         'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_symbol_algo,
                                 asset_metadata=metadata)
@@ -930,6 +941,15 @@ def handle_data(context, data):
 
 
 class TestHistory(TestCase):
+
+    def setUp(self):
+        setup_logger(self)
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[0, 1])
+
+    def tearDown(self):
+        teardown_logger(self)
+
     @classmethod
     def setUpClass(cls):
         cls._start = pd.Timestamp('1991-01-01', tz='UTC')
@@ -991,6 +1011,14 @@ def handle_data(context, data):
 
 class TestGetDatetime(TestCase):
 
+    def setUp(self):
+        setup_logger(self)
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[0, 1])
+
+    def tearDown(self):
+        teardown_logger(self)
+
     @parameterized.expand(
         [
             ('default', None,),
@@ -1034,7 +1062,6 @@ class TestGetDatetime(TestCase):
         algo = TradingAlgorithm(
             script=algo,
             sim_params=sim_params,
-            identifiers=[1]
         )
         algo.run(source)
         self.assertFalse(algo.first_bar)
@@ -1045,6 +1072,7 @@ class TestTradingControls(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4)
         self.sid = 133
+        trading.environment.write_data(equities_identifiers=[self.sid])
         self.trade_history = factory.create_trade_history(
             self.sid,
             [10.0, 10.0, 11.0, 11.0],
@@ -1298,31 +1326,28 @@ class TestTradingControls(TestCase):
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '1990-01-01',
                         'end_date': '2020-01-01'}}
-        asset_finder = AssetFinder()
         algo = SetAssetDateBoundsAlgorithm(
-            asset_finder=asset_finder,
             asset_metadata=metadata,
             sim_params=self.sim_params,)
         algo.run(df_source)
 
         # Run the algorithm with a sid that has already ended
+        trading.environment = trading.TradingEnvironment()
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '1989-01-01',
                         'end_date': '1990-01-01'}}
-        asset_finder = AssetFinder()
         algo = SetAssetDateBoundsAlgorithm(
-            asset_finder=asset_finder,
             asset_metadata=metadata,
             sim_params=self.sim_params,)
         with self.assertRaises(TradingControlViolation):
             algo.run(df_source)
 
         # Run the algorithm with a sid that has not started
+        trading.environment = trading.TradingEnvironment()
         df_source, _ = factory.create_test_df_source(self.sim_params)
         metadata = {0: {'start_date': '2020-01-01',
                         'end_date': '2021-01-01'}}
         algo = SetAssetDateBoundsAlgorithm(
-            asset_finder=asset_finder,
             asset_metadata=metadata,
             sim_params=self.sim_params,)
         with self.assertRaises(TradingControlViolation):
@@ -1334,6 +1359,7 @@ class TestAccountControls(TestCase):
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4)
         self.sidint = 133
+        trading.environment.write_data(equities_identifiers=[self.sidint])
         self.trade_history = factory.create_trade_history(
             self.sidint,
             [10.0, 10.0, 11.0, 11.0],
@@ -1383,6 +1409,7 @@ class TestAccountControls(TestCase):
 class TestClosePosAlgo(TestCase):
 
     def setUp(self):
+        trading.environment = trading.TradingEnvironment()
         self.days = TradingEnvironment().trading_days
         self.index = [self.days[0], self.days[1], self.days[2]]
         self.panel = pd.Panel({1: pd.DataFrame({
@@ -1420,9 +1447,9 @@ class TestClosePosAlgo(TestCase):
         metadata = {1: {'symbol': 'TEST',
                         'asset_type': 'future',
                         }}
+        trading.environment.write_data(futures_data=metadata)
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  asset_metadata=metadata)
+                                  instant_fill=True, commission=PerShare(0),)
         self.data = DataPanelSource(self.panel)
 
         # Check results
@@ -1437,9 +1464,9 @@ class TestClosePosAlgo(TestCase):
                         'asset_type': 'future',
                         'notice_date': self.days[3],
                         'expiration_date': self.days[4]}}
+        trading.environment.write_data(futures_data=metadata)
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  asset_metadata=metadata)
+                                  instant_fill=True, commission=PerShare(0),)
         self.data = DataPanelSource(self.no_close_panel)
 
         # Check results
