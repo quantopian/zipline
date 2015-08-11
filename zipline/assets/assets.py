@@ -269,7 +269,7 @@ class AssetFinder(object):
                 ).order_by(
                     equities_cols.end_date.desc(),
                 ).scalar()
-                if sid:
+                if sid is not None:
                     return self._retrieve_equity(sid)
 
             # If multiple SIDs exist for symbol, return latest start_date with
@@ -282,7 +282,7 @@ class AssetFinder(object):
                     equities_cols.start_date.desc(),
                     equities_cols.end_date.desc(),
                 ).scalar()
-                if sid:
+                if sid is not None:
                     return self._retrieve_equity(sid)
 
             raise SymbolNotFound(symbol=symbol)
