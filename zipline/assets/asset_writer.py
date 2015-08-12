@@ -74,7 +74,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     """
     Class used to write arbitrary data to SQLite database.
     Concrete subclasses will implement the logic for a specific
-    input datatypes by implementing the load_data method.
+    input datatypes by implementing the _load_data method.
 
     Methods
     -------
@@ -100,13 +100,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Parameters
         ----------
         engine : Engine
-            An engine to a SQL database.
+            An SQLAlchemy engine to a SQL database.
         fuzzy_char : str, optional
             A string for use in fuzzy matching.
         allow_sid_assignment: bool, optional
             If True then the class can assign sids where necessary.
         constraints : bool, optional
-            If True, create SQL ForeignKey and Index constraints.
+            If True then create SQL ForeignKey and PrimaryKey constraints.
 
         """
         self.allow_sid_assignment = allow_sid_assignment
@@ -167,8 +167,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         ----------
         engine : Engine
             An engine to a SQL database.
-        constraints : bool
-            If True, create SQL ForeignKey and Index constraints.
+        constraints : bool, optional
+            If True, create SQL ForeignKey and PrimaryKey constraints.
         """
         self.sql_metadata = metadata = sa.MetaData(bind=engine)
         self.equities = sa.Table(
@@ -266,6 +266,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 primary_key=constraints),
             sa.Column('asset_type', sa.Text),
         )
+        # Create the SQL tables if they do not already exist.
         metadata.create_all(checkfirst=True)
         return metadata
 
@@ -503,7 +504,11 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         """
         Subclasses should implement this method to return data in a standard
         format: a pandas.DataFrame for each of the following tables:
-        equities, futures, exchanges, root_symbols
+        equities, futures, exchanges, root_symbols.
+
+        For each of these DataFrames the index columns should be the integer
+        unique identifier for the table, which are sid, sid, exchange_id and
+        root_symbol_id respectively.
         """
 
         raise NotImplementedError('load_data')
@@ -573,10 +578,9 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     """
     Class used to write dictionary data to SQLite database.
 
-    Expects a dictionary to be passed to load_data
-    with the following format:
+    Expects to be initialised with dictionaries in the following format:
 
-    {id_0: {start_date : ...}, id_1: {start_data: ...}, ...}
+    {id_0: {attribute_1 : ...}, id_1: {attribute_2: ...}, ...}
     """
 
     def __init__(self, equities={}, futures={}, exchanges={}, root_symbols={}):
