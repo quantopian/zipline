@@ -56,26 +56,31 @@ class AssetFinder(object):
         self.equities = equities = sa.Table(
             'equities',
             metadata,
+            autoload=True,
             autoload_with=engine,
         )
         self.futures_exchanges = sa.Table(
             'futures_exchanges',
             metadata,
+            autoload=True,
             autoload_with=engine,
         )
         self.futures_root_symbols = sa.Table(
             'futures_root_symbols',
             metadata,
+            autoload=True,
             autoload_with=engine,
         )
         self.futures_contracts = futures_contracts = sa.Table(
             'futures_contracts',
             metadata,
+            autoload=True,
             autoload_with=engine,
         )
         self.asset_router = sa.Table(
             'asset_router',
             metadata,
+            autoload=True,
             autoload_with=engine,
         )
 
