@@ -110,11 +110,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
         """
         self.allow_sid_assignment = allow_sid_assignment
-        # Create SQL tables
-        self.init_db(engine, constraints)
-        # Get the data to add to SQL
-        data = self.load_data()
+
         with engine.begin() as txn:
+            # Create SQL tables.
+            self.init_db(txn, constraints)
+            # Get the data to add to SQL.
+            data = self.load_data()
+            # Write the data to SQL.
             self._write_exchanges(data.exchanges, txn)
             self._write_root_symbols(data.root_symbols, txn)
             self._write_futures(data.futures, txn)
