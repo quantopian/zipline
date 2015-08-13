@@ -121,20 +121,22 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_equities(data.equities, fuzzy_char, txn)
 
     def _write_exchanges(self, exchanges, bind=None):
-        self.futures_exchanges.insert().values(
-            exchanges.reset_index().rename_axis(
-                {'index': 'exchange_id'},
-                1,
-            ).to_dict('records'),
-        ).execute(bind=bind)
+        recs = exchanges.reset_index().rename_axis(
+            {'index': 'exchange_id'},
+            1,
+        ).to_dict('records')
+        # In SQLAlchemy, insert().values([]) will insert NULLs,
+        # hence we check first to avoid violating NOT NULL constraints.
+        if recs:
+            self.futures_exchanges.insert().values(recs).execute(bind=bind)
 
     def _write_root_symbols(self, root_symbols, bind=None):
-        self.futures_root_symbols.insert().values(
-            root_symbols.reset_index().rename_axis(
-                {'index': 'root_symbol_id'},
-                1,
-            ).to_dict('records'),
-        ).execute(bind=bind)
+        recs = root_symbols.reset_index().rename_axis(
+            {'index': 'root_symbol_id'},
+            1,
+        ).to_dict('records')
+        if recs:
+            self.futures_root_symbols.insert().values(recs).execute(bind=bind)
 
     def _write_futures(self, futures, bind=None):
         recs = futures.reset_index().rename_axis(
