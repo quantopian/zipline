@@ -1702,8 +1702,7 @@ class TestClosePosAlgo(TestCase):
     def test_auto_close_future(self):
         metadata = {1: {'symbol': 'TEST',
                         'asset_type': 'future',
-                        'notice_date': self.days[3],
-                        'expiration_date': self.days[4]}}
+                        'auto_close_date': self.days[3]}}
         self.env.write_data(futures_data=metadata)
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                                   instant_fill=True, commission=PerShare(0),

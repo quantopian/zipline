@@ -71,19 +71,12 @@ class PositionTracker(object):
                     asset.contract_multiplier
                 self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
-                # Futures are closed on their notice_date
-                if asset.notice_date:
-                    self._insert_auto_close_position_date(
-                        dt=asset.notice_date,
-                        sid=sid
-                    )
-                # If the Future does not have a notice_date, it will be closed
-                # on its expiration_date
-                elif asset.expiration_date:
-                    self._insert_auto_close_position_date(
-                        dt=asset.expiration_date,
-                        sid=sid
-                    )
+                # Futures auto-close timing is controlled by the Future's
+                # auto_close_date property
+                self._insert_auto_close_position_date(
+                    dt=asset.auto_close_date,
+                    sid=sid
+                )
 
     def _insert_auto_close_position_date(self, dt, sid):
         """
@@ -97,7 +90,8 @@ class PositionTracker(object):
         sid : int
             The SID of the Asset to be auto-closed
         """
-        self._auto_close_position_sids.setdefault(dt, set()).add(sid)
+        if dt is not None:
+            self._auto_close_position_sids.setdefault(dt, set()).add(sid)
 
     def auto_close_position_events(self, next_trading_day):
         """

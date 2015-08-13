@@ -259,6 +259,10 @@ class AssetFinder(object):
                 data['expiration_date'] = pd.Timestamp(
                     data['expiration_date'], tz='UTC')
 
+            if data['auto_close_date']:
+                data['auto_close_date'] = pd.Timestamp(
+                    data['auto_close_date'], tz='UTC')
+
             _convert_asset_str_fields(data)
 
             future = Future(**data)

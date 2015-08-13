@@ -29,6 +29,7 @@ ASSET_TABLE_FIELDS = frozenset({
 FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
     'notice_date',
     'expiration_date',
+    'auto_close_date',
     'contract_multiplier',
 }
 
@@ -70,6 +71,7 @@ _futures_defaults = {
     'exchange': None,
     'notice_date': None,
     'expiration_date': None,
+    'auto_close_date': None,
     'contract_multiplier': 1,
 }
 
@@ -327,6 +329,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             ),
             sa.Column('notice_date', sa.Integer),
             sa.Column('expiration_date', sa.Integer),
+            sa.Column('auto_close_date', sa.Integer),
             sa.Column('contract_multiplier', sa.Float),
         )
         self.asset_router = sa.Table(
@@ -394,6 +397,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             futures_output['notice_date'].apply(self.convert_datetime)
         futures_output['expiration_date'] = \
             futures_output['expiration_date'].apply(self.convert_datetime)
+        futures_output['auto_close_date'] = \
+            futures_output['auto_close_date'].apply(self.convert_datetime)
 
         # Convert symbols and root_symbols to upper case.
         futures_output['symbol'] = futures_output.symbol.str.upper()
