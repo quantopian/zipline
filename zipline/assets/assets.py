@@ -424,7 +424,7 @@ class AssetFinder(object):
             if count == 0:
                 raise RootSymbolNotFound(root_symbol=root_symbol)
 
-        return map(self._retrieve_futures_contract, sids)
+        return list(map(self._retrieve_futures_contract, sids))
 
     @property
     def sids(self):
