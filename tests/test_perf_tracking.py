@@ -41,6 +41,7 @@ from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 
 from zipline.gens.composites import date_sorted_sources
+from zipline.finance import trading
 from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
@@ -261,7 +262,7 @@ class TestSplitPerformance(unittest.TestCase):
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
-
+        trading.environment.write_data(equities_identifiers=[1])
         # start with $10,000
         self.sim_params.capital_base = 10e3
 
@@ -361,6 +362,8 @@ class TestCommissionEvents(unittest.TestCase):
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
+
+        trading.environment.write_data(equities_identifiers=[0, 1, 133])
 
         logger.info("sim_params: %s, dt: %s, end_dt: %s" %
                     (self.sim_params, self.dt, self.end_dt))
@@ -502,7 +505,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
-
+        trading.environment.write_data(equities_identifiers=[1, 2])
         self.sim_params.capital_base = 10e3
 
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
@@ -937,6 +940,7 @@ class TestPositionPerformance(unittest.TestCase):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
 
+        trading.environment.write_data(equities_identifiers=[1, 2])
         self.benchmark_events = benchmark_events_in_range(self.sim_params)
 
     def test_long_short_positions(self):
@@ -1689,6 +1693,10 @@ shares in position"
 
 class TestPerformanceTracker(unittest.TestCase):
 
+    def setUp(self):
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[133, 134])
+
     NumDaysToDelete = collections.namedtuple(
         'NumDaysToDelete', ('start', 'middle', 'end'))
 
@@ -1726,6 +1734,8 @@ class TestPerformanceTracker(unittest.TestCase):
         # 12 13 14 15 16 17 18
         # 19 20 21 22 23 24 25
         # 26 27 28 29 30 31
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[133, 134])
         start_dt = datetime(year=2008,
                             month=10,
                             day=9,
@@ -2097,8 +2107,9 @@ class TestPosition(unittest.TestCase):
 
 
 class TestPositionTracker(unittest.TestCase):
+
     def setUp(self):
-        pass
+        trading.environment = trading.TradingEnvironment()
 
     def test_empty_positions(self):
         """
@@ -2127,13 +2138,12 @@ class TestPositionTracker(unittest.TestCase):
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
 
-    @with_environment()
     def test_update_last_sale(self, env=None):
-        metadata = {1: {'asset_type': 'equity'},
-                    2: {'asset_type': 'future',
-                        'contract_multiplier': 1000}}
-        asset_finder = AssetFinder()
-        env.write_data(equities_data=metadata)
+        equities_metadata = {1: {'asset_type': 'equity'}}
+        futures_metadata = {2: {'asset_type': 'future',
+                                'contract_multiplier': 1000}}
+        trading.environment.write_data(equities_data=equities_metadata,
+                                       futures_data=futures_metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(100.0),
@@ -2153,15 +2163,15 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(0, pt.update_last_sale(event1))
         self.assertEqual(100000, pt.update_last_sale(event2))
 
-    @with_environment()
     def test_position_values_and_exposures(self, env=None):
-        metadata = {1: {'asset_type': 'equity'},
-                    2: {'asset_type': 'equity'},
-                    3: {'asset_type': 'future',
-                        'contract_multiplier': 1000},
-                    4: {'asset_type': 'future',
-                        'contract_multiplier': 1000}}
-        env.write_data(equities_data=metadata)
+        equities_metadata = {1: {'asset_type': 'equity'},
+                             2: {'asset_type': 'equity'}}
+        futures_metadata = {3: {'asset_type': 'future',
+                                'contract_multiplier': 1000},
+                            4: {'asset_type': 'future',
+                                'contract_multiplier': 1000}}
+        trading.environment.write_data(equities_data=equities_metadata,
+                                       futures_data=futures_metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(10.0),
@@ -2190,12 +2200,11 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(100 + 200 + 300000 + 400000, pt._gross_exposure())
         self.assertEqual(100 - 200 + 300000 - 400000, pt._net_exposure())
 
-    @with_environment()
     def test_serialization(self, env=None):
         metadata = {1: {'asset_type': 'equity'},
                     2: {'asset_type': 'future',
                         'contract_multiplier': 1000}}
-        env.write_data(equities_data=metadata)
+        trading.environment.write_data(equities_data=metadata)
         pt = perf.PositionTracker()
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(120.0),

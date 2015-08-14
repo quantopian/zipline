@@ -33,6 +33,7 @@ from zipline.test_algorithms import (BatchTransformAlgorithm,
                                      BatchTransformAlgorithmMinute,
                                      ReturnPriceBatchTransform)
 
+from zipline.finance import trading
 from zipline.algorithm import TradingAlgorithm
 from zipline.utils.tradingcalendar import trading_days
 from copy import deepcopy
@@ -106,6 +107,8 @@ class DifferentSidSource(DataSource):
 class TestChangeOfSids(TestCase):
     def setUp(self):
         self.sids = range(90)
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=self.sids)
         self.sim_params = factory.create_simulation_parameters(
             start=datetime(1990, 1, 1, tzinfo=pytz.utc),
             end=datetime(1990, 1, 8, tzinfo=pytz.utc)
@@ -114,7 +117,6 @@ class TestChangeOfSids(TestCase):
     def test_all_sids_passed(self):
         algo = BatchTransformAlgorithmSetSid(
             sim_params=self.sim_params,
-            identifiers=[i for i in range(0, 90)]
         )
         source = DifferentSidSource()
         algo.run(source)
@@ -137,6 +139,8 @@ class TestBatchTransformMinutely(TestCase):
             start=start,
             end=end,
         )
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[0])
         self.sim_params.emission_rate = 'daily'
         self.sim_params.data_frequency = 'minute'
         self.source, self.df = \
@@ -164,12 +168,19 @@ class TestBatchTransformMinutely(TestCase):
 
 
 class TestBatchTransform(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = trading.TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[0])
+
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(
             start=datetime(1990, 1, 1, tzinfo=pytz.utc),
             end=datetime(1990, 1, 8, tzinfo=pytz.utc)
         )
+        trading.environment = TestBatchTransform.env
         self.source, self.df = \
             factory.create_test_df_source(self.sim_params)
 
