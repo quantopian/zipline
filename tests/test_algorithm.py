@@ -436,7 +436,8 @@ class TestTransformAlgorithm(TestCase):
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(num_days=4)
-        trading.environment.write_data(equities_identifiers=[0, 1, 133])
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[133])
 
         trade_history = factory.create_trade_history(
             133,
@@ -446,7 +447,6 @@ class TestTransformAlgorithm(TestCase):
             self.sim_params
         )
         self.source = SpecificEquityTrades(event_list=trade_history)
-
         self.df_source, self.df = \
             factory.create_test_df_source(self.sim_params)
 
@@ -473,13 +473,14 @@ class TestTransformAlgorithm(TestCase):
         algo.run(self.source)
 
     def test_multi_source_as_input(self):
+        trading.environment.write_data(equities_identifiers=[0, 1])
         sim_params = SimulationParameters(
             self.df.index[0],
             self.df.index[-1]
         )
         algo = TestRegisterTransformAlgorithm(
             sim_params=sim_params,
-            sids=[0, 1, 133]
+            sids=[0, 1]
         )
         algo.run([self.source, self.df_source], overwrite_sim_params=False)
         self.assertEqual(len(algo.sources), 2)
@@ -487,7 +488,6 @@ class TestTransformAlgorithm(TestCase):
     def test_df_as_input(self):
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            sids=[0, 1]
         )
         algo.run(self.df)
         assert isinstance(algo.sources[0], DataFrameSource)
@@ -500,13 +500,23 @@ class TestTransformAlgorithm(TestCase):
         assert isinstance(algo.sources[0], DataPanelSource)
 
     def test_run_twice(self):
-        algo = TestRegisterTransformAlgorithm(
+        algo1 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
             sids=[0, 1]
         )
 
-        res1 = algo.run(self.df)
-        res2 = algo.run(self.df)
+        res1 = algo1.run(self.df)
+
+        # Create a new trading environment
+        trading.environment = trading.TradingEnvironment()
+        # Create a new trading algorithm, which will
+        # use the newly instantiated environment.
+        algo2 = TestRegisterTransformAlgorithm(
+            sim_params=self.sim_params,
+            sids=[0, 1]
+        )
+
+        res2 = algo2.run(self.df)
 
         np.testing.assert_array_equal(res1, res2)
 
@@ -564,6 +574,7 @@ class TestTransformAlgorithm(TestCase):
                                 'order_target_value']
 
         for name in method_names_to_test:
+            trading.environment = trading.TradingEnvironment()
             algo = TestOrderStyleForwardingAlgorithm(
                 sim_params=self.sim_params,
                 instant_fill=False,
@@ -577,6 +588,7 @@ class TestTransformAlgorithm(TestCase):
         algo.run(self.df)
 
     def test_minute_data(self):
+        trading.environment.write_data(equities_identifiers=[0, 1])
         source = RandomWalkSource(freq='minute',
                                   start=pd.Timestamp('2000-1-3',
                                                      tz='UTC'),
@@ -593,7 +605,7 @@ class TestPositions(TestCase):
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(num_days=4)
-        trading.environment.write_data(equities_identifiers=[0, 1, 133])
+        trading.environment.write_data(equities_identifiers=[1, 133])
 
         trade_history = factory.create_trade_history(
             1,
@@ -638,10 +650,11 @@ class TestPositions(TestCase):
 class TestAlgoScript(TestCase):
     def setUp(self):
         days = 251
-        # Note that create_simulation_parameters creates a new TradingEnvironment
+        # Note that create_simulation_parameters creates
+        # a new TradingEnvironment
         self.sim_params = factory.create_simulation_parameters(num_days=days)
         setup_logger(self)
-        trading.environment.write_data(equities_identifiers=[0, 1, 133])
+        trading.environment.write_data(equities_identifiers=[1, 133])
         trade_history = factory.create_trade_history(
             133,
             [10.0] * days,
@@ -702,6 +715,7 @@ class TestAlgoScript(TestCase):
     def test_fixed_slippage(self):
         # verify order -> transaction -> portfolio position.
         # --------------
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script="""
 from zipline.api import (slippage,
@@ -756,6 +770,7 @@ def handle_data(context, data):
     def test_volshare_slippage(self):
         # verify order -> transaction -> portfolio position.
         # --------------
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script="""
 from zipline.api import *
@@ -823,6 +838,7 @@ def handle_data(context, data):
         self.zipline_test_config['algorithm'] = test_algo
         self.zipline_test_config['trade_count'] = 200
 
+        trading.environment.write_data(equities_identifiers=[0])
         zipline = simfactory.create_test_zipline(
             **self.zipline_test_config)
         output, _ = drain_zipline(self, zipline)
@@ -849,6 +865,7 @@ def handle_data(context, data):
         test_algo.record(foo=MagicMock())
 
     def _algo_record_float_magic_should_pass(self, var_type):
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script=record_float_magic % var_type,
             sim_params=self.sim_params,
@@ -875,6 +892,7 @@ def handle_data(context, data):
         Only test that order methods can be called without error.
         Correct filling of orders is tested in zipline.
         """
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script=call_all_order_methods,
             sim_params=self.sim_params,
@@ -906,6 +924,7 @@ def handle_data(context, data):
         """
         Test that accessing portfolio in init doesn't break.
         """
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script=access_portfolio_in_init,
             sim_params=self.sim_params,
@@ -924,6 +943,7 @@ def handle_data(context, data):
         """
         Test that accessing account in init doesn't break.
         """
+        trading.environment.write_data(equities_identifiers=[0])
         test_algo = TradingAlgorithm(
             script=access_account_in_init,
             sim_params=self.sim_params,
