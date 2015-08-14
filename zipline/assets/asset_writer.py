@@ -562,7 +562,7 @@ class AssetDBWriterFromList(AssetDBWriter):
                         output[id_counter] = {'symbol': identifier}
                         id_counter += 1
                     else:
-                        SidAssignmentError(identifier=identifier)
+                        raise SidAssignmentError(identifier=identifier)
 
         exchange_counter = 0
         for identifier in self._exchanges:
