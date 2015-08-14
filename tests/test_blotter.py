@@ -19,7 +19,6 @@ from unittest import TestCase
 
 from zipline.finance import trading
 from zipline.finance.blotter import Blotter, ORDER_STATUS
-from zipline.finance.trading import with_environment
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,

@@ -38,7 +38,6 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     USEquityPricingLoader,
 )
 from zipline.finance import trading
-from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.factor import TestingFactor
 from zipline.modelling.factor.technical import (
