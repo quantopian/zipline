@@ -28,6 +28,7 @@ from zipline.history.history_container import HistoryContainer
 from zipline.protocol import BarData
 import zipline.utils.factory as factory
 from zipline import TradingAlgorithm
+from zipline.finance import trading
 from zipline.finance.trading import (
     SimulationParameters,
     TradingEnvironment,
@@ -404,6 +405,12 @@ class TestHistoryContainer(TestCase):
 
 
 class TestHistoryAlgo(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = trading.TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[0, 1])
+
     def setUp(self):
         np.random.seed(123)
 
@@ -442,7 +449,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='daily',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         output = test_algo.run(source)
@@ -475,7 +483,8 @@ def handle_data(context, data):
             algo = TradingAlgorithm(
                 script=algo_text,
                 data_frequency='daily',
-                sim_params=sim_params
+                sim_params=sim_params,
+                env=TestHistoryAlgo.env,
             )
             source = RandomWalkSource(start=start, end=end)
             algo.run(source)
@@ -510,7 +519,7 @@ def handle_data(context, data):
             script=algo_text,
             data_frequency='minute',
             sim_params=sim_params,
-            identifiers=[0]
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -560,7 +569,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -616,7 +626,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -671,7 +682,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -716,7 +728,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -761,7 +774,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -806,7 +820,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -856,7 +871,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -915,7 +931,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start,
@@ -957,7 +974,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency=data_freq,
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
 
         source = RandomWalkSource(start=start, end=end, freq=data_freq)
@@ -1027,7 +1045,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
         test_algo.test_case = self
 
@@ -1076,7 +1095,8 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
-            sim_params=sim_params
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
         )
         test_algo.test_case = self
 

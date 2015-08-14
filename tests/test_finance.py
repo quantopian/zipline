@@ -58,6 +58,8 @@ EXTENDED_TIMEOUT = 90
 class FinanceTestCase(TestCase):
 
     def setUp(self):
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[1, 133])
         self.zipline_test_config = {
             'sid': 133,
         }
@@ -90,6 +92,7 @@ class FinanceTestCase(TestCase):
         # No transactions can be filled on the first trade, so
         # we have one extra trade to ensure all orders are filled.
         self.zipline_test_config['trade_count'] = 101
+        trading.environment = trading.TradingEnvironment()
         full_zipline = simfactory.create_test_zipline(
             **self.zipline_test_config)
         assert_single_position(self, full_zipline)

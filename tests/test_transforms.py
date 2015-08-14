@@ -25,6 +25,7 @@ from unittest import TestCase
 import numpy as np
 from numpy.testing import assert_allclose
 
+from zipline.finance.trading import TradingEnvironment
 from zipline.algorithm import TradingAlgorithm
 import zipline.utils.factory as factory
 from zipline.api import add_transform, get_datetime
@@ -102,7 +103,6 @@ def with_algo(f):
             initialize=initialize_with(self, tfm_name, days),
             handle_data=handle_data_wrapper(f),
             sim_params=sim_params,
-            identifiers=[1, 2, 3]
         )
         algo.run(source)
 
@@ -117,7 +117,6 @@ class TransformTestCase(TestCase):
     def setUpClass(cls):
         random.seed(0)
         cls.sids = (1, 2, 3)
-
         minute_sim_ps = factory.create_simulation_parameters(
             num_days=3,
             data_frequency='minute',
@@ -128,6 +127,8 @@ class TransformTestCase(TestCase):
             data_frequency='daily',
             emission_rate='daily',
         )
+        cls.env = TradingEnvironment.instance()
+        cls.env.write_data(equities_identifiers=[1, 2, 3])
         cls.sim_and_source = {
             'minute': (minute_sim_ps, factory.create_minutely_trade_source(
                 cls.sids,
