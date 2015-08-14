@@ -639,6 +639,18 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
 
     def _load_data(self):
 
+        # Check whether identifier columns have been provided.
+        # If they have, set the index to this column.
+        # If not, assume the index already cotains the identifier information.
+        if 'sid' in self._equities.columns:
+            self._equities.set_index(['sid'], inplace=True)
+        if 'sid' in self._futures.columns:
+            self._futures.set_index(['sid'], inplace=True)
+        if 'exchange_id' in self._exchanges.columns:
+            self._exchanges.set_index(['exchange_id'], inplace=True)
+        if 'root_symbol_id' in self._root_symbols.columns:
+            self._root_symbols.set_index(['root_symbol_id'], inplace=True)
+
         return AssetData(equities=self._equities,
                          futures=self._futures,
                          exchanges=self._exchanges,
