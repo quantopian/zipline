@@ -537,7 +537,16 @@ class AssetDBWriterFromList(AssetDBWriter):
         _equities, _futures, _exchanges, _root_symbols = {}, {}, {}, {}
 
         # 1) Populate dictionaries
-        id_counter = 0
+        # Return the largest sid in our dataset, if one exists.
+        id_counter = sa.select(
+            [sa.func.max(self.asset_router.c.sid)]
+        ).execute().scalar()
+        # Base sid creation on largest sid in dataset, or 0 if
+        # no sids exist.
+        if id_counter is None:
+            id_counter = 0
+        else:
+            id_counter += 1
         for output, data in [(_equities, self._equities),
                              (_futures, self._futures), ]:
             for identifier in data:
