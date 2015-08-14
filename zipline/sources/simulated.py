@@ -23,7 +23,6 @@ import pandas as pd
 from zipline.sources.data_source import DataSource
 from zipline.utils import tradingcalendar as calendar_nyse
 from zipline.gens.utils import hash_args
-from zipline.finance.trading import TradingEnvironment
 
 
 class RandomWalkSource(DataSource):

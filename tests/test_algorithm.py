@@ -23,7 +23,6 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from zipline.assets import AssetFinder
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (

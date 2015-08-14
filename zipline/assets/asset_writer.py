@@ -325,9 +325,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         equities_output['first_traded'] = \
             equities_output['first_traded'].apply(self.convert_datetime)
 
-        # Convert symbols to upper case.
-        equities_output['symbol'] = equities_output.symbol.str.upper()
-
         # ******** Generate futures data ********
 
         futures_defaults = {
