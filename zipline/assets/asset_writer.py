@@ -9,6 +9,7 @@ from six import with_metaclass
 import sqlalchemy as sa
 
 from zipline.errors import SidAssignmentError
+from zipline.assets._assets import Asset
 
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
@@ -540,7 +541,12 @@ class AssetDBWriterFromList(AssetDBWriter):
         for output, data in [(_equities, self._equities),
                              (_futures, self._futures), ]:
             for identifier in data:
-                if hasattr(identifier, '__int__'):
+                if isinstance(identifier, Asset):
+                    sid = identifier.sid
+                    metadata = identifier.to_dict()
+                    metadata['asset_type'] = identifier.__class__.__name__
+                    output[sid] = metadata
+                elif hasattr(identifier, '__int__'):
                     output[identifier.__int__()] = {'symbol': None}
                 else:
                     if self.allow_sid_assignment:
@@ -566,12 +572,13 @@ class AssetDBWriterFromList(AssetDBWriter):
                     {'root_symbol': identifier}
                 root_symbol_counter += 1
 
-        # Convert dictionaries to pandas.DataFrames
+        # 2) Convert dictionaries to pandas.DataFrames.
         _equities = pd.DataFrame.from_dict(_equities, orient='index')
         _futures = pd.DataFrame.from_dict(_futures, orient='index')
         _exchanges = pd.DataFrame.from_dict(_exchanges, orient='index')
         _root_symbols = pd.DataFrame.from_dict(_root_symbols, orient='index')
 
+        # 3) Return the data inside a named tuple.
         return AssetData(equities=_equities,
                          futures=_futures,
                          exchanges=_exchanges,
