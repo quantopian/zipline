@@ -205,8 +205,8 @@ class TradingAlgorithm(object):
         self.trading_environment = kwargs.pop('env',
                                               TradingEnvironment.instance())
         self.trading_environment.write_data(
-            equities_data=kwargs.pop('asset_metadata', None),
-            equities_identifiers=kwargs.pop('identifiers', None),
+            equities_data=kwargs.pop('asset_metadata', {}),
+            equities_identifiers=kwargs.pop('identifiers', []),
         )
 
         # Pull in the environment's new AssetFinder for quick reference
