@@ -6,9 +6,10 @@ from unittest import TestCase
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.sources import SpecificEquityTrades
+from zipline.finance import trading
 from zipline.finance.trading import with_environment
 from zipline.utils.test_utils import (
-    setup_logger, teardown_logger, security_list_copy, add_security_data)
+    setup_logger, teardown_logger, security_list_copy, add_security_data,)
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
@@ -59,18 +60,16 @@ class IterateRLAlgo(TradingAlgorithm):
 
 class SecurityListTestCase(TestCase):
 
-    @with_environment()
     def setUp(self, env=None):
+
         self.extra_knowledge_date = \
             datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
         self.trading_day_before_first_kd = datetime(
             2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
-        env.write_data(
-            equities_identifiers=["BZQ", "URTY", "JFT", "AAPL", "GOOG"]
-        )
-
         setup_logger(self)
+
+        trading.environment = trading.TradingEnvironment()
 
     def tearDown(self):
         teardown_logger(self)
@@ -78,7 +77,7 @@ class SecurityListTestCase(TestCase):
     def test_iterate_over_rl(self):
         sim_params = factory.create_simulation_parameters(
             start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
-
+        trading.environment.write_data(equities_identifiers=['BZQ'])
         trade_history = factory.create_trade_history(
             'BZQ',
             [10.0, 10.0, 11.0, 11.0],
@@ -98,6 +97,9 @@ class SecurityListTestCase(TestCase):
         # leveraged etf knowledge date.
         def get_datetime():
             return list(LEVERAGED_ETFS.keys())[0]
+
+        env.write_data(equities_identifiers=['AAPL', 'GOOG', 'BZQ',
+                                             'URTY', 'JFT'])
 
         rl = SecurityListSet(get_datetime)
         # assert that a sample from the leveraged list are in restricted
@@ -128,6 +130,8 @@ class SecurityListTestCase(TestCase):
             return datetime(2015, 1, 27, tzinfo=pytz.utc)
         with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
+            env.write_data(equities_identifiers=['AAPL', 'GOOG',
+                                                 'BZQ', 'URTY'])
             rl = SecurityListSet(get_datetime)
             should_exist = [
                 asset.sid for asset in
@@ -143,7 +147,8 @@ class SecurityListTestCase(TestCase):
         with security_list_copy():
             def get_datetime():
                 return datetime(2015, 1, 27, tzinfo=pytz.utc)
-            add_security_data([], ['BZQ', 'URTY'])
+            trading.environment.write_data(equities_identifiers=['BZQ',
+                                                                 'URTY'])
             rl = SecurityListSet(get_datetime)
             self.assertNotIn("BZQ", rl.leveraged_etf_list)
             self.assertNotIn("URTY", rl.leveraged_etf_list)
@@ -151,7 +156,7 @@ class SecurityListTestCase(TestCase):
     def test_algo_without_rl_violation_via_check(self):
         sim_params = factory.create_simulation_parameters(
             start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
-
+        trading.environment.write_data(equities_identifiers=['BZQ'])
         trade_history = factory.create_trade_history(
             'BZQ',
             [10.0, 10.0, 11.0, 11.0],
@@ -167,7 +172,7 @@ class SecurityListTestCase(TestCase):
     def test_algo_without_rl_violation(self):
         sim_params = factory.create_simulation_parameters(
             start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
-
+        trading.environment.write_data(equities_identifiers=['AAPL'])
         trade_history = factory.create_trade_history(
             'AAPL',
             [10.0, 10.0, 11.0, 11.0],
@@ -182,7 +187,7 @@ class SecurityListTestCase(TestCase):
     def test_algo_with_rl_violation(self):
         sim_params = factory.create_simulation_parameters(
             start=list(LEVERAGED_ETFS.keys())[0], num_days=4)
-
+        trading.environment.write_data(equities_identifiers=['BZQ', 'JFT'])
         trade_history = factory.create_trade_history(
             'BZQ',
             [10.0, 10.0, 11.0, 11.0],
@@ -199,7 +204,6 @@ class SecurityListTestCase(TestCase):
         self.check_algo_exception(algo, ctx, 0)
 
         # repeat with a symbol from a different lookup date
-
         trade_history = factory.create_trade_history(
             'JFT',
             [10.0, 10.0, 11.0, 11.0],
@@ -219,7 +223,7 @@ class SecurityListTestCase(TestCase):
         sim_params = factory.create_simulation_parameters(
             start=list(
                 LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=5)
-
+        trading.environment.write_data(equities_identifiers=['BZQ'])
         trade_history = factory.create_trade_history(
             'BZQ',
             [10.0, 10.0, 11.0, 11.0],
@@ -253,6 +257,7 @@ class SecurityListTestCase(TestCase):
                 timedelta(days=1),
                 sim_params
             )
+            trading.environment.write_data(equities_identifiers=['BZQ'])
             self.source = SpecificEquityTrades(event_list=trade_history)
             algo = RestrictedAlgoWithoutCheck(
                 symbol='BZQ', sim_params=sim_params)
@@ -266,9 +271,10 @@ class SecurityListTestCase(TestCase):
             # add a delete statement removing bzq
             # write a new delete statement file to disk
             add_security_data([], ['BZQ'])
-
             sim_params = factory.create_simulation_parameters(
                 start=self.extra_knowledge_date, num_days=3)
+            trading.environment.write_data(equities_identifiers=['BZQ'])
+
             trade_history = factory.create_trade_history(
                 'BZQ',
                 [10.0, 10.0, 11.0, 11.0],
@@ -287,6 +293,7 @@ class SecurityListTestCase(TestCase):
             add_security_data(['AAPL'], [])
             sim_params = factory.create_simulation_parameters(
                 start=self.trading_day_before_first_kd, num_days=4)
+            trading.environment.write_data(equities_identifiers=['AAPL'])
             trade_history = factory.create_trade_history(
                 'AAPL',
                 [10.0, 10.0, 11.0, 11.0],

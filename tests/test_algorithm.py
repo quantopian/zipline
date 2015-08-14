@@ -627,7 +627,6 @@ class TestTransformAlgorithm(TestCase):
     def test_order_instant(self):
         algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
                                          instant_fill=True)
-
         algo.run(self.df)
 
     def test_minute_data(self):

@@ -12,9 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import pandas as pd
 import pytz
-import numpy as np
+
 
 from six import integer_types
 
@@ -26,6 +27,7 @@ from zipline.sources import (DataFrameSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
 from zipline.assets import AssetFinder
+from zipline.finance import trading
 
 
 class TestDataFrameSource(TestCase):
@@ -63,15 +65,16 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['arbitrary'], float))
 
     def test_yahoo_bars_to_panel_source(self):
-        finder = AssetFinder()
+        trading.environment = trading.TradingEnvironment()
+        finder = AssetFinder(trading.environment.engine)
         stocks = ['AAPL', 'GE']
+        trading.environment.write_data(equities_identifiers=stocks)
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
         data = factory.load_bars_from_yahoo(stocks=stocks,
                                             indexes={},
                                             start=start,
                                             end=end)
-
         check_fields = ['sid', 'open', 'high', 'low', 'close',
                         'volume', 'price']
 

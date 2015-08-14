@@ -45,6 +45,9 @@ class TestEventsThroughRisk(unittest.TestCase):
 
     def test_daily_buy_and_hold(self):
 
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_identifiers=[1])
+
         start_date = datetime.datetime(
             year=2006,
             month=1,
@@ -68,7 +71,6 @@ class TestEventsThroughRisk(unittest.TestCase):
         )
 
         algo = BuyAndHoldAlgorithm(
-            identifiers=[1],
             sim_params=sim_params)
 
         first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)

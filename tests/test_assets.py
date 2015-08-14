@@ -24,7 +24,6 @@ from datetime import datetime, timedelta
 import pickle
 import uuid
 import warnings
-import sqlite3
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
@@ -35,13 +34,13 @@ from numpy import full
 
 from zipline.assets import Asset, Equity, Future, AssetFinder
 from zipline.assets.futures import FutureChain
-from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
     SidAssignmentError,
     RootSymbolNotFound,
 )
+from zipline.finance import trading
 from zipline.finance.trading import with_environment
 from zipline.utils.test_utils import (
     all_subindices,
@@ -67,32 +66,30 @@ def build_lookup_generic_cases():
         [
             {
                 'sid': 0,
-                'asset_name': 'duplicated_0',
+                'symbol': 'duplicated_0',
                 'start_date': dupe_0_start.value,
                 'end_date': dupe_0_end.value,
                 'exchange': '',
             },
             {
                 'sid': 1,
-                'asset_name': 'duplicated_1',
+                'symbol': 'duplicated_1',
                 'start_date': dupe_1_start.value,
                 'end_date': dupe_1_end.value,
                 'exchange': '',
             },
             {
                 'sid': 2,
-                'asset_name': 'unique',
+                'symbol': 'unique',
                 'start_date': unique_start.value,
                 'end_date': unique_end.value,
                 'exchange': '',
             },
         ],
         index='sid')
-    db_path = '~/temp.db'
-    conn = sqlite3.connect(db_path)
-    asset_writer = AssetDBWriterFromDataFrame(equities=frame)
-    asset_writer.write_all(conn)
-    finder = AssetFinder(conn)
+    trading.environment = trading.TradingEnvironment()
+    trading.environment.write_data(equities_df=frame)
+    finder = AssetFinder(trading.environment.engine)
     dupe_0, dupe_1, unique = assets = [
         finder.retrieve_asset(i)
         for i in range(3)
@@ -113,8 +110,8 @@ def build_lookup_generic_cases():
         (finder, 1, None, assets[1]),
         (finder, 2, None, assets[2]),
         # Duplicated symbol with resolution date
-        (finder, 'duplicated', dupe_0_start, dupe_0),
-        (finder, 'duplicated', dupe_1_start, dupe_1),
+        (finder, 'duplicated_0', dupe_0_start, dupe_0),
+        (finder, 'duplicated_1', dupe_1_start, dupe_1),
         # Unique symbol, with or without resolution date.
         (finder, 'unique', unique_start, unique),
         (finder, 'unique', None, unique),
@@ -129,11 +126,11 @@ def build_lookup_generic_cases():
         (finder, (0, 1), None, assets[:-1]),
         (finder, iter((0, 1)), None, assets[:-1]),
         # Iterables of symbols.
-        (finder, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
-        (finder, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
+        (finder, ('duplicated_0', 'unique'), dupe_0_start, [dupe_0, unique]),
+        (finder, ('duplicated_1', 'unique'), dupe_1_start, [dupe_1, unique]),
         # Mixed types
         (finder,
-         ('duplicated', 2, 'unique', 1, dupe_1),
+         ('duplicated_0', 2, 'unique', 1, dupe_1),
          dupe_0_start,
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
     ]
@@ -283,22 +280,27 @@ class TestFuture(TestCase):
 
 class AssetFinderTestCase(TestCase):
 
+    def setUp(self):
+        trading.environment = trading.TradingEnvironment()
+
     def test_lookup_symbol_fuzzy(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
         frame = pd.DataFrame.from_records(
             [
                 {
                     'sid': i,
-                    'file_name':  'TEST@%d' % i,
+                    'symbol':  'TEST@%d' % i,
                     'company_name': "company%d" % i,
-                    'start_date_nano': as_of.value,
-                    'end_date_nano': as_of.value,
+                    'start_date_': as_of.value,
+                    'end_date': as_of.value,
                     'exchange': uuid.uuid4().hex,
+                    'fuzzy': 'TEST%d' % i
                 }
                 for i in range(3)
             ]
         )
-        finder = AssetFinder(frame, fuzzy_char='@')
+        trading.environment.write_data(equities_df=frame)
+        finder = AssetFinder(trading.environment.engine, fuzzy_char='@')
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
@@ -334,17 +336,16 @@ class AssetFinderTestCase(TestCase):
             [
                 {
                     'sid': i,
-                    'file_name':  'existing',
-                    'company_name': 'existing',
-                    'start_date_nano': date.value,
-                    'end_date_nano': (date + timedelta(days=1)).value,
+                    'symbol':  'existing',
+                    'start_date': date.value,
+                    'end_date': (date + timedelta(days=1)).value,
                     'exchange': 'NYSE',
                 }
                 for i, date in enumerate(dates)
             ]
         )
-
-        finder = AssetFinder(df)
+        trading.environment.write_data(equities_df=df)
+        finder = AssetFinder(trading.environment.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
                 finder.lookup_symbol_resolve_multiple('non_existing', dates[0])
@@ -378,43 +379,40 @@ class AssetFinderTestCase(TestCase):
             [
                 {
                     'sid': 0,
-                    'file_name': 'real',
-                    'company_name': 'real',
-                    'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'symbol': 'real',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
                     'exchange': '',
                 },
                 {
                     'sid': 1,
-                    'file_name': 'also_real',
-                    'company_name': 'also_real',
-                    'start_date_nano': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'symbol': 'also_real',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
                     'exchange': '',
                 },
                 # Sid whose end date is before our query date.  We should
                 # still correctly find it.
                 {
                     'sid': 2,
-                    'file_name': 'real_but_old',
-                    'company_name': 'real_but_old',
-                    'start_date_nano': pd.Timestamp('2002-1-1', tz='UTC'),
-                    'end_date_nano': pd.Timestamp('2003-1-1', tz='UTC'),
+                    'symbol': 'real_but_old',
+                    'start_date': pd.Timestamp('2002-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2003-1-1', tz='UTC'),
                     'exchange': '',
                 },
                 # Sid whose start_date is **after** our query date.  We should
                 # **not** find it.
                 {
                     'sid': 3,
-                    'file_name': 'real_but_in_the_future',
-                    'company_name': 'real_but_in_the_future',
-                    'start_date_nano': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'end_date_nano': pd.Timestamp('2020-1-1', tz='UTC'),
+                    'symbol': 'real_but_in_the_future',
+                    'start_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2020-1-1', tz='UTC'),
                     'exchange': 'THE FUTURE',
                 },
             ]
         )
-        finder = AssetFinder(data)
+        trading.environment.write_data(equities_df=data)
+        finder = AssetFinder(trading.environment.engine)
         results, missing = finder.lookup_generic(
             ['real', 1, 'fake', 'real_but_old', 'real_but_in_the_future'],
             pd.Timestamp('2013-02-01', tz='UTC'),
@@ -433,14 +431,13 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(missing[1], 'real_but_in_the_future')
 
     def test_insert_metadata(self):
-        finder = AssetFinder()
-        finder.insert_metadata(0,
-                               asset_type='equity',
-                               start_date='2014-01-01',
-                               end_date='2015-01-01',
-                               symbol="PLAY",
-                               foo_data="FOO",)
-
+        data = {0: {'asset_type': 'equity',
+                    'start_date': '2014-01-01',
+                    'end_date': '2015-01-01',
+                    'symbol': "PLAY",
+                    'foo_data': "FOO"}}
+        trading.environment.write_data(equities_data=data)
+        finder = AssetFinder(trading.environment.engine)
         # Test proper insertion
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
@@ -455,16 +452,14 @@ class AssetFinderTestCase(TestCase):
     def test_consume_metadata(self):
 
         # Test dict consumption
-        finder = AssetFinder()
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
-        finder.consume_metadata(dict_to_consume)
+        trading.environment.write_data(equities_data=dict_to_consume)
+        finder = AssetFinder(trading.environment.engine)
 
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
         self.assertEqual('PLAY', equity.symbol)
-
-        finder = AssetFinder()
 
         # Test dataframe consumption
         df = pd.DataFrame(columns=['asset_name', 'exchange'], index=[0, 1])
@@ -472,7 +467,9 @@ class AssetFinderTestCase(TestCase):
         df['exchange'][0] = "NASDAQ"
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
-        finder.consume_metadata(df)
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(equities_df=df)
+        finder = AssetFinder(trading.environment.engine)
         self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
         self.assertEqual('Microsoft', finder.retrieve_asset(1).asset_name)
 
@@ -486,8 +483,9 @@ class AssetFinderTestCase(TestCase):
         future_asset = Future(200, symbol="TESTFUT", end_date=fut_end)
 
         # Consume the Assets
-        finder = AssetFinder()
-        finder.consume_identifiers([equity_asset, future_asset])
+        trading.environment.write_data(equities_identifiers=[equity_asset],
+                                       futures_identifiers=[future_asset])
+        finder = AssetFinder(trading.environment.engine)
 
         # Test equality with newly built Assets
         self.assertEqual(equity_asset, finder.retrieve_asset(1))
@@ -498,16 +496,16 @@ class AssetFinderTestCase(TestCase):
     def test_sid_assignment(self):
 
         # This metadata does not contain SIDs
-        metadata = {'PLAY': {'symbol': 'PLAY'},
-                    'MSFT': {'symbol': 'MSFT'}}
+        metadata = ['PLAY', 'MSFT']
 
         today = normalize_date(pd.Timestamp('2015-07-09', tz='UTC'))
 
-        # Build a finder that is allowed to assign sids
-        finder = AssetFinder(metadata=metadata,
-                             allow_sid_assignment=True)
+        # Write data with sid assignment
+        trading.environment.write_data(equities_identifiers=metadata,
+                                       allow_sid_assignment=True)
 
         # Verify that Assets were built and different sids were assigned
+        finder = AssetFinder(trading.environment.engine)
         play = finder.lookup_symbol('PLAY', today)
         msft = finder.lookup_symbol('MSFT', today)
         self.assertEqual('PLAY', play.symbol)
@@ -517,12 +515,12 @@ class AssetFinderTestCase(TestCase):
     def test_sid_assignment_failure(self):
 
         # This metadata does not contain SIDs
-        metadata = {'PLAY': {'symbol': 'PLAY'},
-                    'MSFT': {'symbol': 'MSFT'}}
+        metadata = ['PLAY', 'MSFT']
 
-        # Build a finder that is not allowed to assign sids, asserting failure
+        # Write data without sid assignment, asserting failure
         with self.assertRaises(SidAssignmentError):
-            AssetFinder(metadata=metadata, allow_sid_assignment=False)
+            trading.environment.write_data(equities_identifiers=metadata,
+                                           allow_sid_assignment=False)
 
     def test_security_dates_warning(self):
 
@@ -579,8 +577,8 @@ class AssetFinderTestCase(TestCase):
             },
 
         }
-
-        finder = AssetFinder(metadata=metadata)
+        trading.environment.write_data(futures_data=metadata)
+        finder = AssetFinder(trading.environment.engine)
         dt = pd.Timestamp('2015-05-14', tz='UTC')
         last_year = pd.Timestamp('2014-01-01', tz='UTC')
         first_day = pd.Timestamp('2015-01-01', tz='UTC')
@@ -611,7 +609,7 @@ class AssetFinderTestCase(TestCase):
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
-        finder = AssetFinder()
+        finder = AssetFinder(trading.environment.engine)
         asset1 = Equity(1, symbol="AAPL")
         asset2 = Equity(2, symbol="GOOG")
         asset200 = Future(200, symbol="CLK15")
@@ -642,7 +640,9 @@ class AssetFinderTestCase(TestCase):
             periods_between_starts=3,
             asset_lifetime=5
         )
-        finder = AssetFinder(frame)
+
+        trading.environment.write_data(equities_df=frame)
+        finder = AssetFinder(trading.environment.engine)
 
         all_dates = pd.date_range(
             start=first_start,
@@ -667,45 +667,50 @@ class AssetFinderTestCase(TestCase):
             expected_result = pd.DataFrame(
                 data=expected_mask,
                 index=dates,
-                columns=frame.sid.values,
+                columns=frame.index.values,
             )
+
             actual_result = finder.lifetimes(dates)
             assert_frame_equal(actual_result, expected_result)
 
 
 class TestFutureChain(TestCase):
-    metadata = {
-        0: {
-            'symbol': 'CLG06',
-            'root_symbol': 'CL',
-            'asset_type': 'future',
-            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-            'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-            'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
-        1: {
-            'root_symbol': 'CL',
-            'symbol': 'CLK06',
-            'asset_type': 'future',
-            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-            'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-            'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
-        2: {
-            'symbol': 'CLQ06',
-            'root_symbol': 'CL',
-            'asset_type': 'future',
-            'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-            'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
-            'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
-        3: {
-            'symbol': 'CLX06',
-            'root_symbol': 'CL',
-            'asset_type': 'future',
-            'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
-            'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
-            'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
-    }
 
-    asset_finder = AssetFinder(metadata=metadata)
+    def setUp(self):
+        metadata = {
+            0: {
+                'symbol': 'CLG06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
+            1: {
+                'root_symbol': 'CL',
+                'symbol': 'CLK06',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
+            2: {
+                'symbol': 'CLQ06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
+            3: {
+                'symbol': 'CLX06',
+                'root_symbol': 'CL',
+                'asset_type': 'future',
+                'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
+                'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
+                'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
+        }
+
+        trading.environment = trading.TradingEnvironment()
+        trading.environment.write_data(futures_data=metadata)
+        self.asset_finder = AssetFinder(trading.environment.engine)
 
     def test_len(self):
         """ Test the __len__ method of FutureChain.

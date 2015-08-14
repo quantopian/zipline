@@ -31,6 +31,8 @@ from zipline.utils import parse_args, run_pipeline
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
 
+from zipline.finance import trading
+
 matplotlib.use('Agg')
 
 
@@ -45,6 +47,8 @@ class ExamplesTests(TestCase):
     @parameterized.expand(((os.path.basename(f).replace('.', '_'), f) for f in
                            glob.glob(os.path.join(example_dir(), '*.py'))))
     def test_example(self, name, example):
+        # Create a new trading environment for each test.
+        trading.environment = trading.TradingEnvironment()
         imp.load_source('__main__', os.path.basename(example), open(example))
 
     # Test algorithm as if scripts/run_algo.py is being used.

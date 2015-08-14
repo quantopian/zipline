@@ -85,6 +85,12 @@ class TestAlgo(TradingAlgorithm):
 
 
 class AlgorithmGeneratorTestCase(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = trading.TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[8229])
+
     def setUp(self):
         setup_logger(self)
 
@@ -106,6 +112,8 @@ class AlgorithmGeneratorTestCase(TestCase):
                 end=datetime(2012, 6, 30, tzinfo=pytz.utc)
             )
             algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
+            # This call appears inconsistent with
+            # the signature of create_daily_trade_source
             trade_source = factory.create_daily_trade_source(
                 [8229],
                 200,
@@ -127,11 +135,15 @@ class AlgorithmGeneratorTestCase(TestCase):
         Ensure the pipeline of generators are in sync, at least as far as
         their current dates.
         """
+        # Ensure we are pointing to the TradingEnvironment for this class
+        trading.environment = AlgorithmGeneratorTestCase.env
+
         sim_params = factory.create_simulation_parameters(
             start=datetime(2011, 7, 30, tzinfo=pytz.utc),
             end=datetime(2012, 7, 30, tzinfo=pytz.utc)
         )
-        algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
+        algo = TestAlgo(self, sim_params=sim_params,
+                        env=AlgorithmGeneratorTestCase.env)
         trade_source = factory.create_daily_trade_source(
             [8229],
             sim_params
@@ -158,7 +170,8 @@ class AlgorithmGeneratorTestCase(TestCase):
             period_end=datetime(2012, 7, 30, tzinfo=pytz.utc),
             data_frequency='minute'
         )
-        algo = TestAlgo(self, identifiers=[8229], sim_params=sim_params)
+        algo = TestAlgo(self, sim_params=sim_params,
+                        env=AlgorithmGeneratorTestCase.env)
 
         midnight_custom_source = [Event({
             'custom_field': 42.0,
@@ -196,11 +209,15 @@ class AlgorithmGeneratorTestCase(TestCase):
         Ensure the pipeline of generators are in sync, at least as far as
         their current dates.
         """
+        # Ensure we are pointing to the TradingEnvironment for this class
+        trading.environment = AlgorithmGeneratorTestCase.env
+
         sim_params = factory.create_simulation_parameters(
             start=datetime(2008, 1, 1, tzinfo=pytz.utc),
             end=datetime(2008, 1, 5, tzinfo=pytz.utc)
         )
-        algo = TestAlgo(self, sim_params=sim_params)
+        algo = TestAlgo(self, sim_params=sim_params,
+                        env=AlgorithmGeneratorTestCase.env)
         trade_source = factory.create_daily_trade_source(
             [8229],
             sim_params
@@ -222,6 +239,7 @@ class AlgorithmGeneratorTestCase(TestCase):
         """
         sim_params = create_simulation_parameters(num_days=1,
                                                   data_frequency='minute')
-        algo = TestAlgo(self, sim_params=sim_params, identifiers=[8229])
+        algo = TestAlgo(self, sim_params=sim_params,
+                        env=AlgorithmGeneratorTestCase.env)
         algo.run(source=[], overwrite_sim_params=False)
         self.assertEqual(algo.datetime, sim_params.last_close)

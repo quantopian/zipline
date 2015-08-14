@@ -42,6 +42,7 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     USEquityPricingLoader,
 )
 # from zipline.modelling.factor import CustomFactor
+from zipline.finance import trading
 from zipline.modelling.factor.technical import VWAP
 from zipline.utils.test_utils import (
     make_simple_asset_info,
@@ -84,7 +85,9 @@ class FFCAlgorithmTestCase(TestCase):
             Timestamp('2015'),
             ['AAPL', 'MSFT', 'BRK_A'],
         )
-        cls.asset_finder = AssetFinder(asset_info)
+        cls.env = trading.TradingEnvironment()
+        cls.env.write_data(equities_df=asset_info)
+        cls.asset_finder = AssetFinder(cls.env.engine)
         cls.tempdir = tempdir = TempDirectory()
         tempdir.create()
         try:
@@ -199,6 +202,11 @@ class FFCAlgorithmTestCase(TestCase):
 
         # Do the same checks in before_trading_start
         before_trading_start = handle_data
+
+        # Create fresh trading environment as the algo.run()
+        # method will attempt to write data to disk, and could
+        # violate SQL constraints.
+        trading.environment = trading.TradingEnvironment()
 
         algo = TradingAlgorithm(
             initialize=initialize,

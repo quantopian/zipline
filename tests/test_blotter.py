@@ -17,6 +17,7 @@ import datetime
 from nose_parameterized import parameterized
 from unittest import TestCase
 
+from zipline.finance import trading
 from zipline.finance.blotter import Blotter, ORDER_STATUS
 from zipline.finance.trading import with_environment
 from zipline.finance.execution import (
@@ -35,10 +36,13 @@ from zipline.utils.test_utils import(
 
 class BlotterTestCase(TestCase):
 
-    @with_environment()
+    @classmethod
+    def setUpClass(cls):
+        cls.env = trading.TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[24])
+
     def setUp(self, env=None):
         setup_logger(self)
-        env.write_data(equities_identifiers=[24])
 
     def tearDown(self):
         teardown_logger(self)
