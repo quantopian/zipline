@@ -26,6 +26,8 @@ install:
   - grep networkx== etc/requirements.txt | xargs pip install
   - grep numexpr== etc/requirements.txt | xargs pip install
   - grep bcolz== etc/requirements.txt | xargs pip install
+  - grep toolz== etc/requirements.txt | xargs pip install
+  - grep sqlalchemy== etc/requirements.txt | xargs pip install
   - grep pyflakes== etc/requirements_dev.txt | xargs pip install
   - grep pep8== etc/requirements_dev.txt | xargs pip install
   - grep mccabe== etc/requirements_dev.txt | xargs pip install
