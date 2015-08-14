@@ -553,10 +553,6 @@ class AssetFinder(object):
         if isinstance(first_identifier, Integral):
             return index
 
-        # If symbols or Assets are provided, construction and mapping is
-        # necessary
-        self.consume_identifiers(index)
-
         # Look up all Assets for mapping
         matches = []
         missing = []
