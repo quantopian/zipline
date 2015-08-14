@@ -291,7 +291,7 @@ class AssetFinder(object):
 
         else:
             sids = sa.select((equities_cols.sid,)).where(
-                equities_cols.symbol == sid,
+                equities_cols.symbol == symbol,
             ).execute().fetchall()
             if len(sids) == 1:
                 return self._retrieve_equity(sids[0]['sid'])
@@ -306,7 +306,7 @@ class AssetFinder(object):
                     ))
                 )
 
-    def lookup_symbol(self, symbol, as_of_date, fuzzy=None):
+    def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
         If a fuzzy string is provided, then we try various symbols based on
         the provided symbol.  This is to facilitate mapping from a broker's
@@ -315,14 +315,17 @@ class AssetFinder(object):
         when the broker provides CMCSA, it can also provide fuzzy='_',
         so we can find a match by inserting an underscore.
         """
+
         symbol = symbol.upper()
         ad_value = pd.Timestamp(normalize_date(as_of_date)).value
 
-        if fuzzy is None:
+        if not fuzzy:
             try:
                 return self.lookup_symbol_resolve_multiple(symbol, as_of_date)
             except SymbolNotFound:
                 return None
+
+        fuzzy = symbol.replace(self.fuzzy_char, '')
 
         equities_cols = self.equities.c
         candidates = sa.select((equities_cols.sid,)).where(
@@ -399,20 +402,19 @@ class AssetFinder(object):
             as_of_date = as_of_date.value
             if knowledge_date is pd.NaT:
                 # If knowledge_date is NaT, default to using as_of_date
-                knowledge_date = as_of_date.value
+                knowledge_date = as_of_date
             else:
                 knowledge_date = knowledge_date.value
-
-        sids = list(map(
-            itemgetter('sid'),
-            sa.select((fc_cols.sid,)).where(
-                (fc_cols.root_symbol == root_symbol) &
-                (fc_cols.notice_date >= as_of_date) &
-                (fc_cols.start_date <= knowledge_date),
-            ).order_by(
-                fc_cols.notice_date.asc(),
-            ).execute().fetchall()
-        ))
+            sids = list(map(
+                itemgetter('sid'),
+                sa.select((fc_cols.sid,)).where(
+                    (fc_cols.root_symbol == root_symbol) &
+                    (fc_cols.notice_date > as_of_date) &
+                    (fc_cols.start_date <= knowledge_date),
+                ).order_by(
+                    fc_cols.notice_date.asc(),
+                ).execute().fetchall()
+            ))
 
         if not sids:
             # Check if root symbol exists.
@@ -575,15 +577,13 @@ class AssetFinder(object):
         """
         equities_cols = self.equities.c
         buf = np.array(
-            tuple(map(
-                float,
+            tuple(
                 sa.select((
                     equities_cols.sid,
                     equities_cols.start_date,
                     equities_cols.end_date,
                 )).execute(),
-            )),
-            dype='<f8',  # use doubles so we get NaNs
+            ), dtype='<f8',  # use doubles so we get NaNs
         )
         lifetimes = np.recarray(
             buf=buf,
