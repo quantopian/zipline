@@ -31,6 +31,7 @@ from six import (
 )
 from operator import attrgetter
 
+
 from zipline.errors import (
     AddTermPostInit,
     OrderDuringInitialize,
@@ -191,7 +192,6 @@ class TradingAlgorithm(object):
 
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
-
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
             self.sim_params = create_simulation_parameters(
@@ -495,6 +495,8 @@ class TradingAlgorithm(object):
             # if DataFrame provided, map columns to sids and wrap
             # in DataFrameSource
             copy_frame = source.copy()
+            self.trading_environment.write_data(
+                equities_identifiers=source.columns)
             copy_frame.columns = \
                 self.asset_finder.map_identifier_index_to_sids(
                     source.columns, source.index[0]
@@ -505,6 +507,8 @@ class TradingAlgorithm(object):
             # If Panel provided, map items to sids and wrap
             # in DataPanelSource
             copy_panel = source.copy()
+            self.trading_environment.write_data(
+                equities_identifiers=source.items)
             copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
                 source.items, source.major_axis[0]
             )
