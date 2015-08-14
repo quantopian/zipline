@@ -112,6 +112,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         """
         self.allow_sid_assignment = allow_sid_assignment
 
+        # Begin an SQL transaction.
         with engine.begin() as txn:
             # Create SQL tables.
             self.init_db(txn, constraints)
@@ -283,8 +284,11 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
         data = self._load_data()
 
-        # ******** Generate equities data ********
+        ###############################
+        # Generate equities DataFrame #
+        ###############################
 
+        # Default values to be written to database.
         equities_defaults = {
             'symbol': None,
             'asset_name': None,
@@ -294,9 +298,12 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             'exchange': None,
             'fuzzy': None,
         }
+
+        # The columns to be returned.
         equities_cols = {'symbol', 'asset_name', 'start_date',
                          'end_date', 'first_traded', 'exchange', 'fuzzy'}
 
+        # The columns provided.
         cols = set(data.equities.columns)
 
         # Drop columns with unrecognised headers.
@@ -307,7 +314,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # for which no data has been supplied.
         need = equities_cols - set(data.equities.columns)
 
-        # Combine the users supplied data with our required columns.
+        # Combine the supplied data with our required columns.
         equities_output = pd.concat(
             (data.equities, pd.DataFrame(
                 self.dict_subset(equities_defaults, need),
@@ -317,7 +324,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             copy=False
         )
 
-        # Convert date columns to UNIX Epoch integers (milliseconds)
+        # Convert date columns to UNIX Epoch integers (nanoseconds)
         equities_output['start_date'] = \
             equities_output['start_date'].apply(self.convert_datetime)
         equities_output['end_date'] = \
@@ -325,8 +332,11 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         equities_output['first_traded'] = \
             equities_output['first_traded'].apply(self.convert_datetime)
 
-        # ******** Generate futures data ********
+        ##############################
+        # Generate futures DataFrame #
+        ##############################
 
+        # Default values to be written to database.
         futures_defaults = {
             'symbol': None,
             'root_symbol': None,
@@ -339,11 +349,14 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             'expiration_date': None,
             'contract_multiplier': 1,
         }
+
+        # The columns to be returned.
         futures_cols = {'symbol', 'root_symbol', 'asset_name',
                         'start_date', 'end_date', 'first_traded', 'exchange',
                         'notice_date', 'expiration_date',
                         'contract_multiplier'}
 
+        # The columns provided.
         cols = set(data.futures.columns)
 
         # Drop columns with unrecognised headers.
@@ -364,7 +377,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             copy=False
         )
 
-        # Convert date columns to UNIX Epoch integers (milliseconds)
+        # Convert date columns to UNIX Epoch integers (nanoseconds)
         futures_output['start_date'] = \
             futures_output['start_date'].apply(self.convert_datetime)
         futures_output['end_date'] = \
@@ -380,14 +393,20 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         futures_output['symbol'] = futures_output.symbol.str.upper()
         futures_output['root_symbol'] = futures_output.root_symbol.str.upper()
 
-        # ******** Generate exchanges data ********
+        ################################
+        # Generate exchanges DataFrame #
+        ################################
 
+        # Default values to be written to database.
         exchanges_defaults = {
             'exchange': None,
             'timezone': None,
         }
+
+        # The columns to be returned.
         exchanges_cols = {'exchange', 'timezone', }
 
+        # The columns provided.
         cols = set(data.exchanges.columns)
 
         # Drop columns with unrecognised headers.
@@ -408,17 +427,23 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             copy=False
         )
 
-        # ******** Generate root symbols data ********
+        ###################################
+        # Generate root symbols DataFrame #
+        ###################################
 
+        # Default values to be written to database.
         root_symbols_defaults = {
             'root_symbol': None,
             'sector': None,
             'description': None,
             'exchange_id': None,
         }
+
+        # The columns to be returned.
         root_symbols_cols = {'root_symbol', 'sector',
                              'description', 'exchange_id'}
 
+        # The columns provided.
         cols = set(data.root_symbols.columns)
 
         # Drop columns with unrecognised headers.
@@ -534,11 +559,11 @@ class AssetDBWriterFromList(AssetDBWriter):
         _equities, _futures, _exchanges, _root_symbols = {}, {}, {}, {}
 
         # 1) Populate dictionaries
-        # Return the largest sid in our dataset, if one exists.
+        # Return the largest sid in our database, if one exists.
         id_counter = sa.select(
             [sa.func.max(self.asset_router.c.sid)]
         ).execute().scalar()
-        # Base sid creation on largest sid in dataset, or 0 if
+        # Base sid creation on largest sid in database, or 0 if
         # no sids exist.
         if id_counter is None:
             id_counter = 0
