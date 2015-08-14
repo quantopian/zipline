@@ -34,7 +34,6 @@ import pandas as pd
 import numpy as np
 from six.moves import range, zip
 
-from zipline.assets import AssetFinder
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.slippage import Transaction, create_transaction
