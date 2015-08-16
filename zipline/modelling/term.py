@@ -172,6 +172,15 @@ class Term(object):
         """
         return max(0, self.window_length - 1)
 
+    def short_repr(self):
+        """
+        Short representation of this term.  Should be less than 30 characters.
+
+        Used when generating GraphViz graphs, where long node labels don't work
+        well.
+        """
+        return type(self).__name__
+
     def compute_from_windows(self, windows, mask):
         """
         Subclasses should implement this for computations requiring moving

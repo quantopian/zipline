@@ -386,6 +386,12 @@ class Rank(SingleInputMixin, Factor):
             method=self._method,
         )
 
+    def short_repr(self):
+        return "{type}: [method='{method}']".format(
+            type=type(self).__name__,
+            method=self._method,
+        )
+
 
 class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     """
@@ -403,6 +409,12 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         if self.dtype != float64:
             raise UnsupportedDataType(self.dtype)
         return super(CustomFactor, self)._validate()
+
+    def short_repr(self):
+        return "{type}: [length={length}]".format(
+            type=type(self).__name__,
+            length=self.window_length,
+        )
 
 
 class TestingFactor(TestingTermMixin, Factor):

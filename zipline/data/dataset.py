@@ -69,10 +69,9 @@ class BoundColumn(Term):
         return '.'.join([self.dataset.__name__, self.name])
 
     def __repr__(self):
-        return "{qualname}::{dtype}".format(
-            qualname=self.qualname,
-            dtype=self.dtype.__name__,
-        )
+        return self.qualname
+
+    short_repr = __repr__
 
 
 class DataSetMeta(type):

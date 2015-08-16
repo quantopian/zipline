@@ -209,6 +209,13 @@ class PercentileFilter(SingleInputMixin, Filter):
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
 
+    def short_repr(self):
+        return "{type}: [min={min}, max={max}]".format(
+            type=type(self).__name__,
+            min=self._min_percentile,
+            max=self._max_percentile,
+        )
+
 
 class SequencedFilter(Filter):
     """
@@ -270,6 +277,13 @@ class SequencedFilter(Filter):
         return self._then.compute_from_arrays(
             then_inputs,
             mask & first_result,
+        )
+
+    def short_repr(self):
+        return "{type}: {first} -> {then}".format(
+            type(self).__name__,
+            first=self.inputs[0].short_repr(),
+            then=self._then.short_repr(),
         )
 
 

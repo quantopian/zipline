@@ -299,6 +299,9 @@ class NumericalExpression(Term):
             for i, input_ in enumerate(self.inputs)
         }
 
+    def short_repr(self):
+        return "Expr: '{expr}'".format(expr=self._expr)
+
     def __repr__(self):
         return "{typename}(expr='{expr}', bindings={bindings})".format(
             typename=type(self).__name__,
