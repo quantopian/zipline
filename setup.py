@@ -15,30 +15,35 @@
 # limitations under the License.
 
 from setuptools import setup, Extension, find_packages
-from Cython.Build import cythonize
-import numpy as np
+
+
+class LazyCythonizingList(list):
+    cythonized = False
+
+    def lazy_cythonize(self):
+        if self.cythonized:
+            return
+        self.cythonized = True
+        from Cython.Build import cythonize
+        import numpy as np
+        self[:] = cythonize([Extension(e[0], e[1],
+                                       include_dirs=[np.get_include()])
+                             for e in self])
+
+    def __iter__(self):
+        self.lazy_cythonize()
+        return super(LazyCythonizingList, self).__iter__()
+
+    def __getitem__(self, num):
+        self.lazy_cythonize()
+        return super(LazyCythonizingList, self).__getitem__(num)
 
 ext_modules = [
-    Extension(
-        'zipline.assets._assets',
-        ['zipline/assets/_assets.pyx'],
-        include_dirs=[np.get_include()],
-    ),
-    Extension(
-        'zipline.lib.adjusted_array',
-        ['zipline/lib/adjusted_array.pyx'],
-        include_dirs=[np.get_include()],
-    ),
-    Extension(
-        'zipline.lib.adjustment',
-        ['zipline/lib/adjustment.pyx'],
-        include_dirs=[np.get_include()],
-    ),
-    Extension(
-        'zipline.data.ffc.loaders._us_equity_pricing',
-        ['zipline/data/ffc/loaders/_us_equity_pricing.pyx'],
-        include_dirs=[np.get_include()],
-    ),
+    ('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
+    ('zipline.lib.adjusted_array', ['zipline/lib/adjusted_array.pyx']),
+    ('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
+    ('zipline.data.ffc.loaders._us_equity_pricing',
+     ['zipline/data/ffc/loaders/_us_equity_pricing.pyx']),
 ]
 
 setup(
@@ -48,7 +53,7 @@ setup(
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages('.', include=['zipline', 'zipline.*']),
-    ext_modules=cythonize(ext_modules),
+    ext_modules=LazyCythonizingList(ext_modules),
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
     license='Apache 2.0',
@@ -64,6 +69,10 @@ setup(
         'Topic :: Office/Business :: Financial',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
+    ],
+    setup_requires=[
+        'Cython',
+        'numpy',
     ],
     install_requires=[
         'Logbook',
