@@ -373,7 +373,6 @@ class AssetFinderTestCase(TestCase):
     def test_lookup_generic_handle_missing(self):
         data = pd.DataFrame.from_records(
             [
-                # Sids that will be found when we do lookups.
                 {
                     'sid': 0,
                     'file_name': 'real',
@@ -400,8 +399,8 @@ class AssetFinderTestCase(TestCase):
                     'end_date_nano': pd.Timestamp('2003-1-1', tz='UTC'),
                     'exchange': '',
                 },
-                # Sid whose end date is before our query date.  We should
-                # still correctly find it.
+                # Sid whose start_date is **after** our query date.  We should
+                # **not** find it.
                 {
                     'sid': 3,
                     'file_name': 'real_but_in_the_future',
@@ -423,6 +422,8 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(results[0].sid, 0)
         self.assertEqual(results[1].symbol, 'also_real')
         self.assertEqual(results[1].sid, 1)
+        self.assertEqual(results[2].symbol, 'real_but_old')
+        self.assertEqual(results[2].sid, 2)
 
         self.assertEqual(len(missing), 2)
         self.assertEqual(missing[0], 'fake')
