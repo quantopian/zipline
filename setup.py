@@ -82,6 +82,10 @@ setup(
         'pandas',
         'six',
         'Cython',
+        'contextlib2',
+        'networkx',
+        'scipy',
+        'numexpr',
     ],
     extras_require={
         'talib':  ["talib"],
