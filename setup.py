@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
 import numpy as np
 
@@ -47,7 +47,7 @@ setup(
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
-    packages=['zipline'],
+    packages=find_packages('.', include=['zipline', 'zipline.*']),
     ext_modules=cythonize(ext_modules),
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
