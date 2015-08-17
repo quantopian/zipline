@@ -147,10 +147,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             {'index': 'sid'},
             1,
         ).to_dict('records')
-        if recs:
-            self.futures_contracts.insert().values(recs).execute(bind=bind)
-            ar_recs = [(rec['sid'], 'future') for rec in recs]
-            self.asset_router.insert().values(ar_recs).execute(bind=bind)
+        for record in recs:
+            self.futures_contracts.insert().values([record]).execute(bind=bind)
+            self.asset_router.insert().values([(record['sid'], 'future')])\
+                .execute(bind=bind)
 
     def _write_equities(self, equities, fuzzy_char, bind=None):
         # Apply fuzzy matching.
@@ -161,10 +161,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             {'index': 'sid'},
             1,
         ).to_dict('records')
-        if recs:
-            self.equities.insert().values(recs).execute(bind=bind)
-            ar_recs = [(rec['sid'], 'equity') for rec in recs]
-            self.asset_router.insert().values(ar_recs).execute(bind=bind)
+        for record in recs:
+            self.equities.insert().values([record]).execute(bind=bind)
+            self.asset_router.insert().values((record['sid'], 'equity'))\
+                .execute(bind=bind)
 
     def init_db(self, engine, constraints=True):
         """Connect to database and create tables.
