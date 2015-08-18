@@ -82,6 +82,7 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         algo = self.algo
+        algo.data_portal = self.data_portal
         sim_params = algo.sim_params
         trading_days = sim_params.trading_days
         env = TradingEnvironment.instance()

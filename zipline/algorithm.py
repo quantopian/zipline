@@ -88,6 +88,7 @@ from zipline.utils.events import (
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import tolerant_equals
+from zipline.utils import tradingcalendar
 
 import zipline.protocol
 from zipline.protocol import Event
@@ -546,7 +547,7 @@ class TradingAlgorithm(object):
 
         # Create history containers
         if self.history_specs:
-            self.history_container = self.history_container_class(
+            self.history_container = HistoryContainer(
                 self.history_specs,
                 self.current_universe(),
                 self.sim_params.first_open,
@@ -943,7 +944,7 @@ class TradingAlgorithm(object):
         """
         Returns the simulation datetime.
         """
-        dt = self.datetime
+        dt = pd.Timestamp(self.datetime, tz='UTC')
         assert dt.tzinfo == pytz.utc, "Algorithm should have a utc datetime"
 
         if tz is not None:
@@ -1131,6 +1132,8 @@ class TradingAlgorithm(object):
             )
             self.history_specs[spec_key] = spec
             if not self.history_container:
+                current_universe = self.current_universe()
+
                 self.history_container = self.history_container_class(
                     self.history_specs,
                     self.current_universe(),
@@ -1145,13 +1148,28 @@ class TradingAlgorithm(object):
 
     @api_method
     def history(self, bar_count, frequency, field, ffill=True):
-        history_spec = self.get_history_spec(
-            bar_count,
-            frequency,
-            field,
-            ffill,
-        )
-        return self.history_container.get_history(history_spec, self.datetime)
+        # FIXME deal with ffill
+
+        # FIXME need to get the current universe of sids
+
+        if self.data_portal is None:
+            raise Exception("no data portal!")
+
+        if frequency == "1d":
+            # go back bar_count days from the current backtest datetime
+            current_day_idx = tradingcalendar.trading_days.searchsorted(
+                self.get_datetime())
+            start_day = tradingcalendar.trading_days[current_day_idx -
+                                                     bar_count]
+
+            data = self.data_portal.get_history_window(
+                [24, 8554, 42950],
+                start_day,
+                bar_count,
+                "daily",
+                field)
+
+            return data
 
     ####################
     # Account Controls #
