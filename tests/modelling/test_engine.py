@@ -16,6 +16,7 @@ from pandas import (
     Int64Index,
     rolling_mean,
     Timestamp,
+    Series,
 )
 from pandas.util.testing import assert_frame_equal
 from testfixtures import TempDirectory
@@ -48,6 +49,7 @@ from zipline.utils.test_utils import (
     make_rotating_asset_info,
     make_simple_asset_info,
     product_upper_triangle,
+    check_arrays,
 )
 
 
@@ -464,9 +466,8 @@ class MultiColumnLoaderTestCase(TestCase):
                                       self.dates[2],
                                       self.dates[-1])
         self.assertIsNotNone(result)
-        self.assertIn('f', result)
-        self.assertFalse(result['f'].empty)
+        self.assertEqual({'f'}, set(result.columns))
         # (close - open) * window = (1 - 2) * 3 = -3
         # skipped 2 from the start, so that the window is full
-        self.assertEqual(list(result['f']),
-                         [-3] * len(self.assets) * (len(self.dates) - 2))
+        check_arrays(result['f'],
+                     Series([-3] * len(self.assets) * (len(self.dates) - 2)))
