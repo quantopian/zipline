@@ -24,38 +24,49 @@ from os.path import (
     join,
 )
 from distutils.version import StrictVersion
-from setuptools import setup, Extension
-try:
-    from Cython.Build import cythonize
-    from numpy import get_include
-    ext_modules = cythonize(
-        [
-            Extension(
-                'zipline.assets._assets',
-                ['zipline/assets/_assets.pyx'],
-                include_dirs=[get_include()],
-            ),
-            Extension(
-                'zipline.lib.adjusted_array',
-                ['zipline/lib/adjusted_array.pyx'],
-                include_dirs=[get_include()],
-            ),
-            Extension(
-                'zipline.lib.adjustment',
-                ['zipline/lib/adjustment.pyx'],
-                include_dirs=[get_include()],
-            ),
-            Extension(
-                'zipline.data.ffc.loaders._us_equity_pricing',
-                ['zipline/data/ffc/loaders/_us_equity_pricing.pyx'],
-                include_dirs=[get_include()],
-            ),
-        ]
-    )
-except ImportError:
-    if 'build_ext' in sys.argv:
-        raise
-    ext_modules = []
+from setuptools import (
+    Extension,
+    find_packages,
+    setup,
+)
+
+
+class LazyCythonizingList(list):
+    cythonized = False
+
+    def lazy_cythonize(self):
+        if self.cythonized:
+            return
+        self.cythonized = True
+
+        from Cython.Build import cythonize
+        from numpy import get_include
+
+        self[:] = cythonize(
+            [
+                Extension(*ext_args, include_dirs=[get_include()])
+                for ext_args in self
+            ]
+        )
+
+    def __iter__(self):
+        self.lazy_cythonize()
+        return super(LazyCythonizingList, self).__iter__()
+
+    def __getitem__(self, num):
+        self.lazy_cythonize()
+        return super(LazyCythonizingList, self).__getitem__(num)
+
+
+ext_modules = LazyCythonizingList([
+    ('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
+    ('zipline.lib.adjusted_array', ['zipline/lib/adjusted_array.pyx']),
+    ('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
+    (
+        'zipline.data.ffc.loaders._us_equity_pricing',
+        ['zipline/data/ffc/loaders/_us_equity_pricing.pyx']
+    ),
+])
 
 
 STR_TO_CMP = {
