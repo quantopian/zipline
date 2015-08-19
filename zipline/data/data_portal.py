@@ -1,3 +1,4 @@
+from datetime import datetime
 import bcolz
 import sqlite3
 
@@ -25,11 +26,11 @@ class DataPortal(object):
         self.algo = algo
 
         self.carrays = {
-            'opens': {},
-            'highs': {},
-            'lows': {},
-            'closes': {},
-            'volumes': {},
+            'open': {},
+            'high': {},
+            'low': {},
+            'close': {},
+            'volume': {},
             'sid': {},
             'dt': {},
         }
@@ -39,15 +40,13 @@ class DataPortal(object):
             self.benchmark_iter = iter(self.algo.benchmark_iter)
 
         self.column_lookup = {
-            'opens': 'opens',
-            'highs': 'highs',
-            'lows': 'lows',
-            'closes': 'closes',
-            'close': 'closes',
-            'volumes': 'volumes',
-            'volume': 'volumes',
-            'open_price': 'opens',
-            'close_price': 'closes'
+            'open': 'open',
+            'high': 'high',
+            'lows': 'low',
+            'close': 'close',
+            'volume': 'volume',
+            'open_price': 'open',
+            'close_price': 'close'
         }
 
         self.adjustments_conn = sqlite3.connect(ADJUSTMENTS_PATH)
@@ -86,20 +85,25 @@ class DataPortal(object):
 
         return self.daily_equities_data, self.daily_equities_attrs
 
+    def _open_minute_file(self, field, sid):
+        path = "{0}/{1}.bcolz".format(FINDATA_DIR, sid)
+
+        try:
+            carray = self.carrays[field][path]
+        except KeyError:
+            carray = self.carrays[field][path] = bcolz.carray(
+                rootdir=path + "/" + field, mode='r')
+
+        return carray
+
     def get_current_price_data(self, asset, column):
         asset_int = int(asset)
-        path = "{0}/{1}.bcolz".format(FINDATA_DIR, asset_int)
 
         if column not in self.column_lookup:
             raise KeyError("Invalid column: " + str(column))
 
         column_to_use = self.column_lookup[column]
-
-        try:
-            carray = self.carrays[column_to_use][path]
-        except KeyError:
-            carray = self.carrays[column_to_use][path] = bcolz.carray(
-                rootdir=path + "/" + column_to_use, mode='r')
+        carray = self._open_minute_file(column_to_use, asset_int)
 
         adjusted_dt = int(self.current_dt / 1e9)
 
@@ -155,6 +159,36 @@ class DataPortal(object):
 
         # else:
         #     return self._get_minute_history_window(sids, bar_count, field)
+
+    def _get_minute_window_for_sid(self, sid, start_dt, bar_count, field):
+        # each sid's minutes are stored in a bcolz file
+        # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
+        # of when the asset started trading
+
+        # find the position of start_dt in the entire timeline, go back
+        # bar_count bars, and that's the unadjusted data
+        raw_data = self._open_minute_file(field, sid)
+
+        day = start_dt.date()
+        day_idx = tradingcalendar.trading_days.searchsorted(day)
+
+        that_day_open = pd.Timestamp(
+            datetime(
+                year=day.year,
+                month=day.month,
+                day=day.day,
+                hour=9,
+                minute=31),
+            tz='US/Eastern').tz_convert('UTC')
+
+        minutes_offset = int((start_dt - that_day_open).total_seconds())
+        unadjusted_data = raw_data[(minutes_offset - bar_count):minutes_offset]
+
+        return unadjusted_data
+
+
+
+
 
 
     def _get_daily_window_for_sid(self, sid, start_dt, bar_count, field):
