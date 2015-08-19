@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import print_function
 
 import re
 import sys
@@ -68,6 +69,16 @@ ext_modules = LazyCythonizingList([
 ])
 
 
+STR_TO_CMP = {
+    '<': lt,
+    '<=': le,
+    '=': eq,
+    '==': eq,
+    '>': gt,
+    '>=': ge,
+}
+
+
 def _filter_requirements(lines_iter):
     for line in lines_iter:
         line = line.strip()
@@ -84,14 +95,7 @@ def _filter_requirements(lines_iter):
                     "(python_version)([<>=]{1,2})(')([0-9\.]+)(')(.*)",
                     version_spec,
                 ).groups()
-                comp = {
-                    '<': lt,
-                    '<=': le,
-                    '=': eq,
-                    '==': eq,
-                    '>': gt,
-                    '>=': ge,
-                }[groups[1]]
+                comp = STR_TO_CMP[groups[1]]
                 version_spec = StrictVersion(groups[3])
             except Exception as e:
                 # My kingdom for a 'raise from'!
@@ -117,13 +121,6 @@ def read_requirements(path):
         return list(_filter_requirements(f.readlines()))
 
 
-def setup_requires():
-    requires = read_requirements('etc/requirements.txt')
-    reqs = [req for req in requires if 'numpy' in req or 'Cython' in req]
-    assert len(reqs) == 2
-    return reqs
-
-
 def install_requires():
     return read_requirements('etc/requirements.txt')
 
@@ -133,6 +130,55 @@ def extras_requires():
         'dev': read_requirements('etc/requirements_dev.txt'),
         'talib': ['talib'],
     }
+
+
+def filter_requirements(requirements_path, module_names):
+    module_names = set(module_names)
+    found = set()
+    module_lines = []
+    parser = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
+    for line in read_requirements(requirements_path):
+        match = parser.match(line)
+        if match is None:
+            raise ValueError("Could not parse requirement: '%s'" % line)
+
+        groups = match.groups()
+        name = groups[0]
+        if name in module_names:
+            found.add(name)
+            module_lines.append(line)
+
+    if found != module_names:
+        raise AssertionError(
+            "No requirements found for %s." % module_names - found
+        )
+    return module_lines
+
+
+def pre_setup():
+    if not set(sys.argv) & {'install', 'develop', 'egg_info'}:
+        return
+
+    try:
+        import pip
+        if StrictVersion(pip.__version__) < StrictVersion('7.1.0'):
+            raise AssertionError(
+                "Zipline installation requires pip>=7.1.0, but your pip "
+                "version is {version}. \n"
+                "You can upgrade your pip with "
+                "'pip install --upgrade pip'.".format(
+                    version=pip.__version__,
+                )
+            )
+    except ImportError:
+        raise AssertionError("Zipline installation requires pip")
+
+    required = ('Cython', 'numpy')
+    for line in filter_requirements('etc/requirements.txt', required):
+        pip.main(['install', line])
+
+
+pre_setup()
 
 
 setup(
@@ -159,7 +205,6 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
     ],
-    setup_requires=setup_requires(),
     install_requires=install_requires(),
     extras_require=extras_requires(),
     url="http://zipline.io"
