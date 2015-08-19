@@ -127,9 +127,12 @@ def install_requires():
 
 
 def extras_requires():
+    dev_reqs = read_requirements('etc/requirements_dev.txt')
+    talib_reqs = ['TA-Lib==0.4.9']
     return {
-        'dev': read_requirements('etc/requirements_dev.txt'),
-        'talib': ['talib'],
+        'dev': dev_reqs,
+        'talib': talib_reqs,
+        'all': dev_reqs + talib_reqs,
     }
 
 
