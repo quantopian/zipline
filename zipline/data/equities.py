@@ -10,7 +10,9 @@ from zipline.data.dataset import (
 
 
 class USEquityPricing(DataSet):
-
+    """
+    Daily pricing data for US Equities
+    """
     open = Column(float64)
     high = Column(float64)
     low = Column(float64)
