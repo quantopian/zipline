@@ -88,28 +88,29 @@ def _filter_requirements(lines_iter):
         # pip install -r understands line with ;python_version<'3.0', but
         # whatever happens inside extras_requires doesn't.  Parse the line
         # manually and conditionally add it if needed.
-        if ';' in line:
-            requirement, version_spec = line.split(';')
-            try:
-                groups = re.match(
-                    "(python_version)([<>=]{1,2})(')([0-9\.]+)(')(.*)",
-                    version_spec,
-                ).groups()
-                comp = STR_TO_CMP[groups[1]]
-                version_spec = StrictVersion(groups[3])
-            except Exception as e:
-                # My kingdom for a 'raise from'!
-                raise ValueError(
-                    "Couldn't parse requirement line; '%s'\n"
-                    "Error was:\n"
-                    "%r" % (line, e)
-                )
-
-            sys_version = '.'.join(list(map(str, sys.version_info[:3])))
-            if comp(sys_version, version_spec):
-                yield requirement
-        else:
+        if ';' not in line:
             yield line
+            continue
+
+        requirement, version_spec = line.split(';')
+        try:
+            groups = re.match(
+                "(python_version)([<>=]{1,2})(')([0-9\.]+)(')(.*)",
+                version_spec,
+            ).groups()
+            comp = STR_TO_CMP[groups[1]]
+            version_spec = StrictVersion(groups[3])
+        except Exception as e:
+            # My kingdom for a 'raise from'!
+            raise AssertionError(
+                "Couldn't parse requirement line; '%s'\n"
+                "Error was:\n"
+                "%r" % (line, e)
+            )
+
+        sys_version = '.'.join(list(map(str, sys.version_info[:3])))
+        if comp(sys_version, version_spec):
+            yield requirement
 
 
 def read_requirements(path):
