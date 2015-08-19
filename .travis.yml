@@ -3,11 +3,11 @@ matrix:
   include:
   - python: 2.7
     env:
-      - PANDAS_VERSION=0.16.0
+      - PANDAS_VERSION=0.16.1
       - NUMPY_VERSION=1.9.2
   - python: 3.3
     env:
-      - PANDAS_VERSION=0.16.0
+      - PANDAS_VERSION=0.16.1
       - NUMPY_VERSION=1.9.2
 before_install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
@@ -19,7 +19,8 @@ install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
-  - pip install .
+  - pip install --upgrade pip
+  - pip install .[dev]
 before_script:
   - "flake8 zipline tests"
 script:
