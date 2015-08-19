@@ -191,7 +191,7 @@ setup(
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
-    packages=['zipline'],
+    packages=find_packages('.', include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
     scripts=['scripts/run_algo.py'],
     include_package_data=True,
