@@ -133,7 +133,7 @@ def extras_requires():
     }
 
 
-def filter_requirements(requirements_path, module_names):
+def module_requirements(requirements_path, module_names):
     module_names = set(module_names)
     found = set()
     module_lines = []
@@ -175,7 +175,7 @@ def pre_setup():
         raise AssertionError("Zipline installation requires pip")
 
     required = ('Cython', 'numpy')
-    for line in filter_requirements('etc/requirements.txt', required):
+    for line in module_requirements('etc/requirements.txt', required):
         pip.main(['install', line])
 
 
