@@ -209,6 +209,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
     ],
+    setup_requires=['Cython==0.22.1', 'numpy==1.9.2'],
     install_requires=install_requires(),
     extras_require=extras_requires(),
     url="http://zipline.io"
