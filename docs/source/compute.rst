@@ -46,11 +46,12 @@ Many trading algorithms are variations on the following structure:
 
 The :mod:`zipline.modelling` module provides a framework for expressing this
 style of algorithm.  Users interact with the **Compute API** by creating and
-registering instances of :class:`~zipline.modelling.DataSet`,
-:class:`~zipline.modelling.filter.Factor` and
-:class:`~zipline.modelling.filter.Filter`. Zipline converts these objects
-internally into a `Directed Acyclic Graph`_ representation and feeds them into
-a compute engine to be processed in an efficient manner.[#dasknote]
+registering instances of :class:`~zipline.modelling.filter.Filter`,
+:class:`~zipline.modelling.filter.Factor`,
+:class:`~zipline.modelling.classifier.Classifier`, which take instances of
+:class:`~zipline.data.dataset.DataSet` as inputs. Internally, Zipline converts
+these objects into a `Directed Acyclic Graph`_ and feeds them into a compute
+engine to be processed efficiently.[#dasknote]
 
 The Compute API is intended for use in the context of trading algorithms that
 screen large universes of stocks. It can also used standalone with Zipline,
@@ -60,13 +61,104 @@ algorithm without having to run full simulations.
 Core Concepts
 -------------
 
+It's easiest to understand the core concepts of the Compute API after walking
+through a simple example.
+
+In this algorithm, we compute a 10-day Simple Moving Average of close price.
+We then filter out stocks each day with an average price of $5.00 or less.
+Finally, we print the first 5 rows of the computed result during every
+handle_data.
+
+.. code-block:: Python
+
+   from zipline.data.equities import USEquityPricing
+   from zipline.modelling.factors import SimpleMovingAverage
+
+   def initialize(context):
+       sma = SimpleMovingAverage(inputs=[USEquityPricing.close], window_length=10)
+       add_factor(sma, name='sma')
+       add_filter(sma > 5)
+
+   def handle_data(context, data):
+       print data.factors.head(5)
+
 DataSets
 ~~~~~~~~
 
-:class:`~zipline.data.DataSet` objects represent primitive inputs to Compute
-API algorithms.
+.. warning::
 
-There are currently two DataSets available on Quantopian:
+   The names and means of importing Compute API datasets is subject to change
+   in the near future.
+
+:class:`~zipline.data.DataSet` objects are containers for the primitive inputs
+for Compute API expressions.  Each ``DataSet`` holds some number of ``Column``
+objects, which can be passed as inputs to ``Filters``, ``Factors``, and
+``Classifiers``.
+
+There are currently two DataSets available on Quantopian.  The simpler of the
+two is :class:`~zipline.data.equities.USEquityPricing`, which can be imported
+from :mod:`zipline.data.equities`, and has ``open``, ``high``, ``close``,
+``low``, and ``volume`` columns.  More complex is the :class:`Fundamentals`
+dataset.  It is currently built into the default algorithm namespace on
+Quantopian, but will ultimately be imported from a new ``quantopian.datasets``
+module.
+
+
+Declarative Computation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Most of the important work in our example algorithm happens in the user's
+``initialize`` method.
+
+When we execute
+
+.. code-block:: Python
+
+   sma = SimpleMovingAverage(inputs=[USEquityPricing.close], window_length=10)
+
+we construct an instance of :class:`~zipline.modelling.factor.Factor`.  **No
+computation has happened at this point!** All we've done is constructed an
+object that knows how to compute a moving average when it's passed data in a
+specific format.
+
+.. figure :: images/Factor.svg
+   :width: 100 %
+   :alt: Example Factor Computation
+   :align: right
+
+
+API Reference
+-------------
+
+.. autoclass:: zipline.modelling.factor.Factor
+   :members:
+
+.. autoclass:: zipline.modelling.factor.factor.Rank
+   :members:
+
+.. autoclass:: zipline.modelling.factor.CustomFactor
+   :members:
+
+.. autoclass:: zipline.modelling.factor.technical.RSI
+   :members:
+
+.. autoclass:: zipline.modelling.factor.technical.VWAP
+   :members:
+
+.. autoclass:: zipline.modelling.factor.technical.SimpleMovingAverage
+   :members:
+
+.. autoclass:: zipline.modelling.factor.technical.MaxDrawdown
+   :members:
+
+.. autoclass:: zipline.modelling.filter.Filter
+   :members:
+
+.. autoclass:: zipline.modelling.filter.SequencedFilter
+   :members:
+
+.. autoclass:: zipline.modelling.filter.PercentileFilter
+   :members:
 
 .. autoclass:: zipline.data.equities.USEquityPricing
 
@@ -77,60 +169,11 @@ There are currently two DataSets available on Quantopian:
    .. autoattribute:: zipline.data.equities.USEquityPricing.volume
 
 
-Factors
-~~~~~~~
-
-.. figure :: images/Factor.svg
-   :width: 100 %
-   :alt: Example Factor Computation
-   :align: right
-
-
-Filters
-~~~~~~~
-pass
-
-
-Classifiers
-~~~~~~~~~~~
-**NOT YET IMPLEMENTED**
-
-
-Quick Start
------------
-
-Compute 10-day Simple Moving Average of close price.  Then, filter out stocks
-with moving average price less than $5.
-
-Set our universe to the first 10 sids that the criteria defined in initialize.
-
-.. code-block:: Python
-
-   from zipline.data import USEquityPricing
-   from zipline.modelling.factors import SimpleMovingAverage
-
-   def initalize(context):
-       sma = SimpleMovingAverage(inputs=[USEquityPricing.close], window_length=10)
-       add_factor(sma, name='sma')
-       add_filter(sma > 5)
-
-   def before_trading_start(context, data):
-       update_universe(sorted(data.factors.index)[:10])
-
-   def handle_data(context, data):
-       factors = data.factors
-
-
-Core Concepts
--------------
-
-Factors
--------
-
+.. _Dask: http://dask.pydata.org
+.. _Blaze: http://blaze.pydata.org
 .. _`Directed Acyclic Graph`: https://en.wikipedia.org/wiki/Directed_acyclic_graph
+
 .. rubric:: Footnotes
 .. [#dasknote] This approach to the problem of working with large datasets is
                similar to that of many other PyData ecosystem libraries, most
-               notably the Dask_ project.
-
-.. _Dask: http://dask.pydata.org
+               notably the Dask_ and Blaze_ projects.
