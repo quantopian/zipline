@@ -52,11 +52,6 @@ matplotlib==1.4.3
 
 Markdown==2.6.2
 
-# This --allow syntax is for compatibility with pip >= 1.5
-# However, this is backwards incompatible change, since previous
-# versions of pip do not support that flag.
-TA-Lib==0.4.9
-
 # Checking for old PIP packages
 futures==3.0.3
 requests-futures==0.9.5
