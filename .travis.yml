@@ -1,5 +1,8 @@
 language: python
 sudo: false
+cache:
+  directories:
+    - $HOME/.cache/pip
 matrix:
   include:
   - python: 2.7
