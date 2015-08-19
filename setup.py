@@ -141,7 +141,7 @@ def filter_requirements(requirements_path, module_names):
     for line in read_requirements(requirements_path):
         match = parser.match(line)
         if match is None:
-            raise ValueError("Could not parse requirement: '%s'" % line)
+            raise AssertionError("Could not parse requirement: '%s'" % line)
 
         groups = match.groups()
         name = groups[0]
