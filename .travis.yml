@@ -1,4 +1,5 @@
 language: python
+sudo: false
 matrix:
   include:
   - python: 2.7
