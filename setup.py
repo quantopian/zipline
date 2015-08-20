@@ -26,14 +26,12 @@ from os.path import (
     dirname,
     join,
 )
-from distutils.version import StrictVersion
 from setuptools import (
     Extension,
     find_packages,
     setup,
 )
-
-import os
+from distutils.version import StrictVersion
 
 
 class LazyCythonizingList(list):
@@ -182,7 +180,15 @@ def pre_setup():
     except ImportError:
         raise AssertionError("Zipline installation requires pip")
 
-    required = ('Cython', 'numpy', 'bcolz', 'bottleneck')
+    required = (
+        'Cython',
+        'numpy',
+        'bcolz',
+        'bottleneck',
+        'cyordereddict',
+        'scipy',
+        'pandas',
+    )
     for line in module_requirements('etc/requirements.txt', required):
         pip.main(['install', line])
 
