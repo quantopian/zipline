@@ -10,6 +10,7 @@ import copy
 from qexec.sources.findata import create_asset_finder
 
 from zipline.utils import tradingcalendar
+from zipline.finance.trading import TradingEnvironment
 
 FINDATA_DIR = "/Users/jean/repo/findata/by_sid"
 #DAILY_EQUITIES_PATH = findata.daily_equities_path(host_settings.findata_dir, MarketData.max_day())
@@ -160,19 +161,80 @@ class DataPortal(object):
         # else:
         #     return self._get_minute_history_window(sids, bar_count, field)
 
-    def _get_minute_window_for_sid(self, sid, start_dt, bar_count, field):
+    def _get_minute_window_for_sid(self, sid, end_dt, bar_count, field):
         # each sid's minutes are stored in a bcolz file
         # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
-        # of when the asset started trading
+        # of when the asset started trading and regardless of half days.
+        # for a half day, the second half is filled with zeroes.
 
         # find the position of start_dt in the entire timeline, go back
         # bar_count bars, and that's the unadjusted data
         raw_data = self._open_minute_file(field, sid)
 
-        day = start_dt.date()
-        day_idx = tradingcalendar.trading_days.searchsorted(day)
+        minutes_for_window = TradingEnvironment.instance().\
+            market_minute_window(end_dt, bar_count, step=-1)[::-1]
 
-        that_day_open = pd.Timestamp(
+        start_idx = self._find_position_of_minute(minutes_for_window[0])
+        end_idx = self._find_position_of_minute(end_dt) + 1
+
+        unadjusted_data = raw_data[start_idx:end_idx]
+
+        num_minutes = len(minutes_for_window)
+
+        if len(unadjusted_data) != num_minutes:
+            # there must be some early closes in this date range, have
+            # to deal with them
+
+            eastern_minutes = minutes_for_window.tz_convert("US/Eastern")
+
+            # early close is 1pm.
+            # walk over the minutes. each time we encounter a minute that is
+            # 1pm not followed by 1:01pm, we know that's an early close.
+            last_minute_idx_of_early_close_day = []
+            for minute_idx, minute_dt in enumerate(eastern_minutes):
+                if minute_idx == (num_minutes - 1):
+                    break
+
+                if minute_dt.hour == 13 and minute_dt.minute == 0:
+                    next_minute = eastern_minutes[minute_idx + 1]
+                    if next_minute.hour != 13:
+                        # minute_dt is the last minute of an early close
+                        last_minute_idx_of_early_close_day.append(minute_idx)
+
+            # for each minute in last_minute_idx_of_early_close_day, find
+            # its position in unadjusted_data and remove the subsequent 180
+            # bars (since an early close removes 1-4pm from that trading day)
+            for idx, early_close_minute_idx in \
+                enumerate(last_minute_idx_of_early_close_day):
+                early_close_minute_idx -= (180 * idx)
+                unadjusted_data = np.delete(
+                    unadjusted_data,
+                    range(early_close_minute_idx,
+                          early_close_minute_idx + 180))
+
+
+        # adjust the data
+
+
+        # self._apply_adjustments_to_daily_window(
+        #     self._get_adjustment_list(
+        #         sid, self.splits_dict_immutable, "SPLITS"),
+        #     return_array,
+        #     trading_days,
+        #     first_trading_day_to_use,
+        #     window_offset,
+        #     field_to_use != 'volume'
+        # )
+
+        # get the splits for this
+        #return unadjusted_data
+
+
+    def _find_position_of_minute(self, minute_dt):
+        day = minute_dt.date()
+        day_idx = tradingcalendar.trading_days.searchsorted(day) - 3028
+
+        day_open = pd.Timestamp(
             datetime(
                 year=day.year,
                 month=day.month,
@@ -181,10 +243,18 @@ class DataPortal(object):
                 minute=31),
             tz='US/Eastern').tz_convert('UTC')
 
-        minutes_offset = int((start_dt - that_day_open).total_seconds())
-        unadjusted_data = raw_data[(minutes_offset - bar_count):minutes_offset]
+        minutes_offset = int((minute_dt - day_open).total_seconds()) / 60
 
-        return unadjusted_data
+        return (390 * day_idx) + minutes_offset
+
+
+    # def get_trading_minutes(start_minute, bar_count):
+    #     # general idea:
+    #     # 1) get the day of start_minute
+    #     # 2) get the next (bar_count / 390) * 2 trading days
+    #     # 3) get all the opens and closes for those trading days
+    #     # 4) start iterating through the days
+    #
 
 
 
@@ -286,7 +356,7 @@ class DataPortal(object):
         else:
             return_array[0:bar_count] = data
 
-        self._apply_adjustments_to_window(
+        self._apply_adjustments_to_daily_window(
             self._get_adjustment_list(
                 sid, self.splits_dict_immutable, "SPLITS"),
             return_array,
@@ -297,7 +367,7 @@ class DataPortal(object):
         )
 
         if field_to_use != 'volume':
-            self._apply_adjustments_to_window(
+            self._apply_adjustments_to_daily_window(
                 self._get_adjustment_list(
                     sid, self.mergers_dict_immutable, "MERGERS"),
                 return_array,
@@ -311,8 +381,17 @@ class DataPortal(object):
 
         return return_array
 
+    # def _apply_adjustments_to_minute_window(adjustments_list, window,
+    #                                         first_minute_in_window):
+    #
+    #     # window is an array of values, each representing a minute.
+    #     # window can start and end on different days.
+    #     # given the starting minute's timestamp, we can figure out the rest.
+
+
+
     @staticmethod
-    def _apply_adjustments_to_window(adjustments_list, window,
+    def _apply_adjustments_to_daily_window(adjustments_list, window,
                                      trading_days, first_trading_day,
                                      window_offset, multiply):
         """
