@@ -121,7 +121,15 @@ computation has happened at this point!** All we've done is constructed an
 object that knows how to compute a moving average when it's passed data in a
 specific format.
 
+Pictures!
+---------
+
 .. figure :: images/Factor.svg
+   :width: 100 %
+   :alt: Example Factor Computation
+   :align: right
+
+.. figure :: images/graph.svg
    :width: 100 %
    :alt: Example Factor Computation
    :align: right

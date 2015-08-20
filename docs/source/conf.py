@@ -310,36 +310,3 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
 }
-
-
-# HACK: Mock out requirements that we can't install on ReadTheDocs.
-import sys
-from mock import Mock as MagicMock
-
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return Mock()
-
-
-MOCK_MODULES = [
-    'Cython',
-    'Logbook',
-    'bcolz',
-    'bottleneck',
-    'click',
-    'contextlib2',
-    'cyordereddict',
-    'networkx',
-    'numexpr',
-    'numpy',
-    'pandas',
-    'patsy',
-    'python-dateutil',
-    'pytz',
-    'requests',
-    'scipy',
-    'statsmodels',
-]
-sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
