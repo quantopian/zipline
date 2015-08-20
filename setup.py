@@ -17,7 +17,10 @@ from __future__ import print_function
 
 import re
 import sys
+
 from operator import lt, gt, eq, le, ge
+
+
 from os.path import (
     abspath,
     dirname,
@@ -29,6 +32,8 @@ from setuptools import (
     find_packages,
     setup,
 )
+
+import os
 
 
 class LazyCythonizingList(list):
@@ -177,7 +182,7 @@ def pre_setup():
     except ImportError:
         raise AssertionError("Zipline installation requires pip")
 
-    required = ('Cython', 'numpy')
+    required = ('Cython', 'numpy', 'bcolz', 'bottleneck')
     for line in module_requirements('etc/requirements.txt', required):
         pip.main(['install', line])
 
@@ -211,5 +216,6 @@ setup(
     ],
     install_requires=install_requires(),
     extras_require=extras_requires(),
-    url="http://zipline.io"
+    url="http://zipline.io",
+    zip_safe=False,
 )
