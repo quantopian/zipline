@@ -15,7 +15,7 @@ Compute API
 .. warning::
 
    - All references below to ``zipline.modelling.*`` are slated to be changed in
-     the near future to ``zipline.compute``.
+     the near future to ``zipline.compute.*``.
 
    - The name of the ``Factor`` class is likely to change in the future, due to
      worries that it collides with a term of art that specifically refers to
@@ -72,7 +72,7 @@ handle_data.
 .. code-block:: Python
 
    from zipline.data.equities import USEquityPricing
-   from zipline.modelling.factors import SimpleMovingAverage
+   from zipline.modelling.factors.technical import SimpleMovingAverage
 
    def initialize(context):
        sma = SimpleMovingAverage(inputs=[USEquityPricing.close], window_length=10)
@@ -117,12 +117,48 @@ When we execute
    sma = SimpleMovingAverage(inputs=[USEquityPricing.close], window_length=10)
 
 we construct an instance of :class:`~zipline.modelling.factor.Factor`.  **No
-computation has happened at this point!** All we've done is constructed an
-object that knows how to compute a moving average when it's passed data in a
-specific format.
+substantive computation has happened at this point!** All we've done is
+constructed an object that knows how to compute a moving average when it's
+passed data in a specific format.
+
+Once we've created our Factor, we tell Zipline that we want to compute it by
+calling ``add_factor``, passing our factor instance and a name:
+
+.. code-block:: Python
+
+   add_factor(sma, name='sma')
+
+The name passed here will show up as a column label on the
+:class:`~pandas.DataFrame` that will be the eventual result of our
+computations.
+
+.. todo::
+    - Explain how ``add_filter`` works.
+    - Docstrings for ``add_factor`` and ``add_filter``.
+
+Custom Factors
+--------------
+
+.. todo::
+   Write this section!
+
+
+More Examples
+-------------
+
+.. toctree::
+   :maxdepth: 1
+
+   compute-example-rank.rst
+   compute-example-percentile.rst
+   compute-example-custom.rst
+
 
 Pictures!
 ---------
+
+.. todo::
+   Decide where to put these.
 
 .. figure :: images/Factor.svg
    :width: 100 %
@@ -143,6 +179,9 @@ API Reference
 
 .. autoclass:: zipline.modelling.factor.factor.Rank
    :members:
+
+.. todo::
+   Flesh out CustomFactor docs.
 
 .. autoclass:: zipline.modelling.factor.CustomFactor
    :members:
