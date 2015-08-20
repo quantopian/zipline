@@ -34,6 +34,14 @@ from setuptools import (
 from distutils.version import StrictVersion
 
 DOCS_BUILD = os.environ.get('READTHEDOCS', None) == 'True'
+DOCS_BUILD_IGNORED_MODULES = [
+    'numpy',
+    'bcolz',
+    'bottleneck',
+    'cyordereddict',
+    'scipy',
+    'pandas',
+]
 
 
 class LazyCythonizingList(list):
@@ -89,6 +97,10 @@ def _filter_requirements(lines_iter):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
+
+        if DOCS_BUILD:
+            if any(m in line for m in DOCS_BUILD_IGNORED_MODULES):
+                continue
 
         # pip install -r understands line with ;python_version<'3.0', but
         # whatever happens inside extras_requires doesn't.  Parse the line
@@ -184,14 +196,7 @@ def pre_setup():
 
     required = ['Cython']
     if not DOCS_BUILD:
-        required.extend([
-            'numpy',
-            'bcolz',
-            'bottleneck',
-            'cyordereddict',
-            'scipy',
-            'pandas',
-        ])
+        required.extend(DOCS_BUILD_IGNORED_MODULES)
 
     for line in module_requirements('etc/requirements.txt', required):
         pip.main(['install', line])
