@@ -125,6 +125,9 @@ def parse_cell_magic(line, cell):
     args_list = line.split(' ')
     args = parse_args(args_list, ipython_mode=True)
 
+    # Remove print_algo kwarg to overwrite below.
+    args.pop('print_algo')
+
     local_namespace = args.pop('local_namespace', False)
     # By default, execute inside IPython namespace
     if not local_namespace:
