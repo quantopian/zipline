@@ -35,12 +35,13 @@ from distutils.version import StrictVersion
 
 DOCS_BUILD = os.environ.get('READTHEDOCS', None) == 'True'
 DOCS_BUILD_IGNORED_MODULES = [
-    'numpy',
     'bcolz',
+    'numexpr',
     'bottleneck',
     'cyordereddict',
     'scipy',
     'pandas',
+    'statsmodels',
 ]
 
 
@@ -101,6 +102,8 @@ def _filter_requirements(lines_iter):
         if DOCS_BUILD:
             if any(m in line for m in DOCS_BUILD_IGNORED_MODULES):
                 continue
+        else:
+            raise AssertionError(dict(os.environ))
 
         # pip install -r understands line with ;python_version<'3.0', but
         # whatever happens inside extras_requires doesn't.  Parse the line
@@ -194,7 +197,7 @@ def pre_setup():
     except ImportError:
         raise AssertionError("Zipline installation requires pip")
 
-    required = ['Cython']
+    required = ['Cython', 'numpy']
     if not DOCS_BUILD:
         required.extend(DOCS_BUILD_IGNORED_MODULES)
 
