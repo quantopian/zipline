@@ -20,7 +20,7 @@ import sys
 
 from operator import lt, gt, eq, le, ge
 
-
+import os
 from os.path import (
     abspath,
     dirname,
@@ -32,6 +32,8 @@ from setuptools import (
     setup,
 )
 from distutils.version import StrictVersion
+
+DOCS_BUILD = os.environ.get('READTHEDOCS', None) == 'True'
 
 
 class LazyCythonizingList(list):
@@ -180,17 +182,22 @@ def pre_setup():
     except ImportError:
         raise AssertionError("Zipline installation requires pip")
 
-    required = (
-        'Cython',
-        'numpy',
-        'bcolz',
-        'bottleneck',
-        'cyordereddict',
-        'scipy',
-        'pandas',
-    )
+    required = ['Cython']
+    if not DOCS_BUILD:
+        required.extend([
+            'numpy',
+            'bcolz',
+            'bottleneck',
+            'cyordereddict',
+            'scipy',
+            'pandas',
+        ])
+
     for line in module_requirements('etc/requirements.txt', required):
         pip.main(['install', line])
+
+    if DOCS_BUILD:
+        pip.main(['install', 'mock'])
 
 
 pre_setup()
