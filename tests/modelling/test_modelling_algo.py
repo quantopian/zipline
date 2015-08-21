@@ -197,9 +197,13 @@ class FFCAlgorithmTestCase(TestCase):
                     # unfortunate.
                     assert_almost_equal(computed, expected, decimal=2)
 
+        # Do the same checks in before_trading_start
+        before_trading_start = handle_data
+
         algo = TradingAlgorithm(
             initialize=initialize,
             handle_data=handle_data,
+            before_trading_start=before_trading_start,
             data_frequency='daily',
             ffc_loader=self.ffc_loader,
             asset_finder=self.asset_finder,

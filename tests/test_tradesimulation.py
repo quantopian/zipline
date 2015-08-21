@@ -27,7 +27,7 @@ class BeforeTradingAlgorithm(TradingAlgorithm):
         self.before_trading_at = []
         super(BeforeTradingAlgorithm, self).__init__(*args, **kwargs)
 
-    def before_trading_start(self):
+    def before_trading_start(self, data):
         self.before_trading_at.append(self.datetime)
 
 
