@@ -122,10 +122,10 @@ class DataPortal(object):
             return carray[self.cur_data_offset] * 0.001 * split_ratio * \
                 mergers_ratio
 
-    def get_history_window(self, sids, start_dt, bar_count, frequency, field):
+    def get_history_window(self, sids, end_dt, bar_count, frequency, field):
         """
         Public API method that returns a dataframe containing the requested
-        history window.
+        history window.  Data is fully adjusted.
 
         Parameters
         ---------
@@ -147,21 +147,71 @@ class DataPortal(object):
         """
         if frequency == "daily":
             data = []
-            for sid in sids:
-                data.append(self._get_daily_window_for_sid(sid, start_dt,
-                                                           bar_count, field))
 
-            start_day_idx = tradingcalendar.trading_days.searchsorted(start_dt)
-            days = tradingcalendar.trading_days[start_day_idx:(start_day_idx + bar_count)]
+            # FIXME start at last complete trading day!
+
+            for sid in sids:
+                data.append(
+                    self._get_daily_window_for_sid(
+                        sid,
+                        end_dt,
+                        bar_count,
+                        field
+                    )
+                )
+
+            end_day_idx = tradingcalendar.trading_days.searchsorted(end_dt)
+            start_day_idx = end_day_idx - bar_count
+            days = tradingcalendar.trading_days[start_day_idx:end_day_idx]
 
             return pd.DataFrame(np.array(data).T,
                                 index=days,
                                 columns=sids)
 
-        # else:
-        #     return self._get_minute_history_window(sids, bar_count, field)
+        else:
 
-    def _get_minute_window_for_sid(self, sid, end_dt, bar_count, field):
+            minutes_for_window = TradingEnvironment.instance().\
+                market_minute_window(end_dt, bar_count, step=-1)[::-1]
+
+            data = []
+            for sid in sids:
+                data.append(
+                    self._get_minute_window_for_sid(
+                        sid,
+                        field,
+                        minutes_for_window
+                    )
+                )
+
+            return pd.DataFrame(np.array(data).T,
+                                index=minutes_for_window,
+                                columns=sids)
+
+    def _get_minute_window_for_sid(self, sid, field, minutes_for_window):
+        """
+        Internal method that gets a window of adjusted minute data for a sid
+        and specified date range.  Used to support the history API method for
+        minute bars.
+
+        Parameters
+        ----------
+        sid : int
+            The sid whose data is desired.
+
+        field: string
+            The specific field to return.  "open", "high", "close_price", etc.
+
+        minutes_for_window: pd.DateTimeIndex
+            The list of minutes representing the desired window.  Each minute
+            is a pd.Timestamp.
+
+        Returns
+        -------
+        A numpy array with requested values.  Any missing slots filled with
+        nan.
+
+        """
+
         # each sid's minutes are stored in a bcolz file
         # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
         # of when the asset started trading and regardless of half days.
@@ -171,17 +221,14 @@ class DataPortal(object):
         # bar_count bars, and that's the unadjusted data
         raw_data = self._open_minute_file(field, sid)
 
-        minutes_for_window = TradingEnvironment.instance().\
-            market_minute_window(end_dt, bar_count, step=-1)[::-1]
-
         start_idx = self._find_position_of_minute(minutes_for_window[0])
-        end_idx = self._find_position_of_minute(end_dt) + 1
+        end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
-        unadjusted_data = raw_data[start_idx:end_idx]
+        return_data = np.array(raw_data[start_idx:end_idx], dtype=np.float64)
 
         num_minutes = len(minutes_for_window)
 
-        if len(unadjusted_data) != num_minutes:
+        if len(return_data) != num_minutes:
             # there must be some early closes in this date range, have
             # to deal with them
 
@@ -205,30 +252,35 @@ class DataPortal(object):
             # its position in unadjusted_data and remove the subsequent 180
             # bars (since an early close removes 1-4pm from that trading day)
             for idx, early_close_minute_idx in \
-                enumerate(last_minute_idx_of_early_close_day):
+                    enumerate(last_minute_idx_of_early_close_day):
                 early_close_minute_idx -= (180 * idx)
-                unadjusted_data = np.delete(
-                    unadjusted_data,
+                return_data = np.delete(
+                    return_data,
                     range(early_close_minute_idx,
                           early_close_minute_idx + 180))
 
-
         # adjust the data
+        self._apply_adjustments_to_minute_window(
+            self._get_adjustment_list(
+                sid, self.splits_dict_immutable, "SPLITS"),
+            return_data,
+            minutes_for_window
+        )
 
+        if field != 'volume':
+            self._apply_adjustments_to_minute_window(
+                self._get_adjustment_list(
+                    sid, self.mergers_dict_immutable, "MERGERS"),
+                return_data,
+                minutes_for_window
+            )
 
-        # self._apply_adjustments_to_daily_window(
-        #     self._get_adjustment_list(
-        #         sid, self.splits_dict_immutable, "SPLITS"),
-        #     return_array,
-        #     trading_days,
-        #     first_trading_day_to_use,
-        #     window_offset,
-        #     field_to_use != 'volume'
-        # )
+            return_data *= 0.001
 
-        # get the splits for this
-        #return unadjusted_data
+        # if anything is zero, replace it with NaN
+        return_data[return_data == 0] = np.NaN
 
+        return return_data
 
     def _find_position_of_minute(self, minute_dt):
         day = minute_dt.date()
@@ -246,20 +298,6 @@ class DataPortal(object):
         minutes_offset = int((minute_dt - day_open).total_seconds()) / 60
 
         return (390 * day_idx) + minutes_offset
-
-
-    # def get_trading_minutes(start_minute, bar_count):
-    #     # general idea:
-    #     # 1) get the day of start_minute
-    #     # 2) get the next (bar_count / 390) * 2 trading days
-    #     # 3) get all the opens and closes for those trading days
-    #     # 4) start iterating through the days
-    #
-
-
-
-
-
 
     def _get_daily_window_for_sid(self, sid, start_dt, bar_count, field):
         """
@@ -381,14 +419,38 @@ class DataPortal(object):
 
         return return_array
 
-    # def _apply_adjustments_to_minute_window(adjustments_list, window,
-    #                                         first_minute_in_window):
-    #
-    #     # window is an array of values, each representing a minute.
-    #     # window can start and end on different days.
-    #     # given the starting minute's timestamp, we can figure out the rest.
+    @staticmethod
+    def _apply_adjustments_to_minute_window(adjustments_list, window_data,
+                                            window_minutes):
+        # clear out all adjustments that happened before the first minute
+        while len(adjustments_list) > 0 and window_minutes[0] > \
+                adjustments_list[0][0]:
+            adjustments_list.pop(0)
 
+        if len(adjustments_list) == 0:
+            # if there are no adjustments, get out.
+            return
 
+        # walk over minutes in window.  for each minute, if it's less than
+        # the next adjustment, adjust.  if the adjustment has passed, get rid
+        # of it.
+        range_start = 0
+        for idx, minute_dt in enumerate(window_minutes):
+            if minute_dt > adjustments_list[0][0]:
+                last_adj = adjustments_list.pop(0)
+
+                range_end = idx - 1
+                window_data[range_start:range_end + 1] *= last_adj[0]
+
+                if len(adjustments_list) == 0:
+                    break
+
+                range_start = idx
+
+        # if range_start is still 0, that means that the entire window was
+        # before the first adjustment.  adjust the entire window.
+        if range_start == 0:
+            window_data *= adjustments_list[0][1]
 
     @staticmethod
     def _apply_adjustments_to_daily_window(adjustments_list, window,
@@ -469,14 +531,6 @@ class DataPortal(object):
             applied_index = adj[0] + 1
 
 
-# TODO HISTORY TEST CASES
-# 1) window is entirely after ipo
-# 2) window starts before ipo
-# 3) window ends after security stops trading
-# 4) split/merger inside window
-# 5) missing data inside window
-# 6) ffill behavior
-
 
 
     def _get_adjustment_list(self, sid, adjustments_dict, table_name):
@@ -492,28 +546,12 @@ class DataPortal(object):
             A dictionary of sid -> list that is used as a cache.
 
         table_name: string
-            The data that will be adjusted in-place.
-
-        trading_days: pandas.tseries.index.DatetimeIndex
-            A list of our trading days.  Passed in here to avoid looking it up
-            again.
-
-        first_trading_day: int
-            The position of the first trading day for this asset in
-            trading_days.  It is the maximum of the asset's first trade date
-            and 1/1/2002.
-
-        window_offset: int
-            The number of days between first_trading_day and the date of the
-            first slot in window.
-
-        multiply: bool
-            Whether to apply the adjustment by multiplying.  If false, the
-            adjustment is applied by dividing.
+            The table that contains this data in the adjustments db.
 
         Returns
         -------
-        None.  The data (in the window param) is adjusted in place.
+        adjustments: list
+            A list of [cumulative_multiplier, pd.Timestamp], earliest first
 
         """
         if sid not in adjustments_dict:
@@ -530,14 +568,14 @@ class DataPortal(object):
             # [6/17/08, 0.125], [3/1/10: 0.25], [6/18/13: 0.5]
 
             # and using that list and a given dt, we can find the first date
-            # that is greater than the current time, and get the multipler for
+            # that is greater than the current time, and get the multiplier for
             # that range.
 
             calculated_list = []
             multiplier = 1
             for adj_info in reversed(adjustments_for_sid):
                 multiplier *= adj_info[1]
-                calculated_list.insert(0, [pd.Timestamp(adj_info[0], unit='s'),
+                calculated_list.insert(0, [pd.Timestamp(adj_info[0], unit='s', tz='UTC'),
                                            multiplier])
 
             adjustments_dict[sid] = calculated_list
