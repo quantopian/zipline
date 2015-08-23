@@ -1147,7 +1147,7 @@ class TradingAlgorithm(object):
         return self.history_specs[spec_key]
 
     @api_method
-    def history(self, bar_count, frequency, field, ffill=True):
+    def history(self, sids, bar_count, frequency, field, ffill=True):
         # FIXME deal with ffill
 
         # FIXME need to get the current universe of sids
@@ -1163,7 +1163,7 @@ class TradingAlgorithm(object):
                                                      bar_count]
 
             data = self.data_portal.get_history_window(
-                [24, 8554, 42950],
+                sids,
                 start_day,
                 bar_count,
                 "daily",
