@@ -5,8 +5,6 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-import copy
-
 from qexec.sources.findata import create_asset_finder
 
 from zipline.utils import tradingcalendar
@@ -123,7 +121,8 @@ class DataPortal(object):
             return carray[self.cur_data_offset] * 0.001 * split_ratio * \
                 mergers_ratio
 
-    def get_history_window(self, sids, end_dt, bar_count, frequency, field):
+    def get_history_window(self, sids, end_dt, bar_count, frequency, field,
+                           ffill=True):
         """
         Public API method that returns a dataframe containing the requested
         history window.  Data is fully adjusted.
@@ -146,6 +145,12 @@ class DataPortal(object):
         -------
         A dataframe containing the requested data.
         """
+
+        try:
+            field_to_use = self.column_lookup[field]
+        except KeyError:
+            raise KeyError("Invalid history field: " + str(field))
+
         if frequency == "daily":
             data = []
 
@@ -156,7 +161,7 @@ class DataPortal(object):
             # day.
             day_idx = tradingcalendar.trading_days.searchsorted(day)
             days_for_window = tradingcalendar.trading_days[
-                day_idx - bar_count + 1:day_idx]
+                (day_idx - bar_count + 1):(day_idx + 1)]
 
             all_minutes_for_day = TradingEnvironment.instance().\
                 market_minutes_for_day(pd.Timestamp(day))
@@ -164,39 +169,40 @@ class DataPortal(object):
             last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
 
             # these are the minutes for the partial day
-            minutes_for_partial_day = all_minutes_for_day[0:(last_minute_idx + 1)]
+            minutes_for_partial_day =\
+                all_minutes_for_day[0:(last_minute_idx + 1)]
 
             for sid in sids:
                 daily_data = self._get_daily_window_for_sid(
                     sid,
-                    field,
+                    field_to_use,
                     days_for_window[0:-1]
                 )
 
                 minute_data = self._get_minute_window_for_sid(
                     sid,
-                    field,
+                    field_to_use,
                     minutes_for_partial_day
                 )
 
-                if field == 'volume':
+                if field_to_use == 'volume':
                     minute_value = np.sum(minute_data)
-                elif field == 'open':
+                elif field_to_use == 'open':
                     minute_value = minute_data[0]
-                elif field == 'close':
+                elif field_to_use == 'close':
                     minute_value = minute_data[-1]
-                elif field == 'high':
+                elif field_to_use == 'high':
                     minute_value = np.amax(minute_data)
-                elif field == 'low':
+                elif field_to_use == 'low':
                     minute_value = np.amin(minute_data)
 
                 daily_data[-1] = minute_value
 
                 data.append(daily_data)
 
-            return pd.DataFrame(np.array(data).T,
-                                index=days_for_window,
-                                columns=sids)
+            df = pd.DataFrame(np.array(data).T,
+                              index=days_for_window,
+                              columns=sids)
 
         else:
             minutes_for_window = TradingEnvironment.instance().\
@@ -204,17 +210,22 @@ class DataPortal(object):
 
             data = []
             for sid in sids:
-                data.append(
-                    self._get_minute_window_for_sid(
-                        sid,
-                        field,
-                        minutes_for_window
-                    )
-                )
+                data.append(self._get_minute_window_for_sid(
+                    sid,
+                    field_to_use,
+                    minutes_for_window
+                ))
 
-            return pd.DataFrame(np.array(data).T,
-                                index=minutes_for_window,
-                                columns=sids)
+            df = pd.DataFrame(np.array(data).T,
+                              index=minutes_for_window,
+                              columns=sids)
+
+        # forward-fill if needed
+        if field == "close_price" and ffill:
+            df.fillna(method='backfill', inplace=True)
+
+        return df
+
 
     def _get_minute_window_for_sid(self, sid, field, minutes_for_window):
         """
@@ -308,8 +319,10 @@ class DataPortal(object):
 
             return_data *= 0.001
 
-        # if anything is zero, it's a missing bar, so replace it with NaN.
-        return_data[return_data == 0] = np.NaN
+            # if anything is zero, it's a missing bar, so replace it with NaN.
+            # we only want to do this for non-volume fields, because a missing
+            # volume should be 0.
+            return_data[return_data == 0] = np.NaN
 
         return return_data
 
@@ -350,7 +363,8 @@ class DataPortal(object):
 
         return (390 * day_idx) + minutes_offset
 
-    def _get_daily_window_for_sid(self, sid, field, days_in_window, extra_slot=True):
+    def _get_daily_window_for_sid(self, sid, field, days_in_window,
+                                  extra_slot=True):
         """
         Internal methods that gets a window of adjusted daily data for a sid
         and specified date  range.  Used to support the history API method for
@@ -370,20 +384,18 @@ class DataPortal(object):
         field: string
             The specific field to return.  "open", "high", "close_price", etc.
 
+        extra_slot: boolean
+            Whether to allocate an extra slot in the returned numpy array.
+            This extra slot will hold the data for the last partial day.  It's
+            much better to create it here than to create a copy of the array
+            later just to add a slot.
+
         Returns
         -------
         A numpy array with requested values.  Any missing slots filled with
         nan.
 
         """
-
-        if field == "open_price":
-            field_to_use = "open"
-        elif field == "close_price":
-            field_to_use = "close"
-        else:
-            field_to_use = field
-
         daily_data, daily_attrs = self._open_daily_file()
 
         if self.asset_finder is None:
@@ -414,7 +426,7 @@ class DataPortal(object):
 
         trading_days = tradingcalendar.trading_days
 
-         # Calculate the starting day to use (either the asset's first trading
+        # Calculate the starting day to use (either the asset's first trading
         # day, or 1/1/2002 (which is the 3028th day in the trading calendar).
         first_trading_day_to_use = max(trading_days.searchsorted(
             self.asset_start_dates[sid]), 3028)
@@ -443,7 +455,7 @@ class DataPortal(object):
             return return_array
 
         # fetch the data from the daily bcolz file
-        data = daily_data[field_to_use][start_index:end_index]
+        data = daily_data[field][start_index:end_index]
 
         # put data into the right slot into return_data
         if window_offset < 0:
@@ -456,10 +468,10 @@ class DataPortal(object):
                 sid, self.splits_dict_immutable, "SPLITS"),
             return_array,
             days_in_window,
-            field_to_use != 'volume'
+            field != 'volume'
         )
 
-        if field_to_use != 'volume':
+        if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
                     sid, self.mergers_dict_immutable, "MERGERS"),
@@ -470,6 +482,11 @@ class DataPortal(object):
 
             return_array *= 0.001
 
+            # if anything is zero, it's a missing bar, so replace it with NaN.
+            # we only want to do this for non-volume fields, because a missing
+            # volume should be 0.
+            return_array[return_array == 0] = np.NaN
+
         return return_array
 
     @staticmethod
@@ -478,7 +495,7 @@ class DataPortal(object):
 
         if len(adjustments_list) == 0:
             return
-        
+
         idx = 0
 
         # clear out all adjustments that happened before the first minute
@@ -579,7 +596,6 @@ class DataPortal(object):
             adjustments_dict[sid] = calculated_list
 
         return adjustments_dict[sid]
-
 
     def _get_adjustment_ratio(self, sid, dt, adjustments_dict, multiplier_dict,
                               table_name):

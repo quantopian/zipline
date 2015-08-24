@@ -1148,10 +1148,6 @@ class TradingAlgorithm(object):
 
     @api_method
     def history(self, sids, bar_count, frequency, field, ffill=True):
-        # FIXME deal with ffill
-
-        # FIXME need to get the current universe of sids
-
         if self.data_portal is None:
             raise Exception("no data portal!")
 
@@ -1167,7 +1163,9 @@ class TradingAlgorithm(object):
                 start_day,
                 bar_count,
                 "daily",
-                field)
+                field,
+                ffill
+            )
 
             return data
 
