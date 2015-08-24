@@ -394,3 +394,15 @@ class NoFurtherDataError(ZiplineError):
     # This accepts an arbitrary message string because it's used in more places
     # that can be usefully templated.
     msg = '{msg}'
+
+
+class PositionTrackerMissingAssetFinder(ZiplineError):
+    """
+    Raised by a PositionTracker if it is asked to update an Asset but does not
+    have an AssetFinder
+    """
+    msg = (
+        "PositionTracker attempted to update its Asset information but does "
+        "not have an AssetFinder. This may be caused by a failure to properly "
+        "de-serialize a TradingAlgorithm."
+    )

@@ -39,7 +39,7 @@ def gather_bad_dicts(state):
 class SerializationTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment.instance()
+        cls.env = TradingEnvironment()
 
     @parameterized.expand(object_serialization_cases())
     def test_object_serialization(self,

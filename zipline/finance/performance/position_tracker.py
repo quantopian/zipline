@@ -21,7 +21,7 @@ import zipline.protocol as zp
 from zipline.assets import (
     Equity, Future
 )
-from zipline.finance.trading import with_environment
+from zipline.errors import PositionTrackerMissingAssetFinder
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -29,7 +29,9 @@ log = logbook.Logger('Performance')
 
 class PositionTracker(object):
 
-    def __init__(self):
+    def __init__(self, asset_finder):
+        self.asset_finder = asset_finder
+
         # sid => position object
         self.positions = positiondict()
         # Arrays for quick calculations of positions value
@@ -47,18 +49,18 @@ class PositionTracker(object):
         # for any Assets in this tracker's positions
         self._auto_close_position_sids = {}
 
-    @with_environment()
-    def _retrieve_asset(self, sid, env=None):
-        return env.asset_finder.retrieve_asset(sid)
-
     def _update_asset(self, sid):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
             self._position_payout_multipliers[sid]
         except KeyError:
+            # Check if there is an AssetFinder
+            if self.asset_finder is None:
+                raise PositionTrackerMissingAssetFinder()
+
             # Collect the value multipliers from applicable sids
-            asset = self._retrieve_asset(sid)
+            asset = self.asset_finder.retrieve_asset(sid)
             if isinstance(asset, Equity):
                 self._position_value_multipliers[sid] = 1
                 self._position_exposure_multipliers[sid] = 1
@@ -400,20 +402,31 @@ class PositionTracker(object):
     def __getstate__(self):
         state_dict = {}
 
+        state_dict['asset_finder'] = self.asset_finder
         state_dict['positions'] = dict(self.positions)
         state_dict['unpaid_dividends'] = self._unpaid_dividends
 
-        STATE_VERSION = 1
+        # Asset-finder dependent dicts must be serialized
+        state_dict['position_value_multipliers'] = \
+            serialize_ordered_dict(self._position_value_multipliers)
+        state_dict['position_exposure_multipliers'] = \
+            serialize_ordered_dict(self._position_exposure_multipliers)
+        state_dict['position_payout_multipliers'] = \
+            serialize_ordered_dict(self._position_payout_multipliers)
+        state_dict['auto_close_position_sids'] = self._auto_close_position_sids
+
+        STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
         return state_dict
 
     def __setstate__(self, state):
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 3
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:
             raise BaseException("PositionTracker saved state is too old.")
 
+        self.asset_finder = state['asset_finder']
         self.positions = positiondict()
         # note that positions_store is temporary and gets regened from
         # .positions
@@ -421,12 +434,35 @@ class PositionTracker(object):
 
         self._unpaid_dividends = state['unpaid_dividends']
 
+        # AssetFinder-dependent dicts are de-serialized
+        self._position_value_multipliers = \
+            deserialize_ordered_dict(state['position_value_multipliers'])
+        self._position_exposure_multipliers = \
+            deserialize_ordered_dict(state['position_exposure_multipliers'])
+        self._position_payout_multipliers = \
+            deserialize_ordered_dict(state['position_payout_multipliers'])
+        self._auto_close_position_sids = state['auto_close_position_sids']
+
         # Arrays for quick calculations of positions value
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
-        self._position_value_multipliers = OrderedDict()
-        self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
-        self._auto_close_position_sids = {}
 
+        # Update positions is called without a finder
         self.update_positions(state['positions'])
+
+
+def serialize_ordered_dict(ordered_dict):
+    """
+    Converts an OrderedDict in to a list of key/value pair tuples
+    """
+    return [(key, value) for key, value in ordered_dict.items()]
+
+
+def deserialize_ordered_dict(serialized_ordered_dict):
+    """
+    Converts a list of key/value pair tuples in to an OrderedDict
+    """
+    result = OrderedDict()
+    for key, value in serialized_ordered_dict:
+        result[key] = value
+    return result

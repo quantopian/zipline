@@ -30,7 +30,6 @@ from zipline.protocol import (
     DATASOURCE_TYPE
 )
 from zipline.gens.utils import hash_args
-from zipline.finance.trading import with_environment
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
@@ -51,12 +50,11 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     return trade
 
 
-@with_environment()
 def date_gen(start,
              end,
+             env,
              delta=timedelta(minutes=1),
-             repeats=None,
-             env=None):
+             repeats=None):
     """
     Utility to generate a stream of dates.
     """
@@ -111,10 +109,11 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    @with_environment()
-    def __init__(self, env=None, *args, **kwargs):
+    def __init__(self, env, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
+
+        self.env = env
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -206,12 +205,14 @@ class SpecificEquityTrades(object):
                     end=self.end,
                     delta=self.delta,
                     repeats=len(self.sids),
+                    env=self.env,
                 )
             else:
                 date_generator = date_gen(
                     start=self.start,
                     end=self.end,
-                    delta=self.delta
+                    delta=self.delta,
+                    env=self.env,
                 )
 
             source_id = self.get_hash()

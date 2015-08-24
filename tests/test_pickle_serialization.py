@@ -13,14 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pickle
+from zipline.utils.serialization_utils import (
+    load_with_persistent_ids, dump_with_persistent_ids
+)
 
 from nose_parameterized import parameterized
 from unittest import TestCase
 
 from .serialization_cases import (
     object_serialization_cases,
-    assert_dict_equal
+    assert_dict_equal,
+    cases_env,
 )
 
 
@@ -37,9 +40,9 @@ class PickleSerializationTestCase(TestCase):
         obj = cls(*initargs)
         for k, v in di_vars.items():
             setattr(obj, k, v)
-        state = pickle.dumps(obj)
+        state = dump_with_persistent_ids(obj)
 
-        obj2 = pickle.loads(state)
+        obj2 = load_with_persistent_ids(state, env=cases_env)
         for k, v in di_vars.items():
             setattr(obj2, k, v)
 

@@ -103,6 +103,7 @@ def with_algo(f):
             initialize=initialize_with(self, tfm_name, days),
             handle_data=handle_data_wrapper(f),
             sim_params=sim_params,
+            env=self.env,
         )
         algo.run(source)
 
@@ -127,17 +128,19 @@ class TransformTestCase(TestCase):
             data_frequency='daily',
             emission_rate='daily',
         )
-        cls.env = TradingEnvironment.instance()
+        cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1, 2, 3])
         cls.sim_and_source = {
             'minute': (minute_sim_ps, factory.create_minutely_trade_source(
                 cls.sids,
                 sim_params=minute_sim_ps,
+                env=cls.env,
             )),
             'daily': (daily_sim_ps, factory.create_trade_source(
                 cls.sids,
                 trade_time_increment=timedelta(days=1),
                 sim_params=daily_sim_ps,
+                env=cls.env,
             )),
         }
 

@@ -46,6 +46,10 @@ log = Logger('assets.py')
 
 class AssetFinder(object):
 
+    # Token used as a substitute for pickling objects that contain a
+    # reference to an AssetFinder
+    PERSISTENT_TOKEN = "<AssetFinder>"
+
     def __init__(self, engine, allow_sid_assignment=True, fuzzy_char=None):
 
         self.fuzzy_char = fuzzy_char
@@ -160,7 +164,9 @@ class AssetFinder(object):
             else:
                 asset = None
 
-            self._asset_cache[sid] = asset
+            # Cache the asset if it has been retrieved
+            if asset is not None:
+                self._asset_cache[sid] = asset
 
         if asset is not None:
             return asset

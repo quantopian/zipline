@@ -39,7 +39,6 @@ import zipline.utils.simfactory as simfactory
 from zipline.finance.blotter import Blotter
 from zipline.gens.composites import date_sorted_sources
 
-from zipline.finance import trading
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.trading import SimulationParameters
@@ -57,9 +56,12 @@ EXTENDED_TIMEOUT = 90
 
 class FinanceTestCase(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[1, 133])
+
     def setUp(self):
-        trading.environment = trading.TradingEnvironment()
-        trading.environment.write_data(equities_identifiers=[1, 133])
         self.zipline_test_config = {
             'sid': 133,
         }
@@ -74,7 +76,8 @@ class FinanceTestCase(TestCase):
         sim_params = factory.create_simulation_parameters()
         trade_source = factory.create_daily_trade_source(
             [133],
-            sim_params
+            sim_params,
+            env=self.env,
         )
         prev = None
         for trade in trade_source:
@@ -92,7 +95,6 @@ class FinanceTestCase(TestCase):
         # No transactions can be filled on the first trade, so
         # we have one extra trade to ensure all orders are filled.
         self.zipline_test_config['trade_count'] = 101
-        trading.environment = trading.TradingEnvironment()
         full_zipline = simfactory.create_test_zipline(
             **self.zipline_test_config)
         assert_single_position(self, full_zipline)
@@ -229,7 +231,8 @@ class FinanceTestCase(TestCase):
             price,
             volume,
             trade_interval,
-            sim_params
+            sim_params,
+            env=self.env,
         )
 
         if alternate:
@@ -263,7 +266,7 @@ class FinanceTestCase(TestCase):
             self.assertEqual(order.sid, sid)
             self.assertEqual(order.amount, order_amount * alternator ** i)
 
-        tracker = PerformanceTracker(sim_params)
+        tracker = PerformanceTracker(sim_params, env=self.env)
 
         benchmark_returns = [
             Event({'dt': dt,
@@ -271,7 +274,7 @@ class FinanceTestCase(TestCase):
                    'type':
                    zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
                    'source_id': 'benchmarks'})
-            for dt, ret in trading.environment.benchmark_returns.iteritems()
+            for dt, ret in self.env.benchmark_returns.iteritems()
             if dt.date() >= sim_params.period_start.date() and
             dt.date() <= sim_params.period_end.date()
         ]
@@ -410,6 +413,7 @@ class TradingEnvironmentTestCase(TestCase):
             period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
             period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
             capital_base=100000,
+            env=self.env,
         )
 
         self.assertTrue(env.last_close.month == 12)
@@ -426,10 +430,11 @@ class TradingEnvironmentTestCase(TestCase):
         #  20 21 22 23 24 25 26
         #  27 28 29 30 31
 
-        env = SimulationParameters(
+        params = SimulationParameters(
             period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
             period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
             capital_base=100000,
+            env=self.env,
         )
 
         expected_trading_days = (
@@ -445,9 +450,9 @@ class TradingEnvironmentTestCase(TestCase):
         )
 
         num_expected_trading_days = 5
-        self.assertEquals(num_expected_trading_days, env.days_in_period)
+        self.assertEquals(num_expected_trading_days, params.days_in_period)
         np.testing.assert_array_equal(expected_trading_days,
-                                      env.trading_days.tolist())
+                                      params.trading_days.tolist())
 
     @timed(DEFAULT_TIMEOUT)
     def test_market_minute_window(self):

@@ -190,6 +190,18 @@ class TradingAlgorithm(object):
 
         self.instant_fill = kwargs.pop('instant_fill', False)
 
+        # If an env has been provided, pop it
+        self.trading_environment = kwargs.pop('env', None)
+
+        if self.trading_environment is None:
+            self.trading_environment = TradingEnvironment()
+
+        # Update the TradingEnvironment with the provided asset metadata
+        self.trading_environment.write_data(
+            equities_data=kwargs.pop('asset_metadata', {}),
+            equities_identifiers=kwargs.pop('identifiers', []),
+        )
+
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
         self.sim_params = kwargs.pop('sim_params', None)
@@ -197,17 +209,15 @@ class TradingAlgorithm(object):
             self.sim_params = create_simulation_parameters(
                 capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
-                end=kwargs.pop('end', None)
+                end=kwargs.pop('end', None),
+                env=self.trading_environment,
             )
-        self.perf_tracker = PerformanceTracker(self.sim_params)
+        else:
+            self.sim_params.update_internal_from_env(self.trading_environment)
 
-        # Update the TradingEnvironment with the provided asset metadata
-        self.trading_environment = kwargs.pop('env',
-                                              TradingEnvironment.instance())
-        self.trading_environment.write_data(
-            equities_data=kwargs.pop('asset_metadata', {}),
-            equities_identifiers=kwargs.pop('identifiers', []),
-        )
+        # Build a perf_tracker
+        self.perf_tracker = PerformanceTracker(sim_params=self.sim_params,
+                                               env=self.trading_environment)
 
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
@@ -436,7 +446,9 @@ class TradingAlgorithm(object):
         if self.perf_tracker is None:
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
-            self.perf_tracker = PerformanceTracker(sim_params)
+            self.perf_tracker = PerformanceTracker(
+                sim_params=sim_params, env=self.trading_environment
+            )
 
         self.portfolio_needs_update = True
         self.account_needs_update = True
@@ -495,8 +507,21 @@ class TradingAlgorithm(object):
             # if DataFrame provided, map columns to sids and wrap
             # in DataFrameSource
             copy_frame = source.copy()
+
+            # Build new Assets for identifiers that can't be resolved as
+            # sids/Assets
+            identifiers_to_build = []
+            for identifier in source.columns:
+                if hasattr(identifier, '__int__'):
+                    asset = self.asset_finder.retrieve_asset(sid=identifier,
+                                                             default_none=True)
+                    if asset is None:
+                        identifiers_to_build.append(identifier)
+                else:
+                    identifiers_to_build.append(identifier)
+
             self.trading_environment.write_data(
-                equities_identifiers=source.columns)
+                equities_identifiers=identifiers_to_build)
             copy_frame.columns = \
                 self.asset_finder.map_identifier_index_to_sids(
                     source.columns, source.index[0]
@@ -507,8 +532,21 @@ class TradingAlgorithm(object):
             # If Panel provided, map items to sids and wrap
             # in DataPanelSource
             copy_panel = source.copy()
+
+            # Build new Assets for identifiers that can't be resolved as
+            # sids/Assets
+            identifiers_to_build = []
+            for identifier in source.items:
+                if hasattr(identifier, '__int__'):
+                    asset = self.asset_finder.retrieve_asset(sid=identifier,
+                                                             default_none=True)
+                    if asset is None:
+                        identifiers_to_build.append(identifier)
+                else:
+                    identifiers_to_build.append(identifier)
+
             self.trading_environment.write_data(
-                equities_identifiers=source.items)
+                equities_identifiers=identifiers_to_build)
             copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
                 source.items, source.major_axis[0]
             )
@@ -527,7 +565,9 @@ class TradingAlgorithm(object):
                 self.sim_params.period_end = source.end
             # Changing period_start and period_close might require updating
             # of first_open and last_close.
-            self.sim_params._update_internal()
+            self.sim_params.update_internal_from_env(
+                env=self.trading_environment
+            )
 
         # The sids field of the source is the reference for the universe at
         # the start of the run
@@ -555,6 +595,7 @@ class TradingAlgorithm(object):
                 self.current_universe(),
                 self.sim_params.first_open,
                 self.sim_params.data_frequency,
+                self.trading_environment,
             )
 
         # loop through simulated_trading, each iteration returns a
@@ -1107,7 +1148,8 @@ class TradingAlgorithm(object):
     def add_history(self, bar_count, frequency, field, ffill=True):
         data_frequency = self.sim_params.data_frequency
         history_spec = HistorySpec(bar_count, frequency, field, ffill,
-                                   data_frequency=data_frequency)
+                                   data_frequency=data_frequency,
+                                   env=self.trading_environment)
         self.history_specs[history_spec.key_str] = history_spec
         if self.initialized:
             if self.history_container:
@@ -1120,6 +1162,7 @@ class TradingAlgorithm(object):
                     self.current_universe(),
                     self.sim_params.first_open,
                     self.sim_params.data_frequency,
+                    env=self.trading_environment,
                 )
 
     def get_history_spec(self, bar_count, frequency, field, ffill):
@@ -1132,6 +1175,7 @@ class TradingAlgorithm(object):
                 field,
                 ffill,
                 data_frequency=data_freq,
+                env=self.trading_environment,
             )
             self.history_specs[spec_key] = spec
             if not self.history_container:
@@ -1141,6 +1185,7 @@ class TradingAlgorithm(object):
                     self.datetime,
                     self.sim_params.data_frequency,
                     bar_data=self._most_recent_data,
+                    env=self.trading_environment,
                 )
             self.history_container.ensure_spec(
                 spec, self.datetime, self._most_recent_data,

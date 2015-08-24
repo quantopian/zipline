@@ -16,6 +16,7 @@
 import pytz
 import numpy as np
 import pandas as pd
+import talib
 
 from datetime import timedelta, datetime
 from unittest import TestCase, skip
@@ -23,21 +24,26 @@ from unittest import TestCase, skip
 from zipline.utils.test_utils import setup_logger, teardown_logger
 
 import zipline.utils.factory as factory
+from zipline.finance.trading import TradingEnvironment
 
 from zipline.test_algorithms import TALIBAlgorithm
 
-import talib
 import zipline.transforms.ta as ta
 
 
 class TestTALIB(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+
     def setUp(self):
         setup_logger(self)
         sim_params = factory.create_simulation_parameters(
             start=datetime(1990, 1, 1, tzinfo=pytz.utc),
             end=datetime(1990, 3, 30, tzinfo=pytz.utc))
         self.source, self.panel = \
-            factory.create_test_panel_ohlc_source(sim_params)
+            factory.create_test_panel_ohlc_source(sim_params, self.env)
 
     def tearDown(self):
         teardown_logger(self)
@@ -60,7 +66,7 @@ class TestTALIB(TestCase):
             sim_params = factory.create_simulation_parameters(
                 start=start, end=end)
             source, panel = \
-                factory.create_test_panel_ohlc_source(sim_params)
+                factory.create_test_panel_ohlc_source(sim_params, self.env)
 
             algo = TALIBAlgorithm(talib=zipline_transform)
             algo.run(source)
