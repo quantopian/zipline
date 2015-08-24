@@ -174,8 +174,7 @@ class TestEventManager(TestCase):
 
         mock_algo_class = namedtuple('FakeAlgo', ['trading_environment'])
         mock_algo = mock_algo_class(trading_environment="fake_env")
-        self.em.handle_data(mock_algo, None, datetime.datetime.now(),
-                            mock_algo.trading_environment)
+        self.em.handle_data(mock_algo, None, datetime.datetime.now())
 
         self.assertEqual(CountingRule.count, 5)
 
