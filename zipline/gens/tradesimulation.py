@@ -20,7 +20,7 @@ from pandas.tslib import normalize_date
 
 from zipline.utils.api_support import ZiplineAPI
 
-from zipline.finance import trading
+from zipline.finance.trading import NoFurtherDataError
 from zipline.protocol import (
     BarData,
     SIDData,
@@ -50,6 +50,7 @@ class AlgorithmSimulator(object):
         # ==============
         self.algo = algo
         self.algo_start = normalize_date(self.sim_params.first_open)
+        self.env = algo.trading_environment
 
         # ==============
         # Snapshot Setup
@@ -132,10 +133,9 @@ class AlgorithmSimulator(object):
                                 mkt_close < self.algo.perf_tracker.last_close
                             try:
                                 mkt_open, mkt_close = \
-                                    trading.environment \
-                                           .next_open_and_close(mkt_close)
+                                    self.env.next_open_and_close(mkt_close)
 
-                            except trading.NoFurtherDataError:
+                            except NoFurtherDataError:
                                 # If at the end of backtest history,
                                 # skip advancing market close.
                                 pass
@@ -144,7 +144,7 @@ class AlgorithmSimulator(object):
                                 self._call_before_trading_start(mkt_open)
 
                     elif data_frequency == 'daily':
-                        next_day = trading.environment.next_trading_day(date)
+                        next_day = self.env.next_trading_day(date)
 
                         if next_day is not None and \
                            next_day < self.algo.perf_tracker.last_close:

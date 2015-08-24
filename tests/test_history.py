@@ -32,7 +32,6 @@ from zipline.finance import trading
 from zipline.finance.trading import (
     SimulationParameters,
     TradingEnvironment,
-    with_environment,
 )
 from zipline.errors import IncompatibleHistoryFrequency
 
@@ -133,29 +132,30 @@ def convert_cases(cases):
 INDEX_TEST_CASES = convert_cases(INDEX_TEST_CASES_RAW)
 
 
-def get_index_at_dt(case_input):
+def get_index_at_dt(case_input, env):
     history_spec = history.HistorySpec(
         case_input['bar_count'],
         case_input['frequency'],
         None,
         False,
+        env=env,
         data_frequency='minute',
     )
-    return history.index_at_dt(history_spec, case_input['algo_dt'])
+    return history.index_at_dt(history_spec, case_input['algo_dt'], env=env)
 
 
 class TestHistoryIndex(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.environment = TradingEnvironment.instance()
+        cls.environment = TradingEnvironment()
 
     @parameterized.expand(
         [(name, case['input'], case['expected'])
          for name, case in INDEX_TEST_CASES.items()]
     )
     def test_index_at_dt(self, name, case_input, expected):
-        history_index = get_index_at_dt(case_input)
+        history_index = get_index_at_dt(case_input, self.environment)
 
         history_series = pd.Series(index=history_index)
         expected_series = pd.Series(index=expected)
@@ -167,7 +167,7 @@ class TestHistoryContainer(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment.instance()
+        cls.env = TradingEnvironment()
 
     def bar_data_dt(self, bar_data, require_unique=True):
         """
@@ -205,6 +205,7 @@ class TestHistoryContainer(TestCase):
 
         container = HistoryContainer(
             {spec.key_str: spec for spec in specs}, sids, dt, 'minute',
+            env=self.env,
         )
 
         for update_count, update in enumerate(updates):
@@ -232,14 +233,16 @@ class TestHistoryContainer(TestCase):
             frequency='1m',
             field='price',
             ffill=True,
-            data_frequency='minute'
+            data_frequency='minute',
+            env=self.env,
         )
         no_fill_spec = history.HistorySpec(
             bar_count=3,
             frequency='1m',
             field='price',
             ffill=False,
-            data_frequency='minute'
+            data_frequency='minute',
+            env=self.env,
         )
 
         specs = {spec.key_str: spec, no_fill_spec.key_str: no_fill_spec}
@@ -248,7 +251,7 @@ class TestHistoryContainer(TestCase):
             '2013-06-28 9:31AM', tz='US/Eastern').tz_convert('UTC')
 
         container = HistoryContainer(
-            specs, initial_sids, initial_dt, 'minute'
+            specs, initial_sids, initial_dt, 'minute', env=self.env,
         )
 
         bar_data = BarData()
@@ -282,7 +285,8 @@ class TestHistoryContainer(TestCase):
             frequency='1d',
             field='price',
             ffill=True,
-            data_frequency='minute'
+            data_frequency='minute',
+            env=self.env,
         )
         specs = {spec.key_str: spec}
         initial_sids = [1, ]
@@ -290,7 +294,7 @@ class TestHistoryContainer(TestCase):
             '2013-06-28 9:31AM', tz='US/Eastern').tz_convert('UTC')
 
         container = HistoryContainer(
-            specs, initial_sids, initial_dt, 'minute'
+            specs, initial_sids, initial_dt, 'minute', env=self.env,
         )
 
         bar_data = BarData()
@@ -440,9 +444,10 @@ def handle_data(context, data):
         end = pd.Timestamp('2006-03-30', tz='UTC')
 
         sim_params = factory.create_simulation_parameters(
-            start=start, end=end, data_frequency='daily')
+            start=start, end=end, data_frequency='daily', env=self.env,
+        )
 
-        _, df = factory.create_test_df_source(sim_params)
+        _, df = factory.create_test_df_source(sim_params, self.env)
         df = df.astype(np.float64)
         source = DataFrameSource(df)
 
@@ -1039,14 +1044,15 @@ def handle_data(context, data):
             period_end=end,
             capital_base=float("1.0e5"),
             data_frequency='minute',
-            emission_rate='daily'
+            emission_rate='daily',
+            env=self.env,
         )
 
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
             sim_params=sim_params,
-            env=TestHistoryAlgo.env,
+            env=self.env,
         )
         test_algo.test_case = self
 
@@ -1089,14 +1095,15 @@ def handle_data(context, data):
             period_end=end,
             capital_base=float("1.0e5"),
             data_frequency='minute',
-            emission_rate='daily'
+            emission_rate='daily',
+            env=self.env,
         )
 
         test_algo = TradingAlgorithm(
             script=algo_text,
             data_frequency='minute',
             sim_params=sim_params,
-            env=TestHistoryAlgo.env,
+            env=self.env,
         )
         test_algo.test_case = self
 
@@ -1107,6 +1114,11 @@ def handle_data(context, data):
 
 
 class TestHistoryContainerResize(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+
     @parameterized.expand(
         (freq, field, data_frequency, construct_digest)
         for freq in ('1m', '1d')
@@ -1127,6 +1139,7 @@ class TestHistoryContainerResize(TestCase):
             field=field,
             ffill=True,
             data_frequency=data_frequency,
+            env=self.env,
         )
         specs = {spec.key_str: spec}
         initial_sids = [1]
@@ -1138,7 +1151,7 @@ class TestHistoryContainerResize(TestCase):
         )
 
         container = HistoryContainer(
-            specs, initial_sids, initial_dt, data_frequency,
+            specs, initial_sids, initial_dt, data_frequency, env=self.env,
         )
 
         if construct_digest:
@@ -1156,6 +1169,7 @@ class TestHistoryContainerResize(TestCase):
                 field=field,
                 ffill=True,
                 data_frequency=data_frequency,
+                env=self.env,
             ),
             history.HistorySpec(
                 bar_count=bar_count + 2,
@@ -1163,6 +1177,7 @@ class TestHistoryContainerResize(TestCase):
                 field=field,
                 ffill=True,
                 data_frequency=data_frequency,
+                env=self.env,
             ),
         )
 
@@ -1192,6 +1207,7 @@ class TestHistoryContainerResize(TestCase):
             field=first,
             ffill=True,
             data_frequency=data_frequency,
+            env=self.env,
         )
         specs = {spec.key_str: spec}
         initial_sids = [1]
@@ -1203,7 +1219,7 @@ class TestHistoryContainerResize(TestCase):
         )
 
         container = HistoryContainer(
-            specs, initial_sids, initial_dt, data_frequency,
+            specs, initial_sids, initial_dt, data_frequency, env=self.env
         )
 
         if bar_count > 1:
@@ -1220,6 +1236,7 @@ class TestHistoryContainerResize(TestCase):
             field=second,
             ffill=True,
             data_frequency=data_frequency,
+            env=self.env,
         )
 
         container.ensure_spec(new_spec, initial_dt, bar_data)
@@ -1252,6 +1269,7 @@ class TestHistoryContainerResize(TestCase):
             field=field,
             ffill=True,
             data_frequency=data_frequency,
+            env=self.env,
         )
         specs = {spec.key_str: spec}
         initial_sids = [1]
@@ -1263,7 +1281,7 @@ class TestHistoryContainerResize(TestCase):
         )
 
         container = HistoryContainer(
-            specs, initial_sids, initial_dt, data_frequency,
+            specs, initial_sids, initial_dt, data_frequency, env=self.env,
         )
 
         if bar_count > 1:
@@ -1280,6 +1298,7 @@ class TestHistoryContainerResize(TestCase):
             field=field,
             ffill=True,
             data_frequency=data_frequency,
+            env=self.env,
         )
 
         container.ensure_spec(new_spec, initial_dt, bar_data)
@@ -1292,8 +1311,7 @@ class TestHistoryContainerResize(TestCase):
 
         self.assert_history(container, new_spec, initial_dt)
 
-    @with_environment()
-    def assert_history(self, container, spec, dt, env=None):
+    def assert_history(self, container, spec, dt):
         hst = container.get_history(spec, dt)
 
         self.assertEqual(len(hst), spec.bar_count)

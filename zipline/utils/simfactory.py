@@ -72,7 +72,8 @@ def create_test_zipline(**config):
         trade_source = factory.create_daily_trade_source(
             sid_list,
             test_algo.sim_params,
-            concurrent=concurrent_trades
+            test_algo.trading_environment,
+            concurrent=concurrent_trades,
         )
     if trade_source:
         test_algo.set_sources([trade_source])

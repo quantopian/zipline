@@ -96,12 +96,15 @@ TEST_QUERY_ASSETS = EQUITY_INFO.index
 
 class BcolzDailyBarTestCase(TestCase):
 
-    def setUp(self):
-        all_trading_days = TradingEnvironment.instance().trading_days
-        self.trading_days = all_trading_days[
+    @classmethod
+    def setUpClass(cls):
+        all_trading_days = TradingEnvironment().trading_days
+        cls.trading_days = all_trading_days[
             all_trading_days.get_loc(TEST_CALENDAR_START):
             all_trading_days.get_loc(TEST_CALENDAR_STOP) + 1
         ]
+
+    def setUp(self):
 
         self.asset_info = EQUITY_INFO
         self.writer = SyntheticDailyBarWriter(
@@ -401,7 +404,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         writer.write(SPLITS, MERGERS, DIVIDENDS)
 
         cls.assets = TEST_QUERY_ASSETS
-        all_days = TradingEnvironment.instance().trading_days
+        all_days = TradingEnvironment().trading_days
         cls.calendar_days = all_days[
             all_days.slice_indexer(TEST_CALENDAR_START, TEST_CALENDAR_STOP)
         ]

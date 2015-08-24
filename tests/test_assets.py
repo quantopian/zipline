@@ -40,8 +40,7 @@ from zipline.errors import (
     SidAssignmentError,
     RootSymbolNotFound,
 )
-from zipline.finance import trading
-from zipline.finance.trading import with_environment
+from zipline.finance.trading import TradingEnvironment
 from zipline.utils.test_utils import (
     all_subindices,
     make_rotating_asset_info,
@@ -87,9 +86,9 @@ def build_lookup_generic_cases():
             },
         ],
         index='sid')
-    trading.environment = trading.TradingEnvironment()
-    trading.environment.write_data(equities_df=frame)
-    finder = AssetFinder(trading.environment.engine)
+    env = TradingEnvironment()
+    env.write_data(equities_df=frame)
+    finder = env.asset_finder
     dupe_0, dupe_1, unique = assets = [
         finder.retrieve_asset(i)
         for i in range(3)
@@ -281,7 +280,7 @@ class TestFuture(TestCase):
 class AssetFinderTestCase(TestCase):
 
     def setUp(self):
-        trading.environment = trading.TradingEnvironment()
+        self.env = TradingEnvironment()
 
     def test_lookup_symbol_fuzzy(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -299,8 +298,8 @@ class AssetFinderTestCase(TestCase):
                 for i in range(3)
             ]
         )
-        trading.environment.write_data(equities_df=frame)
-        finder = AssetFinder(trading.environment.engine, fuzzy_char='@')
+        self.env.write_data(equities_df=frame)
+        finder = AssetFinder(self.env.engine, fuzzy_char='@')
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
@@ -344,8 +343,8 @@ class AssetFinderTestCase(TestCase):
                 for i, date in enumerate(dates)
             ]
         )
-        trading.environment.write_data(equities_df=df)
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(equities_df=df)
+        finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
                 finder.lookup_symbol_resolve_multiple('non_existing', dates[0])
@@ -411,8 +410,8 @@ class AssetFinderTestCase(TestCase):
                 },
             ]
         )
-        trading.environment.write_data(equities_df=data)
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(equities_df=data)
+        finder = AssetFinder(self.env.engine)
         results, missing = finder.lookup_generic(
             ['real', 1, 'fake', 'real_but_old', 'real_but_in_the_future'],
             pd.Timestamp('2013-02-01', tz='UTC'),
@@ -436,8 +435,8 @@ class AssetFinderTestCase(TestCase):
                     'end_date': '2015-01-01',
                     'symbol': "PLAY",
                     'foo_data': "FOO"}}
-        trading.environment.write_data(equities_data=data)
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(equities_data=data)
+        finder = AssetFinder(self.env.engine)
         # Test proper insertion
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
@@ -454,8 +453,8 @@ class AssetFinderTestCase(TestCase):
         # Test dict consumption
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
-        trading.environment.write_data(equities_data=dict_to_consume)
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(equities_data=dict_to_consume)
+        finder = AssetFinder(self.env.engine)
 
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
@@ -467,9 +466,9 @@ class AssetFinderTestCase(TestCase):
         df['exchange'][0] = "NASDAQ"
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
-        trading.environment = trading.TradingEnvironment()
-        trading.environment.write_data(equities_df=df)
-        finder = AssetFinder(trading.environment.engine)
+        self.env = TradingEnvironment()
+        self.env.write_data(equities_df=df)
+        finder = AssetFinder(self.env.engine)
         self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
         self.assertEqual('Microsoft', finder.retrieve_asset(1).asset_name)
 
@@ -483,9 +482,9 @@ class AssetFinderTestCase(TestCase):
         future_asset = Future(200, symbol="TESTFUT", end_date=fut_end)
 
         # Consume the Assets
-        trading.environment.write_data(equities_identifiers=[equity_asset],
-                                       futures_identifiers=[future_asset])
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(equities_identifiers=[equity_asset],
+                            futures_identifiers=[future_asset])
+        finder = AssetFinder(self.env.engine)
 
         # Test equality with newly built Assets
         self.assertEqual(equity_asset, finder.retrieve_asset(1))
@@ -501,11 +500,11 @@ class AssetFinderTestCase(TestCase):
         today = normalize_date(pd.Timestamp('2015-07-09', tz='UTC'))
 
         # Write data with sid assignment
-        trading.environment.write_data(equities_identifiers=metadata,
-                                       allow_sid_assignment=True)
+        self.env.write_data(equities_identifiers=metadata,
+                            allow_sid_assignment=True)
 
         # Verify that Assets were built and different sids were assigned
-        finder = AssetFinder(trading.environment.engine)
+        finder = AssetFinder(self.env.engine)
         play = finder.lookup_symbol('PLAY', today)
         msft = finder.lookup_symbol('MSFT', today)
         self.assertEqual('PLAY', play.symbol)
@@ -519,8 +518,8 @@ class AssetFinderTestCase(TestCase):
 
         # Write data without sid assignment, asserting failure
         with self.assertRaises(SidAssignmentError):
-            trading.environment.write_data(equities_identifiers=metadata,
-                                           allow_sid_assignment=False)
+            self.env.write_data(equities_identifiers=metadata,
+                                allow_sid_assignment=False)
 
     def test_security_dates_warning(self):
 
@@ -577,8 +576,8 @@ class AssetFinderTestCase(TestCase):
             },
 
         }
-        trading.environment.write_data(futures_data=metadata)
-        finder = AssetFinder(trading.environment.engine)
+        self.env.write_data(futures_data=metadata)
+        finder = AssetFinder(self.env.engine)
         dt = pd.Timestamp('2015-05-14', tz='UTC')
         last_year = pd.Timestamp('2014-01-01', tz='UTC')
         first_day = pd.Timestamp('2015-01-01', tz='UTC')
@@ -609,7 +608,7 @@ class AssetFinderTestCase(TestCase):
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
-        finder = AssetFinder(trading.environment.engine)
+        finder = AssetFinder(self.env.engine)
         asset1 = Equity(1, symbol="AAPL")
         asset2 = Equity(2, symbol="GOOG")
         asset200 = Future(200, symbol="CLK15")
@@ -627,9 +626,9 @@ class AssetFinderTestCase(TestCase):
         post_map = finder.map_identifier_index_to_sids(pre_map, dt)
         self.assertListEqual([201, 2, 200, 1], post_map)
 
-    @with_environment()
-    def test_compute_lifetimes(self, env=None):
+    def test_compute_lifetimes(self):
         num_assets = 4
+        env = TradingEnvironment()
         trading_day = env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
@@ -641,8 +640,8 @@ class AssetFinderTestCase(TestCase):
             asset_lifetime=5
         )
 
-        trading.environment.write_data(equities_df=frame)
-        finder = AssetFinder(trading.environment.engine)
+        env.write_data(equities_df=frame)
+        finder = env.asset_finder
 
         all_dates = pd.date_range(
             start=first_start,
@@ -676,7 +675,8 @@ class AssetFinderTestCase(TestCase):
 
 class TestFutureChain(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         metadata = {
             0: {
                 'symbol': 'CLG06',
@@ -708,9 +708,9 @@ class TestFutureChain(TestCase):
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
         }
 
-        trading.environment = trading.TradingEnvironment()
-        trading.environment.write_data(futures_data=metadata)
-        self.asset_finder = AssetFinder(trading.environment.engine)
+        env = TradingEnvironment()
+        env.write_data(futures_data=metadata)
+        cls.asset_finder = env.asset_finder
 
     def test_len(self):
         """ Test the __len__ method of FutureChain.

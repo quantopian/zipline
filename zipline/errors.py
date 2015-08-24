@@ -402,3 +402,15 @@ class UnsupportedDatetimeFormat(ZiplineError):
     """
     msg = ("The input '{input}' passed to '{method}' is not "
            "coercible to a pandas.Timestamp object.")
+
+
+class PositionTrackerMissingAssetFinder(ZiplineError):
+    """
+    Raised by a PositionTracker if it is asked to update an Asset but does not
+    have an AssetFinder
+    """
+    msg = (
+        "PositionTracker attempted to update its Asset information but does "
+        "not have an AssetFinder. This may be caused by a failure to properly "
+        "de-serialize a TradingAlgorithm."
+    )

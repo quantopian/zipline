@@ -18,7 +18,6 @@ import logbook
 import math
 import numpy as np
 
-from zipline.finance import trading
 import zipline.utils.math_utils as zp_math
 
 import pandas as pd
@@ -91,10 +90,10 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params,
+    def __init__(self, sim_params, env,
                  create_first_day_stats=False,
                  account=None):
-        self.treasury_curves = trading.environment.treasury_curves
+        self.treasury_curves = env.treasury_curves
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0
         )
@@ -102,15 +101,12 @@ class RiskMetricsCumulative(object):
             hour=0, minute=0, second=0, microsecond=0
         )
 
-        self.trading_days = trading.environment.days_in_range(
-            self.start_date,
-            self.end_date)
+        self.trading_days = env.days_in_range(self.start_date, self.end_date)
 
         # Hold on to the trading day before the start,
         # used for index of the zero return value when forcing returns
         # on the first day.
-        self.day_before_start = self.start_date - \
-            trading.environment.trading_days.freq
+        self.day_before_start = self.start_date - env.trading_days.freq
 
         last_day = normalize_date(sim_params.period_end)
         if last_day not in self.trading_days:
@@ -120,6 +116,7 @@ class RiskMetricsCumulative(object):
             self.trading_days = self.trading_days.append(last_day)
 
         self.sim_params = sim_params
+        self.env = env
 
         self.create_first_day_stats = create_first_day_stats
 
@@ -276,7 +273,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             treasury_period_return = choose_treasury(
                 self.treasury_curves,
                 self.start_date,
-                treasury_end
+                treasury_end,
+                self.env,
             )
             self.daily_treasury[treasury_end] = treasury_period_return
         self.treasury_period_return = self.daily_treasury[treasury_end]
@@ -459,18 +457,17 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         return beta
 
     def __getstate__(self):
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__) if
-                (not k.startswith('_') and not k == 'treasury_curves')}
+        state_dict = {k: v for k, v in iteritems(self.__dict__)
+                      if not k.startswith('_')}
 
-        STATE_VERSION = 2
+        STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 2
+        OLDEST_SUPPORTED_STATE = 3
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:
@@ -478,7 +475,3 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                     saved state is too old.")
 
         self.__dict__.update(state)
-
-        # This are big and we don't need to serialize them
-        # pop them back in now
-        self.treasury_curves = trading.environment.treasury_curves

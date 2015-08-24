@@ -62,7 +62,6 @@ import logbook
 import math
 import numpy as np
 
-from zipline.finance import trading
 import zipline.utils.math_utils as zp_math
 
 log = logbook.Logger('Risk')
@@ -203,8 +202,8 @@ def get_treasury_rate(treasury_curves, treasury_duration, day):
     return rate
 
 
-def search_day_distance(end_date, dt):
-    tdd = trading.environment.trading_day_distance(dt, end_date)
+def search_day_distance(end_date, dt, env):
+    tdd = env.trading_day_distance(dt, end_date)
     if tdd is None:
         return None
     assert tdd >= 0
@@ -238,7 +237,7 @@ def select_treasury_duration(start_date, end_date):
 
 
 def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
-                    compound=True):
+                    env, compound=True):
     """
     Find the latest known interest rate for a given duration within a date
     range.
@@ -270,7 +269,7 @@ def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
                                      prev_day)
             if rate is not None:
                 search_day = prev_day
-                search_dist = search_day_distance(end_date, prev_day)
+                search_dist = search_day_distance(end_date, prev_day, env)
                 break
 
         if search_day:

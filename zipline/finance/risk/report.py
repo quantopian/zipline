@@ -72,7 +72,7 @@ log = logbook.Logger('Risk Report')
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params,
+    def __init__(self, algorithm_returns, sim_params, env,
                  benchmark_returns=None, algorithm_leverages=None):
         """
         algorithm_returns needs to be a list of daily_return objects
@@ -84,6 +84,7 @@ class RiskReport(object):
 
         self.algorithm_returns = algorithm_returns
         self.sim_params = sim_params
+        self.env = env
         self.benchmark_returns = benchmark_returns
         self.algorithm_leverages = algorithm_leverages
 
@@ -144,6 +145,7 @@ class RiskReport(object):
                 end_date=cur_end,
                 returns=self.algorithm_returns,
                 benchmark_returns=self.benchmark_returns,
+                env=self.env,
                 algorithm_leverages=self.algorithm_leverages,
             )
 
@@ -160,14 +162,14 @@ class RiskReport(object):
         if '_dividend_count' in dir(self):
             state_dict['_dividend_count'] = self._dividend_count
 
-        STATE_VERSION = 1
+        STATE_VERSION = 2
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 2
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:

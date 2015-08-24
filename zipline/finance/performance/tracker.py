@@ -68,7 +68,6 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 import zipline.finance.risk as risk
-from zipline.finance.trading import TradingEnvironment
 from . period import PerformancePeriod
 
 from zipline.utils.serialization_utils import (
@@ -83,15 +82,17 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params):
+    def __init__(self, sim_params, env):
 
         self.sim_params = sim_params
-        env = TradingEnvironment.instance()
+        self.env = env
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
         self.last_close = self.sim_params.last_close
-        first_open = self.sim_params.first_open.tz_convert(env.exchange_tz)
+        first_open = self.sim_params.first_open.tz_convert(
+            self.env.exchange_tz
+        )
         self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
                                          first_open.day), tz='UTC')
         self.market_open, self.market_close = env.get_open_and_close(self.day)
@@ -108,7 +109,7 @@ class PerformanceTracker(object):
         self.dividend_frame = pd.DataFrame()
         self._dividend_count = 0
 
-        self.position_tracker = PositionTracker()
+        self.position_tracker = PositionTracker(asset_finder=env.asset_finder)
 
         self.perf_periods = []
 
@@ -116,7 +117,7 @@ class PerformanceTracker(object):
             self.all_benchmark_returns = pd.Series(
                 index=self.trading_days)
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params)
+                risk.RiskMetricsCumulative(self.sim_params, self.env)
 
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
@@ -124,22 +125,23 @@ class PerformanceTracker(object):
                 freq='Min'))
 
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params,
+                risk.RiskMetricsCumulative(self.sim_params, self.env,
                                            create_first_day_stats=True)
 
             self.minute_performance = PerformancePeriod(
                 # initial cash is your capital base.
-                self.capital_base,
+                starting_cash=self.capital_base,
                 # the cumulative period will be calculated over the
                 # entire test.
-                self.period_start,
-                self.period_end,
+                period_open=self.period_start,
+                period_close=self.period_end,
                 # don't save the transactions for the cumulative
                 # period
                 keep_transactions=False,
                 keep_orders=False,
                 # don't serialize positions for cumualtive period
-                serialize_positions=False
+                serialize_positions=False,
+                asset_finder=self.env.asset_finder,
             )
             self.minute_performance.position_tracker = self.position_tracker
             self.perf_periods.append(self.minute_performance)
@@ -148,16 +150,17 @@ class PerformanceTracker(object):
         # inception.
         self.cumulative_performance = PerformancePeriod(
             # initial cash is your capital base.
-            self.capital_base,
+            starting_cash=self.capital_base,
             # the cumulative period will be calculated over the entire test.
-            self.period_start,
-            self.period_end,
+            period_open=self.period_start,
+            period_close=self.period_end,
             # don't save the transactions for the cumulative
             # period
             keep_transactions=False,
             keep_orders=False,
             # don't serialize positions for cumualtive period
             serialize_positions=False,
+            asset_finder=self.env.asset_finder,
         )
         self.cumulative_performance.position_tracker = self.position_tracker
         self.perf_periods.append(self.cumulative_performance)
@@ -165,13 +168,14 @@ class PerformanceTracker(object):
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
             # initial cash is your capital base.
-            self.capital_base,
+            starting_cash=self.capital_base,
             # the daily period will be calculated for the market day
-            self.market_open,
-            self.market_close,
+            period_open=self.market_open,
+            period_close=self.market_close,
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
+            asset_finder=self.env.asset_finder,
         )
         self.todays_performance.position_tracker = self.position_tracker
 
@@ -490,8 +494,7 @@ class PerformanceTracker(object):
 
         # Get the next trading day and, if it is past the bounds of this
         # simulation, return the daily perf packet
-        next_trading_day = TradingEnvironment.instance().\
-            next_trading_day(completed_date)
+        next_trading_day = self.env.next_trading_day(completed_date)
 
         # Check if any assets need to be auto-closed before generating today's
         # perf period
@@ -509,10 +512,9 @@ class PerformanceTracker(object):
             return daily_update
 
         # move the market day markers forward
-        env = TradingEnvironment.instance()
         self.market_open, self.market_close = \
-            env.next_open_and_close(self.day)
-        self.day = env.next_trading_day(self.day)
+            self.env.next_open_and_close(self.day)
+        self.day = self.env.next_trading_day(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
@@ -552,7 +554,8 @@ class PerformanceTracker(object):
             ars,
             self.sim_params,
             benchmark_returns=bms,
-            algorithm_leverages=acl)
+            algorithm_leverages=acl,
+            env=self.env)
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict
@@ -569,14 +572,14 @@ class PerformanceTracker(object):
         # we already store perf periods as attributes
         del state_dict['perf_periods']
 
-        STATE_VERSION = 3
+        STATE_VERSION = 4
         state_dict[VERSION_LABEL] = STATE_VERSION
 
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 3
+        OLDEST_SUPPORTED_STATE = 4
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:

@@ -23,7 +23,6 @@ import numpy as np
 from . utils.protocol_utils import Enum
 from . utils.math_utils import nanstd, nanmean, nansum
 
-from zipline.finance.trading import with_environment
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -400,8 +399,7 @@ class SIDData(object):
         def daily_get_bars(days):
             return days
 
-        @with_environment()
-        def minute_get_bars(days, env=None):
+        def minute_get_bars(days):
             cls = self.__class__
 
             now = get_algo_instance().datetime
@@ -412,6 +410,7 @@ class SIDData(object):
             if days not in cls._minute_bar_cache:
                 # Cache this calculation to happen once per bar, even if we
                 # use another transform with the same number of days.
+                env = get_algo_instance().trading_environment
                 prev = env.previous_trading_day(now)
                 ds = env.days_in_range(
                     env.add_trading_days(-days + 2, prev),

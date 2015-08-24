@@ -23,7 +23,6 @@ from six import itervalues, iteritems, iterkeys
 
 from . history import HistorySpec
 
-from zipline.finance.trading import with_environment
 from zipline.utils.data import RollingPanel, _ensure_index
 from zipline.utils.munge import ffill, bfill
 
@@ -112,7 +111,6 @@ def freq_str_and_bar_count(history_spec):
     return (history_spec.frequency.freq_str, history_spec.bar_count)
 
 
-@with_environment()
 def next_bar(spec, env):
     """
     Returns a function that will return the next bar for a given datetime.
@@ -208,6 +206,7 @@ class HistoryContainer(object):
                  initial_sids,
                  initial_dt,
                  data_frequency,
+                 env,
                  bar_data=None):
         """
         A container to hold a rolling window of historical data within a user's
@@ -228,6 +227,9 @@ class HistoryContainer(object):
         Returns:
           An instance of a new HistoryContainer
         """
+
+        # Store a reference to the env
+        self.env = env
 
         # History specs to be served by this container.
         self.history_specs = history_specs
@@ -315,8 +317,7 @@ class HistoryContainer(object):
         """
         return iterkeys(self.largest_specs)
 
-    @with_environment()
-    def _add_frequency(self, spec, dt, data, env=None):
+    def _add_frequency(self, spec, dt, data):
         """
         Adds a new frequency to the container. This reshapes the buffer_panel
         if needed.
@@ -350,9 +351,7 @@ class HistoryContainer(object):
 
         if spec.bar_count > 1:
             # This spec has more than one bar, construct a digest panel for it.
-            self.digest_panels[freq] = self._create_digest_panel(
-                dt, spec=spec, env=env,
-            )
+            self.digest_panels[freq] = self._create_digest_panel(dt, spec=spec)
         else:
             self.cur_window_starts[freq] = dt
             self.cur_window_closes[freq] = freq.window_close(
@@ -383,8 +382,7 @@ class HistoryContainer(object):
         )
         return field
 
-    @with_environment()
-    def _add_length(self, spec, dt, env=None):
+    def _add_length(self, spec, dt):
         """
         Increases the length of the digest panel for spec.frequency. If this
         does not have a panel, and one is needed; a digest panel will be
@@ -399,21 +397,17 @@ class HistoryContainer(object):
         if panel is None:
             # The old length for this frequency was 1 bar, meaning no digest
             # panel was held. We must construct a new one here.
-            panel = self._create_digest_panel(
-                dt, spec=spec, env=env,
-            )
+            panel = self._create_digest_panel(dt, spec=spec)
 
         else:
-            self._resize_panel(
-                panel, spec.bar_count - 1, dt, freq=spec.frequency, env=env,
-            )
+            self._resize_panel(panel, spec.bar_count - 1, dt,
+                               freq=spec.frequency)
 
         self.digest_panels[spec.frequency] = panel
 
         return LengthDelta(spec.frequency, delta)
 
-    @with_environment()
-    def _resize_panel(self, panel, size, dt, freq, env=None):
+    def _resize_panel(self, panel, size, dt, freq):
         """
         Resizes a panel, fills the date_buf with the correct values.
         """
@@ -429,26 +423,24 @@ class HistoryContainer(object):
 
         panel.extend_back(missing_dts)
 
-    @with_environment()
     def _create_window_date_buf(self,
                                 window,
                                 unit_str,
                                 data_frequency,
-                                dt,
-                                env=None):
+                                dt):
         """
         Creates a window length date_buf looking backwards from dt.
         """
         if unit_str == 'd':
             # Get the properly key'd datetime64 out of the pandas Timestamp
             if data_frequency != 'daily':
-                arr = env.open_close_window(
+                arr = self.env.open_close_window(
                     dt,
                     window,
                     offset=-window,
                 ).market_close.astype('datetime64[ns]').values
             else:
-                arr = env.open_close_window(
+                arr = self.env.open_close_window(
                     dt,
                     window,
                     offset=-window,
@@ -456,14 +448,13 @@ class HistoryContainer(object):
 
             return arr
         else:
-            return env.market_minute_window(
-                env.previous_market_minute(dt),
+            return self.env.market_minute_window(
+                self.env.previous_market_minute(dt),
                 window,
                 step=-1,
             )[::-1].values
 
-    @with_environment()
-    def _create_panel(self, dt, spec, env=None):
+    def _create_panel(self, dt, spec):
         """
         Constructs a rolling panel with a properly aligned date_buf.
         """
@@ -476,7 +467,6 @@ class HistoryContainer(object):
             spec.frequency.unit_str,
             spec.frequency.data_frequency,
             dt,
-            env=env,
         )
 
         panel = RollingPanel(
@@ -488,13 +478,11 @@ class HistoryContainer(object):
 
         return panel
 
-    @with_environment()
     def _create_digest_panel(self,
                              dt,
                              spec,
                              window_starts=None,
-                             window_closes=None,
-                             env=None):
+                             window_closes=None):
         """
         Creates a digest panel, setting the window_starts and window_closes.
         If window_starts or window_closes are None, then self.cur_window_starts
@@ -510,7 +498,7 @@ class HistoryContainer(object):
         window_starts[freq] = freq.normalize(dt)
         window_closes[freq] = freq.window_close(window_starts[freq])
 
-        return self._create_panel(dt, spec, env=env)
+        return self._create_panel(dt, spec)
 
     def ensure_spec(self, spec, dt, bar_data):
         """
@@ -565,11 +553,9 @@ class HistoryContainer(object):
         for panel in self.all_panels:
             panel.set_items(self.fields)
 
-    @with_environment()
     def create_digest_panels(self,
                              initial_sids,
-                             initial_dt,
-                             env=None):
+                             initial_dt):
         """
         Initialize a RollingPanel for each unique panel frequency being stored
         by this container.  Each RollingPanel pre-allocates enough storage
@@ -601,7 +587,6 @@ class HistoryContainer(object):
                 spec=largest_spec,
                 window_starts=first_window_starts,
                 window_closes=first_window_closes,
-                env=env,
             )
 
             panels[freq] = rp
@@ -618,7 +603,8 @@ class HistoryContainer(object):
         )
         freq = '1m' if self.data_frequency == 'minute' else '1d'
         spec = HistorySpec(
-            max_bars_needed + 1, freq, None, None, self.data_frequency,
+            max_bars_needed + 1, freq, None, None, self.env,
+            self.data_frequency,
         )
 
         rp = self._create_panel(

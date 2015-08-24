@@ -75,7 +75,6 @@ import logbook
 
 import numpy as np
 
-from zipline.finance.trading import TradingEnvironment
 from zipline.assets import Future
 
 try:
@@ -92,8 +91,6 @@ from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
 
-from .position_tracker import PositionTracker
-
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
@@ -103,11 +100,14 @@ class PerformancePeriod(object):
     def __init__(
             self,
             starting_cash,
+            asset_finder,
             period_open=None,
             period_close=None,
             keep_transactions=True,
             keep_orders=False,
             serialize_positions=True):
+
+        self.asset_finder = asset_finder
 
         self.period_open = period_open
         self.period_close = period_close
@@ -225,8 +225,7 @@ class PerformancePeriod(object):
         try:
             multiplier = self._execution_cash_flow_multipliers[txn.sid]
         except KeyError:
-            asset = TradingEnvironment.instance().asset_finder.\
-                retrieve_asset(txn.sid)
+            asset = self.asset_finder.retrieve_asset(txn.sid)
             # Futures experience no cash flow on transactions
             if isinstance(asset, Future):
                 multiplier = 0
@@ -424,13 +423,13 @@ class PerformancePeriod(object):
         state_dict['orders_by_modified'] = \
             dict(self.orders_by_modified)
 
-        STATE_VERSION = 2
+        STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
         return state_dict
 
     def __setstate__(self, state):
 
-        OLDEST_SUPPORTED_STATE = 1
+        OLDEST_SUPPORTED_STATE = 3
         version = state.pop(VERSION_LABEL)
 
         if version < OLDEST_SUPPORTED_STATE:
@@ -450,16 +449,4 @@ class PerformancePeriod(object):
 
         self._execution_cash_flow_multipliers = {}
 
-        # pop positions to use for v1
-        positions = state.pop('positions', None)
         self.__dict__.update(state)
-
-        if version == 1:
-            # version 1 had PositionTracker logic inside of Period
-            # we create the PositionTracker here.
-            # Note: that in V2 it is assumed that the position_tracker
-            # will be dependency injected and so is not reconstructed
-            assert positions is not None, "positions should exist in v1"
-            position_tracker = PositionTracker()
-            position_tracker.update_positions(positions)
-            self.position_tracker = position_tracker

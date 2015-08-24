@@ -23,17 +23,21 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from zipline.utils.data import MutableIndexRollingPanel, RollingPanel
-from zipline.finance.trading import with_environment
+from zipline.finance.trading import TradingEnvironment
 
 
 class TestRollingPanel(unittest.TestCase):
-    @with_environment()
-    def test_alignment(self, env):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+
+    def test_alignment(self):
         items = ('a', 'b')
         sids = (1, 2)
 
-        dts = env.market_minute_window(
-            env.open_and_closes.market_open[0], 4,
+        dts = self.env.market_minute_window(
+            self.env.open_and_closes.market_open[0], 4,
         ).values
         rp = RollingPanel(2, items, sids, initial_dates=dts[1:-1])
 
@@ -90,8 +94,7 @@ class TestRollingPanel(unittest.TestCase):
             expected,
         )
 
-    @with_environment()
-    def test_get_current_multiple_call_same_tick(self, env):
+    def test_get_current_multiple_call_same_tick(self):
         """
         In old get_current, each call the get_current would copy the data. Thus
         changing that object would have no side effects.
@@ -104,8 +107,8 @@ class TestRollingPanel(unittest.TestCase):
         items = ('a', 'b')
         sids = (1, 2)
 
-        dts = env.market_minute_window(
-            env.open_and_closes.market_open[0], 4,
+        dts = self.env.market_minute_window(
+            self.env.open_and_closes.market_open[0], 4,
         ).values
         rp = RollingPanel(2, items, sids, initial_dates=dts[1:-1])
 

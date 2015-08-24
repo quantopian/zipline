@@ -16,7 +16,6 @@
 import bisect
 import logbook
 import datetime
-from functools import wraps
 
 import pandas as pd
 import numpy as np
@@ -51,40 +50,17 @@ log = logbook.Logger('Trading')
 #   for serialization and storage, and the timezone is used to
 #   ensure proper rollover through daylight savings and so on.
 #
-# This module maintains a global variable, environment, which is
-# subsequently referenced directly by zipline financial
-# components. To set the environment, you can set the property on
-# the module directly:
-#       from zipline.finance import trading
-#       trading.environment = TradingEnvironment()
-#
-# or if you want to switch the environment for a limited context
-# you can use a TradingEnvironment in a with clause:
-#       lse = TradingEnvironment(bm_index="^FTSE", exchange_tz="Europe/London")
-#       with lse:
-# the code here will have lse as the global trading.environment
-#           algo.run(start, end)
-#
 # User code will not normally need to use TradingEnvironment
 # directly. If you are extending zipline's core financial
-# compponents and need to use the environment, you must import the module
-# NOT the variable. If you import the module, you will get a
-# reference to the environment at import time, which will prevent
-# your code from responding to user code that changes the global
-# state.
-
-environment = None
-
+# components and need to use the environment, you must import the module and
+# build a new TradingEnvironment object, then pass that TradingEnvironment as
+# the 'env' arg to your TradingAlgorithm.
 
 class TradingEnvironment(object):
 
-    @classmethod
-    def instance(cls):
-        global environment
-        if not environment:
-            environment = TradingEnvironment()
-
-        return environment
+    # Token used as a substitute for pickling objects that contain a
+    # reference to a TradingEnvironment
+    PERSISTENT_TOKEN = "<TradingEnvironment>"
 
     def __init__(
         self,
@@ -139,21 +115,6 @@ class TradingEnvironment(object):
         self.engine = engine = create_engine('sqlite:///:memory:')
         AssetDBWriterFromDictionary().init_db(engine)
         self.asset_finder = AssetFinder(engine)
-
-    def __enter__(self, *args, **kwargs):
-        global environment
-        self.prev_environment = environment
-        environment = self
-        # return value here is associated with "as such_and_such" on the
-        # with clause.
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global environment
-        environment = self.prev_environment
-        # signal that any exceptions need to be propagated up the
-        # stack.
-        return False
 
     def write_data(self,
                    engine=None,
@@ -486,7 +447,8 @@ class SimulationParameters(object):
     def __init__(self, period_start, period_end,
                  capital_base=10e3,
                  emission_rate='daily',
-                 data_frequency='daily'):
+                 data_frequency='daily',
+                 env=None):
 
         self.period_start = period_start
         self.period_end = period_end
@@ -498,55 +460,53 @@ class SimulationParameters(object):
         # copied to algorithm's environment for runtime access
         self.arena = 'backtest'
 
-        self._update_internal()
+        if env is not None:
+            self.update_internal_from_env(env=env)
 
-    def _update_internal(self):
-        # This is the global environment for trading simulation.
-        environment = TradingEnvironment.instance()
+    def update_internal_from_env(self, env):
 
         assert self.period_start <= self.period_end, \
             "Period start falls after period end."
 
-        assert self.period_start <= environment.last_trading_day, \
+        assert self.period_start <= env.last_trading_day, \
             "Period start falls after the last known trading day."
-        assert self.period_end >= environment.first_trading_day, \
+        assert self.period_end >= env.first_trading_day, \
             "Period end falls before the first known trading day."
 
-        self.first_open = self.calculate_first_open()
-        self.last_close = self.calculate_last_close()
-        start_index = \
-            environment.get_index(self.first_open)
-        end_index = environment.get_index(self.last_close)
+        self.first_open = self._calculate_first_open(env)
+        self.last_close = self._calculate_last_close(env)
+
+        start_index = env.get_index(self.first_open)
+        end_index = env.get_index(self.last_close)
 
         # take an inclusive slice of the environment's
         # trading_days.
-        self.trading_days = \
-            environment.trading_days[start_index:end_index + 1]
+        self.trading_days = env.trading_days[start_index:end_index + 1]
 
-    def calculate_first_open(self):
+    def _calculate_first_open(self, env):
         """
         Finds the first trading day on or after self.period_start.
         """
         first_open = self.period_start
         one_day = datetime.timedelta(days=1)
 
-        while not environment.is_trading_day(first_open):
+        while not env.is_trading_day(first_open):
             first_open = first_open + one_day
 
-        mkt_open, _ = environment.get_open_and_close(first_open)
+        mkt_open, _ = env.get_open_and_close(first_open)
         return mkt_open
 
-    def calculate_last_close(self):
+    def _calculate_last_close(self, env):
         """
         Finds the last trading day on or before self.period_end
         """
         last_close = self.period_end
         one_day = datetime.timedelta(days=1)
 
-        while not environment.is_trading_day(last_close):
+        while not env.is_trading_day(last_close):
             last_close = last_close - one_day
 
-        _, mkt_close = environment.get_open_and_close(last_close)
+        _, mkt_close = env.get_open_and_close(last_close)
         return mkt_close
 
     @property
@@ -572,33 +532,3 @@ class SimulationParameters(object):
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
-
-
-def with_environment(asname='env'):
-    """
-    Decorator to automagically pass TradingEnvironment to the function
-    under the name asname. If the environment is passed explicitly as a keyword
-    then the explicitly passed value will be used instead.
-
-    usage:
-       with_environment()
-       def f(env=None):
-           pass
-
-       with_environment(asname='my_env')
-       def g(my_env=None):
-           pass
-    """
-    def with_environment_decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            # inject env into the namespace for the function.
-            # This doesn't use setdefault so that grabbing the trading env
-            # is lazy.
-            if asname not in kwargs:
-                kwargs[asname] = TradingEnvironment.instance()
-            return f(*args, **kwargs)
-
-        return wrapper
-
-    return with_environment_decorator

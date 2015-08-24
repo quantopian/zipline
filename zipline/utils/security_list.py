@@ -5,7 +5,6 @@ import os.path
 import pandas as pd
 import pytz
 import zipline
-from zipline.finance.trading import with_environment
 
 
 DATE_FORMAT = "%Y%m%d"
@@ -15,7 +14,7 @@ SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
 
 class SecurityList(object):
 
-    def __init__(self, data, current_date_func):
+    def __init__(self, data, current_date_func, asset_finder):
         """
         data: a nested dictionary:
             knowledge_date -> lookup_date ->
@@ -29,6 +28,7 @@ class SecurityList(object):
         self.current_date = current_date_func
         self.count = 0
         self._current_set = set()
+        self.asset_finder = asset_finder
 
     def make_knowledge_dates(self, data):
         knowledge_dates = sorted(
@@ -68,10 +68,9 @@ class SecurityList(object):
             self._cache[kd] = self._current_set
         return self._current_set
 
-    @with_environment()
-    def update_current(self, effective_date, symbols, change_func, env=None):
+    def update_current(self, effective_date, symbols, change_func):
         for symbol in symbols:
-            asset = env.asset_finder.lookup_symbol(
+            asset = self.asset_finder.lookup_symbol(
                 symbol,
                 as_of_date=effective_date
             )
@@ -86,8 +85,9 @@ class SecurityListSet(object):
     # list implementations.
     security_list_type = SecurityList
 
-    def __init__(self, current_date_func):
+    def __init__(self, current_date_func, asset_finder):
         self.current_date_func = current_date_func
+        self.asset_finder = asset_finder
         self._leveraged_etf = None
 
     @property
@@ -95,7 +95,8 @@ class SecurityListSet(object):
         if self._leveraged_etf is None:
             self._leveraged_etf = self.security_list_type(
                 load_from_directory('leveraged_etf_list'),
-                self.current_date_func
+                self.current_date_func,
+                asset_finder=self.asset_finder
             )
         return self._leveraged_etf
 

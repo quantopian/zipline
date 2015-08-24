@@ -10,18 +10,19 @@ from zipline.history.history import HistorySpec
 from zipline.protocol import BarData
 from zipline.utils.test_utils import to_utc
 
+_cases_env = TradingEnvironment()
+
 
 def mixed_frequency_expected_index(count, frequency):
     """
     Helper for enumerating expected indices for test_mixed_frequency.
     """
-    env = TradingEnvironment.instance()
     minute = MIXED_FREQUENCY_MINUTES[count]
 
     if frequency == '1d':
-        return [env.previous_open_and_close(minute)[1], minute]
+        return [_cases_env.previous_open_and_close(minute)[1], minute]
     elif frequency == '1m':
-        return [env.previous_market_minute(minute), minute]
+        return [_cases_env.previous_market_minute(minute), minute]
 
 
 def mixed_frequency_expected_data(count, frequency):
@@ -41,32 +42,36 @@ def mixed_frequency_expected_data(count, frequency):
             return [count - 1, count]
 
 
-MIXED_FREQUENCY_MINUTES = TradingEnvironment.instance().market_minute_window(
+MIXED_FREQUENCY_MINUTES = _cases_env.market_minute_window(
     to_utc('2013-07-03 9:31AM'), 600,
 )
 ONE_MINUTE_PRICE_ONLY_SPECS = [
-    HistorySpec(1, '1m', 'price', True, data_frequency='minute'),
+    HistorySpec(1, '1m', 'price', True, _cases_env, data_frequency='minute'),
 ]
 DAILY_OPEN_CLOSE_SPECS = [
-    HistorySpec(3, '1d', 'open_price', False, data_frequency='minute'),
-    HistorySpec(3, '1d', 'close_price', False, data_frequency='minute'),
+    HistorySpec(3, '1d', 'open_price', False, _cases_env,
+                data_frequency='minute'),
+    HistorySpec(3, '1d', 'close_price', False, _cases_env,
+                data_frequency='minute'),
 ]
 ILLIQUID_PRICES_SPECS = [
-    HistorySpec(3, '1m', 'price', False, data_frequency='minute'),
-    HistorySpec(5, '1m', 'price', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'price', False, _cases_env, data_frequency='minute'),
+    HistorySpec(5, '1m', 'price', True, _cases_env, data_frequency='minute'),
 ]
 MIXED_FREQUENCY_SPECS = [
-    HistorySpec(1, '1m', 'price', False, data_frequency='minute'),
-    HistorySpec(2, '1m', 'price', False, data_frequency='minute'),
-    HistorySpec(2, '1d', 'price', False, data_frequency='minute'),
+    HistorySpec(1, '1m', 'price', False, _cases_env, data_frequency='minute'),
+    HistorySpec(2, '1m', 'price', False, _cases_env, data_frequency='minute'),
+    HistorySpec(2, '1d', 'price', False, _cases_env, data_frequency='minute'),
 ]
 MIXED_FIELDS_SPECS = [
-    HistorySpec(3, '1m', 'price', True, data_frequency='minute'),
-    HistorySpec(3, '1m', 'open_price', True, data_frequency='minute'),
-    HistorySpec(3, '1m', 'close_price', True, data_frequency='minute'),
-    HistorySpec(3, '1m', 'high', True, data_frequency='minute'),
-    HistorySpec(3, '1m', 'low', True, data_frequency='minute'),
-    HistorySpec(3, '1m', 'volume', True, data_frequency='minute'),
+    HistorySpec(3, '1m', 'price', True, _cases_env, data_frequency='minute'),
+    HistorySpec(3, '1m', 'open_price', True, _cases_env,
+                data_frequency='minute'),
+    HistorySpec(3, '1m', 'close_price', True, _cases_env,
+                data_frequency='minute'),
+    HistorySpec(3, '1m', 'high', True, _cases_env, data_frequency='minute'),
+    HistorySpec(3, '1m', 'low', True, _cases_env, data_frequency='minute'),
+    HistorySpec(3, '1m', 'volume', True, _cases_env, data_frequency='minute'),
 ]
 
 

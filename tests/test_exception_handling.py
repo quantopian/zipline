@@ -24,6 +24,7 @@ from zipline.test_algorithms import (
     SetPortfolioAlgorithm,
 )
 from zipline.finance.slippage import FixedSlippage
+from zipline.finance.trading import TradingEnvironment
 
 
 from zipline.utils.test_utils import (
@@ -38,6 +39,11 @@ EXTENDED_TIMEOUT = 90
 
 
 class ExceptionTestCase(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.env.write_data(equities_identifiers=[133])
 
     def setUp(self):
         self.zipline_test_config = {
@@ -65,7 +71,8 @@ class ExceptionTestCase(TestCase):
             ExceptionAlgorithm(
                 'handle_data',
                 self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
+                sim_params=factory.create_simulation_parameters(),
+                env=self.env
         )
 
         zipline = simfactory.create_test_zipline(
@@ -75,8 +82,7 @@ class ExceptionTestCase(TestCase):
         with self.assertRaises(Exception) as ctx:
             output, _ = drain_zipline(self, zipline)
 
-        self.assertEqual(str(ctx.exception),
-                         'Algo exception in handle_data')
+        self.assertEqual(str(ctx.exception), 'Algo exception in handle_data')
 
     def test_zerodivision_exception_in_handle_data(self):
 
@@ -85,7 +91,8 @@ class ExceptionTestCase(TestCase):
         self.zipline_test_config['algorithm'] = \
             DivByZeroAlgorithm(
                 self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
+                sim_params=factory.create_simulation_parameters(),
+                env=self.env
         )
 
         zipline = simfactory.create_test_zipline(
@@ -105,7 +112,8 @@ class ExceptionTestCase(TestCase):
         self.zipline_test_config['algorithm'] = \
             SetPortfolioAlgorithm(
                 self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
+                sim_params=factory.create_simulation_parameters(),
+                env=self.env
         )
 
         zipline = simfactory.create_test_zipline(

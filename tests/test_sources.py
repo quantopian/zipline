@@ -27,12 +27,12 @@ from zipline.sources import (DataFrameSource,
                              RandomWalkSource)
 from zipline.utils import tradingcalendar as calendar_nyse
 from zipline.assets import AssetFinder
-from zipline.finance import trading
+from zipline.finance.trading import TradingEnvironment
 
 
 class TestDataFrameSource(TestCase):
     def test_df_source(self):
-        source, df = factory.create_test_df_source()
+        source, df = factory.create_test_df_source(env=None)
         assert isinstance(source.start, pd.lib.Timestamp)
         assert isinstance(source.end, pd.lib.Timestamp)
 
@@ -43,7 +43,7 @@ class TestDataFrameSource(TestCase):
             assert expected_price[0] == sid0.price
 
     def test_df_sid_filtering(self):
-        _, df = factory.create_test_df_source()
+        _, df = factory.create_test_df_source(env=None)
         source = DataFrameSource(df)
         assert 1 not in [event.sid for event in source], \
             "DataFrameSource should only stream selected sid 0, not sid 1."
@@ -65,10 +65,10 @@ class TestDataFrameSource(TestCase):
             self.assertTrue(isinstance(event['arbitrary'], float))
 
     def test_yahoo_bars_to_panel_source(self):
-        trading.environment = trading.TradingEnvironment()
-        finder = AssetFinder(trading.environment.engine)
+        env = TradingEnvironment()
+        finder = AssetFinder(env.engine)
         stocks = ['AAPL', 'GE']
-        trading.environment.write_data(equities_identifiers=stocks)
+        env.write_data(equities_identifiers=stocks)
         start = pd.datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
         data = factory.load_bars_from_yahoo(stocks=stocks,
