@@ -101,6 +101,9 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
+# Because test cases appear to reuse some resources.
+_multiprocess_can_split_ = False
+
 
 class TestRecordAlgorithm(TestCase):
     def setUp(self):

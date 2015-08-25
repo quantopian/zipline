@@ -26,6 +26,9 @@ from nose_parameterized import parameterized
 import os
 from unittest import TestCase
 
+# Otherwise the next line sometimes complains about being run too late.
+_multiprocess_can_split_ = False
+
 matplotlib.use('Agg')
 
 
