@@ -10,6 +10,9 @@ from qexec.sources.findata import create_asset_finder
 from zipline.utils import tradingcalendar
 from zipline.finance.trading import TradingEnvironment
 
+from zipline.utils.algo_instance import get_algo_instance
+from zipline.utils.math_utils import nanstd, nanmean, nansum
+
 FINDATA_DIR = "/Users/jean/repo/findata/by_sid"
 #DAILY_EQUITIES_PATH = findata.daily_equities_path(host_settings.findata_dir, MarketData.max_day())
 DAILY_EQUITIES_PATH = "/Users/jean/repo/findata/findata/equity.dailies/2015-08-03/equity_daily_bars.bcolz"
@@ -221,7 +224,7 @@ class DataPortal(object):
                               columns=sids)
 
         # forward-fill if needed
-        if field == "close_price" and ffill:
+        if field == "price" and ffill:
             df.fillna(method='backfill', inplace=True)
 
         return df
@@ -711,6 +714,58 @@ class DataPortal(object):
         # once a day.
         return next(self.benchmark_iter).returns
 
+    def get_simple_transform(self, sid, transform_name, bars=None):
+        now = pd.Timestamp(get_algo_instance().datetime, tz='UTC')
+        sid_int = int(sid)
+
+        if transform_name == "returns":
+            # returns is always calculated over the last 2 days, even though
+            # we only support minutely backtests now.
+            hst = self.get_history_window(
+                [sid_int],
+                now,
+                2,
+                "1d",
+                "price",
+                ffill=True
+            )[sid_int]
+
+            return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
+
+        if bars is None:
+            raise ValueError("bars cannot be None!")
+
+        price_arr = self.get_history_window(
+            [sid_int],
+            now,
+            bars,
+            "1m",
+            "price",
+            ffill=True
+        )[sid_int]
+
+        if transform_name == "mavg":
+            return nanmean(price_arr)
+        elif transform_name == "stddev":
+            return nanstd(price_arr, ddof=1)
+        elif transform_name == "vwap":
+            volume_arr = self.get_history_window(
+                [sid_int],
+                now,
+                bars,
+                "1m",
+                "volume",
+                ffill=True
+            )[sid_int]
+
+            vol_sum = nansum(volume_arr)
+            try:
+                ret = nansum(price_arr * volume_arr) / vol_sum
+            except ZeroDivisionError:
+                ret = np.nan
+
+            return ret
+
 
 class DataPortalSidView(object):
 
@@ -720,3 +775,15 @@ class DataPortalSidView(object):
 
     def __getattr__(self, column):
         return self.portal.get_current_price_data(self.asset, column)
+
+    def mavg(self, minutes):
+        return self.portal.get_simple_transform(self.asset, "mavg", bars=minutes)
+
+    def stddev(self, minutes):
+        return self.portal.get_simple_transform(self.asset, "stddev", bars=minutes)
+
+    def vwap(self, minutes):
+        return self.portal.get_simple_transform(self.asset, "vwap", bars=minutes)
+
+    def returns(self):
+        return self.portal.get_simple_transform(self.asset, "returns")
