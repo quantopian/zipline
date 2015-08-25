@@ -66,12 +66,7 @@ def build_dependency_graph(terms):
     dependencies = DiGraph()
     parents = set()
     for term in terms:
-        _add_to_graph(
-            term,
-            dependencies,
-            parents,
-            extra_rows=0,
-        )
+        _add_to_graph(term, dependencies, parents, extra_rows=0)
         # No parents should be left between top-level terms.
         assert not parents
     return dependencies
