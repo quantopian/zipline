@@ -290,7 +290,7 @@ class AssetFinderTestCase(TestCase):
                     'sid': i,
                     'symbol':  'TEST@%d' % i,
                     'company_name': "company%d" % i,
-                    'start_date_': as_of.value,
+                    'start_date': as_of.value,
                     'end_date': as_of.value,
                     'exchange': uuid.uuid4().hex,
                     'fuzzy': 'TEST%d' % i
@@ -574,7 +574,6 @@ class AssetFinderTestCase(TestCase):
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
-
         }
         self.env.write_data(futures_data=metadata)
         finder = AssetFinder(self.env.engine)

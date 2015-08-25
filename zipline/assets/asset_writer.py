@@ -27,7 +27,6 @@ ASSET_TABLE_FIELDS = frozenset({
 
 # Expected fields for an Asset's metadata
 FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
-    'root_symbol_id',
     'notice_date',
     'expiration_date',
     'contract_multiplier',
@@ -36,17 +35,15 @@ FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
 EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
 
 EXCHANGE_TABLE_FIELDS = frozenset({
-    'exchange_id',
     'exchange',
     'timezone',
 })
 
 ROOT_SYMBOL_TABLE_FIELDS = frozenset({
-    'root_symbol_id',
     'root_symbol',
     'sector',
     'description',
-    'exchange_id',
+    'exchange',
 })
 
 # Default values for the equities DataFrame
@@ -85,7 +82,7 @@ _root_symbols_defaults = {
     'root_symbol': None,
     'sector': None,
     'description': None,
-    'exchange_id': None,
+    'exchange': None,
 }
 
 
@@ -199,7 +196,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     def _write_exchanges(self, exchanges, bind=None):
         recs = exchanges.reset_index().rename_axis(
-            {'index': 'exchange_id'},
+            {'index': 'exchange'},
             1,
         ).to_dict('records')
         # In SQLAlchemy, insert().values([]) will insert NULLs,
@@ -209,7 +206,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     def _write_root_symbols(self, root_symbols, bind=None):
         recs = root_symbols.reset_index().rename_axis(
-            {'index': 'root_symbol_id'},
+            {'index': 'root_symbol'},
             1,
         ).to_dict('records')
         if recs:
@@ -272,32 +269,30 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             'futures_exchanges',
             metadata,
             sa.Column(
-                'exchange_id',
-                sa.Integer,
+                'exchange',
+                sa.Text,
                 unique=True,
                 nullable=False,
                 primary_key=constraints,
             ),
-            sa.Column('exchange', sa.Text),
             sa.Column('timezone', sa.Text),
         )
         self.futures_root_symbols = sa.Table(
             'futures_root_symbols',
             metadata,
             sa.Column(
-                'root_symbol_id',
-                sa.Integer,
+                'root_symbol',
+                sa.Text,
                 unique=True,
                 nullable=False,
                 primary_key=constraints,
             ),
-            sa.Column('root_symbol', sa.Text),
             sa.Column('sector', sa.Text),
             sa.Column('description', sa.Text),
             sa.Column(
-                'exchange_id',
-                sa.Integer,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange_id),)
+                'exchange',
+                sa.Text,
+                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
                   if constraints else ())
             ),
         )
@@ -313,23 +308,21 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             ),
             sa.Column('symbol', sa.Text),
             sa.Column(
-                'root_symbol_id',
-                sa.Integer,
-                *((sa.ForeignKey(self.futures_root_symbols.c.root_symbol_id),)
+                'root_symbol',
+                sa.Text,
+                *((sa.ForeignKey(self.futures_root_symbols.c.root_symbol),)
                   if constraints else ())
             ),
-            sa.Column('root_symbol', sa.Text),
             sa.Column('asset_name', sa.Text),
             sa.Column('start_date', sa.Integer, default=0),
             sa.Column('end_date', sa.Integer),
             sa.Column('first_traded', sa.Integer),
             sa.Column(
-                'exchange_id',
-                sa.Integer,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange_id),)
+                'exchange',
+                sa.Text,
+                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
                   if constraints else ())
             ),
-            sa.Column('exchange', sa.Text),
             sa.Column('notice_date', sa.Integer),
             sa.Column('expiration_date', sa.Integer),
             sa.Column('contract_multiplier', sa.Float),
@@ -616,9 +609,9 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
         if 'sid' in self._futures.columns:
             self._futures.set_index(['sid'], inplace=True)
         if 'exchange_id' in self._exchanges.columns:
-            self._exchanges.set_index(['exchange_id'], inplace=True)
+            self._exchanges.set_index(['exchange'], inplace=True)
         if 'root_symbol_id' in self._root_symbols.columns:
-            self._root_symbols.set_index(['root_symbol_id'], inplace=True)
+            self._root_symbols.set_index(['root_symbol'], inplace=True)
 
         return AssetData(equities=self._equities,
                          futures=self._futures,
