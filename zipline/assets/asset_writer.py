@@ -74,13 +74,11 @@ _futures_defaults = {
 
 # Default values for the exchanges DataFrame
 _exchanges_defaults = {
-    'exchange': None,
     'timezone': None,
 }
 
 # Default values for the root_symbols DataFrame
 _root_symbols_defaults = {
-    'root_symbol': None,
     'root_symbol_id': None,
     'sector': None,
     'description': None,
