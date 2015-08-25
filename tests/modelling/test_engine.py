@@ -23,7 +23,6 @@ from pandas import (
 from pandas.util.testing import assert_frame_equal
 from testfixtures import TempDirectory
 
-from zipline.assets import AssetFinder
 from zipline.data.equities import USEquityPricing
 from zipline.data.ffc.synthetic import (
     ConstantLoader,
@@ -39,7 +38,7 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
     USEquityPricingLoader,
 )
-from zipline.finance import trading
+from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.factor import TestingFactor
 from zipline.modelling.factor.technical import (
@@ -93,9 +92,9 @@ class ConstantInputTestCase(TestCase):
             start_date=self.dates[0],
             end_date=self.dates[-1],
         )
-        trading.environment = trading.TradingEnvironment()
-        trading.environment.write_data(equities_df=self.asset_info)
-        self.asset_finder = AssetFinder(trading.environment.engine)
+        environment = TradingEnvironment()
+        environment.write_data(equities_df=self.asset_info)
+        self.asset_finder = environment.asset_finder
 
     def test_bad_dates(self):
         loader = self.loader
@@ -226,7 +225,7 @@ class FrameInputTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.env = trading.TradingEnvironment()
+        cls.env = TradingEnvironment()
         day = cls.env.trading_day
 
         cls.assets = Int64Index([1, 2, 3])
@@ -243,9 +242,9 @@ class FrameInputTestCase(TestCase):
             end_date=cls.dates[-1],
         )
         cls.env.write_data(equities_df=asset_info)
+        cls.asset_finder = cls.env.asset_finder
 
     def setUp(self):
-        self.asset_finder = AssetFinder(FrameInputTestCase.env.engine)
         self.dates = FrameInputTestCase.dates
         self.assets = FrameInputTestCase.assets
 
@@ -337,7 +336,7 @@ class SyntheticBcolzTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.first_asset_start = Timestamp('2015-04-01', tz='UTC')
-        cls.env = trading.TradingEnvironment()
+        cls.env = TradingEnvironment()
         cls.trading_day = cls.env.trading_day
         cls.asset_info = make_rotating_asset_info(
             num_assets=6,
@@ -354,7 +353,7 @@ class SyntheticBcolzTestCase(TestCase):
         )
 
         cls.env.write_data(equities_df=cls.asset_info)
-        cls.finder = AssetFinder(cls.env.engine)
+        cls.finder = cls.env.asset_finder
 
         cls.temp_dir = TempDirectory()
         cls.temp_dir.create()
@@ -467,7 +466,9 @@ class MultiColumnLoaderTestCase(TestCase):
             start_date=self.dates[0],
             end_date=self.dates[-1],
         )
-        self.asset_finder = AssetFinder(asset_info)
+        env = TradingEnvironment()
+        env.write_data(equities_df=asset_info)
+        self.asset_finder = env.asset_finder
 
     def test_engine_with_multicolumn_loader(self):
         open_, close = USEquityPricing.open, USEquityPricing.close
