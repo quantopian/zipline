@@ -23,8 +23,8 @@ from zipline.errors import (
     WindowLengthTooLong,
 )
 
-cdef extern from "math.h" nogil:
-    float NAN
+
+cdef double NAN = float64('nan')
 
 
 NOMASK = None
