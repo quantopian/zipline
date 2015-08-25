@@ -149,10 +149,10 @@ class NoOpFFCEngine(FFCEngine):
     FFCEngine that doesn't do anything.
     """
 
-    def factor_matrix(self, terms, start, end):
+    def factor_matrix(self, terms, start_date, end_date):
         return DataFrame(
             index=MultiIndex.from_product(
-                [date_range(start=start, end=end, freq='D'), ()],
+                [date_range(start=start_date, end=end_date, freq='D'), ()],
             ),
             columns=sorted(terms.keys())
         )
