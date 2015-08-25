@@ -334,7 +334,7 @@ class AlgorithmSimulator(object):
         dt = normalize_date(dt)
         self.simulation_dt = dt
         self.on_dt_changed(dt)
-        self.algo.before_trading_start()
+        self.algo.before_trading_start(self.current_data)
 
     def on_dt_changed(self, dt):
         if self.algo.datetime != dt:

@@ -322,11 +322,11 @@ class TradingAlgorithm(object):
         with ZiplineAPI(self):
             self._initialize(self)
 
-    def before_trading_start(self):
+    def before_trading_start(self, data):
         if self._before_trading_start is None:
             return
 
-        self._before_trading_start(self)
+        self._before_trading_start(self, data)
 
     def handle_data(self, data):
         self._most_recent_data = data
