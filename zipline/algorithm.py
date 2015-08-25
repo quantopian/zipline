@@ -177,7 +177,7 @@ class TradingAlgorithm(object):
         self.account_controls = []
 
         self._recorded_vars = {}
-        self.namespace = kwargs.get('namespace', {})
+        self.namespace = kwargs.pop('namespace', {})
 
         self._platform = kwargs.pop('platform', 'zipline')
 
@@ -336,7 +336,7 @@ class TradingAlgorithm(object):
         functions.
         """
         with ZiplineAPI(self):
-            self._initialize(self)
+            self._initialize(self, *args, **kwargs)
 
     def before_trading_start(self, data):
         if self._before_trading_start is None:

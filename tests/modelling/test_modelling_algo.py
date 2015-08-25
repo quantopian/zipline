@@ -32,7 +32,6 @@ from zipline.api import (
     add_factor,
     get_datetime,
 )
-from zipline.assets import AssetFinder
 # from zipline.data.equities import USEquityPricing
 from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
@@ -87,7 +86,6 @@ class FFCAlgorithmTestCase(TestCase):
         )
         cls.env = trading.TradingEnvironment()
         cls.env.write_data(equities_df=asset_info)
-        cls.asset_finder = AssetFinder(cls.env.engine)
         cls.tempdir = tempdir = TempDirectory()
         tempdir.create()
         try:
@@ -210,7 +208,6 @@ class FFCAlgorithmTestCase(TestCase):
             before_trading_start=before_trading_start,
             data_frequency='daily',
             ffc_loader=self.ffc_loader,
-            asset_finder=self.asset_finder,
             start=self.dates[max(window_lengths)],
             end=self.dates[-1],
         )
