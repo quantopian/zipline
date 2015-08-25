@@ -14,26 +14,6 @@ from zipline.assets._assets import Asset
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
-ASSET_FIELDS = frozenset({
-    'sid',
-    'asset_type',
-    'symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'exchange',
-    'notice_date',
-    'root_symbol',
-    'expiration_date',
-    'contract_multiplier',
-    # The following fields are for compatibility with other systems
-    'file_name',  # Used as symbol
-    'company_name',  # Used as asset_name
-    'start_date_nano',  # Used as start_date
-    'end_date_nano',  # Used as end_date
-})
-
 # Expected fields for an Asset's metadata
 ASSET_TABLE_FIELDS = frozenset({
     'sid',
@@ -44,7 +24,6 @@ ASSET_TABLE_FIELDS = frozenset({
     'first_traded',
     'exchange',
 })
-
 
 # Expected fields for an Asset's metadata
 FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
@@ -59,16 +38,110 @@ EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
 EXCHANGE_TABLE_FIELDS = frozenset({
     'exchange_id',
     'exchange',
-    'timezone'
+    'timezone',
 })
 
-ROOT_SYMBOL_TABLE_FIELDS = ({
+ROOT_SYMBOL_TABLE_FIELDS = frozenset({
     'root_symbol_id',
     'root_symbol',
     'sector',
     'description',
-    'exchange_id'
+    'exchange_id',
 })
+
+# Default values for the equities DataFrame
+_equities_defaults = {
+    'symbol': None,
+    'asset_name': None,
+    'start_date': 0,
+    'end_date': 2 ** 62 - 1,
+    'first_traded': None,
+    'exchange': None,
+    'fuzzy': None,
+}
+
+# Default values for the futures DataFrame
+_futures_defaults = {
+    'symbol': None,
+    'root_symbol': None,
+    'asset_name': None,
+    'start_date': 0,
+    'end_date': 2 ** 62 - 1,
+    'first_traded': None,
+    'exchange': None,
+    'notice_date': None,
+    'expiration_date': None,
+    'contract_multiplier': 1,
+}
+
+# Default values for the exchanges DataFrame
+_exchanges_defaults = {
+    'exchange': None,
+    'timezone': None,
+}
+
+# Default values for the root_symbols DataFrame
+_root_symbols_defaults = {
+    'root_symbol': None,
+    'sector': None,
+    'description': None,
+    'exchange_id': None,
+}
+
+
+def _generate_output_dataframe(data_subset, defaults):
+    """
+    Generates an output dataframe from the given subset of user-provided
+    data, the given column names, and the given default values.
+
+    Parameters
+    ----------
+    data_subset : DataFrame
+        A DataFrame, usually from an AssetData object,
+        that contains the user's input metadata for the asset type being
+        processed
+    defaults : dict
+        A dict where the keys are the names of the columns of the desired
+        output DataFrame and the values are the default values to insert in the
+        DataFrame if no user data is provided
+
+    Returns
+    -------
+    DataFrame
+        A DataFrame containing all user-provided metadata, and default values
+        wherever user-provided metadata was missing
+    """
+    # The columns provided.
+    cols = set(data_subset.columns)
+    desired_cols = {col for col in defaults.keys()}
+
+    # Drop columns with unrecognised headers.
+    data_subset.drop(cols - (cols & desired_cols),
+                     axis=1,
+                     inplace=True)
+
+    # Get those columns which we need but
+    # for which no data has been supplied.
+    need = desired_cols - set(data_subset.columns)
+
+    # Combine the users supplied data with our required columns.
+    output = pd.concat(
+        (data_subset, pd.DataFrame(
+            _dict_subset(defaults, need),
+            data_subset.index,
+        )),
+        axis=1,
+        copy=False
+    )
+
+    return output
+
+
+def _dict_subset(dict_, subset):
+    res = {}
+    for k in subset:
+        res[k] = dict_[k]
+    return res
 
 
 class AssetDBWriter(with_metaclass(ABCMeta)):
@@ -288,40 +361,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Generate equities DataFrame #
         ###############################
 
-        # Default values to be written to database.
-        equities_defaults = {
-            'symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': 2 ** 62 - 1,
-            'first_traded': None,
-            'exchange': None,
-            'fuzzy': None,
-        }
-
-        # The columns to be returned.
-        equities_cols = {'symbol', 'asset_name', 'start_date',
-                         'end_date', 'first_traded', 'exchange', 'fuzzy'}
-
-        # The columns provided.
-        cols = set(data.equities.columns)
-
-        # Drop columns with unrecognised headers.
-        data.equities.drop(cols - (cols & equities_cols), axis=1,
-                           inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = equities_cols - set(data.equities.columns)
-
-        # Combine the supplied data with our required columns.
-        equities_output = pd.concat(
-            (data.equities, pd.DataFrame(
-                self.dict_subset(equities_defaults, need),
-                data.equities.index,
-            )),
-            axis=1,
-            copy=False
+        equities_output = _generate_output_dataframe(
+            data_subset=data.equities,
+            defaults=_equities_defaults,
         )
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
@@ -336,45 +378,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Generate futures DataFrame #
         ##############################
 
-        # Default values to be written to database.
-        futures_defaults = {
-            'symbol': None,
-            'root_symbol': None,
-            'asset_name': None,
-            'start_date': 0,
-            'end_date': 2 ** 62 - 1,
-            'first_traded': None,
-            'exchange': None,
-            'notice_date': None,
-            'expiration_date': None,
-            'contract_multiplier': 1,
-        }
-
-        # The columns to be returned.
-        futures_cols = {'symbol', 'root_symbol', 'asset_name',
-                        'start_date', 'end_date', 'first_traded', 'exchange',
-                        'notice_date', 'expiration_date',
-                        'contract_multiplier'}
-
-        # The columns provided.
-        cols = set(data.futures.columns)
-
-        # Drop columns with unrecognised headers.
-        data.futures.drop(cols - (cols & futures_cols), axis=1,
-                          inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = futures_cols - set(data.futures.columns)
-
-        # Combine the users supplied data with our required columns.
-        futures_output = pd.concat(
-            (data.futures, pd.DataFrame(
-                self.dict_subset(futures_defaults, need),
-                data.futures.index,
-            )),
-            axis=1,
-            copy=False
+        futures_output = _generate_output_dataframe(
+            data_subset=data.futures,
+            defaults=_futures_defaults,
         )
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
@@ -397,71 +403,18 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Generate exchanges DataFrame #
         ################################
 
-        # Default values to be written to database.
-        exchanges_defaults = {
-            'exchange': None,
-            'timezone': None,
-        }
-
-        # The columns to be returned.
-        exchanges_cols = {'exchange', 'timezone', }
-
-        # The columns provided.
-        cols = set(data.exchanges.columns)
-
-        # Drop columns with unrecognised headers.
-        data.exchanges.drop(cols - (cols & exchanges_cols), axis=1,
-                            inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = exchanges_cols - set(data.exchanges.columns)
-
-        # Combine the users supplied data with our required columns.
-        exchanges_output = pd.concat(
-            (data.exchanges, pd.DataFrame(
-                self.dict_subset(exchanges_defaults, need),
-                data.exchanges.index,
-            )),
-            axis=1,
-            copy=False
+        exchanges_output = _generate_output_dataframe(
+            data_subset=data.exchanges,
+            defaults=_exchanges_defaults,
         )
 
         ###################################
         # Generate root symbols DataFrame #
         ###################################
 
-        # Default values to be written to database.
-        root_symbols_defaults = {
-            'root_symbol': None,
-            'sector': None,
-            'description': None,
-            'exchange_id': None,
-        }
-
-        # The columns to be returned.
-        root_symbols_cols = {'root_symbol', 'sector',
-                             'description', 'exchange_id'}
-
-        # The columns provided.
-        cols = set(data.root_symbols.columns)
-
-        # Drop columns with unrecognised headers.
-        data.root_symbols.drop(cols - (cols & root_symbols_cols), axis=1,
-                               inplace=True)
-
-        # Get those columns which we need but
-        # for which no data has been supplied.
-        need = root_symbols_cols - set(data.root_symbols.columns)
-
-        # Combine the users supplied data with our required columns.
-        root_symbols_output = pd.concat(
-            (data.root_symbols, pd.DataFrame(
-                self.dict_subset(root_symbols_defaults, need),
-                data.root_symbols.index,
-            )),
-            axis=1,
-            copy=False
+        root_symbols_output = _generate_output_dataframe(
+            data_subset=data.root_symbols,
+            defaults=_root_symbols_defaults,
         )
 
         return AssetData(equities=equities_output,
@@ -475,20 +428,21 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
         Parameters
         ----------
-        dt
-            A string, int or pd.Timestamp instance representing a datetime.
+        dt : datetime-coercible
+            A string, int or pd.Timestamp instance representing a datetime, or
+            None/NaN.
 
         Returns
         -------
-        float
-            nanoseconds since UNIX Epoch.
-
+        int
+            nanoseconds since UNIX Epoch, or None if parameter 'dt' is null.
         """
 
+        # Check for null parameter
         if pd.isnull(dt):
             return None
 
-        # If no timezone is specified, assumine UTC.
+        # If no timezone is specified, assume UTC.
         # Otherwise, convert to UTC.
         try:
             dt = pd.Timestamp(dt).tz_localize('UTC')
@@ -518,13 +472,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         epoch = pd.to_datetime(0, utc=True)
         delta = dt - epoch
         return delta.total_seconds()
-
-    @staticmethod
-    def dict_subset(dict_, subset):
-        res = {}
-        for k in subset:
-            res[k] = dict_[k]
-        return res
 
     @abstractmethod
     def _load_data(self):
