@@ -41,6 +41,7 @@ EXCHANGE_TABLE_FIELDS = frozenset({
 
 ROOT_SYMBOL_TABLE_FIELDS = frozenset({
     'root_symbol',
+    'root_symbol_id',
     'sector',
     'description',
     'exchange',
@@ -80,6 +81,7 @@ _exchanges_defaults = {
 # Default values for the root_symbols DataFrame
 _root_symbols_defaults = {
     'root_symbol': None,
+    'root_symbol_id': None,
     'sector': None,
     'description': None,
     'exchange': None,
@@ -287,6 +289,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 nullable=False,
                 primary_key=constraints,
             ),
+            sa.Column('root_symbol_id', sa.Integer),
             sa.Column('sector', sa.Text),
             sa.Column('description', sa.Text),
             sa.Column(
