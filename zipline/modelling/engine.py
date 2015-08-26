@@ -482,6 +482,12 @@ class SimpleFFCEngine(object):
         return DataFrame(
             dict(zip(factor_names, factor_outputs)),
             index=MultiIndex.from_arrays(
-                [raw_dates_index, raw_assets_index],
+                [
+                    raw_dates_index,
+                    # FUTURE OPTIMIZATION:
+                    # Avoid duplicate lookups by grouping and only looking up
+                    # each unique sid once.
+                    self._finder.retrieve_all(raw_assets_index),
+                ],
             )
         ).tz_localize('UTC', level=0)

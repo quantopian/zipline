@@ -3,6 +3,7 @@ Tests for SimpleFFCEngine
 """
 from __future__ import division
 from unittest import TestCase
+from itertools import product
 
 from numpy import (
     full,
@@ -14,9 +15,10 @@ from pandas import (
     DataFrame,
     date_range,
     Int64Index,
+    MultiIndex,
     rolling_mean,
-    Timestamp,
     Series,
+    Timestamp,
 )
 from pandas.util.testing import assert_frame_equal
 from testfixtures import TempDirectory
@@ -61,6 +63,12 @@ class RollingSumDifference(TestingFactor):
         return (open - close).sum(axis=0)
 
 
+def assert_product(case, index, *levels):
+    """Assert that a MultiIndex contains the product of `*levels`."""
+    case.assertIsInstance(index, MultiIndex, "%s is not a MultiIndex" % index)
+    case.assertEqual(set(index), set(product(*levels)))
+
+
 class ConstantInputTestCase(TestCase):
 
     def setUp(self):
@@ -99,14 +107,17 @@ class ConstantInputTestCase(TestCase):
 
     def test_single_factor(self):
         loader = self.loader
+        finder = self.asset_finder
+        assets = self.assets
         engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
-        result_shape = (num_dates, num_assets) = (5, len(self.assets))
+        result_shape = (num_dates, num_assets) = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
         factor = RollingSumDifference()
 
         result = engine.factor_matrix({'f': factor}, dates[0], dates[-1])
         self.assertEqual(set(result.columns), {'f'})
+        assert_product(self, result.index, dates, finder.retrieve_all(assets))
 
         assert_array_equal(
             result['f'].unstack().values,
@@ -116,8 +127,10 @@ class ConstantInputTestCase(TestCase):
     def test_multiple_rolling_factors(self):
 
         loader = self.loader
+        finder = self.asset_finder
+        assets = self.assets
         engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
-        shape = num_dates, num_assets = (5, len(self.assets))
+        shape = num_dates, num_assets = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
         short_factor = RollingSumDifference(window_length=3)
@@ -133,6 +146,7 @@ class ConstantInputTestCase(TestCase):
             dates[-1],
         )
         self.assertEqual(set(results.columns), {'short', 'high', 'long'})
+        assert_product(self, results.index, dates, finder.retrieve_all(assets))
 
         # row-wise sum over an array whose values are all (1 - 2)
         assert_array_equal(
@@ -467,6 +481,7 @@ class MultiColumnLoaderTestCase(TestCase):
                                       self.dates[-1])
         self.assertIsNotNone(result)
         self.assertEqual({'f'}, set(result.columns))
+
         # (close - open) * window = (1 - 2) * 3 = -3
         # skipped 2 from the start, so that the window is full
         check_arrays(result['f'],
