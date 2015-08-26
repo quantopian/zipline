@@ -242,6 +242,9 @@ class AssetFinder(object):
         else:
             raise SidNotFound(sid=sid)
 
+    def retrieve_all(self, sids, default_none=False):
+        return [self.retrieve_asset(sid) for sid in sids]
+
     def _retrieve_equity(self, sid):
         try:
             return self._equity_cache[sid]
