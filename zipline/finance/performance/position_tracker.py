@@ -29,7 +29,8 @@ log = logbook.Logger('Performance')
 
 class PositionTracker(object):
 
-    def __init__(self):
+    def __init__(self, auto_close=True):
+        self.auto_close = auto_close
         # sid => position object
         self.positions = positiondict()
         # Arrays for quick calculations of positions value
@@ -69,6 +70,9 @@ class PositionTracker(object):
                     asset.contract_multiplier
                 self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
+
+                if not self.auto_close:
+                    return
                 # Futures are closed on their notice_date
                 if asset.notice_date:
                     self._insert_auto_close_position_date(

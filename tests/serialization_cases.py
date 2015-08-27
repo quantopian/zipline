@@ -67,7 +67,7 @@ def object_serialization_cases(skip_daily=False):
         (PerformancePeriod,
             (10000,), {'position_tracker': PositionTracker()}, 'to_dict'),
         (Position, (8554,), {}, 'dict'),
-        (PositionTracker, (), {}, 'dict'),
+        (PositionTracker, (), {'auto_close': True}, 'dict'),
         (PerformanceTracker, (sim_params_minute,), {}, 'to_dict'),
         (RiskMetricsCumulative, (sim_params_minute,), {}, 'to_dict'),
         (RiskMetricsPeriod,
