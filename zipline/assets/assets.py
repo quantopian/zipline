@@ -541,7 +541,6 @@ class AssetFinder(object):
             matches.append(result)
 
         elif isinstance(asset_convertible, string_types):
-            # Throws SymbolNotFound on failure to match.
             try:
                 matches.append(
                     self.lookup_symbol_resolve_multiple(
