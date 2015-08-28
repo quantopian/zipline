@@ -8,19 +8,14 @@ from abc import (
 from operator import and_
 from six import (
     iteritems,
+    itervalues,
     with_metaclass,
 )
 from six.moves import (
     reduce,
-    zip,
     zip_longest,
 )
 
-from networkx import (
-    DiGraph,
-    get_node_attributes,
-    topological_sort,
-)
 from numpy import (
     add,
     empty_like,
@@ -33,81 +28,10 @@ from pandas import (
 
 from zipline.lib.adjusted_array import ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.modelling.classifier import Classifier
 from zipline.modelling.factor import Factor
 from zipline.modelling.filter import Filter
-
-
-# TODO: Move this somewhere else.
-class CyclicDependency(Exception):
-    pass
-
-
-def build_dependency_graph(terms):
-    """
-    Build a dependency graph containing the given terms and their dependencies.
-
-    Parameters
-    ----------
-    terms : iterable
-        An iterable of zipline.modelling.term.Term.
-
-    Returns
-    -------
-    dependencies : networkx.DiGraph
-        A directed graph representing the dependencies of the desired inputs.
-
-        Each node in the graph has an `extra_rows` attribute, indicating how
-        many, if any, extra rows we should compute for the node.  Extra rows
-        are most often needed when a term is an input to a rolling window
-        computation.  For example, if we compute a 30 day moving average of
-        price from day X to day Y, we need to load price data for the range
-        from day (X - 29) to day Y.
-    """
-    dependencies = DiGraph()
-    parents = set()
-    for term in terms:
-        _add_to_graph(term, dependencies, parents, extra_rows=0)
-        # No parents should be left between top-level terms.
-        assert not parents
-    return dependencies
-
-
-def _add_to_graph(term,
-                  dependencies,
-                  parents,
-                  extra_rows):
-    """
-    Add the term and all its inputs to dependencies.
-    """
-    # If we've seen this node already as a parent of the current traversal,
-    # it means we have an unsatisifiable dependency.  This should only be
-    # possible if the term's inputs are mutated after construction.
-    if term in parents:
-        raise CyclicDependency(term)
-    parents.add(term)
-
-    try:
-        existing = dependencies.node[term]
-    except KeyError:
-        # We're not yet in the graph: add the term with the specified number of
-        # extra rows.
-        dependencies.add_node(term, extra_rows=extra_rows)
-    else:
-        # We're already in the graph because we've been traversed by
-        # another parent.  Ensure that we have enough extra rows to satisfy
-        # all of our parents.
-        existing['extra_rows'] = max(extra_rows, existing['extra_rows'])
-
-    for subterm in term.inputs:
-        _add_to_graph(
-            subterm,
-            dependencies,
-            parents,
-            extra_rows=extra_rows + term.extra_input_rows,
-        )
-        dependencies.add_edge(subterm, term)
-
-    parents.remove(term)
+from zipline.modelling.graph import TermGraph
 
 
 class FFCEngine(with_metaclass(ABCMeta)):
@@ -218,7 +142,7 @@ class SimpleFFCEngine(object):
 
         5. Stick the values computed in (4) into a DataFrame and return it.
 
-        Step 0 is performed in `build_dependency_graph`.
+        Step 0 is performed by `zipline.modelling.graph.TermGraph`.
         Step 1 is performed in `self.build_lifetimes_matrix`.
         Step 2 is performed in `self.compute_chunk`.
         Steps 3, 4, and 5 are performed in self._format_factor_matrix.
@@ -233,47 +157,36 @@ class SimpleFFCEngine(object):
                 "start_date=%s, end_date=%s" % (start_date, end_date)
             )
 
-        graph = build_dependency_graph(terms.values())
-        ordered_terms = topological_sort(graph)
-        extra_row_counts = get_node_attributes(graph, 'extra_rows')
-        max_extra_rows = max(extra_row_counts.values())
+        graph = TermGraph(terms)
+        max_extra_rows = graph.max_extra_rows
 
         lifetimes = self.build_lifetimes_matrix(
             start_date,
             end_date,
             max_extra_rows,
         )
-        lifetimes_between_dates = lifetimes[max_extra_rows:]
+        raw_outputs = self.compute_chunk(graph, lifetimes, {})
 
+        lifetimes_between_dates = lifetimes[max_extra_rows:]
         dates = lifetimes_between_dates.index.values
         assets = lifetimes_between_dates.columns.values
 
-        raw_outputs = self.compute_chunk(
-            ordered_terms,
-            extra_row_counts,
-            lifetimes,
-        )
-
         # We only need filters and factors to compute the final output matrix.
-        raw_filters = [lifetimes_between_dates.values]
-        raw_factors = []
-        factor_names = []
+        filters, factors = {}, {}
         for name, term in iteritems(terms):
-            extra = extra_row_counts[term]
-            if isinstance(term, Factor):
-                factor_names.append(name)
-                raw_factors.append(raw_outputs[term][extra:])
+            if isinstance(term, Filter):
+                filters[name] = raw_outputs[name]
+            elif isinstance(term, Factor):
+                factors[name] = raw_outputs[name]
+            elif isinstance(term, Classifier):
+                continue
+            else:
+                raise ValueError("Unknown term type: %s" % term)
 
-            elif isinstance(term, Filter):
-                raw_filters.append(raw_outputs[term][extra:])
-
-        return self._format_factor_matrix(
-            dates,
-            assets,
-            raw_filters,
-            raw_factors,
-            factor_names,
-        )
+        # Treat base_mask as an implicit filter.
+        # TODO: Is there a clean way to make this actually just be a filter?
+        filters['base'] = lifetimes_between_dates.values
+        return self._format_factor_matrix(dates, assets, filters, factors)
 
     def build_lifetimes_matrix(self, start_date, end_date, extra_rows):
         """
@@ -313,8 +226,8 @@ class SimpleFFCEngine(object):
                 ),
             )
 
-        # Build lifetimes matrix reaching back as far start_date plus
-        # max_extra_rows.
+        # Build lifetimes matrix reaching back to `extra_rows` days before
+        # `start_date.`
         lifetimes = finder.lifetimes(
             calendar[start_idx - extra_rows:end_idx]
         )
@@ -330,7 +243,7 @@ class SimpleFFCEngine(object):
         existed = lifetimes.iloc[extra_rows:].any()
         return lifetimes.loc[:, existed]
 
-    def _inputs_for_term(self, term, workspace, extra_row_counts):
+    def _inputs_for_term(self, term, workspace, extra_rows):
         """
         Compute inputs for the given term.
 
@@ -345,7 +258,7 @@ class SimpleFFCEngine(object):
             return [
                 workspace[input_].traverse(
                     term.window_length,
-                    offset=extra_row_counts[input_] - term_extra_rows
+                    offset=extra_rows[input_] - term_extra_rows
                 )
                 for input_ in term.inputs
             ]
@@ -353,26 +266,45 @@ class SimpleFFCEngine(object):
             return [
                 ensure_ndarray(
                     workspace[input_][
-                        extra_row_counts[input_] - term_extra_rows:
+                        extra_rows[input_] - term_extra_rows:
                     ],
                 )
                 for input_ in term.inputs
             ]
 
-    def compute_chunk(self, ordered_terms, extra_row_counts, base_mask):
+    def compute_chunk(self, graph, base_mask, initial_workspace):
         """
-        Compute the FFC terms in the graph based on the assets and dates
-        defined by base_mask.
+        Compute the FFC terms in the graph for the requested start and end
+        dates.
 
-        Returns a dictionary mapping terms to computed arrays.
+        Parameters
+        ----------
+        graph : zipline.modelling.graph.TermGraph
+
+        Returns
+        -------
+        results : dict
+            Dictionary mapping requested results to outputs.
         """
         loader = self._loader
-        max_extra_rows = max(extra_row_counts.values())
-        workspace = {term: None for term in ordered_terms}
 
-        for term in ordered_terms:
+        extra_rows = graph.extra_rows
+        max_extra_rows = graph.max_extra_rows
+
+        workspace = {}
+        if initial_workspace is not None:
+            workspace.update(initial_workspace)
+
+        for term in graph.ordered():
+            # Subclasses are allowed to pre-populate computed values for terms,
+            # and in the future we may pre-compute atomic terms coming from the
+            # same dataset.  In both cases, it's possible that we already have
+            # an entry for this term.
+            if term in workspace:
+                continue
+
             base_mask_for_term = base_mask.iloc[
-                max_extra_rows - extra_row_counts[term]:
+                max_extra_rows - extra_rows[term]:
             ]
             if term.atomic:
                 # FUTURE OPTIMIZATION: Scan the resolution order for terms in
@@ -390,41 +322,39 @@ class SimpleFFCEngine(object):
                 else:
                     compute = term.compute_from_arrays
                 workspace[term] = compute(
-                    self._inputs_for_term(term, workspace, extra_row_counts),
+                    self._inputs_for_term(term, workspace, extra_rows),
                     base_mask_for_term,
                 )
-        return workspace
 
-    def _format_factor_matrix(self,
-                              dates,
-                              assets,
-                              filter_data,
-                              factor_data,
-                              factor_names):
+        out = {}
+        for name, term in iteritems(graph.outputs):
+            # Truncate off extra rows from outputs.
+            out[name] = workspace[term][extra_rows[term]:]
+        return out
+
+    def _format_factor_matrix(self, dates, assets, filters, factors):
         """
         Convert raw computed filters/factors into a DataFrame for public APIs.
 
         Parameters
         ----------
         dates : np.array[datetime64]
-            Index for raw data in filter_data/factor_data.
+            Row index for arrays in `filters` and `factors.`
         assets : np.array[int64]
-            Column labels for raw data in filter_data/factor_data.
-        filter_data : list[ndarray[bool]]
-            Raw filters data.
-        factor_data : list[ndarray]
-            Raw factor data.
-        factor_names : list[str]
-            Names of factors to use as keys.
+            Column index for arrays in `filters` and `factors.`
+        filters : dict
+            Dict mapping filter names -> computed filters.
+        factors : dict
+            Dict mapping factor names -> computed factors.
 
         Returns
         -------
         factor_matrix : pd.DataFrame
-            A DataFrame with the following indices:
+            The indices of `factor_matrix` are as follows:
 
-            index : two-tiered MultiIndex of (date, asset).  For each date, we
-                return a row for each asset that passed all filters on that
-                date.
+            index : two-tiered MultiIndex of (date, asset).
+                For each date, we return a row for each asset that passed all
+                filters on that date.
             columns : keys from `factor_data`
 
         Each date/asset/factor triple contains the computed value of the given
@@ -433,19 +363,28 @@ class SimpleFFCEngine(object):
         # FUTURE OPTIMIZATION: Cythonize all of this.
 
         # Boolean mask of values that passed all filters.
-        unioned = reduce(and_, filter_data)
+        unioned = reduce(and_, itervalues(filters))
 
-        # Parallel arrays of (x,y) coords for all date/asset pairs that passed
+        # Parallel arrays of (x,y) coords for (date, asset) pairs that passed
         # all filters.  Each entry here will correspond to a row in our output
         # frame.
         nonzero_xs, nonzero_ys = unioned.nonzero()
 
+        # Raw arrays storing (date, asset) pairs.
+        # These will form the index of our output frame.
         raw_dates_index = empty_like(nonzero_xs, dtype='datetime64[ns]')
         raw_assets_index = empty_like(nonzero_xs, dtype=int)
-        factor_outputs = [
-            empty_like(nonzero_xs, dtype=factor.dtype)
-            for factor in factor_data
-        ]
+
+        # Mapping from column_name -> array.
+        # This will be the `data` arg to our output frame.
+        columns = {
+            name: empty_like(nonzero_xs, dtype=factor.dtype)
+            for name, factor in iteritems(factors)
+        }
+        # We're going to iterate over `iteritems(columns)` a whole bunch of
+        # times down below.  It's faster to construct iterate over a tuple of
+        # pairs.
+        columns_iter = tuple(iteritems(columns))
 
         # This is tricky.
 
@@ -457,25 +396,25 @@ class SimpleFFCEngine(object):
         # each date, the running total of the number of assets that passed our
         # filters on or before that date.
 
-        # This means that (bounds[i - 1], bounds[i]) gives us the slice bounds
-        # of rows in our output DataFrame corresponding to each date.
-        dt_start = 0
+        # This means that (bounds[i - 1], bounds[i]) gives us the indices of
+        # the first and last rows in our output frame for each date in `dates`.
         bounds = add.accumulate(unioned.sum(axis=1))
-        for dt_idx, dt_end in enumerate(bounds):
+        day_start = 0
+        for day_idx, day_end in enumerate(bounds):
 
-            row_bounds = slice(dt_start, dt_end)
-            column_indices = nonzero_ys[row_bounds]
+            day_bounds = slice(day_start, day_end)
+            column_indices = nonzero_ys[day_bounds]
 
-            raw_dates_index[row_bounds] = dates[dt_idx]
-            raw_assets_index[row_bounds] = assets[column_indices]
-            for computed, output in zip(factor_data, factor_outputs):
-                output[row_bounds] = computed[dt_idx, column_indices]
+            raw_dates_index[day_bounds] = dates[day_idx]
+            raw_assets_index[day_bounds] = assets[column_indices]
+            for name, colarray in columns_iter:
+                colarray[day_bounds] = factors[name][day_idx, column_indices]
 
             # Upper bound of current row becomes lower bound for next row.
-            dt_start = dt_end
+            day_start = day_end
 
         return DataFrame(
-            dict(zip(factor_names, factor_outputs)),
+            data=columns,
             index=MultiIndex.from_arrays(
                 [
                     raw_dates_index,
