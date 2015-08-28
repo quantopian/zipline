@@ -5,27 +5,40 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-from qexec.sources.findata import create_asset_finder
-
 from zipline.utils import tradingcalendar
 from zipline.finance.trading import TradingEnvironment
 
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.math_utils import nanstd, nanmean, nansum
 
-FINDATA_DIR = "/Users/jean/repo/findata/by_sid"
-#DAILY_EQUITIES_PATH = findata.daily_equities_path(host_settings.findata_dir, MarketData.max_day())
-DAILY_EQUITIES_PATH = "/Users/jean/repo/findata/findata/equity.dailies/2015-08-03/equity_daily_bars.bcolz"
-ADJUSTMENTS_PATH = "/Users/jean/repo/findata/findata/adjustments/2015-08-03/adjustments.db"
-
 
 class DataPortal(object):
-    def __init__(self, algo):
+    def __init__(self,
+                 algo,  # FIXME hack
+                 findata_dir=None,
+                 daily_equities_path=None,
+                 adjustments_path=None,
+                 asset_finder=None):
         self.current_dt = None
         self.cur_data_offset = 0
 
         self.views = {}
         self.algo = algo
+
+        if findata_dir is None:
+            raise ValueError("Must provide findata dir!")
+
+        if daily_equities_path is None:
+            raise ValueError("Must provide daily equities path!")
+
+        if adjustments_path is None:
+            raise ValueError("Must provide adjustments path!")
+
+        self.findata_dir = findata_dir
+        self.daily_equities_path = daily_equities_path
+        self.adjustments_path = adjustments_path
+
+        self.asset_finder = asset_finder
 
         self.carrays = {
             'open': {},
@@ -52,7 +65,7 @@ class DataPortal(object):
             'price': 'close'
         }
 
-        self.adjustments_conn = sqlite3.connect(ADJUSTMENTS_PATH)
+        self.adjustments_conn = sqlite3.connect(self.adjustments_path)
 
         # We handle splits and mergers differently for point-in-time and
         # history windows.
@@ -83,13 +96,13 @@ class DataPortal(object):
 
     def _open_daily_file(self):
         if self.daily_equities_data is None:
-            self.daily_equities_data = bcolz.open(DAILY_EQUITIES_PATH)
+            self.daily_equities_data = bcolz.open(self.daily_equities_path)
             self.daily_equities_attrs = self.daily_equities_data.attrs
 
         return self.daily_equities_data, self.daily_equities_attrs
 
     def _open_minute_file(self, field, sid):
-        path = "{0}/{1}.bcolz".format(FINDATA_DIR, sid)
+        path = "{0}/{1}.bcolz".format(self.findata_dir, sid)
 
         try:
             carray = self.carrays[field][path]
@@ -142,7 +155,11 @@ class DataPortal(object):
             "daily" or "minute"
 
         field: string
-            "open", "high", "low", "close", "volume"
+            The desired field of the asset.
+
+        ffill: boolean
+            Forward-fill missing values. Only has effect if field
+            is 'price'.
 
         Returns
         -------
@@ -208,6 +225,8 @@ class DataPortal(object):
                               columns=sids)
 
         else:
+            import pdb; pdb.set_trace()
+
             minutes_for_window = TradingEnvironment.instance().\
                 market_minute_window(end_dt, bar_count, step=-1)[::-1]
 
@@ -329,7 +348,8 @@ class DataPortal(object):
 
         return return_data
 
-    def _find_position_of_minute(self, minute_dt):
+    @staticmethod
+    def _find_position_of_minute(minute_dt):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open on 1/2/2002.
@@ -369,8 +389,8 @@ class DataPortal(object):
     def _get_daily_window_for_sid(self, sid, field, days_in_window,
                                   extra_slot=True):
         """
-        Internal methods that gets a window of adjusted daily data for a sid
-        and specified date  range.  Used to support the history API method for
+        Internal method that gets a window of adjusted daily data for a sid
+        and specified date range.  Used to support the history API method for
         daily bars.
 
         Parameters
@@ -514,8 +534,6 @@ class DataPortal(object):
         if idx == adjustments_length - 1:
             # if there are no applicable adjustments, get out.
             return
-
-        import pdb; pdb.set_trace()
 
         first_applicable_adjustment = adjustments_list[idx]
 
