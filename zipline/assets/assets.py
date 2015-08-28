@@ -529,33 +529,33 @@ class AssetFinder(object):
         On success, append to matches.
         On failure, append to missing.
         """
-        try:
-            if isinstance(asset_convertible, Asset):
-                matches.append(asset_convertible)
+        if isinstance(asset_convertible, Asset):
+            matches.append(asset_convertible)
 
-            elif isinstance(asset_convertible, Integral):
+        elif isinstance(asset_convertible, Integral):
+            try:
                 result = self.retrieve_asset(int(asset_convertible))
-                if result is None:
-                    raise SymbolNotFound(symbol=asset_convertible)
-                matches.append(result)
+            except SidNotFound:
+                missing.append(asset_convertible)
+                return None
+            matches.append(result)
 
-            elif isinstance(asset_convertible, string_types):
-                # Throws SymbolNotFound on failure to match.
+        elif isinstance(asset_convertible, string_types):
+            try:
                 matches.append(
                     self.lookup_symbol_resolve_multiple(
                         asset_convertible,
                         as_of_date,
                     )
                 )
-            else:
-                raise NotAssetConvertible(
-                    "Input was %s, not AssetConvertible."
-                    % asset_convertible
-                )
-
-        except SymbolNotFound:
-            missing.append(asset_convertible)
-            return None
+            except SymbolNotFound:
+                missing.append(asset_convertible)
+                return None
+        else:
+            raise NotAssetConvertible(
+                "Input was %s, not AssetConvertible."
+                % asset_convertible
+            )
 
     def lookup_generic(self,
                        asset_convertible_or_iterable,
