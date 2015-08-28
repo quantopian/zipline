@@ -48,7 +48,7 @@ class FilterTestCase(TestCase):
             columns=arange(array.shape[1]),
         )
 
-    def test_bad_input(self):
+    def test_bad_percentiles(self):
         f = self.f
 
         bad_percentiles = [
