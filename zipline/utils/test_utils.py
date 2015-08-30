@@ -322,3 +322,18 @@ def check_arrays(left, right, err_msg='', verbose=True):
     if type(left) != type(right):
         raise AssertionError("%s != %s" % (type(left), type(right)))
     return assert_array_equal(left, right, err_msg=err_msg, verbose=True)
+
+
+class UnexpectedAttributeAccess(Exception):
+    pass
+
+
+class ExplodingObject(object):
+    """
+    Object that will raise an exception on any attribute access.
+
+    Useful for verifying that an object is never touched during a
+    function/method call.
+    """
+    def __getattribute__(self, name):
+        raise UnexpectedAttributeAccess(name)

@@ -13,6 +13,7 @@ from zipline.errors import (
     UnknownRankMethod,
     UnsupportedDataType,
 )
+from zipline.lib.rank import rankdata_2d_ordinal
 from zipline.modelling.term import (
     CustomTermMixin,
     RequiredWindowLengthMixin,
@@ -219,22 +220,27 @@ class Factor(Term):
 
     eq = binary_operator('==')
 
-    def rank(self, method='ordinal'):
+    def rank(self, method='ordinal', ascending=True):
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
 
-        Returns
-        -------
+        Parameters
+        ----------
         ranks : zipline.modelling.factor.Rank
             A new factor that will compute the sorted indices of the data
             produced by `self`.
         method : str, {'ordinal', 'min', 'max', 'dense', 'average'}
-            The method used to assign ranks to tied elements. Default is
-            'ordinal'.  See `scipy.stats.rankdata` for a full description of
-            the semantics for each ranking method.
+            The method used to assign ranks to tied elements. See
+            `scipy.stats.rankdata` for a full description of the semantics for
+            each ranking method. Default is 'ordinal'.
+        ascending : bool, optional
+            Whether to return sorted rank in ascending or descending order.
+            Default is True.
 
-            The default is 'ordinal'.
+        Returns
+        -------
+        ranks : zipline.modelling.factor.Rank
 
         Notes
         -----
@@ -247,10 +253,41 @@ class Factor(Term):
 
         See Also
         --------
-        scipy.stats.rankdata : Underlying ranking algorithm.
-        zipline.modelling.factor.Rank : Class implementing core functionality.
+        scipy.stats.rankdata
+        zipline.lib.rank
+        zipline.modelling.factor.Rank
         """
-        return Rank(self, method=method)
+        return Rank(self if ascending else -self, method=method)
+
+    def top(self, N):
+        """
+        Construct a Filter matching the top N asset values of self each day.
+
+        Parameters
+        ----------
+        N : int
+            Number of assets passing the returned filter each day.
+
+        Returns
+        -------
+        filter : zipline.modelling.filter.Filter
+        """
+        return self.rank(ascending=False) <= N
+
+    def bottom(self, N):
+        """
+        Construct a Filter matching the bottom N asset values of self each day.
+
+        Parameters
+        ----------
+        N : int
+            Number of assets passing the returned filter each day.
+
+        Returns
+        -------
+        filter : zipline.modelling.filter.Filter
+        """
+        return self.rank(ascending=True) <= N
 
     def percentile_between(self, min_percentile, max_percentile):
         """
@@ -361,22 +398,23 @@ class Rank(SingleInputMixin, Factor):
         For each row in the input, compute a like-shaped array of per-row
         ranks.
         """
-        # FUTURE OPTIMIZATION:
-        # Write a less general `apply_to_rows` method in
-        # Cython that doesn't do all the extra work that apply_over_axis does.
-
-        # FUTURE OPTIMIZATION:
-        # Look at bottleneck.nanrankdata, which is ~30% faster than numpy here,
-        # and does what we want with NaNs, but doesn't support `method`.
-        result = apply_along_axis(
-            rankdata,
-            1,
-            arrays[0],
-            method=self._method,
-        )
-        # rankdata will sort nan values into last place, but we want our nans
-        # to propagate, so explicitly re-apply
-        result[~mask.values] = nan
+        # OPTIMIZATION: Fast path the default value with our own specialized
+        # implementation.
+        if self._method == 'ordinal':
+            result = rankdata_2d_ordinal(arrays[0])
+        else:
+            # FUTURE OPTIMIZATION:
+            # Write a less general "apply to rows" method that doesn't do all
+            # the extra work that apply_along_axis does.
+            result = apply_along_axis(
+                rankdata,
+                1,
+                arrays[0],
+                method=self._method,
+            )
+            # rankdata will sort nan values into last place, but we want our
+            # nans to propagate, so explicitly re-apply
+            result[~mask.values] = nan
         return result
 
     def __repr__(self):

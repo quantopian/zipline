@@ -325,6 +325,7 @@ class SimpleFFCEngine(object):
                     self._inputs_for_term(term, workspace, extra_rows),
                     base_mask_for_term,
                 )
+                assert(workspace[term].shape == base_mask_for_term.shape)
 
         out = {}
         for name, term in iteritems(graph.outputs):
