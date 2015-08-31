@@ -227,7 +227,7 @@ cdef class Future(Asset):
     cdef readonly object root_symbol
     cdef readonly object notice_date
     cdef readonly object expiration_date
-    cdef readonly int contract_multiplier
+    cdef readonly float contract_multiplier
 
     def __cinit__(self,
                   int sid, # sid is required
@@ -240,7 +240,7 @@ cdef class Future(Asset):
                   object expiration_date=None,
                   object first_traded=None,
                   object exchange="",
-                  int contract_multiplier=1):
+                  float contract_multiplier=1):
 
         self.root_symbol         = root_symbol
         self.notice_date         = notice_date
