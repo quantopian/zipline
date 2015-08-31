@@ -57,7 +57,7 @@ class DataPortal(object):
         self.column_lookup = {
             'open': 'open',
             'high': 'high',
-            'lows': 'low',
+            'low': 'low',
             'close': 'close',
             'volume': 'volume',
             'open_price': 'open',
@@ -246,7 +246,6 @@ class DataPortal(object):
 
         return df
 
-
     def _get_minute_window_for_sid(self, sid, field, minutes_for_window):
         """
         Internal method that gets a window of adjusted minute data for a sid
@@ -284,7 +283,10 @@ class DataPortal(object):
         start_idx = self._find_position_of_minute(minutes_for_window[0])
         end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
-        return_data = np.array(raw_data[start_idx:end_idx], dtype=np.float64)
+        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
+
+        data_to_copy = raw_data[start_idx:end_idx]
+        return_data[0:len(data_to_copy)] = data_to_copy
 
         num_minutes = len(minutes_for_window)
 
@@ -343,6 +345,11 @@ class DataPortal(object):
             # we only want to do this for non-volume fields, because a missing
             # volume should be 0.
             return_data[return_data == 0] = np.NaN
+
+        # round to 3 digits
+        # FIXME this is different than before, we are rounding to the nearest
+        # 10th of a cent, NOT always rounding down like we did before.
+        return_data = np.around(return_data, 3)
 
         return return_data
 
@@ -513,7 +520,6 @@ class DataPortal(object):
     @staticmethod
     def _apply_adjustments_to_window(adjustments_list, window_data,
                                      dts_in_window, multiply):
-
         if len(adjustments_list) == 0:
             return
 
@@ -528,10 +534,10 @@ class DataPortal(object):
         while idx < adjustments_length - 1 and first_dt > \
                 adjustments_list[idx][0]:
             idx += 1
-
-        if idx == adjustments_length - 1:
-            # if there are no applicable adjustments, get out.
-            return
+        #
+        # if idx == adjustments_length - 1:
+        #     # if there are no applicable adjustments, get out.
+        #     return
 
         first_applicable_adjustment = adjustments_list[idx]
 
@@ -549,23 +555,16 @@ class DataPortal(object):
         # the next adjustment, adjust.  if the adjustment has passed, get rid
         # of it.
         range_start = 0
-        for idx, minute_dt in enumerate(dts_in_window):
-            adjustment_to_apply = adjustments_list[idx]
-            if minute_dt > adjustment_to_apply[0]:
-                idx += 1
-                range_end = idx - 1
+        while len(adjustments_list) > 0:
+            adjustment_to_apply = adjustments_list.pop(0)
 
-                if multiply:
-                    window_data[range_start:range_end + 1] *=\
-                        adjustment_to_apply[1]
-                else:
-                    window_data[range_start:range_end + 1] /=\
-                        adjustment_to_apply[1]
+            range_end = dts_in_window.searchsorted(adjustment_to_apply[0])
+            if multiply:
+                window_data[range_start:range_end] *= adjustment_to_apply[1]
+            else:
+                window_data[range_start:range_end] /= adjustment_to_apply[1]
 
-                if idx == (adjustments_length - 1):
-                    break
-
-                range_start = idx
+            range_start = range_end
 
     def _get_adjustment_list(self, sid, adjustments_dict, table_name):
         """
