@@ -671,6 +671,16 @@ class AssetFinderTestCase(TestCase):
             actual_result = finder.lifetimes(dates)
             assert_frame_equal(actual_result, expected_result)
 
+    def test_sids(self):
+        # Ensure that the sids property of the AssetFinder is functioning
+        env = TradingEnvironment()
+        env.write_data(equities_identifiers=[1, 2, 3])
+        sids = env.asset_finder.sids
+        self.assertEqual(3, len(sids))
+        self.assertTrue(1 in sids)
+        self.assertTrue(2 in sids)
+        self.assertTrue(3 in sids)
+
 
 class TestFutureChain(TestCase):
 

@@ -439,7 +439,7 @@ class AssetFinder(object):
     def sids(self):
         return tuple(map(
             itemgetter('sid'),
-            sa.select(self.asset_router.c.sid,).execute().fetchall(),
+            sa.select((self.asset_router.c.sid,)).execute().fetchall(),
         ))
 
     def _lookup_generic_scalar(self,
