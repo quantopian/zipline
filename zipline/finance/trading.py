@@ -68,7 +68,8 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
         max_date=None,
-        env_trading_calendar=tradingcalendar
+        env_trading_calendar=tradingcalendar,
+        asset_db_path=':memory:'
     ):
         """
         @load is function that returns benchmark_returns and treasury_curves
@@ -112,7 +113,7 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.engine = engine = create_engine('sqlite:///:memory:')
+        self.engine = engine = create_engine('sqlite:///%s' % asset_db_path)
         AssetDBWriterFromDictionary().init_db(engine)
         self.asset_finder = AssetFinder(engine)
 
