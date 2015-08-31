@@ -15,7 +15,7 @@ from six import with_metaclass
 from zipline.finance.trading import TradingEnvironment
 from zipline.utils import tradingcalendar
 
-MINUTES_FOR_DAY = 390
+MINUTES_PER_DAY = 390
 
 
 class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
@@ -34,40 +34,34 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
 
         return self._write_internal(directory, _iterator)
 
-    def full_minutes_for_days(self, dt1, dt2):
-        cols = []
-        days = tradingcalendar.get_trading_days(dt1, dt2)
-        for day in days:
-            cols.append(self.get_minutes_col_for_day(day))
+    @staticmethod
+    def full_minutes_for_days(dt1, dt2):
+        start_date = TradingEnvironment.instance().normalize_date(dt1)
+        end_date = TradingEnvironment.instance().normalize_date(dt2)
 
-        return np.hstack(cols)
+        all_minutes = []
 
-    @lru_cache(maxsize=None)
-    def get_minutes_col_for_day(self, day):
-        """
-        Get the market minutes as uint32 seconds since the EPOCH
+        for day in TradingEnvironment.instance().days_in_range(start_date,
+                                                               end_date):
+            minutes_in_day = pd.date_range(
+                start=pd.Timestamp(
+                    datetime(
+                        year=day.year,
+                        month=day.month,
+                        day=day.day,
+                        hour=9,
+                        minute=31),
+                    tz='US/Eastern').tz_convert('UTC'),
+                periods=390,
+                freq="min"
+            )
 
-        This is called once for the processing of every day, since all sids
-        will share this value.
-        """
-        minutes = (TradingEnvironment.instance().market_minutes_for_day(day).asi8 / int(1e9)).\
-            astype(np.uint32)
+            all_minutes.append(minutes_in_day)
 
-        num_to_add = MINUTES_PER_DAY - len(minutes)
-        # Fill the missing minutes with corresponding market minutes on half
-        # days, not using 0's so that searchsorted still works.
-        if num_to_add:
-            last_market_minute = minutes[-1]
-            # Calculate the missing minutes by adding 60 seconds to the last
-            # market minute returned by the zipline calendar then repeating
-            # a range every 60 seconds.
-            to_add = np.arange(last_market_minute + 60,
-                               last_market_minute + (num_to_add + 1) * 60,
-                               60,
-                               dtype=np.uint32)
-            assert num_to_add == len(to_add)
-            minutes = np.append(minutes, to_add)
-        return minutes
+        # flatten
+        return pd.DatetimeIndex(
+            np.concatenate(all_minutes), copy=False, tz='UTC'
+        )
 
     def _write_internal(self, directory, iterator):
         first_open = pd.Timestamp(
@@ -83,8 +77,6 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
             path = join(directory, "{0}.bcolz".format(asset_id))
 
             minutes = self.full_minutes_for_days(first_open, df.index[-1])
-
-            import pdb; pdb.set_trace()
             minutes_count = len(minutes)
 
             dt_col = np.zeros(minutes_count, dtype=np.uint32)

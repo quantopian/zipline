@@ -60,6 +60,10 @@ class HistoryTestCase(TestCase):
             raise
 
     @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+
+    @classmethod
     def create_fake_minute_data(cls, tempdir):
         resources = {
             cls.AAPL: join(TEST_MINUTE_RESOURCE_PATH, 'AAPL_minute.csv')
@@ -109,23 +113,30 @@ class HistoryTestCase(TestCase):
 
         writer.write(splits, mergers, dividends)
 
-    def test_asdf(self):
-        portal = DataPortal(None,
-                            findata_dir=self.tempdir.path,
-                            asset_finder=self.asset_finder,
-                            daily_equities_path=join(self.tempdir.path, "test_daily_data.bcolz"),
-                            adjustments_path=join(self.tempdir.path, "adjustments.sqlite")
+    def test_basic_functionality(self):
+        temp_path = self.tempdir.path
 
-                )
+        portal = DataPortal(
+            None,
+            findata_dir=temp_path,
+            asset_finder=self.asset_finder,
+            daily_equities_path=join(temp_path, "test_daily_data.bcolz"),
+            adjustments_path=join(temp_path, "adjustments.sqlite")
+        )
 
-        portal.get_history_window(
+        # get a 5-bar minute history
+        window = portal.get_history_window(
             [1],
             pd.Timestamp("2014-03-21 18:30:00+00:00", tz='UTC'),
-            50,
+            5,
             "minute",
             "open"
         )
 
-        import pdb; pdb.set_trace()
-        z = 5
-        y = 6
+        self.assertEqual(len(window), 5)
+        reference = [534.362, 534.363, 534.367, 534.367, 534.371]
+        for i in range(0, 4):
+            self.assertEqual(window.iloc[-5 + i].loc[1], reference[i])
+
+    
+

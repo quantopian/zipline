@@ -225,8 +225,6 @@ class DataPortal(object):
                               columns=sids)
 
         else:
-            import pdb; pdb.set_trace()
-
             minutes_for_window = TradingEnvironment.instance().\
                 market_minute_window(end_dt, bar_count, step=-1)[::-1]
 
