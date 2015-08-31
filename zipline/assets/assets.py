@@ -18,6 +18,7 @@ import numpy as np
 import sqlite3
 from sqlite3 import Row
 import warnings
+import pickle
 
 from logbook import Logger
 import pandas as pd
@@ -54,6 +55,7 @@ ASSET_FIELDS = [
     'notice_date',
     'expiration_date',
     'contract_multiplier',
+    'children',
     # The following fields are for compatibility with other systems
     'file_name',  # Used as symbol
     'company_name',  # Used as asset_name
@@ -71,6 +73,7 @@ ASSET_TABLE_FIELDS = [
     'end_date',
     'first_traded',
     'exchange',
+    'children',
 ]
 
 
@@ -163,6 +166,7 @@ class AssetFinder(object):
         end_date integer,
         first_traded integer,
         exchange text,
+        children real,
         fuzzy text
         )""")
 
@@ -182,7 +186,8 @@ class AssetFinder(object):
         root_symbol text,
         notice_date integer,
         expiration_date integer,
-        contract_multiplier real
+        contract_multiplier real,
+        children real
         )""")
 
         c.execute('CREATE INDEX futures_sid on futures(sid)')
@@ -303,6 +308,9 @@ class AssetFinder(object):
             if data['expiration_date']:
                 data['expiration_date'] = pd.Timestamp(
                     data['expiration_date'], tz='UTC')
+
+            if data['children']:
+                data['children'] = pickle.loads(data['children'])
 
             future = Future(**data)
         else:
@@ -818,7 +826,8 @@ class AssetFinder(object):
                  asset.notice_date.value if asset.notice_date else None,
                  asset.expiration_date.value
                  if asset.expiration_date else None,
-                 asset.contract_multiplier)
+                 asset.contract_multiplier,
+                 pickle.dumps(asset.children) if asset.children else None)
             c.execute("""INSERT INTO futures(
             sid,
             symbol,
@@ -830,8 +839,9 @@ class AssetFinder(object):
             root_symbol,
             notice_date,
             expiration_date,
-            contract_multiplier)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", t)
+            contract_multiplier,
+            children)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", t)
 
             t = (asset.sid,
                  'future')
