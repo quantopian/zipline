@@ -11,6 +11,9 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.math_utils import nanstd, nanmean, nansum
 
+# FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
+FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
+
 
 class DataPortal(object):
     def __init__(self,
@@ -50,7 +53,7 @@ class DataPortal(object):
             'dt': {},
         }
 
-        # hack
+        # FIXME hack
         if self.algo is not None:
             self.benchmark_iter = iter(self.algo.benchmark_iter)
 
@@ -225,16 +228,44 @@ class DataPortal(object):
                               columns=sids)
 
         else:
+            # get all the minutes for this window
             minutes_for_window = TradingEnvironment.instance().\
                 market_minute_window(end_dt, bar_count, step=-1)[::-1]
 
+            # but then cut it down to only the minutes after
+            # FIRST_TRADING_MINUTE
+            modified_minutes_for_window = minutes_for_window[
+                minutes_for_window.slice_indexer(FIRST_TRADING_MINUTE)]
+
+            modified_minutes_length = len(modified_minutes_for_window)
+
+            if modified_minutes_length == 0:
+                raise ValueError("Cannot calculate history window that ends"
+                                 "before 2002-01-02 14:31 UTC!")
+
             data = []
+            bars_to_prepend = 0
+            nans_to_prepend = None
+
+            if modified_minutes_length < bar_count and \
+                (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
+                # the beginning of the window goes before our global trading
+                # start date
+                bars_to_prepend = bar_count - modified_minutes_length
+                nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
+
             for sid in sids:
-                data.append(self._get_minute_window_for_sid(
+                sid_minute_data = self._get_minute_window_for_sid(
                     sid,
                     field_to_use,
-                    minutes_for_window
-                ))
+                    modified_minutes_for_window
+                )
+
+                if bars_to_prepend != 0:
+                    sid_minute_data = np.insert(sid_minute_data, 0,
+                                                nans_to_prepend)
+
+                data.append(sid_minute_data)
 
             df = pd.DataFrame(np.array(data).T,
                               index=minutes_for_window,
@@ -242,7 +273,7 @@ class DataPortal(object):
 
         # forward-fill if needed
         if field == "price" and ffill:
-            df.fillna(method='backfill', inplace=True)
+            df.fillna(method='ffill', inplace=True)
 
         return df
 
@@ -270,7 +301,6 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
-
         # each sid's minutes are stored in a bcolz file
         # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
         # of when the asset started trading and regardless of half days.
@@ -280,7 +310,7 @@ class DataPortal(object):
         # bar_count bars, and that's the unadjusted data
         raw_data = self._open_minute_file(field, sid)
 
-        start_idx = self._find_position_of_minute(minutes_for_window[0])
+        start_idx = max(self._find_position_of_minute(minutes_for_window[0]), 0)
         end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
         return_data = np.zeros(len(minutes_for_window), dtype=np.float64)

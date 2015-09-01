@@ -40,13 +40,15 @@ class HistoryTestCase(TestCase):
     def setUpClass(cls):
         cls.AAPL = 1
         cls.MSFT = 2
-        cls.assets = [cls.AAPL, cls.MSFT]
+        cls.DELL = 3
+        cls.TSLA = 4
+        cls.assets = [cls.AAPL, cls.MSFT, cls.DELL, cls.TSLA]
 
         asset_info = make_simple_asset_info(
             cls.assets,
             Timestamp('2014'),
             Timestamp('2015'),
-            ['AAPL', 'MSFT']
+            ['AAPL', 'MSFT', 'DELL', 'TSLA']
         )
 
         cls.asset_finder = AssetFinder(asset_info)
@@ -70,7 +72,9 @@ class HistoryTestCase(TestCase):
     def create_fake_minute_data(cls, tempdir):
         resources = {
             cls.AAPL: join(TEST_MINUTE_RESOURCE_PATH, 'AAPL_minute.csv'),
-            cls.MSFT: join(TEST_MINUTE_RESOURCE_PATH, 'MSFT_minute.csv')
+            cls.MSFT: join(TEST_MINUTE_RESOURCE_PATH, 'MSFT_minute.csv'),
+            cls.DELL: join(TEST_MINUTE_RESOURCE_PATH, 'DELL_minute.csv'),
+            cls.TSLA: join(TEST_MINUTE_RESOURCE_PATH, "TSLA_minute.csv")
         }
 
         MinuteBarWriterFromCSVs(resources).write(tempdir.path, cls.assets)
@@ -79,7 +83,9 @@ class HistoryTestCase(TestCase):
     def create_fake_daily_data(cls, tempdir):
         resources = {
             cls.AAPL: join(TEST_DAILY_RESOURCE_PATH, 'AAPL.csv'),
-            cls.MSFT: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv')
+            cls.MSFT: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv'),
+            cls.DELL: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv'),
+            cls.TSLA: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv')
         }
         raw_data = {
             asset: read_csv(path, parse_dates=['day']).set_index('day')
@@ -268,3 +274,100 @@ class HistoryTestCase(TestCase):
         self.assertEqual(len(window), 100)
         for i in range(0, 100):
             self.assertTrue(np.isnan(window.iloc[i].loc[2]))
+
+    def test_minute_window_starts_before_1_2_2002(self):
+        window = self.get_portal().get_history_window(
+            [3],
+            pd.Timestamp("2002-01-02 14:35:00", tz='UTC'),
+            50,
+            "minute",
+            "close"
+        )
+
+        self.assertEqual(len(window), 50)
+        for i in range(0, 45):
+            self.assertTrue(np.isnan(window.iloc[i].loc[3]))
+
+        for i in range(46, 50):
+            self.assertFalse(np.isnan(window.iloc[i].loc[3]))
+
+    def test_minute_window_ends_before_1_2_2002(self):
+        with self.assertRaises(ValueError):
+            self.get_portal().get_history_window(
+                [3],
+                pd.Timestamp("2001-12-31 14:35:00", tz='UTC'),
+                50,
+                "minute",
+                "close"
+            )
+
+    def test_minute_forward_fill(self):
+        # only forward fill if ffill=True AND we are asking for "price"
+
+        # our fake TSLA data (sid 4) is missing a bunch of minute bars
+        # right after the open on 2002-01-02
+
+        for field in ["open", "high", "low", "volume", "close_price"]:
+            no_ffill = self.get_portal().get_history_window(
+                [4],
+                pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
+                390,
+                "minute",
+                field
+            )
+
+            missing_bar_indices = [1, 3, 5, 7, 9, 11, 13]
+            if field == 'volume':
+                for bar_idx in missing_bar_indices:
+                    self.assertEqual(no_ffill.iloc[bar_idx].loc[4], 0)
+            else:
+                for bar_idx in missing_bar_indices:
+                    self.assertTrue(np.isnan(no_ffill.iloc[bar_idx].loc[4]))
+
+        ffill_window = self.get_portal().get_history_window(
+            [4],
+            pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
+            390,
+            "minute",
+            "price"
+        )
+
+        for i in range(0, 390):
+            self.assertFalse(np.isnan(ffill_window.iloc[i].loc[4]))
+
+        # 2002-01-02 14:31:00+00:00  126.183
+        # 2002-01-02 14:32:00+00:00  126.183
+        # 2002-01-02 14:33:00+00:00  125.648
+        # 2002-01-02 14:34:00+00:00  125.648
+        # 2002-01-02 14:35:00+00:00  126.016
+        # 2002-01-02 14:36:00+00:00  126.016
+        # 2002-01-02 14:37:00+00:00  127.918
+        # 2002-01-02 14:38:00+00:00  127.918
+        # 2002-01-02 14:39:00+00:00  126.423
+        # 2002-01-02 14:40:00+00:00  126.423
+        # 2002-01-02 14:41:00+00:00  129.825
+        # 2002-01-02 14:42:00+00:00  129.825
+        # 2002-01-02 14:43:00+00:00  125.392
+        # 2002-01-02 14:44:00+00:00  125.392
+
+        vals = [126.183, 125.648, 126.016, 127.918, 126.423, 129.825, 125.392]
+        for idx, val in enumerate(vals):
+            self.assertEqual(ffill_window.iloc[2 * idx].loc[4], val)
+            self.assertEqual(ffill_window.iloc[(2 * idx) + 1].loc[4], val)
+
+        # make sure that if we pass ffill=False with field="price", we do
+        # not ffill
+        really_no_ffill_window = self.get_portal().get_history_window(
+            [4],
+            pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
+            390,
+            "minute",
+            "price",
+            ffill=False
+        )
+
+        for idx, val in enumerate(vals):
+            idx1 = 2 * idx
+            idx2 = idx1 + 1
+            self.assertEqual(really_no_ffill_window.iloc[idx1].loc[4], val)
+            self.assertTrue(np.isnan(really_no_ffill_window.iloc[idx2].loc[4]))

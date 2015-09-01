@@ -111,7 +111,7 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
                     "high",
                     "low",
                     "close",
-                    "vol",
+                    "volume",
                     "dt"
                 ],
                 rootdir=path,
