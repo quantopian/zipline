@@ -43,6 +43,24 @@ from zipline.assets.asset_writer import (
 
 log = Logger('assets.py')
 
+# A set of fields that need to be converted to strings before building an
+# Asset to avoid unicode fields
+_asset_str_fields = frozenset({
+    'symbol',
+    'asset_name',
+    'exchange',
+})
+
+
+def _convert_asset_str_fields(dict):
+    """
+    Takes in a dict of Asset init args and converts from unicode to string
+    where applicable
+    """
+    for key, value in dict.items():
+        if key in _asset_str_fields:
+            dict[key] = str(value)
+
 
 class AssetFinder(object):
 
@@ -201,6 +219,8 @@ class AssetFinder(object):
                 data['first_traded'] = pd.Timestamp(
                     data['first_traded'], tz='UTC')
 
+            _convert_asset_str_fields(data)
+
             equity = Equity(**data)
         else:
             equity = None
@@ -238,6 +258,8 @@ class AssetFinder(object):
             if data['expiration_date']:
                 data['expiration_date'] = pd.Timestamp(
                     data['expiration_date'], tz='UTC')
+
+            _convert_asset_str_fields(data)
 
             future = Future(**data)
         else:

@@ -25,13 +25,14 @@ ASSET_TABLE_FIELDS = frozenset({
     'exchange',
 })
 
-# Expected fields for an Asset's metadata
+# Expected fields for a Future's metadata
 FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
     'notice_date',
     'expiration_date',
     'contract_multiplier',
 }
 
+# Expected fields for an Equity's metadata
 EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
 
 EXCHANGE_TABLE_FIELDS = frozenset({
@@ -354,6 +355,11 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         ###############################
         # Generate equities DataFrame #
         ###############################
+
+        # HACK: If company_name is provided, map it to asset_name
+        if ('company_name' in data.equities.columns) \
+                and ('asset_name' not in data.equities.columns):
+            data.equities['asset_name'] = data.equities['company_name']
 
         equities_output = _generate_output_dataframe(
             data_subset=data.equities,
