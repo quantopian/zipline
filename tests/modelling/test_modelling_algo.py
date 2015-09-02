@@ -28,12 +28,11 @@ from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
-    #    add_filter,
+    add_filter,
     add_factor,
     get_datetime,
 )
 from zipline.assets import AssetFinder
-# from zipline.data.equities import USEquityPricing
 from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
     DailyBarWriterFromCSVs,
@@ -41,7 +40,6 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
-# from zipline.modelling.factor import CustomFactor
 from zipline.modelling.factor.technical import VWAP
 from zipline.utils.test_utils import (
     make_simple_asset_info,
@@ -227,3 +225,7 @@ class FFCAlgorithmTestCase(TestCase):
             # TradingAlgorithm.
             overwrite_sim_params=False,
         )
+
+    def test_asset_filtering(self):
+        # TODO: Test null filter.
+        pass
