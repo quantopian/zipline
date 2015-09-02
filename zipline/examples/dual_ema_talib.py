@@ -24,6 +24,7 @@ momentum).
 
 """
 
+from zipline.api import order, record, symbol
 # Import exponential moving average from talib wrapper
 from zipline.transforms.ta import EMA
 
@@ -70,7 +71,6 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import pytz
     from zipline.algorithm import TradingAlgorithm
-    from zipline.api import order, record, symbol
     from zipline.utils.factory import load_from_yahoo
 
     logbook.StderrHandler().push_application()
