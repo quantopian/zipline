@@ -37,10 +37,12 @@ class DataPortal(object):
         if adjustments_path is None:
             raise ValueError("Must provide adjustments path!")
 
+        if asset_finder is None:
+            raise ValueError("Must provide asset finder!")
+
         self.findata_dir = findata_dir
         self.daily_equities_path = daily_equities_path
         self.adjustments_path = adjustments_path
-
         self.asset_finder = asset_finder
 
         self.carrays = {
@@ -90,8 +92,6 @@ class DataPortal(object):
 
         # Pointer to the daily bcolz file.
         self.daily_equities_data = None
-
-        self.asset_finder = None
 
         # Cache of int -> the first trading day of an asset, even if that day
         # is before 1/2/2002.
@@ -314,21 +314,24 @@ class DataPortal(object):
         end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
         return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
-
         data_to_copy = raw_data[start_idx:end_idx]
-        return_data[0:len(data_to_copy)] = data_to_copy
 
         num_minutes = len(minutes_for_window)
 
-        if len(return_data) != num_minutes:
-            # there must be some early closes in this date range, have
-            # to deal with them
-
+        # data_to_copy contains all the zeros (from 1pm to 4pm of an early
+        # close).  num_minutes is the number of actual trading minutes.  if
+        # these two have different lengths, that means that we need to trim
+        # away data due to early closes.
+        if len(data_to_copy) != num_minutes:
+            # get a copy of the minutes in Eastern time, since we depend on
+            # an early close being at 1pm Eastern.
             eastern_minutes = minutes_for_window.tz_convert("US/Eastern")
 
-            # early close is 1pm.
-            # walk over the minutes. each time we encounter a minute that is
-            # 1pm not followed by 1:01pm, we know that's an early close.
+            # accumulate a list of indices of the last minute of an early
+            # close day.  For example, if data_to_copy starts at 12:55 pm, and
+            # there are five minutes of real data before 180 zeroes, we would
+            # put 5 into last_minute_idx_of_early_close_day, because the fifth
+            # minute is the last "real" minute of the day.
             last_minute_idx_of_early_close_day = []
             for minute_idx, minute_dt in enumerate(eastern_minutes):
                 if minute_idx == (num_minutes - 1):
@@ -337,19 +340,23 @@ class DataPortal(object):
                 if minute_dt.hour == 13 and minute_dt.minute == 0:
                     next_minute = eastern_minutes[minute_idx + 1]
                     if next_minute.hour != 13:
-                        # minute_dt is the last minute of an early close
+                        # minute_dt is the last minute of an early close day
                         last_minute_idx_of_early_close_day.append(minute_idx)
 
-            # for each minute in last_minute_idx_of_early_close_day, find
-            # its position in unadjusted_data and remove the subsequent 180
-            # bars (since an early close removes 1-4pm from that trading day)
+            # spin through the list of early close markers, and use them to
+            # chop off 180 minutes at a time from data_to_copy.
             for idx, early_close_minute_idx in \
                     enumerate(last_minute_idx_of_early_close_day):
                 early_close_minute_idx -= (180 * idx)
-                return_data = np.delete(
-                    return_data,
-                    range(early_close_minute_idx,
-                          early_close_minute_idx + 180))
+                data_to_copy = np.delete(
+                    data_to_copy,
+                    range(
+                        early_close_minute_idx + 1,
+                        early_close_minute_idx + 181
+                    )
+                )
+
+        return_data[0:len(data_to_copy)] = data_to_copy
 
         # adjust the data
         self._apply_adjustments_to_window(
@@ -456,9 +463,6 @@ class DataPortal(object):
         """
         daily_data, daily_attrs = self._open_daily_file()
 
-        if self.asset_finder is None:
-            self.asset_finder = create_asset_finder()
-
         # get the start date
         if sid not in self.asset_start_dates:
             asset = self.asset_finder.retrieve_asset(sid)
@@ -545,6 +549,8 @@ class DataPortal(object):
             # volume should be 0.
             return_array[return_array == 0] = np.NaN
 
+        return_array = np.around(return_array, 3)
+
         return return_array
 
     @staticmethod
@@ -553,21 +559,18 @@ class DataPortal(object):
         if len(adjustments_list) == 0:
             return
 
-        idx = 0
-
         # clear out all adjustments that happened before the first minute
-        adjustments_length = len(adjustments_list)
         first_dt = dts_in_window[0]
 
         # advance idx to the correct spot in the adjustments list, based on
         # when the window starts
-        while idx < adjustments_length - 1 and first_dt > \
-                adjustments_list[idx][0]:
+        idx = 0
+
+        while idx < len(adjustments_list) and first_dt > adjustments_list[idx][0]:
             idx += 1
-        #
-        # if idx == adjustments_length - 1:
-        #     # if there are no applicable adjustments, get out.
-        #     return
+
+        if idx == len(adjustments_list):
+            return
 
         first_applicable_adjustment = adjustments_list[idx]
 
@@ -584,9 +587,10 @@ class DataPortal(object):
         # walk over minutes in window.  for each minute, if it's less than
         # the next adjustment, adjust.  if the adjustment has passed, get rid
         # of it.
+        idx = 0
         range_start = 0
-        while len(adjustments_list) > 0:
-            adjustment_to_apply = adjustments_list.pop(0)
+        while idx < len(adjustments_list):
+            adjustment_to_apply = adjustments_list[idx]
 
             range_end = dts_in_window.searchsorted(adjustment_to_apply[0])
             if multiply:
@@ -595,6 +599,8 @@ class DataPortal(object):
                 window_data[range_start:range_end] /= adjustment_to_apply[1]
 
             range_start = range_end
+
+            idx += 1
 
     def _get_adjustment_list(self, sid, adjustments_dict, table_name):
         """
