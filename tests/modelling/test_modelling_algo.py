@@ -23,7 +23,7 @@ from pandas import (
     Series,
     Timestamp,
 )
-from six import iteritems
+from six import iteritems, itervalues
 from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
@@ -180,6 +180,13 @@ class FFCAlgorithmTestCase(TestCase):
                     ]
                 )
 
+        vwap_dates = vwaps[1][self.AAPL].index
+        # Make sure all the expected vwaps have the same dates.
+        for dict_ in itervalues(vwaps):
+            # Each value is a dict mapping sid -> expected series.
+            for series in itervalues(dict_):
+                self.assertTrue((vwap_dates == series.index).all())
+
         def initialize(context):
             context.vwaps = []
             for length, key in iteritems(vwap_keys):
@@ -187,12 +194,15 @@ class FFCAlgorithmTestCase(TestCase):
                 add_factor(context.vwaps[-1], name=key)
 
         def handle_data(context, data):
-            today = get_datetime()
+            today_loc = vwap_dates.get_loc(get_datetime())
             factors = data.factors
             for length, key in iteritems(vwap_keys):
                 for asset in assets:
                     computed = factors.loc[asset, key]
-                    expected = vwaps[length][asset].loc[today]
+
+                    # We should get the most recent values as of **YESTERDAY**.
+                    expected = vwaps[length][asset].iloc[today_loc - 1]
+
                     # Only having two places of precision here is a bit
                     # unfortunate.
                     assert_almost_equal(computed, expected, decimal=2)
