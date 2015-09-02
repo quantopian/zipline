@@ -74,6 +74,9 @@ class BoundColumn(Term):
             dtype=self.dtype.__name__,
         )
 
+    def short_repr(self):
+        return self.qualname
+
 
 class DataSetMeta(type):
     """
