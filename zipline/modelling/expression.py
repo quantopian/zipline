@@ -305,3 +305,9 @@ class NumericalExpression(Term):
             expr=self._expr,
             bindings=self.bindings,
         )
+
+    def short_repr(self):
+        return "Expression: {expr}".format(
+            typename=type(self).__name__,
+            expr=self._expr,
+        )
