@@ -23,17 +23,16 @@ from pandas import (
     Series,
     Timestamp,
 )
-from six import iteritems
+from six import iteritems, itervalues
 from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
-    #    add_filter,
+    add_filter,
     add_factor,
     get_datetime,
 )
 from zipline.assets import AssetFinder
-# from zipline.data.equities import USEquityPricing
 from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
     DailyBarWriterFromCSVs,
@@ -41,7 +40,6 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
-# from zipline.modelling.factor import CustomFactor
 from zipline.modelling.factor.technical import VWAP
 from zipline.utils.test_utils import (
     make_simple_asset_info,
@@ -180,6 +178,13 @@ class FFCAlgorithmTestCase(TestCase):
                     ]
                 )
 
+        vwap_dates = vwaps[1][self.AAPL].index
+        # Make sure all the expected vwaps have the same dates.
+        for dict_ in itervalues(vwaps):
+            # Each value is a dict mapping sid -> expected series.
+            for series in itervalues(dict_):
+                self.assertTrue((vwap_dates == series.index).all())
+
         def initialize(context):
             context.vwaps = []
             for length, key in iteritems(vwap_keys):
@@ -187,12 +192,15 @@ class FFCAlgorithmTestCase(TestCase):
                 add_factor(context.vwaps[-1], name=key)
 
         def handle_data(context, data):
-            today = get_datetime()
+            today_loc = vwap_dates.get_loc(get_datetime())
             factors = data.factors
             for length, key in iteritems(vwap_keys):
                 for asset in assets:
                     computed = factors.loc[asset, key]
-                    expected = vwaps[length][asset].loc[today]
+
+                    # We should get the most recent values as of **YESTERDAY**.
+                    expected = vwaps[length][asset].iloc[today_loc - 1]
+
                     # Only having two places of precision here is a bit
                     # unfortunate.
                     assert_almost_equal(computed, expected, decimal=2)
@@ -217,3 +225,7 @@ class FFCAlgorithmTestCase(TestCase):
             # TradingAlgorithm.
             overwrite_sim_params=False,
         )
+
+    def test_asset_filtering(self):
+        # TODO: Test null filter.
+        pass
