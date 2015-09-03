@@ -225,6 +225,10 @@ class TradingAlgorithm(object):
         # Set the dt initally to the period start by forcing it to change
         self.on_dt_changed(self.sim_params.period_start)
 
+        # The symbol lookup date specifies the date to use when resolving
+        # symbols to sids, and can be set using set_symbol_lookup_date()
+        self._symbol_lookup_date = None
+
         self.portfolio_needs_update = True
         self.account_needs_update = True
         self.performance_needs_update = True
@@ -693,9 +697,14 @@ class TradingAlgorithm(object):
         Default symbol lookup for any source that directly maps the
         symbol to the Asset (e.g. yahoo finance).
         """
+        # If the user has not set the symbol lookup date,
+        # use the period_end as the date for sybmol->sid resolution.
+        _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
+            else self.sim_params.period_end
+
         return self.asset_finder.lookup_symbol_resolve_multiple(
             symbol_str,
-            as_of_date=self.sim_params.period_end
+            as_of_date=_lookup_date
         )
 
     @api_method
@@ -985,6 +994,15 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise OverrideCommissionPostInit()
         self.commission = commission
+
+    @api_method
+    def set_symbol_lookup_date(self, dt):
+        """
+        Set the date for which symbols will be resolved to their sids
+        (symbols may map to different firms or underlying assets at
+        different times)
+        """
+        self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
 
     def set_sources(self, sources):
         assert isinstance(sources, list)
