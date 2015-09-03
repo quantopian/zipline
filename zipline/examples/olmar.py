@@ -150,7 +150,7 @@ def simplex_projection(v, b=1):
     return w
 
 if __name__ == '__main__':
-    import pylab as pl
+    import matplotlib.pyplot as plt
     start = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
@@ -159,5 +159,8 @@ if __name__ == '__main__':
                              initialize=initialize,
                              identifiers=STOCKS)
     results = olmar.run(data)
-    results.portfolio_value.plot()
-    pl.show()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    results.portfolio_value.plot(ax=ax)
+    ax.set_ylabel('portfolio value in $')
+    plt.show()
