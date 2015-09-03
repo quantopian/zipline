@@ -117,19 +117,19 @@ def generate_minute_test_data(first_day,
         last_open = o[idx]
         last_volume = v[idx]
 
-    # # now deal with multipliers
-    # if len(multipliers_list) > 0:
-    #     for idx, multiplier_info in enumerate(multipliers_list):
-    #         start_idx = idx * 390
-    #         end_idx = start_idx + 390
-    #
-    #         # dividing by the multipler because we're going backwards
-    #         # and generating the original data that will then be adjusted.
-    #         o[start_idx:end_idx] /= multiplier_info[1]
-    #         h[start_idx:end_idx] /= multiplier_info[1]
-    #         l[start_idx:end_idx] /= multiplier_info[1]
-    #         c[start_idx:end_idx] /= multiplier_info[1]
-    #         v[start_idx:end_idx] *= multiplier_info[1]
+    # now deal with multipliers
+    if len(multipliers_list) > 0:
+        for idx, multiplier_info in enumerate(multipliers_list):
+            start_idx = idx * 390
+            end_idx = start_idx + 390
+
+            # dividing by the multipler because we're going backwards
+            # and generating the original data that will then be adjusted.
+            o[start_idx:end_idx] /= multiplier_info[1]
+            h[start_idx:end_idx] /= multiplier_info[1]
+            l[start_idx:end_idx] /= multiplier_info[1]
+            c[start_idx:end_idx] /= multiplier_info[1]
+            v[start_idx:end_idx] *= multiplier_info[1]
 
     df = pd.DataFrame({
         "open": o,

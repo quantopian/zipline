@@ -60,13 +60,11 @@ class DataPortal(object):
             self.benchmark_iter = iter(self.algo.benchmark_iter)
 
         self.column_lookup = {
-            'open': 'open',
+            'open_price': 'open',
             'high': 'high',
             'low': 'low',
-            'close': 'close',
-            'volume': 'volume',
-            'open_price': 'open',
             'close_price': 'close',
+            'volume': 'volume',
             'price': 'close'
         }
 
@@ -96,6 +94,7 @@ class DataPortal(object):
         # Cache of int -> the first trading day of an asset, even if that day
         # is before 1/2/2002.
         self.asset_start_dates = {}
+        self.asset_end_dates = {}
 
     def _open_daily_file(self):
         if self.daily_equities_data is None:
@@ -155,7 +154,7 @@ class DataPortal(object):
             The number of bars desired.
 
         frequency: string
-            "daily" or "minute"
+            "1d" or "1m"
 
         field: string
             The desired field of the asset.
@@ -172,9 +171,9 @@ class DataPortal(object):
         try:
             field_to_use = self.column_lookup[field]
         except KeyError:
-            raise KeyError("Invalid history field: " + str(field))
+            raise ValueError("Invalid history field: " + str(field))
 
-        if frequency == "daily":
+        if frequency == "1d":
             data = []
 
             day = end_dt.date()
@@ -186,48 +185,72 @@ class DataPortal(object):
             days_for_window = tradingcalendar.trading_days[
                 (day_idx - bar_count + 1):(day_idx + 1)]
 
-            all_minutes_for_day = TradingEnvironment.instance().\
-                market_minutes_for_day(pd.Timestamp(day))
-
-            last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
-
-            # these are the minutes for the partial day
-            minutes_for_partial_day =\
-                all_minutes_for_day[0:(last_minute_idx + 1)]
+            if len(sids) == 0:
+                return pd.DataFrame(None,
+                                    index=days_for_window,
+                                    columns=None)
 
             for sid in sids:
-                daily_data = self._get_daily_window_for_sid(
-                    sid,
-                    field_to_use,
-                    days_for_window[0:-1]
-                )
+                # get the start and end dates for this sid
+                if sid not in self.asset_start_dates:
+                    asset = self.asset_finder.retrieve_asset(sid)
+                    self.asset_start_dates[sid] = asset.start_date
+                    self.asset_end_dates[sid] = asset.end_date
 
-                minute_data = self._get_minute_window_for_sid(
-                    sid,
-                    field_to_use,
-                    minutes_for_partial_day
-                )
+                if days_for_window[-1] > self.asset_end_dates[sid]:
+                    # if the last desired day of the window is after the
+                    # last trading day, use daily data for the whole range.
+                    data.append(self._get_daily_window_for_sid(
+                        sid,
+                        field_to_use,
+                        days_for_window,
+                        extra_slot=False
+                    ))
+                else:
+                    # for the last day of the desired window, use minute
+                    # data and aggregate it.
+                    all_minutes_for_day = TradingEnvironment.instance().\
+                        market_minutes_for_day(pd.Timestamp(day))
 
-                if field_to_use == 'volume':
-                    minute_value = np.sum(minute_data)
-                elif field_to_use == 'open':
-                    minute_value = minute_data[0]
-                elif field_to_use == 'close':
-                    minute_value = minute_data[-1]
-                elif field_to_use == 'high':
-                    minute_value = np.amax(minute_data)
-                elif field_to_use == 'low':
-                    minute_value = np.amin(minute_data)
+                    last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
 
-                daily_data[-1] = minute_value
+                    # these are the minutes for the partial day
+                    minutes_for_partial_day =\
+                        all_minutes_for_day[0:(last_minute_idx + 1)]
 
-                data.append(daily_data)
+                    daily_data = self._get_daily_window_for_sid(
+                        sid,
+                        field_to_use,
+                        days_for_window[0:-1]
+                    )
+
+                    minute_data = self._get_minute_window_for_sid(
+                        sid,
+                        field_to_use,
+                        minutes_for_partial_day
+                    )
+
+                    if field_to_use == 'volume':
+                        minute_value = np.sum(minute_data)
+                    elif field_to_use == 'open':
+                        minute_value = minute_data[0]
+                    elif field_to_use == 'close':
+                        minute_value = minute_data[-1]
+                    elif field_to_use == 'high':
+                        minute_value = np.amax(minute_data)
+                    elif field_to_use == 'low':
+                        minute_value = np.amin(minute_data)
+
+                    # append the partial day.
+                    daily_data[-1] = minute_value
+
+                    data.append(daily_data)
 
             df = pd.DataFrame(np.array(data).T,
                               index=days_for_window,
                               columns=sids)
 
-        else:
+        elif frequency == "1m":
             # get all the minutes for this window
             minutes_for_window = TradingEnvironment.instance().\
                 market_minute_window(end_dt, bar_count, step=-1)[::-1]
@@ -254,6 +277,17 @@ class DataPortal(object):
                 bars_to_prepend = bar_count - modified_minutes_length
                 nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
 
+            if len(sids) == 0:
+                df = pd.DataFrame(np.zeros(bar_count),
+                                  index=minutes_for_window,
+                                  columns=["foo"])
+
+                # FIXME there must be a better way to create a df
+                # with zero columns
+                df.drop(df.columns[[0]], axis=1, inplace=True)
+
+                return df
+
             for sid in sids:
                 sid_minute_data = self._get_minute_window_for_sid(
                     sid,
@@ -270,6 +304,9 @@ class DataPortal(object):
             df = pd.DataFrame(np.array(data).T,
                               index=minutes_for_window,
                               columns=sids)
+
+        else:
+            raise ValueError("Invalid frequency: {0}".format(frequency))
 
         # forward-fill if needed
         if field == "price" and ffill:
@@ -463,11 +500,6 @@ class DataPortal(object):
         """
         daily_data, daily_attrs = self._open_daily_file()
 
-        # get the start date
-        if sid not in self.asset_start_dates:
-            asset = self.asset_finder.retrieve_asset(sid)
-            self.asset_start_dates[sid] = asset.start_date
-
         # the daily file stores each sid's daily OHLCV in a contiguous block.
         # the first row per sid is either 1/2/2002, or the sid's start_date if
         # it started after 1/2/2002.  once a sid stops trading, there are no
@@ -517,13 +549,13 @@ class DataPortal(object):
             return return_array
 
         # fetch the data from the daily bcolz file
-        data = daily_data[field][start_index:end_index]
+        data = daily_data[field][start_index:(end_index + 1)]
 
         # put data into the right slot into return_data
         if window_offset < 0:
-            return_array[abs(window_offset):bar_count] = data
+            return_array[abs(window_offset):(bar_count + 1)] = data
         else:
-            return_array[0:bar_count] = data
+            return_array[0:len(data)] = data
 
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
