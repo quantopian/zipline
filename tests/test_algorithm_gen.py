@@ -208,9 +208,6 @@ class AlgorithmGeneratorTestCase(TestCase):
         Ensure the pipeline of generators are in sync, at least as far as
         their current dates.
         """
-        # Ensure we are pointing to the TradingEnvironment for this class
-        trading.environment = AlgorithmGeneratorTestCase.env
-
         sim_params = factory.create_simulation_parameters(
             start=datetime(2008, 1, 1, tzinfo=pytz.utc),
             end=datetime(2008, 1, 5, tzinfo=pytz.utc),

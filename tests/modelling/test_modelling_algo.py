@@ -203,11 +203,6 @@ class FFCAlgorithmTestCase(TestCase):
         # Do the same checks in before_trading_start
         before_trading_start = handle_data
 
-        # Create fresh trading environment as the algo.run()
-        # method will attempt to write data to disk, and could
-        # violate SQL constraints.
-        trading.environment = trading.TradingEnvironment()
-
         algo = TradingAlgorithm(
             initialize=initialize,
             handle_data=handle_data,

@@ -232,7 +232,6 @@ cdef class Future(Asset):
     def __cinit__(self,
                   int sid, # sid is required
                   object symbol="",
-                  object root_symbol_id = "",
                   object root_symbol="",
                   object asset_name="",
                   object start_date=None,
@@ -247,10 +246,6 @@ cdef class Future(Asset):
         self.notice_date         = notice_date
         self.expiration_date     = expiration_date
         self.contract_multiplier = contract_multiplier
-
-        # Assign the expiration as the end_date if end_date is not explicit
-        if self.end_date is None:
-            self.end_date = expiration_date
 
     def __str__(self):
         if self.symbol:
