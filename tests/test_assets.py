@@ -770,7 +770,7 @@ class TestFutureChain(TestCase):
         """
         cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
         cl_feb = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL',
-                             as_of_date='2006-02-01')
+                             as_of_date=pd.Timestamp('2006-02-01', tz='UTC'))
 
         # The default chain should not include the as of date.
         self.assertEqual(repr(cl), "FutureChain(root_symbol='CL')")
@@ -788,7 +788,7 @@ class TestFutureChain(TestCase):
         cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
 
         # Test that the as_of_date is set correctly to the future
-        feb = '2006-02-01'
+        feb = pd.Timestamp('2006-02-01', tz='UTC')
         cl_feb = cl.as_of(feb)
         self.assertEqual(
             cl_feb.as_of_date,
@@ -797,21 +797,21 @@ class TestFutureChain(TestCase):
 
         # Test that the as_of_date is set correctly to the past, with
         # args of str, datetime.datetime, and pd.Timestamp.
-        feb_prev = '2005-02-01'
+        feb_prev = pd.Timestamp('2005-02-01', tz='UTC')
         cl_feb_prev = cl.as_of(feb_prev)
         self.assertEqual(
             cl_feb_prev.as_of_date,
             pd.Timestamp(feb_prev, tz='UTC')
         )
 
-        feb_prev = datetime(year=2005, month=2, day=1)
+        feb_prev = pd.Timestamp(datetime(year=2005, month=2, day=1), tz='UTC')
         cl_feb_prev = cl.as_of(feb_prev)
         self.assertEqual(
             cl_feb_prev.as_of_date,
             pd.Timestamp(feb_prev, tz='UTC')
         )
 
-        feb_prev = pd.Timestamp('2005-02-01')
+        feb_prev = pd.Timestamp('2005-02-01', tz='UTC')
         cl_feb_prev = cl.as_of(feb_prev)
         self.assertEqual(
             cl_feb_prev.as_of_date,
@@ -819,14 +819,8 @@ class TestFutureChain(TestCase):
         )
 
         # The chain as of the current dt should always be the same as
-        # the defualt chain. Tests date as str, pd.Timestamp, and
-        # datetime.datetime.
-        self.assertEqual(cl[0], cl.as_of('2005-12-01')[0])
+        # the defualt chain.
         self.assertEqual(cl[0], cl.as_of(pd.Timestamp('2005-12-01'))[0])
-        self.assertEqual(
-            cl[0],
-            cl.as_of(datetime(year=2005, month=12, day=1))[0]
-        )
 
     def test_offset(self):
         """ Test the offset method of FutureChain.
