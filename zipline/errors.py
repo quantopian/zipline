@@ -404,3 +404,11 @@ class NoFurtherDataError(ZiplineError):
     # This accepts an arbitrary message string because it's used in more places
     # that can be usefully templated.
     msg = '{msg}'
+
+
+class UnsupportedDatetimeFormat(ZiplineError):
+    """
+    Raised when an unsupported datetime is passed to an API method.
+    """
+    msg = ("The input '{input}' passed to '{method}' is not "
+           "coercible to a pandas.Timestamp object.")
