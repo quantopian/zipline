@@ -317,11 +317,7 @@ class SimpleFFCEngine(object):
                 for loaded_term, adj_array in zip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
             else:
-                if term.windowed:
-                    compute = term.compute_from_windows
-                else:
-                    compute = term.compute_from_arrays
-                workspace[term] = compute(
+                workspace[term] = term._compute(
                     self._inputs_for_term(term, workspace, extra_rows),
                     base_mask_for_term,
                 )

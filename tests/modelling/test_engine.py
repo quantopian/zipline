@@ -41,7 +41,7 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
-from zipline.modelling.factor import TestingFactor
+from zipline.modelling.factor import CustomFactor
 from zipline.modelling.factor.technical import (
     MaxDrawdown,
     SimpleMovingAverage,
@@ -55,12 +55,12 @@ from zipline.utils.test_utils import (
 )
 
 
-class RollingSumDifference(TestingFactor):
+class RollingSumDifference(CustomFactor):
     window_length = 3
     inputs = [USEquityPricing.open, USEquityPricing.close]
 
-    def from_windows(self, open, close):
-        return (open - close).sum(axis=0)
+    def compute(self, today, assets, out, open, close):
+        out[:] = (open - close).sum(axis=0)
 
 
 def assert_product(case, index, *levels):

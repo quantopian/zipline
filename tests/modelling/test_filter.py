@@ -17,7 +17,7 @@ from numpy import (
 )
 
 from zipline.errors import BadPercentileBounds
-from zipline.modelling.factor import TestingFactor
+from zipline.modelling.factor import Factor
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase
@@ -51,12 +51,12 @@ def rowwise_rank(array):
     return argsort(argsort(array))
 
 
-class SomeFactor(TestingFactor):
+class SomeFactor(Factor):
     inputs = ()
     window_length = 0
 
 
-class SomeOtherFactor(TestingFactor):
+class SomeOtherFactor(Factor):
     inputs = ()
     window_length = 0
 
