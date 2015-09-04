@@ -51,7 +51,7 @@ class FutureChain(object):
         # If an as_of_date is provided, self._as_of_date uses that
         # value, otherwise None. This attribute backs the as_of_date property.
         if as_of_date:
-            self._as_of_date = normalize_date(Timestamp(as_of_date, tz='UTC'))
+            self._as_of_date = normalize_date(as_of_date)
         else:
             self._as_of_date = None
 
