@@ -41,6 +41,7 @@ from zipline.errors import (
     UnsupportedCommissionModel,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
+    UnsupportedDatetimeFormat,
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
@@ -746,6 +747,12 @@ class TradingAlgorithm(object):
         RootSymbolNotFound
             If a future chain could not be found for the given root symbol.
         """
+        if as_of_date:
+            try:
+                as_of_date = pd.Timestamp(as_of_date, tz='UTC')
+            except ValueError:
+                raise UnsupportedDatetimeFormat(input=as_of_date,
+                                                method='future_chain')
         return FutureChain(
             asset_finder=self.asset_finder,
             get_datetime=self.get_datetime,
@@ -1002,7 +1009,11 @@ class TradingAlgorithm(object):
         (symbols may map to different firms or underlying assets at
         different times)
         """
-        self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
+        try:
+            self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
+        except ValueError:
+            raise UnsupportedDatetimeFormat(input=dt,
+                                            method='set_symbol_lookup_date')
 
     def set_sources(self, sources):
         assert isinstance(sources, list)
