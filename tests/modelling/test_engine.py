@@ -45,7 +45,7 @@ from zipline.modelling.factor.technical import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
-from zipline.utils.lazyval import lazyval
+from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
     make_rotating_asset_info,
     make_simple_asset_info,

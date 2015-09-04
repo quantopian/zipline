@@ -15,7 +15,7 @@ from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthNotSpecified,
 )
-from zipline.utils.lazyval import lazyval
+from zipline.utils.memoize import lazyval
 
 
 NotSpecified = (object(),)
