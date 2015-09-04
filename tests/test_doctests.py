@@ -9,7 +9,7 @@ from zipline.modelling import (
     expression,
 )
 from zipline.utils import (
-    lazyval,
+    memoize,
     test_utils,
 )
 
@@ -47,8 +47,8 @@ class DoctestTestCase(TestCase):
     def test_engine_docs(self):
         self._check_docs(engine)
 
-    def test_lazyval_docs(self):
-        self._check_docs(lazyval)
+    def test_memoize_docs(self):
+        self._check_docs(memoize)
 
     def test_test_utils_docs(self):
         self._check_docs(test_utils)
