@@ -228,7 +228,7 @@ class NumericalExpression(Term):
             )
         return super(NumericalExpression, self)._validate()
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, mask):
         """
         Compute our stored expression string with numexpr.
         """

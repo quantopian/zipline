@@ -1,11 +1,23 @@
 from .factor import (
     Factor,
-    TestingFactor,
     CustomFactor,
+)
+from .latest import Latest
+from .technical import (
+    MaxDrawdown,
+    RSI,
+    SimpleMovingAverage,
+    VWAP,
+    WeightedAverageValue,
 )
 
 __all__ = [
-    'Factor',
-    'TestingFactor',
     'CustomFactor',
+    'Factor',
+    'Latest',
+    'MaxDrawdown',
+    'RSI',
+    'SimpleMovingAverage',
+    'VWAP',
+    'WeightedAverageValue',
 ]

@@ -172,17 +172,12 @@ class Term(object):
         """
         return max(0, self.window_length - 1)
 
-    def compute_from_windows(self, windows, mask):
+    def _compute(self, inputs, mask):
         """
-        Subclasses should implement this for computations requiring moving
-        windows of continually-adjusting data.
-        """
-        raise NotImplementedError()
+        Subclasses should implement this to perform actual computation.
 
-    def compute_from_arrays(self, arrays, mask):
-        """
-        Subclasses should implement this for computations that can be expressed
-        directly as array computations.
+        This is `_compute` rather than just `compute` because `compute` is
+        reserved for user-supplied functions in CustomFactor.
         """
         raise NotImplementedError()
 
@@ -235,7 +230,7 @@ class CustomTermMixin(object):
         """
         raise NotImplementedError()
 
-    def compute_from_windows(self, windows, mask):
+    def _compute(self, windows, mask):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
@@ -256,37 +251,3 @@ class CustomTermMixin(object):
                 )
         out[~mask.values] = nan
         return out
-
-
-class TestingTermMixin(object):
-    """
-    Mixin for Term subclasses testing engines that asserts all inputs are
-    correctly shaped.
-
-    Used by TestingTerm, TestingFilter, TestingClassifier, etc.
-    """
-    def compute_from_windows(self, windows, mask):
-        assert self.window_length > 0
-        dates, assets = mask.index, mask.columns
-        outbuf = empty(mask.shape, dtype=self.dtype)
-        for idx, _ in enumerate(dates):
-            result = self.from_windows(*(next(w) for w in windows))
-            assert result.shape == (len(assets),)
-            outbuf[idx] = result
-
-        for window in windows:
-            try:
-                next(window)
-            except StopIteration:
-                pass
-            else:
-                raise AssertionError("window %s was not exhausted" % window)
-        return outbuf
-
-    def compute_from_arrays(self, arrays, mask):
-        assert self.window_length == 0
-        outbuf = empty(mask.shape, dtype=self.dtype)
-        for array in arrays:
-            assert array.shape == outbuf.shape
-        outbuf[:] = self.from_arrays(*arrays)
-        return outbuf
