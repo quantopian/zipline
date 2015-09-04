@@ -7,13 +7,13 @@ from numpy import (
 )
 
 from zipline.errors import UnknownRankMethod
-from zipline.modelling.factor import TestingFactor
+from zipline.modelling.factor import Factor
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase
 
 
-class F(TestingFactor):
+class F(Factor):
     inputs = ()
     window_length = 0
 

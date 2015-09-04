@@ -19,7 +19,6 @@ from zipline.modelling.term import (
     RequiredWindowLengthMixin,
     SingleInputMixin,
     Term,
-    TestingTermMixin,
 )
 from zipline.modelling.expression import (
     BadBinaryOperator,
@@ -393,7 +392,7 @@ class Rank(SingleInputMixin, Factor):
             )
         return super(Rank, self)._validate()
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, mask):
         """
         For each row in the input, compute a like-shaped array of per-row
         ranks.
@@ -441,11 +440,3 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         if self.dtype != float64:
             raise UnsupportedDataType(self.dtype)
         return super(CustomFactor, self)._validate()
-
-
-class TestingFactor(TestingTermMixin, Factor):
-    """
-    Base class for testing engines that asserts all inputs are correctly
-    shaped.
-    """
-    pass

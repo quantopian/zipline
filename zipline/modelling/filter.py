@@ -16,7 +16,6 @@ from zipline.errors import (
 from zipline.modelling.term import (
     SingleInputMixin,
     Term,
-    TestingTermMixin,
 )
 from zipline.modelling.expression import (
     BadBinaryOperator,
@@ -124,11 +123,11 @@ class NumExprFilter(NumericalExpression, Filter):
     A Filter computed from a numexpr expression.
     """
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, mask):
         """
         Compute our result with numexpr, then apply `mask`.
         """
-        return super(NumExprFilter, self).compute_from_arrays(
+        return super(NumExprFilter, self)._compute(
             arrays,
             mask,
         ) & mask.values
@@ -181,7 +180,7 @@ class PercentileFilter(SingleInputMixin, Filter):
             )
         return super(PercentileFilter, self)._validate()
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, mask):
         """
         For each row in the input, compute a mask of all values falling between
         the given percentiles.
@@ -261,21 +260,13 @@ class SequencedFilter(Filter):
             then,
         )
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, mask):
         """
         Call our second filter on its inputs, masking out any inputs rejected
         by our first filter.
         """
         first_result, then_inputs = arrays[0], arrays[1:]
-        return self._then.compute_from_arrays(
+        return self._then._compute(
             then_inputs,
             mask & first_result,
         )
-
-
-class TestingFilter(TestingTermMixin, Filter):
-    """
-    Base class for testing engines that asserts all inputs are correctly
-    shaped.
-    """
-    pass
