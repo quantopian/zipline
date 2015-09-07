@@ -18,7 +18,8 @@ import pytz
 
 from datetime import datetime
 from dateutil import rrule
-from zipline.utils.tradingcalendar import end, canonicalize_datetime
+from zipline.utils.tradingcalendar import end, canonicalize_datetime, \
+    get_open_and_closes
 
 start = pd.Timestamp('1994-01-01', tz='UTC')
 
@@ -288,33 +289,27 @@ def get_early_closes(start, end):
 early_closes = get_early_closes(start, end)
 
 
-def get_open_and_closes(trading_days, early_closes):
-    open_and_closes = pd.DataFrame(index=trading_days,
-                                   columns=('market_open', 'market_close'))
-    for day in trading_days:
-        # only "early close" event in Bovespa actually is a late start
-        # as the market only opens at 1pm
-        open_hour = 13 if day in quarta_cinzas else 10
-        market_open = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=open_hour,
-                minute=00),
-            tz='America/Sao_Paulo').tz_convert('UTC')
-        market_close = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=16),
-            tz='America/Sao_Paulo').tz_convert('UTC')
+def get_open_and_close(day, early_closes):
+    # only "early close" event in Bovespa actually is a late start
+    # as the market only opens at 1pm
+    open_hour = 13 if day in quarta_cinzas else 10
+    market_open = pd.Timestamp(
+        datetime(
+            year=day.year,
+            month=day.month,
+            day=day.day,
+            hour=open_hour,
+            minute=00),
+        tz='America/Sao_Paulo').tz_convert('UTC')
+    market_close = pd.Timestamp(
+        datetime(
+            year=day.year,
+            month=day.month,
+            day=day.day,
+            hour=16),
+        tz='America/Sao_Paulo').tz_convert('UTC')
 
-        open_and_closes.loc[day, 'market_open'] = market_open
-        open_and_closes.loc[day, 'market_close'] = market_close
+    return market_open, market_close
 
-    return open_and_closes
-
-
-open_and_closes = get_open_and_closes(trading_days, early_closes)
+open_and_closes = get_open_and_closes(trading_days, early_closes,
+                                      get_open_and_close)
