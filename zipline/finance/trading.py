@@ -119,18 +119,18 @@ class TradingEnvironment(object):
 
     def write_data(self,
                    engine=None,
-                   equities_data={},
-                   futures_data={},
-                   exchanges_data={},
-                   root_symbols_data={},
-                   equities_df=pd.DataFrame(),
-                   futures_df=pd.DataFrame(),
-                   exchanges_df=pd.DataFrame(),
-                   root_symbols_df=pd.DataFrame(),
-                   equities_identifiers=[],
-                   futures_identifiers=[],
-                   exchanges_identifiers=[],
-                   root_symbols_identifiers=[],
+                   equities_data=None,
+                   futures_data=None,
+                   exchanges_data=None,
+                   root_symbols_data=None,
+                   equities_df=None,
+                   futures_df=None,
+                   exchanges_df=None,
+                   root_symbols_df=None,
+                   equities_identifiers=None,
+                   futures_identifiers=None,
+                   exchanges_identifiers=None,
+                   root_symbols_identifiers=None,
                    allow_sid_assignment=True):
         """ Write the supplied data to the database.
 
@@ -166,13 +166,13 @@ class TradingEnvironment(object):
 
         # If any pandas.DataFrame data has been provided,
         # write it to the database.
-        if not(equities_df.empty and futures_df.empty and
-               exchanges_df.empty and root_symbols_df.empty):
+        if (equities_df is not None or futures_df is not None or
+                exchanges_df is not None or root_symbols_df is not None):
             self._write_data_dataframes(equities_df, futures_df,
                                         exchanges_df, root_symbols_df)
 
-        if (equities_data or futures_data or exchanges_data or
-                root_symbols_data):
+        if (equities_data is not None or futures_data is not None or
+                exchanges_data is not None or root_symbols_data is not None):
             self._write_data_dicts(equities_data, futures_data,
                                    exchanges_data, root_symbols_data)
 
@@ -184,22 +184,18 @@ class TradingEnvironment(object):
                                root_symbols_identifiers,
                                allow_sid_assignment=allow_sid_assignment)
 
-    def _write_data_lists(self, equities=[], futures=[],
-                          exchanges=[], root_symbols=[],
-                          allow_sid_assignment=True):
+    def _write_data_lists(self, equities=None, futures=None, exchanges=None,
+                          root_symbols=None, allow_sid_assignment=True):
         AssetDBWriterFromList(equities, futures, exchanges, root_symbols)\
             .write_all(self.engine, allow_sid_assignment=allow_sid_assignment)
 
-    def _write_data_dicts(self, equities={}, futures={},
-                          exchanges={}, root_symbols={},
-                          allow_sid_assignment=True):
+    def _write_data_dicts(self, equities=None, futures=None, exchanges=None,
+                          root_symbols=None, allow_sid_assignment=True):
         AssetDBWriterFromDictionary(equities, futures, exchanges, root_symbols)\
             .write_all(self.engine)
 
-    def _write_data_dataframes(self, equities=pd.DataFrame(),
-                               futures=pd.DataFrame(),
-                               exchanges=pd.DataFrame(),
-                               root_symbols=pd.DataFrame()):
+    def _write_data_dataframes(self, equities=None, futures=None,
+                               exchanges=None, root_symbols=None):
         AssetDBWriterFromDataFrame(equities, futures, exchanges, root_symbols)\
             .write_all(self.engine)
 

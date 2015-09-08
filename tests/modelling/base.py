@@ -50,14 +50,14 @@ class BaseFFCTestCase(TestCase):
         self.__assets = assets = Int64Index(arange(1, 20))
 
         # Set up env for test
-        self.__env = TradingEnvironment()
-        self.__env.write_data(
+        env = TradingEnvironment()
+        env.write_data(
             equities_df=make_simple_asset_info(
                 assets,
                 self.__calendar[0],
                 self.__calendar[-1],
             ))
-        self.__finder = self.__env.asset_finder
+        self.__finder = env.asset_finder
         self.__mask = self.__finder.lifetimes(self.__calendar[-10:])
 
     @property

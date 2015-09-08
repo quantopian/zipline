@@ -493,12 +493,28 @@ class AssetDBWriterFromList(AssetDBWriter):
     Class used to write list data to SQLite database.
     """
 
-    def __init__(self, equities=[], futures=[], exchanges=[], root_symbols=[]):
+    def __init__(self, equities=None, futures=None, exchanges=None,
+                 root_symbols=None):
 
-        self._equities = equities
-        self._futures = futures
-        self._exchanges = exchanges
-        self._root_symbols = root_symbols
+        if equities is not None:
+            self._equities = equities
+        else:
+            self._equities = []
+
+        if futures is not None:
+            self._futures = futures
+        else:
+            self._futures = []
+
+        if exchanges is not None:
+            self._exchanges = exchanges
+        else:
+            self._exchanges = []
+
+        if root_symbols is not None:
+            self._root_symbols = root_symbols
+        else:
+            self._root_symbols = []
 
     def _load_data(self):
 
@@ -572,12 +588,28 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     {id_0: {attribute_1 : ...}, id_1: {attribute_2: ...}, ...}
     """
 
-    def __init__(self, equities={}, futures={}, exchanges={}, root_symbols={}):
+    def __init__(self, equities=None, futures=None, exchanges=None,
+                 root_symbols=None):
 
-        self._equities = equities
-        self._futures = futures
-        self._exchanges = exchanges
-        self._root_symbols = root_symbols
+        if equities is not None:
+            self._equities = equities
+        else:
+            self._equities = {}
+
+        if futures is not None:
+            self._futures = futures
+        else:
+            self._futures = {}
+
+        if exchanges is not None:
+            self._exchanges = exchanges
+        else:
+            self._exchanges = {}
+
+        if root_symbols is not None:
+            self._root_symbols = root_symbols
+        else:
+            self._root_symbols = {}
 
     def _load_data(self):
 
@@ -598,13 +630,28 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
     Class used to write pandas.DataFrame data to SQLite database.
     """
 
-    def __init__(self, equities=pd.DataFrame(), futures=pd.DataFrame(),
-                 exchanges=pd.DataFrame(), root_symbols=pd.DataFrame()):
+    def __init__(self, equities=None, futures=None, exchanges=None,
+                 root_symbols=None):
 
-        self._equities = equities
-        self._futures = futures
-        self._exchanges = exchanges
-        self._root_symbols = root_symbols
+        if equities is not None:
+            self._equities = equities
+        else:
+            self._equities = pd.DataFrame()
+
+        if futures is not None:
+            self._futures = futures
+        else:
+            self._futures = pd.DataFrame()
+
+        if exchanges is not None:
+            self._exchanges = exchanges
+        else:
+            self._exchanges = pd.DataFrame()
+
+        if root_symbols is not None:
+            self._root_symbols = root_symbols
+        else:
+            self._root_symbols = pd.DataFrame()
 
     def _load_data(self):
 
