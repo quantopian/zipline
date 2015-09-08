@@ -254,15 +254,11 @@ class DataPortal(object):
                 nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
 
             if len(sids) == 0:
-                df = pd.DataFrame(np.zeros(bar_count),
-                                  index=minutes_for_window,
-                                  columns=["foo"])
-
-                # FIXME there must be a better way to create a df
-                # with zero columns
-                df.drop(df.columns[[0]], axis=1, inplace=True)
-
-                return df
+                return pd.DataFrame(
+                    None,
+                    index=modified_minutes_for_window,
+                    columns=None
+                )
 
             for sid in sids:
                 sid_minute_data = self._get_minute_window_for_sid(
@@ -448,7 +444,7 @@ class DataPortal(object):
             # volume should be 0.
             data[data == 0] = np.NaN
 
-        data = np.around(data, 3)
+        np.around(data, 3, out=data)
 
     @staticmethod
     def _find_position_of_minute(minute_dt):
@@ -586,8 +582,6 @@ class DataPortal(object):
             days_in_window,
             field
         )
-
-        return_array = np.around(return_array, 3)
 
         return return_array
 

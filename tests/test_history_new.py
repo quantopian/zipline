@@ -46,14 +46,16 @@ class HistoryTestCase(TestCase):
         cls.IBM = 6
         cls.GS = 7
         cls.C = 8
+        cls.DIVIDEND_SID = 9
         cls.assets = [cls.AAPL, cls.MSFT, cls.DELL, cls.TSLA, cls.BRKA,
-                      cls.IBM, cls.GS, cls.C]
+                      cls.IBM, cls.GS, cls.C, cls.DIVIDEND_SID]
 
         asset_info = make_simple_asset_info(
             cls.assets,
             Timestamp('2014-03-03'),
             Timestamp('2014-08-30'),
-            ['AAPL', 'MSFT', 'DELL', 'TSLA', 'BRKA', 'IBM', 'GS', 'C']
+            ['AAPL', 'MSFT', 'DELL', 'TSLA', 'BRKA', 'IBM', 'GS', 'C',
+             'DIVIDEND_SID']
         )
 
         cls.asset_finder = AssetFinder(asset_info)
@@ -96,10 +98,22 @@ class HistoryTestCase(TestCase):
                 columns=['effective_date', 'ratio', 'sid'],
             )
 
+            dividends = DataFrame([
+                    {'effective_date': str_to_seconds("2014-03-18"),
+                     'ratio': 0.98,
+                     'sid': cls.DIVIDEND_SID},
+                    {'effective_date': str_to_seconds("2014-03-20"),
+                     'ratio': 0.96,
+                     'sid': cls.DIVIDEND_SID}
+                ],
+                columns=['effective_date', 'ratio', 'sid']
+            )
+
             cls.create_fake_adjustments(cls.tempdir,
                                         "adjustments.sqlite",
                                         splits=splits,
-                                        mergers=mergers)
+                                        mergers=mergers,
+                                        dividends=dividends)
         except:
             cls.tempdir.cleanup()
             raise
@@ -118,7 +132,9 @@ class HistoryTestCase(TestCase):
             cls.BRKA: join(TEST_MINUTE_RESOURCE_PATH, "BRKA_minute.csv"),
             cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv"),
             cls.GS: join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv"), # unused
-            cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv")
+            cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv"),
+            cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
+                                   "DIVIDEND_minute.csv")
         }
 
         MinuteBarWriterFromCSVs(resources).write(tempdir.path, cls.assets)
@@ -133,7 +149,9 @@ class HistoryTestCase(TestCase):
             cls.BRKA: join(TEST_DAILY_RESOURCE_PATH, 'BRK-A.csv'),
             cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, 'IBM_daily.csv'),
             cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv'),
-            cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv')
+            cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv'),
+            cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
+                                   'DIVIDEND_daily.csv')
         }
         raw_data = {
             asset: read_csv(path, parse_dates=['day']).set_index('day')
@@ -148,19 +166,20 @@ class HistoryTestCase(TestCase):
 
     @classmethod
     def create_fake_adjustments(cls, tempdir, filename,
-                                splits=None, mergers=None):
+                                splits=None, mergers=None, dividends=None):
         writer = SQLiteAdjustmentWriter(tempdir.getpath(filename))
 
-        dividends = DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': array([], dtype=int),
-                'ratio': array([], dtype=float),
-                'sid': array([], dtype=int),
-            },
-            index=DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        if dividends is None:
+            dividends = DataFrame(
+                {
+                    # Hackery to make the dtypes correct on an empty frame.
+                    'effective_date': array([], dtype=int),
+                    'ratio': array([], dtype=float),
+                    'sid': array([], dtype=int),
+                },
+                index=DatetimeIndex([], tz='UTC'),
+                columns=['effective_date', 'ratio', 'sid'],
+            )
 
         if splits is None:
             splits = dividends
@@ -224,10 +243,10 @@ class HistoryTestCase(TestCase):
         day2_end = pd.Timestamp("2014-03-20 20:00", tz='UTC')
         day3_start = pd.Timestamp("2014-03-21 13:31", tz='UTC')
 
-        self.assertEqual(window.loc[day1_end, 1], 533.086)
-        self.assertEqual(window.loc[day2_start, 1], 533.087)
-        self.assertEqual(window.loc[day2_end, 1], 533.853)
-        self.assertEqual(window.loc[day3_start, 1], 533.854)
+        self.assertEquals(window.loc[day1_end, 1], 533.086)
+        self.assertEquals(window.loc[day2_start, 1], 533.087)
+        self.assertEquals(window.loc[day2_end, 1], 533.853)
+        self.assertEquals(window.loc[day3_start, 1], 533.854)
 
     def test_minute_window_starts_before_trading_start(self):
         portal = self.get_portal()
@@ -270,8 +289,10 @@ class HistoryTestCase(TestCase):
             self.assertTrue(np.isnan(window2.iloc[i].loc[2]))
 
         for i in range(0, 4):
-            self.assertEqual(window2.iloc[-5 + i].loc[1], reference2[1][i])
-            self.assertEqual(window2.iloc[-5 + i].loc[2], reference2[2][i])
+            self.assertEquals(window2.iloc[-5 + i].loc[1],
+                                    reference2[1][i])
+            self.assertEquals(window2.iloc[-5 + i].loc[2],
+                                    reference2[2][i])
 
     def test_minute_window_ends_before_trading_start(self):
         # entire window is before the trading start
@@ -370,7 +391,7 @@ class HistoryTestCase(TestCase):
                      27132.664, 27131.307, 27133.978, 27132.779, 27134.476]
 
         for i in range(0, 20):
-            self.assertEqual(window.iloc[i].loc[self.IBM], reference[i])
+            self.assertAlmostEquals(window.iloc[i].loc[self.IBM], reference[i])
 
     def test_minute_merger(self):
         def check(field, ref):
@@ -385,7 +406,7 @@ class HistoryTestCase(TestCase):
             self.assertEqual(len(window), len(ref))
 
             for i in range(0, len(ref) - 1):
-                self.assertEqual(window.iloc[i].loc[self.C], ref[i])
+                self.assertEquals(window.iloc[i].loc[self.C], ref[i])
 
         open_ref = [71.99, 71.991, 71.992, 71.996, 71.996,
                     72.000, 72.001, 72.002, 72.004, 72.005]
@@ -507,7 +528,8 @@ class HistoryTestCase(TestCase):
             self.assertEqual(len(window), 10)
 
             for i in range(0, 10):
-                self.assertEqual(window.iloc[i].loc[self.BRKA], values[i])
+                self.assertEquals(window.iloc[i].loc[self.BRKA],
+                                        values[i])
 
         # last value is the first minute's open
         opens = [183999, 186925, 186498, 188150, 185825, 184350,
@@ -550,8 +572,8 @@ class HistoryTestCase(TestCase):
             columns=['effective_date', 'ratio', 'sid'])
 
         self.create_fake_adjustments(self.tempdir,
-                                    "adjustments2.sqlite",
-                                    splits=splits)
+                                     "adjustments2.sqlite",
+                                     splits=splits)
 
         portal = self.get_portal(adjustments_filename="adjustments2.sqlite")
 
@@ -568,7 +590,8 @@ class HistoryTestCase(TestCase):
             self.assertEqual(len(window), 6)
 
             for i in range(0, 5):
-                self.assertEqual(window.iloc[i].loc[self.AAPL], reference[i])
+                self.assertEquals(window.iloc[i].loc[self.AAPL],
+                                        reference[i])
 
             if ffill and field == "price":
                 last_val = window.iloc[5].loc[self.AAPL]
@@ -627,8 +650,8 @@ class HistoryTestCase(TestCase):
         # an empty day because we don't have minute data for 3/5
         self.assertTrue(np.isnan(window.iloc[0].loc[self.MSFT]))
         self.assertTrue(np.isnan(window.iloc[1].loc[self.MSFT]))
-        self.assertEqual(window.iloc[2].loc[self.MSFT], 38.130)
-        self.assertEqual(window.iloc[3].loc[self.MSFT], 38.48)
+        self.assertEquals(window.iloc[2].loc[self.MSFT], 38.130)
+        self.assertEquals(window.iloc[3].loc[self.MSFT], 38.48)
         self.assertTrue(np.isnan(window.iloc[4].loc[self.MSFT]))
 
     def test_daily_window_ends_before_trading_start(self):
@@ -783,7 +806,7 @@ class HistoryTestCase(TestCase):
             self.assertEqual(len(window), len(ref),)
 
             for i in range(0, len(ref) - 1):
-                self.assertEqual(window.iloc[i].loc[self.C], ref[i], i)
+                self.assertEquals(window.iloc[i].loc[self.C], ref[i], i)
 
         # 2014-07-14 00:00:00+00:00,139.18,139.14,139.2,139.17,12351
         # 2014-07-15 00:00:00+00:00,139.2,139.2,139.18,139.19,12354
@@ -853,5 +876,92 @@ class HistoryTestCase(TestCase):
             self.assertEqual(window_0402.iloc[i].loc[self.IBM],
                              window_0702.iloc[i].loc[self.IBM] * 2)
 
+    def test_minute_dividends(self):
+        def check(field, ref):
+            window = self.get_portal().get_history_window(
+                [self.DIVIDEND_SID],
+                pd.Timestamp("2014-03-18 13:35", tz='UTC'),
+                10,
+                "1m",
+                field
+            )
 
+            self.assertEqual(len(window), len(ref))
 
+            for i in range(0, len(ref) - 1):
+                self.assertEquals(window.iloc[i].loc[self.DIVIDEND_SID],
+                                  ref[i], i)
+
+        # the DIVIDEND stock has dividends on 2014-03-18 (0.98)
+        # 2014-03-17 19:56:00+00:00,118923,123229,112445,117837,2273
+        # 2014-03-17 19:57:00+00:00,118927,122997,117911,120454,2274
+        # 2014-03-17 19:58:00+00:00,118930,129112,111136,120124,2274
+        # 2014-03-17 19:59:00+00:00,118932,126147,112112,119129,2276
+        # 2014-03-17 20:00:00+00:00,118932,124541,108717,116628,2275
+        # 2014-03-18 13:31:00+00:00,116457,120731,114148,117439,2274
+        # 2014-03-18 13:32:00+00:00,116461,116520,106572,111546,2275
+        # 2014-03-18 13:33:00+00:00,116461,117115,108506,112810,2274
+        # 2014-03-18 13:34:00+00:00,116461,119787,108861,114323,2273
+        # 2014-03-18 13:35:00+00:00,116464,117221,112698,114960,2272
+
+        open_ref = [116.545, 116.548, 116.551, 116.553, 116.553,
+                    116.457, 116.461, 116.461, 116.461, 166.464]
+
+        high_ref = [120.764, 120.537, 126.530, 123.624, 122.050,
+                    120.731, 116.520, 117.115, 119.787, 117.221]
+
+        low_ref = [110.196, 115.553, 108.913, 109.870, 106.543,
+                   114.148, 106.572, 108.506, 108.861, 112.698]
+
+        close_ref = [115.480, 118.045, 117.722, 116.746, 114.295,
+                     117.439, 111.546, 112.810, 114.323, 114.960]
+
+        volume_ref = [2273, 2274, 2274, 2276, 2275,
+                      2274, 2275, 2274, 2273, 2272]
+
+        check("open_price", open_ref)
+        check("high", high_ref)
+        check("low", low_ref)
+        check("close_price", close_ref)
+        check("price", close_ref)
+        check("volume", volume_ref)
+
+    def test_daily_dividends(self):
+        def check(field, ref):
+            window = self.get_portal().get_history_window(
+                [self.DIVIDEND_SID],
+                pd.Timestamp("2014-03-21 13:35", tz='UTC'),
+                6,
+                "1d",
+                field
+            )
+
+            self.assertEqual(len(window), len(ref))
+
+            for i in range(0, len(ref) - 1):
+                self.assertEquals(window.iloc[i].loc[self.DIVIDEND_SID],
+                                  ref[i], i)
+
+        # 2014-03-14 00:00:00+00:00,106408,106527,103498,105012,950
+        # 2014-03-17 00:00:00+00:00,106411,110252,99877,105064,950
+        # 2014-03-18 00:00:00+00:00,104194,110891,95342,103116,972
+        # 2014-03-19 00:00:00+00:00,104198,107086,102615,104851,973
+        # 2014-03-20 00:00:00+00:00,100032,102989,92179,97584,1016
+        # 2014-03-21 13:31:00+00:00,114098,120818,110333,115575,2866
+        # 2014-03-21 13:32:00+00:00,114099,120157,105353,112755,2866
+        # 2014-03-21 13:33:00+00:00,114099,122263,108838,115550,2867
+        # 2014-03-21 13:34:00+00:00,114101,116620,106654,111637,2867
+        # 2014-03-21 13:35:00+00:00,114104,123773,107769,115771,2867
+
+        open_ref = [100.108, 100.111, 100.026, 100.030, 100.032, 114.098]
+        high_ref = [100.221, 103.725, 106.455, 102.803, 102.988, 123.773]
+        low_ref = [97.370, 93.964, 91.528, 98.510, 92.179, 105.353]
+        close_ref = [98.795, 98.844, 98.991, 100.657, 97.584, 115.771]
+        volume_ref = [950, 950, 972, 973, 1016, 14333]
+
+        check("open_price", open_ref)
+        check("high", high_ref)
+        check("low", low_ref)
+        check("close_price", close_ref)
+        check("price", close_ref)
+        check("volume", volume_ref)
