@@ -473,14 +473,17 @@ class TestMiscellaneousAPI(TestCase):
             [
                 {
                     'sid': i + 3,
-                    'file_name': 'DUP',
+                    'symbol': 'DUP',
                     'start_date': date.value,
                     'end_date': (date + timedelta(days=1)).value,
                 }
                 for i, date in enumerate(dates)
             ]
         )
-        algo = TradingAlgorithm(asset_metadata=metadata)
+        env = TradingEnvironment()
+        env.write_data(equities_df=metadata)
+        algo = TradingAlgorithm(env=env)
+
         # Set the period end to a date after the period end
         # dates for our assets.
         algo.sim_params.period_end = pd.Timestamp('2015-01-01', tz='UTC')
