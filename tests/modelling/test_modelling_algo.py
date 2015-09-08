@@ -10,6 +10,7 @@ from os.path import (
 
 from numpy import (
     array,
+    arange,
     full_like,
     nan,
 )
@@ -17,6 +18,7 @@ from numpy.testing import assert_almost_equal
 from pandas import (
     concat,
     DataFrame,
+    date_range,
     DatetimeIndex,
     Panel,
     read_csv,
@@ -28,12 +30,12 @@ from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
-    #    add_filter,
     add_factor,
     get_datetime,
 )
 from zipline.assets import AssetFinder
-# from zipline.data.equities import USEquityPricing
+from zipline.data.equities import USEquityPricing
+from zipline.data.ffc.frame import DataFrameFFCLoader
 from zipline.data.ffc.loaders.us_equity_pricing import (
     BcolzDailyBarReader,
     DailyBarWriterFromCSVs,
@@ -41,13 +43,15 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
-# from zipline.modelling.factor import CustomFactor
 from zipline.modelling.factor.technical import VWAP
 from zipline.utils.test_utils import (
     make_simple_asset_info,
     str_to_seconds,
 )
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.tradingcalendar import (
+    trading_day,
+    trading_days,
+)
 
 
 TEST_RESOURCE_PATH = join(
@@ -68,6 +72,103 @@ def rolling_vwap(df, length):
         out[upper_bound - 1] = product[bounds].sum() / volumes[bounds].sum()
 
     return Series(out, index=df.index)
+
+
+class AssetLifetimesTestCase(TestCase):
+
+    def setUp(self):
+        self.dates = date_range(
+            '2014-01-01', '2014-02-01', freq=trading_day, tz='UTC'
+        )
+        asset_info = DataFrame.from_records([
+            {
+                'sid': 1,
+                'symbol': 'A',
+                'asset_type': 'equity',
+                'start_date': self.dates[10],
+                'end_date': self.dates[13],
+                'exchange': 'TEST',
+            },
+            {
+                'sid': 2,
+                'symbol': 'B',
+                'asset_type': 'equity',
+                'start_date': self.dates[11],
+                'end_date': self.dates[14],
+                'exchange': 'TEST',
+            },
+            {
+                'sid': 3,
+                'symbol': 'C',
+                'asset_type': 'equity',
+                'start_date': self.dates[12],
+                'end_date': self.dates[15],
+                'exchange': 'TEST',
+            },
+        ])
+        self.asset_finder = finder = AssetFinder(asset_info)
+
+        sids = (1, 2, 3)
+        self.assets = finder.retrieve_all(sids)
+
+        self.closes = DataFrame(
+            {sid: arange(1, len(self.dates) + 1) * sid for sid in sids},
+            index=self.dates,
+            dtype=float,
+        )
+        self.ffc_loader = DataFrameFFCLoader(
+            column=USEquityPricing.close,
+            baseline=self.closes,
+            adjustments=None,
+        )
+
+    def expected_close(self, date, asset):
+        return self.closes.loc[date, asset]
+
+    def exists(self, date, asset):
+        return asset.start_date <= date <= asset.end_date
+
+    def test_assets_appear_on_correct_days(self):
+        """
+        Assert that asset lifetimes match what shows up in a backtest.
+        """
+        def initialize(context):
+            add_factor(USEquityPricing.close.latest, 'close')
+
+        def handle_data(context, data):
+            factors = data.factors
+            date = get_datetime().normalize()
+            prev_date = self.dates[self.dates.get_loc(date) - 1]
+            for asset in self.assets:
+                # Assets should appear iff they existed yesterday **and**
+                # today.  Phrased another way: provide data for an asset if it
+                # traded yesterday, and if yesterday was not the last trading
+                # day for the asset.
+                if self.exists(date, asset) and self.exists(prev_date, asset):
+                    latest = factors.loc[asset, 'close']
+                    # We should have data that's up to date as of yesterday.
+                    self.assertEqual(
+                        latest,
+                        self.expected_close(prev_date, asset)
+                    )
+                else:
+                    self.assertNotIn(asset, factors.index)
+
+        before_trading_start = handle_data
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            data_frequency='daily',
+            ffc_loader=self.ffc_loader,
+            asset_finder=self.asset_finder,
+            start=self.dates[10],
+            end=self.dates[17],
+        )
+
+        # Run for a week in the middle of our data.
+        algo.run(source=self.closes.iloc[10:17])
 
 
 class FFCAlgorithmTestCase(TestCase):

@@ -971,7 +971,7 @@ class AssetFinder(object):
         lifetimes : pd.DataFrame
             A frame of dtype bool with `dates` as index and an Int64Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
-            be True iff `asset` existed on `data`.
+            be True iff `asset` existed on `date`.
 
         See Also
         --------
@@ -986,7 +986,7 @@ class AssetFinder(object):
         lifetimes = self._asset_lifetimes
 
         raw_dates = dates.asi8[:, None]
-        mask = (lifetimes.start <= raw_dates) & (raw_dates <= lifetimes.end)
+        mask = (lifetimes.start <= raw_dates) & (raw_dates < lifetimes.end)
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
 

@@ -1,5 +1,5 @@
 """
-Tests for filter terms.
+,Tests for filter terms.
 """
 from operator import and_
 
@@ -139,7 +139,7 @@ class FilterTestCase(BaseFFCTestCase):
         results = self.run_terms(
             terms,
             initial_workspace={self.f: eye5},
-            mask=self.build_mask(ones((5, 5))),
+            root_mask=self.build_mask(ones((5, 5))),
         )
         for name, quintile in iter_quintiles:
             result = results[name]
@@ -164,7 +164,7 @@ class FilterTestCase(BaseFFCTestCase):
         results = self.run_terms(
             terms,
             initial_workspace={self.f: eye6},
-            mask=self.build_mask(mask)
+            root_mask=self.build_mask(mask)
         )
         for name, quintile in iter_quintiles:
             result = results[name]
@@ -184,7 +184,7 @@ class FilterTestCase(BaseFFCTestCase):
         results = self.run_terms(
             terms,
             initial_workspace={self.f: eye6},
-            mask=self.build_mask(mask)
+            root_mask=self.build_mask(mask)
         )
         for name, quintile in iter_quintiles:
             result = results[name]
@@ -215,7 +215,7 @@ class FilterTestCase(BaseFFCTestCase):
         results = self.run_terms(
             terms,
             initial_workspace={self.f: data},
-            mask=self.build_mask(ones((5, 5))),
+            root_mask=self.build_mask(ones((5, 5))),
         )
 
         for name, quartile in zip(filter_names, quartiles):
@@ -262,7 +262,7 @@ class FilterTestCase(BaseFFCTestCase):
         results = self.run_terms(
             terms,
             initial_workspace={self.f: f_input, self.g: g_input},
-            mask=initial_mask,
+            root_mask=initial_mask,
         )
 
         # First should pass everything but the diagonal.

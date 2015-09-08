@@ -69,7 +69,7 @@ class FactorTestCase(BaseFFCTestCase):
             results = self.run_terms(
                 terms,
                 initial_workspace={self.f: data},
-                mask=self.build_mask(ones((5, 5))),
+                root_mask=self.build_mask(ones((5, 5))),
             )
             for method in terms:
                 check_arrays(results[method], expected_ranks[method])
@@ -124,7 +124,7 @@ class FactorTestCase(BaseFFCTestCase):
             results = self.run_terms(
                 terms,
                 initial_workspace={self.f: data},
-                mask=self.build_mask(ones((5, 5))),
+                root_mask=self.build_mask(ones((5, 5))),
             )
             for method in terms:
                 check_arrays(results[method], expected_ranks[method])

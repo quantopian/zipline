@@ -95,7 +95,6 @@ class AlgorithmSimulator(object):
             self._call_before_trading_start(mkt_open)
 
             for date, snapshot in stream_in:
-
                 self.simulation_dt = date
                 self.on_dt_changed(date)
 

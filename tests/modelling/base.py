@@ -12,6 +12,7 @@ from six import iteritems
 from zipline.assets import AssetFinder
 from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.graph import TermGraph
+from zipline.modelling.term import AssetExists
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
 from zipline.utils.tradingcalendar import trading_day
 
@@ -64,7 +65,7 @@ class BaseFFCTestCase(TestCase):
         """Default shape for methods that build test data."""
         return self.__mask.shape
 
-    def run_terms(self, terms, initial_workspace, mask=None):
+    def run_terms(self, terms, initial_workspace, root_mask=None):
         """
         Compute the given terms, seeding the workspace of our FFCEngine with
         `initial_workspace`.
@@ -73,6 +74,13 @@ class BaseFFCTestCase(TestCase):
         ----------
         terms : dict
             Mapping from termname -> term object.
+        initial_workspace : dict
+            Initial workspace to forward to SimpleFFCEngine.compute_chunk.
+        root_mask : DataFrame, optional
+            A boolean-valued DataFrame to use as our root_mask.  This will be
+            passed to `initial_workspace` as the default value for
+            initial_workspace[AssetExists()], emulating the behavior of
+            SimpleFFCEngine.factor_matrix.
 
         Returns
         -------
@@ -84,10 +92,16 @@ class BaseFFCTestCase(TestCase):
             self.__calendar,
             self.__finder,
         )
-        mask = mask if mask is not None else self.__mask
-        return engine.compute_chunk(TermGraph(terms), mask, initial_workspace)
+        if root_mask is None:
+            root_mask = self.__mask
+        initial_workspace.setdefault(AssetExists(), root_mask)
+        return engine.compute_chunk(TermGraph(terms), initial_workspace)
 
     def build_mask(self, array):
+        """
+        Helper for constructing an AssetExists mask from a boolean-coercible
+        array.
+        """
         ndates, nassets = array.shape
         return DataFrame(
             array,

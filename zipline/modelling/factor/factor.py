@@ -16,6 +16,7 @@ from zipline.errors import (
 from zipline.lib.rank import rankdata_2d_ordinal
 from zipline.modelling.term import (
     CustomTermMixin,
+    NotSpecified,
     RequiredWindowLengthMixin,
     SingleInputMixin,
     Term,
@@ -184,6 +185,8 @@ class Factor(Term):
     A transformation yielding a timeseries of scalar values associated with an
     Asset.
     """
+    dtype = float64
+
     # Dynamically add functions for creating NumExprFactor/NumExprFilter
     # instances.
     clsdict = locals()
@@ -219,7 +222,7 @@ class Factor(Term):
 
     eq = binary_operator('==')
 
-    def rank(self, method='ordinal', ascending=True):
+    def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
@@ -256,9 +259,9 @@ class Factor(Term):
         zipline.lib.rank
         zipline.modelling.factor.Rank
         """
-        return Rank(self if ascending else -self, method=method)
+        return Rank(self if ascending else -self, method=method, mask=mask)
 
-    def top(self, N):
+    def top(self, N, mask=NotSpecified):
         """
         Construct a Filter matching the top N asset values of self each day.
 
@@ -271,9 +274,9 @@ class Factor(Term):
         -------
         filter : zipline.modelling.filter.Filter
         """
-        return self.rank(ascending=False) <= N
+        return self.rank(ascending=False, mask=mask) <= N
 
-    def bottom(self, N):
+    def bottom(self, N, mask=NotSpecified):
         """
         Construct a Filter matching the bottom N asset values of self each day.
 
@@ -286,9 +289,12 @@ class Factor(Term):
         -------
         filter : zipline.modelling.filter.Filter
         """
-        return self.rank(ascending=True) <= N
+        return self.rank(ascending=True, mask=mask) <= N
 
-    def percentile_between(self, min_percentile, max_percentile):
+    def percentile_between(self,
+                           min_percentile,
+                           max_percentile,
+                           mask=NotSpecified):
         """
         Construct a new Filter representing entries from the output of this
         Factor that fall within the percentile range defined by min_percentile
@@ -312,6 +318,7 @@ class Factor(Term):
             self,
             min_percentile=min_percentile,
             max_percentile=max_percentile,
+            mask=mask,
         )
 
 
@@ -359,15 +366,15 @@ class Rank(SingleInputMixin, Factor):
     Most users should call Factor.rank rather than directly construct an
     instance of this class.
     """
-    dtype = float64
     window_length = 0
-    domain = None
+    dtype = float64
 
-    def __new__(cls, factor, method):
+    def __new__(cls, factor, method, mask):
         return super(Rank, cls).__new__(
             cls,
             inputs=(factor,),
             method=method,
+            mask=mask,
         )
 
     def _init(self, method, *args, **kwargs):
@@ -433,7 +440,6 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
     We currently only support CustomFactors of type float64.
     """
-    dtype = float64
     ctx = nullctx()
 
     def _validate(self):

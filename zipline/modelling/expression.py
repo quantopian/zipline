@@ -12,7 +12,7 @@ from numpy import (
 )
 from six import integer_types
 
-from zipline.modelling.term import Term
+from zipline.modelling.term import Term, NotSpecified
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 
@@ -180,7 +180,7 @@ class NumericalExpression(Term):
         #     factor(int64) + factor(int64) + 2.5.
         # The real fix for this is probably for the calling context to specify
         # dtypes.
-        if cls.dtype is not None:
+        if cls.dtype is not NotSpecified:
             dtype = cls.dtype
         else:
             dtype = find_common_type(
