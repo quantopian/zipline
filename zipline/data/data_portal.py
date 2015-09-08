@@ -167,6 +167,8 @@ class DataPortal(object):
                                     columns=None)
 
             for sid in sids:
+                sid = int(sid)
+
                 # get the start and end dates for this sid
                 if sid not in self.asset_start_dates:
                     asset = self.asset_finder.retrieve_asset(sid)

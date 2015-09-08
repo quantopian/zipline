@@ -1151,23 +1151,14 @@ class TradingAlgorithm(object):
         if self.data_portal is None:
             raise Exception("no data portal!")
 
-        if frequency == "1d":
-            # go back bar_count days from the current backtest datetime
-            current_day_idx = tradingcalendar.trading_days.searchsorted(
-                self.get_datetime())
-            start_day = tradingcalendar.trading_days[current_day_idx -
-                                                     bar_count]
-
-            data = self.data_portal.get_history_window(
-                sids,
-                start_day,
-                bar_count,
-                "daily",
-                field,
-                ffill
-            )
-
-            return data
+        return self.data_portal.get_history_window(
+            sids,
+            self.get_datetime(),
+            bar_count,
+            frequency,
+            field,
+            ffill
+        )
 
     ####################
     # Account Controls #
