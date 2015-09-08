@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import pandas as pd
 import pytz
 
@@ -390,16 +391,41 @@ def get_open_and_close(day, early_closes):
     return market_open, market_close
 
 
-def get_open_and_closes(trading_days, early_closes, get_open_and_close):
-    open_and_closes = pd.DataFrame(index=trading_days,
-                                   columns=('market_open', 'market_close'))
+def cast_tz(dts, tz):
+    return dts.tz_localize(None).tz_localize(tz)
 
-    get_o_and_c = partial(get_open_and_close, early_closes=early_closes)
 
-    open_and_closes['market_open'], open_and_closes['market_close'] = \
-        zip(*open_and_closes.index.map(get_o_and_c))
+def get_open_and_closes(trading_days,
+                        early_closes,
+                        open_delta,
+                        close_delta,
+                        early_close_delta):
+    # Opens are always at 9:30 US/Eastern.
+    o = (cast_tz(trading_days, 'US/Eastern') + open_delta).tz_convert('UTC')
+    c = cast_tz(trading_days, 'US/Eastern').values
 
-    return open_and_closes
+    early_close_indices = trading_days.get_indexer(early_closes)
+    regular_close_indices = np.setdiff1d(
+        np.arange(len(trading_days)),
+        early_close_indices,
+    )
 
-open_and_closes = get_open_and_closes(trading_days, early_closes,
-                                      get_open_and_close)
+    # Add early_close_delta to early closes, and close_delta to regular_closes.
+    c[early_close_indices] += early_close_delta.asm8
+    c[regular_close_indices] += close_delta.asm8
+
+    return pd.DataFrame(
+        data={'market_open': o, 'market_close': pd.DatetimeIndex(c, tz='UTC')},
+        # Explicitly force this column order.
+        columns=['market_open', 'market_close'],
+        index=trading_days,
+    )
+
+
+open_and_closes = get_open_and_closes(
+    trading_days,
+    early_closes,
+    open_delta=pd.Timedelta('9 hours 31 minutes'),
+    close_delta=pd.Timedelta('16 hours'),
+    early_close_delta=pd.Timedelta('13 hours'),
+)
