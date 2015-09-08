@@ -54,6 +54,8 @@ from zipline.utils.test_utils import(
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
+_multiprocess_can_split_ = False
+
 
 class FinanceTestCase(TestCase):
 
