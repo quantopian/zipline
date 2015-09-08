@@ -70,23 +70,9 @@ class DataPortal(object):
 
         self.adjustments_conn = sqlite3.connect(self.adjustments_path)
 
-        # We handle splits and mergers differently for point-in-time and
-        # history windows.
-        # For point-in-time (ie, data[sid(24)].price, the backtest clock
-        # only ever goes forward in time, so we can keep around the current
-        # adjustment ratio for a sid knowing that we'll never need an old
-        # one again.  All that information is stored in these dictionaries.
+        # caches of sid -> adjustment list
         self.splits_dict = {}
-        self.split_multipliers = {}
         self.mergers_dict = {}
-        self.mergers_multipliers = {}
-
-        # For history windows, just because we've been asked for an asset's
-        # window started at day N doesn't mean that we won't be asked for
-        # another window for this sid starting at day N-10.  Therefore,
-        # we have to store all the adjustments per asset in these dictionaries.
-        self.splits_dict_immutable = {}
-        self.mergers_dict_immutable = {}
 
         # Pointer to the daily bcolz file.
         self.daily_equities_data = None
@@ -123,21 +109,10 @@ class DataPortal(object):
         column_to_use = self.column_lookup[column]
         carray = self._open_minute_file(column_to_use, asset_int)
 
-        adjusted_dt = int(self.current_dt / 1e9)
-
-        split_ratio = self._get_adjustment_ratio(
-            asset_int, adjusted_dt, self.splits_dict,
-            self.split_multipliers, "SPLITS")
-
-        mergers_ratio = self._get_adjustment_ratio(
-            asset_int, adjusted_dt, self.mergers_dict,
-            self.mergers_multipliers, "MERGERS")
-
         if column_to_use == 'volume':
-            return carray[self.cur_data_offset] / split_ratio
+            return carray[self.cur_data_offset]
         else:
-            return carray[self.cur_data_offset] * 0.001 * split_ratio * \
-                mergers_ratio
+            return carray[self.cur_data_offset] * 0.001
 
     def get_history_window(self, sids, end_dt, bar_count, frequency, field,
                            ffill=True):
@@ -398,7 +373,7 @@ class DataPortal(object):
         # adjust the data
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
-                sid, self.splits_dict_immutable, "SPLITS"),
+                sid, self.splits_dict, "SPLITS"),
             return_data,
             minutes_for_window,
             field != 'volume'
@@ -407,7 +382,7 @@ class DataPortal(object):
         if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self.mergers_dict_immutable, "MERGERS"),
+                    sid, self.mergers_dict, "MERGERS"),
                 return_data,
                 minutes_for_window,
                 True
@@ -559,7 +534,7 @@ class DataPortal(object):
 
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
-                sid, self.splits_dict_immutable, "SPLITS"),
+                sid, self.splits_dict, "SPLITS"),
             return_array,
             days_in_window,
             field != 'volume'
@@ -568,7 +543,7 @@ class DataPortal(object):
         if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self.mergers_dict_immutable, "MERGERS"),
+                    sid, self.mergers_dict, "MERGERS"),
                 return_array,
                 days_in_window,
                 True
@@ -591,46 +566,30 @@ class DataPortal(object):
         if len(adjustments_list) == 0:
             return
 
-        # clear out all adjustments that happened before the first minute
-        first_dt = dts_in_window[0]
-
         # advance idx to the correct spot in the adjustments list, based on
         # when the window starts
         idx = 0
 
-        while idx < len(adjustments_list) and first_dt > adjustments_list[idx][0]:
+        while idx < len(adjustments_list) and dts_in_window[0] >\
+                adjustments_list[idx][0]:
             idx += 1
 
+        # if we've advanced through all the adjustments, then there's nothing
+        # to do.
         if idx == len(adjustments_list):
             return
 
-        first_applicable_adjustment = adjustments_list[idx]
-
-        # optimization: if the last minute is before the first
-        # adjustment, then the entire window is before the first adj,
-        # so just apply the first adj to the entire window and gtfo.
-        if dts_in_window[-1] < first_applicable_adjustment[0]:
-            if multiply:
-                window_data *= first_applicable_adjustment[1]
-            else:
-                window_data /= first_applicable_adjustment[1]
-            return
-
-        # walk over minutes in window.  for each minute, if it's less than
-        # the next adjustment, adjust.  if the adjustment has passed, get rid
-        # of it.
-        idx = 0
-        range_start = 0
         while idx < len(adjustments_list):
             adjustment_to_apply = adjustments_list[idx]
 
+            if adjustment_to_apply[0] > dts_in_window[-1]:
+                break
+
             range_end = dts_in_window.searchsorted(adjustment_to_apply[0])
             if multiply:
-                window_data[range_start:range_end] *= adjustment_to_apply[1]
+                window_data[0:range_end] *= adjustment_to_apply[1]
             else:
-                window_data[range_start:range_end] /= adjustment_to_apply[1]
-
-            range_start = range_end
+                window_data[0:range_end] /= adjustment_to_apply[1]
 
             idx += 1
 
@@ -652,7 +611,7 @@ class DataPortal(object):
         Returns
         -------
         adjustments: list
-            A list of [cumulative_multiplier, pd.Timestamp], earliest first
+            A list of [multiplier, pd.Timestamp], earliest first
 
         """
         if sid not in adjustments_dict:
@@ -660,129 +619,14 @@ class DataPortal(object):
                 "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
                 table_name, [sid]).fetchall()
 
-            # now build up the adjustment factors
-            # for example, if the data is:
-            # 6/17/08, 0.5
-            # 3/1/10, 0.5
-            # 6/8/13, 0.5
-            # then we want to convert that to:
-            # [6/17/08, 0.125], [3/1/10: 0.25], [6/18/13: 0.5]
-
-            # and using that list and a given dt, we can find the first date
-            # that is greater than the current time, and get the multiplier for
-            # that range.
-
-            calculated_list = []
-            multiplier = 1
-            for adj_info in reversed(adjustments_for_sid):
-                multiplier *= adj_info[1]
-                calculated_list.insert(0, [pd.Timestamp(adj_info[0], unit='s', tz='UTC'),
-                                           multiplier])
-
-            adjustments_dict[sid] = calculated_list
+            adjustments_dict[sid] = [[pd.Timestamp(adjustment[0],
+                                                   unit='s',
+                                                   tz='UTC'),
+                                      adjustment[1]]
+                                     for adjustment in
+                                     adjustments_for_sid]
 
         return adjustments_dict[sid]
-
-    def _get_adjustment_ratio(self, sid, dt, adjustments_dict, multiplier_dict,
-                              table_name):
-        """
-        Internal method that returns the value of the desired adjustment as of
-        the given dt.
-
-        IMPORTANT: This method assumes that the clock always goes forward.
-        Once this method has been called with a dt, it has to be called with
-        a greater-than-or-equal dt subsequently.
-
-        Parameters
-        ----------
-        sid : int
-            The asset for which to return adjustments.
-
-        dt: int
-            Epoch in seconds.
-
-        adjustments_dict: dict
-            Stores the not-used-yet adjustments for this sid.  As an adjustment
-            is used up, it's removed from this dictionary.
-
-        multiplier_dict: dict
-            Stores the current multiplier for this adjustment, per sid.
-
-        table_name: string
-            The name of the table where this adjustment lives, in the sqlite
-            db.
-
-
-        Returns
-        -------
-        ratio: float
-            The desired adjustment ratio.
-
-        """
-
-        # For each adjustment type (split, mergers) we keep two dictionaries
-        # around:
-        # - ADJUSTMENTTYPE_dict: dictionary of sid to a list of future
-        #   adjustments
-        # - ADJUSTMENTTYPE_multipliers: dictionary of sid to the current
-        #   multiplier
-        #
-        # Each time we're asked to get a ratio:
-        # - if this is the first time we've been asked for this adjustment/sid
-        #   pair, we query the data from ADJUSTMENTS_PATH and store it in
-        #   ADJUSTMENTTYPE_dict. We get the initial ratio by multiplying all
-        #   the ratios together (since we always present pricing data with an
-        #   as-of date of today). We then fast-forward to the desired date by
-        #   dividing the initial ratio by any encountered adjustments.  The
-        #   ratio is stored in ADJUSTMENTTYPE_multipliers.
-        # - now that we have the current ratio as well as the current date;
-        #   - if there are no adjustments left, just return 1.
-        #   - else if the next adjustment's date is in the future, return the
-        #     current ratio.
-        #   - else apply the next adjustment for this sid, and remove it from
-        #     ADJUSTMENTTYPE_dict[sid].  Save the new current ratio in
-        #     ADJUSTMENTTYPE_multipliers, and return that.
-        #
-        # NOTE: This approach is optimized for single asset lookups on an ever-
-        # moving-forward clock.  Once a split has been seen, it's consumed and
-        # the current split multiplier for that sid is updated.  After that
-        # happens, we can't look up an older ratio because it won't be there
-        # anymore.
-        if sid not in adjustments_dict:
-            adjustments_for_sid = self.adjustments_conn.execute(
-                "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
-                table_name, [sid]).fetchall()
-
-            if (len(adjustments_for_sid) == 0) or \
-               (adjustments_for_sid[-1][0] < dt):
-                multiplier_dict[sid] = 1
-                adjustments_dict[sid] = []
-                return 1
-
-            multiplier_dict[sid] = reduce(lambda x, y: x[1] * y[1],
-                                          adjustments_for_sid)
-
-            while (len(adjustments_dict) > 0) and \
-                  (adjustments_for_sid[0][0] < dt):
-                multiplier_dict[sid] /= adjustments_for_sid[0][1]
-                adjustments_for_sid.pop(0)
-
-            adjustments_dict[sid] = adjustments_for_sid
-
-        adjustment_info = adjustments_dict[sid]
-
-        # check that we haven't gone past an adjustment
-        if len(adjustment_info) == 0:
-            return 1
-        elif adjustment_info[0][0] > dt:
-            return multiplier_dict[sid]
-        else:
-            # new split encountered, adjust our current multiplier and remove
-            # it from the list
-            multiplier_dict[sid] /= adjustment_info[0][0]
-            adjustment_info.pop(0)
-
-            return multiplier_dict[sid]
 
     def get_equity_price_view(self, asset):
         try:

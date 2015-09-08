@@ -259,7 +259,7 @@ class HistoryTestCase(TestCase):
 
         self.assertEqual(len(window2), 50)
         reference2 = {
-            1: [529.659, 527.957, 530.568, 531.849, 527.982],
+            1: [1059.318, 1055.914, 1061.136, 1063.698, 1055.964],
             2: [98.902, 99.841, 90.984, 99.891, 98.027]
         }
 
@@ -807,10 +807,51 @@ class HistoryTestCase(TestCase):
         check("price", close_ref)
         check("volume", vol_ref)
 
+    def test_minute_adjustments_as_of_lookback_date(self):
+        # AAPL has splits on 2014-03-20 and 2014-03-21
+        window_0320 = self.get_portal().get_history_window(
+            [self.AAPL],
+            pd.Timestamp("2014-03-20 13:35", tz='UTC'),
+            395,
+            "1m",
+            "open_price"
+        )
 
+        window_0321 = self.get_portal().get_history_window(
+            [self.AAPL],
+            pd.Timestamp("2014-03-21 13:35", tz='UTC'),
+            785,
+            "1m",
+            "open_price"
+        )
 
+        for i in range(0, 395):
+            # history on 3/20, since the 3/21 0.5 split hasn't
+            # happened yet, should return values 2x larger than history on
+            # 3/21
+            self.assertEqual(window_0320.iloc[i].loc[self.AAPL],
+                             window_0321.iloc[i].loc[self.AAPL] * 2)
 
+    def test_daily_adjustments_as_of_lookback_date(self):
+        window_0402 = self.get_portal().get_history_window(
+            [self.IBM],
+            pd.Timestamp("2014-04-02 13:35", tz='UTC'),
+            23,
+            "1d",
+            "open_price"
+        )
 
+        window_0702 = self.get_portal().get_history_window(
+            [self.IBM],
+            pd.Timestamp("2014-07-02 13:35", tz='UTC'),
+            86,
+            "1d",
+            "open_price"
+        )
+
+        for i in range(0, 22):
+            self.assertEqual(window_0402.iloc[i].loc[self.IBM],
+                             window_0702.iloc[i].loc[self.IBM] * 2)
 
 
 
