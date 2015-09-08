@@ -73,6 +73,7 @@ class DataPortal(object):
         # caches of sid -> adjustment list
         self.splits_dict = {}
         self.mergers_dict = {}
+        self.dividends_dict = {}
 
         # Pointer to the daily bcolz file.
         self.daily_equities_data = None
@@ -246,7 +247,7 @@ class DataPortal(object):
             nans_to_prepend = None
 
             if modified_minutes_length < bar_count and \
-                (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
+               (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
                 # the beginning of the window goes before our global trading
                 # start date
                 bars_to_prepend = bar_count - modified_minutes_length
@@ -322,7 +323,8 @@ class DataPortal(object):
         # bar_count bars, and that's the unadjusted data
         raw_data = self._open_minute_file(field, sid)
 
-        start_idx = max(self._find_position_of_minute(minutes_for_window[0]), 0)
+        start_idx = max(self._find_position_of_minute(minutes_for_window[0]),
+                        0)
         end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
         return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
@@ -370,37 +372,83 @@ class DataPortal(object):
 
         return_data[0:len(data_to_copy)] = data_to_copy
 
-        # adjust the data
+        self._apply_all_adjustments(
+            return_data,
+            sid,
+            minutes_for_window,
+            field
+        )
+
+        return return_data
+
+    def _apply_all_adjustments(self, data, sid, dts, field):
+        """
+        Internal method that applies all the necessary adjustments on the
+        given data array.
+
+        The adjustments are:
+        - splits
+        - if field != "volume":
+            - mergers
+            - dividends
+            - * 0.001
+            - any zero fields replaced with NaN
+        - all values rounded to 3 digits after the decimal point.
+
+        Parameters
+        ----------
+        data : np.array
+            The data to be adjusted.
+
+        sid: integer
+            The sid whose data is being adjusted.
+
+        dts: pd.DateTimeIndex
+            The list of minutes or days representing the desired window.
+
+        field: string
+            The field whose values are in the data array.
+
+        Returns
+        -------
+        None.  The data array is modified in place.
+        """
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
-                sid, self.splits_dict, "SPLITS"),
-            return_data,
-            minutes_for_window,
+                sid, self.splits_dict, "SPLITS"
+            ),
+            data,
+            dts,
             field != 'volume'
         )
 
         if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self.mergers_dict, "MERGERS"),
-                return_data,
-                minutes_for_window,
+                    sid, self.mergers_dict, "MERGERS"
+                ),
+                data,
+                dts,
                 True
             )
 
-            return_data *= 0.001
+            self._apply_adjustments_to_window(
+                self._get_adjustment_list(
+                    sid, self.dividends_dict, "DIVIDENDS"
+                ),
+                data,
+                dts,
+                True
+            )
+
+            data *= 0.001
 
             # if anything is zero, it's a missing bar, so replace it with NaN.
             # we only want to do this for non-volume fields, because a missing
             # volume should be 0.
-            return_data[return_data == 0] = np.NaN
+            data[data == 0] = np.NaN
 
-        # round to 3 digits
-        # FIXME this is different than before, we are rounding to the nearest
-        # 10th of a cent, NOT always rounding down like we did before.
-        return_data = np.around(return_data, 3)
-
-        return return_data
+        data = np.around(data, 3)
 
     @staticmethod
     def _find_position_of_minute(minute_dt):
@@ -513,10 +561,10 @@ class DataPortal(object):
             # if the window_offset is negative, we need to decrease the
             # end_index accordingly.
             end_index = min(start_index + window_offset + bar_count,
-                         daily_attrs['last_row'][str(sid)])
+                            daily_attrs['last_row'][str(sid)])
         else:
             end_index = min(start_index + bar_count,
-                         daily_attrs['last_row'][str(sid)])
+                            daily_attrs['last_row'][str(sid)])
 
         if window_offset < 0 and (abs(window_offset) > bar_count):
             # consumer is requesting a history window that starts AND ends
@@ -532,29 +580,12 @@ class DataPortal(object):
         else:
             return_array[0:len(data)] = data
 
-        self._apply_adjustments_to_window(
-            self._get_adjustment_list(
-                sid, self.splits_dict, "SPLITS"),
+        self._apply_all_adjustments(
             return_array,
+            sid,
             days_in_window,
-            field != 'volume'
+            field
         )
-
-        if field != 'volume':
-            self._apply_adjustments_to_window(
-                self._get_adjustment_list(
-                    sid, self.mergers_dict, "MERGERS"),
-                return_array,
-                days_in_window,
-                True
-            )
-
-            return_array *= 0.001
-
-            # if anything is zero, it's a missing bar, so replace it with NaN.
-            # we only want to do this for non-volume fields, because a missing
-            # volume should be 0.
-            return_array[return_array == 0] = np.NaN
 
         return_array = np.around(return_array, 3)
 
@@ -704,13 +735,16 @@ class DataPortalSidView(object):
         return self.portal.get_current_price_data(self.asset, column)
 
     def mavg(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "mavg", bars=minutes)
+        return self.portal.get_simple_transform(self.asset, "mavg",
+                                                bars=minutes)
 
     def stddev(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "stddev", bars=minutes)
+        return self.portal.get_simple_transform(self.asset, "stddev",
+                                                bars=minutes)
 
     def vwap(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "vwap", bars=minutes)
+        return self.portal.get_simple_transform(self.asset, "vwap",
+                                                bars=minutes)
 
     def returns(self):
         return self.portal.get_simple_transform(self.asset, "returns")
