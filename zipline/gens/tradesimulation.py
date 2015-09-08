@@ -18,6 +18,7 @@ import pandas as pd
 
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
+from zipline.assets import AssetFinder
 
 from zipline.protocol import (
     BarData,
@@ -59,7 +60,18 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.data_portal = DataPortal(self.algo)
+        self.data_portal = DataPortal(
+            self.algo,
+            findata_dir="/Users/jean/repo/findata/by_sid",
+            daily_equities_path="/Users/jean/repo/findata/findata/equity.dailies/2015-08-25/equity_daily_bars.bcolz",
+            adjustments_path="/Users/jean/repo/findata/findata/adjustments/2015-08-25/adjustments.db",
+            asset_finder=AssetFinder(
+                db_path="/Users/jean/repo/findata/findata/assets/2015-08-25/assets.db",
+                fuzzy_char="_",
+                create_table=False
+            )
+        )
+
         self.current_data = BarData(data_portal=self.data_portal)
 
         # We don't have a datetime for the current snapshot until we
@@ -111,12 +123,13 @@ class AlgorithmSimulator(object):
 
         perf_tracker.position_tracker.data_portal = data_portal
 
-        # inject the current algo
-        # snapshot time to any log record generated.
+        all_trading_days = TradingEnvironment.instance().trading_days
+        all_trading_days = all_trading_days[all_trading_days.slice_indexer('2002-01-02')]
+        first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
         with self.processor.threadbound():
             for i, day in enumerate(trading_days):
-                day_offset = i * 390
+                day_offset = (i + first_trading_day_idx) * 390
                 for j, dt in enumerate(day_engine.market_minutes(i)):
                     algo.datetime = dt
                     data_portal.current_dt = dt
