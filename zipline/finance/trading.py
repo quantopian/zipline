@@ -37,10 +37,9 @@ log = logbook.Logger('Trading')
 # about the benchmark index and the risk free rates of return.
 # The benchmark index defines the benchmark returns used in
 # the calculation of performance metrics such as alpha/beta. Many
-# components, including risk, performance, transforms, and
-# batch_transforms, need access to a calendar of trading days and
-# market hours. The TradingEnvironment maintains two time keeping
-# facilities:
+# components, including risk, performance, and history,
+# need access to a calendar of trading days and market hours. The
+# TradingEnvironment maintains two time keeping facilities:
 #   - a DatetimeIndex of trading days for calendar calculations
 #   - a timezone name, which should be local to the exchange
 #   hosting the benchmark index. All dates are normalized to UTC

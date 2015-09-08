@@ -17,25 +17,11 @@
 import logbook
 import matplotlib.pyplot as plt
 import numpy as np
-import statsmodels.api as sm
 from datetime import datetime
 import pytz
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.transforms import batch_transform
 from zipline.utils.factory import load_from_yahoo
-
-
-@batch_transform
-def ols_transform(data, sid1, sid2):
-    """Computes regression coefficient (slope and intercept)
-    via Ordinary Least Squares between two SIDs.
-    """
-    p0 = data.price[sid1]
-    p1 = sm.add_constant(data.price[sid2], prepend=True)
-    slope, intercept = sm.OLS(p0, p1).fit().params
-
-    return slope, intercept
 
 
 class Pairtrade(TradingAlgorithm):

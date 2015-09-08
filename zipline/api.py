@@ -31,15 +31,11 @@ from zipline.utils.events import (
     time_rules
 )
 
-batch_transform = zipline.transforms.BatchTransform
-
-
 __all__ = [
     'slippage',
     'commission',
     'events',
     'math_utils',
-    'batch_transform',
     'FixedSlippage',
     'VolumeShareSlippage',
     'date_rules',
