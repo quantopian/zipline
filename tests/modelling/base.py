@@ -9,7 +9,7 @@ from numpy.random import randn, seed as random_seed
 from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
-from zipline.assets import AssetFinder
+from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.graph import TermGraph
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
@@ -48,15 +48,16 @@ class BaseFFCTestCase(TestCase):
     def setUp(self):
         self.__calendar = date_range('2014', '2015', freq=trading_day)
         self.__assets = assets = Int64Index(arange(1, 20))
-        self.__finder = AssetFinder(
-            make_simple_asset_info(
+
+        # Set up env for test
+        self.__env = TradingEnvironment()
+        self.__env.write_data(
+            equities_df=make_simple_asset_info(
                 assets,
                 self.__calendar[0],
                 self.__calendar[-1],
-            ),
-            db_path=':memory:',
-            create_table=True,
-        )
+            ))
+        self.__finder = self.__env.asset_finder
         self.__mask = self.__finder.lifetimes(self.__calendar[-10:])
 
     @property
