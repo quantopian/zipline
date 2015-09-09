@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from zipline.utils.serialization_utils import (
-    load_with_persistent_ids, dump_with_persistent_ids
+    loads_with_persistent_ids, dumps_with_persistent_ids
 )
 
 from nose_parameterized import parameterized
@@ -40,9 +40,9 @@ class PickleSerializationTestCase(TestCase):
         obj = cls(*initargs)
         for k, v in di_vars.items():
             setattr(obj, k, v)
-        state = dump_with_persistent_ids(obj)
+        state = dumps_with_persistent_ids(obj)
 
-        obj2 = load_with_persistent_ids(state, env=cases_env)
+        obj2 = loads_with_persistent_ids(state, env=cases_env)
         for k, v in di_vars.items():
             setattr(obj2, k, v)
 

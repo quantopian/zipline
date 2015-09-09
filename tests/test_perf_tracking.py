@@ -45,7 +45,7 @@ from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
 from zipline.utils.factory import create_random_simulation_parameters
 from zipline.utils.serialization_utils import (
-    load_with_persistent_ids, dump_with_persistent_ids
+    loads_with_persistent_ids, dumps_with_persistent_ids
 )
 import zipline.protocol as zp
 from zipline.protocol import Event, DATASOURCE_TYPE
@@ -246,9 +246,9 @@ def check_perf_tracker_serialization(perf_tracker):
         'total_days',
     ]
 
-    p_string = dump_with_persistent_ids(perf_tracker)
+    p_string = dumps_with_persistent_ids(perf_tracker)
 
-    test = load_with_persistent_ids(p_string, env=perf_tracker.env)
+    test = loads_with_persistent_ids(p_string, env=perf_tracker.env)
 
     for k in scalar_keys:
         nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
@@ -2136,9 +2136,9 @@ class TestPosition(unittest.TestCase):
         pos = perf.Position(10, amount=np.float64(120.0), last_sale_date=dt,
                             last_sale_price=3.4)
 
-        p_string = dump_with_persistent_ids(pos)
+        p_string = dumps_with_persistent_ids(pos)
 
-        test = load_with_persistent_ids(p_string, env=None)
+        test = loads_with_persistent_ids(p_string, env=None)
         nt.assert_dict_equal(test.__dict__, pos.__dict__)
 
 
@@ -2242,8 +2242,8 @@ class TestPositionTracker(unittest.TestCase):
                              last_sale_date=dt, last_sale_price=3.4)
 
         pt.update_positions({1: pos1, 3: pos3})
-        p_string = dump_with_persistent_ids(pt)
-        test = load_with_persistent_ids(p_string, env=self.env)
+        p_string = dumps_with_persistent_ids(pt)
+        test = loads_with_persistent_ids(p_string, env=self.env)
         nt.assert_dict_equal(test._position_amounts, pt._position_amounts)
         nt.assert_dict_equal(test._position_last_sale_prices,
                              pt._position_last_sale_prices)
@@ -2261,8 +2261,8 @@ class TestPerformancePeriod(unittest.TestCase):
         pp = perf.PerformancePeriod(100, env.asset_finder)
         pp.position_tracker = pt
 
-        p_string = dump_with_persistent_ids(pp)
-        test = load_with_persistent_ids(p_string, env=env)
+        p_string = dumps_with_persistent_ids(pp)
+        test = loads_with_persistent_ids(p_string, env=env)
 
         correct = pp.__dict__.copy()
         del correct['_position_tracker']

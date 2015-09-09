@@ -40,9 +40,9 @@ def _persistent_load(persid, env):
         return env
 
 
-def dump_with_persistent_ids(obj, protocol=None):
+def dumps_with_persistent_ids(obj, protocol=None):
     """
-    Performs a pickle dump on the given object, substituting all references to
+    Performs a pickle dumps on the given object, substituting all references to
     a TradingEnvironment or AssetFinder with tokenized representations.
 
     All arguments are passed to pickle.Pickler and are described therein.
@@ -54,21 +54,21 @@ def dump_with_persistent_ids(obj, protocol=None):
     return file.getvalue()
 
 
-def load_with_persistent_ids(str, env):
+def loads_with_persistent_ids(str, env):
     """
-    Performs a pickle load on the given string, substituting the given
+    Performs a pickle loads on the given string, substituting the given
     TradingEnvironment in to any tokenized representations of a
     TradingEnvironment or AssetFinder.
 
     Parameters
-    __________
+    ----------
     str : String
         The string representation of the object to be unpickled.
     env : TradingEnvironment
         The TradingEnvironment to be inserted to the unpickled object.
 
     Returns
-    _______
+    -------
     obj
        An unpickled object formed from the parameter 'str'.
     """
