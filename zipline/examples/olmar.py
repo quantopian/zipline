@@ -149,18 +149,34 @@ def simplex_projection(v, b=1):
     w[w < 0] = 0
     return w
 
-if __name__ == '__main__':
+
+# Note: this function can be removed if running
+# this algorithm on quantopian.com
+def analyze(context=None, results=None):
     import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    results.portfolio_value.plot(ax=ax)
+    ax.set_ylabel('Portfolio value (USD)')
+    plt.show()
+
+
+# Note: this if-block should be removed if running
+# this algorithm on quantopian.com
+if __name__ == '__main__':
+    # Set the simulation start and end dates.
     start = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+    # Load price data from yahoo.
     data = load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
     data = data.dropna()
+
+    # Create and run the algorithm.
     olmar = TradingAlgorithm(handle_data=handle_data,
                              initialize=initialize,
                              identifiers=STOCKS)
     results = olmar.run(data)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    results.portfolio_value.plot(ax=ax)
-    ax.set_ylabel('portfolio value in $')
-    plt.show()
+
+    # Plot the portfolio data.
+    analyze(results=results)

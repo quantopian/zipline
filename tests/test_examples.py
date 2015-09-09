@@ -39,6 +39,7 @@ def example_dir():
 
 
 class ExamplesTests(TestCase):
+    # Test algorithms as if they being executed directly from the command line.
     @parameterized.expand(((os.path.basename(f).replace('.', '_'), f) for f in
                            glob.glob(os.path.join(example_dir(), '*.py'))))
     def test_example(self, name, example):

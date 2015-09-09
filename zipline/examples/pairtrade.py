@@ -24,6 +24,7 @@ import pytz
 from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import batch_transform
 from zipline.utils.factory import load_from_yahoo
+from zipline.api import symbol
 
 
 @batch_transform
@@ -74,7 +75,9 @@ class Pairtrade(TradingAlgorithm):
         ######################################################
         # 2. Compute spread and zscore
         zscore = self.compute_zscore(data, slope, intercept)
-        self.record(zscores=zscore)
+        self.record(zscores=zscore,
+                    PEP=data[symbol('PEP')].price,
+                    KO=data[symbol('KO')].price)
 
         ######################################################
         # 3. Place orders
@@ -116,25 +119,40 @@ class Pairtrade(TradingAlgorithm):
         pep_amount = self.portfolio.positions[self.PEP].amount
         self.order(self.PEP, -1 * pep_amount)
 
-if __name__ == '__main__':
-    logbook.StderrHandler().push_application()
-    start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
-    data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},
-                           start=start, end=end)
 
-    pairtrade = Pairtrade()
-    results = pairtrade.run(data)
-    data['spreads'] = np.nan
-
+# Note: this function can be removed if running
+# this algorithm on quantopian.com
+def analyze(context=None, results=None):
     ax1 = plt.subplot(211)
-    # TODO Bugged - indices are out of bounds
-    # data[[pairtrade.PEPsid, pairtrade.KOsid]].plot(ax=ax1)
-    plt.ylabel('price')
+    plt.title('PepsiCo & Coca-Cola Co. share prices')
+    results[['PEP', 'KO']].plot(ax=ax1)
+    plt.ylabel('Price (USD)')
     plt.setp(ax1.get_xticklabels(), visible=False)
 
     ax2 = plt.subplot(212, sharex=ax1)
     results.zscores.plot(ax=ax2, color='r')
-    plt.ylabel('zscored spread')
+    plt.ylabel('Z-scored spread')
 
     plt.gcf().set_size_inches(18, 8)
+    plt.show()
+
+
+# Note: this if-block should be removed if running
+# this algorithm on quantopian.com
+if __name__ == '__main__':
+    logbook.StderrHandler().push_application()
+
+    # Set the simulation start and end dates.
+    start = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+
+    # Load price data from yahoo.
+    data = load_from_yahoo(stocks=['PEP', 'KO'], indexes={},
+                           start=start, end=end)
+
+    # Create and run the algorithm.
+    pairtrade = Pairtrade()
+    results = pairtrade.run(data)
+
+    # Plot the portfolio data.
+    analyze(results=results)

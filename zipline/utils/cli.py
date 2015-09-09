@@ -229,12 +229,6 @@ def run_pipeline(print_algo=True, **kwargs):
         with open(algo_fname, 'r') as fd:
             algo_text = fd.read()
 
-        analyze_fname = os.path.splitext(algo_fname)[0] + '_analyze.py'
-        if os.path.exists(analyze_fname):
-            with open(analyze_fname, 'r') as fd:
-                # Simply append
-                algo_text += fd.read()
-
     if print_algo:
         if PYGMENTS:
             highlight(algo_text, PythonLexer(), TerminalFormatter(),
