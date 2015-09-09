@@ -93,9 +93,6 @@ from zipline.utils import tradingcalendar
 import zipline.protocol
 from zipline.protocol import Event
 
-from zipline.history import HistorySpec
-from zipline.history.history_container import HistoryContainer
-
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -232,12 +229,6 @@ class TradingAlgorithm(object):
         self._portfolio = None
         self._account = None
 
-        self.history_container_class = kwargs.pop(
-            'history_container_class', HistoryContainer,
-        )
-        self.history_container = None
-        self.history_specs = {}
-
         # If string is passed in, execute and get reference to
         # functions.
         self.algoscript = kwargs.pop('script', None)
@@ -331,9 +322,6 @@ class TradingAlgorithm(object):
 
     def handle_data(self, data):
         self._most_recent_data = data
-        if self.history_container:
-            self.history_container.update(data, self.datetime)
-
         self._handle_data(self, data)
 
         # Unlike trading controls which remain constant unless placing an
@@ -395,16 +383,8 @@ class TradingAlgorithm(object):
             else:
                 def update_time(date):
                     return date
-            benchmark_return_source = [
-                Event({'dt': update_time(dt),
-                       'returns': ret,
-                       'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
-                       'source_id': 'benchmarks'})
-                for dt, ret in
-                self.trading_environment.benchmark_returns.iteritems()
-                if dt.date() >= sim_params.period_start.date() and
-                dt.date() <= sim_params.period_end.date()
-            ]
+            # FIXME temporary empty benchmark source, it's not being used
+            benchmark_return_source = []
         else:
             benchmark_return_source = self.benchmark_return_source
 
@@ -526,33 +506,12 @@ class TradingAlgorithm(object):
             # of first_open and last_close.
             self.sim_params._update_internal()
 
-        # The sids field of the source is the reference for the universe at
-        # the start of the run
-        self._current_universe = set()
-        for source in self.sources:
-            for sid in source.sids:
-                self._current_universe.add(sid)
-        # Check that all sids from the source are accounted for in
-        # the AssetFinder. This retrieve call will raise an exception if the
-        # sid is not found.
-        for sid in self._current_universe:
-            self.asset_finder.retrieve_asset(sid)
-
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
         self.perf_tracker = None
 
         # create zipline
         self.gen = self._create_generator(self.sim_params)
-
-        # Create history containers
-        if self.history_specs:
-            self.history_container = HistoryContainer(
-                self.history_specs,
-                self.current_universe(),
-                self.sim_params.first_open,
-                self.sim_params.data_frequency,
-            )
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary
@@ -624,10 +583,11 @@ class TradingAlgorithm(object):
             freq = '1m'
 
         bars = mult * days
-        self.add_history(bars, freq, 'price')
-
-        if transform == 'vwap':
-            self.add_history(bars, freq, 'volume')
+        # FIXME
+        # self.add_history(bars, freq, 'price')
+        #
+        # if transform == 'vwap':
+        #     self.add_history(bars, freq, 'volume')
 
     @api_method
     def get_environment(self, field='platform'):
@@ -1101,52 +1061,6 @@ class TradingAlgorithm(object):
         self.blotter.cancel(order_id)
 
     @api_method
-    def add_history(self, bar_count, frequency, field, ffill=True):
-        data_frequency = self.sim_params.data_frequency
-        history_spec = HistorySpec(bar_count, frequency, field, ffill,
-                                   data_frequency=data_frequency)
-        self.history_specs[history_spec.key_str] = history_spec
-        if self.initialized:
-            if self.history_container:
-                self.history_container.ensure_spec(
-                    history_spec, self.datetime, self._most_recent_data,
-                )
-            else:
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.sim_params.first_open,
-                    self.sim_params.data_frequency,
-                )
-
-    def get_history_spec(self, bar_count, frequency, field, ffill):
-        spec_key = HistorySpec.spec_key(bar_count, frequency, field, ffill)
-        if spec_key not in self.history_specs:
-            data_freq = self.sim_params.data_frequency
-            spec = HistorySpec(
-                bar_count,
-                frequency,
-                field,
-                ffill,
-                data_frequency=data_freq,
-            )
-            self.history_specs[spec_key] = spec
-            if not self.history_container:
-                current_universe = self.current_universe()
-
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.datetime,
-                    self.sim_params.data_frequency,
-                    bar_data=self._most_recent_data,
-                )
-            self.history_container.ensure_spec(
-                spec, self.datetime, self._most_recent_data,
-            )
-        return self.history_specs[spec_key]
-
-    @api_method
     def history(self, sids, bar_count, frequency, field, ffill=True):
         if self.data_portal is None:
             raise Exception("no data portal!")
@@ -1302,9 +1216,6 @@ class TradingAlgorithm(object):
             start_date,
             end_date,
         ), end_date
-
-    def current_universe(self):
-        return self._current_universe
 
     @classmethod
     def all_api_methods(cls):

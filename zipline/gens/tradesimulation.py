@@ -264,17 +264,3 @@ class AlgorithmSimulator(object):
             if daily_message:
                 daily_message['daily_perf']['recorded_vars'] = rvars
                 yield daily_message
-
-    def update_universe(self, event):
-        """
-        Update the universe with new event information.
-        """
-        # Update our knowledge of this event's sid
-        # rather than use if event.sid in ..., just trying
-        # and handling the exception is significantly faster
-        try:
-            sid_data = self.current_data[event.sid]
-        except KeyError:
-            sid_data = self.current_data[event.sid] = SIDData(event.sid)
-
-        sid_data.__dict__.update(event.__dict__)

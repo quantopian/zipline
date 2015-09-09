@@ -510,8 +510,6 @@ class BarData(object):
         return self._factor_matrix.loc[today]
 
     def __contains__(self, name):
-        # TODO: for now just return True,
-        # should replace with concept of universe and trade data?
         return True
 
     def has_key(self, name):
