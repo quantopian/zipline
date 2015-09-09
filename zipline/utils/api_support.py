@@ -64,7 +64,7 @@ def require_not_initialized(exception):
 
     Usage
     -----
-    @required_not_initialized(SomeException, "Don't do that!")
+    @require_not_initialized(SomeException, "Don't do that!")
     def method(self):
         # Do stuff that should only be allowed during initialize.
     """
