@@ -105,6 +105,7 @@ class FFCAlgorithmTestCase(TestCase):
     @classmethod
     def tearDownClass(cls):
         del cls.env
+        cls.tempdir.cleanup()
 
     @classmethod
     def create_bar_reader(cls, tempdir):
@@ -150,10 +151,6 @@ class FFCAlgorithmTestCase(TestCase):
         )
         writer.write(splits, mergers, dividends)
         return SQLiteAdjustmentReader(dbpath)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
 
     def make_source(self):
         return Panel(self.raw_data).tz_localize('UTC', axis=1)
