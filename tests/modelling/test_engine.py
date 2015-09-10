@@ -249,10 +249,6 @@ class FrameInputTestCase(TestCase):
         del cls.env
         del cls.asset_finder
 
-    def setUp(self):
-        self.dates = FrameInputTestCase.dates
-        self.assets = FrameInputTestCase.assets
-
     @lazyval
     def base_mask(self):
         return self.make_frame(True)
