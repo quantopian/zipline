@@ -21,7 +21,7 @@ from zipline.pipeline.term import (
     NotSpecified,
     RequiredWindowLengthMixin,
     SingleInputMixin,
-    Term,
+    CompositeTerm,
 )
 from zipline.pipeline.expression import (
     BadBinaryOperator,
@@ -184,7 +184,7 @@ def function_application(func):
     return mathfunc
 
 
-class Factor(Term):
+class Factor(CompositeTerm):
     """
     Pipeline API expression producing numerically-valued outputs.
     """

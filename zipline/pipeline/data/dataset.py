@@ -6,7 +6,7 @@ from six import (
     with_metaclass,
 )
 
-from zipline.pipeline.term import Term
+from zipline.pipeline.term import AtomicTerm
 from zipline.pipeline.factors import Latest
 
 
@@ -25,7 +25,7 @@ class Column(object):
         return BoundColumn(dtype=self.dtype, dataset=dataset, name=name)
 
 
-class BoundColumn(Term):
+class BoundColumn(AtomicTerm):
     """
     A Column of data that's been concretely bound to a particular dataset.
     """
@@ -33,8 +33,6 @@ class BoundColumn(Term):
     def __new__(cls, dtype, dataset, name):
         return super(BoundColumn, cls).__new__(
             cls,
-            inputs=(),
-            window_length=0,
             domain=dataset.domain,
             dtype=dtype,
             dataset=dataset,
