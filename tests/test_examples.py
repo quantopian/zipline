@@ -26,6 +26,8 @@ from nose_parameterized import parameterized
 import os
 from unittest import TestCase
 
+from zipline.utils import parse_args, run_pipeline
+
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
 
@@ -44,3 +46,10 @@ class ExamplesTests(TestCase):
                            glob.glob(os.path.join(example_dir(), '*.py'))))
     def test_example(self, name, example):
         imp.load_source('__main__', os.path.basename(example), open(example))
+
+    # Test algorithm as if scripts/run_algo.py is being used.
+    def test_example_run_pipline(self):
+        example = os.path.join(example_dir(), 'buyapple.py')
+        confs = ['-f', example, '--start', '2011-1-1', '--end', '2012-1-1']
+        parsed_args = parse_args(confs)
+        run_pipeline(**parsed_args)
