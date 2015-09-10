@@ -4,7 +4,7 @@ Tests for zipline.data.ffc.frame.DataFrameFFCLoader
 from unittest import TestCase
 
 from mock import patch
-from numpy import arange
+from numpy import arange, ones
 from numpy.testing import assert_array_equal
 from pandas import (
     DataFrame,
@@ -40,12 +40,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
             periods=self.ndates,
         )
 
-        self.mask = DataFrame(
-            True,
-            index=self.dates,
-            columns=self.sids,
-            dtype=bool,
-        )
+        self.mask = ones((len(self.dates), len(self.sids)), dtype=bool)
 
     def tearDown(self):
         pass
@@ -60,13 +55,17 @@ class DataFrameFFCLoaderTestCase(TestCase):
 
         with self.assertRaises(ValueError):
             # Wrong column.
-            loader.load_adjusted_array([USEquityPricing.open], self.mask)
+            loader.load_adjusted_array(
+                [USEquityPricing.open], self.dates, self.sids, self.mask
+            )
 
         with self.assertRaises(ValueError):
             # Too many columns.
             loader.load_adjusted_array(
                 [USEquityPricing.open, USEquityPricing.close],
-                self.mask
+                self.dates,
+                self.sids,
+                self.mask,
             )
 
     def test_baseline(self):
@@ -81,7 +80,9 @@ class DataFrameFFCLoaderTestCase(TestCase):
         sids_slice = slice(1, 3, None)
         [adj_array] = loader.load_adjusted_array(
             [USEquityPricing.close],
-            self.mask.iloc[dates_slice, sids_slice]
+            self.dates[dates_slice],
+            self.sids[sids_slice],
+            self.mask[dates_slice, sids_slice],
         )
 
         for idx, window in enumerate(adj_array.traverse(window_length=3)):
@@ -203,10 +204,12 @@ class DataFrameFFCLoaderTestCase(TestCase):
         }
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
 
-        mask = self.mask.iloc[dates_slice, sids_slice]
+        mask = self.mask[dates_slice, sids_slice]
         with patch('zipline.data.ffc.frame.adjusted_array') as m:
             loader.load_adjusted_array(
                 columns=[USEquityPricing.close],
+                dates=self.dates[dates_slice],
+                assets=self.sids[sids_slice],
                 mask=mask,
             )
 
@@ -214,5 +217,5 @@ class DataFrameFFCLoaderTestCase(TestCase):
 
         args, kwargs = m.call_args
         assert_array_equal(kwargs['data'], expected_baseline.values)
-        assert_array_equal(kwargs['mask'], mask.values)
+        assert_array_equal(kwargs['mask'], mask)
         self.assertEqual(kwargs['adjustments'], expected_formatted_adjustments)

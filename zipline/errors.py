@@ -344,6 +344,16 @@ class WindowLengthNotSpecified(ZiplineError):
     )
 
 
+class DTypeNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a term without specifying dtype and
+    that term does not have class-level default dtype.
+    """
+    msg = (
+        "{termname} requires a dtype, but no dtype was passed."
+    )
+
+
 class BadPercentileBounds(ZiplineError):
     """
     Raised by API functions accepting percentile bounds when the passed bounds

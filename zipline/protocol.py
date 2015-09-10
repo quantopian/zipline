@@ -504,7 +504,14 @@ class BarData(object):
         if today > self._factor_matrix_expires:
             self._factor_matrix, self._factor_matrix_expires = \
                 algo.compute_factor_matrix(today)
-        return self._factor_matrix.loc[today]
+        try:
+            return self._factor_matrix.loc[today]
+        except KeyError:
+            # This happens if no assets passed our filters on a given day.
+            return pd.DataFrame(
+                index=[],
+                columns=self._factor_matrix.columns,
+            )
 
     def __contains__(self, name):
         if self._contains_override:

@@ -653,7 +653,12 @@ class AssetFinderTestCase(TestCase):
         )
 
         for dates in all_subindices(all_dates):
-            expected_mask = full(
+            expected_with_start_raw = full(
+                shape=(len(dates), num_assets),
+                fill_value=False,
+                dtype=bool,
+            )
+            expected_no_start_raw = full(
                 shape=(len(dates), num_assets),
                 fill_value=False,
                 dtype=bool,
@@ -662,18 +667,28 @@ class AssetFinderTestCase(TestCase):
             for i, date in enumerate(dates):
                 it = frame[['start_date', 'end_date']].itertuples()
                 for j, start, end in it:
+                    # This way of doing the checks is redundant, but very
+                    # clear.
                     if start <= date <= end:
-                        expected_mask[i, j] = True
+                        expected_with_start_raw[i, j] = True
+                        if start < date:
+                            expected_no_start_raw[i, j] = True
 
-            # Filter out columns with all-empty columns.
-            expected_result = pd.DataFrame(
-                data=expected_mask,
+            expected_with_start = pd.DataFrame(
+                data=expected_with_start_raw,
                 index=dates,
                 columns=frame.index.values,
             )
+            result = finder.lifetimes(dates, include_start_date=True)
+            assert_frame_equal(result, expected_with_start)
 
-            actual_result = finder.lifetimes(dates)
-            assert_frame_equal(actual_result, expected_result)
+            expected_no_start = pd.DataFrame(
+                data=expected_no_start_raw,
+                index=dates,
+                columns=frame.index.values,
+            )
+            result = finder.lifetimes(dates, include_start_date=False)
+            assert_frame_equal(result, expected_no_start)
 
     def test_sids(self):
         # Ensure that the sids property of the AssetFinder is functioning

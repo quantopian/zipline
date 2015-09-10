@@ -64,8 +64,12 @@ ext_modules = LazyCythonizingList([
     ('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
     ('zipline.lib.rank', ['zipline/lib/rank.pyx']),
     (
-        'zipline.data.ffc.loaders._us_equity_pricing',
-        ['zipline/data/ffc/loaders/_us_equity_pricing.pyx']
+        'zipline.data.ffc.loaders._equities',
+        ['zipline/data/ffc/loaders/_equities.pyx'],
+    ),
+    (
+        'zipline.data.ffc.loaders._adjustments',
+        ['zipline/data/ffc/loaders/_adjustments.pyx'],
     ),
 ])
 

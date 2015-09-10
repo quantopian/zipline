@@ -1363,13 +1363,24 @@ class TradingAlgorithm(object):
 
     def compute_factor_matrix(self, start_date):
         """
-        Compute a factor matrix starting at start_date.
+        Compute a factor matrix containing at least the data necessary to
+        provide values for `start_date`.
+
+        Loads a factor matrix with data extending from `start_date` until a
+        year from `start_date`, or until the end of the simulation.
         """
         days = self.trading_environment.trading_days
+
+        # Load data starting from the previous trading day...
         start_date_loc = days.get_loc(start_date)
+
+        # ...continuing until either the day before the simulation end, or
+        # until 252 days of data have been loaded.  252 is a totally arbitrary
+        # choice that seemed reasonable based on napkin math.
         sim_end = self.sim_params.last_close.normalize()
         end_loc = min(start_date_loc + 252, days.get_loc(sim_end))
         end_date = days[end_loc]
+
         return self.engine.factor_matrix(
             self._all_terms(),
             start_date,

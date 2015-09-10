@@ -7,6 +7,7 @@ from six import (
 )
 
 from zipline.modelling.term import Term
+from zipline.modelling.factor import Latest
 
 
 class Column(object):
@@ -67,6 +68,10 @@ class BoundColumn(Term):
         Fully qualified of this column.
         """
         return '.'.join([self.dataset.__name__, self.name])
+
+    @property
+    def latest(self):
+        return Latest(inputs=(self,), dtype=self.dtype)
 
     def __repr__(self):
         return "{qualname}::{dtype}".format(

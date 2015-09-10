@@ -48,17 +48,17 @@ class MultiColumnLoader(FFCLoader):
     def __init__(self, loaders):
         self._loaders = loaders
 
-    def load_adjusted_array(self, columns, mask):
+    def load_adjusted_array(self, columns, dates, assets, mask):
         """
         Load by delegating to sub-loaders.
         """
         out = []
-        for column in columns:
+        for col in columns:
             try:
-                loader = self._loaders[column]
+                loader = self._loaders[col]
             except KeyError:
-                raise ValueError("Couldn't find loader for %s" % column)
-            out.extend(loader.load_adjusted_array([column], mask))
+                raise ValueError("Couldn't find loader for %s" % col)
+            out.extend(loader.load_adjusted_array([col], dates, assets, mask))
         return out
 
 

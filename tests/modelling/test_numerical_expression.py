@@ -65,7 +65,9 @@ class NumericalExpressionTestCase(TestCase):
     def check_output(self, expr, expected):
         result = expr._compute(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
-            self.mask,
+            self.mask.index,
+            self.mask.columns,
+            self.mask.values,
         )
         check_arrays(result, expected)
 

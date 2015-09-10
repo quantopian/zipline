@@ -625,7 +625,7 @@ class AssetFinder(object):
             ('end', '<i8'),
         ])
 
-    def lifetimes(self, dates):
+    def lifetimes(self, dates, include_start_date):
         """
         Compute a DataFrame representing asset lifetimes for the specified date
         range.
@@ -634,17 +634,28 @@ class AssetFinder(object):
         ----------
         dates : pd.DatetimeIndex
             The dates for which to compute lifetimes.
+        include_start_date : bool
+            Whether or not to count the asset as alive on its start_date.
+
+            This is useful in a backtesting context where `lifetimes` is being
+            used to signify "do I have data for this asset as of the morning of
+            this date?"  For many financial metrics, (e.g. daily close), data
+            isn't available for an asset until the end of the asset's first
+            day.
 
         Returns
         -------
         lifetimes : pd.DataFrame
             A frame of dtype bool with `dates` as index and an Int64Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
-            be True iff `asset` existed on `data`.
+            be True iff `asset` existed on `date`.  If `include_start_date` is
+            False, then lifetimes.loc[date, asset] will be false when date ==
+            asset.start_date.
 
         See Also
         --------
         numpy.putmask
+        zipline.modelling.engine.SimpleFFCEngine._compute_root_mask
         """
         # This is a less than ideal place to do this, because if someone adds
         # assets to the finder after we've touched lifetimes we won't have
@@ -655,7 +666,12 @@ class AssetFinder(object):
         lifetimes = self._asset_lifetimes
 
         raw_dates = dates.asi8[:, None]
-        mask = (lifetimes.start <= raw_dates) & (raw_dates <= lifetimes.end)
+        if include_start_date:
+            mask = lifetimes.start <= raw_dates
+        else:
+            mask = lifetimes.start < raw_dates
+        mask &= (raw_dates <= lifetimes.end)
+
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
 

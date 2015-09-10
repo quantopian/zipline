@@ -5,13 +5,13 @@ from functools import partial
 from contextlib import contextmanager
 from logbook import Logger, StderrHandler
 from networkx import topological_sort
-from six import iteritems, itervalues
+from six import iteritems
 import subprocess
 
 from zipline.data.dataset import BoundColumn
 from zipline.modelling import Filter, Factor, Classifier, Term
+from zipline.modelling.term import AssetExists
 from zipline.modelling.graph import TermGraph
-
 
 logger = Logger('Visualize')
 
@@ -70,7 +70,7 @@ def roots(g):
     return set(n for n, d in iteritems(g.in_degree()) if d == 0)
 
 
-def write_graph(g, filename, formats=('svg',)):
+def write_graph(g, filename, formats=('svg',), include_asset_exists=False):
     """
     Write the dependency graph of `terms` as a dot graph.
 
@@ -95,6 +95,8 @@ def write_graph(g, filename, formats=('svg',)):
             # Write inputs cluster.
             with cluster(f, 'Input', **cluster_attrs):
                 for term in in_nodes:
+                    if term is AssetExists() and not include_asset_exists:
+                        continue
                     add_term_node(f, term)
 
             # Write intermediate results.
@@ -105,6 +107,8 @@ def write_graph(g, filename, formats=('svg',)):
 
             # Write edges
             for source, dest in g.edges():
+                if source is AssetExists() and not include_asset_exists:
+                    continue
                 add_edge(f, id(source), id(dest))
 
     outs = []
@@ -116,7 +120,7 @@ def write_graph(g, filename, formats=('svg',)):
     return outs
 
 
-def show_graph(g):
+def show_graph(g, include_asset_exists=False):
     """
     Display a TermGraph interactively with IPython
     """
@@ -124,7 +128,12 @@ def show_graph(g):
         from IPython.display import SVG
     except ImportError:
         raise Exception("IPython is not installed.  Can't show term graph.")
-    result = write_graph(g, 'temp', ('svg',))[0]
+    result = write_graph(
+        g,
+        'temp',
+        ('svg',),
+        include_asset_exists=include_asset_exists,
+    )[0]
     return SVG(filename=result)
 
 

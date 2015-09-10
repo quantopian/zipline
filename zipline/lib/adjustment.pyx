@@ -43,8 +43,6 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
         start_date_loc = dates_index.get_loc(start_date, method='bfill')
 
     return (
-        # start_date is allowed to be None, indicating "everything
-        # before the end_date"
         start_date_loc,
         # Location of latest date on or before start_date.
         dates_index.get_loc(end_date, method='ffill'),
@@ -134,6 +132,7 @@ cdef class Float64Adjustment:
             (self.first_row, self.last_row, self.col, self.value) == \
             (other.first_row, other.last_row, other.col, other.value)
         )
+
 
 cdef class Float64Multiply(Float64Adjustment):
     """

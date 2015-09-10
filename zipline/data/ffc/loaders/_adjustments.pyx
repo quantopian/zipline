@@ -204,6 +204,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
     # splits affect prices and volumes, volumes is the inverse
     for sid, ratio, eff_date in splits:
+        if eff_date < start_date:
+            continue
         date_loc = dates.get_loc(
             Timestamp(eff_date, unit='s', tz='UTC'),
             # Get the first date **on or after** the effective date.
@@ -233,6 +235,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
     # mergers affect prices only
     for sid, ratio, eff_date in mergers:
+        if eff_date < start_date:
+            continue
         date_loc = dates.get_loc(
             Timestamp(eff_date, unit='s', tz='UTC'),
             # Get the first date **on or after** the effective date.
@@ -254,6 +258,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
     # dividends affect prices only
     for sid, ratio, eff_date in dividends:
+        if eff_date < start_date:
+            continue
         date_loc = dates.get_loc(
             Timestamp(eff_date, unit='s', tz='UTC'),
             # Get the first date **on or after** the effective date.
@@ -264,7 +270,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        adj = Float64Multiply(0, last_row, asset_ix, ratio)
+        adj = Float64Multiply(0, date_loc, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
