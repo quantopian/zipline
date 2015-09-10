@@ -425,7 +425,12 @@ class TradingAlgorithm(object):
 
         self.data_gen = self._create_data_generator(source_filter, sim_params)
 
-        self.trading_client = AlgorithmSimulator(self, sim_params)
+        # FIXME horrendously ugly
+        fetcher_sources = [source for source in self.sources if
+                           source.namestring == 'PandasRequestsCSV']
+
+        self.trading_client = AlgorithmSimulator(self, sim_params,
+                                                 extra_sources=fetcher_sources)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)

@@ -21,7 +21,8 @@ class DataPortal(object):
                  findata_dir=None,
                  daily_equities_path=None,
                  adjustments_path=None,
-                 asset_finder=None):
+                 asset_finder=None,
+                 extra_sources=None):
         self.current_dt = None
         self.cur_data_offset = 0
 
@@ -83,6 +84,20 @@ class DataPortal(object):
         self.asset_start_dates = {}
         self.asset_end_dates = {}
 
+        self.sources_map = {}
+
+        if extra_sources is not None:
+            self._handle_extra_sources(extra_sources)
+
+    def _handle_extra_sources(self, sources):
+        for source in sources:
+            if source.df is None:
+                continue
+
+            unique_sids = source.df.sid.unique()
+            for identifier in unique_sids:
+                self.sources_map[identifier] = source.df
+
     def _open_daily_file(self):
         if self.daily_equities_data is None:
             self.daily_equities_data = bcolz.open(self.daily_equities_path)
@@ -102,6 +117,17 @@ class DataPortal(object):
         return carray
 
     def get_current_price_data(self, asset, column):
+        if asset in self.sources_map:
+            # get the current date
+            date = tradingcalendar.trading_days[3028 + (self.cur_data_offset / 390)]
+
+            try:
+                return self.sources_map[asset].loc[date].loc["price"]
+            except:
+                z = 5
+
+            return None
+
         asset_int = int(asset)
 
         if column not in self.column_lookup:

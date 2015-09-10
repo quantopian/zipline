@@ -39,7 +39,7 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params):
+    def __init__(self, algo, sim_params, extra_sources=None):
 
         # ==============
         # Simulation
@@ -69,7 +69,8 @@ class AlgorithmSimulator(object):
                 db_path="/Users/jean/repo/findata/findata/assets/2015-08-25/assets.db",
                 fuzzy_char="_",
                 create_table=False
-            )
+            ),
+            extra_sources=extra_sources
         )
 
         self.current_data = BarData(data_portal=self.data_portal)
