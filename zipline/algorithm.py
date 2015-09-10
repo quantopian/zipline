@@ -148,7 +148,7 @@ class TradingAlgorithm(object):
                Whether to fill orders immediately or on next bar.
             asset_finder : An AssetFinder object
                 A new AssetFinder object to be used in this TradingEnvironment
-            asset_metadata: can be either:
+            equities_metadata : can be either:
                             - dict
                             - pandas.DataFrame
                             - object with 'read' property
@@ -166,7 +166,7 @@ class TradingAlgorithm(object):
                 with the other metadata fields.
             identifiers : List
                 Any asset identifiers that are not provided in the
-                asset_metadata, but will be traded by this TradingAlgorithm
+                equities_metadata, but will be traded by this TradingAlgorithm
         """
         self.sources = []
 
@@ -199,8 +199,9 @@ class TradingAlgorithm(object):
 
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment.write_data(
-            equities_data=kwargs.pop('asset_metadata', {}),
+            equities_data=kwargs.pop('equities_metadata', {}),
             equities_identifiers=kwargs.pop('identifiers', []),
+            futures_data=kwargs.pop('futures_metadata', {}),
         )
 
         # set the capital base

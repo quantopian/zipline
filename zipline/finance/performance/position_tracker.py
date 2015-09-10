@@ -405,14 +405,6 @@ class PositionTracker(object):
         state_dict['asset_finder'] = self.asset_finder
         state_dict['positions'] = dict(self.positions)
         state_dict['unpaid_dividends'] = self._unpaid_dividends
-
-        # Asset-finder dependent dicts must be serialized
-        state_dict['position_value_multipliers'] = \
-            serialize_ordered_dict(self._position_value_multipliers)
-        state_dict['position_exposure_multipliers'] = \
-            serialize_ordered_dict(self._position_exposure_multipliers)
-        state_dict['position_payout_multipliers'] = \
-            serialize_ordered_dict(self._position_payout_multipliers)
         state_dict['auto_close_position_sids'] = self._auto_close_position_sids
 
         STATE_VERSION = 3
@@ -433,36 +425,14 @@ class PositionTracker(object):
         self._positions_store = zp.Positions()
 
         self._unpaid_dividends = state['unpaid_dividends']
-
-        # AssetFinder-dependent dicts are de-serialized
-        self._position_value_multipliers = \
-            deserialize_ordered_dict(state['position_value_multipliers'])
-        self._position_exposure_multipliers = \
-            deserialize_ordered_dict(state['position_exposure_multipliers'])
-        self._position_payout_multipliers = \
-            deserialize_ordered_dict(state['position_payout_multipliers'])
         self._auto_close_position_sids = state['auto_close_position_sids']
 
         # Arrays for quick calculations of positions value
         self._position_amounts = OrderedDict()
         self._position_last_sale_prices = OrderedDict()
+        self._position_value_multipliers = OrderedDict()
+        self._position_exposure_multipliers = OrderedDict()
+        self._position_payout_multipliers = OrderedDict()
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
-
-
-def serialize_ordered_dict(ordered_dict):
-    """
-    Converts an OrderedDict in to a list of key/value pair tuples
-    """
-    return [(key, value) for key, value in ordered_dict.items()]
-
-
-def deserialize_ordered_dict(serialized_ordered_dict):
-    """
-    Converts a list of key/value pair tuples in to an OrderedDict
-    """
-    result = OrderedDict()
-    for key, value in serialized_ordered_dict:
-        result[key] = value
-    return result

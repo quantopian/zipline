@@ -514,6 +514,10 @@ class TestDividendPerformance(unittest.TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1, 2])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
@@ -966,6 +970,10 @@ class TestPositionPerformance(unittest.TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1, 2])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         self.sim_params, self.dt, self.end_dt = \
@@ -1738,6 +1746,10 @@ class TestPerformanceTracker(unittest.TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1, 2, 133, 134])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     NumDaysToDelete = collections.namedtuple(
         'NumDaysToDelete', ('start', 'middle', 'end'))
 
@@ -2156,6 +2168,10 @@ class TestPositionTracker(unittest.TestCase):
                                 'contract_multiplier': 1000}}
         cls.env.write_data(equities_data=equities_metadata,
                            futures_data=futures_metadata)
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def test_empty_positions(self):
         """

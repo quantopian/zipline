@@ -63,6 +63,10 @@ class FinanceTestCase(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1, 133])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         self.zipline_test_config = {
             'sid': 133,
@@ -371,6 +375,10 @@ class TradingEnvironmentTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     @timed(DEFAULT_TIMEOUT)
     def test_is_trading_day(self):

@@ -103,6 +103,10 @@ class FFCAlgorithmTestCase(TestCase):
         cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
 
     @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
+    @classmethod
     def create_bar_reader(cls, tempdir):
         resources = {
             cls.AAPL: join(TEST_RESOURCE_PATH, 'AAPL.csv'),

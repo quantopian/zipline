@@ -41,6 +41,10 @@ class SerializationTestCase(TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     @parameterized.expand(object_serialization_cases())
     def test_object_serialization(self,
                                   _,

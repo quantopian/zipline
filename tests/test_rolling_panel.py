@@ -32,6 +32,10 @@ class TestRollingPanel(unittest.TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def test_alignment(self):
         items = ('a', 'b')
         sids = (1, 2)

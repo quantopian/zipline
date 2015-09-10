@@ -40,6 +40,10 @@ class BlotterTestCase(TestCase):
         cls.env = trading.TradingEnvironment()
         cls.env.write_data(equities_identifiers=[24])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self, env=None):
         setup_logger(self)
 

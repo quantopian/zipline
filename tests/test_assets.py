@@ -721,6 +721,10 @@ class TestFutureChain(TestCase):
         env.write_data(futures_data=metadata)
         cls.asset_finder = env.asset_finder
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.asset_finder
+
     def test_len(self):
         """ Test the __len__ method of FutureChain.
         """

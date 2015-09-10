@@ -112,6 +112,10 @@ class TestRecordAlgorithm(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[133])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4,
                                                                env=self.env)
@@ -192,6 +196,10 @@ class TestMiscellaneousAPI(TestCase):
         cls.env.write_data(equities_identifiers=cls.sids,
                            equities_data=metadata,
                            futures_data=futures_metadata)
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         setup_logger(self)
@@ -516,6 +524,10 @@ class TestTransformAlgorithm(TestCase):
         cls.env.write_data(equities_identifiers=[0, 1, 133],
                            futures_data=futures_metadata)
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         setup_logger(self)
         self.sim_params = factory.create_simulation_parameters(num_days=4,
@@ -756,6 +768,10 @@ class TestAlgoScript(TestCase):
             equities_identifiers=[0, 1, 133]
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         days = 251
         # Note that create_simulation_parameters creates
@@ -813,7 +829,7 @@ class TestAlgoScript(TestCase):
         metadata = {3: {'symbol': 'TEST',
                         'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                asset_metadata=metadata,
+                                equities_metadata=metadata,
                                 platform=platform)
         algo.run(self.df)
         self.assertEqual(algo.environment, platform)
@@ -823,7 +839,7 @@ class TestAlgoScript(TestCase):
         metadata = {3: {'symbol': 'TEST',
                         'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_symbol_algo,
-                                asset_metadata=metadata)
+                                equities_metadata=metadata)
         algo.run(self.df)
 
     def test_fixed_slippage(self):
@@ -1093,6 +1109,10 @@ class TestHistory(TestCase):
         )
         cls.env.write_data(equities_identifiers=[0, 1])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     @property
     def source(self):
         return RandomWalkSource(start=self._start, end=self._end)
@@ -1153,6 +1173,10 @@ class TestGetDatetime(TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         setup_logger(self)
@@ -1217,6 +1241,10 @@ class TestTradingControls(TestCase):
         cls.sid = 133
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[cls.sid])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(num_days=4,
@@ -1513,7 +1541,7 @@ class TestTradingControls(TestCase):
         metadata = {0: {'start_date': '1990-01-01',
                         'end_date': '2020-01-01'}}
         algo = SetAssetDateBoundsAlgorithm(
-            asset_metadata=metadata,
+            equities_metadata=metadata,
             sim_params=self.sim_params,
             env=temp_env,
         )
@@ -1525,7 +1553,7 @@ class TestTradingControls(TestCase):
         metadata = {0: {'start_date': '1989-01-01',
                         'end_date': '1990-01-01'}}
         algo = SetAssetDateBoundsAlgorithm(
-            asset_metadata=metadata,
+            equities_metadata=metadata,
             sim_params=self.sim_params,
             env=temp_env,
         )
@@ -1538,7 +1566,7 @@ class TestTradingControls(TestCase):
         metadata = {0: {'start_date': '2020-01-01',
                         'end_date': '2021-01-01'}}
         algo = SetAssetDateBoundsAlgorithm(
-            asset_metadata=metadata,
+            equities_metadata=metadata,
             sim_params=self.sim_params,
             env=temp_env,
         )
@@ -1555,6 +1583,10 @@ class TestAccountControls(TestCase):
         cls.env.write_data(
             equities_identifiers=[cls.sidint]
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         self.sim_params = factory.create_simulation_parameters(

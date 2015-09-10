@@ -244,6 +244,11 @@ class FrameInputTestCase(TestCase):
         cls.env.write_data(equities_df=asset_info)
         cls.asset_finder = cls.env.asset_finder
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+        del cls.asset_finder
+
     def setUp(self):
         self.dates = FrameInputTestCase.dates
         self.assets = FrameInputTestCase.assets
@@ -375,6 +380,7 @@ class SyntheticBcolzTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.env
         cls.temp_dir.cleanup()
 
     def test_SMA(self):

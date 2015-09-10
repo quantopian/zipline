@@ -65,6 +65,10 @@ class SecurityListTestCase(TestCase):
         cls.env.write_data(equities_identifiers=['AAPL', 'GOOG', 'BZQ',
                                                  'URTY', 'JFT'])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self, env=None):
 
         self.extra_knowledge_date = \

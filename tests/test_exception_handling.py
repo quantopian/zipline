@@ -45,6 +45,10 @@ class ExceptionTestCase(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[133])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         self.zipline_test_config = {
             'sid': 133,

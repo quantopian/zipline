@@ -37,6 +37,10 @@ class TestRisk(unittest.TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
 
         start_date = datetime.datetime(

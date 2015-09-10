@@ -37,6 +37,10 @@ class TestTALIB(TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         setup_logger(self)
         sim_params = factory.create_simulation_parameters(

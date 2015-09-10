@@ -217,6 +217,10 @@ class RuleTestCase(TestCase):
         cls.env = TradingEnvironment()
         cls.class_ = None  # Mark that this is the base class.
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def test_completeness(self):
         """
         Tests that all rules are being tested.

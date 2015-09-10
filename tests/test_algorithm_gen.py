@@ -91,6 +91,10 @@ class AlgorithmGeneratorTestCase(TestCase):
         cls.env = trading.TradingEnvironment()
         cls.env.write_data(equities_identifiers=[8229])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         setup_logger(self)
 

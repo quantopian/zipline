@@ -139,6 +139,10 @@ class TestBatchTransformMinutely(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def setUp(self):
         setup_logger(self)
         start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
@@ -183,6 +187,10 @@ class TestBatchTransform(TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         setup_logger(self)

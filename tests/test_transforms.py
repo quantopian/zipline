@@ -144,6 +144,10 @@ class TransformTestCase(TestCase):
             )),
         }
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def tearDown(self):
         """
         Each test consumes a source, we need to rewind it.

@@ -47,6 +47,10 @@ class TestEventsThroughRisk(unittest.TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[1])
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
     def test_daily_buy_and_hold(self):
 
         start_date = datetime.datetime(

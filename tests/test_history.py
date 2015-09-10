@@ -150,6 +150,10 @@ class TestHistoryIndex(TestCase):
     def setUpClass(cls):
         cls.environment = TradingEnvironment()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.environment
+
     @parameterized.expand(
         [(name, case['input'], case['expected'])
          for name, case in INDEX_TEST_CASES.items()]
@@ -168,6 +172,10 @@ class TestHistoryContainer(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def bar_data_dt(self, bar_data, require_unique=True):
         """
@@ -414,6 +422,10 @@ class TestHistoryAlgo(TestCase):
     def setUpClass(cls):
         cls.env = trading.TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     def setUp(self):
         np.random.seed(123)
@@ -1118,6 +1130,10 @@ class TestHistoryContainerResize(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
 
     @parameterized.expand(
         (freq, field, data_frequency, construct_digest)
