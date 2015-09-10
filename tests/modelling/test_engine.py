@@ -18,6 +18,7 @@ from pandas import (
     MultiIndex,
     rolling_mean,
     Series,
+    Timedelta,
     Timestamp,
 )
 from pandas.util.testing import assert_frame_equal
@@ -90,7 +91,8 @@ class ConstantInputTestCase(TestCase):
         self.asset_info = make_simple_asset_info(
             self.assets,
             start_date=self.dates[0],
-            end_date=self.dates[-1],
+            # Ensure that assets exist through the entire period.
+            end_date=self.dates[-1] + Timedelta('1 day'),
         )
         environment = TradingEnvironment()
         environment.write_data(equities_df=self.asset_info)
@@ -239,7 +241,8 @@ class FrameInputTestCase(TestCase):
         asset_info = make_simple_asset_info(
             cls.assets,
             start_date=cls.dates[0],
-            end_date=cls.dates[-1],
+            # Ensure assets life all the way through the period.
+            end_date=cls.dates[-1] + day,
         )
         cls.env.write_data(equities_df=asset_info)
         cls.asset_finder = cls.env.asset_finder
@@ -349,7 +352,7 @@ class SyntheticBcolzTestCase(TestCase):
         cls.all_assets = cls.asset_info.index
         cls.all_dates = date_range(
             start=cls.first_asset_start,
-            end=cls.asset_info['end_date'].max(),
+            end=cls.asset_info['end_date'].max() - cls.trading_day,
             freq=cls.trading_day,
         )
 
@@ -379,6 +382,24 @@ class SyntheticBcolzTestCase(TestCase):
         del cls.env
         cls.temp_dir.cleanup()
 
+    def write_nans_to_asset_end_dates(self, dates, sids, values):
+        """
+        Write nans to the location in `values` corresponding to the end date of
+        each asset.
+
+        This is used to simulate the fact that SimpleFFCEngine ignores assets
+        on their last day, because they won't be tradeable on the subsequent
+        day.
+        """
+        self.assertEqual((len(dates), len(sids)), values.shape)
+        assets = self.finder.retrieve_all(sids)
+        last_date = dates[-1]
+        for column, asset in enumerate(assets):
+            end_date = asset.end_date
+            if end_date > last_date:
+                continue
+            values[dates.get_loc(asset.end_date), column] = nan
+
     def test_SMA(self):
         engine = SimpleFFCEngine(
             self.ffc_loader,
@@ -397,7 +418,9 @@ class SyntheticBcolzTestCase(TestCase):
             dates[window_length],
             dates[-1],
         )
+
         raw_closes = self.writer.expected_values_2d(dates, assets, 'close')
+        self.write_nans_to_asset_end_dates(dates, assets, raw_closes)
         expected_sma_result = rolling_mean(
             raw_closes,
             window_length,
@@ -445,6 +468,7 @@ class SyntheticBcolzTestCase(TestCase):
         # We expect NaNs when the asset was undefined, otherwise 0 everywhere,
         # since the input is always increasing.
         expected = self.writer.expected_values_2d(dates, assets, 'close')
+        self.write_nans_to_asset_end_dates(dates, assets, expected)
         expected[~isnan(expected)] = 0
         expected = expected[window_length:]
 
@@ -461,7 +485,7 @@ class SyntheticBcolzTestCase(TestCase):
 class MultiColumnLoaderTestCase(TestCase):
     def setUp(self):
         self.assets = [1, 2, 3]
-        self.dates = date_range('2014-01-01', '2014-02-01', freq='D', tz='UTC')
+        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
 
         asset_info = make_simple_asset_info(
             self.assets,
@@ -474,6 +498,11 @@ class MultiColumnLoaderTestCase(TestCase):
 
     def test_engine_with_multicolumn_loader(self):
         open_, close = USEquityPricing.open, USEquityPricing.close
+
+        # Test for thirty days up to the second to last day that we think all
+        # the assets existed.  If we test the last day of our calendar, no
+        # assets will be in our output, because their end dates are all
+        dates_to_test = self.dates[-32:-2]
 
         loader = MultiColumnLoader({
             open_: ConstantLoader(dates=self.dates,
@@ -489,12 +518,14 @@ class MultiColumnLoaderTestCase(TestCase):
         factor = RollingSumDifference()
 
         result = engine.factor_matrix({'f': factor},
-                                      self.dates[2],
-                                      self.dates[-1])
+                                      dates_to_test[0],
+                                      dates_to_test[-1])
         self.assertIsNotNone(result)
         self.assertEqual({'f'}, set(result.columns))
 
-        # (close - open) * window = (1 - 2) * 3 = -3
-        # skipped 2 from the start, so that the window is full
-        check_arrays(result['f'],
-                     Series([-3] * len(self.assets) * (len(self.dates) - 2)))
+        result_index = self.assets * len(dates_to_test)
+        result_shape = (len(result_index),)
+        check_arrays(
+            result['f'],
+            Series(index=result_index, data=full(result_shape, -3)),
+        )

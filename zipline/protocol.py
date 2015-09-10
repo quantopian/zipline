@@ -501,10 +501,19 @@ class BarData(object):
     def factors(self):
         algo = get_algo_instance()
         today = normalize_date(algo.get_datetime())
-        if today > self._factor_matrix_expires:
+        prev_day = algo.trading_environment.previous_trading_day(today)
+
+        if prev_day > self._factor_matrix_expires:
             self._factor_matrix, self._factor_matrix_expires = \
-                algo.compute_factor_matrix(today)
-        return self._factor_matrix.loc[today]
+                algo.compute_factor_matrix(prev_day)
+        try:
+            return self._factor_matrix.loc[prev_day]
+        except KeyError:
+            # This happens if no assets passed our filters on a given day.
+            return pd.DataFrame(
+                index=[],
+                columns=self._factor_matrix.columns,
+            )
 
     def __contains__(self, name):
         if self._contains_override:

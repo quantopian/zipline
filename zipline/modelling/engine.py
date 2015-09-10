@@ -31,7 +31,17 @@ from zipline.errors import NoFurtherDataError
 from zipline.modelling.classifier import Classifier
 from zipline.modelling.factor import Factor
 from zipline.modelling.filter import Filter
+from zipline.modelling.term import AssetExists
 from zipline.modelling.graph import TermGraph
+
+
+def explode(df):
+    """
+    Take a DataFrame and return a triple of
+
+    (df.index, df.columns, df.values)
+    """
+    return df.index, df.columns, df.values
 
 
 class FFCEngine(with_metaclass(ABCMeta)):
@@ -48,17 +58,18 @@ class FFCEngine(with_metaclass(ABCMeta)):
 
         Parameters
         ----------
-        terms : dict
-            Map from str -> zipline.modelling.term.Term.
-        start_date : datetime
-            The first date of the matrix.
-        end_date : datetime
-            The last date of the matrix.
+        terms : dict[str -> zipline.modelling.term.Term]
+            Dict mapping term names to instances.  The supplied names are used
+            as column names in our output frame.
+        start_date : pd.Timestamp
+            Start date of the computed matrix.
+        end_date : pd.Timestamp
+            End date of the computed matrix.
 
         Returns
         -------
         matrix : pd.DataFrame
-            A matrix of factors
+            A matrix of computed results.
         """
         raise NotImplementedError("factor_matrix")
 
@@ -96,6 +107,7 @@ class SimpleFFCEngine(object):
         '_loader',
         '_calendar',
         '_finder',
+        '_root_mask_term',
         '__weakref__',
     ]
 
@@ -103,6 +115,7 @@ class SimpleFFCEngine(object):
         self._loader = loader
         self._calendar = calendar
         self._finder = asset_finder
+        self._root_mask_term = AssetExists()
 
     def factor_matrix(self, terms, start_date, end_date):
         """
@@ -143,7 +156,7 @@ class SimpleFFCEngine(object):
         5. Stick the values computed in (4) into a DataFrame and return it.
 
         Step 0 is performed by `zipline.modelling.graph.TermGraph`.
-        Step 1 is performed in `self.build_lifetimes_matrix`.
+        Step 1 is performed in `self._compute_root_mask`.
         Step 2 is performed in `self.compute_chunk`.
         Steps 3, 4, and 5 are performed in self._format_factor_matrix.
 
@@ -158,20 +171,15 @@ class SimpleFFCEngine(object):
             )
 
         graph = TermGraph(terms)
-        max_extra_rows = graph.max_extra_rows
+        extra_rows = graph.extra_rows[self._root_mask_term]
+        root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
 
-        lifetimes = self.build_lifetimes_matrix(
-            start_date,
-            end_date,
-            max_extra_rows,
+        raw_outputs = self.compute_chunk(
+            graph,
+            initial_workspace={self._root_mask_term: root_mask},
         )
-        raw_outputs = self.compute_chunk(graph, lifetimes, {})
 
-        lifetimes_between_dates = lifetimes[max_extra_rows:]
-        dates = lifetimes_between_dates.index.values
-        assets = lifetimes_between_dates.columns.values
-
-        # We only need filters and factors to compute the final output matrix.
+        # Collect the results that we'll actually show to the user.
         filters, factors = {}, {}
         for name, term in iteritems(terms):
             if isinstance(term, Filter):
@@ -183,12 +191,10 @@ class SimpleFFCEngine(object):
             else:
                 raise ValueError("Unknown term type: %s" % term)
 
-        # Treat base_mask as an implicit filter.
-        # TODO: Is there a clean way to make this actually just be a filter?
-        filters['base'] = lifetimes_between_dates.values
+        dates, assets, filters['base'] = explode(root_mask.iloc[extra_rows:])
         return self._format_factor_matrix(dates, assets, filters, factors)
 
-    def build_lifetimes_matrix(self, start_date, end_date, extra_rows):
+    def _compute_root_mask(self, start_date, end_date, extra_rows):
         """
         Compute a lifetimes matrix from our AssetFinder, then drop columns that
         didn't exist at all during the query dates.
@@ -200,9 +206,9 @@ class SimpleFFCEngine(object):
         end_date : pd.Timestamp
             End date for the matrix.
         extra_rows : int
-            Number of rows prior to `start_date` to include.
+            Number of extra rows to compute before `start_date`.
             Extra rows are needed by terms like moving averages that require a
-            trailing window of data to compute.
+            trailing window of data.
 
         Returns
         -------
@@ -229,7 +235,8 @@ class SimpleFFCEngine(object):
         # Build lifetimes matrix reaching back to `extra_rows` days before
         # `start_date.`
         lifetimes = finder.lifetimes(
-            calendar[start_idx - extra_rows:end_idx]
+            calendar[start_idx - extra_rows:end_idx],
+            include_last_date=False,
         )
         assert lifetimes.index[extra_rows] == start_date
         assert lifetimes.index[-1] == end_date
@@ -243,36 +250,48 @@ class SimpleFFCEngine(object):
         existed = lifetimes.iloc[extra_rows:].any()
         return lifetimes.loc[:, existed]
 
-    def _inputs_for_term(self, term, workspace, extra_rows):
+    def _mask_for_term(self, term, workspace, graph):
+        """
+        Load the mask for `term`.
+        """
+        mask = term.mask
+        offset = graph.extra_rows[mask] - graph.extra_rows[term]
+        return workspace[mask].iloc[offset:]
+
+    def _inputs_for_term(self, term, workspace, graph):
         """
         Compute inputs for the given term.
 
-        This is mostly complicated by the fact that for each input we store
-        as many rows as will be necessary to serve any term requiring that
-        input.  Thus if Factor A needs 5 extra rows of price, and Factor B
-        needs 3 extra rows of price, we need to remove 2 leading rows from our
-        stored prices before passing them to Factor B.
+        This is mostly complicated by the fact that for each input we store as
+        many rows as will be necessary to serve **any** computation requiring
+        that input.
         """
-        term_extra_rows = term.extra_input_rows
+        offsets = graph.offset
         if term.windowed:
+            # If term is windowed, then all input data should be instances of
+            # AdjustedArray.
             return [
                 workspace[input_].traverse(
-                    term.window_length,
-                    offset=extra_rows[input_] - term_extra_rows
-                )
-                for input_ in term.inputs
-            ]
-        else:
-            return [
-                ensure_ndarray(
-                    workspace[input_][
-                        extra_rows[input_] - term_extra_rows:
-                    ],
+                    window_length=term.window_length,
+                    offset=offsets[term, input_]
                 )
                 for input_ in term.inputs
             ]
 
-    def compute_chunk(self, graph, base_mask, initial_workspace):
+        # If term is not windowed, input_data may be an AdjustedArray or
+        # np.ndarray.  Coerce the former to the latter.
+        out = []
+        for input_ in term.inputs:
+            input_data = ensure_ndarray(workspace[input_])
+            offset = offsets[term, input_]
+            # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
+            # offset is zero.
+            if offset:
+                input_data = input_data[offset:]
+            out.append(input_data)
+        return out
+
+    def compute_chunk(self, graph, initial_workspace):
         """
         Compute the FFC terms in the graph for the requested start and end
         dates.
@@ -280,6 +299,8 @@ class SimpleFFCEngine(object):
         Parameters
         ----------
         graph : zipline.modelling.graph.TermGraph
+        initial_workspace : dict
+            Map from term -> output.
 
         Returns
         -------
@@ -287,46 +308,38 @@ class SimpleFFCEngine(object):
             Dictionary mapping requested results to outputs.
         """
         loader = self._loader
-
-        extra_rows = graph.extra_rows
-        max_extra_rows = graph.max_extra_rows
-
-        workspace = {}
-        if initial_workspace is not None:
-            workspace.update(initial_workspace)
+        # Copy the supplied initial workspace so we don't mutate it in place.
+        workspace = initial_workspace.copy()
 
         for term in graph.ordered():
-            # Subclasses are allowed to pre-populate computed values for terms,
-            # and in the future we may pre-compute atomic terms coming from the
-            # same dataset.  In both cases, it's possible that we already have
-            # an entry for this term.
+            # `term` may have been supplied in `initial_workspace`, and in the
+            # future we may pre-compute atomic terms coming from the same
+            # dataset.  In either case, we will already have an entry for this
+            # term, which we shouldn't re-compute.
             if term in workspace:
                 continue
 
-            base_mask_for_term = base_mask.iloc[
-                max_extra_rows - extra_rows[term]:
-            ]
+            mask = self._mask_for_term(term, workspace, graph)
             if term.atomic:
                 # FUTURE OPTIMIZATION: Scan the resolution order for terms in
                 # the same dataset and load them here as well.
                 to_load = [term]
-                loaded = loader.load_adjusted_array(
-                    to_load,
-                    base_mask_for_term,
-                )
+                loaded = loader.load_adjusted_array(to_load, mask)
+                assert len(to_load) == len(loaded)
                 for loaded_term, adj_array in zip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array
             else:
                 workspace[term] = term._compute(
-                    self._inputs_for_term(term, workspace, extra_rows),
-                    base_mask_for_term,
+                    self._inputs_for_term(term, workspace, graph),
+                    mask,
                 )
-                assert(workspace[term].shape == base_mask_for_term.shape)
+                assert(workspace[term].shape == mask.shape)
 
         out = {}
+        graph_extra_rows = graph.extra_rows
         for name, term in iteritems(graph.outputs):
             # Truncate off extra rows from outputs.
-            out[name] = workspace[term][extra_rows[term]:]
+            out[name] = workspace[term][graph_extra_rows[term]:]
         return out
 
     def _format_factor_matrix(self, dates, assets, filters, factors):

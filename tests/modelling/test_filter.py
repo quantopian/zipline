@@ -83,7 +83,7 @@ class FilterTestCase(BaseFFCTestCase):
 
     def test_top(self):
         counts = 2, 3, 10
-        data = self.randn_data(seed=5)  # Arbitrary seed choice.
+        data = self.randn_data(seed=5)  # Fix a seed for determinism.
         results = self.run_terms(
             terms={'top_' + str(c): self.f.top(c) for c in counts},
             initial_workspace={self.f: data},

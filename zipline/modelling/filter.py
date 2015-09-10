@@ -85,7 +85,6 @@ class Filter(Term):
     """
     A boolean predicate on a universe of Assets.
     """
-    domain = None
     dtype = bool_
 
     clsdict = locals()
@@ -148,10 +147,11 @@ class PercentileFilter(SingleInputMixin, Filter):
     """
     window_length = 0
 
-    def __new__(cls, factor, min_percentile, max_percentile):
+    def __new__(cls, factor, min_percentile, max_percentile, mask):
         return super(PercentileFilter, cls).__new__(
             cls,
             inputs=(factor,),
+            mask=mask,
             min_percentile=min_percentile,
             max_percentile=max_percentile,
         )

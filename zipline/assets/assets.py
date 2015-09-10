@@ -632,7 +632,7 @@ class AssetFinder(object):
             ('end', '<i8'),
         ])
 
-    def lifetimes(self, dates):
+    def lifetimes(self, dates, include_last_date):
         """
         Compute a DataFrame representing asset lifetimes for the specified date
         range.
@@ -641,17 +641,32 @@ class AssetFinder(object):
         ----------
         dates : pd.DatetimeIndex
             The dates for which to compute lifetimes.
+        include_last_date : bool
+            Whether or not to count the last day of an asset's lifetime as
+            being alive.
 
         Returns
         -------
         lifetimes : pd.DataFrame
             A frame of dtype bool with `dates` as index and an Int64Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
-            be True iff `asset` existed on `data`.
+            be True iff `asset` existed on `date`.  If `include_last_date` is
+            False, then we lifetimes.loc[date, asset] will be False on the
+            end_date of the asset.
+
+        Notes
+        -----
+        We pass include_last_date=False in SimpleFFCEngine when computing the
+        base mask for Modeling API computations.  We don't want to include the
+        last date of an asset's lifetime in a Modeling context because the mask
+        computed on Day N determines the eligible universe for Day **N + 1**.
+        If an asset stops existing on Day N, then it won't be tradable by the
+        time Day N + 1 rolls around, so we don't want to include it.
 
         See Also
         --------
         numpy.putmask
+        zipline.modelling.engine.SimpleFFCEngine._compute_root_mask
         """
         # This is a less than ideal place to do this, because if someone adds
         # assets to the finder after we've touched lifetimes we won't have
@@ -662,7 +677,13 @@ class AssetFinder(object):
         lifetimes = self._asset_lifetimes
 
         raw_dates = dates.asi8[:, None]
-        mask = (lifetimes.start <= raw_dates) & (raw_dates <= lifetimes.end)
+
+        mask = (lifetimes.start <= raw_dates)
+        if include_last_date:
+            mask &= (raw_dates <= lifetimes.end)
+        else:
+            mask &= (raw_dates < lifetimes.end)
+
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
 

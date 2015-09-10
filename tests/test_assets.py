@@ -649,27 +649,39 @@ class AssetFinderTestCase(TestCase):
         )
 
         for dates in all_subindices(all_dates):
-            expected_mask = full(
+            with_last_date = full(
                 shape=(len(dates), num_assets),
                 fill_value=False,
                 dtype=bool,
             )
+            without_last_date = with_last_date.copy()
 
             for i, date in enumerate(dates):
                 it = frame[['start_date', 'end_date']].itertuples()
                 for j, start, end in it:
+                    # This way of doing the checks is redundant, but very
+                    # clear.
                     if start <= date <= end:
-                        expected_mask[i, j] = True
+                        with_last_date[i, j] = True
+                    if start <= date < end:
+                        without_last_date[i, j] = True
 
-            # Filter out columns with all-empty columns.
-            expected_result = pd.DataFrame(
-                data=expected_mask,
+            expected_with_last_date = pd.DataFrame(
+                data=with_last_date,
                 index=dates,
                 columns=frame.index.values,
             )
 
-            actual_result = finder.lifetimes(dates)
-            assert_frame_equal(actual_result, expected_result)
+            result = finder.lifetimes(dates, include_last_date=True)
+            assert_frame_equal(result, expected_with_last_date)
+
+            expected_without_last_date = pd.DataFrame(
+                data=without_last_date,
+                index=dates,
+                columns=frame.sid.values,
+            )
+            result = finder.lifetimes(dates, include_last_date=False)
+            assert_frame_equal(result, expected_without_last_date)
 
     def test_sids(self):
         # Ensure that the sids property of the AssetFinder is functioning
