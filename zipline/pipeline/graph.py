@@ -104,11 +104,12 @@ class TermGraph(DiGraph):
         """
         out = {}
         for term in self:
-            extra_input_rows = term.extra_input_rows
-            for input_ in term.inputs:
-                out[term, input_] = self.extra_rows[input_] - extra_input_rows
-            mask = term.mask
-            if term.mask is not None:
+            if not term.atomic:
+                extra_input_rows = term.extra_input_rows
+                for input_ in term.inputs:
+                    out[term, input_] = (self.extra_rows[input_]
+                                         - extra_input_rows)
+                mask = term.mask
                 out[term, mask] = self.extra_rows[mask] - extra_input_rows
         return out
 
@@ -168,6 +169,10 @@ class TermGraph(DiGraph):
         """
         return iter(self._ordered)
 
+    @lazyval
+    def atomic_terms(self):
+        return tuple(term for term in self if term.atomic)
+
     def _add_to_graph(self, term, parents, extra_rows):
         """
         Add `term` and all its inputs to the graph.
@@ -187,21 +192,23 @@ class TermGraph(DiGraph):
         # Make sure we're going to compute at least `extra_rows` of `term`.
         self._ensure_extra_rows(term, extra_rows)
 
-        # Number of extra rows we need to compute for this term's dependencies.
-        dependency_extra_rows = extra_rows + term.extra_input_rows
+        if not term.atomic:
+            # Number of extra rows we need to compute for this term's
+            # dependencies.
+            dependency_extra_rows = extra_rows + term.extra_input_rows
 
-        # Recursively add dependencies.
-        for dependency in term.inputs:
-            self._add_to_graph(
-                dependency,
-                parents,
-                extra_rows=dependency_extra_rows,
-            )
-            self.add_edge(dependency, term)
+            # Recursively add dependencies.
+            for dependency in term.inputs:
+                self._add_to_graph(
+                    dependency,
+                    parents,
+                    extra_rows=dependency_extra_rows,
+                )
+                self.add_edge(dependency, term)
 
-        # Add term's mask, which is really just a specially-enumerated input.
-        mask = term.mask
-        if mask is not None:
+            # Add term's mask, which is really just a specially-enumerated
+            # input.
+            mask = term.mask
             self._add_to_graph(mask, parents, extra_rows=dependency_extra_rows)
             self.add_edge(mask, term)
 
