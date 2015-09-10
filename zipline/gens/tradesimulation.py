@@ -37,7 +37,7 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params, extra_sources=None):
+    def __init__(self, algo, sim_params):
 
         # ==============
         # Simulation
@@ -59,7 +59,7 @@ class AlgorithmSimulator(object):
         # We want an object that will have empty objects as default
         # values on missing keys.
         self.data_portal = DataPortal(
-            self.algo,
+            benchmark_iter=iter(self.algo.benchmark_iter),
             findata_dir="/Users/jean/repo/findata/by_sid",
             daily_equities_path="/Users/jean/repo/findata/findata/equity.dailies/2015-08-25/equity_daily_bars.bcolz",
             adjustments_path="/Users/jean/repo/findata/findata/adjustments/2015-08-25/adjustments.db",
@@ -69,7 +69,7 @@ class AlgorithmSimulator(object):
                 create_table=False
             ),
             extra_sources=[
-                source for source in algo.sources if
+                source for source in self.algo.sources if
                 isinstance(source, PandasRequestsCSV)
             ]
         )

@@ -17,7 +17,7 @@ FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
 
 class DataPortal(object):
     def __init__(self,
-                 algo,  # FIXME hack
+                 benchmark_iter=None, # FIXME hack
                  findata_dir=None,
                  daily_equities_path=None,
                  adjustments_path=None,
@@ -27,7 +27,6 @@ class DataPortal(object):
         self.cur_data_offset = 0
 
         self.views = {}
-        self.algo = algo
 
         if findata_dir is None:
             raise ValueError("Must provide findata dir!")
@@ -56,9 +55,7 @@ class DataPortal(object):
             'dt': {},
         }
 
-        # FIXME hack
-        if self.algo is not None:
-            self.benchmark_iter = iter(self.algo.benchmark_iter)
+        self.benchmark_iter = benchmark_iter
 
         self.column_lookup = {
             'open_price': 'open',
