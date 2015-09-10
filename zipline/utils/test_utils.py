@@ -284,8 +284,8 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
     Parameters
     ----------
     assets : array-like
-    start_date : pd.DatetimeIndex
-    end_date : pd.DatetimeIndex
+    start_date : pd.Timestamp
+    end_date : pd.Timestamp
     symbols : list, optional
         Symbols to use for the assets.
         If not provided, symbols are generated from upper-case letters.
