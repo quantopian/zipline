@@ -88,10 +88,10 @@ from zipline.utils.events import (
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import tolerant_equals
-from zipline.utils import tradingcalendar
 
 import zipline.protocol
 from zipline.protocol import Event
+from zipline.sources.requests_csv import PandasRequestsCSV
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -210,6 +210,8 @@ class TradingAlgorithm(object):
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
         self.init_engine(kwargs.pop('ffc_loader', None))
+
+        self.fetcher_symbols = set()
 
         # Maps from name to Term
         self._filters = {}
@@ -425,12 +427,7 @@ class TradingAlgorithm(object):
 
         self.data_gen = self._create_data_generator(source_filter, sim_params)
 
-        # FIXME horrendously ugly
-        fetcher_sources = [source for source in self.sources if
-                           source.namestring == 'PandasRequestsCSV']
-
-        self.trading_client = AlgorithmSimulator(self, sim_params,
-                                                 extra_sources=fetcher_sources)
+        self.trading_client = AlgorithmSimulator(self, sim_params)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
@@ -616,6 +613,46 @@ class TradingAlgorithm(object):
         self.event_manager.add_event(
             zipline.utils.events.Event(rule, callback),
         )
+
+    @api_method
+    def fetch_csv(self, url,
+                  pre_func=None,
+                  post_func=None,
+                  date_column='date',
+                  date_format=None,
+                  timezone=pytz.utc.zone,
+                  symbol=None,
+                  mask=True,
+                  symbol_column=None,
+                  **kwargs):
+
+        # Show all the logs every time fetcher is used.
+        csv_data_source = PandasRequestsCSV(
+            url,
+            pre_func,
+            post_func,
+            self.asset_finder,
+            self.sim_params.period_start,
+            self.sim_params.period_end,
+            date_column,
+            date_format,
+            timezone,
+            symbol,
+            mask,
+            symbol_column,
+            data_frequency=self.data_frequency,
+            **kwargs
+        )
+        if symbol is not None:
+            self.fetcher_symbols.add(symbol)
+
+        elif not mask:
+            df = csv_data_source.df
+            self.fetcher_symbols |= set(df.sid.unique())
+
+        self.fetcher_sources['fetch_csv'].append(csv_data_source)
+
+        return csv_data_source
 
     @api_method
     def schedule_function(self,

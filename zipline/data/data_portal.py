@@ -122,7 +122,7 @@ class DataPortal(object):
             date = tradingcalendar.trading_days[3028 + (self.cur_data_offset / 390)]
 
             try:
-                return self.sources_map[asset].loc[date].loc["price"]
+                return self.sources_map[asset].loc[date].loc[column]
             except:
                 z = 5
 

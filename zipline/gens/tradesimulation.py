@@ -20,14 +20,12 @@ from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 from zipline.assets import AssetFinder
 
-from zipline.protocol import (
-    BarData,
-    SIDData,
-)
+from zipline.protocol import BarData
 from zipline.finance.trading import TradingEnvironment
 from zipline.data.data_portal import DataPortal
 
 from zipline.gens.sim_engine import DayEngine
+from zipline.sources.requests_csv import PandasRequestsCSV
 
 log = Logger('Trade Simulation')
 
@@ -70,7 +68,10 @@ class AlgorithmSimulator(object):
                 fuzzy_char="_",
                 create_table=False
             ),
-            extra_sources=extra_sources
+            extra_sources=[
+                source for source in algo.sources if
+                isinstance(source, PandasRequestsCSV)
+            ]
         )
 
         self.current_data = BarData(data_portal=self.data_portal)
