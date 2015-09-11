@@ -285,6 +285,15 @@ class SimplePipelineEngine(object):
 
         return self._get_loader(term)
 
+    def loader_dispatch(self, term):
+        if term is AssetExists():
+            return None
+
+        loader = self._loader_dispatch(term)
+        if loader is None:
+            raise ValueError("Couldn't find loader for %s" % term)
+        return loader
+
     def compute_chunk(self, graph, dates, assets, initial_workspace):
         """
         Compute the Pipeline terms in the graph for the requested start and end
