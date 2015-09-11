@@ -93,7 +93,7 @@ class BasePipelineTestCase(TestCase):
             Mapping from termname -> computed result.
         """
         engine = SimplePipelineEngine(
-            ExplodingObject(),
+            lambda column: ExplodingObject(),
             self.__calendar,
             self.__finder,
         )

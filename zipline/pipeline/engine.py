@@ -92,15 +92,15 @@ class SimplePipelineEngine(object):
         which assets are in the top-level universe at any point in time.
     """
     __slots__ = [
-        '_loader',
+        '_loader_dispatch',
         '_calendar',
         '_finder',
         '_root_mask_term',
         '__weakref__',
     ]
 
-    def __init__(self, loader, calendar, asset_finder):
-        self._loader = loader
+    def __init__(self, loader_dispatch, calendar, asset_finder):
+        self._loader_dispatch = loader_dispatch
         self._calendar = calendar
         self._finder = asset_finder
         self._root_mask_term = AssetExists()
@@ -281,11 +281,20 @@ class SimplePipelineEngine(object):
             out.append(input_data)
         return out
 
-    @staticmethod
-    def _atomic_dataset_terms(graph, match):
+    def _atomic_terms_for_loader(self, graph, loader):
+        loader_dispatch = self.loader_dispatch
         for term in graph.atomic_terms:
-            if term.dataset == match.dataset:
+            if loader_dispatch(term) == loader:
                 yield term
+
+    def loader_dispatch(self, term):
+        if term is AssetExists():
+            return None
+
+        loader = self._loader_dispatch(term)
+        if loader is None:
+            raise ValueError("Couldn't find loader for %s" % term)
+        return loader
 
     def compute_chunk(self, graph, dates, assets, initial_workspace):
         """
@@ -311,7 +320,7 @@ class SimplePipelineEngine(object):
             Dictionary mapping requested results to outputs.
         """
         self._validate_compute_chunk_params(dates, assets, initial_workspace)
-        loader = self._loader
+        loader_dispatch = self.loader_dispatch
 
         # Copy the supplied initial workspace so we don't mutate it in place.
         workspace = initial_workspace.copy()
@@ -325,7 +334,9 @@ class SimplePipelineEngine(object):
                 continue
 
             if term.atomic:
-                to_load = list(self._atomic_dataset_terms(graph, term))
+                loader = loader_dispatch(term)
+                to_load = sorted(self._atomic_terms_for_loader(graph, loader),
+                                 key=lambda t: t.dataset)
                 mask, mask_dates = self._mask_and_dates_for_atomic_terms(
                     to_load, workspace, graph, dates,
                 )
