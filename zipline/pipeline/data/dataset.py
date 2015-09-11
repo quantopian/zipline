@@ -1,6 +1,7 @@
 """
 dataset.py
 """
+from functools import total_ordering
 from six import (
     iteritems,
     with_metaclass,
@@ -84,6 +85,7 @@ class BoundColumn(AtomicTerm):
         return self.qualname
 
 
+@total_ordering
 class DataSetMeta(type):
     """
     Metaclass for DataSets
@@ -106,6 +108,9 @@ class DataSetMeta(type):
     @property
     def columns(self):
         return self._columns
+
+    def __lt__(self, other):
+        return id(self) < id(other)
 
 
 class DataSet(with_metaclass(DataSetMeta)):
