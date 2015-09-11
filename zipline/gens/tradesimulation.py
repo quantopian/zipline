@@ -27,6 +27,8 @@ from zipline.data.data_portal import DataPortal
 from zipline.gens.sim_engine import DayEngine
 from zipline.sources.requests_csv import PandasRequestsCSV
 
+from zipline.utils.api_support import ZiplineAPI
+
 log = Logger('Trade Simulation')
 
 
@@ -58,9 +60,13 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
+        benchmark_iter = None
+        if hasattr(self.algo, "benchmark_iter"):
+            benchmark_iter = iter(self.algo.benchmark_iter)
+
         self.data_portal = DataPortal(
             sim_params=self.sim_params,
-            benchmark_iter=iter(self.algo.benchmark_iter),
+            benchmark_iter=benchmark_iter,
             findata_dir="/Users/jean/repo/findata/by_sid",
             daily_equities_path="/Users/jean/repo/findata/findata/equity.dailies/2015-08-25/equity_daily_bars.bcolz",
             adjustments_path="/Users/jean/repo/findata/findata/adjustments/2015-08-25/adjustments.db",
@@ -130,77 +136,80 @@ class AlgorithmSimulator(object):
         all_trading_days = all_trading_days[all_trading_days.slice_indexer('2002-01-02')]
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
-        with self.processor.threadbound():
+        def inner_loop(dt_to_use):
+            handle_data(algo, current_data, dt_to_use)
+
+            orders = blotter.new_orders
+            # Reset orders.
+            blotter.new_orders = []
+
+            if orders:
+                for order in orders:
+                    perf_process_order(order)
+
+            open_orders = blotter.open_orders
+            if open_orders:
+                assets_to_close = []
+                for asset, asset_orders in open_orders.iteritems():
+                    for order, txn in slippage(None, asset_orders, dt_to_use):
+                        direction = math.copysign(1, txn.amount)
+                        per_share, total_commission = commission.\
+                            calculate(txn)
+                        txn.price += per_share * direction
+                        txn.commission = total_commission
+
+                        order.filled += txn.amount
+                        if txn.commission is not None:
+                            order.commission = \
+                                ((order.commission or 0.0) + txn.commission)
+
+                        txn.dt = pd.Timestamp(txn.dt, tz='UTC')
+                        order.dt = order.dt
+
+                        perf_process_txn(txn)
+
+                        if not order.open:
+                            asset_orders.remove(order)
+                    if not len(asset_orders):
+                        assets_to_close.append(asset)
+                for asset in assets_to_close:
+                    del open_orders[asset]
+
+        minute_backtest = (self.sim_params.data_frequency == "minute")
+
+        with self.processor.threadbound(), ZiplineAPI(self.algo):
             for i, day in enumerate(trading_days):
-                day_offset = (i + first_trading_day_idx) * 390
-                for j, dt in enumerate(day_engine.market_minutes(i)):
-                    algo.datetime = dt
-                    data_portal.current_dt = dt
-                    data_portal.cur_data_offset = day_offset + j
-                    handle_data(algo, current_data, dt)
+                data_portal.current_day = day
 
-                    orders = blotter.new_orders
-                    # Reset orders.
-                    blotter.new_orders = []
+                if minute_backtest:
+                    day_offset = (i + first_trading_day_idx) * 390
+                    for j, dt in enumerate(day_engine.market_minutes(i)):
+                        algo.datetime = dt
+                        data_portal.current_dt = dt
+                        data_portal.cur_data_offset = day_offset + j
+                        inner_loop(dt)
 
-                    if orders:
-                        for order in orders:
-                            perf_process_order(order)
+                    # Update benchmark before getting market close.
+                    perf_tracker_benchmark_returns[day] =\
+                        data_portal.get_benchmark_returns_for_day(day)
+                    # use the last dt as market close
+                    yield self.get_message(dt)
+                else:
+                    algo.datetime = day
+                    data_portal.current_dt = day
 
-                    open_orders = blotter.open_orders
-                    if open_orders:
-                        assets_to_close = []
-                        for asset, asset_orders in open_orders.iteritems():
-                            for asset_order in asset_orders:
-                                for order, txn in slippage(
-                                        None, asset_orders, dt):
-                                    direction = math.copysign(
-                                        1, txn.amount)
-                                    per_share, total_commission = commission.\
-                                        calculate(txn)
-                                    txn.price += per_share * direction
-                                    txn.commission = total_commission
+                    # FIXME how will dataportal support daily data?
 
-                                    order.filled += txn.amount
-                                    if txn.commission is not None:
-                                        order.commission = \
-                                            ((order.commission or 0.0) +
-                                             txn.commission)
+                    inner_loop(day)
 
-                                    txn.dt = pd.Timestamp(txn.dt, tz='UTC')
-                                    order.dt = order.dt
-
-                                    perf_process_txn(txn)
-
-                                    if not order.open:
-                                        asset_orders.remove(order)
-                            if not len(asset_orders):
-                                assets_to_close.append(asset)
-                        for asset in assets_to_close:
-                            del open_orders[asset]
-
-                # Update benchmark before getting market close.
-                perf_tracker_benchmark_returns[day] =\
-                    data_portal.get_benchmark_returns_for_day(day)
-                # use the last dt as market close
-                yield self.get_message(dt)
+                    # Update benchmark before getting market close.
+                    perf_tracker_benchmark_returns[day] =\
+                        data_portal.get_benchmark_returns_for_day(day)
+                    # use the last dt as market close
+                    yield self.get_message(day)
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message
-
-    # def _call_handle_data(self):
-    #     """
-    #     Call the user's handle_data, returning any orders placed by the algo
-    #     during the call.
-    #     """
-    #     self.algo.event_manager.handle_data(
-    #         self.algo,
-    #         self.current_data,
-    #         self.simulation_dt,
-    #     )
-    #     orders = self.algo.blotter.new_orders
-    #     self.algo.blotter.new_orders = []
-    #     return orders
 
     # FIXME nobody calls this
     def _call_before_trading_start(self, dt):
