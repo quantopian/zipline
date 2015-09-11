@@ -1,6 +1,7 @@
 from datetime import datetime
 import bcolz
 import sqlite3
+from logbook import Logger
 
 import numpy as np
 import pandas as pd
@@ -14,9 +15,15 @@ from zipline.utils.math_utils import nanstd, nanmean, nansum
 # FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
 FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
 
+# FIXME should this be passed in (is this qexec specific?)?
+INDEX_OF_FIRST_TRADING_DAY = 3028
+
+log = Logger('DataPortal')
+
 
 class DataPortal(object):
     def __init__(self,
+                 sim_params=None,
                  benchmark_iter=None, # FIXME hack
                  findata_dir=None,
                  daily_equities_path=None,
@@ -83,17 +90,36 @@ class DataPortal(object):
 
         self.sources_map = {}
 
+        self.sim_params = sim_params
+
         if extra_sources is not None:
             self._handle_extra_sources(extra_sources)
 
     def _handle_extra_sources(self, sources):
+        """
+        Extra sources always have a sid column.
+
+        We expand the given data (by forward filling) to the full range of
+        the simulation dates, so that lookup is fast during simulation.
+        """
+        backtest_days = tradingcalendar.get_trading_days(
+            self.sim_params.period_start,
+            self.sim_params.period_end
+        )
+
         for source in sources:
             if source.df is None:
                 continue
 
-            unique_sids = source.df.sid.unique()
+            # reindex the dataframe based on the backtest start/end date
+            df = source.df.reindex(
+                index=backtest_days,
+                method='ffill'
+            )
+
+            unique_sids = df.sid.unique()
             for identifier in unique_sids:
-                self.sources_map[identifier] = source.df
+                self.sources_map[identifier] = df
 
     def _open_daily_file(self):
         if self.daily_equities_data is None:
@@ -115,13 +141,22 @@ class DataPortal(object):
 
     def get_current_price_data(self, asset, column):
         if asset in self.sources_map:
-            # get the current date
-            date = tradingcalendar.trading_days[3028 + (self.cur_data_offset / 390)]
+            # go find this asset in our custom sources
+
+            # figure out the current date,.  self.cur_data_offset is the #
+            # of minutes since 1/2/02 9:30am, so divide by 390 to get the #
+            # of days since 1/2/02, then look in the trading calendar.
+            date = tradingcalendar.trading_days[INDEX_OF_FIRST_TRADING_DAY +
+                                                (self.cur_data_offset / 390)]
 
             try:
                 return self.sources_map[asset].loc[date].loc[column]
             except:
-                z = 5
+                log.error("Could not find price for asset={0}, date={1},"
+                          "column={2}".format(
+                              str(asset),
+                              str(date),
+                              str(column)))
 
             return None
 
@@ -494,7 +529,8 @@ class DataPortal(object):
         since market open on 1/2/2002.
         """
         day = minute_dt.date()
-        day_idx = tradingcalendar.trading_days.searchsorted(day) - 3028
+        day_idx = tradingcalendar.trading_days.searchsorted(day) -\
+                  INDEX_OF_FIRST_TRADING_DAY
 
         day_open = pd.Timestamp(
             datetime(
@@ -567,7 +603,7 @@ class DataPortal(object):
         # Calculate the starting day to use (either the asset's first trading
         # day, or 1/1/2002 (which is the 3028th day in the trading calendar).
         first_trading_day_to_use = max(trading_days.searchsorted(
-            self.asset_start_dates[sid]), 3028)
+            self.asset_start_dates[sid]), INDEX_OF_FIRST_TRADING_DAY)
 
         # find the # of trading days between max(asset's first trade date,
         # 2002-01-02) and start_dt

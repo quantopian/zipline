@@ -59,6 +59,7 @@ class AlgorithmSimulator(object):
         # We want an object that will have empty objects as default
         # values on missing keys.
         self.data_portal = DataPortal(
+            sim_params=self.sim_params,
             benchmark_iter=iter(self.algo.benchmark_iter),
             findata_dir="/Users/jean/repo/findata/by_sid",
             daily_equities_path="/Users/jean/repo/findata/findata/equity.dailies/2015-08-25/equity_daily_bars.bcolz",
