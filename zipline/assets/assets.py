@@ -51,6 +51,16 @@ _asset_str_fields = frozenset({
     'exchange',
 })
 
+# A set of fields that need to be converted to timestamps in UTC
+_asset_timestamp_fields = frozenset({
+    'start_date',
+    'end_date',
+    'first_traded'
+    'notice_date',
+    'expiration_date',
+    'auto_close_date',
+})
+
 
 def _convert_asset_str_fields(dict):
     """
@@ -60,6 +70,15 @@ def _convert_asset_str_fields(dict):
     for key, value in dict.items():
         if key in _asset_str_fields:
             dict[key] = str(value)
+
+
+def _convert_asset_timestamp_fields(dict):
+    """
+    Takes in a dict of Asset init args and converts dates to pd.Timestamps
+    """
+    for key, value in dict.items():
+        if (key in _asset_timestamp_fields) and (value is not None):
+            dict[key] = pd.Timestamp(value, tz='UTC')
 
 
 class AssetFinder(object):
@@ -209,17 +228,8 @@ class AssetFinder(object):
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
-            if data['start_date']:
-                data['start_date'] = pd.Timestamp(data['start_date'], tz='UTC')
-
-            if data['end_date']:
-                data['end_date'] = pd.Timestamp(data['end_date'], tz='UTC')
-
-            if data['first_traded']:
-                data['first_traded'] = pd.Timestamp(
-                    data['first_traded'], tz='UTC')
-
             _convert_asset_str_fields(data)
+            _convert_asset_timestamp_fields(data)
 
             equity = Equity(**data)
         else:
@@ -241,29 +251,8 @@ class AssetFinder(object):
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
-            if data['start_date']:
-                data['start_date'] = pd.Timestamp(data['start_date'], tz='UTC')
-
-            if data['end_date']:
-                data['end_date'] = pd.Timestamp(data['end_date'], tz='UTC')
-
-            if data['first_traded']:
-                data['first_traded'] = pd.Timestamp(
-                    data['first_traded'], tz='UTC')
-
-            if data['notice_date']:
-                data['notice_date'] = pd.Timestamp(
-                    data['notice_date'], tz='UTC')
-
-            if data['expiration_date']:
-                data['expiration_date'] = pd.Timestamp(
-                    data['expiration_date'], tz='UTC')
-
-            if data['auto_close_date']:
-                data['auto_close_date'] = pd.Timestamp(
-                    data['auto_close_date'], tz='UTC')
-
             _convert_asset_str_fields(data)
+            _convert_asset_timestamp_fields(data)
 
             future = Future(**data)
         else:
