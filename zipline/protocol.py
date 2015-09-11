@@ -510,7 +510,7 @@ class BarData(object):
         return self._factor_matrix.loc[today]
 
     def __contains__(self, name):
-        return True
+        return self.data_portal.is_currently_alive(name)
 
     def has_key(self, name):
         """

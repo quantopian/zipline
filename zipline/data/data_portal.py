@@ -118,8 +118,20 @@ class DataPortal(object):
             )
 
             unique_sids = df.sid.unique()
+            sid_group = source.df.groupby(['sid'])
+
             for identifier in unique_sids:
                 self.sources_map[identifier] = df
+
+                # get this identifier's earliest date
+                earliest_date_idx = sid_group.indices[identifier][0]
+                earliest_date = df.index[earliest_date_idx]
+
+                last_date_idx = sid_group.indices[identifier][-1]
+                last_date = df.index[last_date_idx]
+
+                self.asset_start_dates[identifier] = earliest_date
+                self.asset_end_dates[identifier] = last_date
 
     def _open_daily_file(self):
         if self.daily_equities_data is None:
@@ -146,8 +158,7 @@ class DataPortal(object):
             # figure out the current date,.  self.cur_data_offset is the #
             # of minutes since 1/2/02 9:30am, so divide by 390 to get the #
             # of days since 1/2/02, then look in the trading calendar.
-            date = tradingcalendar.trading_days[INDEX_OF_FIRST_TRADING_DAY +
-                                                (self.cur_data_offset / 390)]
+            date = self._get_current_trading_day()
 
             try:
                 return self.sources_map[asset].loc[date].loc[column]
@@ -779,6 +790,23 @@ class DataPortal(object):
 
             return ret
 
+    def is_currently_alive(self, name):
+        if name not in self.sources_map:
+            name = int(name)
+
+        if name not in self.asset_start_dates:
+            asset = self.asset_finder.retrieve_asset(name)
+            self.asset_start_dates[name] = asset.start_date
+            self.asset_end_dates[name] = asset.end_date
+
+        current_date = self._get_current_trading_day()
+
+        return (current_date >= self.asset_start_dates[name] and
+                current_date <= self.asset_end_dates[name])
+
+    def _get_current_trading_day(self):
+        return tradingcalendar.trading_days[INDEX_OF_FIRST_TRADING_DAY +
+                                                (self.cur_data_offset / 390)]
 
 class DataPortalSidView(object):
 
