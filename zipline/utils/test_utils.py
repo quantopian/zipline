@@ -288,7 +288,7 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
     end_date : pd.Timestamp
     symbols : list, optional
         Symbols to use for the assets.
-        If not provided, symbols are generated from upper-case letters.
+        If not provided, symbols are generated from the sequence 'A', 'B', ...
 
     Returns
     -------
