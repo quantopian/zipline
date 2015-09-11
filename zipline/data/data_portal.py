@@ -128,7 +128,7 @@ class DataPortal(object):
                 earliest_date = df.index[earliest_date_idx]
 
                 last_date_idx = sid_group.indices[identifier][-1]
-                last_date = df.index[last_date_idx]
+                last_date = df.index[min(len(df.index) - 1, last_date_idx)]
 
                 self.asset_start_dates[identifier] = earliest_date
                 self.asset_end_dates[identifier] = last_date
