@@ -161,9 +161,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Returns data in standard format.
 
     """
-    def __init__(self):
-        self.sql_metadata = None
-
     def write_all(self,
                   engine,
                   fuzzy_char=None,
