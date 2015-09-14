@@ -175,7 +175,7 @@ class AlgorithmSimulator(object):
                 for asset in assets_to_close:
                     del open_orders[asset]
 
-        with self.processor.threadbound(), ZiplineAPI(self.algo):
+        with self.processor, ZiplineAPI(self.algo):
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
                     algo.datetime = trading_day
