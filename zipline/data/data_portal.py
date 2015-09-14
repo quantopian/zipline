@@ -31,6 +31,7 @@ class DataPortal(object):
                  asset_finder=None,
                  extra_sources=None):
         self.current_dt = None
+        self.current_day = None
         self.cur_data_offset = 0
 
         self.views = {}
@@ -154,19 +155,13 @@ class DataPortal(object):
     def get_current_price_data(self, asset, column):
         if asset in self.sources_map:
             # go find this asset in our custom sources
-
-            # figure out the current date,.  self.cur_data_offset is the #
-            # of minutes since 1/2/02 9:30am, so divide by 390 to get the #
-            # of days since 1/2/02, then look in the trading calendar.
-            date = self._get_current_trading_day()
-
             try:
-                return self.sources_map[asset].loc[date].loc[column]
+                return self.sources_map[asset].loc[self.current_day].loc[column]
             except:
-                log.error("Could not find price for asset={0}, date={1},"
+                log.error("Could not find price for asset={0}, current_day={1},"
                           "column={2}".format(
                               str(asset),
-                              str(date),
+                              str(self.current_day),
                               str(column)))
 
             return None
@@ -799,14 +794,9 @@ class DataPortal(object):
             self.asset_start_dates[name] = asset.start_date
             self.asset_end_dates[name] = asset.end_date
 
-        current_date = self._get_current_trading_day()
+        return (self.current_day >= self.asset_start_dates[name] and
+                self.current_day <= self.asset_end_dates[name])
 
-        return (current_date >= self.asset_start_dates[name] and
-                current_date <= self.asset_end_dates[name])
-
-    def _get_current_trading_day(self):
-        return tradingcalendar.trading_days[INDEX_OF_FIRST_TRADING_DAY +
-                                                (self.cur_data_offset / 390)]
 
 class DataPortalSidView(object):
 

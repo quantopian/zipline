@@ -175,38 +175,38 @@ class AlgorithmSimulator(object):
                 for asset in assets_to_close:
                     del open_orders[asset]
 
-        minute_backtest = (self.sim_params.data_frequency == "minute")
-
         with self.processor.threadbound(), ZiplineAPI(self.algo):
-            for i, day in enumerate(trading_days):
-                data_portal.current_day = day
+            if self.sim_params.data_frequency == "daily":
+                for day_idx, trading_day in enumerate(trading_days):
+                    algo.datetime = trading_day
+                    data_portal.current_dt = trading_day
+                    data_portal.current_day = trading_day
 
-                if minute_backtest:
-                    day_offset = (i + first_trading_day_idx) * 390
-                    for j, dt in enumerate(day_engine.market_minutes(i)):
-                        algo.datetime = dt
-                        data_portal.current_dt = dt
-                        data_portal.cur_data_offset = day_offset + j
-                        inner_loop(dt)
+                    inner_loop(trading_day)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[day] =\
-                        data_portal.get_benchmark_returns_for_day(day)
+                    perf_tracker_benchmark_returns[trading_day] =\
+                        data_portal.get_benchmark_returns_for_day(trading_day)
                     # use the last dt as market close
-                    yield self.get_message(dt)
-                else:
-                    algo.datetime = day
-                    data_portal.current_dt = day
+                    yield self.get_message(trading_day)
+            else:
+                for day_idx, trading_day in enumerate(trading_days):
+                    day_offset = (day_idx + first_trading_day_idx) * 390
+                    minutes = pd.DatetimeIndex(day_engine.
+                                               market_minutes(day_idx))
+                    for minute_idx, minute in enumerate(minutes):
+                        algo.datetime = minute
+                        data_portal.current_dt = minute.value
+                        data_portal.current_day = trading_day
+                        data_portal.cur_data_offset = day_offset + minute_idx
 
-                    # FIXME how will dataportal support daily data?
-
-                    inner_loop(day)
+                        inner_loop(minute)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[day] =\
-                        data_portal.get_benchmark_returns_for_day(day)
+                    perf_tracker_benchmark_returns[trading_day] =\
+                        data_portal.get_benchmark_returns_for_day(trading_day)
                     # use the last dt as market close
-                    yield self.get_message(day)
+                    yield self.get_message(trading_day)
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message
