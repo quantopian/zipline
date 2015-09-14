@@ -67,6 +67,7 @@ ext_modules = LazyCythonizingList([
         'zipline.data.ffc.loaders._us_equity_pricing',
         ['zipline/data/ffc/loaders/_us_equity_pricing.pyx']
     ),
+    ('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
 ])
 
 

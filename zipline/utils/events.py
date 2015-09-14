@@ -20,6 +20,8 @@ import datetime
 import pandas as pd
 import pytz
 
+from zipline.finance.trading import TradingEnvironment
+
 
 __all__ = [
     'EventManager',
@@ -189,7 +191,7 @@ class EventManager(object):
 
     def handle_data(self, context, data, dt):
         for event in self._events:
-            event.handle_data(context, data, dt, context.trading_environment)
+            event.handle_data(context, data, dt)
 
 
 class Event(namedtuple('Event', ['rule', 'callback'])):
@@ -202,11 +204,11 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
         callback = callback or (lambda *args, **kwargs: None)
         return super(cls, cls).__new__(cls, rule=rule, callback=callback)
 
-    def handle_data(self, context, data, dt, env):
+    def handle_data(self, context, data, dt):
         """
         Calls the callable only when the rule is triggered.
         """
-        if self.rule.should_trigger(dt, env):
+        if self.rule.should_trigger(dt):
             self.callback(context, data)
 
 
@@ -214,8 +216,12 @@ class EventRule(six.with_metaclass(ABCMeta)):
     """
     An event rule checks a datetime and sees if it should trigger.
     """
+    @property
+    def env(self):
+        return TradingEnvironment.instance()
+
     @abstractmethod
-    def should_trigger(self, dt, env):
+    def should_trigger(self, dt):
         """
         Checks if the rule should trigger with it's current state.
         This method should be pure and NOT mutate any state on the object.
@@ -261,7 +267,7 @@ class ComposedRule(StatelessRule):
         self.second = second
         self.composer = composer
 
-    def should_trigger(self, dt, env):
+    def should_trigger(self, dt):
         """
         Composes the two rules with a lazy composer.
         """
@@ -269,16 +275,15 @@ class ComposedRule(StatelessRule):
             self.first.should_trigger,
             self.second.should_trigger,
             dt,
-            env,
         )
 
     @staticmethod
-    def lazy_and(first_should_trigger, second_should_trigger, dt, env):
+    def lazy_and(first_should_trigger, second_should_trigger, dt):
         """
         Lazily ands the two rules. This will NOT call the should_trigger of the
         second rule if the first one returns False.
         """
-        return first_should_trigger(dt, env) and second_should_trigger(dt, env)
+        return first_should_trigger(dt) and second_should_trigger(dt)
 
 
 class Always(StatelessRule):
@@ -286,7 +291,7 @@ class Always(StatelessRule):
     A rule that always triggers.
     """
     @staticmethod
-    def always_trigger(dt, env):
+    def always_trigger(dt):
         """
         A should_trigger implementation that will always trigger.
         """
@@ -299,7 +304,7 @@ class Never(StatelessRule):
     A rule that never triggers.
     """
     @staticmethod
-    def never_trigger(dt, env):
+    def never_trigger(dt):
         """
         A should_trigger implementation that will never trigger.
         """
@@ -323,15 +328,16 @@ class AfterOpen(StatelessRule):
 
         self._dt = None
 
-    def should_trigger(self, dt, env):
-        return self._get_open(dt, env) + self.offset <= dt
+    def should_trigger(self, dt):
+        dt = pd.Timestamp(dt, tz='UTC')
+        return self._get_open(dt) + self.offset <= dt
 
-    def _get_open(self, dt, env):
+    def _get_open(self, dt):
         """
         Cache the open for each day.
         """
         if self._dt is None or (self._dt.date() != dt.date()):
-            self._dt = env.get_open_and_close(dt)[0] \
+            self._dt = self.env.get_open_and_close(dt)[0] \
                 - datetime.timedelta(minutes=1)
 
         return self._dt
@@ -353,15 +359,15 @@ class BeforeClose(StatelessRule):
 
         self._dt = None
 
-    def should_trigger(self, dt, env):
-        return self._get_close(dt, env) - self.offset <= dt
+    def should_trigger(self, dt):
+        return self._get_close(dt) - self.offset <= dt
 
-    def _get_close(self, dt, env):
+    def _get_close(self, dt):
         """
         Cache the close for each day.
         """
         if self._dt is None or (self._dt.date() != dt.date()):
-            self._dt = env.get_open_and_close(dt)[1]
+            self._dt = self.env.get_open_and_close(dt)[1]
 
         return self._dt
 
@@ -370,8 +376,8 @@ class NotHalfDay(StatelessRule):
     """
     A rule that only triggers when it is not a half day.
     """
-    def should_trigger(self, dt, env):
-        return dt.date() not in env.early_closes
+    def should_trigger(self, dt):
+        return dt.date() not in self.env.early_closes
 
 
 class NthTradingDayOfWeek(StatelessRule):
@@ -384,18 +390,18 @@ class NthTradingDayOfWeek(StatelessRule):
             raise _out_of_range_error(MAX_WEEK_RANGE)
         self.td_delta = n
 
-    def should_trigger(self, dt, env):
-        return _coerce_datetime(env.add_trading_days(
+    def should_trigger(self, dt):
+        return _coerce_datetime(self.env.add_trading_days(
             self.td_delta,
-            self.get_first_trading_day_of_week(dt, env),
+            self.get_first_trading_day_of_week(dt),
         )).date() == dt.date()
 
-    def get_first_trading_day_of_week(self, dt, env):
+    def get_first_trading_day_of_week(self, dt):
         prev = dt
-        dt = env.previous_trading_day(dt)
+        dt = self.env.previous_trading_day(dt)
         while dt.date().weekday() < prev.date().weekday():
             prev = dt
-            dt = env.previous_trading_day(dt)
+            dt = self.env.previous_trading_day(dt)
         return prev.date()
 
 
@@ -409,20 +415,20 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
         self.td_delta = -n
         self.date = None
 
-    def should_trigger(self, dt, env):
-        return _coerce_datetime(env.add_trading_days(
+    def should_trigger(self, dt):
+        return _coerce_datetime(self.env.add_trading_days(
             self.td_delta,
-            self.get_last_trading_day_of_week(dt, env),
+            self.get_last_trading_day_of_week(dt),
         )).date() == dt.date()
 
-    def get_last_trading_day_of_week(self, dt, env):
+    def get_last_trading_day_of_week(self, dt):
         prev = dt
-        dt = env.next_trading_day(dt)
+        dt = self.env.next_trading_day(dt)
         # Traverse forward until we hit a week border, then jump back to the
         # previous trading day.
         while dt.date().weekday() > prev.date().weekday():
             prev = dt
-            dt = env.next_trading_day(dt)
+            dt = self.env.next_trading_day(dt)
         return prev.date()
 
 
@@ -438,30 +444,30 @@ class NthTradingDayOfMonth(StatelessRule):
         self.month = None
         self.day = None
 
-    def should_trigger(self, dt, env):
-        return self.get_nth_trading_day_of_month(dt, env) == dt.date()
+    def should_trigger(self, dt):
+        return self.get_nth_trading_day_of_month(dt) == dt.date()
 
-    def get_nth_trading_day_of_month(self, dt, env):
+    def get_nth_trading_day_of_month(self, dt):
         if self.month == dt.month:
             # We already computed the day for this month.
             return self.day
 
         if not self.td_delta:
-            self.day = self.get_first_trading_day_of_month(dt, env)
+            self.day = self.get_first_trading_day_of_month(dt)
         else:
-            self.day = env.add_trading_days(
+            self.day = self.env.add_trading_days(
                 self.td_delta,
-                self.get_first_trading_day_of_month(dt, env),
+                self.get_first_trading_day_of_month(dt),
             ).date()
 
         return self.day
 
-    def get_first_trading_day_of_month(self, dt, env):
+    def get_first_trading_day_of_month(self, dt):
         self.month = dt.month
 
         dt = dt.replace(day=1)
-        self.first_day = (dt if env.is_trading_day(dt)
-                          else env.next_trading_day(dt)).date()
+        self.first_day = (dt if self.env.is_trading_day(dt)
+                          else self.env.next_trading_day(dt)).date()
         return self.first_day
 
 
@@ -476,25 +482,25 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
         self.month = None
         self.day = None
 
-    def should_trigger(self, dt, env):
-        return self.get_nth_to_last_trading_day_of_month(dt, env) == dt.date()
+    def should_trigger(self, dt):
+        return self.get_nth_to_last_trading_day_of_month(dt) == dt.date()
 
-    def get_nth_to_last_trading_day_of_month(self, dt, env):
+    def get_nth_to_last_trading_day_of_month(self, dt):
         if self.month == dt.month:
             # We already computed the last day for this month.
             return self.day
 
         if not self.td_delta:
-            self.day = self.get_last_trading_day_of_month(dt, env)
+            self.day = self.get_last_trading_day_of_month(dt)
         else:
-            self.day = env.add_trading_days(
+            self.day = self.env.add_trading_days(
                 self.td_delta,
-                self.get_last_trading_day_of_month(dt, env),
+                self.get_last_trading_day_of_month(dt),
             ).date()
 
         return self.day
 
-    def get_last_trading_day_of_month(self, dt, env):
+    def get_last_trading_day_of_month(self, dt):
         self.month = dt.month
 
         if dt.month == 12:
@@ -506,7 +512,7 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
             year = dt.year
             month = dt.month + 1
 
-        self.last_day = env.previous_trading_day(
+        self.last_day = self.env.previous_trading_day(
             dt.replace(year=year, month=month, day=1)
         ).date()
         return self.last_day
@@ -534,18 +540,24 @@ class StatefulRule(EventRule):
 
 class OncePerDay(StatefulRule):
     def __init__(self, rule=None):
-        self.date = None
         self.triggered = False
+
+        self.date = None
+        self.next_date = None
+
         super(OncePerDay, self).__init__(rule)
 
-    def should_trigger(self, dt, env):
-        dt_date = dt.date()
-        if self.date is None or self.date != dt_date:
+    def should_trigger(self, dt):
+        if self.date is None or dt >= self.next_date:
             # initialize or reset for new date
             self.triggered = False
-            self.date = dt_date
+            self.date = dt
 
-        if not self.triggered and self.rule.should_trigger(dt, env):
+            # record the timestamp for the next day, so that we can use it
+            # to know if we've moved to the next day
+            self.next_date = dt + pd.Timedelta(1, unit="d")
+
+        if not self.triggered and self.rule.should_trigger(dt):
             self.triggered = True
             return True
 
