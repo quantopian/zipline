@@ -403,3 +403,9 @@ def get_open_and_closes(trading_days, early_closes, get_open_and_close):
 
 open_and_closes = get_open_and_closes(trading_days, early_closes,
                                       get_open_and_close)
+
+
+def market_minutes_for_day(stamp):
+    index = open_and_closes.index.get_loc(stamp.date())
+    todays_minutes = open_and_closes.values[index]
+    return pd.date_range(todays_minutes[0], todays_minutes[1], freq='T')

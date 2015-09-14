@@ -354,8 +354,7 @@ class TradingEnvironment(object):
         return todays_minutes[0], todays_minutes[1]
 
     def market_minutes_for_day(self, stamp):
-        market_open, market_close = self.get_open_and_close(stamp)
-        return pd.date_range(market_open, market_close, freq='T')
+        return tradingcalendar.market_minutes_for_day(stamp)
 
     def open_close_window(self, start, count, offset=0, step=1):
         """
