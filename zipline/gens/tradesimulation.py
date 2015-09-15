@@ -197,10 +197,12 @@ class AlgorithmSimulator(object):
                 for day_idx, trading_day in enumerate(trading_days):
                     day_offset = (day_idx + first_trading_day_idx) * 390
                     minutes = pd.DatetimeIndex(day_engine.
-                                               market_minutes(day_idx))
+                                               market_minutes(day_idx),
+                                               tz='UTC')
                     for minute_idx, minute in enumerate(minutes):
                         algo.datetime = minute
                         data_portal.current_dt = minute.value
+                        blotter.current_dt = minute
                         data_portal.current_day = trading_day
                         data_portal.cur_data_offset = day_offset + minute_idx
 
