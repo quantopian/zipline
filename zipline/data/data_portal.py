@@ -30,7 +30,8 @@ class DataPortal(object):
                  daily_equities_path=None,
                  adjustments_path=None,
                  asset_finder=None,
-                 extra_sources=None):
+                 extra_sources=None,
+                 sid_path_func=None):
         self.env = env
         self.current_dt = None
         self.current_day = None
@@ -98,6 +99,8 @@ class DataPortal(object):
         if extra_sources is not None:
             self._handle_extra_sources(extra_sources)
 
+        self.sid_path_func = sid_path_func
+
     def _handle_extra_sources(self, sources):
         """
         Extra sources always have a sid column.
@@ -144,7 +147,11 @@ class DataPortal(object):
         return self.daily_equities_data, self.daily_equities_attrs
 
     def _open_minute_file(self, field, sid):
-        path = "{0}/{1}.bcolz".format(self.findata_dir, sid)
+
+        if self.sid_path_func is None:
+            path = "{0}/{1}.bcolz".format(self.findata_dir, sid)
+        else:
+            path = self.sid_path_func(self.findata_dir, sid)
 
         try:
             carray = self.carrays[field][path]
