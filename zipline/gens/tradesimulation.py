@@ -17,6 +17,7 @@ import os
 import math
 import numpy as np
 import pandas as pd
+from sqlalchemy import create_engine
 
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
@@ -67,6 +68,8 @@ class AlgorithmSimulator(object):
         if hasattr(self.algo, "benchmark_iter"):
             benchmark_iter = iter(self.algo.benchmark_iter)
 
+        engine = create_engine('sqlite:///' + os.getenv('ASSETS_DB_PATH'))
+
         self.data_portal = DataPortal(
             self.env,
             sim_params=self.sim_params,
@@ -75,11 +78,7 @@ class AlgorithmSimulator(object):
             findata_dir=os.getenv('FINDATA_DIR'),
             daily_equities_path=os.getenv('DAILY_EQUITIES_PATH'),
             adjustments_path=os.getenv('ADJUSTMENTS_DB_PATH'),
-            asset_finder=AssetFinder(
-                db_path=os.getenv('ASSETS_DB_PATH'),
-                fuzzy_char="_",
-                create_table=False
-            ),
+            asset_finder=AssetFinder(engine),
             extra_sources=[
                 source for source in self.algo.sources if
                 isinstance(source, PandasRequestsCSV)
