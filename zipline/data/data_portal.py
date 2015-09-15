@@ -69,9 +69,11 @@ class DataPortal(object):
         self.benchmark_iter = benchmark_iter
 
         self.column_lookup = {
+            'open': 'open',
             'open_price': 'open',
             'high': 'high',
             'low': 'low',
+            'close': 'close',
             'close_price': 'close',
             'volume': 'volume',
             'price': 'close'
