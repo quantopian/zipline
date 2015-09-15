@@ -136,7 +136,7 @@ class AlgorithmSimulator(object):
 
         perf_tracker.position_tracker.data_portal = data_portal
 
-        all_trading_days = TradingEnvironment.instance().trading_days
+        all_trading_days = self.env.trading_days
         all_trading_days = all_trading_days[all_trading_days.slice_indexer(
             '2002-01-02')]
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
