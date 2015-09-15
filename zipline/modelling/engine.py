@@ -28,10 +28,11 @@ from pandas import (
 
 from zipline.lib.adjusted_array import ensure_ndarray
 from zipline.errors import NoFurtherDataError
-from zipline.modelling.classifier import Classifier
-from zipline.modelling.factor import Factor
-from zipline.modelling.filter import Filter
-from zipline.modelling.graph import TermGraph
+
+from .classifier import Classifier
+from .factor import Factor
+from .filter import Filter
+from .graph import TermGraph
 
 
 class FFCEngine(with_metaclass(ABCMeta)):
