@@ -25,4 +25,6 @@ cdef class DayEngine:
         market_opens = self.market_opens
         market_closes = self.market_closes
 
-        return np.arange(market_opens[i], market_closes[i], minute_in_nano)
+        return np.arange(market_opens[i],
+                         market_closes[i] + minute_in_nano,
+                         minute_in_nano)
