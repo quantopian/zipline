@@ -24,7 +24,6 @@ from pandas.tslib import normalize_date
 from zipline.assets import AssetFinder
 
 from zipline.protocol import BarData
-from zipline.finance.trading import TradingEnvironment
 from zipline.data.data_portal import DataPortal
 
 from zipline.gens.sim_engine import DayEngine
