@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 
 from zipline.utils import tradingcalendar
-from zipline.finance.trading import TradingEnvironment
 
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.math_utils import nanstd, nanmean, nansum
