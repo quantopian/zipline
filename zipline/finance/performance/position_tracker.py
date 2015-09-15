@@ -44,6 +44,8 @@ class PositionTracker(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
         self._positions_store = zp.Positions()
+        # To prevent attribute error when accessed before patch.
+        self.data_portal = None
 
         # Dict, keyed on dates, that contains lists of close position events
         # for any Assets in this tracker's positions
