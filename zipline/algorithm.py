@@ -94,9 +94,6 @@ from zipline.utils.math_utils import tolerant_equals
 import zipline.protocol
 from zipline.protocol import Event
 
-from zipline.history import HistorySpec
-from zipline.history.history_container import HistoryContainer
-
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -247,12 +244,6 @@ class TradingAlgorithm(object):
         self._portfolio = None
         self._account = None
 
-        self.history_container_class = kwargs.pop(
-            'history_container_class', HistoryContainer,
-        )
-        self.history_container = None
-        self.history_specs = {}
-
         # If string is passed in, execute and get reference to
         # functions.
         self.algoscript = kwargs.pop('script', None)
@@ -346,9 +337,6 @@ class TradingAlgorithm(object):
 
     def handle_data(self, data):
         self._most_recent_data = data
-        if self.history_container:
-            self.history_container.update(data, self.datetime)
-
         self._handle_data(self, data)
 
         # Unlike trading controls which remain constant unless placing an
@@ -462,7 +450,7 @@ class TradingAlgorithm(object):
 
         self.data_gen = self._create_data_generator(source_filter, sim_params)
 
-        self.trading_client = AlgorithmSimulator(self, sim_params)
+        self.trading_client = AlgorithmSimulator(self, sim_params, self.data_portal)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
@@ -477,24 +465,11 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    # TODO: make a new subclass, e.g. BatchAlgorithm, and move
-    # the run method to the subclass, and refactor to put the
-    # generator creation logic into get_generator.
-    def run(self, source, overwrite_sim_params=True,
-            benchmark_return_source=None):
+    def run(self, data_portal=None):
         """Run the algorithm.
 
         :Arguments:
-            source : can be either:
-                     - pandas.DataFrame
-                     - zipline source
-                     - list of sources
-
-               If pandas.DataFrame is provided, it must have the
-               following structure:
-               * column names must be the different asset identifiers
-               * index must be DatetimeIndex
-               * array contents should be price info.
+            source : DataPortal
 
         :Returns:
             daily_stats : pandas.DataFrame
@@ -502,90 +477,8 @@ class TradingAlgorithm(object):
 
         """
 
-        # Ensure that source is a DataSource object
-        if isinstance(source, list):
-            if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
-                overwrite_sim_params = False
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, map columns to sids and wrap
-            # in DataFrameSource
-            copy_frame = source.copy()
-
-            # Build new Assets for identifiers that can't be resolved as
-            # sids/Assets
-            identifiers_to_build = []
-            for identifier in source.columns:
-                if hasattr(identifier, '__int__'):
-                    asset = self.asset_finder.retrieve_asset(sid=identifier,
-                                                             default_none=True)
-                    if asset is None:
-                        identifiers_to_build.append(identifier)
-                else:
-                    identifiers_to_build.append(identifier)
-
-            self.trading_environment.write_data(
-                equities_identifiers=identifiers_to_build)
-            copy_frame.columns = \
-                self.asset_finder.map_identifier_index_to_sids(
-                    source.columns, source.index[0]
-                )
-            source = DataFrameSource(copy_frame)
-
-        elif isinstance(source, pd.Panel):
-            # If Panel provided, map items to sids and wrap
-            # in DataPanelSource
-            copy_panel = source.copy()
-
-            # Build new Assets for identifiers that can't be resolved as
-            # sids/Assets
-            identifiers_to_build = []
-            for identifier in source.items:
-                if hasattr(identifier, '__int__'):
-                    asset = self.asset_finder.retrieve_asset(sid=identifier,
-                                                             default_none=True)
-                    if asset is None:
-                        identifiers_to_build.append(identifier)
-                else:
-                    identifiers_to_build.append(identifier)
-
-            self.trading_environment.write_data(
-                equities_identifiers=identifiers_to_build)
-            copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
-                source.items, source.major_axis[0]
-            )
-            source = DataPanelSource(copy_panel)
-
-        if isinstance(source, list):
-            self.set_sources(source)
-        else:
-            self.set_sources([source])
-
-        # Override sim_params if params are provided by the source.
-        if overwrite_sim_params:
-            if hasattr(source, 'start'):
-                self.sim_params.period_start = source.start
-            if hasattr(source, 'end'):
-                self.sim_params.period_end = source.end
-            # Changing period_start and period_close might require updating
-            # of first_open and last_close.
-            self.sim_params.update_internal_from_env(
-                env=self.trading_environment
-            )
-
-        # The sids field of the source is the reference for the universe at
-        # the start of the run
-        self._current_universe = set()
-        for source in self.sources:
-            for sid in source.sids:
-                self._current_universe.add(sid)
-        # Check that all sids from the source are accounted for in
-        # the AssetFinder. This retrieve call will raise an exception if the
-        # sid is not found.
-        for sid in self._current_universe:
-            self.asset_finder.retrieve_asset(sid)
+        # FIXME handle case if no portal is passed in
+        self.data_portal = data_portal
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
@@ -593,16 +486,6 @@ class TradingAlgorithm(object):
 
         # create zipline
         self.gen = self._create_generator(self.sim_params)
-
-        # Create history containers
-        if self.history_specs:
-            self.history_container = self.history_container_class(
-                self.history_specs,
-                self.current_universe(),
-                self.sim_params.first_open,
-                self.sim_params.data_frequency,
-                self.trading_environment,
-            )
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary

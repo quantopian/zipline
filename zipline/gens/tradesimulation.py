@@ -41,7 +41,7 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params):
+    def __init__(self, algo, sim_params, data_portal):
 
         # ==============
         # Simulation
@@ -49,6 +49,7 @@ class AlgorithmSimulator(object):
         # ==============
         self.sim_params = sim_params
         self.env = algo.trading_environment
+        self.data_portal = data_portal
 
         # ==============
         # Algo Setup
@@ -67,22 +68,22 @@ class AlgorithmSimulator(object):
         if hasattr(self.algo, "benchmark_iter"):
             benchmark_iter = iter(self.algo.benchmark_iter)
 
-        engine = create_engine('sqlite:///' + os.getenv('ASSETS_DB_PATH'))
-
-        self.data_portal = DataPortal(
-            self.env,
-            sim_params=self.sim_params,
-            benchmark_iter=benchmark_iter,
-            # TODO: Better path handling, config file?
-            findata_dir=os.getenv('FINDATA_DIR'),
-            daily_equities_path=os.getenv('DAILY_EQUITIES_PATH'),
-            adjustments_path=os.getenv('ADJUSTMENTS_DB_PATH'),
-            asset_finder=AssetFinder(engine),
-            extra_sources=[
-                source for source in self.algo.sources if
-                isinstance(source, PandasRequestsCSV)
-            ]
-        )
+        # engine = create_engine('sqlite:///' + os.getenv('ASSETS_DB_PATH'))
+        #
+        # self.data_portal = DataPortal(
+        #     self.env,
+        #     sim_params=self.sim_params,
+        #     benchmark_iter=benchmark_iter,
+        #     # TODO: Better path handling, config file?
+        #     findata_dir=os.getenv('FINDATA_DIR'),
+        #     daily_equities_path=os.getenv('DAILY_EQUITIES_PATH'),
+        #     adjustments_path=os.getenv('ADJUSTMENTS_DB_PATH'),
+        #     asset_finder=AssetFinder(engine),
+        #     extra_sources=[
+        #         source for source in self.algo.sources if
+        #         isinstance(source, PandasRequestsCSV)
+        #     ]
+        # )
 
         self.current_data = BarData(data_portal=self.data_portal)
 

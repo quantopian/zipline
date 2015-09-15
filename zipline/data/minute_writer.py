@@ -119,6 +119,21 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
             )
 
 
+class MinuteBarWriterFromDataFrames(BcolzMinuteBarWriter):
+    _csv_dtypes = {
+        'open': float64,
+        'high': float64,
+        'low': float64,
+        'close': float64,
+        'volume': float64,
+    }
+
+    def gen_frames(self, assets):
+        for asset in assets:
+            df = assets[asset]
+            yield asset, df.set_index("minute")
+
+
 class MinuteBarWriterFromCSVs(BcolzMinuteBarWriter):
     """
     BcolzMinuteBarWriter constructed from a map of CSVs to assets.

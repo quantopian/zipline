@@ -17,11 +17,14 @@ from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
 from six.moves import range
+from testfixtures import TempDirectory
 from textwrap import dedent
 from unittest import TestCase
 
+import os
 import numpy as np
 import pandas as pd
+from zipline.data.data_portal import DataPortal
 
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
@@ -101,7 +104,12 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
+from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+from .utils.test_utils import create_data_portal
+
 # Because test cases appear to reuse some resources.
+
+
 _multiprocess_can_split_ = False
 
 
@@ -110,32 +118,31 @@ class TestRecordAlgorithm(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[133])
+        cls.sids = [133]
+        cls.env.write_data(equities_identifiers=cls.sids)
+
+        cls.sim_params = factory.create_simulation_parameters(
+            num_days=4,
+            env=cls.env
+        )
+
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            cls.sids
+        )
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        self.sim_params = factory.create_simulation_parameters(num_days=4,
-                                                               env=self.env)
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params,
-            self.env
-        )
-
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
-        self.df_source, self.df = \
-            factory.create_test_df_source(self.sim_params, self.env)
+        cls.tempdir.cleanup()
 
     def test_record_incr(self):
         algo = RecordAlgorithm(sim_params=self.sim_params, env=self.env)
-        output = algo.run(self.source)
+        output = algo.run(self.data_portal)
 
         np.testing.assert_array_equal(output['incr'].values,
                                       range(1, len(output) + 1))
@@ -197,27 +204,29 @@ class TestMiscellaneousAPI(TestCase):
                            equities_data=metadata,
                            futures_data=futures_metadata)
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
+        setup_logger(cls)
 
-    def setUp(self):
-        setup_logger(self)
-        self.sim_params = factory.create_simulation_parameters(
+        cls.sim_params = factory.create_simulation_parameters(
             num_days=2,
             data_frequency='minute',
             emission_rate='minute',
-            env=self.env,
-        )
-        self.source = factory.create_minutely_trade_source(
-            self.sids,
-            sim_params=self.sim_params,
-            concurrent=True,
-            env=self.env,
+            env=cls.env,
         )
 
-    def tearDown(self):
-        teardown_logger(self)
+        cls.temp_dir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.temp_dir,
+            cls.sim_params,
+            cls.sids
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+        teardown_logger(cls)
+        cls.temp_dir.cleanup()
 
     def test_zipline_api_resolves_dynamically(self):
         # Make a dummy algo.
@@ -260,7 +269,7 @@ class TestMiscellaneousAPI(TestCase):
                                 handle_data=handle_data,
                                 sim_params=self.sim_params,
                                 env=self.env)
-        algo.run(self.source)
+        algo.run(self.data_portal)
 
     def test_get_open_orders(self):
 
@@ -311,7 +320,7 @@ class TestMiscellaneousAPI(TestCase):
                                 handle_data=handle_data,
                                 sim_params=self.sim_params,
                                 env=self.env)
-        algo.run(self.source)
+        algo.run(self.data_portal)
 
     def test_schedule_function(self):
         date_rules = DateRuleFactory
@@ -348,7 +357,7 @@ class TestMiscellaneousAPI(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
-        algo.run(self.source)
+        algo.run(self.data_portal)
 
         self.assertEqual(algo.func_called, algo.days)
 
@@ -356,7 +365,7 @@ class TestMiscellaneousAPI(TestCase):
         ('daily',),
         ('minute'),
     ])
-    def test_schedule_funtion_rule_creation(self, mode):
+    def test_schedule_function_rule_creation(self, mode):
         def nop(*args, **kwargs):
             return None
 
