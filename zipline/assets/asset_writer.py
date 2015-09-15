@@ -4,7 +4,9 @@ from abc import (
 )
 from collections import namedtuple
 
+import re
 import pandas as pd
+import numpy as np
 from six import with_metaclass
 import sqlalchemy as sa
 
@@ -34,7 +36,10 @@ FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
 }
 
 # Expected fields for an Equity's metadata
-EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS
+EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
+    'company_symbol',
+    'share_class_symbol',
+}
 
 EXCHANGE_TABLE_FIELDS = frozenset({
     'exchange',
@@ -87,6 +92,43 @@ _root_symbols_defaults = {
     'description': None,
     'exchange': None,
 }
+
+# Fuzzy symbol delimiters that may break up a company symbol and share class
+_fuzzy_symbol_delimiter_regex = r'[./\-_]'
+_fuzzy_symbol_default_triggers = frozenset({np.nan, None, ''})
+
+
+def split_fuzzy_symbol(fuzzy_symbol):
+    """
+    Takes in a symbol that may be fuzzy and splits it in to a company symbol
+    and share class symbol.
+
+    Parameters
+    ----------
+    fuzzy_symbol : str
+        The possibly-fuzzy symbol to be split
+
+    Returns
+    -------
+    ( str, str )
+        A tuple of ( company_symbol, share_class_symbol )
+    """
+    # return blank strings for any bad fuzzy symbols, like NaN or None
+    if fuzzy_symbol in _fuzzy_symbol_default_triggers:
+        return ('', '')
+
+    split_list = re.split(pattern=_fuzzy_symbol_delimiter_regex,
+                          string=fuzzy_symbol,
+                          maxsplit=1)
+
+    # Break the list up in to its two components, the company symbol and the
+    # share class symbol
+    company_symbol = split_list[0]
+    if len(split_list) > 1:
+        share_class_symbol = split_list[1]
+    else:
+        share_class_symbol = ''
+    return (company_symbol, share_class_symbol)
 
 
 def _generate_output_dataframe(data_subset, defaults):
@@ -163,7 +205,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     """
     def write_all(self,
                   engine,
-                  fuzzy_char=None,
                   allow_sid_assignment=True,
                   constraints=True):
         """ Write pre-supplied data to SQLite.
@@ -172,8 +213,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         ----------
         engine : Engine
             An SQLAlchemy engine to a SQL database.
-        fuzzy_char : str, optional
-            A string for use in fuzzy matching.
         allow_sid_assignment: bool, optional
             If True then the class can assign sids where necessary.
         constraints : bool, optional
@@ -192,7 +231,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_exchanges(data.exchanges, txn)
             self._write_root_symbols(data.root_symbols, txn)
             self._write_futures(data.futures, txn)
-            self._write_equities(data.equities, fuzzy_char, txn)
+            self._write_equities(data.equities, txn)
 
     def _write_exchanges(self, exchanges, bind=None):
         recs = exchanges.reset_index().rename_axis(
@@ -222,11 +261,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self.asset_router.insert().values([(record['sid'], 'future')])\
                 .execute(bind=bind)
 
-    def _write_equities(self, equities, fuzzy_char, bind=None):
-        # Apply fuzzy matching.
-        if fuzzy_char:
-            equities['fuzzy'] = equities['symbol'].str.replace(fuzzy_char, '')
-
+    def _write_equities(self, equities, bind=None):
         recs = equities.reset_index().rename_axis(
             {'index': 'sid'},
             1,
@@ -258,6 +293,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 primary_key=constraints,
             ),
             sa.Column('symbol', sa.Text),
+            sa.Column('company_symbol', sa.Text),
+            sa.Column('share_class_symbol', sa.Text),
             sa.Column('asset_name', sa.Text),
             sa.Column('start_date', sa.Integer, default=0),
             sa.Column('end_date', sa.Integer),
@@ -365,6 +402,15 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             data_subset=data.equities,
             defaults=_equities_defaults,
         )
+
+        # Split symbols to company_symbols and share_class_symbols
+        tuple_series = equities_output['symbol'].apply(split_fuzzy_symbol)
+        split_symbols = pd.DataFrame(
+            tuple_series.tolist(),
+            columns=['company_symbol', 'share_class_symbol'],
+            index=tuple_series.index
+        )
+        equities_output = equities_output.join(split_symbols)
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
         equities_output['start_date'] = \

@@ -292,12 +292,11 @@ class AssetFinderTestCase(TestCase):
             [
                 {
                     'sid': i,
-                    'symbol':  'TEST@%d' % i,
+                    'symbol':  'TEST.%d' % i,
                     'company_name': "company%d" % i,
                     'start_date': as_of.value,
                     'end_date': as_of.value,
-                    'exchange': uuid.uuid4().hex,
-                    'fuzzy': 'TEST%d' % i
+                    'exchange': uuid.uuid4().hex
                 }
                 for i in range(3)
             ]
@@ -308,25 +307,26 @@ class AssetFinderTestCase(TestCase):
             finder.retrieve_asset(i) for i in range(3)
         )
 
-        for i in range(2):  # we do it twice to test for caching bugs
+        # we do it twice to catch caching bugs
+        for i in range(2):
+            # Shouldn't find this with no fuzzy_str passed.
             self.assertIsNone(finder.lookup_symbol('test', as_of))
+            self.assertIsNone(finder.lookup_symbol('test1', as_of))
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test@1', as_of)
+                finder.lookup_symbol('test.1', as_of)
             )
 
             # Adding an unnecessary fuzzy shouldn't matter.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test@1', as_of, fuzzy=True)
+                finder.lookup_symbol('test/1', as_of)
             )
 
-            # Shouldn't find this with no fuzzy_str passed.
-            self.assertIsNone(finder.lookup_symbol('test1', as_of))
             # Should find exact match.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test1', as_of, fuzzy=True),
+                finder.lookup_symbol('test-1', as_of),
             )
 
     def test_lookup_symbol_resolve_multiple(self):
