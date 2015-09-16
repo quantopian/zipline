@@ -25,7 +25,7 @@ class DataPortal(object):
                  env,
                  sim_params=None,
                  benchmark_iter=None,  # FIXME hack
-                 findata_dir=None,
+                 minutes_equities_path=None,
                  daily_equities_path=None,
                  adjustments_path=None,
                  asset_finder=None,
@@ -38,21 +38,18 @@ class DataPortal(object):
 
         self.views = {}
 
-        if findata_dir is None:
-            raise ValueError("Must provide findata dir!")
+        if minutes_equities_path is None and daily_equities_path is None:
+            raise ValueError("Must provide at least one of minute or "
+                             "daily data path!")
 
-        if daily_equities_path is None:
-            raise ValueError("Must provide daily equities path!")
+        # if adjustments_path is None:
+        #     raise ValueError("Must provide adjustments path!")
+        #
+        # if asset_finder is None:
+        #     raise ValueError("Must provide asset finder!")
 
-        if adjustments_path is None:
-            raise ValueError("Must provide adjustments path!")
-
-        if asset_finder is None:
-            raise ValueError("Must provide asset finder!")
-
-        self.findata_dir = findata_dir
+        self.minutes_equities_path = minutes_equities_path
         self.daily_equities_path = daily_equities_path
-        self.adjustments_path = adjustments_path
         self.asset_finder = asset_finder
 
         self.carrays = {
@@ -78,7 +75,8 @@ class DataPortal(object):
             'price': 'close'
         }
 
-        self.adjustments_conn = sqlite3.connect(self.adjustments_path)
+        if adjustments_path is not None:
+            self.adjustments_conn = sqlite3.connect(adjustments_path)
 
         # caches of sid -> adjustment list
         self.splits_dict = {}
@@ -150,9 +148,9 @@ class DataPortal(object):
     def _open_minute_file(self, field, sid):
 
         if self.sid_path_func is None:
-            path = "{0}/{1}.bcolz".format(self.findata_dir, sid)
+            path = "{0}/{1}.bcolz".format(self.minutes_equities_path, sid)
         else:
-            path = self.sid_path_func(self.findata_dir, sid)
+            path = self.sid_path_func(self.minutes_equities_path, sid)
 
         try:
             carray = self.carrays[field][path]
@@ -743,6 +741,10 @@ class DataPortal(object):
     def get_benchmark_returns_for_day(self, day):
         # For now use benchmark iterator, and assume this is only called
         # once a day.
+        if self.benchmark_iter is None:
+            # FIXME
+            return 0
+
         return next(self.benchmark_iter).returns
 
     def get_simple_transform(self, sid, transform_name, bars=None):
