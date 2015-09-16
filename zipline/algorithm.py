@@ -752,7 +752,6 @@ class TradingAlgorithm(object):
         return self.asset_finder.lookup_symbol(
             symbol_str,
             as_of_date=_lookup_date,
-            default_None=False,
         )
 
     @api_method

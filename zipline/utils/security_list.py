@@ -6,6 +6,8 @@ import pandas as pd
 import pytz
 import zipline
 
+from zipline.errors import SymbolNotFound
+
 
 DATE_FORMAT = "%Y%m%d"
 zipline_dir = os.path.dirname(zipline.__file__)
@@ -70,12 +72,13 @@ class SecurityList(object):
 
     def update_current(self, effective_date, symbols, change_func):
         for symbol in symbols:
-            asset = self.asset_finder.lookup_symbol(
-                symbol,
-                as_of_date=effective_date
-            )
+            try:
+                asset = self.asset_finder.lookup_symbol(
+                    symbol,
+                    as_of_date=effective_date
+                )
             # Pass if no Asset exists for the symbol
-            if asset is None:
+            except SymbolNotFound:
                 continue
             change_func(asset.sid)
 

@@ -309,10 +309,13 @@ class AssetFinderTestCase(TestCase):
 
         # we do it twice to catch caching bugs
         for i in range(2):
-            self.assertIsNone(finder.lookup_symbol('test', as_of))
-            self.assertIsNone(finder.lookup_symbol('test1', as_of))
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('test', as_of)
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('test1', as_of)
             # '@' is not a supported delimiter
-            self.assertIsNone(finder.lookup_symbol('test@1', as_of))
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('test@1', as_of)
 
             # Adding an unnecessary fuzzy shouldn't matter.
             for fuzzy_char in ['-', '/', '_', '.']:
@@ -333,8 +336,10 @@ class AssetFinderTestCase(TestCase):
 
         # Try combos of looking up PRTYHRD with and without a time or fuzzy
         # Both non-fuzzys get no result
-        self.assertIsNone(finder.lookup_symbol('PRTYHRD', None))
-        self.assertIsNone(finder.lookup_symbol('PRTYHRD', dt))
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', None)
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', dt)
         # Both fuzzys work
         self.assertEqual(0, finder.lookup_symbol('PRTYHRD', None, fuzzy=True))
         self.assertEqual(0, finder.lookup_symbol('PRTYHRD', dt, fuzzy=True))
@@ -379,8 +384,7 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('non_existing', dates[0],
-                                     default_None=False)
+                finder.lookup_symbol('non_existing', dates[0])
 
             with self.assertRaises(MultipleSymbolsFound):
                 finder.lookup_symbol('existing', None)
@@ -388,11 +392,7 @@ class AssetFinderTestCase(TestCase):
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                result = finder.lookup_symbol(
-                    'existing',
-                    date,
-                    default_None=False,
-                )
+                result = finder.lookup_symbol('existing', date)
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 

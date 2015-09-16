@@ -261,16 +261,14 @@ class AssetFinder(object):
         self._future_cache[sid] = future
         return future
 
-    def lookup_symbol(self, symbol, as_of_date, default_None=True,
-                      fuzzy=False):
+    def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
         Return matching Equity of name symbol in database.
 
         If multiple Equities are found and as_of_date is not set,
         raises MultipleSymbolsFound.
 
-        If no Equity was active at as_of_date raises SymbolNotFound, or None
-        if default_None is true.
+        If no Equity was active at as_of_date raises SymbolNotFound.
         """
 
         # Format inputs
@@ -337,10 +335,7 @@ class AssetFinder(object):
                 if sid is not None:
                     return self._retrieve_equity(sid)
 
-            if default_None:
-                return None
-            else:
-                raise SymbolNotFound(symbol=symbol)
+            raise SymbolNotFound(symbol=symbol)
 
         else:
             # If this is a fuzzy look-up, check if there is exactly one match
@@ -359,10 +354,7 @@ class AssetFinder(object):
             if len(sids) == 1:
                 return self._retrieve_equity(sids[0]['sid'])
             elif not sids:
-                if default_None:
-                    return None
-                else:
-                    raise SymbolNotFound(symbol=symbol)
+                raise SymbolNotFound(symbol=symbol)
             else:
                 raise MultipleSymbolsFound(
                     symbol=symbol,
@@ -477,8 +469,7 @@ class AssetFinder(object):
         elif isinstance(asset_convertible, string_types):
             try:
                 matches.append(
-                    self.lookup_symbol(asset_convertible, as_of_date,
-                                       default_None=False)
+                    self.lookup_symbol(asset_convertible, as_of_date)
                 )
             except SymbolNotFound:
                 missing.append(asset_convertible)
