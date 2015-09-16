@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-import warnings
 
 import pytz
 import pandas as pd
@@ -75,7 +74,6 @@ from zipline.modelling.engine import (
     NoOpFFCEngine,
     SimpleFFCEngine,
 )
-from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.api_support import (
     api_method,
     require_not_initialized,
@@ -450,7 +448,8 @@ class TradingAlgorithm(object):
 
         self.data_gen = self._create_data_generator(source_filter, sim_params)
 
-        self.trading_client = AlgorithmSimulator(self, sim_params, self.data_portal)
+        self.trading_client = AlgorithmSimulator(self, sim_params,
+                                                 self.data_portal)
 
         transact_method = transact_partial(self.slippage, self.commission)
         self.set_transact(transact_method)
@@ -1059,63 +1058,18 @@ class TradingAlgorithm(object):
         self.blotter.cancel(order_id)
 
     @api_method
-    def add_history(self, bar_count, frequency, field, ffill=True):
-        data_frequency = self.sim_params.data_frequency
-        history_spec = HistorySpec(bar_count, frequency, field, ffill,
-                                   data_frequency=data_frequency,
-                                   env=self.trading_environment)
-        self.history_specs[history_spec.key_str] = history_spec
-        if self.initialized:
-            if self.history_container:
-                self.history_container.ensure_spec(
-                    history_spec, self.datetime, self._most_recent_data,
-                )
-            else:
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.sim_params.first_open,
-                    self.sim_params.data_frequency,
-                    env=self.trading_environment,
-                )
+    def history(self, sids, bar_count, frequency, field, ffill=True):
+        if self.data_portal is None:
+            raise Exception("no data portal!")
 
-    def get_history_spec(self, bar_count, frequency, field, ffill):
-        spec_key = HistorySpec.spec_key(bar_count, frequency, field, ffill)
-        if spec_key not in self.history_specs:
-            data_freq = self.sim_params.data_frequency
-            spec = HistorySpec(
-                bar_count,
-                frequency,
-                field,
-                ffill,
-                data_frequency=data_freq,
-                env=self.trading_environment,
-            )
-            self.history_specs[spec_key] = spec
-            if not self.history_container:
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.datetime,
-                    self.sim_params.data_frequency,
-                    bar_data=self._most_recent_data,
-                    env=self.trading_environment,
-                )
-            self.history_container.ensure_spec(
-                spec, self.datetime, self._most_recent_data,
-            )
-        return self.history_specs[spec_key]
-
-    @api_method
-    def history(self, bar_count, frequency, field, ffill=True):
-        history_spec = self.get_history_spec(
+        return self.data_portal.get_history_window(
+            sids,
+            self.get_datetime(),
             bar_count,
             frequency,
             field,
-            ffill,
+            ffill
         )
-        return self.history_container.get_history(history_spec, self.datetime)
-
     ####################
     # Account Controls #
     ####################

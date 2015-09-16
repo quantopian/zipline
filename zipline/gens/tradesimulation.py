@@ -12,22 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import math
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
 
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
-from zipline.assets import AssetFinder
 
 from zipline.protocol import BarData
-from zipline.data.data_portal import DataPortal
 
 from zipline.gens.sim_engine import DayEngine
-from zipline.sources.requests_csv import PandasRequestsCSV
 
 from zipline.utils.api_support import ZiplineAPI
 
@@ -64,9 +58,10 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        benchmark_iter = None
-        if hasattr(self.algo, "benchmark_iter"):
-            benchmark_iter = iter(self.algo.benchmark_iter)
+        # FIXME
+        # benchmark_iter = None
+        # if hasattr(self.algo, "benchmark_iter"):
+        #     benchmark_iter = iter(self.algo.benchmark_iter)
 
         # engine = create_engine('sqlite:///' + os.getenv('ASSETS_DB_PATH'))
         #
