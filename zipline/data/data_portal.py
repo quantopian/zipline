@@ -39,7 +39,8 @@ class DataPortal(object):
         self.views = {}
 
         if minutes_equities_path is None and daily_equities_path is None:
-            raise ValueError("Must provide at least one of minute or daily data path!")
+            raise ValueError("Must provide at least one of minute or "
+                             "daily data path!")
 
         # if adjustments_path is None:
         #     raise ValueError("Must provide adjustments path!")
