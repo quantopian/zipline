@@ -262,15 +262,19 @@ class AssetFinder(object):
         self._future_cache[sid] = future
         return future
 
-    def lookup_symbol_resolve_multiple(self, symbol, as_of_date=None):
+    def lookup_symbol(self, symbol, as_of_date, default_None=True):
         """
         Return matching Asset of name symbol in database.
 
         If multiple Assets are found and as_of_date is not set,
         raises MultipleSymbolsFound.
 
-        If no Asset was active at as_of_date raises SymbolNotFound.
+        If no Asset was active at as_of_date raises SymbolNotFound, or None
+        if default_None is true.
         """
+
+        # Format inputs
+        symbol = symbol.upper()
         if as_of_date is not None:
             as_of_date = pd.Timestamp(normalize_date(as_of_date))
 
@@ -317,7 +321,10 @@ class AssetFinder(object):
                 if sid is not None:
                     return self._retrieve_equity(sid)
 
-            raise SymbolNotFound(symbol=symbol)
+            if default_None:
+                return None
+            else:
+                raise SymbolNotFound(symbol=symbol)
 
         else:
             sids = sa.select((equities_cols.sid,)).where(
@@ -327,7 +334,10 @@ class AssetFinder(object):
             if len(sids) == 1:
                 return self._retrieve_equity(sids[0]['sid'])
             elif not sids:
-                raise SymbolNotFound(symbol=symbol)
+                if default_None:
+                    return None
+                else:
+                    raise SymbolNotFound(symbol=symbol)
             else:
                 raise MultipleSymbolsFound(
                     symbol=symbol,
@@ -336,23 +346,6 @@ class AssetFinder(object):
                         sids,
                     ))
                 )
-
-    def lookup_symbol(self, symbol, as_of_date):
-        """
-        If a fuzzy string is provided, then we try various symbols based on
-        the provided symbol.  This is to facilitate mapping from a broker's
-        symbol to ours in cases where mapping to the broker's symbol loses
-        information. For example, if we have CMCS_A, but a broker has CMCSA,
-        when the broker provides CMCSA, it can also provide fuzzy='_',
-        so we can find a match by inserting an underscore.
-        """
-
-        symbol = symbol.upper()
-
-        try:
-            return self.lookup_symbol_resolve_multiple(symbol, as_of_date)
-        except SymbolNotFound:
-            return None
 
     def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
@@ -459,10 +452,8 @@ class AssetFinder(object):
         elif isinstance(asset_convertible, string_types):
             try:
                 matches.append(
-                    self.lookup_symbol_resolve_multiple(
-                        asset_convertible,
-                        as_of_date,
-                    )
+                    self.lookup_symbol(asset_convertible, as_of_date,
+                                       default_None=False)
                 )
             except SymbolNotFound:
                 missing.append(asset_convertible)

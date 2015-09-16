@@ -312,24 +312,15 @@ class AssetFinderTestCase(TestCase):
             # Shouldn't find this with no fuzzy_str passed.
             self.assertIsNone(finder.lookup_symbol('test', as_of))
             self.assertIsNone(finder.lookup_symbol('test1', as_of))
-            self.assertEqual(
-                asset_1,
-                finder.lookup_symbol('test.1', as_of)
-            )
+            self.assertEqual(asset_1, finder.lookup_symbol('test.1', as_of))
 
             # Adding an unnecessary fuzzy shouldn't matter.
-            self.assertEqual(
-                asset_1,
-                finder.lookup_symbol('test/1', as_of)
-            )
+            self.assertEqual(asset_1, finder.lookup_symbol('test/1', as_of))
 
             # Should find exact match.
-            self.assertEqual(
-                asset_1,
-                finder.lookup_symbol('test-1', as_of),
-            )
+            self.assertEqual(asset_1, finder.lookup_symbol('test-1', as_of))
 
-    def test_lookup_symbol_resolve_multiple(self):
+    def test_lookup_symbol(self):
 
         # Incrementing by two so that start and end dates for each
         # generated Asset don't overlap (each Asset's end_date is the
@@ -351,19 +342,21 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol_resolve_multiple('non_existing', dates[0])
+                finder.lookup_symbol('non_existing', dates[0],
+                                     default_None=False)
 
             with self.assertRaises(MultipleSymbolsFound):
-                finder.lookup_symbol_resolve_multiple('existing', None)
+                finder.lookup_symbol('existing', None)
 
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                result = finder.lookup_symbol_resolve_multiple(
+                result = finder.lookup_symbol(
                     'existing',
                     date,
+                    default_None=False,
                 )
-                self.assertEqual(result.symbol, 'existing')
+                self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
     @parameterized.expand(
@@ -422,11 +415,11 @@ class AssetFinderTestCase(TestCase):
         )
 
         self.assertEqual(len(results), 3)
-        self.assertEqual(results[0].symbol, 'real')
+        self.assertEqual(results[0].symbol, 'REAL')
         self.assertEqual(results[0].sid, 0)
-        self.assertEqual(results[1].symbol, 'also_real')
+        self.assertEqual(results[1].symbol, 'ALSO_REAL')
         self.assertEqual(results[1].sid, 1)
-        self.assertEqual(results[2].symbol, 'real_but_old')
+        self.assertEqual(results[2].symbol, 'REAL_BUT_OLD')
         self.assertEqual(results[2].sid, 2)
 
         self.assertEqual(len(missing), 2)

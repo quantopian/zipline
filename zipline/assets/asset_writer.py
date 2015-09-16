@@ -412,6 +412,14 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         )
         equities_output = equities_output.join(split_symbols)
 
+        # Upper-case all symbol data
+        equities_output['symbol'] = \
+            equities_output.symbol.str.upper()
+        equities_output['company_symbol'] = \
+            equities_output.company_symbol.str.upper()
+        equities_output['share_class_symbol'] = \
+            equities_output.share_class_symbol.str.upper()
+
         # Convert date columns to UNIX Epoch integers (nanoseconds)
         equities_output['start_date'] = \
             equities_output['start_date'].apply(self.convert_datetime)

@@ -503,7 +503,7 @@ class TestMiscellaneousAPI(TestCase):
         self.assertEqual(result.symbol, 'DUP')
 
         # By first calling set_symbol_lookup_date, the relevant asset
-        # should be returned by lookup_symbol_resolve_multiple
+        # should be returned by lookup_symbol
         for i, date in enumerate(dates):
             algo.set_symbol_lookup_date(date)
             result = algo.symbol('DUP')
