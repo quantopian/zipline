@@ -87,8 +87,9 @@ class AssetFinder(object):
     # reference to an AssetFinder
     PERSISTENT_TOKEN = "<AssetFinder>"
 
-    def __init__(self, engine, allow_sid_assignment=True):
+    def __init__(self, engine, allow_sid_assignment=True, fuzzy_char=None):
 
+        self.fuzzy_char = fuzzy_char
         self.allow_sid_assignment = allow_sid_assignment
 
         self.engine = engine
@@ -329,26 +330,26 @@ class AssetFinder(object):
                     ))
                 )
 
-    def lookup_symbol(self, symbol, as_of_date, fuzzy_char=None):
+    def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
         If a fuzzy string is provided, then we try various symbols based on
         the provided symbol.  This is to facilitate mapping from a broker's
         symbol to ours in cases where mapping to the broker's symbol loses
         information. For example, if we have CMCS_A, but a broker has CMCSA,
-        when the broker provides CMCSA, it can also provide fuzzy_char='_',
+        when the broker provides CMCSA, it can also provide fuzzy='_',
         so we can find a match by inserting an underscore.
         """
 
         symbol = symbol.upper()
         ad_value = pd.Timestamp(normalize_date(as_of_date)).value
 
-        if fuzzy_char is None:
+        if not fuzzy:
             try:
                 return self.lookup_symbol_resolve_multiple(symbol, as_of_date)
             except SymbolNotFound:
                 return None
 
-        fuzzy = symbol.replace(fuzzy_char, '')
+        fuzzy = symbol.replace(self.fuzzy_char, '')
 
         equities_cols = self.equities.c
         candidates = sa.select((equities_cols.sid,)).where(

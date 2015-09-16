@@ -303,7 +303,7 @@ class AssetFinderTestCase(TestCase):
             ]
         )
         self.env.write_data(equities_df=frame)
-        finder = self.env.asset_finder
+        finder = AssetFinder(self.env.engine, fuzzy_char='@')
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
@@ -318,7 +318,7 @@ class AssetFinderTestCase(TestCase):
             # Adding an unnecessary fuzzy shouldn't matter.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test@1', as_of, fuzzy_char='@')
+                finder.lookup_symbol('test@1', as_of, fuzzy=True)
             )
 
             # Shouldn't find this with no fuzzy_str passed.
@@ -326,7 +326,7 @@ class AssetFinderTestCase(TestCase):
             # Should find exact match.
             self.assertEqual(
                 asset_1,
-                finder.lookup_symbol('test1', as_of, fuzzy_char='@'),
+                finder.lookup_symbol('test1', as_of, fuzzy=True),
             )
 
     def test_lookup_symbol_resolve_multiple(self):
