@@ -39,7 +39,7 @@ from zipline.assets import (
 from zipline.assets.asset_writer import (
     FUTURE_TABLE_FIELDS,
     EQUITY_TABLE_FIELDS,
-    split_fuzzy_symbol,
+    split_delimited_symbol,
 )
 
 log = Logger('assets.py')
@@ -88,9 +88,8 @@ class AssetFinder(object):
     # reference to an AssetFinder
     PERSISTENT_TOKEN = "<AssetFinder>"
 
-    def __init__(self, engine, allow_sid_assignment=True, fuzzy_char=None):
+    def __init__(self, engine, allow_sid_assignment=True):
 
-        self.fuzzy_char = fuzzy_char
         self.allow_sid_assignment = allow_sid_assignment
 
         self.engine = engine
@@ -262,14 +261,15 @@ class AssetFinder(object):
         self._future_cache[sid] = future
         return future
 
-    def lookup_symbol(self, symbol, as_of_date, default_None=True):
+    def lookup_symbol(self, symbol, as_of_date, default_None=True,
+                      fuzzy=False):
         """
-        Return matching Asset of name symbol in database.
+        Return matching Equity of name symbol in database.
 
-        If multiple Assets are found and as_of_date is not set,
+        If multiple Equities are found and as_of_date is not set,
         raises MultipleSymbolsFound.
 
-        If no Asset was active at as_of_date raises SymbolNotFound, or None
+        If no Equity was active at as_of_date raises SymbolNotFound, or None
         if default_None is true.
         """
 
@@ -278,19 +278,35 @@ class AssetFinder(object):
         if as_of_date is not None:
             as_of_date = pd.Timestamp(normalize_date(as_of_date))
 
-        company_symbol, share_class_symbol = split_fuzzy_symbol(symbol)
+        company_symbol, share_class_symbol, fuzzy_symbol = \
+            split_delimited_symbol(symbol)
 
         equities_cols = self.equities.c
         if as_of_date:
             ad_value = as_of_date.value
 
-            # If one SID exists for symbol, return that symbol
+            if fuzzy:
+                # Search for a single exact match on the fuzzy column
+                fuzzy_candidates = sa.select((equities_cols.sid,)).where(
+                    (equities_cols.fuzzy_symbol == fuzzy_symbol) &
+                    (equities_cols.start_date <= ad_value) &
+                    (equities_cols.end_date >= ad_value),
+                ).execute().fetchall()
+
+                # If exactly one SID exists for fuzzy_symbol, return that sid
+                if len(fuzzy_candidates) == 1:
+                    return self._retrieve_equity(fuzzy_candidates[0]['sid'])
+
+            # Search for exact matches of the split-up company_symbol and
+            # share_class_symbol
             candidates = sa.select((equities_cols.sid,)).where(
                 (equities_cols.company_symbol == company_symbol) &
                 (equities_cols.share_class_symbol == share_class_symbol) &
                 (equities_cols.start_date <= ad_value) &
                 (equities_cols.end_date >= ad_value),
             ).execute().fetchall()
+
+            # If exactly one SID exists for symbol, return that symbol
             if len(candidates) == 1:
                 return self._retrieve_equity(candidates[0]['sid'])
 
@@ -327,6 +343,15 @@ class AssetFinder(object):
                 raise SymbolNotFound(symbol=symbol)
 
         else:
+            # If this is a fuzzy look-up, check if there is exactly one match
+            # for the fuzzy symbol
+            if fuzzy:
+                fuzzy_sids = sa.select((equities_cols.sid,)).where(
+                    (equities_cols.fuzzy_symbol == fuzzy_symbol)
+                ).execute().fetchall()
+                if len(fuzzy_sids) == 1:
+                    return self._retrieve_equity(fuzzy_sids[0]['sid'])
+
             sids = sa.select((equities_cols.sid,)).where(
                 (equities_cols.company_symbol == company_symbol) &
                 (equities_cols.share_class_symbol == share_class_symbol)

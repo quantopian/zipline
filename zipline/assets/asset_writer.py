@@ -39,6 +39,7 @@ FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
 EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
     'company_symbol',
     'share_class_symbol',
+    'fuzzy_symbol',
 }
 
 EXCHANGE_TABLE_FIELDS = frozenset({
@@ -94,31 +95,32 @@ _root_symbols_defaults = {
 }
 
 # Fuzzy symbol delimiters that may break up a company symbol and share class
-_fuzzy_symbol_delimiter_regex = r'[./\-_]'
-_fuzzy_symbol_default_triggers = frozenset({np.nan, None, ''})
+_delimited_symbol_delimiter_regex = r'[./\-_]'
+_delimited_symbol_default_triggers = frozenset({np.nan, None, ''})
 
 
-def split_fuzzy_symbol(fuzzy_symbol):
+def split_delimited_symbol(symbol):
     """
-    Takes in a symbol that may be fuzzy and splits it in to a company symbol
-    and share class symbol.
+    Takes in a symbol that may be delimited and splits it in to a company
+    symbol and share class symbol. Also returns the fuzzy symbol, which is the
+    symbol without any fuzzy characters at all.
 
     Parameters
     ----------
-    fuzzy_symbol : str
-        The possibly-fuzzy symbol to be split
+    symbol : str
+        The possibly-delimited symbol to be split
 
     Returns
     -------
-    ( str, str )
-        A tuple of ( company_symbol, share_class_symbol )
+    ( str, str , str )
+        A tuple of ( company_symbol, share_class_symbol, fuzzy_symbol)
     """
     # return blank strings for any bad fuzzy symbols, like NaN or None
-    if fuzzy_symbol in _fuzzy_symbol_default_triggers:
-        return ('', '')
+    if symbol in _delimited_symbol_default_triggers:
+        return ('', '', '')
 
-    split_list = re.split(pattern=_fuzzy_symbol_delimiter_regex,
-                          string=fuzzy_symbol,
+    split_list = re.split(pattern=_delimited_symbol_delimiter_regex,
+                          string=symbol,
                           maxsplit=1)
 
     # Break the list up in to its two components, the company symbol and the
@@ -128,7 +130,13 @@ def split_fuzzy_symbol(fuzzy_symbol):
         share_class_symbol = split_list[1]
     else:
         share_class_symbol = ''
-    return (company_symbol, share_class_symbol)
+
+    # Strip all fuzzy characters from the symbol to get the fuzzy symbol
+    fuzzy_symbol = re.sub(pattern=_delimited_symbol_delimiter_regex,
+                          repl='',
+                          string=symbol)
+
+    return (company_symbol, share_class_symbol, fuzzy_symbol)
 
 
 def _generate_output_dataframe(data_subset, defaults):
@@ -194,8 +202,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     Methods
     -------
-    write_all(engine, fuzzy_char=None, allow_sid_assignment=True,
-              constraints=False)
+    write_all(engine, allow_sid_assignment=True, constraints=False)
         Write the data supplied at initialization to the database.
     init_db(engine, constraints=False)
         Create the SQLite tables (called by write_all).
@@ -295,6 +302,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('symbol', sa.Text),
             sa.Column('company_symbol', sa.Text),
             sa.Column('share_class_symbol', sa.Text),
+            sa.Column('fuzzy_symbol', sa.Text),
             sa.Column('asset_name', sa.Text),
             sa.Column('start_date', sa.Integer, default=0),
             sa.Column('end_date', sa.Integer),
@@ -404,10 +412,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         )
 
         # Split symbols to company_symbols and share_class_symbols
-        tuple_series = equities_output['symbol'].apply(split_fuzzy_symbol)
+        tuple_series = equities_output['symbol'].apply(split_delimited_symbol)
         split_symbols = pd.DataFrame(
             tuple_series.tolist(),
-            columns=['company_symbol', 'share_class_symbol'],
+            columns=['company_symbol', 'share_class_symbol', 'fuzzy_symbol'],
             index=tuple_series.index
         )
         equities_output = equities_output.join(split_symbols)
@@ -419,6 +427,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             equities_output.company_symbol.str.upper()
         equities_output['share_class_symbol'] = \
             equities_output.share_class_symbol.str.upper()
+        equities_output['fuzzy_symbol'] = \
+            equities_output.fuzzy_symbol.str.upper()
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
         equities_output['start_date'] = \
