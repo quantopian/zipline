@@ -63,7 +63,6 @@ _equities_defaults = {
     'end_date': 2 ** 62 - 1,
     'first_traded': None,
     'exchange': None,
-    'fuzzy': None,
 }
 
 # Default values for the futures DataFrame
@@ -308,7 +307,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('end_date', sa.Integer),
             sa.Column('first_traded', sa.Integer),
             sa.Column('exchange', sa.Text),
-            sa.Column('fuzzy', sa.Text),
         )
         self.futures_exchanges = sa.Table(
             'futures_exchanges',
@@ -405,6 +403,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         if ('company_name' in data.equities.columns) \
                 and ('asset_name' not in data.equities.columns):
             data.equities['asset_name'] = data.equities['company_name']
+        if ('file_name' in data.equities.columns):
+            data.equities['symbol'] = data.equities['file_name']
 
         equities_output = _generate_output_dataframe(
             data_subset=data.equities,
