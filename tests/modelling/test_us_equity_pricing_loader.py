@@ -21,6 +21,8 @@ from nose_parameterized import parameterized
 from numpy import (
     arange,
     datetime64,
+    float64,
+    ones,
     uint32,
 )
 from numpy.testing import (
@@ -31,6 +33,7 @@ from pandas import (
     concat,
     DataFrame,
     DatetimeIndex,
+    Int64Index,
     Timestamp,
 )
 from pandas.util.testing import assert_index_equal
@@ -206,8 +209,8 @@ class BcolzDailyBarTestCase(TestCase):
     def _check_read_results(self, columns, assets, start_date, end_date):
         table = self.writer.write(self.dest, self.trading_days, self.assets)
         reader = BcolzDailyBarReader(table)
+        results = reader.load_raw_arrays(columns, start_date, end_date, assets)
         dates = self.trading_days_between(start_date, end_date)
-        results = reader.load_raw_arrays(columns, dates, assets)
         for column, result in zip(columns, results):
             assert_array_equal(
                 result,
@@ -433,10 +436,14 @@ class USEquityPricingLoaderTestCase(TestCase):
                 self.assertGreaterEqual(eff_date, asset_start)
                 self.assertLessEqual(eff_date, asset_end)
 
-    def calendar_days_between(self, start_date, end_date):
-        return self.calendar_days[
-            self.calendar_days.slice_indexer(start_date, end_date)
-        ]
+    def calendar_days_between(self, start_date, end_date, shift=0):
+        slice_ = self.calendar_days.slice_indexer(start_date, end_date)
+        start = slice_.start + shift
+        stop = slice_.stop + shift
+        if start < 0:
+            raise KeyError(start_date, shift)
+
+        return self.calendar_days[start:stop]
 
     def expected_adjustments(self, start_date, end_date):
         price_adjustments = {}
@@ -448,23 +455,20 @@ class USEquityPricingLoaderTestCase(TestCase):
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
                 eff_date = Timestamp(eff_date_secs, unit='s', tz='UTC')
 
-                # The boundary conditions here are subtle.  An adjustment with
-                # an effective date equal to the query start can't have an
-                # effect because adjustments only the array for dates strictly
-                # less than the adjustment effective date.
-                if not (start_date < eff_date <= end_date):
+                # Ignore adjustments outside the query bounds.
+                if not (start_date <= eff_date <= end_date):
                     continue
 
                 eff_date_loc = query_days.get_loc(eff_date)
                 delta = eff_date_loc - start_loc
 
-                # Pricing adjusments should be applied on the date
+                # Pricing adjustments should be applied on the date
                 # corresponding to the effective date of the input data. They
                 # should affect all rows **before** the effective date.
                 price_adjustments.setdefault(delta, []).append(
                     Float64Multiply(
                         first_row=0,
-                        last_row=delta - 1,
+                        last_row=delta,
                         col=sid - 1,
                         value=ratio,
                     )
@@ -474,7 +478,7 @@ class USEquityPricingLoaderTestCase(TestCase):
                     volume_adjustments.setdefault(delta, []).append(
                         Float64Multiply(
                             first_row=0,
-                            last_row=delta - 1,
+                            last_row=delta,
                             col=sid - 1,
                             value=1.0 / ratio,
                         )
@@ -486,7 +490,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         columns = [USEquityPricing.close, USEquityPricing.volume]
         query_days = self.calendar_days_between(
             TEST_QUERY_START,
-            TEST_QUERY_STOP
+            TEST_QUERY_STOP,
         )
 
         adjustments = reader.load_adjustments(
@@ -510,6 +514,13 @@ class USEquityPricingLoaderTestCase(TestCase):
             TEST_QUERY_START,
             TEST_QUERY_STOP
         )
+        # Our expected results for each day are based on values from the
+        # previous day.
+        shifted_query_days = self.calendar_days_between(
+            TEST_QUERY_START,
+            TEST_QUERY_STOP,
+            shift=-1,
+        )
 
         adjustments = adjustment_reader.load_adjustments(
             columns,
@@ -526,16 +537,18 @@ class USEquityPricingLoaderTestCase(TestCase):
 
         closes, volumes = pricing_loader.load_adjusted_array(
             columns,
-            DataFrame(True, index=query_days, columns=self.assets),
+            dates=query_days,
+            assets=self.assets,
+            mask=ones((len(query_days), len(self.assets)), dtype=bool),
         )
 
         expected_baseline_closes = self.bcolz_writer.expected_values_2d(
-            query_days,
+            shifted_query_days,
             self.assets,
             'close',
         )
         expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
-            query_days,
+            shifted_query_days,
             self.assets,
             'volume',
         )
@@ -562,25 +575,35 @@ class USEquityPricingLoaderTestCase(TestCase):
 
     def apply_adjustments(self, dates, assets, baseline_values, adjustments):
         min_date, max_date = dates[[0, -1]]
-        values = baseline_values.copy()
+        # HACK: Simulate the coercion to float64 we do in adjusted_array.  This
+        # should be removed when AdjustedArray properly supports
+        # non-floating-point types.
+        orig_dtype = baseline_values.dtype
+        values = baseline_values.astype(float64).copy()
         for eff_date_secs, ratio, sid in adjustments.itertuples(index=False):
             eff_date = seconds_to_timestamp(eff_date_secs)
-            if eff_date < min_date or eff_date > max_date:
+            # Don't apply adjustments that aren't in the current date range.
+            if eff_date not in dates:
                 continue
             eff_date_loc = dates.get_loc(eff_date)
             asset_col = assets.get_loc(sid)
-            # Apply ratio multiplicatively to the asset column on all rows
-            # **strictly less** than the adjustment effective date.  Note that
-            # this will be a no-op in the case that the effective date is the
-            # first entry in dates.
-            values[:eff_date_loc, asset_col] *= ratio
-        return values
+            # Apply ratio multiplicatively to the asset column on all rows less
+            # than or equal adjustment effective date.
+            values[:eff_date_loc + 1, asset_col] *= ratio
+        return values.astype(orig_dtype)
 
     def test_read_with_adjustments(self):
         columns = [USEquityPricing.high, USEquityPricing.volume]
         query_days = self.calendar_days_between(
             TEST_QUERY_START,
             TEST_QUERY_STOP
+        )
+        # Our expected results for each day are based on values from the
+        # previous day.
+        shifted_query_days = self.calendar_days_between(
+            TEST_QUERY_START,
+            TEST_QUERY_STOP,
+            shift=-1,
         )
 
         baseline_reader = BcolzDailyBarReader(self.bcolz_path)
@@ -590,18 +613,20 @@ class USEquityPricingLoaderTestCase(TestCase):
             adjustment_reader,
         )
 
-        closes, volumes = pricing_loader.load_adjusted_array(
+        highs, volumes = pricing_loader.load_adjusted_array(
             columns,
-            DataFrame(True, index=query_days, columns=arange(1, 7)),
+            dates=query_days,
+            assets=Int64Index(arange(1, 7)),
+            mask=ones((len(query_days), 6), dtype=bool),
         )
 
         expected_baseline_highs = self.bcolz_writer.expected_values_2d(
-            query_days,
+            shifted_query_days,
             self.assets,
             'high',
         )
         expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
-            query_days,
+            shifted_query_days,
             self.assets,
             'volume',
         )
@@ -609,7 +634,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         # At each point in time, the AdjustedArrays should yield the baseline
         # with all adjustments up to that date applied.
         for windowlen in range(1, len(query_days) + 1):
-            for offset, window in enumerate(closes.traverse(windowlen)):
+            for offset, window in enumerate(highs.traverse(windowlen)):
                 baseline = expected_baseline_highs[offset:offset + windowlen]
                 baseline_dates = query_days[offset:offset + windowlen]
                 expected_adjusted_highs = self.apply_adjustments(
@@ -627,6 +652,7 @@ class USEquityPricingLoaderTestCase(TestCase):
                 # Apply only splits and invert the ratio.
                 adjustments = SPLITS.copy()
                 adjustments.ratio = 1 / adjustments.ratio
+
                 expected_adjusted_volumes = self.apply_adjustments(
                     baseline_dates,
                     self.assets,
@@ -641,6 +667,6 @@ class USEquityPricingLoaderTestCase(TestCase):
 
         # Verify that we checked up to the longest possible window.
         with self.assertRaises(WindowLengthTooLong):
-            closes.traverse(windowlen + 1)
+            highs.traverse(windowlen + 1)
         with self.assertRaises(WindowLengthTooLong):
             volumes.traverse(windowlen + 1)

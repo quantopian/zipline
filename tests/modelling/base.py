@@ -5,13 +5,14 @@ from functools import wraps
 from unittest import TestCase
 
 from numpy import arange, prod
-from numpy.random import randn, seed as random_seed
 from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
 from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
 from zipline.modelling.graph import TermGraph
+from zipline.modelling.term import AssetExists
+from zipline.utils.pandas_utils import explode
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
 from zipline.utils.tradingcalendar import trading_day
 
@@ -56,9 +57,15 @@ class BaseFFCTestCase(TestCase):
                 assets,
                 self.__calendar[0],
                 self.__calendar[-1],
-            ))
+            ),
+        )
         self.__finder = env.asset_finder
-        self.__mask = self.__finder.lifetimes(self.__calendar[-10:])
+
+        # Use a 30-day period at the end of the year by default.
+        self.__mask = self.__finder.lifetimes(
+            self.__calendar[-30:],
+            include_start_date=False,
+        )
 
     @property
     def default_shape(self):
@@ -74,6 +81,12 @@ class BaseFFCTestCase(TestCase):
         ----------
         terms : dict
             Mapping from termname -> term object.
+        initial_workspace : dict
+            Initial workspace to forward to SimpleFFCEngine.compute_chunk.
+        mask : DataFrame, optional
+            This is a value to pass to `initial_workspace` as the mask from
+            `AssetExists()`.  Defaults to a frame of shape `self.default_shape`
+            containing all True values.
 
         Returns
         -------
@@ -85,10 +98,23 @@ class BaseFFCTestCase(TestCase):
             self.__calendar,
             self.__finder,
         )
-        mask = mask if mask is not None else self.__mask
-        return engine.compute_chunk(TermGraph(terms), mask, initial_workspace)
+        if mask is None:
+            mask = self.__mask
+
+        dates, assets, mask_values = explode(mask)
+        initial_workspace.setdefault(AssetExists(), mask_values)
+        return engine.compute_chunk(
+            TermGraph(terms),
+            dates,
+            assets,
+            initial_workspace,
+        )
 
     def build_mask(self, array):
+        """
+        Helper for constructing an AssetExists mask from a boolean-coercible
+        array.
+        """
         ndates, nassets = array.shape
         return DataFrame(
             array,
@@ -105,11 +131,3 @@ class BaseFFCTestCase(TestCase):
         Build a block of testing data from numpy.arange.
         """
         return arange(prod(shape), dtype=dtype).reshape(shape)
-
-    @with_default_shape
-    def randn_data(self, seed, shape):
-        """
-        Build a block of testing data from numpy.random.randn.
-        """
-        random_seed(seed)
-        return randn(*shape)

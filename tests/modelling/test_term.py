@@ -19,9 +19,10 @@ from zipline.errors import (
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
 )
+from zipline.modelling.expression import NUMEXPR_MATH_FUNCS
 from zipline.modelling.factor import Factor
 from zipline.modelling.graph import TermGraph
-from zipline.modelling.expression import NUMEXPR_MATH_FUNCS
+from zipline.modelling.term import AssetExists, NotSpecified
 
 
 class SomeDataSet(DataSet):
@@ -54,13 +55,16 @@ def gen_equivalent_factors():
     object.
     """
     yield SomeFactor()
-    yield SomeFactor(inputs=None)
+    yield SomeFactor(inputs=NotSpecified)
     yield SomeFactor(SomeFactor.inputs)
     yield SomeFactor(inputs=SomeFactor.inputs)
     yield SomeFactor([SomeDataSet.foo, SomeDataSet.bar])
     yield SomeFactor(window_length=SomeFactor.window_length)
-    yield SomeFactor(window_length=None)
-    yield SomeFactor([SomeDataSet.foo, SomeDataSet.bar], window_length=None)
+    yield SomeFactor(window_length=NotSpecified)
+    yield SomeFactor(
+        [SomeDataSet.foo, SomeDataSet.bar],
+        window_length=NotSpecified,
+    )
     yield SomeFactor(
         [SomeDataSet.foo, SomeDataSet.bar],
         window_length=SomeFactor.window_length,
@@ -96,9 +100,10 @@ class DependencyResolutionTestCase(TestCase):
 
             resolution_order = list(graph.ordered())
 
-            self.assertEqual(len(resolution_order), 3)
+            self.assertEqual(len(resolution_order), 4)
+            self.assertIs(resolution_order[0], AssetExists())
             self.assertEqual(
-                set([resolution_order[0], resolution_order[1]]),
+                set([resolution_order[1], resolution_order[2]]),
                 set([SomeDataSet.foo, SomeDataSet.bar]),
             )
             self.assertEqual(resolution_order[-1], SomeFactor())
@@ -118,9 +123,14 @@ class DependencyResolutionTestCase(TestCase):
 
         resolution_order = list(graph.ordered())
 
-        self.assertEqual(len(resolution_order), 3)
+        # SomeFactor, its inputs, and AssetExists()
+        self.assertEqual(len(resolution_order), 4)
+
+        self.assertIs(resolution_order[0], AssetExists())
+        self.assertEqual(graph.extra_rows[AssetExists()], 4)
+
         self.assertEqual(
-            set([resolution_order[0], resolution_order[1]]),
+            set([resolution_order[1], resolution_order[2]]),
             set([bar, buzz]),
         )
         self.assertEqual(
@@ -141,11 +151,13 @@ class DependencyResolutionTestCase(TestCase):
         resolution_order = list(graph.ordered())
 
         # bar should only appear once.
-        self.assertEqual(len(resolution_order), 5)
+        self.assertEqual(len(resolution_order), 6)
         indices = {
             term: resolution_order.index(term)
             for term in resolution_order
         }
+
+        self.assertEqual(indices[AssetExists()], 0)
 
         # Verify that f1's dependencies will be computed before f1.
         self.assertLess(indices[SomeDataSet.foo], indices[f1])

@@ -1,42 +1,62 @@
 """
 Base class for Filters, Factors and Classifiers
 """
-from numpy import (
-    empty,
-    float64,
-    full,
-    nan,
-)
 from weakref import WeakValueDictionary
 
+from numpy import bool_, full, nan
+
 from zipline.errors import (
+    DTypeNotSpecified,
     InputTermNotAtomic,
     TermInputsNotSpecified,
     WindowLengthNotPositive,
     WindowLengthNotSpecified,
 )
-from zipline.utils.lazyval import lazyval
+from zipline.utils.memoize import lazyval
 
 
-NotSpecified = (object(),)
+@object.__new__   # bind a single instance to the name 'NotSpecified'
+class NotSpecified(object):
+    """
+    Singleton sentinel value used for Term defaults.
+    """
+    __slots__ = ('__weakref__',)
+
+    def __new__(cls):
+        raise TypeError("Can't construct new instances of NotSpecified")
+
+    def __repr__(self):
+        return type(self).__name__
+
+    def __reduce__(self):
+        return type(self).__name__
+
+    def __deepcopy__(self, _memo):
+        return self
+
+    def __copy__(self):
+        return self
 
 
 class Term(object):
     """
     Base class for terms in an FFC API compute graph.
     """
+    # These are NotSpecified because a subclass is required to provide them.
     inputs = NotSpecified
     window_length = NotSpecified
-    domain = None
-    dtype = float64
+    dtype = NotSpecified
+    mask = NotSpecified
+    domain = NotSpecified
 
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
-                inputs=None,
-                window_length=None,
-                domain=None,
-                dtype=None,
+                inputs=NotSpecified,
+                mask=NotSpecified,
+                window_length=NotSpecified,
+                domain=NotSpecified,
+                dtype=NotSpecified,
                 *args,
                 **kwargs):
         """
@@ -49,22 +69,35 @@ class Term(object):
         Caching previously-constructed Terms is **sane** because terms and
         their inputs are both conceptually immutable.
         """
-        if inputs is None:
-            inputs = tuple(cls.inputs)
-        else:
+        # Class-level attributes can be used to provide defaults for Term
+        # subclasses.
+
+        if inputs is NotSpecified:
+            inputs = cls.inputs
+        # Having inputs = NotSpecified is an error, but we handle it later
+        # in self._validate rather than here.
+        if inputs is not NotSpecified:
+            # Allow users to specify lists as class-level defaults, but
+            # normalize to a tuple so that inputs is hashable.
             inputs = tuple(inputs)
 
-        if window_length is None:
+        if mask is NotSpecified:
+            mask = cls.mask
+        if mask is NotSpecified:
+            mask = AssetExists()
+
+        if window_length is NotSpecified:
             window_length = cls.window_length
 
-        if domain is None:
+        if domain is NotSpecified:
             domain = cls.domain
 
-        if dtype is None:
+        if dtype is NotSpecified:
             dtype = cls.dtype
 
         identity = cls.static_identity(
             inputs=inputs,
+            mask=mask,
             window_length=window_length,
             domain=domain,
             dtype=dtype,
@@ -77,6 +110,7 @@ class Term(object):
             new_instance = cls._term_cache[identity] = \
                 super(Term, cls).__new__(cls)._init(
                     inputs=inputs,
+                    mask=mask,
                     window_length=window_length,
                     domain=domain,
                     dtype=dtype,
@@ -100,8 +134,9 @@ class Term(object):
         """
         pass
 
-    def _init(self, inputs, window_length, domain, dtype):
+    def _init(self, inputs, mask, window_length, domain, dtype):
         self.inputs = inputs
+        self.mask = mask
         self.window_length = window_length
         self.domain = domain
         self.dtype = dtype
@@ -110,7 +145,7 @@ class Term(object):
         return self
 
     @classmethod
-    def static_identity(cls, inputs, window_length, domain, dtype):
+    def static_identity(cls, inputs, mask, window_length, domain, dtype):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -122,7 +157,7 @@ class Term(object):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, inputs, window_length, domain, dtype)
+        return (cls, inputs, mask, window_length, domain, dtype)
 
     def _validate(self):
         """
@@ -133,6 +168,11 @@ class Term(object):
             raise TermInputsNotSpecified(termname=type(self).__name__)
         if self.window_length is NotSpecified:
             raise WindowLengthNotSpecified(termname=type(self).__name__)
+        if self.dtype is NotSpecified:
+            raise DTypeNotSpecified(termname=type(self).__name__)
+        if self.mask is NotSpecified and not self.atomic:
+            # This isn't user error, this is a bug in our code.
+            raise AssertionError("{term} has no mask".format(term=self))
 
         if self.window_length:
             for child in self.inputs:
@@ -172,17 +212,12 @@ class Term(object):
         """
         return max(0, self.window_length - 1)
 
-    def compute_from_windows(self, windows, mask):
+    def _compute(self, inputs, dates, assets, mask):
         """
-        Subclasses should implement this for computations requiring moving
-        windows of continually-adjusting data.
-        """
-        raise NotImplementedError()
+        Subclasses should implement this to perform actual computation.
 
-    def compute_from_arrays(self, arrays, mask):
-        """
-        Subclasses should implement this for computations that can be expressed
-        directly as array computations.
+        This is `_compute` rather than just `compute` because `compute` is
+        reserved for user-supplied functions in CustomFactor.
         """
         raise NotImplementedError()
 
@@ -193,6 +228,7 @@ class Term(object):
             type=type(self).__name__,
             inputs=self.inputs,
             window_length=self.window_length,
+            mask=self.mask,
         )
 
 
@@ -214,9 +250,9 @@ class SingleInputMixin(object):
 
 class RequiredWindowLengthMixin(object):
     def _validate(self):
-        if self.windowed or self.window_length is NotSpecified:
-            return super(RequiredWindowLengthMixin, self)._validate()
-        raise WindowLengthNotPositive(window_length=self.window_length)
+        if not self.windowed:
+            raise WindowLengthNotPositive(window_length=self.window_length)
+        return super(RequiredWindowLengthMixin, self)._validate()
 
 
 class CustomTermMixin(object):
@@ -235,14 +271,13 @@ class CustomTermMixin(object):
         """
         raise NotImplementedError()
 
-    def compute_from_windows(self, windows, mask):
+    def _compute(self, windows, dates, assets, mask):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
         """
         # TODO: Make mask available to user's `compute`.
         compute = self.compute
-        dates, assets = mask.index, mask.columns
         out = full(mask.shape, nan, dtype=self.dtype)
         with self.ctx:
             # TODO: Consider pre-filtering columns that are all-nan at each
@@ -254,39 +289,32 @@ class CustomTermMixin(object):
                     out[idx],
                     *(next(w) for w in windows)
                 )
-        out[~mask.values] = nan
+        out[~mask] = nan
         return out
 
 
-class TestingTermMixin(object):
+class AssetExists(Term):
     """
-    Mixin for Term subclasses testing engines that asserts all inputs are
-    correctly shaped.
+    Pseudo-filter describing whether or not an asset existed on a given day.
+    This is the default mask for all terms that haven't been passed a mask
+    explicitly.
 
-    Used by TestingTerm, TestingFilter, TestingClassifier, etc.
+    This is morally a Filter, in the sense that it produces a boolean value for
+    every asset on every date.  We don't subclass Filter, however, because
+    `AssetExists` is computed directly by the FFCEngine.
+
+    See Also
+    --------
+    zipline.assets.AssetFinder.lifetimes
     """
-    def compute_from_windows(self, windows, mask):
-        assert self.window_length > 0
-        dates, assets = mask.index, mask.columns
-        outbuf = empty(mask.shape, dtype=self.dtype)
-        for idx, _ in enumerate(dates):
-            result = self.from_windows(*(next(w) for w in windows))
-            assert result.shape == (len(assets),)
-            outbuf[idx] = result
+    inputs = ()
+    dtype = bool_
+    window_length = 0
+    mask = None
 
-        for window in windows:
-            try:
-                next(window)
-            except StopIteration:
-                pass
-            else:
-                raise AssertionError("window %s was not exhausted" % window)
-        return outbuf
-
-    def compute_from_arrays(self, arrays, mask):
-        assert self.window_length == 0
-        outbuf = empty(mask.shape, dtype=self.dtype)
-        for array in arrays:
-            assert array.shape == outbuf.shape
-        outbuf[:] = self.from_arrays(*arrays)
-        return outbuf
+    def _compute(self, *args, **kwargs):
+        # TODO: Consider moving the bulk of the logic from
+        # SimpleFFCEngine._compute_root_mask here.
+        raise NotImplementedError(
+            "Direct computation of AssetExists is not supported!"
+        )

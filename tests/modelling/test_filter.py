@@ -1,6 +1,7 @@
 """
 Tests for filter terms.
 """
+from itertools import product
 from operator import and_
 
 from numpy import (
@@ -13,17 +14,20 @@ from numpy import (
     nan,
     nanpercentile,
     ones,
+    ones_like,
     putmask,
 )
+from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
-from zipline.modelling.factor import TestingFactor
+from zipline.modelling.filter import Filter
+from zipline.modelling.factor import Factor
 from zipline.utils.test_utils import check_arrays
 
-from .base import BaseFFCTestCase
+from .base import BaseFFCTestCase, with_default_shape
 
 
-def rowwise_rank(array):
+def rowwise_rank(array, mask=None):
     """
     Take a 2D array and return the 0-indexed sorted position of each element in
     the array for each row.
@@ -51,12 +55,17 @@ def rowwise_rank(array):
     return argsort(argsort(array))
 
 
-class SomeFactor(TestingFactor):
+class SomeFactor(Factor):
     inputs = ()
     window_length = 0
 
 
-class SomeOtherFactor(TestingFactor):
+class SomeOtherFactor(Factor):
+    inputs = ()
+    window_length = 0
+
+
+class Mask(Filter):
     inputs = ()
     window_length = 0
 
@@ -67,6 +76,14 @@ class FilterTestCase(BaseFFCTestCase):
         super(FilterTestCase, self).setUp()
         self.f = SomeFactor()
         self.g = SomeOtherFactor()
+
+    @with_default_shape
+    def randn_data(self, seed, shape):
+        """
+        Build a block of testing data from numpy.random.randn.
+        """
+        random_seed(seed)
+        return randn(*shape)
 
     def test_bad_percentiles(self):
         f = self.f
@@ -81,25 +98,58 @@ class FilterTestCase(BaseFFCTestCase):
             with self.assertRaises(BadPercentileBounds):
                 f.percentile_between(min_, max_)
 
-    def test_top(self):
+    def test_top_and_bottom(self):
+        data = self.randn_data(seed=5)  # Fix a seed for determinism.
+
+        mask_data = ones_like(data, dtype=bool)
+        mask_data[:, 0] = False
+
+        nan_data = data.copy()
+        nan_data[:, 0] = nan
+
+        mask = Mask()
+        initial_workspace = {self.f: data, mask: mask_data}
+
+        methods = ['top', 'bottom']
         counts = 2, 3, 10
-        data = self.randn_data(seed=5)  # Arbitrary seed choice.
-        results = self.run_terms(
-            terms={'top_' + str(c): self.f.top(c) for c in counts},
-            initial_workspace={self.f: data},
-        )
-        for c in counts:
-            result = results['top_' + str(c)]
+        term_combos = list(product(methods, counts, [True, False]))
+
+        def termname(method, count, masked):
+            return '_'.join([method, str(count), 'mask' if masked else ''])
+
+        # Add a term for each permutation of top/bottom, count, and
+        # mask/no_mask.
+        terms = {}
+        for method, count, masked in term_combos:
+            kwargs = {'N': count}
+            if masked:
+                kwargs['mask'] = mask
+            term = getattr(self.f, method)(**kwargs)
+            terms[termname(method, count, masked)] = term
+
+        results = self.run_terms(terms, initial_workspace=initial_workspace)
+
+        def expected_result(method, count, masked):
+            # Ranking with a mask is equivalent to ranking with nans applied on
+            # the masked values.
+            to_rank = nan_data if masked else data
+
+            if method == 'top':
+                return rowwise_rank(-to_rank) < count
+            elif method == 'bottom':
+                return rowwise_rank(to_rank) < count
+
+        for method, count, masked in term_combos:
+            result = results[termname(method, count, masked)]
 
             # Check that `min(c, num_assets)` assets passed each day.
             passed_per_day = result.sum(axis=1)
             check_arrays(
                 passed_per_day,
-                full_like(passed_per_day, min(c, data.shape[1])),
+                full_like(passed_per_day, min(count, data.shape[1])),
             )
 
-            # Check that the top `c` assets passed.
-            expected = rowwise_rank(-data) < c
+            expected = expected_result(method, count, masked)
             check_arrays(result, expected)
 
     def test_bottom(self):
@@ -228,35 +278,19 @@ class FilterTestCase(BaseFFCTestCase):
             )
             check_arrays(result, expected)
 
-    def test_sequenced_filter_order_independent(self):
-        data = self.arange_data() % 5
-        results = self.run_terms(
-            {
-                # Sequencing is equivalent to &ing for commutative filters.
-                'sequenced': (1.5 < self.f).then(self.f < 3.5),
-                'anded': (1.5 < self.f) & (self.f < 3.5),
-            },
-            initial_workspace={self.f: data},
-        )
-        expected = (1.5 < data) & (data < 3.5)
-
-        check_arrays(results['sequenced'], expected)
-        check_arrays(results['anded'], expected)
-
-    def test_sequenced_filter_order_dependent(self):
-
-        first = self.f < 1
+    def test_percentile_after_mask(self):
         f_input = eye(5)
-
-        second = self.g.percentile_between(80, 100)
         g_input = arange(25, dtype=float).reshape(5, 5)
-
         initial_mask = self.build_mask(ones((5, 5)))
 
+        custom_mask = self.f < 1
+        without_mask = self.g.percentile_between(80, 100)
+        with_mask = self.g.percentile_between(80, 100, mask=custom_mask)
+
         terms = {
-            'first': first,
-            'second': second,
-            'sequenced': first.then(second),
+            'custom_mask': custom_mask,
+            'without': without_mask,
+            'with': with_mask,
         }
 
         results = self.run_terms(
@@ -266,11 +300,11 @@ class FilterTestCase(BaseFFCTestCase):
         )
 
         # First should pass everything but the diagonal.
-        check_arrays(results['first'], ~eye(5, dtype=bool))
+        check_arrays(results['custom_mask'], ~eye(5, dtype=bool))
 
         # Second should pass the largest value each day.  Each row is strictly
         # increasing, so we always select the last value.
-        expected_second = array(
+        expected_without = array(
             [[0, 0, 0, 0, 1],
              [0, 0, 0, 0, 1],
              [0, 0, 0, 0, 1],
@@ -278,12 +312,12 @@ class FilterTestCase(BaseFFCTestCase):
              [0, 0, 0, 0, 1]],
             dtype=bool,
         )
-        check_arrays(results['second'], expected_second)
+        check_arrays(results['without'], expected_without)
 
         # When sequencing, we should remove the diagonal as an option before
         # computing percentiles.  On the last day, we should get the
         # second-largest value, rather than the largest.
-        expected_sequenced = array(
+        expected_with = array(
             [[0, 0, 0, 0, 1],
              [0, 0, 0, 0, 1],
              [0, 0, 0, 0, 1],
@@ -291,4 +325,4 @@ class FilterTestCase(BaseFFCTestCase):
              [0, 0, 0, 1, 0]],  # Different from previous!
             dtype=bool,
         )
-        check_arrays(results['sequenced'], expected_sequenced)
+        check_arrays(results['with'], expected_with)

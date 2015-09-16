@@ -7,6 +7,7 @@ from six import (
 )
 
 from zipline.modelling.term import Term
+from zipline.modelling.factor import Latest
 
 
 class Column(object):
@@ -68,11 +69,18 @@ class BoundColumn(Term):
         """
         return '.'.join([self.dataset.__name__, self.name])
 
+    @property
+    def latest(self):
+        return Latest(inputs=(self,), dtype=self.dtype)
+
     def __repr__(self):
         return "{qualname}::{dtype}".format(
             qualname=self.qualname,
             dtype=self.dtype.__name__,
         )
+
+    def short_repr(self):
+        return self.qualname
 
 
 class DataSetMeta(type):

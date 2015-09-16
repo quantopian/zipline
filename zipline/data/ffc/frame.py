@@ -47,10 +47,12 @@ class DataFrameFFCLoader(FFCLoader):
     ----------
     column : zipline.data.dataset.BoundColumn
         The column whose data is loadable by this loader.
-
     baseline : pandas.DataFrame
         A DataFrame with index of type DatetimeIndex and columns of type
-        Int64Index.
+        Int64Index.  Dates should be labelled with the first date on which a
+        value would be **available** to an algorithm.  This means that OHLCV
+        data should generally be shifted back by a trading day before being
+        supplied to this class.
 
     adjustments : pandas.DataFrame, default=None
         A DataFrame with the following columns:
@@ -156,7 +158,7 @@ class DataFrameFFCLoader(FFCLoader):
             )
         return out
 
-    def load_adjusted_array(self, columns, mask):
+    def load_adjusted_array(self, columns, dates, assets, mask):
         """
         Load data from our stored baseline.
         """
@@ -166,8 +168,6 @@ class DataFrameFFCLoader(FFCLoader):
             )
         elif columns[0] != self.column:
             raise ValueError("Can't load unknown column %s" % columns[0])
-
-        dates, assets, mask_values = mask.index, mask.columns, mask.values
 
         date_indexer = self.dates.get_indexer(dates)
         assets_indexer = self.assets.get_indexer(assets)
@@ -180,6 +180,6 @@ class DataFrameFFCLoader(FFCLoader):
             # Pull out requested columns/rows from our baseline data.
             data=self.baseline[ix_(date_indexer, assets_indexer)],
             # Mask out requested columns/rows that didnt match.
-            mask=(good_assets & good_dates[:, None]) & mask_values,
+            mask=(good_assets & good_dates[:, None]) & mask,
             adjustments=self.format_adjustments(dates, assets),
         )]

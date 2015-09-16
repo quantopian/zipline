@@ -28,21 +28,21 @@ from zipline.modelling.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-from zipline.modelling.factor import TestingFactor
+from zipline.modelling.factor import Factor
 from zipline.utils.test_utils import check_arrays
 
 
-class F(TestingFactor):
+class F(Factor):
     inputs = ()
     window_length = 0
 
 
-class G(TestingFactor):
+class G(Factor):
     inputs = ()
     window_length = 0
 
 
-class H(TestingFactor):
+class H(Factor):
     inputs = ()
     window_length = 0
 
@@ -63,9 +63,11 @@ class NumericalExpressionTestCase(TestCase):
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
     def check_output(self, expr, expected):
-        result = expr.compute_from_arrays(
+        result = expr._compute(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
-            self.mask,
+            self.mask.index,
+            self.mask.columns,
+            self.mask.values,
         )
         check_arrays(result, expected)
 

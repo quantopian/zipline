@@ -16,7 +16,6 @@ from zipline.errors import (
 from zipline.modelling.term import (
     SingleInputMixin,
     Term,
-    TestingTermMixin,
 )
 from zipline.modelling.expression import (
     BadBinaryOperator,
@@ -86,7 +85,6 @@ class Filter(Term):
     """
     A boolean predicate on a universe of Assets.
     """
-    domain = None
     dtype = bool_
 
     clsdict = locals()
@@ -97,41 +95,22 @@ class Filter(Term):
         }
     )
 
-    def then(self, other):
-        """
-        Create a new filter by computing `self`, then computing `other` on the
-        data that survived the first filter.
-
-        Parameters
-        ----------
-        other : zipline.modelling.filter.Filter
-            The Filter to apply next.
-
-        Returns
-        -------
-        filter : zipline.modelling.filter.SequencedFilter
-            A filter which will compute `self` and then `other`.
-
-        See Also
-        --------
-        zipline.modelling.filter.SequencedFilter
-        """
-        return SequencedFilter(self, other)
-
 
 class NumExprFilter(NumericalExpression, Filter):
     """
     A Filter computed from a numexpr expression.
     """
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, dates, assets, mask):
         """
-        Compute our result with numexpr, then apply `mask`.
+        Compute our result with numexpr, then re-apply `mask`.
         """
-        return super(NumExprFilter, self).compute_from_arrays(
+        return super(NumExprFilter, self)._compute(
             arrays,
+            dates,
+            assets,
             mask,
-        ) & mask.values
+        ) & mask
 
 
 class PercentileFilter(SingleInputMixin, Filter):
@@ -149,10 +128,11 @@ class PercentileFilter(SingleInputMixin, Filter):
     """
     window_length = 0
 
-    def __new__(cls, factor, min_percentile, max_percentile):
+    def __new__(cls, factor, min_percentile, max_percentile, mask):
         return super(PercentileFilter, cls).__new__(
             cls,
             inputs=(factor,),
+            mask=mask,
             min_percentile=min_percentile,
             max_percentile=max_percentile,
         )
@@ -181,15 +161,15 @@ class PercentileFilter(SingleInputMixin, Filter):
             )
         return super(PercentileFilter, self)._validate()
 
-    def compute_from_arrays(self, arrays, mask):
+    def _compute(self, arrays, dates, assets, mask):
         """
         For each row in the input, compute a mask of all values falling between
         the given percentiles.
         """
         # TODO: Review whether there's a better way of handling small numbers
         # of columns.
-        data = arrays[0].astype(float64)
-        data[~mask.values] = nan
+        data = arrays[0].copy().astype(float64)
+        data[~mask] = nan
 
         # FIXME: np.nanpercentile **should** support computing multiple bounds
         # at once, but there's a bug in the logic for multiple bounds in numpy
@@ -208,74 +188,3 @@ class PercentileFilter(SingleInputMixin, Filter):
             keepdims=True,
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
-
-
-class SequencedFilter(Filter):
-    """
-    Term representing sequenced computation of two Filters.
-
-    Parameters
-    ----------
-    first : zipline.modelling.filter.Filter
-        The first filter to compute.
-    second : zipline.modelling.filter.Filter
-        The second filter to compute.
-
-    Notes
-    -----
-    In general, users should rarely have to construct SequencedFilter instances
-    directly.  Instead, prefer construction via `Filter.then`.
-
-    See Also
-    --------
-    Filter.then
-    """
-    window_length = 0
-
-    def __new__(cls, first, then):
-        return super(SequencedFilter, cls).__new__(
-            cls,
-            inputs=concat_tuples((first,), then.inputs),
-            then=then,
-        )
-
-    def _init(self, then, *args, **kwargs):
-        self._then = then
-        return super(SequencedFilter, self)._init(*args, **kwargs)
-
-    def _validate(self):
-        """
-        Ensure that we're actually sequencing filters.
-        """
-        first, then = self.inputs[0], self._then
-        if not isinstance(first, Filter):
-            raise TypeError("Expected Filter, got %s" % type(first).__name__)
-        if not isinstance(then, Filter):
-            raise TypeError("Expected Filter, got %s" % type(then).__name__)
-        return super(SequencedFilter, self)._validate()
-
-    @classmethod
-    def static_identity(cls, then, *args, **kwargs):
-        return (
-            super(SequencedFilter, cls).static_identity(*args, **kwargs),
-            then,
-        )
-
-    def compute_from_arrays(self, arrays, mask):
-        """
-        Call our second filter on its inputs, masking out any inputs rejected
-        by our first filter.
-        """
-        first_result, then_inputs = arrays[0], arrays[1:]
-        return self._then.compute_from_arrays(
-            then_inputs,
-            mask & first_result,
-        )
-
-
-class TestingFilter(TestingTermMixin, Filter):
-    """
-    Base class for testing engines that asserts all inputs are correctly
-    shaped.
-    """
-    pass

@@ -27,7 +27,6 @@ from bcolz import (
 from click import progressbar
 from numpy import (
     array,
-    array_equal,
     float64,
     floating,
     full,
@@ -50,11 +49,11 @@ import sqlite3
 
 
 from zipline.data.ffc.base import FFCLoader
-from zipline.data.ffc.loaders._us_equity_pricing import (
+from zipline.data.ffc.loaders._equities import (
     _compute_row_slices,
     _read_bcolz_data,
-    load_adjustments_from_sqlite,
 )
+from zipline.data.ffc.loaders._adjustments import load_adjustments_from_sqlite
 from zipline.lib.adjusted_array import (
     adjusted_array,
 )
@@ -351,48 +350,17 @@ class BcolzDailyBarReader(object):
             for id_, offset in iteritems(table.attrs['calendar_offset'])
         }
 
-    def _slice_locs(self, start_date, end_date):
-        try:
-            start = self._calendar.get_loc(start_date)
-        except KeyError:
-            if start_date < self._calendar[0]:
-                raise NoFurtherDataError(
-                    msg=(
-                        "FFC Query requesting data starting on {query_start}, "
-                        "but first known date is {calendar_start}"
-                    ).format(
-                        query_start=str(start_date),
-                        calendar_start=str(self._calendar[0]),
-                    )
-                )
-            else:
-                raise ValueError("Query start %s not in calendar" % start_date)
-        try:
-            stop = self._calendar.get_loc(end_date)
-        except:
-            if end_date > self._calendar[-1]:
-                raise NoFurtherDataError(
-                    msg=(
-                        "FFC Query requesting data up to {query_end}, "
-                        "but last known date is {calendar_end}"
-                    ).format(
-                        query_end=end_date,
-                        calendar_end=self._calendar[-1],
-                    )
-                )
-            else:
-                raise ValueError("Query end %s not in calendar" % end_date)
-        return start, stop
-
-    def _compute_slices(self, dates, assets):
+    def _compute_slices(self, start_idx, end_idx, assets):
         """
         Compute the raw row indices to load for each asset on a query for the
-        given dates.
+        given dates after applying a shift.
 
         Parameters
         ----------
-        dates : pandas.DatetimeIndex
-            Dates of the query on which we want to compute row indices.
+        start_idx : int
+            Index of first date for which we want data.
+        end_idx : int
+            Index of last date for which we want data.
         assets : pandas.Int64Index
             Assets for which we want to compute row indices
 
@@ -413,31 +381,29 @@ class BcolzDailyBarReader(object):
             of a query.  Otherwise, offset[i] will be equal to the number of
             entries in `dates` for which the asset did not yet exist.
         """
-        start, stop = self._slice_locs(dates[0], dates[-1])
-
-        # Sanity check that the requested date range matches our calendar.
-        # This could be removed in the future if it's materially affecting
-        # performance.
-        query_dates = self._calendar[start:stop + 1]
-        if not array_equal(query_dates.values, dates.values):
-            raise ValueError("Incompatible calendars!")
-
         # The core implementation of the logic here is implemented in Cython
         # for efficiency.
         return _compute_row_slices(
             self._first_rows,
             self._last_rows,
             self._calendar_offsets,
-            start,
-            stop,
+            start_idx,
+            end_idx,
             assets,
         )
 
-    def load_raw_arrays(self, columns, dates, assets):
-        first_rows, last_rows, offsets = self._compute_slices(dates, assets)
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        # Assumes that the given dates are actually in calendar.
+        start_idx = self._calendar.get_loc(start_date)
+        end_idx = self._calendar.get_loc(end_date)
+        first_rows, last_rows, offsets = self._compute_slices(
+            start_idx,
+            end_idx,
+            assets,
+        )
         return _read_bcolz_data(
             self._table,
-            (len(dates), len(assets)),
+            (end_idx - start_idx + 1, len(assets)),
             [column.name for column in columns],
             first_rows,
             last_rows,
@@ -617,15 +583,28 @@ class USEquityPricingLoader(FFCLoader):
 
     def __init__(self, raw_price_loader, adjustments_loader):
         self.raw_price_loader = raw_price_loader
+        # HACK: Pull the calendar off our raw_price_loader so that we can
+        # backshift dates.
+        self._calendar = self.raw_price_loader._calendar
         self.adjustments_loader = adjustments_loader
 
-    def load_adjusted_array(self, columns, mask):
-        dates, assets = mask.index, mask.columns
+    def load_adjusted_array(self, columns, dates, assets, mask):
+        # load_adjusted_array is called with dates on which the user's algo
+        # will be shown data, which means we need to return the data that would
+        # be known at the start of each date.  We assume that the latest data
+        # known on day N is the data from day (N - 1), so we shift all query
+        # dates back by a day.
+        start_date, end_date = _shift_dates(
+            self._calendar, dates[0], dates[-1], shift=1,
+        )
+
         raw_arrays = self.raw_price_loader.load_raw_arrays(
             columns,
-            dates,
+            start_date,
+            end_date,
             assets,
         )
+
         adjustments = self.adjustments_loader.load_adjustments(
             columns,
             dates,
@@ -633,6 +612,51 @@ class USEquityPricingLoader(FFCLoader):
         )
 
         return [
-            adjusted_array(raw_array, mask.values, col_adjustments)
+            adjusted_array(raw_array, mask, col_adjustments)
             for raw_array, col_adjustments in zip(raw_arrays, adjustments)
         ]
+
+
+def _shift_dates(dates, start_date, end_date, shift):
+    try:
+        start = dates.get_loc(start_date)
+    except KeyError:
+        if start_date < dates[0]:
+            raise NoFurtherDataError(
+                msg=(
+                    "Modeling Query requested data starting on {query_start}, "
+                    "but first known date is {calendar_start}"
+                ).format(
+                    query_start=str(start_date),
+                    calendar_start=str(dates[0]),
+                )
+            )
+        else:
+            raise ValueError("Query start %s not in calendar" % start_date)
+
+    # Make sure that shifting doesn't push us out of the calendar.
+    if start < shift:
+        raise NoFurtherDataError(
+            msg=(
+                "Modeling Query requested data from {shift}"
+                " days before {query_start}, but first known date is only "
+                "{start} days earlier."
+            ).format(shift=shift, query_start=start_date, start=start),
+        )
+
+    try:
+        end = dates.get_loc(end_date)
+    except KeyError:
+        if end_date > dates[-1]:
+            raise NoFurtherDataError(
+                msg=(
+                    "Modeling Query requesting data up to {query_end}, "
+                    "but last known date is {calendar_end}"
+                ).format(
+                    query_end=end_date,
+                    calendar_end=dates[-1],
+                )
+            )
+        else:
+            raise ValueError("Query end %s not in calendar" % end_date)
+    return dates[start - shift], dates[end - shift]
