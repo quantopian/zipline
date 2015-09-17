@@ -312,7 +312,7 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
             assert len(self.portfolio.positions.keys()) == 0
 
             method_to_check = getattr(self, self.method_name)
-            method_to_check(self.sid(0),
+            method_to_check(self.sid(133),
                             data[0].price,
                             style=StopLimitOrder(10, 10))
 
