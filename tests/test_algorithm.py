@@ -21,10 +21,8 @@ from testfixtures import TempDirectory
 from textwrap import dedent
 from unittest import TestCase
 
-import os
 import numpy as np
 import pandas as pd
-from zipline.data.data_portal import DataPortal
 
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
@@ -104,7 +102,6 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
-from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 from .utils.test_utils import create_data_portal
 
 # Because test cases appear to reuse some resources.
