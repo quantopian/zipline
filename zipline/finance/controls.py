@@ -297,6 +297,10 @@ class AssetDateBounds(TradingControl):
         Fail if the algo has passed this Asset's end_date, or before the
         Asset's start date.
         """
+        # If the order is for 0 shares, then silently pass through.
+        if amount == 0:
+            return
+
         normalized_algo_dt = pd.Timestamp(algo_datetime).normalize()
 
         # Fail if the algo is before this Asset's start_date
