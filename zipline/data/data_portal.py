@@ -11,7 +11,7 @@ from zipline.utils import tradingcalendar
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.math_utils import nanstd, nanmean, nansum
 
-# FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
+# FIXME anything to do with 2002-01-02 probably belongs in qexec, right?
 FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
 
 # FIXME should this be passed in (is this qexec specific?)?
@@ -42,9 +42,6 @@ class DataPortal(object):
             raise ValueError("Must provide at least one of minute or "
                              "daily data path!")
 
-        # if adjustments_path is None:
-        #     raise ValueError("Must provide adjustments path!")
-        #
         # if asset_finder is None:
         #     raise ValueError("Must provide asset finder!")
 
@@ -52,16 +49,11 @@ class DataPortal(object):
         self.daily_equities_path = daily_equities_path
         self.asset_finder = asset_finder
 
-        self.carrays = {
-            'open': {},
-            'high': {},
-            'low': {},
-            'close': {},
-            'volume': {},
-            'sid': {},
-            'dt': {},
-        }
+        # keep a cache of what sid/field pairs we've opened from minute bcolz
+        # {sid: {field: carray}}
+        self.minute_bcolz_cache = {}
 
+        # FIXME need to fix this
         self.benchmark_iter = benchmark_iter
 
         self.column_lookup = {
@@ -146,17 +138,31 @@ class DataPortal(object):
         return self.daily_equities_data, self.daily_equities_attrs
 
     def _open_minute_file(self, field, sid):
+        if sid in self.minute_bcolz_cache:
+            sid_data = self.minute_bcolz_cache[sid]
+            if field in sid_data:
+                return sid_data[field]
 
         if self.sid_path_func is None:
             path = "{0}/{1}.bcolz".format(self.minutes_equities_path, sid)
         else:
             path = self.sid_path_func(self.minutes_equities_path, sid)
 
+        path += "/" + field
         try:
-            carray = self.carrays[field][path]
-        except KeyError:
-            carray = self.carrays[field][path] = bcolz.carray(
-                rootdir=path + "/" + field, mode='r')
+            carray = bcolz.carray(
+                rootdir=path,
+                mode='r'
+            )
+        except IOError:
+            log.error("Could not open bcolz file: {0}".format(path))
+
+            # FIXME should this blow up?  I think so.
+
+        if sid not in self.minute_bcolz_cache:
+            self.minute_bcolz_cache[sid] = {}
+
+        self.minute_bcolz_cache[sid][field] = carray
 
         return carray
 
