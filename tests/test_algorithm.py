@@ -1573,6 +1573,19 @@ class TestTradingControls(TestCase):
         with self.assertRaises(TradingControlViolation):
             algo.run(df_source)
 
+        # Run the algorithm with a sid that starts on the first day and
+        # ends on the last day of the algorithm's parameters (*not* an error).
+        temp_env = TradingEnvironment()
+        df_source, _ = factory.create_test_df_source(self.sim_params, temp_env)
+        metadata = {0: {'start_date': '2006-01-03',
+                        'end_date': '2006-01-06'}}
+        algo = SetAssetDateBoundsAlgorithm(
+            equities_metadata=metadata,
+            sim_params=self.sim_params,
+            env=temp_env,
+        )
+        algo.run(df_source)
+
 
 class TestAccountControls(TestCase):
 
