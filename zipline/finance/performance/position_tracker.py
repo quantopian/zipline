@@ -29,14 +29,14 @@ log = logbook.Logger('Performance')
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder):
+    def __init__(self, asset_finder, data_portal):
         self.asset_finder = asset_finder
+
+        self._data_portal = data_portal
 
         # sid => position object
         self.positions = positiondict()
         # Arrays for quick calculations of positions value
-        self._position_amounts = OrderedDict()
-        self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()

@@ -212,10 +212,7 @@ class TradingAlgorithm(object):
         else:
             self.sim_params.update_internal_from_env(self.trading_environment)
 
-        # Build a perf_tracker
-        self.perf_tracker = PerformanceTracker(sim_params=self.sim_params,
-                                               env=self.trading_environment)
-
+        self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
         self.init_engine(kwargs.pop('ffc_loader', None))
@@ -228,9 +225,6 @@ class TradingAlgorithm(object):
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
             self.blotter = Blotter()
-
-        # Set the dt initally to the period start by forcing it to change
-        self.on_dt_changed(self.sim_params.period_start)
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
@@ -436,10 +430,19 @@ class TradingAlgorithm(object):
             self.initialized = True
 
         if self.perf_tracker is None:
+            # Build a perf_tracker
+            self.perf_tracker = PerformanceTracker(
+                sim_params=self.sim_params,
+                env=self.trading_environment,
+                data_portal=self.data_portal)
+            # Set the dt initally to the period start by forcing it to change
+            self.on_dt_changed(self.sim_params.period_start)
+
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
             self.perf_tracker = PerformanceTracker(
-                sim_params=sim_params, env=self.trading_environment
+                sim_params=sim_params, env=self.trading_environment,
+                data_portal=self.data_portal
             )
 
         self.portfolio_needs_update = True
