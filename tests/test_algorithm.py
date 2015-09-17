@@ -524,51 +524,43 @@ class TestTransformAlgorithm(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        setup_logger(cls)
         futures_metadata = {3: {'asset_type': 'future',
                                 'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[0, 1, 133],
+        cls.sim_params = factory.create_simulation_parameters(num_days=4,
+                                                              env=cls.env)
+        equities_metadata = {
+            0: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            },
+            1: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            },
+            133: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            }
+        }
+
+        cls.env.write_data(equities_data=equities_metadata,
                            futures_data=futures_metadata)
+
+        cls.sids = [0, 1, 133]
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            cls.sids
+        )
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        setup_logger(self)
-        self.sim_params = factory.create_simulation_parameters(num_days=4,
-                                                               env=self.env)
-
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params,
-            self.env
-        )
-        self.source = SpecificEquityTrades(
-            event_list=trade_history,
-            env=self.env,
-        )
-        self.df_source, self.df = \
-            factory.create_test_df_source(self.sim_params, self.env)
-
-        self.panel_source, self.panel = \
-            factory.create_test_panel_source(self.sim_params, self.env)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    def test_source_as_input(self):
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            env=self.env,
-            sids=[133]
-        )
-        algo.run(self.source)
-        self.assertEqual(len(algo.sources), 1)
-        assert isinstance(algo.sources[0], SpecificEquityTrades)
 
     def test_invalid_order_parameters(self):
         algo = InvalidOrderAlgorithm(
@@ -578,43 +570,13 @@ class TestTransformAlgorithm(TestCase):
         )
         algo.run(self.source)
 
-    def test_multi_source_as_input(self):
-        sim_params = SimulationParameters(
-            self.df.index[0],
-            self.df.index[-1],
-            env=self.env,
-        )
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=sim_params,
-            sids=[0, 1],
-            env=self.env,
-        )
-        algo.run([self.source, self.df_source], overwrite_sim_params=False)
-        self.assertEqual(len(algo.sources), 2)
-
-    def test_df_as_input(self):
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.run(self.df)
-        assert isinstance(algo.sources[0], DataFrameSource)
-
-    def test_panel_as_input(self):
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            env=self.env,
-            sids=[0, 1])
-        algo.run(self.panel)
-        assert isinstance(algo.sources[0], DataPanelSource)
-
     def test_run_twice(self):
         algo1 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
             sids=[0, 1]
         )
 
-        res1 = algo1.run(self.df)
+        res1 = algo1.run(self.data_portal)
 
         # Create a new trading algorithm, which will
         # use the newly instantiated environment.
@@ -623,7 +585,7 @@ class TestTransformAlgorithm(TestCase):
             sids=[0, 1]
         )
 
-        res2 = algo2.run(self.df)
+        res2 = algo2.run(self.data_portal)
 
         np.testing.assert_array_equal(res1, res2)
 
@@ -655,7 +617,7 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
-        algo.run(self.df)
+        algo.run(self.data_portal)
 
     @parameterized.expand([
         (TestOrderAlgorithm,),
@@ -669,7 +631,7 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
-        algo.run(self.df)
+        algo.run(self.data_portal)
 
     def test_order_method_style_forwarding(self):
 
@@ -681,32 +643,40 @@ class TestTransformAlgorithm(TestCase):
                                 'order_target_value']
 
         for name in method_names_to_test:
-            # Don't supply an env so the TradingAlgorithm builds a new one for
-            # each method
             algo = TestOrderStyleForwardingAlgorithm(
                 sim_params=self.sim_params,
                 instant_fill=False,
-                method_name=name
+                method_name=name,
+                env=self.env
             )
-            algo.run(self.df)
+            algo.run(self.data_portal)
 
     def test_order_instant(self):
         algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
                                          env=self.env,
                                          instant_fill=True)
-        algo.run(self.df)
+        algo.run(self.data_portal)
 
     def test_minute_data(self):
-        source = RandomWalkSource(freq='minute',
-                                  start=pd.Timestamp('2000-1-3',
-                                                     tz='UTC'),
-                                  end=pd.Timestamp('2000-1-4',
-                                                   tz='UTC'))
-        self.sim_params.data_frequency = 'minute'
-        algo = TestOrderInstantAlgorithm(sim_params=self.sim_params,
+        sim_params = SimulationParameters(
+            period_start=pd.Timestamp('2002-1-2', tz='UTC'),
+            period_end=pd.Timestamp('2002-1-4', tz='UTC'),
+            capital_base=float("1.0e5"),
+            data_frequency='minute',
+            env=self.env
+        )
+
+        self.data_portal = create_data_portal(
+            self.env,
+            self.tempdir,
+            sim_params,
+            [0, 1]
+        )
+
+        algo = TestOrderInstantAlgorithm(sim_params=sim_params,
                                          env=self.env,
                                          instant_fill=True)
-        algo.run(source)
+        algo.run(self.data_portal)
 
 
 class TestPositions(TestCase):
