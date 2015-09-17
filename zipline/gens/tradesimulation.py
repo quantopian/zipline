@@ -185,8 +185,7 @@ class AlgorithmSimulator(object):
                     inner_loop(trading_day)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] =\
-                        data_portal.get_benchmark_returns_for_day(trading_day)
+                    perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
                     yield self.get_message(trading_day)
             else:
@@ -205,8 +204,7 @@ class AlgorithmSimulator(object):
                         inner_loop(minute)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] =\
-                        data_portal.get_benchmark_returns_for_day(trading_day)
+                    perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
                     yield self.get_message(trading_day)
 

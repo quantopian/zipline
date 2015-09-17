@@ -778,15 +778,6 @@ class DataPortal(object):
 
         return view
 
-    def get_benchmark_returns_for_day(self, day):
-        # For now use benchmark iterator, and assume this is only called
-        # once a day.
-        if self.benchmark_iter is None:
-            # FIXME
-            return 0
-
-        return next(self.benchmark_iter).returns
-
     def get_simple_transform(self, sid, transform_name, bars=None):
         now = pd.Timestamp(get_algo_instance().datetime, tz='UTC')
         sid_int = int(sid)
