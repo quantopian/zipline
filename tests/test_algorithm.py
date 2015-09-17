@@ -21,8 +21,10 @@ from testfixtures import TempDirectory
 from textwrap import dedent
 from unittest import TestCase
 
+import os
 import numpy as np
 import pandas as pd
+from zipline.data.data_portal import DataPortal
 
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
