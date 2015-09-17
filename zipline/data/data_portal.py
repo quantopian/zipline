@@ -86,6 +86,7 @@ class DataPortal(object):
         self.sources_map = {}
 
         self.sim_params = sim_params
+        self.daily_mode = (self.sim_params.data_frequency == "daily")
 
         if extra_sources is not None:
             self._handle_extra_sources(extra_sources)
@@ -188,7 +189,46 @@ class DataPortal(object):
             raise KeyError("Invalid column: " + str(column))
 
         column_to_use = self.column_lookup[column]
-        carray = self._open_minute_file(column_to_use, asset_int)
+
+        if self.daily_mode:
+            daily_data, daily_attrs = self._open_daily_file()
+
+            # find the start index in the daily file for this asset
+            asset_file_index = daily_attrs['first_row'][str(asset_int)]
+
+            # find when the asset started trading
+            asset_start_trading_date = \
+                self.asset_finder.retrieve_asset(asset).start_date
+
+            if self.current_day < asset_start_trading_date:
+                raise ValueError(
+                    "Cannot fetch daily data for {0} for {1} "
+                    "because it only started trading on {2}!".
+                    format(
+                        str(asset),
+                        str(self.current_day),
+                        str(asset_start_trading_date)
+                    )
+                )
+
+            trading_days = tradingcalendar.trading_days
+
+            # figure out how many days it's been between now and when this
+            # asset starting trading
+            window_offset = trading_days.searchsorted(self.current_day) - \
+                trading_days.searchsorted(asset_start_trading_date)
+
+            # and use that offset to find our lookup index
+            lookup_idx = asset_file_index + window_offset
+
+            raw_value = daily_data[column_to_use][lookup_idx]
+
+            if column_to_use == 'volume':
+                return raw_value * 0.001
+            else:
+                return raw_value
+        else:
+            carray = self._open_minute_file(column_to_use, asset_int)
 
         if column_to_use == 'volume':
             return carray[self.cur_data_offset]
