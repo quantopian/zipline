@@ -123,11 +123,11 @@ def calc_position_stats(pt):
     position_value_multipliers = pt._position_value_multipliers
     position_exposure_multipliers = pt._position_exposure_multipliers
 
-    for pos in pt.positions:
-        sids.append(pos.sid)
+    for sid, pos in iteritems(pt.positions):
+        sids.append(sid)
         amounts.append(pos.amount)
-        last_sale_prices(pt._data_portal.get_current_price_data(
-            pos.sid, 'close'))
+        last_sale_prices.append(pt._data_portal.get_current_price_data(
+            sid, 'close'))
 
     position_values = calc_position_values(
         amounts,
@@ -296,7 +296,6 @@ class PositionTracker(object):
         # update positions in batch
         self.positions.update(positions)
         for sid, pos in iteritems(positions):
-            self._position_amounts[sid] = pos.amount
             self._position_last_sale_prices[sid] = pos.last_sale_price
             self._update_asset(sid)
 
@@ -306,7 +305,6 @@ class PositionTracker(object):
 
         if amount is not None:
             pos.amount = amount
-            self._position_amounts[sid] = amount
             self._position_values = None  # invalidate cache
             self._update_asset(sid=sid)
         if last_sale_price is not None:
@@ -324,8 +322,6 @@ class PositionTracker(object):
         sid = txn.sid
         position = self.positions[sid]
         position.update(txn)
-        self._position_amounts[sid] = position.amount
-        self._position_last_sale_prices[sid] = position.last_sale_price
         self._update_asset(sid)
 
     def handle_commission(self, commission):
