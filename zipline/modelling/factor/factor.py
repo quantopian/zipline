@@ -255,9 +255,9 @@ class Factor(Term):
 
         See Also
         --------
-        scipy.stats.rankdata
-        zipline.lib.rank
-        zipline.modelling.factor.Rank
+        :func:`scipy.stats.rankdata`
+        :mod:`zipline.lib.rank`
+        zipline.modelling.factor.factor.Rank
         """
         return Rank(self if ascending else -self, method=method, mask=mask)
 
@@ -350,16 +350,19 @@ class Rank(SingleInputMixin, Factor):
     Parameters
     ----------
     factor : zipline.modelling.factor.Factor
+
         The factor on which to compute ranks.
+
     method : str, {'average', 'min', 'max', 'dense', 'ordinal'}
+
         The method used to assign ranks to tied elements.  See
-        `scipy.stats.rankdata` for a full description of the semantics for each
-        ranking method.
+        :func:``scipy.stats.rankdata`` for a full description of the semantics
+        for each ranking method.
 
     See Also
     --------
-    scipy.stats.rankdata : Underlying ranking algorithm.
-    zipline.factor.Factor.rank : Method-style interface to same functionality.
+    :func:`scipy.stats.rankdata`
+    :meth:`~zipline.factor.factor.Factor.rank`
 
     Notes
     -----
