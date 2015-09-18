@@ -353,30 +353,6 @@ class PositionTracker(object):
                 price, amount, multiplier in iter_amount_price_multiplier
             ]
 
-    @property
-    def position_exposures(self):
-        iter_amount_price_multiplier = zip(
-            itervalues(self._position_amounts),
-            itervalues(self._position_last_sale_prices),
-            itervalues(self._position_exposure_multipliers),
-        )
-        return [
-            price * amount * multiplier for
-            price, amount, multiplier in iter_amount_price_multiplier
-        ]
-
-    def calculate_positions_value(self):
-        if len(self.position_values) == 0:
-            return np.float64(0)
-
-        return sum(self.position_values)
-
-    def calculate_positions_exposure(self):
-        if len(self.position_exposures) == 0:
-            return np.float64(0)
-
-        return sum(self.position_exposures)
-
     def handle_split(self, split):
         if split.sid in self.positions:
             # Make the position object handle the split. It returns the
