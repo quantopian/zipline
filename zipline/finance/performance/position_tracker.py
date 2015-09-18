@@ -29,14 +29,14 @@ log = logbook.Logger('Performance')
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder):
+    def __init__(self, asset_finder, data_portal):
         self.asset_finder = asset_finder
+
+        self._data_portal = data_portal
 
         # sid => position object
         self.positions = positiondict()
         # Arrays for quick calculations of positions value
-        self._position_amounts = OrderedDict()
-        self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
@@ -44,6 +44,8 @@ class PositionTracker(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
         self._positions_store = zp.Positions()
+        # To prevent attribute error when accessed before patch.
+        self.data_portal = None
 
         # Dict, keyed on dates, that contains lists of close position events
         # for any Assets in this tracker's positions
@@ -195,15 +197,30 @@ class PositionTracker(object):
 
     @property
     def position_values(self):
-        iter_amount_price_multiplier = zip(
-            itervalues(self._position_amounts),
-            itervalues(self._position_last_sale_prices),
-            itervalues(self._position_value_multipliers),
-        )
-        return [
-            price * amount * multiplier for
-            price, amount, multiplier in iter_amount_price_multiplier
-        ]
+        # This flag is for benchmark iterator.
+        if self.data_portal:
+            amounts = self._position_amounts
+            if amounts:
+                amounts = np.array(self._position_amounts.values(),
+                                   dtype=float)
+                prices = np.array([
+                    self.data_portal.get_current_price_data(sid, 'close')
+                    for sid in self._position_amounts.keys()])
+                vals = amounts * prices
+            else:
+                vals = np.array([])
+            return vals
+        else:
+            # benchmark mode
+            iter_amount_price_multiplier = zip(
+                itervalues(self._position_amounts),
+                itervalues(self._position_last_sale_prices),
+                itervalues(self._position_value_multipliers),
+            )
+            return [
+                price * amount * multiplier for
+                price, amount, multiplier in iter_amount_price_multiplier
+            ]
 
     @property
     def position_exposures(self):
@@ -383,7 +400,8 @@ class PositionTracker(object):
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
-            position.last_sale_price = pos.last_sale_price
+            position.last_sale_price =\
+                self.data_portal.get_current_price_data(sid, 'close')
         return positions
 
     def get_positions_list(self):

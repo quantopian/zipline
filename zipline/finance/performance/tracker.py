@@ -82,7 +82,7 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, env):
+    def __init__(self, sim_params, env, data_portal):
 
         self.sim_params = sim_params
         self.env = env
@@ -109,7 +109,8 @@ class PerformanceTracker(object):
         self.dividend_frame = pd.DataFrame()
         self._dividend_count = 0
 
-        self.position_tracker = PositionTracker(asset_finder=env.asset_finder)
+        self.position_tracker = PositionTracker(asset_finder=env.asset_finder,
+                                                data_portal=data_portal)
 
         self.perf_periods = []
 
