@@ -88,7 +88,6 @@ from zipline.utils.test_utils import (
 )
 
 from zipline.sources import (SpecificEquityTrades,
-                             DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
 from zipline.assets import Equity
@@ -98,7 +97,6 @@ from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
 from zipline.utils.events import DateRuleFactory, TimeRuleFactory
 from zipline.algorithm import TradingAlgorithm
-from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
@@ -530,26 +528,19 @@ class TestTransformAlgorithm(TestCase):
         cls.env = TradingEnvironment()
         cls.sim_params = factory.create_simulation_parameters(num_days=4,
                                                               env=cls.env)
-        equities_metadata = {
-            0: {
-                'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
-            },
-            1: {
-                'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
-            },
-            133: {
+        cls.sids = [0, 1, 133]
+        cls.tempdir = TempDirectory()
+
+        equities_metadata = {}
+
+        for sid in cls.sids:
+            equities_metadata[sid] = {
                 'start_date': cls.sim_params.period_start,
                 'end_date': cls.sim_params.period_end
             }
-        }
 
         cls.env.write_data(equities_data=equities_metadata,
                            futures_data=futures_metadata)
-
-        cls.sids = [0, 1, 133]
-        cls.tempdir = TempDirectory()
 
         cls.data_portal = create_data_portal(
             cls.env,
@@ -680,37 +671,32 @@ class TestTransformAlgorithm(TestCase):
 
 
 class TestPositions(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        setup_logger(cls)
+        cls.env = TradingEnvironment()
+        cls.sim_params = factory.create_simulation_parameters(num_days=4,
+                                                              env=cls.env)
 
-    def setUp(self):
-        setup_logger(self)
-        self.env = TradingEnvironment()
-        self.sim_params = factory.create_simulation_parameters(num_days=4,
-                                                               env=self.env)
-        self.env.write_data(equities_identifiers=[1, 133])
+        cls.sids = [1, 133]
+        cls.tempdir = TempDirectory()
 
-        trade_history = factory.create_trade_history(
-            1,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params,
-            self.env
-        )
-        self.source = SpecificEquityTrades(
-            event_list=trade_history,
-            env=self.env,
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            cls.sids
         )
 
-        self.df_source, self.df = \
-            factory.create_test_df_source(self.sim_params, self.env)
-
-    def tearDown(self):
-        teardown_logger(self)
+    @classmethod
+    def tearDownClass(cls):
+        teardown_logger(cls)
+        cls.tempdir.cleanup()
 
     def test_empty_portfolio(self):
         algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
                                        env=self.env)
-        daily_stats = algo.run(self.df)
+        daily_stats = algo.run(self.data_portal)
 
         expected_position_count = [
             0,  # Before entering the first position
@@ -728,7 +714,7 @@ class TestPositions(TestCase):
         algo = AmbitiousStopLimitAlgorithm(sid=1,
                                            sim_params=self.sim_params,
                                            env=self.env)
-        daily_stats = algo.run(self.source)
+        daily_stats = algo.run(self.data_portal)
 
         # Verify that possitions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
@@ -739,84 +725,75 @@ class TestAlgoScript(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        setup_logger(cls)
         cls.env = TradingEnvironment()
-        cls.env.write_data(
-            equities_identifiers=[0, 1, 133]
+        cls.sim_params = factory.create_simulation_parameters(num_days=251,
+                                                              env=cls.env)
+
+        cls.sids = [0, 1, 3, 133]
+        cls.tempdir = TempDirectory()
+
+        equities_metadata = {}
+
+        for sid in cls.sids:
+            equities_metadata[sid] = {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            }
+
+            if sid == 3:
+                equities_metadata[sid]["symbol"] = "TEST"
+                equities_metadata[sid]["asset_type"]= "equity"
+
+        cls.env.write_data(equities_data=equities_metadata)
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            cls.sids,
         )
+
+        cls.zipline_test_config = {
+            'sid': 0,
+        }
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        days = 251
-        # Note that create_simulation_parameters creates
-        # a new TradingEnvironment
-        self.sim_params = factory.create_simulation_parameters(num_days=days,
-                                                               env=self.env)
-
-        setup_logger(self)
-        trade_history = factory.create_trade_history(
-            133,
-            [10.0] * days,
-            [100] * days,
-            timedelta(days=1),
-            self.sim_params,
-            self.env
-        )
-
-        self.source = SpecificEquityTrades(
-            sids=[133],
-            event_list=trade_history,
-            env=self.env,
-        )
-
-        self.df_source, self.df = \
-            factory.create_test_df_source(self.sim_params, self.env)
-
-        self.zipline_test_config = {
-            'sid': 0,
-        }
-
-    def tearDown(self):
-        teardown_logger(self)
+        cls.tempdir.cleanup()
+        teardown_logger(cls)
 
     def test_noop(self):
         algo = TradingAlgorithm(initialize=initialize_noop,
                                 handle_data=handle_data_noop)
-        algo.run(self.df)
+        algo.run(self.data_portal)
 
     def test_noop_string(self):
         algo = TradingAlgorithm(script=noop_algo)
-        algo.run(self.df)
+        algo.run(self.data_portal)
 
     def test_api_calls(self):
         algo = TradingAlgorithm(initialize=initialize_api,
-                                handle_data=handle_data_api)
-        algo.run(self.df)
+                                handle_data=handle_data_api,
+                                env=self.env)
+        algo.run(self.data_portal)
 
     def test_api_calls_string(self):
-        algo = TradingAlgorithm(script=api_algo)
-        algo.run(self.df)
+        algo = TradingAlgorithm(script=api_algo, env=self.env)
+        algo.run(self.data_portal)
 
     def test_api_get_environment(self):
         platform = 'zipline'
-        # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                equities_metadata=metadata,
                                 platform=platform)
-        algo.run(self.df)
+        algo.run(self.data_portal)
         self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
-        # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
         algo = TradingAlgorithm(script=api_symbol_algo,
-                                equities_metadata=metadata)
-        algo.run(self.df)
+                                env=self.env)
+        algo.run(self.data_portal)
 
     def test_fixed_slippage(self):
         # verify order -> transaction -> portfolio position.
@@ -847,31 +824,35 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
+        test_algo.run(self.data_portal)
+        import pdb; pdb.set_trace()
+        z = 5
 
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 200
-
-        # this matches the value in the algotext initialize
-        # method, and will be used inside assert_single_position
-        # to confirm we have as many transactions as orders we
-        # placed.
-        self.zipline_test_config['order_count'] = 1
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-
-        output, _ = assert_single_position(self, zipline)
+        # set_algo_instance(test_algo)
+        #
+        # self.zipline_test_config['algorithm'] = test_algo
+        # self.zipline_test_config['trade_count'] = 200
+        #
+        # # this matches the value in the algotext initialize
+        # # method, and will be used inside assert_single_position
+        # # to confirm we have as many transactions as orders we
+        # # placed.
+        # self.zipline_test_config['order_count'] = 1
+        #
+        # zipline = simfactory.create_test_zipline(
+        #     **self.zipline_test_config)
+        #
+        # output, _ = assert_single_position(self, zipline)
 
         # confirm the slippage and commission on a sample
         # transaction
-        recorded_price = output[1]['daily_perf']['recorded_vars']['price']
-        transaction = output[1]['daily_perf']['transactions'][0]
-        self.assertEqual(100.0, transaction['commission'])
-        expected_spread = 0.05
-        expected_commish = 0.10
-        expected_price = recorded_price - expected_spread - expected_commish
-        self.assertEqual(expected_price, transaction['price'])
+        # recorded_price = output[1]['daily_perf']['recorded_vars']['price']
+        # transaction = output[1]['daily_perf']['transactions'][0]
+        # self.assertEqual(100.0, transaction['commission'])
+        # expected_spread = 0.05
+        # expected_commish = 0.10
+        # expected_price = recorded_price - expected_spread - expected_commish
+        # self.assertEqual(expected_price, transaction['price'])
 
     def test_volshare_slippage(self):
         # verify order -> transaction -> portfolio position.
@@ -940,20 +921,10 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
+        results = test_algo.run(self.data_portal)
 
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 200
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-        output, _ = drain_zipline(self, zipline)
-        self.assertEqual(len(output), 252)
-        incr = []
-        for o in output[:200]:
-            incr.append(o['daily_perf']['recorded_vars']['incr'])
-
-        np.testing.assert_array_equal(incr, range(1, 201))
+        for i in range(1, 252):
+            self.assertEqual(results.iloc[i-1]["incr"], i)
 
     def test_algo_record_allow_mock(self):
         """
@@ -970,28 +941,16 @@ def handle_data(context, data):
 
         test_algo.record(foo=MagicMock())
 
-    def _algo_record_float_magic_should_pass(self, var_type):
+    def test_algo_record_nan(self):
         test_algo = TradingAlgorithm(
-            script=record_float_magic % var_type,
+            script=record_float_magic % 'nan',
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
+        results = test_algo.run(self.data_portal)
 
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 200
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-        output, _ = drain_zipline(self, zipline)
-        self.assertEqual(len(output), 252)
-        incr = []
-        for o in output[:200]:
-            incr.append(o['daily_perf']['recorded_vars']['data'])
-        np.testing.assert_array_equal(incr, [np.nan] * 200)
-
-    def test_algo_record_nan(self):
-        self._algo_record_float_magic_should_pass('nan')
+        for i in range(1, 252):
+            self.assertTrue(np.isnan(results.iloc[i-1]["data"]))
 
     def test_order_methods(self):
         """
@@ -1003,15 +962,7 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
-
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 200
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-
-        output, _ = drain_zipline(self, zipline)
+        test_algo.run(self.data_portal)
 
     def test_order_in_init(self):
         """
@@ -1024,8 +975,7 @@ def handle_data(context, data):
                 sim_params=self.sim_params,
                 env=self.env,
             )
-            set_algo_instance(test_algo)
-            test_algo.run(self.source)
+            test_algo.run(self.data_portal)
 
     def test_portfolio_in_init(self):
         """
@@ -1036,15 +986,7 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
-
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 1
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-
-        output, _ = drain_zipline(self, zipline)
+        test_algo.run(self.data_portal)
 
     def test_account_in_init(self):
         """
@@ -1055,92 +997,7 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        set_algo_instance(test_algo)
-
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 1
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-
-        output, _ = drain_zipline(self, zipline)
-
-
-class TestHistory(TestCase):
-
-    def setUp(self):
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    @classmethod
-    def setUpClass(cls):
-        cls._start = pd.Timestamp('1991-01-01', tz='UTC')
-        cls._end = pd.Timestamp('1991-01-15', tz='UTC')
-        cls.env = TradingEnvironment()
-        cls.sim_params = factory.create_simulation_parameters(
-            data_frequency='minute',
-            env=cls.env
-        )
-        cls.env.write_data(equities_identifiers=[0, 1])
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    @property
-    def source(self):
-        return RandomWalkSource(start=self._start, end=self._end)
-
-    def test_history(self):
-        history_algo = """
-from zipline.api import history, add_history
-
-def initialize(context):
-    add_history(10, '1d', 'price')
-
-def handle_data(context, data):
-    df = history(10, '1d', 'price')
-"""
-
-        algo = TradingAlgorithm(
-            script=history_algo,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        output = algo.run(self.source)
-        self.assertIsNot(output, None)
-
-    def test_history_without_add(self):
-        def handle_data(algo, data):
-            algo.history(1, '1m', 'price')
-
-        algo = TradingAlgorithm(
-            initialize=lambda _: None,
-            handle_data=handle_data,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.run(self.source)
-
-        self.assertIsNotNone(algo.history_container)
-        self.assertEqual(algo.history_container.buffer_panel.window_length, 1)
-
-    def test_add_history_in_handle_data(self):
-        def handle_data(algo, data):
-            algo.add_history(1, '1m', 'price')
-
-        algo = TradingAlgorithm(
-            initialize=lambda _: None,
-            handle_data=handle_data,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.run(self.source)
-
-        self.assertIsNotNone(algo.history_container)
-        self.assertEqual(algo.history_container.buffer_panel.window_length, 1)
+        test_algo.run(self.data_portal)
 
 
 class TestGetDatetime(TestCase):
@@ -1150,15 +1007,29 @@ class TestGetDatetime(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1])
 
+        setup_logger(cls)
+
+        cls.sim_params = factory.create_simulation_parameters(
+            data_frequency='minute',
+            env=cls.env,
+            start=to_utc('2014-01-02 9:31'),
+            end=to_utc('2014-01-03 9:31')
+        )
+
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            [1]
+        )
+
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
+        teardown_logger(cls)
+        cls.tempdir.cleanup()
 
     @parameterized.expand(
         [
@@ -1168,7 +1039,6 @@ class TestGetDatetime(TestCase):
         ]
     )
     def test_get_datetime(self, name, tz):
-
         algo = dedent(
             """
             import pandas as pd
@@ -1191,22 +1061,12 @@ class TestGetDatetime(TestCase):
             """.format(tz=repr(tz))
         )
 
-        start = to_utc('2014-01-02 9:31')
-        end = to_utc('2014-01-03 9:31')
-        source = RandomWalkSource(
-            start=start,
-            end=end,
-        )
-        sim_params = factory.create_simulation_parameters(
-            data_frequency='minute',
-            env=self.env,
-        )
         algo = TradingAlgorithm(
             script=algo,
-            sim_params=sim_params,
+            sim_params=self.sim_params,
             env=self.env,
         )
-        algo.run(source)
+        algo.run(self.data_portal)
         self.assertFalse(algo.first_bar)
 
 
@@ -1216,28 +1076,29 @@ class TestTradingControls(TestCase):
     def setUpClass(cls):
         cls.sid = 133
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[cls.sid])
+        cls.sim_params = factory.create_simulation_parameters(num_days=4,
+                                                              env=cls.env)
+
+        cls.env.write_data(equities_data={
+            133: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            }
+        })
+
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            [cls.sid]
+        )
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        self.sim_params = factory.create_simulation_parameters(num_days=4,
-                                                               env=self.env)
-        self.trade_history = factory.create_trade_history(
-            self.sid,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params,
-            self.env
-        )
-
-        self.source = SpecificEquityTrades(
-            event_list=self.trade_history,
-            env=self.env,
-        )
+        cls.tempdir.cleanup()
 
     def _check_algo(self,
                     algo,
@@ -1247,9 +1108,9 @@ class TestTradingControls(TestCase):
 
         algo._handle_data = handle_data
         with self.assertRaises(expected_exc) if expected_exc else nullctx():
-            algo.run(self.source)
+            algo.run(self.data_portal)
         self.assertEqual(algo.order_count, expected_order_count)
-        self.source.rewind()
+        #self.source.rewind()
 
     def check_algo_succeeds(self, algo, handle_data, order_count=4):
         # Default for order_count assumes one order per handle_data call.
@@ -1556,31 +1417,30 @@ class TestAccountControls(TestCase):
     def setUpClass(cls):
         cls.sidint = 133
         cls.env = TradingEnvironment()
-        cls.env.write_data(
-            equities_identifiers=[cls.sidint]
+        cls.sim_params = factory.create_simulation_parameters(
+            num_days=4, env=cls.env
+        )
+
+        cls.env.write_data(equities_data={
+            133: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            }
+        })
+
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            [cls.sidint]
         )
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        self.sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env
-        )
-        self.trade_history = factory.create_trade_history(
-            self.sidint,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            self.sim_params,
-            self.env,
-        )
-
-        self.source = SpecificEquityTrades(
-            event_list=self.trade_history,
-            env=self.env,
-        )
+        cls.tempdir.cleanup()
 
     def _check_algo(self,
                     algo,
@@ -1589,8 +1449,8 @@ class TestAccountControls(TestCase):
 
         algo._handle_data = handle_data
         with self.assertRaises(expected_exc) if expected_exc else nullctx():
-            algo.run(self.source)
-        self.source.rewind()
+            algo.run(self.data_portal)
+        #self.source.rewind()
 
     def check_algo_succeeds(self, algo, handle_data):
         # Default for order_count assumes one order per handle_data call.
@@ -1622,81 +1482,50 @@ class TestAccountControls(TestCase):
 
 class TestClosePosAlgo(TestCase):
 
-    def setUp(self):
-        self.env = TradingEnvironment()
-        self.days = self.env.trading_days
-        self.index = [self.days[0], self.days[1], self.days[2]]
-        self.panel = pd.Panel({1: pd.DataFrame({
-            'price': [1, 2, 4], 'volume': [1e9, 0, 0],
-            'type': [DATASOURCE_TYPE.TRADE,
-                     DATASOURCE_TYPE.TRADE,
-                     DATASOURCE_TYPE.CLOSE_POSITION]},
-            index=self.index)
-        })
-        self.no_close_panel = pd.Panel({1: pd.DataFrame({
-            'price': [1, 2, 4], 'volume': [1e9, 0, 0],
-            'type': [DATASOURCE_TYPE.TRADE,
-                     DATASOURCE_TYPE.TRADE,
-                     DATASOURCE_TYPE.TRADE]},
-            index=self.index)
+    @classmethod
+    def setUpClass(cls):
+        cls.sidint = 1
+        cls.env = TradingEnvironment()
+        cls.sim_params = factory.create_simulation_parameters(
+            num_days=4, env=cls.env
+        )
+
+        cls.env.write_data(futures_data={
+            1: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end,
+                'asset_type': 'future',
+                'auto_close_date': cls.sim_params.trading_days[-2]
+            }
         })
 
-    def test_close_position_equity(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'equity',
-                        'end_date': self.days[3]}}
-        self.env.write_data(equities_data=metadata)
-        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.panel)
+        cls.tempdir = TempDirectory()
 
-        # Check results
-        expected_positions = [1, 1, 0]
-        expected_pnl = [0, 1, 2]
-        results = self.run_algo()
-        self.check_algo_pnl(results, expected_pnl)
-        self.check_algo_positions(results, expected_positions)
+        cls.data_portal = create_data_portal(
+            cls.env,
+            cls.tempdir,
+            cls.sim_params,
+            [cls.sidint]
+        )
 
-    def test_close_position_future(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
-                        }}
-        self.env.write_data(futures_data=metadata)
-        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.panel)
-
-        # Check results
-        expected_positions = [1, 1, 0]
-        expected_pnl = [0, 1, 2]
-        results = self.run_algo()
-        self.check_algo_pnl(results, expected_pnl)
-        self.check_algo_positions(results, expected_positions)
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+        cls.tempdir.cleanup()
 
     def test_auto_close_future(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
-                        'auto_close_date': self.days[3]}}
-        self.env.write_data(futures_data=metadata)
         self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                                   instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.no_close_panel)
+                                  env=self.env, sim_params=self.sim_params)
 
         # Check results
-        results = self.run_algo()
+        results = self.algo.run(self.data_portal)
 
         expected_pnl = [0, 1, 2]
         self.check_algo_pnl(results, expected_pnl)
 
         expected_positions = [1, 1, 0]
         self.check_algo_positions(results, expected_positions)
-
-    def run_algo(self):
-        results = self.algo.run(self.data)
-        return results
 
     def check_algo_pnl(self, results, expected_pnl):
         for i, pnl in enumerate(results.pnl):
