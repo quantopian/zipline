@@ -1,11 +1,10 @@
 import pytz
 from datetime import datetime, timedelta
 from unittest import TestCase
-
+from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
-from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TradingEnvironment
 from zipline.utils.test_utils import (
     setup_logger, teardown_logger, security_list_copy, add_security_data,)
@@ -13,15 +12,17 @@ from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
 
+from .utils.test_utils import create_data_portal
+
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
 
 class RestrictedAlgoWithCheck(TradingAlgorithm):
     def initialize(self, symbol):
-            self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
-            self.set_do_not_order_list(self.rl.leveraged_etf_list)
-            self.order_count = 0
-            self.sid = self.symbol(symbol)
+        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.set_do_not_order_list(self.rl.leveraged_etf_list)
+        self.order_count = 0
+        self.sid = self.symbol(symbol)
 
     def handle_data(self, data):
         if not self.order_count:
@@ -45,11 +46,11 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
 
 class IterateRLAlgo(TradingAlgorithm):
     def initialize(self, symbol):
-            self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
-            self.set_do_not_order_list(self.rl.leveraged_etf_list)
-            self.order_count = 0
-            self.sid = self.symbol(symbol)
-            self.found = False
+        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.set_do_not_order_list(self.rl.leveraged_etf_list)
+        self.order_count = 0
+        self.sid = self.symbol(symbol)
+        self.found = False
 
     def handle_data(self, data):
         for stock in self.rl.leveraged_etf_list:
@@ -62,44 +63,51 @@ class SecurityListTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=['AAPL', 'GOOG', 'BZQ',
-                                                 'URTY', 'JFT'])
+        symbols = ['AAPL', 'GOOG', 'BZQ', 'URTY', 'JFT']
+
+        cls.sim_params = factory.create_simulation_parameters(
+            start=list(LEVERAGED_ETFS.keys())[0], num_days=4, env=cls.env)
+
+        equities_metadata = {}
+
+        for i, symbol in enumerate(symbols):
+            equities_metadata[i] = {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end,
+                'symbol': symbol
+            }
+
+        cls.env.write_data(equities_data=equities_metadata)
+        cls.tempdir = TempDirectory()
+
+        cls.data_portal = create_data_portal(
+            env=cls.env,
+            tempdir=cls.tempdir,
+            sim_params=cls.sim_params,
+            sids=range(0, 5)
+
+        )
+        setup_logger(cls)
+
+        cls.extra_knowledge_date = \
+            datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
+        cls.trading_day_before_first_kd = datetime(
+            2015, 1, 23, 0, 0, tzinfo=pytz.utc)
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
+        cls.tempdir.cleanup()
+        teardown_logger(cls)
 
-    def setUp(self, env=None):
+    def test_iterate_over_restricted_list(self):
+        algo = IterateRLAlgo(symbol='BZQ', sim_params=self.sim_params,
+                             env=self.env)
 
-        self.extra_knowledge_date = \
-            datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
-        self.trading_day_before_first_kd = datetime(
-            2015, 1, 23, 0, 0, tzinfo=pytz.utc)
-
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    def test_iterate_over_rl(self):
-        sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0], num_days=4, env=self.env)
-        trade_history = factory.create_trade_history(
-            'BZQ',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
-        algo = IterateRLAlgo(symbol='BZQ', sim_params=sim_params, env=self.env)
-        algo.run(self.source)
+        algo.run(self.data_portal)
         self.assertTrue(algo.found)
 
     def test_security_list(self):
-
         # set the knowledge date to the first day of the
         # leveraged etf knowledge date.
         def get_datetime():
@@ -153,84 +161,32 @@ class SecurityListTestCase(TestCase):
             self.assertNotIn("URTY", rl.leveraged_etf_list)
 
     def test_algo_without_rl_violation_via_check(self):
-        sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0], num_days=4,
-            env=self.env)
-        trade_history = factory.create_trade_history(
-            'BZQ',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
-
         algo = RestrictedAlgoWithCheck(symbol='BZQ',
-                                       sim_params=sim_params,
+                                       sim_params=self.sim_params,
                                        env=self.env)
-        algo.run(self.source)
+        algo.run(self.data_portal)
 
     def test_algo_without_rl_violation(self):
-        sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0], num_days=4,
-            env=self.env)
-        trade_history = factory.create_trade_history(
-            'AAPL',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
         algo = RestrictedAlgoWithoutCheck(symbol='AAPL',
-                                          sim_params=sim_params,
+                                          sim_params=self.sim_params,
                                           env=self.env)
-        algo.run(self.source)
+        algo.run(self.data_portal)
 
     def test_algo_with_rl_violation(self):
-        sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0], num_days=4,
-            env=self.env)
-        trade_history = factory.create_trade_history(
-            'BZQ',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
-
         algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
-                                          sim_params=sim_params,
+                                          sim_params=self.sim_params,
                                           env=self.env)
         with self.assertRaises(TradingControlViolation) as ctx:
-            algo.run(self.source)
+            algo.run(self.data_portal)
 
         self.check_algo_exception(algo, ctx, 0)
 
         # repeat with a symbol from a different lookup date
-        trade_history = factory.create_trade_history(
-            'JFT',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
-
         algo = RestrictedAlgoWithoutCheck(symbol='JFT',
-                                          sim_params=sim_params,
+                                          sim_params=self.sim_params,
                                           env=self.env)
         with self.assertRaises(TradingControlViolation) as ctx:
-            algo.run(self.source)
+            algo.run(self.data_portal)
 
         self.check_algo_exception(algo, ctx, 0)
 
@@ -239,21 +195,19 @@ class SecurityListTestCase(TestCase):
             start=list(
                 LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=5,
             env=self.env)
-        trade_history = factory.create_trade_history(
-            'BZQ',
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            sim_params,
-            env=self.env
+
+        data_portal = create_data_portal(
+            self.env,
+            self.tempdir,
+            sim_params=sim_params,
+            sids=range(0, 5)
         )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
+
         algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
                                           sim_params=sim_params,
                                           env=self.env)
         with self.assertRaises(TradingControlViolation) as ctx:
-            algo.run(self.source)
+            algo.run(data_portal=data_portal)
 
         self.check_algo_exception(algo, ctx, 0)
 
@@ -269,65 +223,58 @@ class SecurityListTestCase(TestCase):
 
         with security_list_copy():
             add_security_data(['AAPL'], [])
-            trade_history = factory.create_trade_history(
-                'BZQ',
-                [10.0, 10.0, 11.0, 11.0],
-                [100, 100, 100, 300],
-                timedelta(days=1),
-                sim_params,
-                env=self.env,
-            )
-            self.source = SpecificEquityTrades(event_list=trade_history,
-                                               env=self.env)
             algo = RestrictedAlgoWithoutCheck(
                 symbol='BZQ', sim_params=sim_params, env=self.env)
             with self.assertRaises(TradingControlViolation) as ctx:
-                algo.run(self.source)
+                algo.run(self.data_portal)
 
             self.check_algo_exception(algo, ctx, 0)
 
     def test_algo_without_rl_violation_after_delete(self):
-        with security_list_copy():
-            # add a delete statement removing bzq
-            # write a new delete statement file to disk
-            add_security_data([], ['BZQ'])
-            sim_params = factory.create_simulation_parameters(
-                start=self.extra_knowledge_date, num_days=3)
+        new_tempdir = TempDirectory()
+        try:
+            with security_list_copy():
+                # add a delete statement removing bzq
+                # write a new delete statement file to disk
+                add_security_data([], ['BZQ'])
 
-            trade_history = factory.create_trade_history(
-                'BZQ',
-                [10.0, 10.0, 11.0, 11.0],
-                [100, 100, 100, 300],
-                timedelta(days=1),
-                sim_params,
-                env=self.env,
-            )
-            self.source = SpecificEquityTrades(event_list=trade_history,
-                                               env=self.env)
-            algo = RestrictedAlgoWithoutCheck(
-                symbol='BZQ', sim_params=sim_params, env=self.env
-            )
-            algo.run(self.source)
+                # now fast-forward to self.extra_knowledge_date.  requires
+                # a new env, simparams, and dataportal
+                env = TradingEnvironment()
+                sim_params = factory.create_simulation_parameters(
+                    start=self.extra_knowledge_date, num_days=4, env=env)
+
+                env.write_data(equities_data={
+                    "0": {
+                        'symbol': 'BZQ',
+                        'start_date': sim_params.period_start,
+                        'end_date': sim_params.period_end,
+                    }
+                })
+
+                data_portal = create_data_portal(
+                    env,
+                    new_tempdir,
+                    sim_params,
+                    range(0, 5)
+                )
+
+                algo = RestrictedAlgoWithoutCheck(
+                    symbol='BZQ', sim_params=sim_params, env=env
+                )
+                algo.run(data_portal)
+
+        finally:
+            new_tempdir.cleanup()
 
     def test_algo_with_rl_violation_after_add(self):
         with security_list_copy():
             add_security_data(['AAPL'], [])
-            sim_params = factory.create_simulation_parameters(
-                start=self.trading_day_before_first_kd, num_days=4)
-            trade_history = factory.create_trade_history(
-                'AAPL',
-                [10.0, 10.0, 11.0, 11.0],
-                [100, 100, 100, 300],
-                timedelta(days=1),
-                sim_params,
-                env=self.env
-            )
-            self.source = SpecificEquityTrades(event_list=trade_history,
-                                               env=self.env)
-            algo = RestrictedAlgoWithoutCheck(
-                symbol='AAPL', sim_params=sim_params, env=self.env)
+            algo = RestrictedAlgoWithoutCheck(symbol='AAPL',
+                                              sim_params=self.sim_params,
+                                              env=self.env)
             with self.assertRaises(TradingControlViolation) as ctx:
-                algo.run(self.source)
+                algo.run(self.data_portal)
 
             self.check_algo_exception(algo, ctx, 2)
 

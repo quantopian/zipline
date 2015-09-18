@@ -183,7 +183,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, event, order):
+    def process_order(self, event, order, dt):
         pass
 
     def simulate(self, event, current_orders, dt):
@@ -313,7 +313,7 @@ class FixedSlippage(SlippageModel):
         """
         self.spread = spread
 
-    def process_order(self, event, order):
+    def process_order(self, event, order, dt):
         return create_transaction(
             event,
             order,
