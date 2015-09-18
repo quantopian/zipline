@@ -4,6 +4,7 @@ import logbook
 import numpy as np
 import pandas as pd
 from pandas.lib import checknull
+from collections import namedtuple
 try:
     # optional cython based OrderedDict
     from cyordereddict import OrderedDict
@@ -25,6 +26,144 @@ from zipline.errors import PositionTrackerMissingAssetFinder
 from . position import positiondict
 
 log = logbook.Logger('Performance')
+
+
+PositionStats = namedtuple('PositionStats',
+                           ['net_exposure',
+                            'gross_value',
+                            'gross_exposure',
+                            'short_value',
+                            'short_exposure',
+                            'shorts_count',
+                            'long_value',
+                            'long_exposure',
+                            'longs_count',
+                            'net_value'])
+
+
+def calc_position_values(amounts,
+                         last_sale_prices,
+                         value_multipliers):
+    iter_amount_price_multiplier = zip(
+        amounts,
+        last_sale_prices,
+        itervalues(value_multipliers),
+    )
+    return [
+        price * amount * multiplier for
+        price, amount, multiplier in iter_amount_price_multiplier
+    ]
+
+
+def calc_net_value(position_values):
+    if len(position_values) == 0:
+        return np.float64(0)
+
+    return sum(position_values)
+
+
+def calc_position_exposures(amounts,
+                            last_sale_prices,
+                            exposure_multipliers):
+    iter_amount_price_multiplier = zip(
+        amounts,
+        last_sale_prices,
+        itervalues(exposure_multipliers),
+    )
+    return [
+        price * amount * multiplier for
+        price, amount, multiplier in iter_amount_price_multiplier
+    ]
+
+
+def calc_long_value(position_values):
+    return sum(i for i in position_values if i > 0)
+
+
+def calc_short_value(position_values):
+    return sum(i for i in position_values if i < 0)
+
+
+def calc_long_exposure(position_exposures):
+    return sum(i for i in position_exposures if i > 0)
+
+
+def calc_short_exposure(position_exposures):
+    return sum(i for i in position_exposures if i < 0)
+
+
+def calc_longs_count(position_exposures):
+    return sum(1 for i in position_exposures if i > 0)
+
+
+def calc_shorts_count(position_exposures):
+    return sum(1 for i in position_exposures if i < 0)
+
+
+def calc_gross_exposure(long_exposure, short_exposure):
+    return long_exposure + abs(short_exposure)
+
+
+def calc_gross_value(long_value, short_value):
+    return long_value + abs(short_value)
+
+
+def calc_net_exposure(position_exposures):
+    if len(position_exposures) == 0:
+        return np.float64(0)
+
+    return sum(position_exposures)
+
+
+def calc_position_stats(pt):
+
+    sids = []
+    amounts = []
+    last_sale_prices = []
+    position_value_multipliers = pt._position_value_multipliers
+    position_exposure_multipliers = pt._position_exposure_multipliers
+
+    for pos in pt.positions:
+        sids.append(pos.sid)
+        amounts.append(pos.amount)
+        last_sale_prices(pt._data_portal.get_current_price_data(
+            pos.sid, 'close'))
+
+    position_values = calc_position_values(
+        amounts,
+        last_sale_prices,
+        position_value_multipliers
+    )
+
+    position_exposures = calc_position_exposures(
+        amounts,
+        last_sale_prices,
+        position_exposure_multipliers
+    )
+
+    long_value = calc_long_value(position_values)
+    short_value = calc_short_value(position_values)
+    gross_value = calc_gross_value(long_value, short_value)
+    long_exposure = calc_long_exposure(position_exposures)
+    short_exposure = calc_short_exposure(position_exposures)
+    gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
+    net_exposure = calc_net_exposure(position_exposures)
+    longs_count = calc_longs_count(position_exposures)
+    shorts_count = calc_shorts_count(position_exposures)
+    net_value = calc_net_value(position_values)
+
+    return PositionStats(
+        long_value=long_value,
+        gross_value=gross_value,
+        short_value=short_value,
+        long_exposure=long_exposure,
+        short_exposure=short_exposure,
+        gross_exposure=gross_exposure,
+        net_exposure=net_exposure,
+        longs_count=longs_count,
+        shorts_count=shorts_count,
+        net_value=net_value
+    )
 
 
 class PositionTracker(object):
@@ -221,60 +360,6 @@ class PositionTracker(object):
                 price * amount * multiplier for
                 price, amount, multiplier in iter_amount_price_multiplier
             ]
-
-    @property
-    def position_exposures(self):
-        iter_amount_price_multiplier = zip(
-            itervalues(self._position_amounts),
-            itervalues(self._position_last_sale_prices),
-            itervalues(self._position_exposure_multipliers),
-        )
-        return [
-            price * amount * multiplier for
-            price, amount, multiplier in iter_amount_price_multiplier
-        ]
-
-    def calculate_positions_value(self):
-        if len(self.position_values) == 0:
-            return np.float64(0)
-
-        return sum(self.position_values)
-
-    def calculate_positions_exposure(self):
-        if len(self.position_exposures) == 0:
-            return np.float64(0)
-
-        return sum(self.position_exposures)
-
-    def _longs_count(self):
-        return sum(1 for i in self.position_exposures if i > 0)
-
-    def _long_exposure(self):
-        return sum(i for i in self.position_exposures if i > 0)
-
-    def _long_value(self):
-        return sum(i for i in self.position_values if i > 0)
-
-    def _shorts_count(self):
-        return sum(1 for i in self.position_exposures if i < 0)
-
-    def _short_exposure(self):
-        return sum(i for i in self.position_exposures if i < 0)
-
-    def _short_value(self):
-        return sum(i for i in self.position_values if i < 0)
-
-    def _gross_exposure(self):
-        return self._long_exposure() + abs(self._short_exposure())
-
-    def _gross_value(self):
-        return self._long_value() + abs(self._short_value())
-
-    def _net_exposure(self):
-        return self.calculate_positions_exposure()
-
-    def _net_value(self):
-        return self.calculate_positions_value()
 
     def handle_split(self, split):
         if split.sid in self.positions:

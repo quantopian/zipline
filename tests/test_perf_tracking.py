@@ -35,6 +35,7 @@ from six.moves import range, zip
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
+from zipline.finance.performance import position_tracker
 from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 
@@ -2181,22 +2182,22 @@ class TestPositionTracker(unittest.TestCase):
         np.bool_(False)
         """
         pt = perf.PositionTracker(self.env.asset_finder)
+        pos_stats = position_tracker.calc_position_stats(pt)
 
         stats = [
-            'calculate_positions_value',
-            '_net_exposure',
-            '_gross_value',
-            '_gross_exposure',
-            '_short_value',
-            '_short_exposure',
-            '_shorts_count',
-            '_long_value',
-            '_long_exposure',
-            '_longs_count',
+            'net_value',
+            'net_exposure',
+            'gross_value',
+            'gross_exposure',
+            'short_value',
+            'short_exposure',
+            'shorts_count',
+            'long_value',
+            'long_exposure',
+            'longs_count',
         ]
         for name in stats:
-            meth = getattr(pt, name)
-            val = meth()
+            val = getattr(pos_stats, name)
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
 
@@ -2234,20 +2235,22 @@ class TestPositionTracker(unittest.TestCase):
         pt.update_positions({1: pos1, 2: pos2, 3: pos3, 4: pos4})
 
         # Test long-only methods
-        self.assertEqual(100, pt._long_value())
-        self.assertEqual(100 + 300000, pt._long_exposure())
+
+        pos_stats = position_tracker.calc_position_stats(pt)
+        self.assertEqual(100, pos_stats.long_value)
+        self.assertEqual(100 + 300000, pos_stats.long_exposure)
 
         # Test short-only methods
-        self.assertEqual(-200, pt._short_value())
-        self.assertEqual(-200 - 400000, pt._short_exposure())
+        self.assertEqual(-200, pos_stats.short_value)
+        self.assertEqual(-200 - 400000, pos_stats.short_exposure)
 
         # Test gross and net values
-        self.assertEqual(100 + 200, pt._gross_value())
-        self.assertEqual(100 - 200, pt._net_value())
+        self.assertEqual(100 + 200, pos_stats.gross_value)
+        self.assertEqual(100 - 200, pos_stats.net_value)
 
         # Test gross and net exposures
-        self.assertEqual(100 + 200 + 300000 + 400000, pt._gross_exposure())
-        self.assertEqual(100 - 200 + 300000 - 400000, pt._net_exposure())
+        self.assertEqual(100 + 200 + 300000 + 400000, pos_stats.gross_exposure)
+        self.assertEqual(100 - 200 + 300000 - 400000, pos_stats.net_exposure)
 
     def test_serialization(self):
         pt = perf.PositionTracker(self.env.asset_finder)
