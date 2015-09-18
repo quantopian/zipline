@@ -634,9 +634,9 @@ class TradingAlgorithm(object):
         _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
             else self.sim_params.period_end
 
-        return self.asset_finder.lookup_symbol_resolve_multiple(
+        return self.asset_finder.lookup_symbol(
             symbol_str,
-            as_of_date=_lookup_date
+            as_of_date=_lookup_date,
         )
 
     @api_method

@@ -286,50 +286,83 @@ class AssetFinderTestCase(TestCase):
     def setUp(self):
         self.env = TradingEnvironment()
 
-    def test_lookup_symbol_fuzzy(self):
+    def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
         frame = pd.DataFrame.from_records(
             [
                 {
                     'sid': i,
-                    'symbol':  'TEST@%d' % i,
+                    'symbol':  'TEST.%d' % i,
                     'company_name': "company%d" % i,
                     'start_date': as_of.value,
                     'end_date': as_of.value,
-                    'exchange': uuid.uuid4().hex,
-                    'fuzzy': 'TEST%d' % i
+                    'exchange': uuid.uuid4().hex
                 }
                 for i in range(3)
             ]
         )
         self.env.write_data(equities_df=frame)
-        finder = AssetFinder(self.env.engine, fuzzy_char='@')
+        finder = AssetFinder(self.env.engine)
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
 
-        for i in range(2):  # we do it twice to test for caching bugs
-            self.assertIsNone(finder.lookup_symbol('test', as_of))
-            self.assertEqual(
-                asset_1,
+        # we do it twice to catch caching bugs
+        for i in range(2):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('test', as_of)
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('test1', as_of)
+            # '@' is not a supported delimiter
+            with self.assertRaises(SymbolNotFound):
                 finder.lookup_symbol('test@1', as_of)
-            )
 
             # Adding an unnecessary fuzzy shouldn't matter.
-            self.assertEqual(
-                asset_1,
-                finder.lookup_symbol('test@1', as_of, fuzzy=True)
-            )
+            for fuzzy_char in ['-', '/', '_', '.']:
+                self.assertEqual(
+                    asset_1,
+                    finder.lookup_symbol('test%s1' % fuzzy_char, as_of)
+                )
 
-            # Shouldn't find this with no fuzzy_str passed.
-            self.assertIsNone(finder.lookup_symbol('test1', as_of))
-            # Should find exact match.
-            self.assertEqual(
-                asset_1,
-                finder.lookup_symbol('test1', as_of, fuzzy=True),
-            )
+    def test_lookup_symbol_fuzzy(self):
+        metadata = {
+            0: {'symbol': 'PRTY_HRD'},
+            1: {'symbol': 'BRKA'},
+            2: {'symbol': 'BRK_A'},
+        }
+        self.env.write_data(equities_data=metadata)
+        finder = self.env.asset_finder
+        dt = pd.Timestamp('2013-01-01', tz='UTC')
 
-    def test_lookup_symbol_resolve_multiple(self):
+        # Try combos of looking up PRTYHRD with and without a time or fuzzy
+        # Both non-fuzzys get no result
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', None)
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', dt)
+        # Both fuzzys work
+        self.assertEqual(0, finder.lookup_symbol('PRTYHRD', None, fuzzy=True))
+        self.assertEqual(0, finder.lookup_symbol('PRTYHRD', dt, fuzzy=True))
+
+        # Try combos of looking up PRTY_HRD, all returning sid 0
+        self.assertEqual(0, finder.lookup_symbol('PRTY_HRD', None))
+        self.assertEqual(0, finder.lookup_symbol('PRTY_HRD', dt))
+        self.assertEqual(0, finder.lookup_symbol('PRTY_HRD', None, fuzzy=True))
+        self.assertEqual(0, finder.lookup_symbol('PRTY_HRD', dt, fuzzy=True))
+
+        # Try combos of looking up BRKA, all returning sid 1
+        self.assertEqual(1, finder.lookup_symbol('BRKA', None))
+        self.assertEqual(1, finder.lookup_symbol('BRKA', dt))
+        self.assertEqual(1, finder.lookup_symbol('BRKA', None, fuzzy=True))
+        self.assertEqual(1, finder.lookup_symbol('BRKA', dt, fuzzy=True))
+
+        # Try combos of looking up BRK_A, all returning sid 2
+        self.assertEqual(2, finder.lookup_symbol('BRK_A', None))
+        self.assertEqual(2, finder.lookup_symbol('BRK_A', dt))
+        self.assertEqual(2, finder.lookup_symbol('BRK_A', None, fuzzy=True))
+        self.assertEqual(2, finder.lookup_symbol('BRK_A', dt, fuzzy=True))
+
+    def test_lookup_symbol(self):
 
         # Incrementing by two so that start and end dates for each
         # generated Asset don't overlap (each Asset's end_date is the
@@ -351,19 +384,16 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol_resolve_multiple('non_existing', dates[0])
+                finder.lookup_symbol('non_existing', dates[0])
 
             with self.assertRaises(MultipleSymbolsFound):
-                finder.lookup_symbol_resolve_multiple('existing', None)
+                finder.lookup_symbol('existing', None)
 
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                result = finder.lookup_symbol_resolve_multiple(
-                    'existing',
-                    date,
-                )
-                self.assertEqual(result.symbol, 'existing')
+                result = finder.lookup_symbol('existing', date)
+                self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
     @parameterized.expand(
@@ -422,11 +452,11 @@ class AssetFinderTestCase(TestCase):
         )
 
         self.assertEqual(len(results), 3)
-        self.assertEqual(results[0].symbol, 'real')
+        self.assertEqual(results[0].symbol, 'REAL')
         self.assertEqual(results[0].sid, 0)
-        self.assertEqual(results[1].symbol, 'also_real')
+        self.assertEqual(results[1].symbol, 'ALSO_REAL')
         self.assertEqual(results[1].sid, 1)
-        self.assertEqual(results[2].symbol, 'real_but_old')
+        self.assertEqual(results[2].symbol, 'REAL_BUT_OLD')
         self.assertEqual(results[2].sid, 2)
 
         self.assertEqual(len(missing), 2)

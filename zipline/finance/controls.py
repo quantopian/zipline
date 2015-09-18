@@ -14,6 +14,8 @@
 # limitations under the License.
 import abc
 
+import pandas as pd
+
 from six import with_metaclass
 
 from zipline.errors import (
@@ -55,14 +57,23 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
         """
         raise NotImplementedError
 
-    def fail(self, asset, amount, datetime):
+    def fail(self, asset, amount, datetime, metadata=None):
         """
         Raise a TradingControlViolation with information about the failure.
+
+        If dynamic information should be displayed as well, pass it in via
+        `metadata`.
         """
+        constraint = repr(self)
+        if metadata:
+            constraint = "{constraint} (Metadata: {metadata})".format(
+                constraint=constraint,
+                metadata=metadata
+            )
         raise TradingControlViolation(asset=asset,
                                       amount=amount,
                                       datetime=datetime,
-                                      constraint=repr(self))
+                                      constraint=constraint)
 
     def __repr__(self):
         return "{name}({attrs})".format(name=self.__class__.__name__,
@@ -286,12 +297,28 @@ class AssetDateBounds(TradingControl):
         Fail if the algo has passed this Asset's end_date, or before the
         Asset's start date.
         """
+        # If the order is for 0 shares, then silently pass through.
+        if amount == 0:
+            return
+
+        normalized_algo_dt = pd.Timestamp(algo_datetime).normalize()
+
         # Fail if the algo is before this Asset's start_date
-        if asset.start_date and (algo_datetime < asset.start_date):
-            self.fail(asset, amount, algo_datetime)
+        if asset.start_date:
+            normalized_start = pd.Timestamp(asset.start_date).normalize()
+            if normalized_algo_dt < normalized_start:
+                metadata = {
+                    'asset_start_date': normalized_start
+                }
+                self.fail(asset, amount, algo_datetime, metadata=metadata)
         # Fail if the algo has passed this Asset's end_date
-        if asset.end_date and (algo_datetime >= asset.end_date):
-            self.fail(asset, amount, algo_datetime)
+        if asset.end_date:
+            normalized_end = pd.Timestamp(asset.end_date).normalize()
+            if normalized_algo_dt > normalized_end:
+                metadata = {
+                    'asset_end_date': normalized_end
+                }
+                self.fail(asset, amount, algo_datetime, metadata=metadata)
 
 
 class AccountControl(with_metaclass(abc.ABCMeta)):
