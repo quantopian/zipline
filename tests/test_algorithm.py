@@ -906,6 +906,12 @@ def handle_data(context, data):
             env=self.env,
         )
         set_algo_instance(test_algo)
+        trades = factory.create_daily_trade_source(
+            [0], self.sim_params, self.env)
+        tempdir = TempDirectory()
+        data_portal = create_data_portal_from_trade_history(
+            tempdir, {0: trades}, self.sim_params, self.env)
+        test_algo.data_portal = data_portal
 
         self.zipline_test_config['algorithm'] = test_algo
         self.zipline_test_config['trade_count'] = 100
@@ -923,8 +929,7 @@ def handle_data(context, data):
 # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
         self.zipline_test_config['expected_transactions'] = 67
 
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
+        zipline = test_algo.get_generator()
         output, _ = assert_single_position(self, zipline)
 
         # confirm the slippage and commission on a sample
