@@ -100,7 +100,10 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
-from .utils.test_utils import create_data_portal
+from .utils.test_utils import (
+    create_data_portal,
+    create_data_portal_from_trade_history
+)
 
 # Because test cases appear to reuse some resources.
 
@@ -1443,11 +1446,21 @@ class TestAccountControls(TestCase):
 
         cls.tempdir = TempDirectory()
 
-        cls.data_portal = create_data_portal(
-            cls.env,
-            cls.tempdir,
+        trade_history = factory.create_trade_history(
+            cls.sidint,
+            [10.0, 10.0, 11.0, 11.0],
+            [100, 100, 100, 300],
+            timedelta(days=1),
             cls.sim_params,
-            [cls.sidint]
+            cls.env,
+        )
+
+        cls.data_portal = create_data_portal_from_trade_history(
+            cls.tempdir,
+            cls.sidint,
+            trade_history,
+            cls.sim_params,
+            cls.env,
         )
 
     @classmethod

@@ -188,6 +188,10 @@ class AlgorithmSimulator(object):
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
                     yield self.get_message(trading_day)
+
+                    self.algo.portfolio_needs_update = True
+                    self.algo.account_needs_update = True
+                    self.algo.performance_needs_update = True
             else:
                 for day_idx, trading_day in enumerate(trading_days):
                     day_offset = (day_idx + first_trading_day_idx) * 390
@@ -207,6 +211,10 @@ class AlgorithmSimulator(object):
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
                     yield self.get_message(trading_day)
+
+                    self.algo.portfolio_needs_update = True
+                    self.algo.account_needs_update = True
+                    self.algo.performance_needs_update = True
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message
