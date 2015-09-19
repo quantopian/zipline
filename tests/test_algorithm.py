@@ -828,7 +828,6 @@ def handle_data(context, data):
             env=self.env,
         )
         test_algo.run(self.data_portal)
-        import pdb; pdb.set_trace()
         z = 5
 
         # set_algo_instance(test_algo)
