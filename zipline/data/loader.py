@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import urllib2
 
 import importlib
 import os
@@ -49,7 +50,14 @@ INDEX_MAPPING = {
     ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
 }
 
-
+def get_connection_status():
+    try:
+        res = urllib2.urlopen('http://www.google.com', timeout=1)
+        return True
+    except urllib2.URLError as err: 
+        pass
+    return False
+    
 def get_data_filepath(name):
     """
     Returns a handle to data file.
@@ -146,6 +154,11 @@ def get_benchmark_filename(symbol):
 
 def load_market_data(trading_day=trading_day_nyse,
                      trading_days=trading_days_nyse, bm_symbol='^GSPC'):
+    #
+    # bypass update_benchmark if zipline is used offline
+    #
+    connection_status = get_connection_status()
+    
     bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
@@ -177,7 +190,11 @@ def load_market_data(trading_day=trading_day_nyse,
     # We're doing "> 2" rather than "> 1" because we're subtracting an array
     # _length_ from an array _index_, and therefore even if we had data up to
     # and including the current day, the difference would still be 1.
-    if len(days_up_to_now) - last_bm_date_offset > 2:
+    
+    #
+    # bypass update_benchmark if zipline is used offline
+    #
+    if connection_status and len(days_up_to_now) - last_bm_date_offset > 2:
         benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
         if benchmark_returns.index.tz is None or \
            benchmark_returns.index.tz.zone != 'UTC':
@@ -216,7 +233,10 @@ def load_market_data(trading_day=trading_day_nyse,
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
     # Comment above explains why this is "> 2".
-    if len(days_up_to_now) - last_tr_date_offset > 2:
+    #
+    # bypass update_benchmark if zipline is used offline
+    #
+    if connection_status and len(days_up_to_now) - last_tr_date_offset > 2:
         treasury_curves = dump_treasury_curves(module, filename)
     else:
         treasury_curves = saved_curves.tz_localize('UTC')
