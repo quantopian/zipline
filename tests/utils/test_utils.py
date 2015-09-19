@@ -65,30 +65,31 @@ def create_data_portal(env, tempdir, sim_params, sids):
 
 
 def create_data_portal_from_trade_history(
-        tempdir, sidint, trades, sim_params, env):
+        tempdir, trades_by_sid, sim_params, env):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
         length = sim_params.days_in_period
-        opens = []
-        highs = []
-        lows = []
-        closes = []
-        volumes = []
-        for trade in trades:
-            opens.append(trade.open_price)
-            highs.append(trade.high)
-            lows.append(trade.low)
-            closes.append(trade.close_price)
-            volumes.append(trade.volume)
-        assets[sidint] = pd.DataFrame({
-            "open": np.array(opens),
-            "high": np.array(highs),
-            "low": np.array(lows),
-            "close": np.array(closes),
-            "volume": np.array(volumes),
-            "day": [day.value for day in sim_params.trading_days]
-        }, index=sim_params.trading_days)
+        for sidint, trades in trades_by_sid.iteritems():
+            opens = []
+            highs = []
+            lows = []
+            closes = []
+            volumes = []
+            for trade in trades:
+                opens.append(trade.open_price)
+                highs.append(trade.high)
+                lows.append(trade.low)
+                closes.append(trade.close_price)
+                volumes.append(trade.volume)
+            assets[sidint] = pd.DataFrame({
+                "open": np.array(opens),
+                "high": np.array(highs),
+                "low": np.array(lows),
+                "close": np.array(closes),
+                "volume": np.array(volumes),
+                "day": [day.value for day in sim_params.trading_days]
+            }, index=sim_params.trading_days)
 
         DailyBarWriterFromDataFrames(assets).write(
             path,

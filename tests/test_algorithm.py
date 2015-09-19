@@ -750,11 +750,30 @@ class TestAlgoScript(TestCase):
 
         cls.env.write_data(equities_data=equities_metadata)
 
-        cls.data_portal = create_data_portal(
-            cls.env,
+        days = 251
+
+        trades_by_sid = {
+            0: factory.create_trade_history(
+                0,
+                [10.0] * days,
+                [100] * days,
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env),
+            3: factory.create_trade_history(
+                3,
+                [10.0] * days,
+                [100] * days,
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env)
+        }
+
+        cls.data_portal = create_data_portal_from_trade_history(
             cls.tempdir,
+            trades_by_sid,
             cls.sim_params,
-            cls.sids,
+            cls.env,
         )
 
         cls.zipline_test_config = {
@@ -1445,19 +1464,20 @@ class TestAccountControls(TestCase):
 
         cls.tempdir = TempDirectory()
 
-        trade_history = factory.create_trade_history(
-            cls.sidint,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(days=1),
-            cls.sim_params,
-            cls.env,
-        )
+        trades_by_sid = {
+            cls.sidint: factory.create_trade_history(
+                cls.sidint,
+                [10.0, 10.0, 11.0, 11.0],
+                [100, 100, 100, 300],
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env,
+            )
+        }
 
         cls.data_portal = create_data_portal_from_trade_history(
             cls.tempdir,
-            cls.sidint,
-            trade_history,
+            trades_by_sid,
             cls.sim_params,
             cls.env,
         )
