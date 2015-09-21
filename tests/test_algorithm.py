@@ -769,12 +769,10 @@ class TestAlgoScript(TestCase):
                 cls.env)
         }
 
-        cls.data_portal = create_data_portal_from_trade_history(
-            cls.tempdir,
-            trades_by_sid,
-            cls.sim_params,
-            cls.env,
-        )
+        cls.data_portal = create_data_portal_from_trade_history(cls.env,
+                                                                cls.tempdir,
+                                                                cls.sim_params,
+                                                                trades_by_sid)
 
         cls.zipline_test_config = {
             'sid': 0,
@@ -909,8 +907,9 @@ def handle_data(context, data):
         trades = factory.create_daily_trade_source(
             [0], self.sim_params, self.env)
         tempdir = TempDirectory()
-        data_portal = create_data_portal_from_trade_history(
-            tempdir, {0: trades}, self.sim_params, self.env)
+        data_portal = create_data_portal_from_trade_history(self.env, tempdir,
+                                                            self.sim_params,
+                                                            {0: trades})
         test_algo.data_portal = data_portal
 
         self.zipline_test_config['algorithm'] = test_algo
@@ -1480,12 +1479,10 @@ class TestAccountControls(TestCase):
             )
         }
 
-        cls.data_portal = create_data_portal_from_trade_history(
-            cls.tempdir,
-            trades_by_sid,
-            cls.sim_params,
-            cls.env,
-        )
+        cls.data_portal = create_data_portal_from_trade_history(cls.env,
+                                                                cls.tempdir,
+                                                                cls.sim_params,
+                                                                trades_by_sid)
 
     @classmethod
     def tearDownClass(cls):
