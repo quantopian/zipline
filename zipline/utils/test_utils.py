@@ -102,7 +102,7 @@ def assert_single_position(test, zipline):
         test.assertEqual(
             order['status'],
             ORDER_STATUS.FILLED,
-            "")
+            order)
 
     test.assertEqual(
         len(closing_positions),
