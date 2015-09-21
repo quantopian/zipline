@@ -100,7 +100,10 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
-from .utils.test_utils import create_data_portal
+from .utils.test_utils import (
+    create_data_portal,
+    create_data_portal_from_trade_history
+)
 
 # Because test cases appear to reuse some resources.
 
@@ -747,12 +750,29 @@ class TestAlgoScript(TestCase):
 
         cls.env.write_data(equities_data=equities_metadata)
 
-        cls.data_portal = create_data_portal(
-            cls.env,
-            cls.tempdir,
-            cls.sim_params,
-            cls.sids,
-        )
+        days = 251
+
+        trades_by_sid = {
+            0: factory.create_trade_history(
+                0,
+                [10.0] * days,
+                [100] * days,
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env),
+            3: factory.create_trade_history(
+                3,
+                [10.0] * days,
+                [100] * days,
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env)
+        }
+
+        cls.data_portal = create_data_portal_from_trade_history(cls.env,
+                                                                cls.tempdir,
+                                                                cls.sim_params,
+                                                                trades_by_sid)
 
         cls.zipline_test_config = {
             'sid': 0,
@@ -825,7 +845,6 @@ def handle_data(context, data):
             env=self.env,
         )
         test_algo.run(self.data_portal)
-        import pdb; pdb.set_trace()
         z = 5
 
         # set_algo_instance(test_algo)
@@ -855,65 +874,73 @@ def handle_data(context, data):
         # self.assertEqual(expected_price, transaction['price'])
 
     def test_volshare_slippage(self):
-        # verify order -> transaction -> portfolio position.
-        # --------------
-        test_algo = TradingAlgorithm(
-            script="""
-from zipline.api import *
+        tempdir = TempDirectory()
+        try:
+            # verify order -> transaction -> portfolio position.
+            # --------------
+            test_algo = TradingAlgorithm(
+                script="""
+    from zipline.api import *
 
-def initialize(context):
-    model = slippage.VolumeShareSlippage(
-                            volume_limit=.3,
-                            price_impact=0.05
-                       )
-    set_slippage(model)
-    set_commission(commission.PerShare(0.02))
-    context.count = 2
-    context.incr = 0
+    def initialize(context):
+        model = slippage.VolumeShareSlippage(
+                                volume_limit=.3,
+                                price_impact=0.05
+                           )
+        set_slippage(model)
+        set_commission(commission.PerShare(0.02))
+        context.count = 2
+        context.incr = 0
 
-def handle_data(context, data):
-    if context.incr < context.count:
-        # order small lots to be sure the
-        # order will fill in a single transaction
-        order(sid(0), 5000)
-    record(price=data[0].price)
-    record(volume=data[0].volume)
-    record(incr=context.incr)
-    context.incr += 1
-    """,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        set_algo_instance(test_algo)
+    def handle_data(context, data):
+        if context.incr < context.count:
+            # order small lots to be sure the
+            # order will fill in a single transaction
+            order(sid(0), 5000)
+        record(price=data[0].price)
+        record(volume=data[0].volume)
+        record(incr=context.incr)
+        context.incr += 1
+        """,
+                sim_params=self.sim_params,
+                env=self.env,
+            )
+            set_algo_instance(test_algo)
+            trades = factory.create_daily_trade_source(
+                [0], self.sim_params, self.env)
+            data_portal = create_data_portal_from_trade_history(
+                self.env, tempdir, self.sim_params, {0: trades})
+            test_algo.data_portal = data_portal
 
-        self.zipline_test_config['algorithm'] = test_algo
-        self.zipline_test_config['trade_count'] = 100
+            self.zipline_test_config['algorithm'] = test_algo
+            self.zipline_test_config['trade_count'] = 100
 
-        # 67 will be used inside assert_single_position
-        # to confirm we have as many transactions as expected.
-        # The algo places 2 trades of 5000 shares each. The trade
-        # events have volume ranging from 100 to 950. The volume cap
-        # of 0.3 limits the trade volume to a range of 30 - 316 shares.
-        # The spreadsheet linked below calculates the total position
-        # size over each bar, and predicts 67 txns will be required
-        # to fill the two orders. The number of bars and transactions
-        # differ because some bars result in multiple txns. See
-        # spreadsheet for details:
-# https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
-        self.zipline_test_config['expected_transactions'] = 67
+            # 67 will be used inside assert_single_position
+            # to confirm we have as many transactions as expected.
+            # The algo places 2 trades of 5000 shares each. The trade
+            # events have volume ranging from 100 to 950. The volume cap
+            # of 0.3 limits the trade volume to a range of 30 - 316 shares.
+            # The spreadsheet linked below calculates the total position
+            # size over each bar, and predicts 67 txns will be required
+            # to fill the two orders. The number of bars and transactions
+            # differ because some bars result in multiple txns. See
+            # spreadsheet for details:
+    # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
+            self.zipline_test_config['expected_transactions'] = 67
 
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-        output, _ = assert_single_position(self, zipline)
+            zipline = test_algo.get_generator()
+            output, _ = assert_single_position(self, zipline)
 
-        # confirm the slippage and commission on a sample
-        # transaction
-        per_share_commish = 0.02
-        perf = output[1]
-        transaction = perf['daily_perf']['transactions'][0]
-        commish = transaction['amount'] * per_share_commish
-        self.assertEqual(commish, transaction['commission'])
-        self.assertEqual(2.029, transaction['price'])
+            # confirm the slippage and commission on a sample
+            # transaction
+            per_share_commish = 0.02
+            perf = output[1]
+            transaction = perf['daily_perf']['transactions'][0]
+            commish = transaction['amount'] * per_share_commish
+            self.assertEqual(commish, transaction['commission'])
+            self.assertEqual(2.029, transaction['price'])
+        finally:
+            tempdir.cleanup()
 
     def test_algo_record_vars(self):
         test_algo = TradingAlgorithm(
@@ -1443,12 +1470,21 @@ class TestAccountControls(TestCase):
 
         cls.tempdir = TempDirectory()
 
-        cls.data_portal = create_data_portal(
-            cls.env,
-            cls.tempdir,
-            cls.sim_params,
-            [cls.sidint]
-        )
+        trades_by_sid = {
+            cls.sidint: factory.create_trade_history(
+                cls.sidint,
+                [10.0, 10.0, 11.0, 11.0],
+                [100, 100, 100, 300],
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env,
+            )
+        }
+
+        cls.data_portal = create_data_portal_from_trade_history(cls.env,
+                                                                cls.tempdir,
+                                                                cls.sim_params,
+                                                                trades_by_sid)
 
     @classmethod
     def tearDownClass(cls):

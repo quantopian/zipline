@@ -424,11 +424,6 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
-
-        if not self.initialized:
-            self.initialize(*self.initialize_args, **self.initialize_kwargs)
-            self.initialized = True
-
         if self.perf_tracker is None:
             # Build a perf_tracker
             self.perf_tracker = PerformanceTracker(
@@ -444,6 +439,10 @@ class TradingAlgorithm(object):
                 sim_params=sim_params, env=self.trading_environment,
                 data_portal=self.data_portal
             )
+
+        if not self.initialized:
+            self.initialize(*self.initialize_args, **self.initialize_kwargs)
+            self.initialized = True
 
         self.portfolio_needs_update = True
         self.account_needs_update = True
