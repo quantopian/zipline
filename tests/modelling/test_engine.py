@@ -465,11 +465,7 @@ class SyntheticBcolzTestCase(TestCase):
         )
         dates_to_test = dates[window_length:]
 
-        drawdown = MaxDrawdown(
-            inputs=(USEquityPricing.close,),
-            window_length=window_length,
-        )
-
+        drawdown = MaxDrawdown(window_length=window_length)
         results = engine.factor_matrix(
             {'drawdown': drawdown},
             dates_to_test[0],

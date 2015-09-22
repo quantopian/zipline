@@ -78,6 +78,7 @@ class MaxDrawdown(CustomFactor, SingleInputMixin):
     """
     Max Drawdown over a window
     """
+    inputs = (USEquityPricing.close,)
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
