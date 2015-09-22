@@ -105,7 +105,7 @@ class DataSetMeta(type):
                 setattr(newtype, maybe_colname, bound_column)
                 _columns.append(bound_column)
 
-        newtype._columns = _columns
+        newtype._columns = frozenset(_columns)
         return newtype
 
     @property
