@@ -28,7 +28,7 @@ class RSI(CustomFactor, SingleInputMixin):
     """
     Factor computing rolling relative-strength index on a DataSet.
 
-    Default Input: USEquityPricing.close
+    Default Inputs: [USEquityPricing.close]
     Default Window Length: 14
     """
     window_length = 14
@@ -69,19 +69,22 @@ class WeightedAverageValue(CustomFactor):
 
 class VWAP(WeightedAverageValue):
     """
-    Volume-weighted average price
+    Volume-weighted average price.
     """
     inputs = (USEquityPricing.close, USEquityPricing.volume)
 
 
 class MaxDrawdown(CustomFactor, SingleInputMixin):
     """
-    Max Drawdown over a window
+    Max Drawdown over a window.
     """
     inputs = (USEquityPricing.close,)
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
+        """
+        Compute max drawdown for each asset over the last N days.
+        """
         drawdowns = fmax.accumulate(data, axis=0) - data
         drawdowns[isnan(drawdowns)] = NINF
         drawdown_ends = nanargmax(drawdowns, axis=0)
