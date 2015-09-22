@@ -96,7 +96,8 @@ class DataPortal(object):
         self.sources_map = {}
 
         self.sim_params = sim_params
-        self.data_frequency = self.sim_params.data_frequency
+        if self.sim_params is not None:
+            self.data_frequency = self.sim_params.data_frequency
 
         if extra_sources is not None:
             self._handle_extra_sources(extra_sources)

@@ -126,8 +126,8 @@ class Event(object):
         return pd.Series(self.__dict__, index=index)
 
 
-class Order(Event):
-    pass
+# class Order(Event):
+#     pass
 
 
 class Portfolio(object):

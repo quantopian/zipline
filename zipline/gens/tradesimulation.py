@@ -136,11 +136,13 @@ class AlgorithmSimulator(object):
             '2002-01-02')]
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
-        def inner_loop(dt_to_use):
+        def inner_loop(dt_to_use, orders_to_process):
+            self.on_dt_changed(dt_to_use)
+
             handle_data(algo, current_data, dt_to_use)
 
+            # grab any new orders from the blotter, then clear the list.
             orders = blotter.new_orders
-            # Reset orders.
             blotter.new_orders = []
 
             if orders:
@@ -148,9 +150,13 @@ class AlgorithmSimulator(object):
                     perf_process_order(order)
 
             open_orders = blotter.open_orders
-            if open_orders:
+            if orders_to_process:
                 assets_to_close = []
-                for asset, asset_orders in open_orders.iteritems():
+
+                # open orders are stored as a dictionary of asset to list.
+                # this way, all open orders for the same asset are handled
+                # sequentially.
+                for asset, asset_orders in orders_to_process.iteritems():
                     for order, txn in slippage(None, asset_orders, dt_to_use):
                         direction = math.copysign(1, txn.amount)
                         per_share, total_commission = commission.\
@@ -159,6 +165,7 @@ class AlgorithmSimulator(object):
                         txn.commission = total_commission
 
                         order.filled += txn.amount
+
                         if txn.commission is not None:
                             order.commission = \
                                 ((order.commission or 0.0) + txn.commission)
@@ -168,21 +175,23 @@ class AlgorithmSimulator(object):
 
                         perf_process_txn(txn)
 
-                        if not order.open:
-                            asset_orders.remove(order)
                     if not len(asset_orders):
                         assets_to_close.append(asset)
+
                 for asset in assets_to_close:
                     del open_orders[asset]
 
+            return open_orders
+
         with self.processor.threadbound(), ZiplineAPI(self.algo):
+            orders_to_process = []
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
-                    algo.datetime = trading_day
                     data_portal.current_dt = trading_day
                     data_portal.current_day = trading_day
 
-                    inner_loop(trading_day)
+                    orders_to_process = inner_loop(trading_day,
+                                                   orders_to_process)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
@@ -199,18 +208,18 @@ class AlgorithmSimulator(object):
                                                market_minutes(day_idx),
                                                tz='UTC')
                     for minute_idx, minute in enumerate(minutes):
-                        algo.datetime = minute
                         data_portal.current_dt = minute.value
                         blotter.current_dt = minute
                         data_portal.current_day = trading_day
                         data_portal.cur_data_offset = day_offset + minute_idx
 
-                        inner_loop(minute)
+                        orders_to_process = inner_loop(minute,
+                                                       orders_to_process)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
-                    yield self.get_message(trading_day)
+                    yield self.get_message(minute)
 
                     self.algo.portfolio_needs_update = True
                     self.algo.account_needs_update = True
