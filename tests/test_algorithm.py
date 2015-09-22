@@ -844,34 +844,22 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        test_algo.run(self.data_portal)
-        z = 5
+        results = test_algo.run(self.data_portal)
 
-        # set_algo_instance(test_algo)
-        #
-        # self.zipline_test_config['algorithm'] = test_algo
-        # self.zipline_test_config['trade_count'] = 200
-        #
-        # # this matches the value in the algotext initialize
-        # # method, and will be used inside assert_single_position
-        # # to confirm we have as many transactions as orders we
-        # # placed.
-        # self.zipline_test_config['order_count'] = 1
-        #
-        # zipline = simfactory.create_test_zipline(
-        #     **self.zipline_test_config)
-        #
-        # output, _ = assert_single_position(self, zipline)
+        # flatten the list of txns
+        all_txns = [val for sublist in results["transactions"].tolist()
+                    for val in sublist]
 
-        # confirm the slippage and commission on a sample
-        # transaction
-        # recorded_price = output[1]['daily_perf']['recorded_vars']['price']
-        # transaction = output[1]['daily_perf']['transactions'][0]
-        # self.assertEqual(100.0, transaction['commission'])
-        # expected_spread = 0.05
-        # expected_commish = 0.10
-        # expected_price = recorded_price - expected_spread - expected_commish
-        # self.assertEqual(expected_price, transaction['price'])
+        self.assertEqual(len(all_txns), 1)
+        txn = all_txns[0]
+
+        self.assertEqual(100.0, txn["commission"])
+        expected_spread = 0.05
+        expected_commish = 0.10
+        expected_price = test_algo.recorded_vars["price"] - expected_spread \
+            - expected_commish
+
+        self.assertEqual(expected_price, txn['price'])
 
     def test_volshare_slippage(self):
         tempdir = TempDirectory()
@@ -880,28 +868,28 @@ def handle_data(context, data):
             # --------------
             test_algo = TradingAlgorithm(
                 script="""
-    from zipline.api import *
+from zipline.api import *
 
-    def initialize(context):
-        model = slippage.VolumeShareSlippage(
-                                volume_limit=.3,
-                                price_impact=0.05
-                           )
-        set_slippage(model)
-        set_commission(commission.PerShare(0.02))
-        context.count = 2
-        context.incr = 0
+def initialize(context):
+    model = slippage.VolumeShareSlippage(
+                            volume_limit=.3,
+                            price_impact=0.05
+                       )
+    set_slippage(model)
+    set_commission(commission.PerShare(0.02))
+    context.count = 2
+    context.incr = 0
 
-    def handle_data(context, data):
-        if context.incr < context.count:
-            # order small lots to be sure the
-            # order will fill in a single transaction
-            order(sid(0), 5000)
-        record(price=data[0].price)
-        record(volume=data[0].volume)
-        record(incr=context.incr)
-        context.incr += 1
-        """,
+def handle_data(context, data):
+    if context.incr < context.count:
+        # order small lots to be sure the
+        # order will fill in a single transaction
+        order(sid(0), 5000)
+    record(price=data[0].price)
+    record(volume=data[0].volume)
+    record(incr=context.incr)
+    context.incr += 1
+    """,
                 sim_params=self.sim_params,
                 env=self.env,
             )
@@ -910,35 +898,18 @@ def handle_data(context, data):
                 [0], self.sim_params, self.env)
             data_portal = create_data_portal_from_trade_history(
                 self.env, tempdir, self.sim_params, {0: trades})
-            test_algo.data_portal = data_portal
+            results = test_algo.run(data_portal=data_portal)
 
-            self.zipline_test_config['algorithm'] = test_algo
-            self.zipline_test_config['trade_count'] = 100
+            all_txns = [val for sublist in results["transactions"].tolist()
+                    for val in sublist]
 
-            # 67 will be used inside assert_single_position
-            # to confirm we have as many transactions as expected.
-            # The algo places 2 trades of 5000 shares each. The trade
-            # events have volume ranging from 100 to 950. The volume cap
-            # of 0.3 limits the trade volume to a range of 30 - 316 shares.
-            # The spreadsheet linked below calculates the total position
-            # size over each bar, and predicts 67 txns will be required
-            # to fill the two orders. The number of bars and transactions
-            # differ because some bars result in multiple txns. See
-            # spreadsheet for details:
-    # https://www.dropbox.com/s/ulrk2qt0nrtrigb/Volume%20Share%20Worksheet.xlsx
-            self.zipline_test_config['expected_transactions'] = 67
+            self.assertEqual(len(all_txns), 67)
 
-            zipline = test_algo.get_generator()
-            output, _ = assert_single_position(self, zipline)
-
-            # confirm the slippage and commission on a sample
-            # transaction
             per_share_commish = 0.02
-            perf = output[1]
-            transaction = perf['daily_perf']['transactions'][0]
-            commish = transaction['amount'] * per_share_commish
-            self.assertEqual(commish, transaction['commission'])
-            self.assertEqual(2.029, transaction['price'])
+            first_txn = all_txns[0]
+            commish = first_txn["amount"] * per_share_commish
+            self.assertEqual(commish, first_txn["commission"])
+            self.assertEqual(2.029, first_txn["price"])
         finally:
             tempdir.cleanup()
 

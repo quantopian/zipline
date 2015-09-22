@@ -77,6 +77,8 @@ class DataPortal(object):
 
         if adjustments_path is not None:
             self.adjustments_conn = sqlite3.connect(adjustments_path)
+        else:
+            self.adjustments_conn = None
 
         # caches of sid -> adjustment list
         self.splits_dict = {}
@@ -94,7 +96,8 @@ class DataPortal(object):
         self.sources_map = {}
 
         self.sim_params = sim_params
-        self.data_frequency = self.sim_params.data_frequency
+        if self.sim_params is not None:
+            self.data_frequency = self.sim_params.data_frequency
 
         if extra_sources is not None:
             self._handle_extra_sources(extra_sources)
@@ -147,7 +150,6 @@ class DataPortal(object):
         return self.daily_equities_data, self.daily_equities_attrs
 
     def _open_minute_file(self, field, sid):
-
         if self.sid_path_func is None:
             path = "{0}/{1}.bcolz".format(self.minutes_equities_path, sid)
         else:
@@ -756,6 +758,9 @@ class DataPortal(object):
             A list of [multiplier, pd.Timestamp], earliest first
 
         """
+        if self.adjustments_conn is None:
+            return []
+
         if sid not in adjustments_dict:
             adjustments_for_sid = self.adjustments_conn.execute(
                 "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
@@ -778,58 +783,6 @@ class DataPortal(object):
 
         return view
 
-    def get_simple_transform(self, sid, transform_name, bars=None):
-        now = pd.Timestamp(get_algo_instance().datetime, tz='UTC')
-        sid_int = int(sid)
-
-        if transform_name == "returns":
-            # returns is always calculated over the last 2 days, even though
-            # we only support minutely backtests now.
-            hst = self.get_history_window(
-                [sid_int],
-                now,
-                2,
-                "1d",
-                "price",
-                ffill=True
-            )[sid_int]
-
-            return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
-
-        if bars is None:
-            raise ValueError("bars cannot be None!")
-
-        price_arr = self.get_history_window(
-            [sid_int],
-            now,
-            bars,
-            "1m",
-            "price",
-            ffill=True
-        )[sid_int]
-
-        if transform_name == "mavg":
-            return nanmean(price_arr)
-        elif transform_name == "stddev":
-            return nanstd(price_arr, ddof=1)
-        elif transform_name == "vwap":
-            volume_arr = self.get_history_window(
-                [sid_int],
-                now,
-                bars,
-                "1m",
-                "volume",
-                ffill=True
-            )[sid_int]
-
-            vol_sum = nansum(volume_arr)
-            try:
-                ret = nansum(price_arr * volume_arr) / vol_sum
-            except ZeroDivisionError:
-                ret = np.nan
-
-            return ret
-
     def is_currently_alive(self, name):
         if name not in self.sources_map:
             name = int(name)
@@ -851,18 +804,3 @@ class DataPortalSidView(object):
 
     def __getattr__(self, column):
         return self.portal.get_current_price_data(self.asset, column)
-
-    def mavg(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "mavg",
-                                                bars=minutes)
-
-    def stddev(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "stddev",
-                                                bars=minutes)
-
-    def vwap(self, minutes):
-        return self.portal.get_simple_transform(self.asset, "vwap",
-                                                bars=minutes)
-
-    def returns(self):
-        return self.portal.get_simple_transform(self.asset, "returns")

@@ -187,11 +187,9 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         pass
 
     def simulate(self, event, current_orders, dt):
-
         self._volume_for_bar = 0
 
         for order in current_orders:
-
             if order.open_amount == 0:
                 continue
 
