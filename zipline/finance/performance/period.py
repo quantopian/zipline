@@ -217,7 +217,7 @@ class PerformancePeriod(object):
 
     def calculate_performance(self):
         pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = calc_position_stats(pt, self.period_close)
         self.ending_value = pos_stats.net_value
         self.ending_exposure = pos_stats.net_exposure
 

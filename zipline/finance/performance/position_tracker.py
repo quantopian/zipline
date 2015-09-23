@@ -115,7 +115,7 @@ def calc_net_exposure(position_exposures):
     return sum(position_exposures)
 
 
-def calc_position_stats(pt):
+def calc_position_stats(pt, dt=None):
 
     sids = []
     amounts = []
@@ -127,7 +127,7 @@ def calc_position_stats(pt):
         sids.append(sid)
         amounts.append(pos.amount)
         last_sale_prices.append(pt._data_portal.get_current_price_data(
-            sid, 'close'))
+            sid, 'close', dt))
 
     position_values = calc_position_values(
         amounts,
