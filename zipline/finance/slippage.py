@@ -164,6 +164,8 @@ class FixedSlippage(SlippageModel):
         self.spread = spread
 
     def process_order(self, order, dt):
+        price = self.data_portal.get_current_price_data(order.sid, "close")
+
         return create_transaction(
             order.sid,
             dt,
