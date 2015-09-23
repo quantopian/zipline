@@ -13,7 +13,7 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.finance.slippage import Transaction
+from zipline.finance.transaction import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
