@@ -14,10 +14,10 @@ def create_data_portal(env, tempdir, sim_params, sids):
         length = sim_params.days_in_period
         for sid_idx, sid in enumerate(sids):
             assets[sid] = pd.DataFrame({
-                "open": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-                "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
-                "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
-                "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+                "open": (np.array(range(10, 10 + length)) + sid_idx),
+                "high": (np.array(range(15, 15 + length)) + sid_idx),
+                "low": (np.array(range(8, 8 + length)) + sid_idx),
+                "close": (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
                 "day": [day.value for day in sim_params.trading_days]
             }, index=sim_params.trading_days)
