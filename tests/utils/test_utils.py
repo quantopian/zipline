@@ -18,7 +18,7 @@ def create_data_portal(env, tempdir, sim_params, sids):
                 "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
                 "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
                 "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-                "volume": np.array(range(1, length + 1)) + sid_idx,
+                "volume": np.array(range(100, 100 + length)) + sid_idx,
                 "day": [day.value for day in sim_params.trading_days]
             }, index=sim_params.trading_days)
 
@@ -50,7 +50,7 @@ def create_data_portal(env, tempdir, sim_params, sids):
                 "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
                 "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
                 "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-                "volume": np.array(range(1, length + 1)) + sid_idx,
+                "volume": np.array(range(100, 100 + length)) + sid_idx,
                 "minute": minutes
             }, index=minutes)
 
@@ -118,7 +118,7 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
                 "high": np.array(range(15, 15 + length)) + sid_idx,
                 "low": np.array(range(8, 8 + length)) + sid_idx,
                 "close": np.array(range(10, 10 + length)) + sid_idx,
-                "volume": np.array(range(1, length + 1)) + sid_idx,
+                "volume": np.array(range(100, length + 100)) + sid_idx,
                 "minute": minutes
             }, index=minutes)
 

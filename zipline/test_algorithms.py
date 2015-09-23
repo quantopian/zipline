@@ -286,8 +286,8 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
                 self.incr, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 self.last_price, "Orders was not filled at last price."
-        self.incr += 2
-        self.order_value(self.sid(0), data[0].price * 2.)
+        self.incr += 1
+        self.order_value(self.sid(0), data[0].price)
         self.last_price = data[0].price
 
 
@@ -610,29 +610,31 @@ class TALIBAlgorithm(TradingAlgorithm):
 
 class EmptyPositionsAlgorithm(TradingAlgorithm):
     """
-    An algorithm that ensures that 'phantom' positions do not appear
+    An algorithm that ensures that 'phantom' positions do not appear in
     portfolio.positions in the case that a position has been entered
     and fully exited.
     """
-    def initialize(self, *args, **kwargs):
+    def initialize(self, sids, *args, **kwargs):
         self.ordered = False
         self.exited = False
+        self.sids = sids
 
     def handle_data(self, data):
         if not self.ordered:
-            for s in data:
-                self.order(self.sid(s), 100)
+            for s in self.sids:
+                self.order(self.sid(s), 1)
             self.ordered = True
 
         if not self.exited:
             amounts = [pos.amount for pos
                        in itervalues(self.portfolio.positions)]
+
             if (
-                all([(amount == 100) for amount in amounts]) and
-                (len(amounts) == len(data.keys()))
+                len(amounts) > 0 and
+                all([(amount == 1) for amount in amounts])
             ):
                 for stock in self.portfolio.positions:
-                    self.order(self.sid(stock), -100)
+                    self.order(self.sid(stock), -1)
                 self.exited = True
 
         # Should be 0 when all positions are exited.

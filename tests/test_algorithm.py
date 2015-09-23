@@ -684,6 +684,16 @@ class TestPositions(TestCase):
         cls.sids = [1, 133]
         cls.tempdir = TempDirectory()
 
+        equities_metadata = {}
+
+        for sid in cls.sids:
+            equities_metadata[sid] = {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.sim_params.period_end
+            }
+
+        cls.env.write_data(equities_data=equities_metadata)
+
         cls.data_portal = create_data_portal(
             cls.env,
             cls.tempdir,
@@ -697,13 +707,14 @@ class TestPositions(TestCase):
         cls.tempdir.cleanup()
 
     def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(sim_params=self.sim_params,
+        algo = EmptyPositionsAlgorithm(self.sids,
+                                       sim_params=self.sim_params,
                                        env=self.env)
         daily_stats = algo.run(self.data_portal)
 
         expected_position_count = [
             0,  # Before entering the first position
-            1,  # After entering, exiting on this date
+            2,  # After entering, exiting on this date
             0,  # After exiting
             0,
         ]
@@ -713,13 +724,12 @@ class TestPositions(TestCase):
                              expected)
 
     def test_noop_orders(self):
-
         algo = AmbitiousStopLimitAlgorithm(sid=1,
                                            sim_params=self.sim_params,
                                            env=self.env)
         daily_stats = algo.run(self.data_portal)
 
-        # Verify that possitions are empty for all dates.
+        # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
         self.assertTrue(empty_positions.all())
 

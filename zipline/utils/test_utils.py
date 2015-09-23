@@ -6,7 +6,7 @@ from logbook import FileHandler
 from mock import patch
 from numpy.testing import assert_array_equal
 import operator
-from zipline.finance.blotter import ORDER_STATUS
+from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
 from six import (
     itervalues,

@@ -125,8 +125,8 @@ class AlgorithmSimulator(object):
         perf_process_txn = self.algo.perf_tracker.process_transaction
 
         slippage = self.algo.slippage
-        # hot-wiring
         slippage.data_portal = data_portal
+
         commission = self.algo.commission
 
         perf_tracker.position_tracker.data_portal = data_portal
@@ -138,26 +138,17 @@ class AlgorithmSimulator(object):
 
         def inner_loop(dt_to_use, orders_to_process):
             self.on_dt_changed(dt_to_use)
+            assets_to_close = []
 
-            handle_data(algo, current_data, dt_to_use)
-
-            # grab any new orders from the blotter, then clear the list.
-            orders = blotter.new_orders
-            blotter.new_orders = []
-
-            if orders:
-                for order in orders:
-                    perf_process_order(order)
-
-            open_orders = blotter.open_orders
             if orders_to_process:
-                assets_to_close = []
-
                 # open orders are stored as a dictionary of asset to list.
                 # this way, all open orders for the same asset are handled
                 # sequentially.
                 for asset, asset_orders in orders_to_process.iteritems():
-                    for order, txn in slippage(None, asset_orders, dt_to_use):
+                    # we pass all the orders for a single asset to the
+                    # slippage function, which returns an iterator of
+                    # orders and transactions.
+                    for order, txn in slippage(asset_orders, dt_to_use):
                         direction = math.copysign(1, txn.amount)
                         per_share, total_commission = commission.\
                             calculate(txn)
@@ -178,8 +169,26 @@ class AlgorithmSimulator(object):
                     if not len(asset_orders):
                         assets_to_close.append(asset)
 
-                for asset in assets_to_close:
-                    del open_orders[asset]
+            handle_data(algo, current_data, dt_to_use)
+
+            # grab any new orders from the blotter, then clear the list.
+            new_orders = blotter.new_orders
+            blotter.new_orders = []
+
+            # if we have any new orders, record them so that we know
+            # in what perf period they were placed.
+            if new_orders:
+                for new_order in new_orders:
+                    perf_process_order(new_order)
+
+            # blotter.open_orders contains both new orders and existing
+            # open orders
+            open_orders = blotter.open_orders
+
+            # FIXME I think this is a buggy - what if there is a new order
+            # for the same asset that was just marked to be closed?
+            for asset in assets_to_close:
+                del open_orders[asset]
 
             return open_orders
 

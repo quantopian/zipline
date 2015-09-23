@@ -63,9 +63,9 @@ from zipline.finance.execution import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.slippage import (
     VolumeShareSlippage,
-    SlippageModel,
-    transact_partial
+    SlippageModel
 )
+from zipline.finance.transaction import transact_partial
 from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
