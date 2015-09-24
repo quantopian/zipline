@@ -1683,15 +1683,15 @@ class TestClosePosAlgo(TestCase):
                         'asset_type': 'equity',
                         'end_date': self.days[3]}}
         self.env.write_data(equities_data=metadata)
-        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.panel)
+        algo = TestAlgorithm(sid=1, amount=1, order_count=1,
+                             instant_fill=True, commission=PerShare(0),
+                             env=self.env)
+        data = DataPanelSource(self.panel)
 
         # Check results
         expected_positions = [1, 1, 0]
         expected_pnl = [0, 1, 2]
-        results = self.run_algo()
+        results = algo.run(data)
         self.check_algo_pnl(results, expected_pnl)
         self.check_algo_positions(results, expected_positions)
 
@@ -1700,15 +1700,15 @@ class TestClosePosAlgo(TestCase):
                         'asset_type': 'future',
                         }}
         self.env.write_data(futures_data=metadata)
-        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.panel)
+        algo = TestAlgorithm(sid=1, amount=1, order_count=1,
+                             instant_fill=True, commission=PerShare(0),
+                             env=self.env)
+        data = DataPanelSource(self.panel)
 
         # Check results
         expected_positions = [1, 1, 0]
         expected_pnl = [0, 1, 2]
-        results = self.run_algo()
+        results = algo.run(data)
         self.check_algo_pnl(results, expected_pnl)
         self.check_algo_positions(results, expected_positions)
 
@@ -1717,23 +1717,19 @@ class TestClosePosAlgo(TestCase):
                         'asset_type': 'future',
                         'auto_close_date': self.days[3]}}
         self.env.write_data(futures_data=metadata)
-        self.algo = TestAlgorithm(sid=1, amount=1, order_count=1,
-                                  instant_fill=True, commission=PerShare(0),
-                                  env=self.env)
-        self.data = DataPanelSource(self.no_close_panel)
+        algo = TestAlgorithm(sid=1, amount=1, order_count=1,
+                             instant_fill=True, commission=PerShare(0),
+                             env=self.env)
+        data = DataPanelSource(self.no_close_panel)
 
         # Check results
-        results = self.run_algo()
+        results = algo.run(data)
 
         expected_pnl = [0, 1, 2]
         self.check_algo_pnl(results, expected_pnl)
 
         expected_positions = [1, 1, 0]
         self.check_algo_positions(results, expected_positions)
-
-    def run_algo(self):
-        results = self.algo.run(self.data)
-        return results
 
     def check_algo_pnl(self, results, expected_pnl):
         for i, pnl in enumerate(results.pnl):
