@@ -1171,19 +1171,30 @@ class TestPositionPerformance(unittest.TestCase):
             verify that the performance period calculates properly for a
             single buy transaction
         """
+        sim_params = factory.create_simulation_parameters(
+            num_days=4, env=self.env
+        )
         # post some trades in the market
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             onesec,
-            self.sim_params,
+            sim_params,
             env=self.env
         )
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            sim_params,
+            {1: trades})
+
         txn = create_txn(trades[1], 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        pt = perf.PositionTracker(self.env.asset_finder, data_portal)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
+                                    period_open=sim_params.period_start,
+                                    period_close=sim_params.period_end)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
