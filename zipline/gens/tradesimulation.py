@@ -138,7 +138,8 @@ class AlgorithmSimulator(object):
 
         def inner_loop(dt_to_use, orders_to_process):
             self.on_dt_changed(dt_to_use)
-            assets_to_close = []
+
+            closed_orders = []
 
             if orders_to_process:
                 # open orders are stored as a dictionary of asset to list.
@@ -166,12 +167,32 @@ class AlgorithmSimulator(object):
 
                         perf_process_txn(txn)
 
-                    if not len(asset_orders):
-                        assets_to_close.append(asset)
+                        if not order.open:
+                            closed_orders.append(order)
+
+            open_orders = blotter.open_orders
+
+            # Manually clean up the blotter's open orders by removing
+            # any order that is now filled.  Then, remove the asset from
+            # the open_orders dict if there are no remaining open orders
+            # for that asset.
+            for order in closed_orders:
+                sid = order.sid
+                if sid not in open_orders:
+                    continue
+
+                if order in open_orders[sid]:
+                    open_orders[sid].remove(order)
+
+                remaining_open_orders = open_orders[sid]
+                if len(remaining_open_orders) == 0 or \
+                        all(not order.open for order in remaining_open_orders):
+                    del open_orders[sid]
 
             handle_data(algo, current_data, dt_to_use)
 
             # grab any new orders from the blotter, then clear the list.
+            # this includes cancelled orders.
             new_orders = blotter.new_orders
             blotter.new_orders = []
 
@@ -183,14 +204,7 @@ class AlgorithmSimulator(object):
 
             # blotter.open_orders contains both new orders and existing
             # open orders
-            open_orders = blotter.open_orders
-
-            # FIXME I think this is a buggy - what if there is a new order
-            # for the same asset that was just marked to be closed?
-            for asset in assets_to_close:
-                del open_orders[asset]
-
-            return open_orders
+            return blotter.open_orders
 
         with self.processor.threadbound(), ZiplineAPI(self.algo):
             orders_to_process = []

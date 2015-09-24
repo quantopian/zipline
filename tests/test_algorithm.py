@@ -1118,7 +1118,6 @@ class TestTradingControls(TestCase):
         with self.assertRaises(expected_exc) if expected_exc else nullctx():
             algo.run(self.data_portal)
         self.assertEqual(algo.order_count, expected_order_count)
-        #self.source.rewind()
 
     def check_algo_succeeds(self, algo, handle_data, order_count=4):
         # Default for order_count assumes one order per handle_data call.
@@ -1156,7 +1155,7 @@ class TestTradingControls(TestCase):
                                            env=self.env)
         self.check_algo_fails(algo, handle_data, 3)
 
-        # Buy two shares four times. Should bail due to max_notional on the
+        # Buy three shares four times. Should bail due to max_notional on the
         # third attempt.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 3)
@@ -1164,7 +1163,7 @@ class TestTradingControls(TestCase):
 
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
                                            max_shares=10,
-                                           max_notional=61.0,
+                                           max_notional=67.0,
                                            sim_params=self.sim_params,
                                            env=self.env)
         self.check_algo_fails(algo, handle_data, 2)
@@ -1176,7 +1175,7 @@ class TestTradingControls(TestCase):
             algo.order_count += 1
         algo = SetMaxPositionSizeAlgorithm(sid=self.sid + 1,
                                            max_shares=10,
-                                           max_notional=61.0,
+                                           max_notional=67.0,
                                            sim_params=self.sim_params,
                                            env=self.env)
         self.check_algo_succeeds(algo, handle_data)
@@ -1284,40 +1283,73 @@ class TestTradingControls(TestCase):
         self.check_algo_fails(algo, handle_data, 0)
 
     def test_set_max_order_count(self):
+        tempdir = TempDirectory()
+        try:
+            env = TradingEnvironment()
+            sim_params = factory.create_simulation_parameters(
+                num_days=4, env=env, data_frequency="minute")
 
-        # Override the default setUp to use six-hour intervals instead of full
-        # days so we can exercise trading-session rollover logic.
-        trade_history = factory.create_trade_history(
-            self.sid,
-            [10.0, 10.0, 11.0, 11.0],
-            [100, 100, 100, 300],
-            timedelta(hours=6),
-            self.sim_params,
-            self.env
-        )
-        self.source = SpecificEquityTrades(event_list=trade_history,
-                                           env=self.env)
+            env.write_data(equities_data={
+                1: {
+                    'start_date': sim_params.period_start,
+                    'end_date': sim_params.period_end
+                }
+            })
 
-        def handle_data(algo, data):
-            for i in range(5):
-                algo.order(algo.sid(self.sid), 1)
-                algo.order_count += 1
+            data_portal = create_data_portal(
+                env,
+                tempdir,
+                sim_params,
+                [1]
+            )
 
-        algo = SetMaxOrderCountAlgorithm(3, sim_params=self.sim_params,
-                                         env=self.env)
-        self.check_algo_fails(algo, handle_data, 3)
+            def handle_data(algo, data):
+                for i in range(5):
+                    algo.order(algo.sid(1), 1)
+                    algo.order_count += 1
 
-        # Second call to handle_data is the same day as the first, so the last
-        # order of the second call should fail.
-        algo = SetMaxOrderCountAlgorithm(9, sim_params=self.sim_params,
-                                         env=self.env)
-        self.check_algo_fails(algo, handle_data, 9)
+            algo = SetMaxOrderCountAlgorithm(3, sim_params=sim_params,
+                                             env=env)
+            with self.assertRaises(TradingControlViolation):
+                algo._handle_data = handle_data
+                algo.run(data_portal)
 
-        # Only ten orders are placed per day, so this should pass even though
-        # in total more than 20 orders are placed.
-        algo = SetMaxOrderCountAlgorithm(10, sim_params=self.sim_params,
-                                         env=self.env)
-        self.check_algo_succeeds(algo, handle_data, order_count=20)
+            self.assertEqual(algo.order_count, 3)
+
+            # This time, order 5 times twice in a single day. The last order
+            # of the second batch should fail.
+            def handle_data2(algo, data):
+                if algo.minute_count == 0 or algo.minute_count == 100:
+                    for i in range(5):
+                        algo.order(algo.sid(1), 1)
+                        algo.order_count += 1
+
+                algo.minute_count += 1
+
+            algo = SetMaxOrderCountAlgorithm(9, sim_params=sim_params,
+                                             env=env)
+            with self.assertRaises(TradingControlViolation):
+                algo._handle_data = handle_data2
+                algo.run(data_portal)
+
+            self.assertEqual(algo.order_count, 9)
+
+            def handle_data3(algo, data):
+                if (algo.minute_count % 390) == 0:
+                    for i in range(5):
+                        algo.order(algo.sid(1), 1)
+                        algo.order_count += 1
+
+                algo.minute_count += 1
+
+            # Only 5 orders are placed per day, so this should pass even
+            # though in total more than 20 orders are placed.
+            algo = SetMaxOrderCountAlgorithm(5, sim_params=sim_params,
+                                             env=env)
+            algo._handle_data = handle_data3
+            algo.run(data_portal)
+        finally:
+            tempdir.cleanup()
 
     def test_long_only(self):
         # Sell immediately -> fail immediately.
@@ -1361,7 +1393,6 @@ class TestTradingControls(TestCase):
             algo.initialized = True
 
         def handle_data(algo, data):
-
             with self.assertRaises(RegisterTradingControlPostInit):
                 algo.set_max_position_size(self.sid, 1, 1)
             with self.assertRaises(RegisterTradingControlPostInit):
@@ -1375,62 +1406,82 @@ class TestTradingControls(TestCase):
                                 handle_data=handle_data,
                                 sim_params=self.sim_params,
                                 env=self.env)
-        algo.run(self.source)
-        self.source.rewind()
+        algo.run(self.data_portal)
 
     def test_asset_date_bounds(self):
+        tempdir = TempDirectory()
+        try:
+            # Run the algorithm with a sid that ends far in the future
+            temp_env = TradingEnvironment()
 
-        # Run the algorithm with a sid that ends far in the future
-        temp_env = TradingEnvironment()
-        df_source, _ = factory.create_test_df_source(self.sim_params, temp_env)
-        metadata = {0: {'start_date': '1990-01-01',
-                        'end_date': '2020-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(
-            equities_metadata=metadata,
-            sim_params=self.sim_params,
-            env=temp_env,
-        )
-        algo.run(df_source)
+            data_portal = create_data_portal(
+                temp_env,
+                tempdir,
+                self.sim_params,
+                [0]
+            )
+
+            metadata = {0: {'start_date': self.sim_params.period_start,
+                            'end_date': '2020-01-01'}}
+
+            algo = SetAssetDateBoundsAlgorithm(
+                equities_metadata=metadata,
+                sim_params=self.sim_params,
+                env=temp_env,
+            )
+            algo.run(data_portal)
+        finally:
+            tempdir.cleanup()
 
         # Run the algorithm with a sid that has already ended
-        temp_env = TradingEnvironment()
-        df_source, _ = factory.create_test_df_source(self.sim_params, temp_env)
-        metadata = {0: {'start_date': '1989-01-01',
-                        'end_date': '1990-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(
-            equities_metadata=metadata,
-            sim_params=self.sim_params,
-            env=temp_env,
-        )
-        with self.assertRaises(TradingControlViolation):
-            algo.run(df_source)
+        tempdir = TempDirectory()
+        try:
+            temp_env = TradingEnvironment()
+
+            data_portal = create_data_portal(
+                temp_env,
+                tempdir,
+                self.sim_params,
+                [0]
+            )
+            metadata = {0: {'start_date': '1989-01-01',
+                            'end_date': '1990-01-01'}}
+
+            algo = SetAssetDateBoundsAlgorithm(
+                    equities_metadata=metadata,
+                    sim_params=self.sim_params,
+                    env=temp_env,
+            )
+            with self.assertRaises(TradingControlViolation):
+                algo.run(data_portal)
+        finally:
+            tempdir.cleanup()
 
         # Run the algorithm with a sid that has not started
-        temp_env = TradingEnvironment()
-        df_source, _ = factory.create_test_df_source(self.sim_params, temp_env)
-        metadata = {0: {'start_date': '2020-01-01',
-                        'end_date': '2021-01-01'}}
-        algo = SetAssetDateBoundsAlgorithm(
-            equities_metadata=metadata,
-            sim_params=self.sim_params,
-            env=temp_env,
-        )
-        with self.assertRaises(TradingControlViolation):
-            algo.run(df_source)
+        tempdir = TempDirectory()
+        try:
+            temp_env = TradingEnvironment()
+            data_portal = create_data_portal(
+                temp_env,
+                tempdir,
+                self.sim_params,
+                [0]
+            )
 
-        # Run the algorithm with a sid that starts on the first day and
-        # ends on the last day of the algorithm's parameters (*not* an error).
-        temp_env = TradingEnvironment()
-        df_source, _ = factory.create_test_df_source(self.sim_params, temp_env)
-        metadata = {0: {'start_date': '2006-01-03',
-                        'end_date': '2006-01-06'}}
-        algo = SetAssetDateBoundsAlgorithm(
-            equities_metadata=metadata,
-            sim_params=self.sim_params,
-            env=temp_env,
-        )
-        algo.run(df_source)
+            metadata = {0: {'start_date': '2020-01-01',
+                         'end_date': '2021-01-01'}}
 
+            algo = SetAssetDateBoundsAlgorithm(
+                    equities_metadata=metadata,
+                    sim_params=self.sim_params,
+                    env=temp_env,
+            )
+
+            with self.assertRaises(TradingControlViolation):
+                algo.run(data_portal)
+
+        finally:
+            tempdir.cleanup()
 
 class TestAccountControls(TestCase):
 

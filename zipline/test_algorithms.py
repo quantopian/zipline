@@ -481,6 +481,7 @@ class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0
         self.set_max_order_count(count)
+        self.minute_count = 0
 
 
 class SetLongOnlyAlgorithm(TradingAlgorithm):

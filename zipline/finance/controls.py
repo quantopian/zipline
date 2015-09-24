@@ -183,7 +183,6 @@ class MaxOrderSize(TradingControl):
         Fail if the magnitude of the given order exceeds either self.max_shares
         or self.max_notional.
         """
-
         if self.asset is not None and self.asset != asset:
             return
 
@@ -240,7 +239,6 @@ class MaxPositionSize(TradingControl):
         greater in shares than self.max_shares or greater in dollar value than
         self.max_notional.
         """
-
         if self.asset is not None and self.asset != asset:
             return
 
