@@ -170,8 +170,8 @@ class DataPortal(object):
         if asset in self.sources_map:
             # go find this asset in our custom sources
             try:
-                return self.sources_map[asset].loc[self.current_day].\
-                    loc[column]
+                # TODO: Change to index both dt and column at once.
+                return self.sources_map[asset].loc[dt].loc[column]
             except:
                 log.error(
                     "Could not find price for asset={0}, current_day={1},"
@@ -209,7 +209,7 @@ class DataPortal(object):
                     "because it only started trading on {2}!".
                     format(
                         str(asset),
-                        str(self.current_day),
+                        str(dt),
                         str(asset_data_start_date)
                     )
                 )
@@ -218,7 +218,7 @@ class DataPortal(object):
 
             # figure out how many days it's been between now and when this
             # asset starting trading
-            window_offset = trading_days.searchsorted(self.current_day) - \
+            window_offset = trading_days.searchsorted(dt) - \
                 trading_days.searchsorted(asset_data_start_date)
 
             # and use that offset to find our lookup index
