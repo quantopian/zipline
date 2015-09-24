@@ -26,6 +26,7 @@ import operator
 import unittest
 from nose_parameterized import parameterized
 import nose.tools as nt
+from testfixtures import TempDirectory
 import pytz
 import itertools
 
@@ -51,6 +52,10 @@ from zipline.utils.serialization_utils import (
 import zipline.protocol as zp
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources.data_frame_source import DataPanelSource
+from .utils.test_utils import (
+    create_data_portal,
+    create_data_portal_from_trade_history
+)
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -127,7 +132,8 @@ def create_txn(trade_event, price, amount):
     of a given trade event.
     """
     mock_order = Order(trade_event.dt, trade_event.sid, amount, id=None)
-    return create_transaction(trade_event, mock_order, price, amount)
+    return create_transaction(trade_event, trade_event.dt,
+                              mock_order, price, amount)
 
 
 def benchmark_events_in_range(sim_params, env):
@@ -977,6 +983,7 @@ class TestPositionPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
+        self.tempdir = TempDirectory()
         self.sim_params, self.dt, self.end_dt = \
             create_random_simulation_parameters()
 
@@ -1594,19 +1601,33 @@ shares in position"
                       net_liquidation=1300.0)
 
     def test_cost_basis_calc(self):
+        sim_params = factory.create_simulation_parameters(
+            num_days=4, env=self.env
+        )
         history_args = (
             1,
             [10, 11, 11, 12],
             [100, 100, 100, 100],
-            onesec,
-            self.sim_params,
+            oneday,
+            sim_params,
             self.env
         )
         trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)
 
-        pt = perf.PositionTracker(self.env.asset_finder)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            sim_params,
+            {1: trades})
+
+        pt = perf.PositionTracker(self.env.asset_finder, data_portal)
+        pp = perf.PerformancePeriod(
+            1000.0,
+            self.env.asset_finder,
+            period_open=sim_params.period_start,
+            period_close=sim_params.period_end,
+        )
         pp.position_tracker = pt
 
         average_cost = 0
@@ -1615,9 +1636,6 @@ shares in position"
             pp.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
             self.assertEqual(pp.positions[1].cost_basis, average_cost)
-
-        for trade in trades:
-            pt.update_last_sale(trade)
 
         pp.calculate_performance()
 

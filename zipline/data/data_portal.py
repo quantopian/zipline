@@ -33,7 +33,7 @@ class DataPortal(object):
                  sid_path_func=None):
         self.env = env
         self.current_dt = None
-        self.current_day = None
+        self.current_day = sim_params.period_start
         self.cur_data_offset = 0
 
         self.views = {}
@@ -163,12 +163,15 @@ class DataPortal(object):
 
         return carray
 
-    def get_current_price_data(self, asset, column):
+    def get_current_price_data(self, asset, column, dt=None):
+        if dt is None:
+            dt = self.current_day
+
         if asset in self.sources_map:
             # go find this asset in our custom sources
             try:
-                return self.sources_map[asset].loc[self.current_day].\
-                    loc[column]
+                # TODO: Change to index both dt and column at once.
+                return self.sources_map[asset].loc[dt].loc[column]
             except:
                 log.error(
                     "Could not find price for asset={0}, current_day={1},"
@@ -193,17 +196,21 @@ class DataPortal(object):
             asset_file_index = daily_attrs['first_row'][str(asset_int)]
 
             # find when the asset started trading
-            asset_start_trading_date = \
-                self.asset_finder.retrieve_asset(asset).start_date
+            # TODO: only access this info once.
+            calendar = daily_attrs['calendar']
+            asset_data_start_date = \
+                pd.Timestamp(
+                    calendar[daily_attrs['calendar_offset'][str(asset_int)]],
+                    tz='UTC')
 
-            if self.current_day < asset_start_trading_date:
+            if dt < asset_data_start_date:
                 raise ValueError(
                     "Cannot fetch daily data for {0} for {1} "
                     "because it only started trading on {2}!".
                     format(
                         str(asset),
-                        str(self.current_day),
-                        str(asset_start_trading_date)
+                        str(dt),
+                        str(asset_data_start_date)
                     )
                 )
 
@@ -211,8 +218,8 @@ class DataPortal(object):
 
             # figure out how many days it's been between now and when this
             # asset starting trading
-            window_offset = trading_days.searchsorted(self.current_day) - \
-                trading_days.searchsorted(asset_start_trading_date)
+            window_offset = trading_days.searchsorted(dt) - \
+                trading_days.searchsorted(asset_data_start_date)
 
             # and use that offset to find our lookup index
             lookup_idx = asset_file_index + window_offset
