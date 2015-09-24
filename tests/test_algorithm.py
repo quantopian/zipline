@@ -16,7 +16,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
-from six.moves import range
+from six.moves import range, map
 from textwrap import dedent
 from unittest import TestCase
 
@@ -598,6 +598,26 @@ class TestTransformAlgorithm(TestCase):
         algo = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
             env=self.env,
+            sids=[0, 1])
+        panel = self.panel.copy()
+        panel.items = pd.Index(map(Equity, panel.items))
+        algo.run(panel)
+        assert isinstance(algo.sources[0], DataPanelSource)
+
+    def test_df_of_assets_as_input(self):
+        algo = TestRegisterTransformAlgorithm(
+            sim_params=self.sim_params,
+            env=TradingEnvironment(),  # new env without assets
+        )
+        df = self.df.copy()
+        df.columns = pd.Index(map(Equity, df.columns))
+        algo.run(df)
+        assert isinstance(algo.sources[0], DataFrameSource)
+
+    def test_panel_of_assets_as_input(self):
+        algo = TestRegisterTransformAlgorithm(
+            sim_params=self.sim_params,
+            env=TradingEnvironment(),  # new env without assets
             sids=[0, 1])
         algo.run(self.panel)
         assert isinstance(algo.sources[0], DataPanelSource)

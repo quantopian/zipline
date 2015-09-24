@@ -513,48 +513,17 @@ class TradingAlgorithm(object):
             # if DataFrame provided, map columns to sids and wrap
             # in DataFrameSource
             copy_frame = source.copy()
-
-            # Build new Assets for identifiers that can't be resolved as
-            # sids/Assets
-            identifiers_to_build = []
-            for identifier in source.columns:
-                if hasattr(identifier, '__int__'):
-                    asset = self.asset_finder.retrieve_asset(sid=identifier,
-                                                             default_none=True)
-                    if asset is None:
-                        identifiers_to_build.append(identifier)
-                else:
-                    identifiers_to_build.append(identifier)
-
-            self.trading_environment.write_data(
-                equities_identifiers=identifiers_to_build)
-            copy_frame.columns = \
-                self.asset_finder.map_identifier_index_to_sids(
-                    source.columns, source.index[0]
-                )
+            copy_frame.columns = self._write_and_map_id_index_to_sids(
+                source.columns, source.index[0],
+            )
             source = DataFrameSource(copy_frame)
 
         elif isinstance(source, pd.Panel):
             # If Panel provided, map items to sids and wrap
             # in DataPanelSource
             copy_panel = source.copy()
-
-            # Build new Assets for identifiers that can't be resolved as
-            # sids/Assets
-            identifiers_to_build = []
-            for identifier in source.items:
-                if hasattr(identifier, '__int__'):
-                    asset = self.asset_finder.retrieve_asset(sid=identifier,
-                                                             default_none=True)
-                    if asset is None:
-                        identifiers_to_build.append(identifier)
-                else:
-                    identifiers_to_build.append(identifier)
-
-            self.trading_environment.write_data(
-                equities_identifiers=identifiers_to_build)
-            copy_panel.items = self.asset_finder.map_identifier_index_to_sids(
-                source.items, source.major_axis[0]
+            copy_panel.items = self._write_and_map_id_index_to_sids(
+                source.items, source.major_axis[0],
             )
             source = DataPanelSource(copy_panel)
 
@@ -616,6 +585,30 @@ class TradingAlgorithm(object):
         self.analyze(daily_stats)
 
         return daily_stats
+
+    def _write_and_map_id_index_to_sids(self, identifiers, as_of_date):
+        # Build new Assets for identifiers that can't be resolved as
+        # sids/Assets
+        identifiers_to_build = []
+        for identifier in identifiers:
+            asset = None
+
+            if isinstance(identifier, Asset):
+                asset = self.asset_finder.retrieve_asset(sid=identifier.sid,
+                                                         default_none=True)
+
+            elif hasattr(identifier, '__int__'):
+                asset = self.asset_finder.retrieve_asset(sid=identifier,
+                                                         default_none=True)
+            if asset is None:
+                identifiers_to_build.append(identifier)
+
+        self.trading_environment.write_data(
+            equities_identifiers=identifiers_to_build)
+
+        return self.asset_finder.map_identifier_index_to_sids(
+            identifiers, as_of_date,
+        )
 
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
