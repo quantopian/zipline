@@ -132,7 +132,8 @@ def create_txn(trade_event, price, amount):
     of a given trade event.
     """
     mock_order = Order(trade_event.dt, trade_event.sid, amount, id=None)
-    return create_transaction(trade_event, mock_order, price, amount)
+    return create_transaction(trade_event, trade_event.dt,
+                              mock_order, price, amount)
 
 
 def benchmark_events_in_range(sim_params, env):
