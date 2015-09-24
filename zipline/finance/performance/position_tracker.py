@@ -445,15 +445,19 @@ class PositionTracker(object):
         return net_cash_payment
 
     def maybe_create_close_position_transaction(self, event):
-        if not self._position_amounts.get(event.sid):
+        if not self.positions.get(event.sid):
             return None
+
+        amount = self.positions.get(event.sid).amount
+
         if 'price' in event:
             price = event.price
         else:
             price = self._position_last_sale_prices[event.sid]
+
         txn = Transaction(
             sid=event.sid,
-            amount=(-1 * self._position_amounts[event.sid]),
+            amount=(-1 * amount),
             dt=event.dt,
             price=price,
             commission=0,
