@@ -75,6 +75,7 @@ import logbook
 
 import numpy as np
 
+from collections import namedtuple
 from zipline.assets import Future
 
 try:
@@ -90,9 +91,40 @@ import zipline.protocol as zp
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
+from zipline.finance.performance.position_tracker import calc_position_stats
 
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
+
+
+PeriodStats = namedtuple('PeriodStats',
+                         ['net_liquidation',
+                          'gross_leverage',
+                          'net_leverage'])
+
+
+def calc_net_liquidation(ending_cash, long_value, short_value):
+    return ending_cash + long_value + short_value
+
+
+def calc_leverage(exposure, net_liq):
+    if net_liq != 0:
+        return exposure / net_liq
+
+    return np.inf
+
+
+def calc_period_stats(pos_stats, ending_cash):
+    net_liq = calc_net_liquidation(ending_cash,
+                                   pos_stats.long_value,
+                                   pos_stats.short_value)
+    gross_leverage = calc_leverage(pos_stats.gross_exposure, net_liq)
+    net_leverage = calc_leverage(pos_stats.net_exposure, net_liq)
+
+    return PeriodStats(
+        net_liquidation=net_liq,
+        gross_leverage=gross_leverage,
+        net_leverage=net_leverage)
 
 
 class PerformancePeriod(object):
@@ -178,8 +210,9 @@ class PerformancePeriod(object):
 
     def calculate_performance(self):
         pt = self.position_tracker
-        self.ending_value = pt.calculate_positions_value()
-        self.ending_exposure = pt.calculate_positions_exposure()
+        pos_stats = calc_position_stats(pt)
+        self.ending_value = pos_stats.net_value
+        self.ending_exposure = pos_stats.net_exposure
 
         total_at_start = self.starting_cash + self.starting_value
         self.ending_cash = self.starting_cash + self.period_cash_flow
@@ -245,27 +278,10 @@ class PerformancePeriod(object):
     def position_amounts(self):
         return self.position_tracker.position_amounts
 
-    @property
-    def _net_liquidation_value(self):
-        pt = self.position_tracker
-        return self.ending_cash + pt._long_value() + pt._short_value()
-
-    def _gross_leverage(self):
-        net_liq = self._net_liquidation_value
-        if net_liq != 0:
-            return self.position_tracker._gross_exposure() / net_liq
-
-        return np.inf
-
-    def _net_leverage(self):
-        net_liq = self._net_liquidation_value
-        if net_liq != 0:
-            return self.position_tracker._net_exposure() / net_liq
-
-        return np.inf
-
     def __core_dict(self):
-        pt = self.position_tracker
+        pos_stats = calc_position_stats(self.position_tracker)
+        period_stats = calc_period_stats(pos_stats, self.ending_cash)
+
         rval = {
             'ending_value': self.ending_value,
             'ending_exposure': self.ending_exposure,
@@ -281,14 +297,14 @@ class PerformancePeriod(object):
             'returns': self.returns,
             'period_open': self.period_open,
             'period_close': self.period_close,
-            'gross_leverage': self._gross_leverage(),
-            'net_leverage': self._net_leverage(),
-            'short_exposure': pt._short_exposure(),
-            'long_exposure': pt._long_exposure(),
-            'short_value': pt._short_value(),
-            'long_value': pt._long_value(),
-            'longs_count': pt._longs_count(),
-            'shorts_count': pt._shorts_count()
+            'gross_leverage': period_stats.gross_leverage,
+            'net_leverage': period_stats.net_leverage,
+            'short_exposure': pos_stats.short_exposure,
+            'long_exposure': pos_stats.long_exposure,
+            'short_value': pos_stats.short_value,
+            'long_value': pos_stats.long_value,
+            'longs_count': pos_stats.longs_count,
+            'shorts_count': pos_stats.shorts_count,
         }
 
         return rval
@@ -367,6 +383,10 @@ class PerformancePeriod(object):
     def as_account(self):
         account = self._account_store
 
+        pt = self.position_tracker
+        pos_stats = calc_position_stats(pt)
+        period_stats = calc_period_stats(pos_stats, self.ending_cash)
+
         # If no attribute is found on the PerformancePeriod resort to the
         # following default values. If an attribute is found use the existing
         # value. For instance, a broker may provide updates to these
@@ -402,11 +422,12 @@ class PerformancePeriod(object):
                     self.ending_cash / (self.ending_cash + self.ending_value))
         account.day_trades_remaining = \
             getattr(self, 'day_trades_remaining', float('inf'))
-        account.leverage = \
-            getattr(self, 'leverage', self._gross_leverage())
-        account.net_leverage = self._net_leverage()
-        account.net_liquidation = \
-            getattr(self, 'net_liquidation', self._net_liquidation_value)
+        account.leverage = getattr(self, 'leverage',
+                                   period_stats.gross_leverage)
+        account.net_leverage = period_stats.net_leverage
+
+        account.net_liquidation = getattr(self, 'net_liquidation',
+                                          period_stats.net_liquidation)
         return account
 
     def __getstate__(self):
