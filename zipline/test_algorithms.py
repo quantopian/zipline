@@ -88,6 +88,7 @@ from zipline.api import (
 )
 from zipline.errors import UnsupportedOrderParameters
 from zipline.assets import Future, Equity
+from zipline.finance.commission import PerShare
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -95,6 +96,7 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.finance.controls import AssetDateBounds
+from zipline.utils.math_utils import round_if_near_integer
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -316,8 +318,8 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
                             data[0].price,
                             style=StopLimitOrder(10, 10))
 
-            assert len(self.blotter.open_orders[0]) == 1
-            result = self.blotter.open_orders[0][0]
+            assert len(self.blotter.open_orders[self.sid(133)]) == 1
+            result = self.blotter.open_orders[self.sid(133)][0]
             assert result.limit == 10
             assert result.stop == 10
 
@@ -359,7 +361,7 @@ class TestTargetAlgorithm(TradingAlgorithm):
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
-        self.target_shares = np.random.randint(1, 30)
+        self.target_shares = 10
         self.order_target(self.sid(0), self.target_shares)
 
 
@@ -375,6 +377,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
             self.target_shares = 10
             return
         else:
+
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
@@ -383,33 +386,45 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
         self.order_percent(self.sid(0), .001)
 
         if isinstance(self.sid(0), Equity):
-            self.target_shares += np.floor(
-                (.001 * self.portfolio.portfolio_value) / data[0].price
-            )
-        if isinstance(self.sid(0), Future):
-            self.target_shares += np.floor(
-                (.001 * self.portfolio.portfolio_value) /
+            new_shares = (.001 * self.portfolio.portfolio_value) / data[0].price
+        elif isinstance(self.sid(0), Future):
+            new_shares = (.001 * self.portfolio.portfolio_value) / \
                 (data[0].price * self.sid(0).contract_multiplier)
-            )
+
+        new_shares = int(round_if_near_integer(new_shares))
+        self.target_shares += new_shares
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = 0
+        self.ordered = False
         self.sale_price = None
 
+        # this makes the math easier to check
+        self.commission = PerShare(0)
+        self.slippage = FixedSlippage(spread=0.0)
+
     def handle_data(self, data):
-        if self.target_shares == 0:
+        if not self.ordered:
             assert 0 not in self.portfolio.positions
-            self.target_shares = 1
         else:
-            assert np.round(self.portfolio.portfolio_value * 0.002) == \
-                self.portfolio.positions[0]['amount'] * self.sale_price, \
-                "Orders not filled correctly."
+            # Since you can't own fractional shares (at least in this
+            # example), we want to make sure that our target amount is
+            # no more than a share's value away from our current
+            # holdings.
+            target_value = self.portfolio.portfolio_value * 0.002
+            position_value = self.portfolio.positions[0]['amount'] * \
+                             self.sale_price
+
+            assert abs(target_value - position_value) <= self.sale_price, \
+                "Orders not filled correctly"
+
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
+
         self.sale_price = data[0].price
         self.order_target_percent(self.sid(0), .002)
+        self.ordered = True
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
@@ -424,7 +439,6 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             self.target_shares = 10
             return
         else:
-            print(self.portfolio)
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \

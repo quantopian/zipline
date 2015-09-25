@@ -87,7 +87,7 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.math_utils import tolerant_equals
+from zipline.utils.math_utils import tolerant_equals, round_if_near_integer
 
 import zipline.protocol
 from zipline.protocol import Event
@@ -682,17 +682,6 @@ class TradingAlgorithm(object):
         """
         Place an order using the specified parameters.
         """
-
-        def round_if_near_integer(a, epsilon=1e-4):
-            """
-            Round a to the nearest integer if that integer is within an epsilon
-            of a.
-            """
-            if abs(a - round(a)) <= epsilon:
-                return round(a)
-            else:
-                return a
-
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0

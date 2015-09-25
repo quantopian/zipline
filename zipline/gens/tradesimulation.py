@@ -189,6 +189,10 @@ class AlgorithmSimulator(object):
                         all(not order.open for order in remaining_open_orders):
                     del open_orders[sid]
 
+            # update the portfolio, so that if the user does
+            # context.portfolio.positions, it's accurate
+            perf_tracker.get_portfolio(True)
+
             handle_data(algo, current_data, dt_to_use)
 
             # grab any new orders from the blotter, then clear the list.
@@ -221,9 +225,9 @@ class AlgorithmSimulator(object):
                     # use the last dt as market close
                     yield self.get_message(trading_day)
 
-                    self.algo.portfolio_needs_update = True
-                    self.algo.account_needs_update = True
-                    self.algo.performance_needs_update = True
+                    algo.portfolio_needs_update = True
+                    algo.account_needs_update = True
+                    algo.performance_needs_update = True
             else:
                 for day_idx, trading_day in enumerate(trading_days):
                     day_offset = (day_idx + first_trading_day_idx) * 390
@@ -239,14 +243,15 @@ class AlgorithmSimulator(object):
                         orders_to_process = inner_loop(minute,
                                                        orders_to_process)
 
+
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     # use the last dt as market close
                     yield self.get_message(minute)
 
-                    self.algo.portfolio_needs_update = True
-                    self.algo.account_needs_update = True
-                    self.algo.performance_needs_update = True
+                    algo.portfolio_needs_update = True
+                    algo.account_needs_update = True
+                    algo.performance_needs_update = True
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message

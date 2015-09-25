@@ -449,11 +449,7 @@ class PositionTracker(object):
             return None
 
         amount = self.positions.get(event.sid).amount
-
-        if 'price' in event:
-            price = event.price
-        else:
-            price = self._position_last_sale_prices[event.sid]
+        price = self._data_portal.get_current_price_data(event.sid, 'close')
 
         txn = Transaction(
             sid=event.sid,
