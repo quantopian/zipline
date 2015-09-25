@@ -190,6 +190,8 @@ class DataPortal(object):
         column_to_use = self.column_lookup[column]
 
         if self.data_frequency == "daily":
+            dt = pd.Timestamp(dt.date(), tz='utc')
+
             daily_data, daily_attrs = self._open_daily_file()
 
             # find the start index in the daily file for this asset

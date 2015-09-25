@@ -785,7 +785,7 @@ class TestAlgoScript(TestCase):
 
             if sid == 3:
                 equities_metadata[sid]["symbol"] = "TEST"
-                equities_metadata[sid]["asset_type"]= "equity"
+                equities_metadata[sid]["asset_type"] = "equity"
 
         cls.env.write_data(equities_data=equities_metadata)
 
@@ -851,7 +851,8 @@ class TestAlgoScript(TestCase):
 
     def test_api_symbol(self):
         algo = TradingAlgorithm(script=api_symbol_algo,
-                                env=self.env)
+                                env=self.env,
+                                sim_params=self.sim_params)
         algo.run(self.data_portal)
 
     def test_fixed_slippage(self):
