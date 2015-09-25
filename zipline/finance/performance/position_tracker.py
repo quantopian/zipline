@@ -55,11 +55,9 @@ def calc_position_values(amounts,
     ]
 
 
-def calc_net_value(position_values):
-    if len(position_values) == 0:
-        return np.float64(0)
-
-    return sum(position_values)
+def calc_net(values):
+    # Returns 0.0 if there are no values.
+    return sum(values, np.float64())
 
 
 def calc_position_exposures(amounts,
@@ -108,13 +106,6 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_net_exposure(position_exposures):
-    if len(position_exposures) == 0:
-        return np.float64(0)
-
-    return sum(position_exposures)
-
-
 def calc_position_stats(pt):
     amounts = []
     last_sale_prices = []
@@ -143,10 +134,10 @@ def calc_position_stats(pt):
     long_exposure = calc_long_exposure(position_exposures)
     short_exposure = calc_short_exposure(position_exposures)
     gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
-    net_exposure = calc_net_exposure(position_exposures)
+    net_exposure = calc_net(position_exposures)
     longs_count = calc_longs_count(position_exposures)
     shorts_count = calc_shorts_count(position_exposures)
-    net_value = calc_net_value(position_values)
+    net_value = calc_net(position_values)
 
     return PositionStats(
         long_value=long_value,
