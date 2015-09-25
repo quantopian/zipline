@@ -107,16 +107,9 @@ def calc_net_liquidation(ending_cash, long_value, short_value):
     return ending_cash + long_value + short_value
 
 
-def calc_gross_leverage(gross_exposure, net_liq):
+def calc_leverage(exposure, net_liq):
     if net_liq != 0:
-        return gross_exposure / net_liq
-
-    return np.inf
-
-
-def calc_net_leverage(net_exposure, net_liq):
-    if net_liq != 0:
-        return net_exposure / net_liq
+        return exposure / net_liq
 
     return np.inf
 
@@ -125,8 +118,8 @@ def calc_period_stats(pos_stats, ending_cash):
     net_liq = calc_net_liquidation(ending_cash,
                                    pos_stats.long_value,
                                    pos_stats.short_value)
-    gross_leverage = calc_gross_leverage(pos_stats.gross_exposure, net_liq)
-    net_leverage = calc_net_leverage(pos_stats.net_exposure, net_liq)
+    gross_leverage = calc_leverage(pos_stats.gross_exposure, net_liq)
+    net_leverage = calc_leverage(pos_stats.net_exposure, net_liq)
 
     return PeriodStats(
         net_liquidation=net_liq,
