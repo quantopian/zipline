@@ -2239,10 +2239,12 @@ class TestPositionTracker(unittest.TestCase):
         pos_stats = position_tracker.calc_position_stats(pt)
         self.assertEqual(100, pos_stats.long_value)
         self.assertEqual(100 + 300000, pos_stats.long_exposure)
+        self.assertEqual(2, pos_stats.longs_count)
 
         # Test short-only methods
         self.assertEqual(-200, pos_stats.short_value)
         self.assertEqual(-200 - 400000, pos_stats.short_exposure)
+        self.assertEqual(2, pos_stats.shorts_count)
 
         # Test gross and net values
         self.assertEqual(100 + 200, pos_stats.gross_value)
