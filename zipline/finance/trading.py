@@ -19,6 +19,7 @@ import datetime
 
 import pandas as pd
 import numpy as np
+from six import string_types
 from sqlalchemy import create_engine
 
 from zipline.data.loader import load_market_data
@@ -113,8 +114,13 @@ class TradingEnvironment(object):
 
         self.exchange_tz = exchange_tz
 
-        self.engine = engine = create_engine('sqlite:///%s' % asset_db_path)
-        AssetDBWriterFromDictionary().init_db(engine)
+        if isinstance(asset_db_path, string_types):
+            asset_db_path = 'sqlite:///%s' % asset_db_path
+            self.engine = engine = create_engine(asset_db_path)
+            AssetDBWriterFromDictionary().init_db(engine)
+        else:
+            self.engine = engine = asset_db_path
+
         self.asset_finder = AssetFinder(engine)
 
     def write_data(self,

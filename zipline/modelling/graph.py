@@ -69,7 +69,7 @@ class TermGraph(DiGraph):
 
         Factor A needs 5 extra rows of USEquityPricing.close, and Factor B
         needs 3 extra rows of the same.  Factor A also requires 5 extra rows of
-        USEquityPricing.high, which no other Factor users.
+        USEquityPricing.high, which no other Factor uses.
 
         We load 5 extra rows of both `price` and `high` to ensure we can
         service Factor A, and the following offsets get computed:

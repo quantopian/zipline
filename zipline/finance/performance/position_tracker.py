@@ -55,11 +55,9 @@ def calc_position_values(amounts,
     ]
 
 
-def calc_net_value(position_values):
-    if len(position_values) == 0:
-        return np.float64(0)
-
-    return sum(position_values)
+def calc_net(values):
+    # Returns 0.0 if there are no values.
+    return sum(values, np.float64())
 
 
 def calc_position_exposures(amounts,
@@ -108,13 +106,6 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_net_exposure(position_exposures):
-    if len(position_exposures) == 0:
-        return np.float64(0)
-
-    return sum(position_exposures)
-
-
 def calc_position_stats(pt, dt=None):
 
     sids = []
@@ -147,10 +138,10 @@ def calc_position_stats(pt, dt=None):
     long_exposure = calc_long_exposure(position_exposures)
     short_exposure = calc_short_exposure(position_exposures)
     gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
-    net_exposure = calc_net_exposure(position_exposures)
+    net_exposure = calc_net(position_exposures)
     longs_count = calc_longs_count(position_exposures)
     shorts_count = calc_shorts_count(position_exposures)
-    net_value = calc_net_value(position_values)
+    net_value = calc_net(position_values)
 
     return PositionStats(
         long_value=long_value,
@@ -176,8 +167,6 @@ class PositionTracker(object):
         # sid => position object
         self.positions = positiondict()
         # Arrays for quick calculations of positions value
-        self._position_amounts = OrderedDict()
-        self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
@@ -288,7 +277,6 @@ class PositionTracker(object):
         old_price = pos.last_sale_price
         pos.last_sale_date = event.dt
         pos.last_sale_price = price
-        self._position_last_sale_prices[sid] = price
 
         # Calculate cash adjustment on assets with multipliers
         return ((price - old_price) * self._position_payout_multipliers[sid]
@@ -298,7 +286,6 @@ class PositionTracker(object):
         # update positions in batch
         self.positions.update(positions)
         for sid, pos in iteritems(positions):
-            self._position_last_sale_prices[sid] = pos.last_sale_price
             self._update_asset(sid)
 
     def update_position(self, sid, amount=None, last_sale_price=None,
@@ -307,12 +294,9 @@ class PositionTracker(object):
 
         if amount is not None:
             pos.amount = amount
-            self._position_values = None  # invalidate cache
             self._update_asset(sid=sid)
         if last_sale_price is not None:
             pos.last_sale_price = last_sale_price
-            self._position_last_sale_prices[sid] = last_sale_price
-            self._position_values = None  # invalidate cache
         if last_sale_date is not None:
             pos.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -332,42 +316,12 @@ class PositionTracker(object):
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
-    @property
-    def position_values(self):
-        # This flag is for benchmark iterator.
-        if self.data_portal:
-            amounts = self._position_amounts
-            if amounts:
-                amounts = np.array(self._position_amounts.values(),
-                                   dtype=float)
-                prices = np.array([
-                    self.data_portal.get_current_price_data(sid, 'close')
-                    for sid in self._position_amounts.keys()])
-                vals = amounts * prices
-            else:
-                vals = np.array([])
-            return vals
-        else:
-            # benchmark mode
-            iter_amount_price_multiplier = zip(
-                itervalues(self._position_amounts),
-                itervalues(self._position_last_sale_prices),
-                itervalues(self._position_value_multipliers),
-            )
-            return [
-                price * amount * multiplier for
-                price, amount, multiplier in iter_amount_price_multiplier
-            ]
-
     def handle_split(self, split):
         if split.sid in self.positions:
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
             leftover_cash = position.handle_split(split)
-            self._position_amounts[split.sid] = position.amount
-            self._position_last_sale_prices[split.sid] = \
-                position.last_sale_price
             self._update_asset(split.sid)
             return leftover_cash
 
@@ -433,8 +387,6 @@ class PositionTracker(object):
             position = self.positions[stock]
 
             position.amount += share_count
-            self._position_amounts[stock] = position.amount
-            self._position_last_sale_prices[stock] = position.last_sale_price
             self._update_asset(stock)
 
         # Add cash equal to the net cash payed from all dividends.  Note that
@@ -523,8 +475,6 @@ class PositionTracker(object):
         self._auto_close_position_sids = state['auto_close_position_sids']
 
         # Arrays for quick calculations of positions value
-        self._position_amounts = OrderedDict()
-        self._position_last_sale_prices = OrderedDict()
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()

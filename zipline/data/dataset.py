@@ -71,7 +71,10 @@ class BoundColumn(Term):
 
     @property
     def latest(self):
-        return Latest(inputs=(self,), dtype=self.dtype)
+        # FIXME: Once we support non-float dtypes, this should pass a dtype
+        # along.  Right now we're just assuming that inputs will safely coerce
+        # to float.
+        return Latest(inputs=(self,))
 
     def __repr__(self):
         return "{qualname}::{dtype}".format(

@@ -444,5 +444,5 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
     def _validate(self):
         if self.dtype != float64:
-            raise UnsupportedDataType(self.dtype)
+            raise UnsupportedDataType(dtype=self.dtype)
         return super(CustomFactor, self)._validate()

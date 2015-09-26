@@ -16,7 +16,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
-from six.moves import range
+from six.moves import range, map
 from testfixtures import TempDirectory
 from textwrap import dedent
 from unittest import TestCase
