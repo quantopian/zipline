@@ -424,6 +424,9 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        if sim_params is not None:
+            self.sim_params = sim_params
+
         if self.perf_tracker is None:
             # Build a perf_tracker
             self.perf_tracker = PerformanceTracker(
