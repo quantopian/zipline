@@ -7,6 +7,7 @@ from networkx import (
 )
 from six import itervalues, iteritems
 from zipline.utils.memoize import lazyval
+from zipline.modelling.visualize import display_graph
 
 
 class CyclicDependency(Exception):
@@ -41,6 +42,8 @@ class TermGraph(DiGraph):
     """
     def __init__(self, terms):
         super(TermGraph, self).__init__(self)
+
+        self._frozen = False
         parents = set()
         for term in itervalues(terms):
             self._add_to_graph(term, parents, extra_rows=0)
@@ -49,6 +52,9 @@ class TermGraph(DiGraph):
 
         self._outputs = terms
         self._ordered = topological_sort(self)
+
+        # Mark that no more terms should be added to the graph.
+        self._frozen = True
 
     @lazyval
     def offset(self):
@@ -166,6 +172,8 @@ class TermGraph(DiGraph):
         """
         Add `term` and all its inputs to the graph.
         """
+        if self._frozen:
+            raise ValueError("Can't mutate `TermGraph` after construction.")
         # If we've seen this node already as a parent of the current traversal,
         # it means we have an unsatisifiable dependency.  This should only be
         # possible if the term's inputs are mutated after construction.
@@ -205,3 +213,18 @@ class TermGraph(DiGraph):
         """
         attrs = self.node[term]
         attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
+
+    @lazyval
+    def jpeg(self):
+        return display_graph(self, 'jpeg')
+
+    @lazyval
+    def png(self):
+        return display_graph(self, 'png')
+
+    @lazyval
+    def svg(self):
+        return display_graph(self, 'svg')
+
+    def _repr_png_(self):
+        return self.png.data

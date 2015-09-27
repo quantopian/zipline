@@ -1,19 +1,25 @@
 """
 Tools for visualizing dependencies between Terms.
 """
-from functools import partial
+from __future__ import unicode_literals
+
 from contextlib import contextmanager
-from logbook import Logger, StderrHandler
+import errno
+from functools import partial
+from io import BytesIO
+from subprocess import Popen, PIPE
+
 from networkx import topological_sort
 from six import iteritems
-import subprocess
+
 
 from zipline.data.dataset import BoundColumn
 from zipline.modelling import Filter, Factor, Classifier, Term
 from zipline.modelling.term import AssetExists
-from zipline.modelling.graph import TermGraph
 
-logger = Logger('Visualize')
+
+class NoIPython(Exception):
+    pass
 
 
 def delimit(delimiters, content):
@@ -38,13 +44,13 @@ bracket = partial(delimit, '[]')
 
 def begin_graph(f, name, **attrs):
     writeln(f, "strict digraph %s {" % name)
-    writeln(f, "graph {attrs}".format(attrs=format_attrs(attrs)))
+    writeln(f, "graph {}".format(format_attrs(attrs)))
 
 
 def begin_cluster(f, name, **attrs):
     attrs.setdefault("label", quote(name))
     writeln(f, "subgraph cluster_%s {" % name)
-    writeln(f, "graph {attrs}".format(attrs=format_attrs(attrs)))
+    writeln(f, "graph {}".format(format_attrs(attrs)))
 
 
 def end_graph(f):
@@ -70,75 +76,96 @@ def roots(g):
     return set(n for n, d in iteritems(g.in_degree()) if d == 0)
 
 
-def write_graph(g, filename, formats=('svg',), include_asset_exists=False):
+def _render(g, out, format_, include_asset_exists=False):
     """
-    Write the dependency graph of `terms` as a dot graph.
+    Draw `g` as a graph to `out`, in format `format`.
 
-    If `png` (default True), write a .png file using the system `dot` program.
-    If `pdf` (default False), write a .pdf file using the system `dot` program.
+    Parameters
+    ----------
+    g : zipline.modelling.graph.TermGraph
+        Graph to render.
+    out : file-like object
+    format_ : str {'png', 'svg'}
+        Output format.
+    include_asset_exists : bool
+        Whether to filter out `AssetExists()` nodes.
     """
-    dotfile = filename + '.dot'
-
     graph_attrs = {'rankdir': 'TB', 'splines': 'ortho'}
     cluster_attrs = {'style': 'filled', 'color': 'lightgoldenrod1'}
 
     in_nodes = list(node for node in g if node.atomic)
     out_nodes = list(g.outputs.values())
-    with open(dotfile, 'w') as f:
-        with graph(f, "G", **graph_attrs):
 
-            # Write outputs cluster.
-            with cluster(f, 'Output', labelloc='b', **cluster_attrs):
-                for term in out_nodes:
-                    add_term_node(f, term)
+    f = BytesIO()
+    with graph(f, "G", **graph_attrs):
 
-            # Write inputs cluster.
-            with cluster(f, 'Input', **cluster_attrs):
-                for term in in_nodes:
-                    if term is AssetExists() and not include_asset_exists:
-                        continue
-                    add_term_node(f, term)
+        # Write outputs cluster.
+        with cluster(f, 'Output', labelloc='b', **cluster_attrs):
+            for term in out_nodes:
+                add_term_node(f, term)
 
-            # Write intermediate results.
-            for term in topological_sort(g):
-                if term in in_nodes or term in out_nodes:
+        # Write inputs cluster.
+        with cluster(f, 'Input', **cluster_attrs):
+            for term in in_nodes:
+                if term is AssetExists() and not include_asset_exists:
                     continue
                 add_term_node(f, term)
 
-            # Write edges
-            for source, dest in g.edges():
-                if source is AssetExists() and not include_asset_exists:
-                    continue
-                add_edge(f, id(source), id(dest))
+        # Write intermediate results.
+        for term in topological_sort(g):
+            if term in in_nodes or term in out_nodes:
+                continue
+            add_term_node(f, term)
 
-    outs = []
-    for format_ in formats:
-        out = '.'.join([filename, format_])
-        logger.info('Writing "%s"' % out)
-        subprocess.call(['dot', '-T', format_, dotfile, '-o', out])
-        outs.append(out)
-    return outs
+        # Write edges
+        for source, dest in g.edges():
+            if source is AssetExists() and not include_asset_exists:
+                continue
+            add_edge(f, id(source), id(dest))
+
+    cmd = ['dot', '-T', format_]
+    try:
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            raise RuntimeError(
+                "Couldn't find `dot` graph layout program. "
+                "Make sure Graphviz is installed and `dot` is on your path."
+            )
+        else:
+            raise
+
+    f.seek(0)
+    proc_stdout, proc_stderr = proc.communicate(f.read())
+    if proc_stderr:
+        raise RuntimeError(
+            "Error(s) while rendering graph: %s" % proc_stderr.decode('utf-8')
+        )
+
+    out.write(proc_stdout)
 
 
-def show_graph(g, include_asset_exists=False):
+def display_graph(g, format='svg', include_asset_exists=False):
     """
-    Display a TermGraph interactively with IPython
+    Display a TermGraph interactively from within IPython.
     """
     try:
-        from IPython.display import SVG
+        import IPython.display as display
     except ImportError:
-        raise Exception("IPython is not installed.  Can't show term graph.")
-    result = write_graph(
-        g,
-        'temp',
-        ('svg',),
-        include_asset_exists=include_asset_exists,
-    )[0]
-    return SVG(filename=result)
+        raise NoIPython("IPython is not installed.  Can't display graph.")
+
+    if format == 'svg':
+        display_cls = display.SVG
+    elif format in ("jpeg", "png"):
+        display_cls = partial(display.Image, format=format, embed=True)
+
+    out = BytesIO()
+    _render(g, out, format, include_asset_exists=include_asset_exists)
+    return display_cls(data=out.getvalue())
 
 
 def writeln(f, s):
-    f.write(s + '\n')
+    f.write((s + '\n').encode('utf-8'))
 
 
 def fmt(obj):
@@ -197,27 +224,3 @@ def format_attrs(attrs):
         return ''
     entries = ['='.join((key, value)) for key, value in iteritems(attrs)]
     return '[' + ', '.join(entries) + ']'
-
-
-if __name__ == '__main__':
-    from zipline.modelling.factor.technical import VWAP, MaxDrawdown, RSI
-    from zipline.data.equities import USEquityPricing
-
-    with StderrHandler():
-        vwap = VWAP(window_length=5)
-        dd_rank = MaxDrawdown([USEquityPricing.close], window_length=5).rank()
-        rsi_rank = (-RSI()).rank()
-
-        score = ((dd_rank + rsi_rank) / 2)
-
-        write_graph(
-            TermGraph(
-                {
-                    'vwap_pct': vwap.percentile_between(0, 20),
-                    'score': score,
-                    'score_gt': score > 10.0,
-                },
-            ),
-            'new',
-            ('png',),
-        )
