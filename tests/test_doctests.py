@@ -11,6 +11,7 @@ from zipline.modelling import (
 from zipline.utils import (
     memoize,
     test_utils,
+    preprocess,
 )
 
 
@@ -35,9 +36,18 @@ class DoctestTestCase(TestCase):
                   "pdbpp is installed." % module.__name__, file=sys.__stdout__)
             return
         try:
-            doctest.testmod(module, verbose=True, raise_on_error=True)
+            doctest.testmod(
+                module,
+                verbose=True,
+                raise_on_error=True,
+                optionflags=self.flags,
+            )
         except doctest.UnexpectedException as e:
             raise e.exc_info[1]
+        except doctest.DocTestFailure as e:
+            print("Got:")
+            print(e.got)
+            raise
 
     def test_adjustment_docs(self):
         self._check_docs(adjustment)
@@ -53,3 +63,6 @@ class DoctestTestCase(TestCase):
 
     def test_test_utils_docs(self):
         self._check_docs(test_utils)
+
+    def test_preprocess_docs(self):
+        self._check_docs(preprocess)
