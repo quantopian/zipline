@@ -58,7 +58,7 @@ class TestDataPortal(TestCase):
             for minute_idx, minute in enumerate(minutes):
                 for field_idx, field in enumerate(
                         ["open", "high", "low", "close", "volume"]):
-                    val = dp.get_current_price_data(0, field, dt=minute)
+                    val = dp.get_spot_price(0, field, dt=minute)
                     if minute_idx < 200:
                         self.assertEqual(minute_idx + (field_idx * 1000), val)
                     else:
@@ -121,7 +121,7 @@ class TestDataPortal(TestCase):
             for day_idx, day in enumerate(days):
                 for field_idx, field in enumerate(
                         ["open", "high", "low", "close", "volume"]):
-                    val = dp.get_current_price_data(0, field, dt=day)
+                    val = dp.get_spot_price(0, field, dt=day)
                     if day_idx == 0:
                         self.assertEqual(0, val)
                     elif day_idx < 9:

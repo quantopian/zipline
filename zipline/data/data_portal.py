@@ -163,7 +163,7 @@ class DataPortal(object):
 
         return carray
 
-    def get_current_price_data(self, asset, column, dt=None):
+    def get_spot_price(self, asset, column, dt=None):
         day_to_use = dt or self.current_day
 
         if asset in self.sources_map:
@@ -868,4 +868,4 @@ class DataPortalSidView(object):
         self.portal = portal
 
     def __getattr__(self, column):
-        return self.portal.get_current_price_data(self.asset, column)
+        return self.portal.get_spot_price(self.asset, column)
