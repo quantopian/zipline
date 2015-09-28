@@ -9,9 +9,10 @@ from zipline.modelling import (
     expression,
 )
 from zipline.utils import (
+    cache,
     memoize,
-    test_utils,
     preprocess,
+    test_utils,
 )
 
 
@@ -66,3 +67,6 @@ class DoctestTestCase(TestCase):
 
     def test_preprocess_docs(self):
         self._check_docs(preprocess)
+
+    def test_cache_docs(self):
+        self._check_docs(cache)
