@@ -68,7 +68,11 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 import zipline.finance.risk as risk
-from . period import PerformancePeriod
+from . period import (
+    PerformancePeriod,
+    TodaysPerformance,
+    CumulativePerformance
+)
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -143,13 +147,14 @@ class PerformanceTracker(object):
                 # don't serialize positions for cumualtive period
                 serialize_positions=False,
                 asset_finder=self.env.asset_finder,
+                data_portal=data_portal,
             )
             self.minute_performance.position_tracker = self.position_tracker
             self.perf_periods.append(self.minute_performance)
 
         # this performance period will span the entire simulation from
         # inception.
-        self.cumulative_performance = PerformancePeriod(
+        self.cumulative_performance = CumulativePerformance(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             # the cumulative period will be calculated over the entire test.
@@ -162,12 +167,13 @@ class PerformanceTracker(object):
             # don't serialize positions for cumualtive period
             serialize_positions=False,
             asset_finder=self.env.asset_finder,
+            data_portal=data_portal,
         )
         self.cumulative_performance.position_tracker = self.position_tracker
         self.perf_periods.append(self.cumulative_performance)
 
         # this performance period will span just the current market day
-        self.todays_performance = PerformancePeriod(
+        self.todays_performance = TodaysPerformance(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             # the daily period will be calculated for the market day
@@ -177,6 +183,7 @@ class PerformanceTracker(object):
             keep_orders=True,
             serialize_positions=True,
             asset_finder=self.env.asset_finder,
+            data_portal=data_portal,
         )
         self.todays_performance.position_tracker = self.position_tracker
 
