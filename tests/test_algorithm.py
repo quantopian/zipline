@@ -1594,54 +1594,58 @@ class TestAccountControls(TestCase):
 
 class TestClosePosAlgo(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.sidint = 1
-        cls.env = TradingEnvironment()
-        cls.sim_params = factory.create_simulation_parameters(
-            num_days=6, env=cls.env
-        )
+    def setUp(self):
+        self.tempdir = TempDirectory()
 
-        cls.env.write_data(futures_data={
-            1: {
-                'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end,
-                'asset_type': 'future',
-                'auto_close_date': cls.sim_params.trading_days[-2]
-            }
-        })
-
-        cls.tempdir = TempDirectory()
-
-        cls.data_portal = create_data_portal(
-            cls.env,
-            cls.tempdir,
-            cls.sim_params,
-            [cls.sidint]
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.tempdir.cleanup()
+    def tearDown(self):
+        self.tempdir.cleanup()
 
     def test_auto_close_future(self):
-        self.algo = TestAlgorithm(sid=self.sidint, amount=1, order_count=1,
-                                  commission=PerShare(0),
-                                  env=self.env, sim_params=self.sim_params)
+        sidint = 1
+        env = TradingEnvironment()
+
+        sim_params = factory.create_simulation_parameters(
+            num_days=4, env=env
+        )
+
+        trades_by_sid = {}
+        trades_by_sid[sidint] = factory.create_trade_history(
+            sidint,
+            [1, 1, 2, 4],
+            [1e9, 1e9, 1e9, 1e9],
+            timedelta(days=1),
+            sim_params,
+            env
+        )
+
+        day_after_ix = env.trading_days.searchsorted(
+            sim_params.trading_days[-1]) + 1
+        auto_close_date = env.trading_days[day_after_ix]
+        metadata = {1: {'symbol': 'TEST',
+                        'asset_type': 'future',
+                        'auto_close_date': auto_close_date}}
+
+        env.write_data(futures_data=metadata)
+        algo = TestAlgorithm(sid=1, amount=1, order_count=1,
+                             commission=PerShare(0),
+                             sim_params=sim_params,
+                             env=env)
+        data_portal = create_data_portal_from_trade_history(env,
+                                                            self.tempdir,
+                                                            sim_params,
+                                                            trades_by_sid)
 
         # Check results
-        results = self.algo.run(self.data_portal)
+        results = algo.run(data_portal)
 
-        expected_pnl = [0, 1, 2]
-        self.check_algo_pnl(results, expected_pnl)
-
-        expected_positions = [1, 1, 0]
+        expected_positions = [0, 1, 1, 0]
         self.check_algo_positions(results, expected_positions)
 
+        expected_pnl = [0, 0, 1, 2]
+        self.check_algo_pnl(results, expected_pnl)
+
     def check_algo_pnl(self, results, expected_pnl):
-        for i, pnl in enumerate(results.pnl):
-            self.assertEqual(pnl, expected_pnl[i])
+        np.testing.assert_array_almost_equal(results.pnl, expected_pnl)
 
     def check_algo_positions(self, results, expected_positions):
         for i, amount in enumerate(results.positions):
@@ -1650,4 +1654,7 @@ class TestClosePosAlgo(TestCase):
             else:
                 actual_position = 0
 
-            self.assertEqual(actual_position, expected_positions[i])
+            self.assertEqual(
+                actual_position, expected_positions[i],
+                "position for day={0} not equal, actual={1}, expected={2}".
+                format(i, actual_position, expected_positions[i]))
