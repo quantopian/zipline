@@ -215,10 +215,26 @@ class DataPortal(object):
 
                 minute_offset_to_use = (day_index * 390) + minute_index
 
+            result = carray[minute_offset_to_use]
+            if result == 0:
+                # if the given minute doesn't have data, we need to seek
+                # backwards until we find data. This makes the data
+                # forward-filled.
+
+                # get this asset's start date, so that we don't look before it.
+                start_date = self._get_asset_start_date(asset_int)
+                start_date_idx = tradingcalendar.trading_days.searchsorted(
+                    start_date) - INDEX_OF_FIRST_TRADING_DAY
+                start_day_offset = start_date_idx * 390
+
+                while result == 0 and minute_offset_to_use > start_day_offset:
+                    minute_offset_to_use -= 1
+                    result = carray[minute_offset_to_use]
+
             if column_to_use != 'volume':
-                return carray[minute_offset_to_use] * 0.001
+                return result * 0.001
             else:
-                return carray[minute_offset_to_use]
+                return result
 
     def _get_daily_data(self, asset_int, column, dt):
         dt = pd.Timestamp(dt.date(), tz='utc')
@@ -256,11 +272,16 @@ class DataPortal(object):
         # and use that offset to find our lookup index
         lookup_idx = asset_file_index + window_offset
 
-        try:
-            raw_value = daily_data[column][lookup_idx]
-        except:
-            import pdb; pdb.set_trace()
-            z =5
+        # sanity check
+        assert lookup_idx >= asset_file_index
+        assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
+
+        ctable = daily_data[column]
+        raw_value = ctable[lookup_idx]
+
+        while raw_value == 0 and lookup_idx > asset_file_index:
+            lookup_idx -= 1
+            raw_value = ctable[lookup_idx]
 
         if column != 'volume':
             return raw_value * 0.001
@@ -830,6 +851,14 @@ class DataPortal(object):
 
         return (self.current_day >= self.asset_start_dates[name] and
                 self.current_day <= self.asset_end_dates[name])
+
+    def _get_asset_start_date(self, sid):
+        if sid not in self.asset_start_dates:
+            asset = self.asset_finder.retrieve_asset(sid)
+            self.asset_start_dates[sid] = asset.start_date
+            self.asset_end_dates[sid] = asset.end_date
+
+        return self.asset_start_dates[sid]
 
 
 class DataPortalSidView(object):
