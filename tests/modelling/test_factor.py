@@ -151,8 +151,8 @@ class FactorTestCase(BaseFFCTestCase):
         terms = {
             "ascending_nomask": self.f.rank(ascending=True),
             "ascending_mask": self.f.rank(ascending=True, mask=Mask()),
-            # "descending_nomask": self.f.rank(ascending=False),
-            # "descending_mask": self.f.rank(ascending=False, mask=Mask()),
+            "descending_nomask": self.f.rank(ascending=False),
+            "descending_mask": self.f.rank(ascending=False, mask=Mask()),
         }
 
         expected = {
@@ -161,6 +161,11 @@ class FactorTestCase(BaseFFCTestCase):
                                        [3., 5., 1., 2., 4.],
                                        [4., 1., 2., 3., 5.],
                                        [1., 3., 4., 5., 2.]]),
+            "descending_nomask": array([[4., 3., 2., 1., 5.],
+                                        [3., 2., 1., 5., 4.],
+                                        [2., 1., 5., 4., 3.],
+                                        [1., 5., 4., 3., 2.],
+                                        [4., 3., 2., 1., 5.]]),
             # Diagonal should be all nans, and anything whose rank was less
             # than the diagonal in the unmasked calc should go down by 1.
             "ascending_mask": array([[nan, 2., 3., 4., 1.],
@@ -168,6 +173,11 @@ class FactorTestCase(BaseFFCTestCase):
                                      [2., 4., nan, 1., 3.],
                                      [3., 1., 2., nan, 4.],
                                      [1., 2., 3., 4., nan]]),
+            "descending_mask": array([[nan, 3., 2., 1., 4.],
+                                      [2., nan, 1., 4., 3.],
+                                      [2., 1., nan, 4., 3.],
+                                      [1., 4., 3., nan, 2.],
+                                      [4., 3., 2., 1., nan]]),
         }
 
         results = self.run_terms(
