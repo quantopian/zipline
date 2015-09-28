@@ -661,8 +661,7 @@ class TestTransformAlgorithm(TestCase):
         (TestOrderAlgorithm,),
         (TestOrderValueAlgorithm,),
         (TestTargetAlgorithm,),
-        (TestOrderPercentAlgorithm,),
-        (TestTargetPercentAlgorithm,),
+        (TestOrderPercentAlgorithm,)
     ])
     def test_minute_data(self, algo_class):
         tempdir = TempDirectory()
@@ -695,8 +694,7 @@ class TestTransformAlgorithm(TestCase):
                 [0, 1]
             )
 
-            algo = algo_class(sim_params=sim_params,
-                                      env=env)
+            algo = algo_class(sim_params=sim_params, env=env)
             algo.run(data_portal)
         finally:
             tempdir.cleanup()

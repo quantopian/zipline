@@ -48,7 +48,8 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if order.open_amount == 0:
                 continue
 
-            price = self.data_portal.get_current_price_data(order.sid, 'close')
+            price = self.data_portal.get_current_price_data(
+                order.sid, 'close', dt)
             order.check_triggers(price, dt)
             if not order.triggered:
                 continue
@@ -82,8 +83,10 @@ class VolumeShareSlippage(SlippageModel):
                    price_impact=self.price_impact)
 
     def process_order(self, order, dt):
-        volume = self.data_portal.get_current_price_data(order.sid, 'volume')
-        price = self.data_portal.get_current_price_data(order.sid, 'close')
+        volume = self.data_portal.get_current_price_data(
+            order.sid, 'volume', dt)
+        price = self.data_portal.get_current_price_data(
+            order.sid, 'close', dt)
         max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions

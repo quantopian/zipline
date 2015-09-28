@@ -62,7 +62,7 @@ class Transaction(object):
         self.__dict__.update(state)
 
 
-def create_transaction(event, dt, order, price, amount):
+def create_transaction(sid, dt, order, price, amount):
 
     # floor the amount to protect against non-whole number orders
     # TODO: Investigate whether we can add a robust check in blotter
@@ -73,7 +73,7 @@ def create_transaction(event, dt, order, price, amount):
         raise Exception("Transaction magnitude must be at least 1.")
 
     transaction = Transaction(
-        sid=event.sid,
+        sid=sid,
         amount=int(amount),
         dt=dt,
         price=price,
