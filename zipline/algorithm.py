@@ -17,6 +17,7 @@ import warnings
 
 import pytz
 import pandas as pd
+from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from datetime import datetime
@@ -33,16 +34,18 @@ from operator import attrgetter
 
 
 from zipline.errors import (
-    AddTermPostInit,
+    AttachPipelineAfterInitialize,
+    NoSuchPipeline,
     OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
+    DrainPipelineDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
     UnsupportedCommissionModel,
+    UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-    UnsupportedDatetimeFormat,
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
@@ -78,9 +81,11 @@ from zipline.modelling.engine import (
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.api_support import (
     api_method,
+    require_initialized,
     require_not_initialized,
     ZiplineAPI,
 )
+from zipline.utils.cache import CachedObject, Expired
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
@@ -223,12 +228,13 @@ class TradingAlgorithm(object):
 
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
-        self.init_engine(kwargs.pop('ffc_loader', None))
 
-        # Maps from name to Term
-        self._filters = {}
-        self._factors = {}
-        self._classifiers = {}
+        # Initialize Modeling API data.
+        self.init_engine(kwargs.pop('ffc_loader', None))
+        self._pipelines = []
+        # Create an always-expired cache so that we compute the first time data
+        # is requested.
+        self._pipeline_cache = CachedObject(None, pd.Timestamp(0, tz='UTC'))
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
@@ -1326,41 +1332,96 @@ class TradingAlgorithm(object):
         """
         self.register_trading_control(LongOnly())
 
-    ###########
-    # FFC API #
-    ###########
+    ##############
+    # Modeling API
+    ##############
     @api_method
-    @require_not_initialized(AddTermPostInit())
-    def add_factor(self, factor, name):
-        if name in self._factors:
-            raise ValueError("Name %r is already a factor!" % name)
-        self._factors[name] = factor
-
-    @api_method
-    @require_not_initialized(AddTermPostInit())
-    def add_filter(self, filter):
-        name = "anon_filter_%d" % len(self._filters)
-        self._filters[name] = filter
-
-    # Note: add_classifier is not yet implemented since you can't do anything
-    # useful with classifiers yet.
-
-    def _all_terms(self):
-        # Merge all three dicts.
-        return dict(
-            chain.from_iterable(
-                iteritems(terms)
-                for terms in (self._filters, self._factors, self._classifiers)
-            )
-        )
-
-    def compute_factor_matrix(self, start_date):
+    @require_not_initialized(AttachPipelineAfterInitialize())
+    def attach_pipeline(self, pipeline):
         """
-        Compute a factor matrix containing at least the data necessary to
-        provide values for `start_date`.
+        Register a pipeline to be computed at the start of each day.
+        """
+        if self._pipelines:
+            raise NotImplementedError("Multiple pipelines are not supported.")
+        self._pipelines.append(pipeline)
 
-        Loads a factor matrix with data extending from `start_date` until a
-        year from `start_date`, or until the end of the simulation.
+    @api_method
+    @require_initialized(DrainPipelineDuringInitialize())
+    def drain_pipeline(self, name=None):
+        """
+        Get the results of pipeline with name `name`.
+
+        Parameters
+        ----------
+        name : str or None
+            Name of the pipeline for which results are requested.
+
+        Returns
+        -------
+        results : pd.DataFrame
+            DataFrame containing the results of the requested pipeline for
+            the current simulation date.
+
+        Raises
+        ------
+        NoSuchPipeline
+            Raised when no pipeline with the name `name` has been registered.
+
+        See Also
+        --------
+        :meth:`zipline.modelling.FFCEngine.run_pipeline`
+        """
+        # NOTE: We don't currently support multiple pipelines, but we plan to
+        # in the future.
+        for p in self._pipelines:
+            if p.name == name:
+                break
+        # This is a for-else block.  Yes, that's a thing in Python.
+        else:
+            raise NoSuchPipeline(
+                name=name,
+                valid=[p.name for p in self._pipelines],
+            )
+        return self._pipeline_results(p)
+
+    def _pipeline_results(self, pipeline):
+        """
+        Internal implementation of `drain_pipeline`.
+        """
+        today = normalize_date(self.get_datetime())
+        try:
+            data = self._pipeline_cache.unwrap(today)
+        except Expired:
+            data, valid_until = self._run_pipeline(pipeline, today)
+            self._pipeline_cache = CachedObject(data, valid_until)
+
+        # Now that we have a cached result, try to return the data for today.
+        try:
+            return data.loc[today]
+        except KeyError:
+            # This happens if no assets passed the pipeline screen on a given
+            # day.
+            return pd.DataFrame(index=[], columns=data.columns)
+
+    def _run_pipeline(self, pipeline, start_date):
+        """
+        Compute `pipeline`, providing values for at least `start_date`.
+
+        Produces a DataFrame containing data for days between `start_date` and
+        `end_date`, where `end_date` is defined by:
+
+            `end_date = min(start_date + 252 trading days, simulation_end)`
+
+        252 is a mostly-arbitrary number based on napkin math.  The window
+        length will likely become dynamic and/or configurable in the future.
+
+        Returns
+        -------
+        (data, valid_until) : tuple (pd.DataFrame, pd.Timestamp)
+
+        See Also
+        --------
+        FFCEngine.run_pipeline
         """
         days = self.trading_environment.trading_days
 
@@ -1369,16 +1430,19 @@ class TradingAlgorithm(object):
 
         # ...continuing until either the day before the simulation end, or
         # until 252 days of data have been loaded.  252 is a totally arbitrary
-        # choice that seemed reasonable based on napkin math.
+        # choice that seemed reasonable based on napkin math.  In the future,
+        # this number will likely become dynamic and/or customizable, so don't
+        # rely on it being 252.
         sim_end = self.sim_params.last_close.normalize()
         end_loc = min(start_date_loc + 252, days.get_loc(sim_end))
         end_date = days[end_loc]
 
-        return self.engine.factor_matrix(
-            self._all_terms(),
-            start_date,
-            end_date,
-        ), end_date
+        return \
+            self.engine.run_pipeline(pipeline, start_date, end_date), end_date
+
+    ##################
+    # End Modeling API
+    ##################
 
     def current_universe(self):
         return self._current_universe

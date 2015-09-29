@@ -10,7 +10,6 @@ from six import iteritems
 
 from zipline.finance.trading import TradingEnvironment
 from zipline.modelling.engine import SimpleFFCEngine
-from zipline.modelling.graph import TermGraph
 from zipline.modelling.term import AssetExists
 from zipline.utils.pandas_utils import explode
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
@@ -72,15 +71,15 @@ class BaseFFCTestCase(TestCase):
         """Default shape for methods that build test data."""
         return self.__mask.shape
 
-    def run_terms(self, terms, initial_workspace, mask=None):
+    def run_graph(self, graph, initial_workspace, mask=None):
         """
-        Compute the given terms, seeding the workspace of our FFCEngine with
+        Compute the given TermGraph, seeding the workspace of our engine with
         `initial_workspace`.
 
         Parameters
         ----------
-        terms : dict
-            Mapping from termname -> term object.
+        graph : zipline.pipeline.graph.TermGraph
+            Graph to run.
         initial_workspace : dict
             Initial workspace to forward to SimpleFFCEngine.compute_chunk.
         mask : DataFrame, optional
@@ -104,7 +103,7 @@ class BaseFFCTestCase(TestCase):
         dates, assets, mask_values = explode(mask)
         initial_workspace.setdefault(AssetExists(), mask_values)
         return engine.compute_chunk(
-            TermGraph(terms),
+            graph,
             dates,
             assets,
             initial_workspace,

@@ -5,6 +5,7 @@ from numpy import array, eye, nan, ones
 from zipline.errors import UnknownRankMethod
 from zipline.modelling.factor import Factor
 from zipline.modelling.filter import Filter
+from zipline.modelling.graph import TermGraph
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase
@@ -68,8 +69,9 @@ class FactorTestCase(BaseFFCTestCase):
         }
 
         def check(terms):
-            results = self.run_terms(
-                terms,
+            graph = TermGraph(terms)
+            results = self.run_graph(
+                graph,
                 initial_workspace={self.f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
@@ -123,8 +125,9 @@ class FactorTestCase(BaseFFCTestCase):
         }
 
         def check(terms):
-            results = self.run_terms(
-                terms,
+            graph = TermGraph(terms)
+            results = self.run_graph(
+                graph,
                 initial_workspace={self.f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
@@ -148,12 +151,14 @@ class FactorTestCase(BaseFFCTestCase):
         mask_data = ~eye(5, dtype=bool)
         initial_workspace = {self.f: data, Mask(): mask_data}
 
-        terms = {
-            "ascending_nomask": self.f.rank(ascending=True),
-            "ascending_mask": self.f.rank(ascending=True, mask=Mask()),
-            "descending_nomask": self.f.rank(ascending=False),
-            "descending_mask": self.f.rank(ascending=False, mask=Mask()),
-        }
+        graph = TermGraph(
+            {
+                "ascending_nomask": self.f.rank(ascending=True),
+                "ascending_mask": self.f.rank(ascending=True, mask=Mask()),
+                "descending_nomask": self.f.rank(ascending=False),
+                "descending_mask": self.f.rank(ascending=False, mask=Mask()),
+            }
+        )
 
         expected = {
             "ascending_nomask": array([[1., 3., 4., 5., 2.],
@@ -180,8 +185,8 @@ class FactorTestCase(BaseFFCTestCase):
                                       [4., 3., 2., 1., nan]]),
         }
 
-        results = self.run_terms(
-            terms,
+        results = self.run_graph(
+            graph,
             initial_workspace,
             mask=self.build_mask(ones((5, 5))),
         )

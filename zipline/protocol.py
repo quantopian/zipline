@@ -17,7 +17,6 @@ from copy import copy
 
 from six import iteritems, iterkeys
 import pandas as pd
-from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from . utils.protocol_utils import Enum
@@ -494,24 +493,6 @@ class BarData(object):
     def __init__(self, data=None):
         self._data = data or {}
         self._contains_override = None
-        self._factor_matrix = None
-        self._factor_matrix_expires = pd.Timestamp(0, tz='UTC')
-
-    @property
-    def factors(self):
-        algo = get_algo_instance()
-        today = normalize_date(algo.get_datetime())
-        if today > self._factor_matrix_expires:
-            self._factor_matrix, self._factor_matrix_expires = \
-                algo.compute_factor_matrix(today)
-        try:
-            return self._factor_matrix.loc[today]
-        except KeyError:
-            # This happens if no assets passed our filters on a given day.
-            return pd.DataFrame(
-                index=[],
-                columns=self._factor_matrix.columns,
-            )
 
     def __contains__(self, name):
         if self._contains_override:

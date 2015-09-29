@@ -29,7 +29,8 @@ from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
-    add_factor,
+    attach_pipeline,
+    drain_pipeline,
     get_datetime,
 )
 from zipline.data.equities import USEquityPricing
@@ -41,9 +42,15 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
+from zipline.errors import (
+    AttachPipelineAfterInitialize,
+    DrainPipelineDuringInitialize,
+    NoSuchPipeline,
+)
 from zipline.finance import trading
 
 from zipline.modelling.factor.technical import VWAP
+from zipline.modelling.pipeline import Pipeline
 from zipline.utils.test_utils import (
     make_simple_asset_info,
     str_to_seconds,
@@ -157,26 +164,127 @@ class ClosesOnly(TestCase):
     def exists(self, date, asset):
         return asset.start_date <= date <= asset.end_date
 
+    def test_attach_pipeline_after_initialize(self):
+        """
+        Assert that calling attach_pipeline after initialize raises correctly.
+        """
+        def initialize(context):
+            pass
+
+        def late_attach(context, data):
+            attach_pipeline(Pipeline('test'))
+            raise AssertionError("Shouldn't make it past attach_pipeline!")
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=late_attach,
+            data_frequency='daily',
+            ffc_loader=self.ffc_loader,
+            start=self.first_asset_start - trading_day,
+            end=self.last_asset_end + trading_day,
+            env=self.env,
+        )
+
+        with self.assertRaises(AttachPipelineAfterInitialize):
+            algo.run(source=self.closes)
+
+        def barf(context, data):
+            raise AssertionError("Shouldn't make it past before_trading_start")
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            before_trading_start=late_attach,
+            handle_data=barf,
+            data_frequency='daily',
+            ffc_loader=self.ffc_loader,
+            start=self.first_asset_start - trading_day,
+            end=self.last_asset_end + trading_day,
+            env=self.env,
+        )
+
+        with self.assertRaises(AttachPipelineAfterInitialize):
+            algo.run(source=self.closes)
+
+    def test_drain_pipeline_after_initialize(self):
+        """
+        Assert that calling drain_pipeline after initialize raises correctly.
+        """
+        def initialize(context):
+            attach_pipeline(Pipeline('test'))
+            drain_pipeline('test')
+            raise AssertionError("Shouldn't make it past drain_pipeline()")
+
+        def handle_data(context, data):
+            raise AssertionError("Shouldn't make it past initialize!")
+
+        def before_trading_start(context, data):
+            raise AssertionError("Shouldn't make it past initialize!")
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            data_frequency='daily',
+            ffc_loader=self.ffc_loader,
+            start=self.first_asset_start - trading_day,
+            end=self.last_asset_end + trading_day,
+            env=self.env,
+        )
+
+        with self.assertRaises(DrainPipelineDuringInitialize):
+            algo.run(source=self.closes)
+
+    def test_drain_nonexistent_pipeline(self):
+        """
+        Assert that calling add_pipeline after initialize raises appropriately.
+        """
+        def initialize(context):
+            attach_pipeline(Pipeline('test'))
+
+        def handle_data(context, data):
+            raise AssertionError("Shouldn't make it past before_trading_start")
+
+        def before_trading_start(context, data):
+            drain_pipeline('not_test')
+            raise AssertionError("Shouldn't make it past drain_pipeline!")
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            data_frequency='daily',
+            ffc_loader=self.ffc_loader,
+            start=self.first_asset_start - trading_day,
+            end=self.last_asset_end + trading_day,
+            env=self.env,
+        )
+
+        with self.assertRaises(NoSuchPipeline):
+            algo.run(source=self.closes)
+
     def test_assets_appear_on_correct_days(self):
         """
         Assert that assets appear at correct times during a backtest, with
         correctly-adjusted close price values.
         """
         def initialize(context):
-            add_factor(USEquityPricing.close.latest, 'close')
+            p = Pipeline('test')
+            p.add(USEquityPricing.close.latest, 'close')
+
+            attach_pipeline(p)
 
         def handle_data(context, data):
-            factors = data.factors
+            results = drain_pipeline('test')
             date = get_datetime().normalize()
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
                 exists_today = self.exists(date, asset)
                 existed_yesterday = self.exists(date - trading_day, asset)
                 if exists_today and existed_yesterday:
-                    latest = factors.loc[asset, 'close']
+                    latest = results.loc[asset, 'close']
                     self.assertEqual(latest, self.expected_close(date, asset))
                 else:
-                    self.assertNotIn(asset, factors.index)
+                    self.assertNotIn(asset, results.index)
 
         before_trading_start = handle_data
 
@@ -355,17 +463,20 @@ class FFCAlgorithmTestCase(TestCase):
         )
 
         def initialize(context):
+            pipeline = Pipeline('test')
             context.vwaps = []
             for length, key in iteritems(vwap_keys):
                 context.vwaps.append(VWAP(window_length=length))
-                add_factor(context.vwaps[-1], name=key)
+                pipeline.add(context.vwaps[-1], name=key)
+
+            attach_pipeline(pipeline)
 
         def handle_data(context, data):
             today = get_datetime()
-            factors = data.factors
+            results = drain_pipeline('test')
             for length, key in iteritems(vwap_keys):
                 for asset in assets:
-                    computed = factors.loc[asset, key]
+                    computed = results.loc[asset, key]
                     expected = vwaps[length][asset].loc[today]
 
                     # Only having two places of precision here is a bit

@@ -5,21 +5,15 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from operator import and_
+from uuid import uuid4
+
 from six import (
     iteritems,
-    itervalues,
     with_metaclass,
 )
-from six.moves import (
-    reduce,
-    zip_longest,
-)
+from six.moves import zip_longest
+from numpy import array
 
-from numpy import (
-    add,
-    empty_like,
-)
 from pandas import (
     DataFrame,
     date_range,
@@ -28,32 +22,25 @@ from pandas import (
 
 from zipline.lib.adjusted_array import ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.utils.numpy_utils import repeat_first_axis, repeat_last_axis
 from zipline.utils.pandas_utils import explode
 
-from .classifier import Classifier
-from .factor import Factor
-from .filter import Filter
-from .graph import TermGraph
 from .term import AssetExists
 
 
 class FFCEngine(with_metaclass(ABCMeta)):
 
     @abstractmethod
-    def factor_matrix(self, terms, start_date, end_date):
+    def run_pipeline(self, pipeline, start_date, end_date):
         """
-        Compute values for `terms` between `start_date` and `end_date`.
+        Compute values for `pipeline` between `start_date` and `end_date`.
 
-        Returns a DataFrame with a MultiIndex of (date, asset) pairs on the
-        index.  On each date, we return a row for each asset that passed all
-        instances of `Filter` in `terms, and the columns of the returned frame
-        will be the keys in `terms` whose values are instances of `Factor`.
+        Returns a DataFrame with a MultiIndex of (date, asset) pairs
 
         Parameters
         ----------
-        terms : dict[str -> zipline.modelling.term.Term]
-            Dict mapping term names to instances.  The supplied names are used
-            as column names in our output frame.
+        pipeline : zipline.modelling.pipeline.Pipeline
+            The pipeline to run.
         start_date : pd.Timestamp
             Start date of the computed matrix.
         end_date : pd.Timestamp
@@ -61,23 +48,31 @@ class FFCEngine(with_metaclass(ABCMeta)):
 
         Returns
         -------
-        matrix : pd.DataFrame
-            A matrix of computed results.
+        result : pd.DataFrame
+            A frame of computed results.
+
+            The columns `result` correspond wil be the computed results of
+            `pipeline.columns`, which should be a dictionary mapping strings to
+            instances of `zipline.modelling.term.Term`.
+
+            For each date between `start_date` and `end_date`, `result` will
+            contain a row for each asset that passed `pipeline.screen`.  A
+            screen of None indicates that a row should be returned for each
+            asset that existed each day.
         """
-        raise NotImplementedError("factor_matrix")
+        raise NotImplementedError("run_pipeline")
 
 
 class NoOpFFCEngine(FFCEngine):
     """
-    FFCEngine that doesn't do anything.
+    An FFCEngine that doesn't do anything.
     """
-
-    def factor_matrix(self, terms, start_date, end_date):
+    def run_pipeline(self, pipeline, start_date, end_date):
         return DataFrame(
             index=MultiIndex.from_product(
                 [date_range(start=start_date, end=end_date, freq='D'), ()],
             ),
-            columns=sorted(terms.keys())
+            columns=sorted(pipeline.columns.keys()),
         )
 
 
@@ -110,15 +105,14 @@ class SimpleFFCEngine(object):
         self._finder = asset_finder
         self._root_mask_term = AssetExists()
 
-    def factor_matrix(self, terms, start_date, end_date):
+    def run_pipeline(self, pipeline, start_date, end_date):
         """
-        Compute a factor matrix.
+        Compute a pipeline.
 
         Parameters
         ----------
-        terms : dict[str -> zipline.modelling.term.Term]
-            Dict mapping term names to instances.  The supplied names are used
-            as column names in our output frame.
+        pipeline : zipline.modelling.pipeline.Pipeline
+            The pipeline to run.
         start_date : pd.Timestamp
             Start date of the computed matrix.
         end_date : pd.Timestamp
@@ -155,7 +149,7 @@ class SimpleFFCEngine(object):
 
         See Also
         --------
-        FFCEngine.factor_matrix
+        FFCEngine.run_pipeline
         """
         if end_date <= start_date:
             raise ValueError(
@@ -163,36 +157,23 @@ class SimpleFFCEngine(object):
                 "start_date=%s, end_date=%s" % (start_date, end_date)
             )
 
-        graph = TermGraph(terms)
+        screen_name = uuid4().hex
+        graph = pipeline.to_graph(screen_name, self._root_mask_term)
         extra_rows = graph.extra_rows[self._root_mask_term]
-
         root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
         dates, assets, root_mask_values = explode(root_mask)
-        raw_outputs = self.compute_chunk(
+
+        outputs = self.compute_chunk(
             graph,
             dates,
             assets,
             initial_workspace={self._root_mask_term: root_mask_values},
         )
 
-        # Collect the results that we'll actually show to the user.
-        filters, factors = {}, {}
-        for name, term in iteritems(terms):
-            if isinstance(term, Filter):
-                filters[name] = raw_outputs[name]
-            elif isinstance(term, Factor):
-                factors[name] = raw_outputs[name]
-            elif isinstance(term, Classifier):
-                continue
-            else:
-                raise ValueError("Unknown term type: %s" % term)
-
-        # Add the root mask as an implicit filter, truncating off the extra
-        # rows that we only needed to compute other terms.
-        filters['base'] = root_mask_values[extra_rows:]
         out_dates = dates[extra_rows:]
+        screen_values = outputs.pop(screen_name)
 
-        return self._format_factor_matrix(out_dates, assets, filters, factors)
+        return self._to_narrow(outputs, screen_values, out_dates, assets)
 
     def _compute_root_mask(self, start_date, end_date, extra_rows):
         """
@@ -360,98 +341,41 @@ class SimpleFFCEngine(object):
             out[name] = workspace[term][graph_extra_rows[term]:]
         return out
 
-    def _format_factor_matrix(self, dates, assets, filters, factors):
+    def _to_narrow(self, data, mask, dates, assets):
         """
-        Convert raw computed filters/factors into a DataFrame for public APIs.
+        Convert raw computed pipeline results into a DataFrame for public APIs.
 
         Parameters
         ----------
-        dates : np.array[datetime64]
-            Row index for arrays in `filters` and `factors.`
-        assets : np.array[int64]
-            Column index for arrays in `filters` and `factors.`
-        filters : dict
-            Dict mapping filter names -> computed filters.
-        factors : dict
-            Dict mapping factor names -> computed factors.
+        data : dict[str -> ndarray[ndim=2]]
+            Dict mapping column names to computed results.
+        mask : ndarray[bool, ndim=2]
+            Mask array of values to keep.
+        dates : ndarray[datetime64, ndim=1]
+            Row index for arrays `data` and `mask`
+        assets : ndarray[int64, ndim=2]
+            Column index for arrays `data` and `mask`
 
         Returns
         -------
-        factor_matrix : pd.DataFrame
-            The indices of `factor_matrix` are as follows:
+        results : pd.DataFrame
+            The indices of `results` are as follows:
 
             index : two-tiered MultiIndex of (date, asset).
-                For each date, we return a row for each asset that passed all
-                filters on that date.
-            columns : keys from `factor_data`
+                Contains an entry for each (date, asset) pair corresponding to
+                a `True` value in `mask`.
+            columns : Index of str
+                One column per entry in `data`.
 
-        Each date/asset/factor triple contains the computed value of the given
-        factor on the given date for the given asset.
+        If mask[date, asset] is True, then result.loc[(date, asset), colname]
+        will contain the value of data[colname][date, asset].
         """
-        # FUTURE OPTIMIZATION: Cythonize all of this.
-
-        # Boolean mask of values that passed all filters.
-        unioned = reduce(and_, itervalues(filters))
-
-        # Parallel arrays of (x,y) coords for (date, asset) pairs that passed
-        # all filters.  Each entry here will correspond to a row in our output
-        # frame.
-        nonzero_xs, nonzero_ys = unioned.nonzero()
-
-        # Raw arrays storing (date, asset) pairs.
-        # These will form the index of our output frame.
-        raw_dates_index = empty_like(nonzero_xs, dtype='datetime64[ns]')
-        raw_assets_index = empty_like(nonzero_xs, dtype=int)
-
-        # Mapping from column_name -> array.
-        # This will be the `data` arg to our output frame.
-        columns = {
-            name: empty_like(nonzero_xs, dtype=factor.dtype)
-            for name, factor in iteritems(factors)
-        }
-        # We're going to iterate over `iteritems(columns)` a whole bunch of
-        # times down below.  It's faster to construct iterate over a tuple of
-        # pairs.
-        columns_iter = tuple(iteritems(columns))
-
-        # This is tricky.
-
-        # unioned.sum(axis=1) gives us an array of the same size as `dates`
-        # containing, for each date, the number of assets that passed our
-        # filters on that date.
-
-        # Running this through add.accumulate gives us an array containing, for
-        # each date, the running total of the number of assets that passed our
-        # filters on or before that date.
-
-        # This means that (bounds[i - 1], bounds[i]) gives us the indices of
-        # the first and last rows in our output frame for each date in `dates`.
-        bounds = add.accumulate(unioned.sum(axis=1))
-        day_start = 0
-        for day_idx, day_end in enumerate(bounds):
-
-            day_bounds = slice(day_start, day_end)
-            column_indices = nonzero_ys[day_bounds]
-
-            raw_dates_index[day_bounds] = dates[day_idx]
-            raw_assets_index[day_bounds] = assets[column_indices]
-            for name, colarray in columns_iter:
-                colarray[day_bounds] = factors[name][day_idx, column_indices]
-
-            # Upper bound of current row becomes lower bound for next row.
-            day_start = day_end
-
+        resolved_assets = array(self._finder.retrieve_all(assets))
+        dates_kept = repeat_last_axis(dates.values, len(assets))[mask]
+        assets_kept = repeat_first_axis(resolved_assets, len(dates))[mask]
         return DataFrame(
-            data=columns,
-            index=MultiIndex.from_arrays(
-                [
-                    raw_dates_index,
-                    # FUTURE OPTIMIZATION:
-                    # Avoid duplicate lookups by grouping and only looking up
-                    # each unique sid once.
-                    self._finder.retrieve_all(raw_assets_index),
-                ],
-            )
+            data={name: arr[mask] for name, arr in iteritems(data)},
+            index=MultiIndex.from_arrays([dates_kept, assets_kept]),
         ).tz_localize('UTC', level=0)
 
     def _validate_compute_chunk_params(self, dates, assets, initial_workspace):

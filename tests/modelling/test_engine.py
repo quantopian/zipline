@@ -6,11 +6,12 @@ from unittest import TestCase
 from itertools import product
 
 from numpy import (
+    array,
     full,
     nan,
+    tile,
     zeros,
 )
-from numpy.testing import assert_array_equal
 from pandas import (
     DataFrame,
     date_range,
@@ -45,6 +46,7 @@ from zipline.modelling.factor.technical import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
+from zipline.modelling.pipeline import Pipeline
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
     make_rotating_asset_info,
@@ -60,6 +62,22 @@ class RollingSumDifference(CustomFactor):
 
     def compute(self, today, assets, out, open, close):
         out[:] = (open - close).sum(axis=0)
+
+
+class AssetID(CustomFactor):
+    """
+    CustomFactor that returns the AssetID of each asset.
+
+    Useful for providing a Factor that produces a different value for each
+    asset.
+    """
+    window_length = 1
+    # HACK: We currently decide whether to load or compute a Term based on the
+    # length of its inputs.  This means we have to provide a dummy input.
+    inputs = [USEquityPricing.close]
+
+    def compute(self, today, assets, out, close):
+        out[:] = assets
 
 
 def assert_multi_index_is_product(testcase, index, *levels):
@@ -102,11 +120,36 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
 
+        p = Pipeline('test')
+
         msg = "start_date must be before end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
-            engine.factor_matrix({}, self.dates[2], self.dates[1])
+            engine.run_pipeline(p, self.dates[2], self.dates[1])
         with self.assertRaisesRegexp(ValueError, msg):
-            engine.factor_matrix({}, self.dates[2], self.dates[2])
+            engine.run_pipeline(p, self.dates[2], self.dates[2])
+
+    def test_screen(self):
+        loader = self.loader
+        finder = self.asset_finder
+        assets = array(self.assets)
+        engine = SimpleFFCEngine(loader, self.dates, self.asset_finder)
+        num_dates = 5
+        dates = self.dates[10:10 + num_dates]
+
+        factor = AssetID()
+        for asset in assets:
+            p = Pipeline('test', columns={'f': factor}, screen=factor <= asset)
+            result = engine.run_pipeline(p, dates[0], dates[-1])
+
+            expected_sids = assets[assets <= asset]
+            expected_assets = finder.retrieve_all(expected_sids)
+            expected_result = DataFrame(
+                index=MultiIndex.from_product([dates, expected_assets]),
+                data=tile(expected_sids.astype(float), [len(dates)]),
+                columns=['f'],
+            )
+
+            assert_frame_equal(result, expected_result)
 
     def test_single_factor(self):
         loader = self.loader
@@ -117,17 +160,29 @@ class ConstantInputTestCase(TestCase):
         dates = self.dates[10:10 + num_dates]
 
         factor = RollingSumDifference()
+        expected_result = -factor.window_length
 
-        result = engine.factor_matrix({'f': factor}, dates[0], dates[-1])
-        self.assertEqual(set(result.columns), {'f'})
-        assert_multi_index_is_product(
-            self, result.index, dates, finder.retrieve_all(assets)
-        )
+        # Since every asset will pass the screen, these should be equivalent.
+        pipelines = [
+            Pipeline('test', columns={'f': factor}),
+            Pipeline(
+                'test',
+                columns={'f': factor},
+                screen=factor.eq(expected_result),
+            ),
+        ]
 
-        assert_array_equal(
-            result['f'].unstack().values,
-            full(result_shape, -factor.window_length),
-        )
+        for p in pipelines:
+            result = engine.run_pipeline(p, dates[0], dates[-1])
+            self.assertEqual(set(result.columns), {'f'})
+            assert_multi_index_is_product(
+                self, result.index, dates, finder.retrieve_all(assets)
+            )
+
+            check_arrays(
+                result['f'].unstack().values,
+                full(result_shape, expected_result),
+            )
 
     def test_multiple_rolling_factors(self):
 
@@ -145,27 +200,32 @@ class ConstantInputTestCase(TestCase):
             inputs=[USEquityPricing.open, USEquityPricing.high],
         )
 
-        results = engine.factor_matrix(
-            {'short': short_factor, 'long': long_factor, 'high': high_factor},
-            dates[0],
-            dates[-1],
+        pipeline = Pipeline(
+            'test',
+            columns={
+                'short': short_factor,
+                'long': long_factor,
+                'high': high_factor,
+            }
         )
+        results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
         self.assertEqual(set(results.columns), {'short', 'high', 'long'})
         assert_multi_index_is_product(
             self, results.index, dates, finder.retrieve_all(assets)
         )
 
         # row-wise sum over an array whose values are all (1 - 2)
-        assert_array_equal(
+        check_arrays(
             results['short'].unstack().values,
             full(shape, -short_factor.window_length),
         )
-        assert_array_equal(
+        check_arrays(
             results['long'].unstack().values,
             full(shape, -long_factor.window_length),
         )
         # row-wise sum over an array whose values are all (1 - 3)
-        assert_array_equal(
+        check_arrays(
             results['high'].unstack().values,
             full(shape, -2 * high_factor.window_length),
         )
@@ -183,12 +243,15 @@ class ConstantInputTestCase(TestCase):
         open_minus_close = RollingSumDifference(inputs=[open, close])
         avg = (high_minus_low + open_minus_close) / 2
 
-        results = engine.factor_matrix(
-            {
-                'high_low': high_minus_low,
-                'open_close': open_minus_close,
-                'avg': avg,
-            },
+        results = engine.run_pipeline(
+            Pipeline(
+                'test',
+                columns={
+                    'high_low': high_minus_low,
+                    'open_close': open_minus_close,
+                    'avg': avg,
+                },
+            ),
             dates[0],
             dates[-1],
         )
@@ -311,8 +374,11 @@ class FrameInputTestCase(TestCase):
             )
             bounds = product_upper_triangle(range(window_length, len(dates)))
             for start, stop in bounds:
-                results = engine.factor_matrix(
-                    {'low': low_mavg, 'high': high_mavg},
+                results = engine.run_pipeline(
+                    Pipeline(
+                        'test',
+                        columns={'low': low_mavg, 'high': high_mavg}
+                    ),
                     dates[start],
                     dates[stop],
                 )
@@ -424,8 +490,8 @@ class SyntheticBcolzTestCase(TestCase):
             window_length=window_length,
         )
 
-        results = engine.factor_matrix(
-            {'sma': SMA},
+        results = engine.run_pipeline(
+            Pipeline('test', columns={'sma': SMA}),
             dates_to_test[0],
             dates_to_test[-1],
         )
@@ -476,8 +542,8 @@ class SyntheticBcolzTestCase(TestCase):
             window_length=window_length,
         )
 
-        results = engine.factor_matrix(
-            {'drawdown': drawdown},
+        results = engine.run_pipeline(
+            Pipeline('test', columns={'drawdown': drawdown}),
             dates_to_test[0],
             dates_to_test[-1],
         )
@@ -529,13 +595,16 @@ class MultiColumnLoaderTestCase(TestCase):
 
         sumdiff = RollingSumDifference()
 
-        result = engine.factor_matrix(
-            {
-                'sumdiff': sumdiff,
-                'open': open_.latest,
-                'close': close.latest,
-                'volume': volume.latest,
-            },
+        result = engine.run_pipeline(
+            Pipeline(
+                'test',
+                columns={
+                    'sumdiff': sumdiff,
+                    'open': open_.latest,
+                    'close': close.latest,
+                    'volume': volume.latest,
+                },
+            ),
             dates_to_test[0],
             dates_to_test[-1]
         )

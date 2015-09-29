@@ -22,6 +22,7 @@ from numpy.random import randn, seed as random_seed
 from zipline.errors import BadPercentileBounds
 from zipline.modelling.filter import Filter
 from zipline.modelling.factor import Factor
+from zipline.modelling.graph import TermGraph
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase, with_default_shape
@@ -108,7 +109,7 @@ class FilterTestCase(BaseFFCTestCase):
         nan_data[:, 0] = nan
 
         mask = Mask()
-        initial_workspace = {self.f: data, mask: mask_data}
+        workspace = {self.f: data, mask: mask_data}
 
         methods = ['top', 'bottom']
         counts = 2, 3, 10
@@ -127,7 +128,7 @@ class FilterTestCase(BaseFFCTestCase):
             term = getattr(self.f, method)(**kwargs)
             terms[termname(method, count, masked)] = term
 
-        results = self.run_terms(terms, initial_workspace=initial_workspace)
+        results = self.run_graph(TermGraph(terms), initial_workspace=workspace)
 
         def expected_result(method, count, masked):
             # Ranking with a mask is equivalent to ranking with nans applied on
@@ -155,8 +156,10 @@ class FilterTestCase(BaseFFCTestCase):
     def test_bottom(self):
         counts = 2, 3, 10
         data = self.randn_data(seed=5)  # Arbitrary seed choice.
-        results = self.run_terms(
-            terms={'bottom_' + str(c): self.f.bottom(c) for c in counts},
+        results = self.run_graph(
+            TermGraph(
+                {'bottom_' + str(c): self.f.bottom(c) for c in counts}
+            ),
             initial_workspace={self.f: data},
         )
         for c in counts:
@@ -179,15 +182,17 @@ class FilterTestCase(BaseFFCTestCase):
         filter_names = ['pct_' + str(q) for q in quintiles]
         iter_quintiles = zip(filter_names, quintiles)
 
-        terms = {
-            name: self.f.percentile_between(q * 20.0, (q + 1) * 20.0)
-            for name, q in zip(filter_names, quintiles)
-        }
+        graph = TermGraph(
+            {
+                name: self.f.percentile_between(q * 20.0, (q + 1) * 20.0)
+                for name, q in zip(filter_names, quintiles)
+            }
+        )
 
         # Test with 5 columns and no NaNs.
         eye5 = eye(5, dtype=float64)
-        results = self.run_terms(
-            terms,
+        results = self.run_graph(
+            graph,
             initial_workspace={self.f: eye5},
             mask=self.build_mask(ones((5, 5))),
         )
@@ -211,8 +216,8 @@ class FilterTestCase(BaseFFCTestCase):
                       [1, 1, 1, 0, 1, 1],
                       [1, 1, 1, 1, 0, 1]], dtype=bool)
 
-        results = self.run_terms(
-            terms,
+        results = self.run_graph(
+            graph,
             initial_workspace={self.f: eye6},
             mask=self.build_mask(mask)
         )
@@ -231,8 +236,8 @@ class FilterTestCase(BaseFFCTestCase):
         # In particular, the NaNs should never pass any filters.
         eye6_withnans = eye6.copy()
         putmask(eye6_withnans, ~mask, nan)
-        results = self.run_terms(
-            terms,
+        results = self.run_graph(
+            graph,
             initial_workspace={self.f: eye6},
             mask=self.build_mask(mask)
         )
@@ -258,12 +263,14 @@ class FilterTestCase(BaseFFCTestCase):
         quartiles = range(4)
         filter_names = ['pct_' + str(q) for q in quartiles]
 
-        terms = {
-            name: self.f.percentile_between(q * 25.0, (q + 1) * 25.0)
-            for name, q in zip(filter_names, quartiles)
-        }
-        results = self.run_terms(
-            terms,
+        graph = TermGraph(
+            {
+                name: self.f.percentile_between(q * 25.0, (q + 1) * 25.0)
+                for name, q in zip(filter_names, quartiles)
+            }
+        )
+        results = self.run_graph(
+            graph,
             initial_workspace={self.f: data},
             mask=self.build_mask(ones((5, 5))),
         )
@@ -287,14 +294,16 @@ class FilterTestCase(BaseFFCTestCase):
         without_mask = self.g.percentile_between(80, 100)
         with_mask = self.g.percentile_between(80, 100, mask=custom_mask)
 
-        terms = {
-            'custom_mask': custom_mask,
-            'without': without_mask,
-            'with': with_mask,
-        }
+        graph = TermGraph(
+            {
+                'custom_mask': custom_mask,
+                'without': without_mask,
+                'with': with_mask,
+            }
+        )
 
-        results = self.run_terms(
-            terms,
+        results = self.run_graph(
+            graph,
             initial_workspace={self.f: f_input, self.g: g_input},
             mask=initial_mask,
         )

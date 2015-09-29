@@ -377,15 +377,33 @@ class UnknownRankMethod(ZiplineError):
     )
 
 
-class AddTermPostInit(ZiplineError):
+class AttachPipelineAfterInitialize(ZiplineError):
     """
-    Raised when a user tries to call add_{filter,factor,classifier}
-    outside of initialize.
+    Raised when a user tries to call add_pipeline outside of initialize.
     """
     msg = (
-        "Attempted to add a new filter, factor, or classifier "
-        "outside of initialize.\n"
-        "New FFC terms may only be added during initialize."
+        "Attempted to attach a pipeline after initialize()."
+        "attach_pipeline() can only be called during initialize."
+    )
+
+
+class DrainPipelineDuringInitialize(ZiplineError):
+    """
+    Raised when a user tries to call `drain_pipeline` during initialize.
+    """
+    msg = (
+        "Attempted to call drain_pipeline() during initialize. "
+        "drain_pipeline() can only be called once initialize has completed."
+    )
+
+
+class NoSuchPipeline(ZiplineError, KeyError):
+    """
+    Raised when a user tries to access a non-existent pipeline by name.
+    """
+    msg = (
+        "No pipeline named '{name}' exists. Valid pipeline names are {valid}. "
+        "Did you forget to call attach_pipeline()?"
     )
 
 
