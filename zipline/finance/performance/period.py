@@ -133,6 +133,7 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
+            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -140,6 +141,7 @@ class PerformancePeriod(object):
             serialize_positions=True):
 
         self.asset_finder = asset_finder
+        self.data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close
@@ -215,7 +217,34 @@ class PerformancePeriod(object):
         self.ending_exposure = pos_stats.net_exposure
 
         total_at_start = self.starting_cash + self.starting_value
+
+        # Can we adjust cash for futures here?
+        futures_payouts = []
+        for sid, pos in self.positions.iteritems():
+            asset = self.asset_finder.retrieve_asset(sid)
+            if isinstance(asset, Future):
+                old_price_dt = max(pos.last_sale_date,
+                                   self.period_open)
+                if old_price_dt == pos.last_sale_date:
+                    continue
+                old_price = self.data_portal.get_previous_price(
+                    sid,
+                    'close',
+                    dt=old_price_dt)
+                price = self.data_portal.get_spot_price(
+                    sid, 'close', dt=self.period_close)
+                payout = (
+                    (price - old_price)
+                    *
+                    asset.contract_multiplier
+                    *
+                    pos.amount
+                )
+                futures_payouts.append(payout)
+        futures_payout = sum(futures_payouts)
+
         self.ending_cash = self.starting_cash + self.period_cash_flow
+        self.ending_cash += futures_payout
         total_at_end = self.ending_cash + self.ending_value
 
         self.pnl = total_at_end - total_at_start
@@ -472,3 +501,11 @@ class PerformancePeriod(object):
         self._execution_cash_flow_multipliers = {}
 
         self.__dict__.update(state)
+
+
+class TodaysPerformance(PerformancePeriod):
+    pass
+
+
+class CumulativePerformance(PerformancePeriod):
+    pass

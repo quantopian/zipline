@@ -163,6 +163,13 @@ class DataPortal(object):
 
         return carray
 
+    def get_previous_price(self, asset, column, dt):
+        if self.data_frequency == 'daily':
+            prev_dt = self.env.previous_trading_day(dt)
+        elif self.data_frequency == 'minute':
+            prev_dt = self.env.previous_market_minute(dt)
+        return self.get_spot_price(asset, column, prev_dt)
+
     def get_spot_price(self, asset, column, dt=None):
         day_to_use = dt or self.current_day
 
