@@ -44,7 +44,7 @@ from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
-from zipline.utils.factory import create_random_simulation_parameters
+from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
@@ -144,7 +144,9 @@ def benchmark_events_in_range(sim_params, env):
     ]
 
 
-def calculate_results(host,
+def calculate_results(sim_params,
+                      env,
+                      benchmark_events,
                       trade_events,
                       dividend_events=None,
                       splits=None,
@@ -175,7 +177,7 @@ def calculate_results(host,
     txns = txns or []
     splits = splits or []
 
-    perf_tracker = perf.PerformanceTracker(host.sim_params, host.env)
+    perf_tracker = perf.PerformanceTracker(sim_params, env)
 
     if dividend_events is not None:
         dividend_frame = pd.DataFrame(
@@ -190,7 +192,7 @@ def calculate_results(host,
     trade_events = sorted(trade_events, key=lambda ev: (ev.dt, ev.source_id))
 
     # Add a benchmark event for each date.
-    trades_plus_bm = date_sorted_sources(trade_events, host.benchmark_events)
+    trades_plus_bm = date_sorted_sources(trade_events, benchmark_events)
 
     # Filter out benchmark events that are later than the last trade date.
     filtered_trades_plus_bm = (filt_event for filt_event in trades_plus_bm
@@ -262,8 +264,7 @@ class TestSplitPerformance(unittest.TestCase):
     def setUp(self):
         self.env = TradingEnvironment()
         self.env.write_data(equities_identifiers=[1])
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=2)
         # start with $10,000
         self.sim_params.capital_base = 10e3
 
@@ -294,7 +295,9 @@ class TestSplitPerformance(unittest.TestCase):
             ),
         ]
 
-        results = calculate_results(self, events, txns=txns, splits=splits)
+        results = calculate_results(self.sim_params, self.env,
+                                    self.benchmark_events,
+                                    events, txns=txns, splits=splits)
 
         # should have 33 shares (at $60 apiece) and $20 in cash
         self.assertEqual(2, len(results))
@@ -367,11 +370,9 @@ class TestCommissionEvents(unittest.TestCase):
         self.env.write_data(
             equities_identifiers=[0, 1, 133]
         )
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=5)
 
-        logger.info("sim_params: %s, dt: %s, end_dt: %s" %
-                    (self.sim_params, self.dt, self.end_dt))
+        logger.info("sim_params: %s" % self.sim_params)
 
         self.sim_params.capital_base = 10e3
 
@@ -420,7 +421,11 @@ class TestCommissionEvents(unittest.TestCase):
 
         # Insert a purchase order.
         txns = [create_txn(events[0], 20, 1)]
-        results = calculate_results(self, events, txns=txns)
+        results = calculate_results(self.sim_params,
+                                    self.env,
+                                    self.benchmark_events,
+                                    events,
+                                    txns=txns)
 
         # Validate that we lost 320 dollars from our cash pool.
         self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
@@ -479,7 +484,11 @@ class TestCommissionEvents(unittest.TestCase):
 
         events.append(cash_adjustment)
 
-        results = calculate_results(self, events, txns=txns)
+        results = calculate_results(self.sim_params,
+                                    self.env,
+                                    self.benchmark_events,
+                                    events,
+                                    txns=txns)
         # Validate that we lost 300 dollars from our cash pool.
         self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
                          9700)
@@ -502,7 +511,10 @@ class TestCommissionEvents(unittest.TestCase):
         cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
         events.append(cash_adjustment)
 
-        results = calculate_results(self, events)
+        results = calculate_results(self.sim_params,
+                                    self.env,
+                                    self.benchmark_events,
+                                    events)
         # Validate that we lost 300 dollars from our cash pool.
         self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
                          9700)
@@ -520,8 +532,7 @@ class TestDividendPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=6)
         self.sim_params.capital_base = 10e3
 
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
@@ -563,7 +574,9 @@ class TestDividendPerformance(unittest.TestCase):
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(events[0], 10.0, 100)]
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -617,7 +630,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [create_txn(events[0], 10.0, 100)]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -663,7 +678,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [create_txn(events[1], 10.0, 100)]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -706,7 +723,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -748,7 +767,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -792,7 +813,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [create_txn(events[1], 10.0, 100)]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -837,7 +860,9 @@ class TestDividendPerformance(unittest.TestCase):
         txns = [create_txn(events[1], 10.0, -100)]
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -875,7 +900,9 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
         )
@@ -923,7 +950,9 @@ class TestDividendPerformance(unittest.TestCase):
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(events[0], 10.0, 100)]
         results = calculate_results(
-            self,
+            self.sim_params,
+            self.env,
+            self.benchmark_events,
             events,
             dividend_events=[dividend],
             txns=txns,
@@ -977,8 +1006,7 @@ class TestPositionPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=4)
 
         self.finder = self.env.asset_finder
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
@@ -2079,7 +2107,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
     def test_handle_sid_removed_from_universe(self):
         # post some trades in the market
-        sim_params, _, _ = create_random_simulation_parameters()
+        sim_params = create_simulation_parameters(num_days=5)
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
