@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import os
 from nose_parameterized import parameterized
 from unittest import TestCase
@@ -31,7 +30,6 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-from zipline.sources.test_source import create_trade
 
 from zipline.utils.test_utils import(
     setup_logger,
@@ -102,22 +100,25 @@ class BlotterTestCase(TestCase):
 
         blotter = Blotter()
 
-        blotter.order(24, 100, style_obj)
+        blotter.order(24, 100, style_obj, dt=pd.Timestamp.now())
         result = blotter.open_orders[24][0]
 
         self.assertEqual(result.limit, expected_lmt)
         self.assertEqual(result.stop, expected_stp)
 
     def test_order_rejection(self):
+        dt1 = pd.Timestamp.now()
+        dt2 = dt1 + pd.Timedelta("5 min")
+
         blotter = Blotter()
         # Reject a nonexistent order -> no order appears in new_order,
         # no exceptions raised out
-        blotter.reject(56)
+        blotter.reject(56, dt1)
         self.assertEqual(blotter.new_orders, [])
 
         # Basic tests of open order behavior
-        open_order_id = blotter.order(24, 100, MarketOrder())
-        second_order_id = blotter.order(24, 50, MarketOrder())
+        open_order_id = blotter.order(24, 100, MarketOrder(), dt=dt1)
+        second_order_id = blotter.order(24, 50, MarketOrder(), dt=dt1)
         self.assertEqual(len(blotter.open_orders[24]), 2)
         open_order = blotter.open_orders[24][0]
         self.assertEqual(open_order.status, ORDER_STATUS.OPEN)
@@ -125,7 +126,7 @@ class BlotterTestCase(TestCase):
         self.assertIn(open_order, blotter.new_orders)
 
         # Reject that order immediately (same bar, i.e. still in new_orders)
-        blotter.reject(open_order_id)
+        blotter.reject(open_order_id, dt2)
         self.assertEqual(len(blotter.new_orders), 2)
         self.assertEqual(len(blotter.open_orders[24]), 1)
         still_open_order = blotter.new_orders[0]
@@ -134,32 +135,33 @@ class BlotterTestCase(TestCase):
         rejected_order = blotter.new_orders[1]
         self.assertEqual(rejected_order.status, ORDER_STATUS.REJECTED)
         self.assertEqual(rejected_order.reason, '')
+        self.assertEqual(rejected_order.dt, dt2)
 
         # Do it again, but reject it at a later time (after tradesimulation
         # pulls it from new_orders)
         blotter = Blotter()
 
-        new_open_id = blotter.order(24, 10, MarketOrder())
+        new_open_id = blotter.order(24, 10, MarketOrder(), dt=dt1)
         new_open_order = blotter.open_orders[24][0]
         self.assertEqual(new_open_id, new_open_order.id)
         # Pretend that the trade simulation did this.
         blotter.new_orders = []
 
         rejection_reason = "Not enough cash on hand."
-        blotter.reject(new_open_id, reason=rejection_reason)
+        blotter.reject(new_open_id, dt2, reason=rejection_reason)
         rejected_order = blotter.new_orders[0]
         self.assertEqual(rejected_order.id, new_open_id)
         self.assertEqual(rejected_order.status, ORDER_STATUS.REJECTED)
         self.assertEqual(rejected_order.reason, rejection_reason)
+        self.assertEqual(rejected_order.dt, dt2)
 
         # You can't reject a filled order.
         blotter = Blotter()   # Reset for paranoia
-        blotter.current_dt = self.sim_params.trading_days[-1]
         blotter.slippage_func.data_portal = self.data_portal
-        filled_id = blotter.order(24, 100, MarketOrder())
-        #aapl_trade = create_trade(24, 50.0, 400, datetime.datetime.now())
+        filled_id = blotter.order(24, 100, MarketOrder(), dt=dt1)
         filled_order = None
-        for txn in blotter.process_open_orders():
+        for txn in blotter.process_open_orders(
+                self.sim_params.trading_days[-1]):
             filled_order = blotter.orders[txn.order_id]
 
         self.assertEqual(filled_order.id, filled_id)
@@ -167,7 +169,7 @@ class BlotterTestCase(TestCase):
         self.assertEqual(filled_order.status, ORDER_STATUS.FILLED)
         self.assertNotIn(filled_order, blotter.open_orders[24])
 
-        blotter.reject(filled_id)
+        blotter.reject(filled_id, dt2)
         updated_order = blotter.orders[filled_id]
         self.assertEqual(updated_order.status, ORDER_STATUS.FILLED)
 
@@ -177,28 +179,34 @@ class BlotterTestCase(TestCase):
         status indication. When a fill happens, the order should switch
         status to OPEN/FILLED as necessary
         """
+        dt1 = pd.Timestamp.now()
+        dt2 = dt1 + pd.Timedelta("5 min")
+        dt3 = dt2 + pd.Timedelta("5 min")
+
         blotter = Blotter()
         # Nothing happens on held of a non-existent order
-        blotter.hold(56)
+        blotter.hold(56, dt2)
         self.assertEqual(blotter.new_orders, [])
 
-        open_id = blotter.order(24, 100, MarketOrder())
+        open_id = blotter.order(24, 100, MarketOrder(), dt=dt1)
         open_order = blotter.open_orders[24][0]
         self.assertEqual(open_order.id, open_id)
 
-        blotter.hold(open_id)
+        blotter.hold(open_id, dt2)
         self.assertEqual(len(blotter.new_orders), 1)
         self.assertEqual(len(blotter.open_orders[24]), 1)
         held_order = blotter.new_orders[0]
         self.assertEqual(held_order.status, ORDER_STATUS.HELD)
         self.assertEqual(held_order.reason, '')
+        self.assertEqual(held_order.dt, dt2)
 
-        blotter.cancel(held_order.id)
+        blotter.cancel(held_order.id, dt3)
         self.assertEqual(len(blotter.new_orders), 1)
         self.assertEqual(len(blotter.open_orders[24]), 0)
         cancelled_order = blotter.new_orders[0]
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
+        self.assertEqual(cancelled_order.dt, dt3)
 
         for data in ([100, self.sim_params.trading_days[0]],
                      [400, self.sim_params.trading_days[1]]):
@@ -214,16 +222,15 @@ class BlotterTestCase(TestCase):
 
             blotter = Blotter()
             blotter.slippage_func.data_portal = self.data_portal
-            blotter.current_dt = dt
 
-            open_id = blotter.order(24, order_size, MarketOrder())
+            open_id = blotter.order(24, order_size, MarketOrder(), dt=dt1)
             open_order = blotter.open_orders[24][0]
             self.assertEqual(open_id, open_order.id)
-            blotter.hold(open_id)
+            blotter.hold(open_id, dt2)
             held_order = blotter.new_orders[0]
 
             filled_order = None
-            for txn in blotter.process_open_orders():
+            for txn in blotter.process_open_orders(dt):
                 filled_order = blotter.orders[txn.order_id]
 
             self.assertEqual(filled_order.id, held_order.id)
