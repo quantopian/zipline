@@ -44,7 +44,7 @@ from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
-from zipline.utils.factory import create_random_simulation_parameters
+from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
@@ -262,8 +262,7 @@ class TestSplitPerformance(unittest.TestCase):
     def setUp(self):
         self.env = TradingEnvironment()
         self.env.write_data(equities_identifiers=[1])
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=2)
         # start with $10,000
         self.sim_params.capital_base = 10e3
 
@@ -367,11 +366,9 @@ class TestCommissionEvents(unittest.TestCase):
         self.env.write_data(
             equities_identifiers=[0, 1, 133]
         )
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=5)
 
-        logger.info("sim_params: %s, dt: %s, end_dt: %s" %
-                    (self.sim_params, self.dt, self.end_dt))
+        logger.info("sim_params: %s" % self.sim_params)
 
         self.sim_params.capital_base = 10e3
 
@@ -520,8 +517,7 @@ class TestDividendPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=6)
         self.sim_params.capital_base = 10e3
 
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
@@ -977,8 +973,7 @@ class TestPositionPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
-        self.sim_params, self.dt, self.end_dt = \
-            create_random_simulation_parameters()
+        self.sim_params = create_simulation_parameters(num_days=4)
 
         self.finder = self.env.asset_finder
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
@@ -2079,7 +2074,7 @@ class TestPerformanceTracker(unittest.TestCase):
 
     def test_handle_sid_removed_from_universe(self):
         # post some trades in the market
-        sim_params, _, _ = create_random_simulation_parameters()
+        sim_params = create_simulation_parameters(num_days=5)
         events = factory.create_trade_history(
             1,
             [10, 10, 10, 10, 10],
