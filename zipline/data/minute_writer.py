@@ -91,11 +91,11 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
                 idx = minutes.searchsorted(dt)
 
                 dt_col[idx] = dt.value / 1e9
-                open_col[idx] = row[1].iloc[0]
-                high_col[idx] = row[1].iloc[1]
-                low_col[idx] = row[1].iloc[2]
-                close_col[idx] = row[1].iloc[3]
-                vol_col[idx] = row[1].iloc[4]
+                open_col[idx] = row[1].loc["open"]
+                high_col[idx] = row[1].loc["high"]
+                low_col[idx] = row[1].loc["low"]
+                close_col[idx] = row[1].loc["close"]
+                vol_col[idx] = row[1].loc["volume"]
 
             ctable(
                 columns=[

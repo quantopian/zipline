@@ -117,7 +117,7 @@ def calc_position_stats(pt, dt=None):
     for sid, pos in iteritems(pt.positions):
         sids.append(sid)
         amounts.append(pos.amount)
-        last_sale_prices.append(pt._data_portal.get_current_price_data(
+        last_sale_prices.append(pt._data_portal.get_spot_price(
             sid, 'close', dt))
 
     position_values = calc_position_values(
@@ -401,7 +401,7 @@ class PositionTracker(object):
             return None
 
         amount = self.positions.get(event.sid).amount
-        price = self._data_portal.get_current_price_data(event.sid, 'close')
+        price = self._data_portal.get_spot_price(event.sid, 'close')
 
         txn = Transaction(
             sid=event.sid,
@@ -436,7 +436,7 @@ class PositionTracker(object):
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price =\
-                self.data_portal.get_current_price_data(sid, 'close')
+                self.data_portal.get_spot_price(sid, 'close')
         return positions
 
     def get_positions_list(self):

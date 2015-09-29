@@ -163,15 +163,14 @@ class DataPortal(object):
 
         return carray
 
-    def get_current_price_data(self, asset, column, dt=None):
-        if dt is None:
-            dt = self.current_day
+    def get_spot_price(self, asset, column, dt=None):
+        day_to_use = dt or self.current_day
 
         if asset in self.sources_map:
             # go find this asset in our custom sources
             try:
                 # TODO: Change to index both dt and column at once.
-                return self.sources_map[asset].loc[dt].loc[column]
+                return self.sources_map[asset].loc[day_to_use].loc[column]
             except:
                 log.error(
                     "Could not find price for asset={0}, current_day={1},"
@@ -182,63 +181,112 @@ class DataPortal(object):
 
             return None
 
-        asset_int = int(asset)
-
         if column not in self.column_lookup:
             raise KeyError("Invalid column: " + str(column))
 
+        asset_int = int(asset)
         column_to_use = self.column_lookup[column]
 
         if self.data_frequency == "daily":
-            dt = pd.Timestamp(dt.date(), tz='utc')
-
-            daily_data, daily_attrs = self._open_daily_file()
-
-            # find the start index in the daily file for this asset
-            asset_file_index = daily_attrs['first_row'][str(asset_int)]
-
-            # find when the asset started trading
-            # TODO: only access this info once.
-            calendar = daily_attrs['calendar']
-            asset_data_start_date = \
-                pd.Timestamp(
-                    calendar[daily_attrs['calendar_offset'][str(asset_int)]],
-                    tz='UTC')
-
-            if dt < asset_data_start_date:
-                raise ValueError(
-                    "Cannot fetch daily data for {0} for {1} "
-                    "because it only started trading on {2}!".
-                    format(
-                        str(asset),
-                        str(dt),
-                        str(asset_data_start_date)
-                    )
-                )
-
-            trading_days = tradingcalendar.trading_days
-
-            # figure out how many days it's been between now and when this
-            # asset starting trading
-            window_offset = trading_days.searchsorted(dt) - \
-                trading_days.searchsorted(asset_data_start_date)
-
-            # and use that offset to find our lookup index
-            lookup_idx = asset_file_index + window_offset
-
-            raw_value = daily_data[column_to_use][lookup_idx]
-
-            if column_to_use != 'volume':
-                return raw_value * 0.001
-            else:
-                return raw_value
+            return self._get_daily_data(asset_int, column_to_use, day_to_use)
         else:
+            # keeping minute data logic in-lined to avoid the cost of calling
+            # another method.
             carray = self._open_minute_file(column_to_use, asset_int)
 
-        if column_to_use == 'volume':
-            return carray[self.cur_data_offset]
+            if dt is None:
+                # hope cur_data_offset is set correctly, since we weren't
+                # given a dt to use.
+                minute_offset_to_use = self.cur_data_offset
+            else:
+                # dt was passed in, so calculate the offset.
+                # = (390 * number of trading days since 1/2/2002) +
+                #   (index of minute in day)
+
+                # FIXME is this expensive?
+                if not self.env.is_market_hours(dt):
+                    dt = self.env.previous_market_minute(dt)
+
+                given_day = pd.Timestamp(dt.date(), tz='utc')
+                day_index = tradingcalendar.trading_days.searchsorted(
+                    given_day) - INDEX_OF_FIRST_TRADING_DAY
+                minute_index = self.env.market_minutes_for_day(given_day).\
+                    searchsorted(dt)
+
+                minute_offset_to_use = (day_index * 390) + minute_index
+
+            result = carray[minute_offset_to_use]
+            if result == 0:
+                # if the given minute doesn't have data, we need to seek
+                # backwards until we find data. This makes the data
+                # forward-filled.
+
+                # get this asset's start date, so that we don't look before it.
+                start_date = self._get_asset_start_date(asset_int)
+                start_date_idx = tradingcalendar.trading_days.searchsorted(
+                    start_date) - INDEX_OF_FIRST_TRADING_DAY
+                start_day_offset = start_date_idx * 390
+
+                while result == 0 and minute_offset_to_use > start_day_offset:
+                    minute_offset_to_use -= 1
+                    result = carray[minute_offset_to_use]
+
+            if column_to_use != 'volume':
+                return result * 0.001
+            else:
+                return result
+
+    def _get_daily_data(self, asset_int, column, dt):
+        dt = pd.Timestamp(dt.date(), tz='utc')
+        daily_data, daily_attrs = self._open_daily_file()
+
+        # find the start index in the daily file for this asset
+        asset_file_index = daily_attrs['first_row'][str(asset_int)]
+
+        # find when the asset started trading
+        # TODO: only access this info once.
+        calendar = daily_attrs['calendar']
+        asset_data_start_date = \
+            pd.Timestamp(
+                calendar[daily_attrs['calendar_offset'][str(asset_int)]],
+                tz='UTC')
+
+        if dt < asset_data_start_date:
+            raise ValueError(
+                "Cannot fetch daily data for {0} for {1} "
+                "because it only started trading on {2}!".
+                format(
+                    str(asset),
+                    str(dt),
+                    str(asset_data_start_date)
+                )
+            )
+
+        trading_days = tradingcalendar.trading_days
+
+        # figure out how many days it's been between now and when this
+        # asset starting trading
+        window_offset = trading_days.searchsorted(dt) - \
+            trading_days.searchsorted(asset_data_start_date)
+
+        # and use that offset to find our lookup index
+        lookup_idx = asset_file_index + window_offset
+
+        # sanity check
+        assert lookup_idx >= asset_file_index
+        assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
+
+        ctable = daily_data[column]
+        raw_value = ctable[lookup_idx]
+
+        while raw_value == 0 and lookup_idx > asset_file_index:
+            lookup_idx -= 1
+            raw_value = ctable[lookup_idx]
+
+        if column != 'volume':
+            return raw_value * 0.001
         else:
-            return carray[self.cur_data_offset] * 0.001
+            return raw_value
 
     def get_history_window(self, sids, end_dt, bar_count, frequency, field,
                            ffill=True):
@@ -804,6 +852,14 @@ class DataPortal(object):
         return (self.current_day >= self.asset_start_dates[name] and
                 self.current_day <= self.asset_end_dates[name])
 
+    def _get_asset_start_date(self, sid):
+        if sid not in self.asset_start_dates:
+            asset = self.asset_finder.retrieve_asset(sid)
+            self.asset_start_dates[sid] = asset.start_date
+            self.asset_end_dates[sid] = asset.end_date
+
+        return self.asset_start_dates[sid]
+
 
 class DataPortalSidView(object):
 
@@ -812,4 +868,4 @@ class DataPortalSidView(object):
         self.portal = portal
 
     def __getattr__(self, column):
-        return self.portal.get_current_price_data(self.asset, column)
+        return self.portal.get_spot_price(self.asset, column)
