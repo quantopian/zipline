@@ -62,10 +62,12 @@ class RollingSumDifference(CustomFactor):
         out[:] = (open - close).sum(axis=0)
 
 
-def assert_product(case, index, *levels):
+def assert_multi_index_is_product(testcase, index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
-    case.assertIsInstance(index, MultiIndex, "%s is not a MultiIndex" % index)
-    case.assertEqual(set(index), set(product(*levels)))
+    testcase.assertIsInstance(
+        index, MultiIndex, "%s is not a MultiIndex" % index
+    )
+    testcase.assertEqual(set(index), set(product(*levels)))
 
 
 class ConstantInputTestCase(TestCase):
@@ -118,7 +120,9 @@ class ConstantInputTestCase(TestCase):
 
         result = engine.factor_matrix({'f': factor}, dates[0], dates[-1])
         self.assertEqual(set(result.columns), {'f'})
-        assert_product(self, result.index, dates, finder.retrieve_all(assets))
+        assert_multi_index_is_product(
+            self, result.index, dates, finder.retrieve_all(assets)
+        )
 
         assert_array_equal(
             result['f'].unstack().values,
@@ -147,7 +151,9 @@ class ConstantInputTestCase(TestCase):
             dates[-1],
         )
         self.assertEqual(set(results.columns), {'short', 'high', 'long'})
-        assert_product(self, results.index, dates, finder.retrieve_all(assets))
+        assert_multi_index_is_product(
+            self, results.index, dates, finder.retrieve_all(assets)
+        )
 
         # row-wise sum over an array whose values are all (1 - 2)
         assert_array_equal(
