@@ -13,6 +13,7 @@ from zipline.utils import (
     memoize,
     preprocess,
     test_utils,
+    numpy_utils,
 )
 
 
@@ -70,3 +71,6 @@ class DoctestTestCase(TestCase):
 
     def test_cache_docs(self):
         self._check_docs(cache)
+
+    def test_numpy_utils_docs(self):
+        self._check_docs(numpy_utils)
