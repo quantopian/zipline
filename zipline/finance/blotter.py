@@ -17,6 +17,7 @@ import math
 from logbook import Logger
 from collections import defaultdict
 
+import pandas as pd
 from six.moves import filter
 
 import zipline.errors
@@ -33,30 +34,36 @@ from zipline.utils.serialization_utils import (
 
 log = Logger('Blotter')
 
-class Blotter(object):
 
-    def __init__(self):
-        self.transact = transact_partial(VolumeShareSlippage(), PerShare())
+class Blotter(object):
+    def __init__(self, slippage_func=None, commission=None):
         # these orders are aggregated by sid
         self.open_orders = defaultdict(list)
+
         # keep a dict of orders by their own id
         self.orders = {}
-        # holding orders that have come in since the last
-        # event.
+
+        # holding orders that have come in since the last event.
         self.new_orders = []
+
         self.current_dt = None
         self.max_shares = int(1e+11)
+
+        self.slippage_func = slippage_func or VolumeShareSlippage()
+        self.commission = commission or PerShare()
 
     def __repr__(self):
         return """
 {class_name}(
-    transact_partial={transact_partial},
+    slippage={slippage_func},
+    commission={commission},
     open_orders={open_orders},
     orders={orders},
     new_orders={new_orders},
     current_dt={current_dt})
 """.strip().format(class_name=self.__class__.__name__,
-                   transact_partial=self.transact.args,
+                   slippage_func=self.slippage_func,
+                   commission=self.commission,
                    open_orders=self.open_orders,
                    orders=self.orders,
                    new_orders=self.new_orders,
@@ -66,7 +73,6 @@ class Blotter(object):
         self.current_dt = dt
 
     def order(self, sid, amount, style, order_id=None):
-
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
         # numeric == share count  AND  "$dollar.cents" == cost amount
@@ -179,64 +185,64 @@ class Blotter(object):
         return
         yield
 
-    def process_trade(self, trade_event):
+    def process_open_orders(self):
+        """
+        Creates a list of transactions based on the current open orders,
+        slippage model, and commission model.
 
-        if trade_event.sid not in self.open_orders:
-            return
+        Parameters
+        ---------
+        None
 
-        if trade_event.volume < 1:
-            # there are zero volume trade_events bc some stocks trade
-            # less frequently than once per minute.
-            return
+        Notes
+        -----
+        This method book-keeps the blotter's open_orders dictionary, so that
+         it is accurate by the time we're done processing open orders.
 
-        orders = self.open_orders[trade_event.sid]
-        orders.sort(key=lambda o: o.dt)
-        # Only use orders for the current day or before
-        current_orders = filter(
-            lambda o: o.dt <= trade_event.dt,
-            orders)
+        Returns
+        -------
+        A list of transactions resulting from the current open orders.  If
+        there were no open orders, an empty list is returned.
+        """
+        closed_orders = []
+        transactions = []
 
-        processed_orders = []
-        for txn, order in self.process_transactions(trade_event,
-                                                    current_orders):
-            processed_orders.append(order)
-            yield txn, order
-
-        # remove closed orders. we should only have to check
-        # processed orders
-        def not_open(order):
-            return not order.open
-        closed_orders = filter(not_open, processed_orders)
-        for order in closed_orders:
-            orders.remove(order)
-
-        if len(orders) == 0:
-            del self.open_orders[trade_event.sid]
-
-    def process_transactions(self, trade_event, current_orders):
-        for order, txn in self.transact(trade_event, current_orders):
-            if txn.type == zp.DATASOURCE_TYPE.COMMISSION:
-                order.commission = (order.commission or 0.0) + txn.cost
-            else:
-                if txn.amount == 0:
-                    raise zipline.errors.TransactionWithNoAmount(txn=txn)
-                if math.copysign(1, txn.amount) != order.direction:
-                    raise zipline.errors.TransactionWithWrongDirection(
-                        txn=txn, order=order)
-                if abs(txn.amount) > abs(self.orders[txn.order_id].amount):
-                    raise zipline.errors.TransactionVolumeExceedsOrder(
-                        txn=txn, order=order)
-
+        for asset, asset_orders in self.open_orders.iteritems():
+            for order, txn in self.slippage_func(asset_orders, self.current_dt):
+                direction = math.copysign(1, txn.amount)
+                per_share, total_commission = self.commission.calculate(txn)
+                txn.price += per_share * direction
+                txn.commission = total_commission
                 order.filled += txn.amount
+
                 if txn.commission is not None:
-                    order.commission = ((order.commission or 0.0) +
-                                        txn.commission)
+                    order.commission = (order.commission or 0.0) + \
+                                       txn.commission
 
-            # mark the date of the order to match the transaction
-            # that is filling it.
-            order.dt = txn.dt
+                txn.dt = pd.Timestamp(txn.dt, tz='UTC')
+                order.dt = txn.dt
 
-            yield txn, order
+                transactions.append(txn)
+
+                if not order.open:
+                    closed_orders.append(order)
+
+        # remove all closed orders from our open_orders dict
+        for order in closed_orders:
+            sid = order.sid
+            try:
+                sid_orders = self.open_orders[sid]
+                sid_orders.remove(order)
+            except KeyError:
+                continue
+
+        # now clear out the sids from our open_orders dict that have
+        # zero open orders
+        for sid in self.open_orders.keys():
+            if len(self.open_orders[sid]) == 0:
+                del self.open_orders[sid]
+
+        return transactions
 
     def __getstate__(self):
 

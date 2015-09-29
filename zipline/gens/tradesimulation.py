@@ -63,23 +63,6 @@ class AlgorithmSimulator(object):
         # if hasattr(self.algo, "benchmark_iter"):
         #     benchmark_iter = iter(self.algo.benchmark_iter)
 
-        # engine = create_engine('sqlite:///' + os.getenv('ASSETS_DB_PATH'))
-        #
-        # self.data_portal = DataPortal(
-        #     self.env,
-        #     sim_params=self.sim_params,
-        #     benchmark_iter=benchmark_iter,
-        #     # TODO: Better path handling, config file?
-        #     findata_dir=os.getenv('FINDATA_DIR'),
-        #     daily_equities_path=os.getenv('DAILY_EQUITIES_PATH'),
-        #     adjustments_path=os.getenv('ADJUSTMENTS_DB_PATH'),
-        #     asset_finder=AssetFinder(engine),
-        #     extra_sources=[
-        #         source for source in self.algo.sources if
-        #         isinstance(source, PandasRequestsCSV)
-        #     ]
-        # )
-
         self.current_data = BarData(data_portal=self.data_portal)
 
         # We don't have a datetime for the current snapshot until we
@@ -121,14 +104,10 @@ class AlgorithmSimulator(object):
         day_engine = DayEngine(market_opens, market_closes)
 
         blotter = self.algo.blotter
+        blotter.slippage_func.data_portal = data_portal
+
         perf_process_order = self.algo.perf_tracker.process_order
         perf_process_txn = self.algo.perf_tracker.process_transaction
-
-        slippage = self.algo.slippage
-        slippage.data_portal = data_portal
-
-        commission = self.algo.commission
-
         perf_tracker.position_tracker.data_portal = data_portal
 
         all_trading_days = self.env.trading_days
@@ -136,58 +115,12 @@ class AlgorithmSimulator(object):
             '2002-01-02')]
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
-        def inner_loop(dt_to_use, orders_to_process):
+        def inner_loop(dt_to_use):
             self.on_dt_changed(dt_to_use)
 
-            closed_orders = []
-
-            if orders_to_process:
-                # open orders are stored as a dictionary of asset to list.
-                # this way, all open orders for the same asset are handled
-                # sequentially.
-                for asset, asset_orders in orders_to_process.iteritems():
-                    # we pass all the orders for a single asset to the
-                    # slippage function, which returns an iterator of
-                    # orders and transactions.
-                    for order, txn in slippage(asset_orders, dt_to_use):
-                        direction = math.copysign(1, txn.amount)
-                        per_share, total_commission = commission.\
-                            calculate(txn)
-                        txn.price += per_share * direction
-                        txn.commission = total_commission
-
-                        order.filled += txn.amount
-
-                        if txn.commission is not None:
-                            order.commission = \
-                                ((order.commission or 0.0) + txn.commission)
-
-                        txn.dt = pd.Timestamp(txn.dt, tz='UTC')
-                        order.dt = order.dt
-
-                        perf_process_txn(txn)
-
-                        if not order.open:
-                            closed_orders.append(order)
-
-            open_orders = blotter.open_orders
-
-            # Manually clean up the blotter's open orders by removing
-            # any order that is now filled.  Then, remove the asset from
-            # the open_orders dict if there are no remaining open orders
-            # for that asset.
-            for order in closed_orders:
-                sid = order.sid
-                if sid not in open_orders:
-                    continue
-
-                if order in open_orders[sid]:
-                    open_orders[sid].remove(order)
-
-                remaining_open_orders = open_orders[sid]
-                if len(remaining_open_orders) == 0 or \
-                        all(not order.open for order in remaining_open_orders):
-                    del open_orders[sid]
+            new_transactions = blotter.process_open_orders()
+            for transaction in new_transactions:
+                perf_process_txn(transaction)
 
             # update the portfolio, so that if the user does
             # context.portfolio.positions, it's accurate
@@ -206,19 +139,13 @@ class AlgorithmSimulator(object):
                 for new_order in new_orders:
                     perf_process_order(new_order)
 
-            # blotter.open_orders contains both new orders and existing
-            # open orders
-            return blotter.open_orders
-
         with self.processor.threadbound(), ZiplineAPI(self.algo):
-            orders_to_process = []
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
                     data_portal.current_dt = trading_day
                     data_portal.current_day = trading_day
 
-                    orders_to_process = inner_loop(trading_day,
-                                                   orders_to_process)
+                    inner_loop(trading_day)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
@@ -240,9 +167,7 @@ class AlgorithmSimulator(object):
                         data_portal.current_day = trading_day
                         data_portal.cur_data_offset = day_offset + minute_idx
 
-                        orders_to_process = inner_loop(minute,
-                                                       orders_to_process)
-
+                        inner_loop(minute)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001

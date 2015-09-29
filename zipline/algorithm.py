@@ -65,7 +65,6 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
-from zipline.finance.transaction import transact_partial
 from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
@@ -180,10 +179,6 @@ class TradingAlgorithm(object):
 
         self.benchmark_return_source = None
 
-        # default components for transact
-        self.slippage = VolumeShareSlippage()
-        self.commission = PerShare()
-
         self.instant_fill = kwargs.pop('instant_fill', False)
 
         # If an env has been provided, pop it
@@ -224,7 +219,10 @@ class TradingAlgorithm(object):
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
-            self.blotter = Blotter()
+            self.blotter = Blotter(
+                slippage_func=VolumeShareSlippage(),
+                commission=PerShare()
+            )
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
@@ -455,9 +453,6 @@ class TradingAlgorithm(object):
 
         self.trading_client = AlgorithmSimulator(self, sim_params,
                                                  self.data_portal)
-
-        transact_method = transact_partial(self.slippage, self.commission)
-        self.set_transact(transact_method)
 
         return self.trading_client.transform(self.data_gen)
 
@@ -854,13 +849,6 @@ class TradingAlgorithm(object):
 
         return dt  # datetime.datetime objects are immutable.
 
-    def set_transact(self, transact):
-        """
-        Set the method that will be called to create a
-        transaction from open orders and trade events.
-        """
-        self.blotter.transact = transact
-
     def update_dividends(self, dividend_frame):
         """
         Set DataFrame used to process dividends.  DataFrame columns should
@@ -874,7 +862,7 @@ class TradingAlgorithm(object):
             raise UnsupportedSlippageModel()
         if self.initialized:
             raise OverrideSlippagePostInit()
-        self.slippage = slippage
+        self.blotter.slippage_func = slippage
 
     @api_method
     def set_commission(self, commission):
@@ -883,7 +871,7 @@ class TradingAlgorithm(object):
 
         if self.initialized:
             raise OverrideCommissionPostInit()
-        self.commission = commission
+        self.blotter.commission = commission
 
     @api_method
     def set_symbol_lookup_date(self, dt):

@@ -14,11 +14,17 @@
 # limitations under the License.
 
 import datetime
+import os
 from nose_parameterized import parameterized
 from unittest import TestCase
+from testfixtures import TempDirectory
+import pandas as pd
+
+import zipline.utils.factory as factory
 
 from zipline.finance import trading
-from zipline.finance.blotter import Blotter, ORDER_STATUS
+from zipline.finance.blotter import Blotter
+from zipline.finance.order import ORDER_STATUS
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -31,24 +37,62 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger,
 )
+from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+from zipline.data.data_portal import DataPortal
 
 
 class BlotterTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        setup_logger(cls)
         cls.env = trading.TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[24])
+
+        cls.sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp("2006-01-05", tz='UTC'),
+            end=pd.Timestamp("2006-01-06", tz='UTC')
+        )
+
+        cls.env.write_data(equities_data={
+            24: {
+                'start_date': cls.sim_params.trading_days[0],
+                'end_date': cls.sim_params.trading_days[-1]
+            }
+        })
+
+        cls.tempdir = TempDirectory()
+
+        assets = {
+            24: pd.DataFrame({
+                "open": [50, 50],
+                "high": [50, 50],
+                "low": [50, 50],
+                "close": [50, 50],
+                "volume": [100, 400],
+                "day": [day.value for day in cls.sim_params.trading_days]
+            })
+        }
+
+        path = os.path.join(cls.tempdir.path, "tempdata.bcolz")
+
+        DailyBarWriterFromDataFrames(assets).write(
+            path,
+            cls.sim_params.trading_days,
+            assets
+        )
+
+        cls.data_portal = DataPortal(
+            cls.env,
+            daily_equities_path=path,
+            sim_params=cls.sim_params,
+            asset_finder=cls.env.asset_finder
+        )
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self, env=None):
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
+        cls.tempdir.cleanup()
+        teardown_logger(cls)
 
     @parameterized.expand([(MarketOrder(), None, None),
                            (LimitOrder(10), 10, None),
@@ -94,6 +138,7 @@ class BlotterTestCase(TestCase):
         # Do it again, but reject it at a later time (after tradesimulation
         # pulls it from new_orders)
         blotter = Blotter()
+
         new_open_id = blotter.order(24, 10, MarketOrder())
         new_open_order = blotter.open_orders[24][0]
         self.assertEqual(new_open_id, new_open_order.id)
@@ -109,12 +154,13 @@ class BlotterTestCase(TestCase):
 
         # You can't reject a filled order.
         blotter = Blotter()   # Reset for paranoia
-        blotter.current_dt = datetime.datetime.now()
+        blotter.current_dt = self.sim_params.trading_days[-1]
+        blotter.slippage_func.data_portal = self.data_portal
         filled_id = blotter.order(24, 100, MarketOrder())
-        aapl_trade = create_trade(24, 50.0, 400, datetime.datetime.now())
+        #aapl_trade = create_trade(24, 50.0, 400, datetime.datetime.now())
         filled_order = None
-        for txn, updated_order in blotter.process_trade(aapl_trade):
-            filled_order = updated_order
+        for txn in blotter.process_open_orders():
+            filled_order = blotter.orders[txn.order_id]
 
         self.assertEqual(filled_order.id, filled_id)
         self.assertIn(filled_order, blotter.new_orders)
@@ -154,8 +200,12 @@ class BlotterTestCase(TestCase):
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
 
-        for trade_amt in (100, 400):
+        for data in ([100, self.sim_params.trading_days[0]],
+                     [400, self.sim_params.trading_days[1]]):
             # Verify that incoming fills will change the order status.
+            trade_amt = data[0]
+            dt = data[1]
+
             order_size = 100
             expected_filled = trade_amt * 0.25
             expected_open = order_size - expected_filled
@@ -163,18 +213,19 @@ class BlotterTestCase(TestCase):
                 ORDER_STATUS.FILLED
 
             blotter = Blotter()
-            blotter.current_dt = datetime.datetime.now()
+            blotter.slippage_func.data_portal = self.data_portal
+            blotter.current_dt = dt
+
             open_id = blotter.order(24, order_size, MarketOrder())
             open_order = blotter.open_orders[24][0]
             self.assertEqual(open_id, open_order.id)
             blotter.hold(open_id)
             held_order = blotter.new_orders[0]
 
-            aapl_trade = create_trade(24, 50.0, trade_amt,
-                                      datetime.datetime.now())
             filled_order = None
-            for txn, updated_order in blotter.process_trade(aapl_trade):
-                filled_order = updated_order
+            for txn in blotter.process_open_orders():
+                filled_order = blotter.orders[txn.order_id]
+
             self.assertEqual(filled_order.id, held_order.id)
             self.assertEqual(filled_order.status, expected_status)
             self.assertEqual(filled_order.filled, expected_filled)
