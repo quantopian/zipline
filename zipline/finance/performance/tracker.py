@@ -240,16 +240,19 @@ class PerformanceTracker(object):
 
     def get_portfolio(self, dt):
         position_tracker = self.position_tracker
-        pos_stats = position_tracker.stats(self.data_portal, dt)
+        position_tracker.sync_last_sale_prices(dt)
+        pos_stats = position_tracker.stats()
         period_stats = self.cumulative_performance.stats(
             position_tracker.positions, pos_stats)
         return self.cumulative_performance.as_portfolio(
             pos_stats,
             period_stats,
-            position_tracker)
+            position_tracker,
+            dt)
 
     def get_account(self, dt):
-        pos_stats = self.position_tracker.stats(self.data_portal, dt)
+        self.position_tracker.sync_last_sale_prices(dt)
+        pos_stats = self.position_tracker.stats()
         period_stats = self.cumulative_performance.stats(
             self.position_tracker.positions, pos_stats)
         self._account = self.cumulative_performance.as_account(
@@ -260,8 +263,7 @@ class PerformanceTracker(object):
         """
         Wrapper for serialization compatibility.
         """
-        pos_stats = self.position_tracker.stats(self.data_portal,
-                                                self.period_end)
+        pos_stats = self.position_tracker.stats()
         cumulative_stats = self.cumulative_performance.stats(
             self.position_tracker.positions, pos_stats)
         todays_stats = self.todays_performance.stats(
@@ -331,7 +333,7 @@ class PerformanceTracker(object):
         log.info("Ignoring DIVIDEND event.")
 
     def process_split(self, event):
-        leftover_cash = self.position_tracker.handle_split(event)
+        leftover_cash = self.position_tracker.handle_splits(event)
         if leftover_cash > 0:
             self.cumulative_performance.handle_cash_payment(leftover_cash)
             self.todays_performance.handle_cash_payment(leftover_cash)
@@ -452,12 +454,13 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        pos_stats = self.position_tracker.stats(self.data_portal, dt)
+        self.position_tracker.sync_last_sale_prices(dt)
+        pos_stats = self.position_tracker.stats()
         cumulative_stats = self.cumulative_performance.stats(
             self.position_tracker.positions, pos_stats)
         todays_stats = self.todays_performance.stats(
-            self.position_tracker.positions, pos_stats)
-
+            self.position_tracker.positions, pos_stats
+        )
         self.cumulative_risk_metrics.update(todays_date,
                                             todays_stats.returns,
                                             bench_since_open,
@@ -484,8 +487,8 @@ class PerformanceTracker(object):
         """
         completed_date = self.day
 
-        pos_stats = self.position_tracker.stats(self.data_portal,
-                                                completed_date)
+        self.position_tracker.sync_last_sale_prices(completed_date)
+        pos_stats = self.position_tracker.stats()
         todays_stats = self.todays_performance.stats(
             self.position_tracker.positions, pos_stats)
         account = self.get_account(completed_date)
@@ -519,7 +522,8 @@ class PerformanceTracker(object):
         # Take a snapshot of our current performance to return to the
         # browser.
         cumulative_stats = self.cumulative_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions,
+            pos_stats)
         daily_update = self._to_dict(pos_stats,
                                      cumulative_stats,
                                      todays_stats,

@@ -262,6 +262,8 @@ class PerformancePeriod(object):
         return -1 * txn.price * txn.amount * multiplier
 
     def stats(self, positions, pos_stats):
+        # TODO: passing positions here seems off, since we have already
+        # calculated pos_stats.
         futures_payouts = []
         for sid, pos in positions.iteritems():
             asset = self.asset_finder.retrieve_asset(sid)
@@ -364,7 +366,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def as_portfolio(self, pos_stats, period_stats, position_tracker):
+    def as_portfolio(self, pos_stats, period_stats, position_tracker, dt):
         """
         The purpose of this method is to provide a portfolio
         object to algorithms running inside the same trading
@@ -386,7 +388,7 @@ class PerformancePeriod(object):
         portfolio.returns = period_stats.returns
         portfolio.cash = period_stats.ending_cash
         portfolio.start_date = self.period_open
-        portfolio.positions = position_tracker.get_positions()
+        portfolio.positions = position_tracker.get_positions(dt)
         portfolio.positions_value = pos_stats.net_value
         portfolio.positions_exposure = pos_stats.net_exposure
         return portfolio
