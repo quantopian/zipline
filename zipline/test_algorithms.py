@@ -217,7 +217,7 @@ class DivByZeroAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         self.incr += 1
-        if self.incr > 4:
+        if self.incr > 1:
             5 / 0
         pass
 
