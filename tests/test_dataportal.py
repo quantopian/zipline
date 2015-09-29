@@ -59,14 +59,17 @@ class TestDataPortal(TestCase):
                 for field_idx, field in enumerate(
                         ["open", "high", "low", "close", "volume"]):
                     val = dp.get_spot_price(0, field, dt=minute)
-                    if minute_idx < 200:
-                        self.assertEqual(minute_idx + (field_idx * 1000), val)
+                    if minute_idx == 0:
+                        self.assertEqual(0, val)
+                    elif minute_idx < 200:
+                        self.assertEqual((minute_idx - 1) +
+                                         (field_idx * 1000), val)
                     else:
                         self.assertEqual(199 + (field_idx * 1000), val)
         finally:
             tempdir.cleanup()
 
-    def forward_fill_daily(self):
+    def test_forward_fill_daily(self):
         tempdir = TempDirectory()
         try:
             # 17 trading days
