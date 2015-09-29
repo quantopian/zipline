@@ -494,6 +494,7 @@ class FFCAlgorithmTestCase(TestCase):
             ffc_loader=self.ffc_loader,
             start=self.dates[max(window_lengths)],
             end=self.dates[-1],
+            env=self.env,
         )
 
         algo.run(
