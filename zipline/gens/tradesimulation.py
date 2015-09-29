@@ -118,7 +118,7 @@ class AlgorithmSimulator(object):
         def inner_loop(dt_to_use):
             self.on_dt_changed(dt_to_use)
 
-            new_transactions = blotter.process_open_orders()
+            new_transactions = blotter.process_open_orders(dt_to_use)
             for transaction in new_transactions:
                 perf_process_txn(transaction)
 
