@@ -3,6 +3,7 @@ NumericalExpression term.
 """
 from itertools import chain
 import re
+from numbers import Number
 
 import numexpr
 from numexpr.necompiler import getExprNames
@@ -10,7 +11,6 @@ from numpy import (
     empty,
     find_common_type,
 )
-from six import integer_types
 
 from zipline.modelling.term import Term, NotSpecified
 
@@ -58,7 +58,6 @@ MATH_BINOPS = {'+', '-', '*', '/', '**', '%'}
 FILTER_BINOPS = {'&', '|'}  # NumExpr doesn't support xor.
 COMPARISONS = {'<', '<=', '!=', '>=', '>', '=='}
 
-NUMERIC_TYPES = (float,) + integer_types
 NUMEXPR_MATH_FUNCS = {
     'sin',
     'cos',
@@ -284,7 +283,7 @@ class NumericalExpression(Term):
             self_expr = self._expr
             new_inputs, other_idx = _ensure_element(self.inputs, other)
             other_expr = "x_%d" % other_idx
-        elif isinstance(other, NUMERIC_TYPES):
+        elif isinstance(other, Number):
             self_expr = self._expr
             other_expr = str(other)
             new_inputs = self.inputs

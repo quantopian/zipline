@@ -2,6 +2,8 @@
 factor.py
 """
 from operator import attrgetter
+from numbers import Number
+
 from numpy import (
     apply_along_axis,
     float64,
@@ -27,7 +29,6 @@ from zipline.modelling.expression import (
     is_comparison,
     MATH_BINOPS,
     method_name_for_op,
-    NUMERIC_TYPES,
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
     UNARY_OPS,
@@ -93,7 +94,7 @@ def binary_operator(op):
                 "x_0 {op} x_1".format(op=op),
                 (self, other),
             )
-        elif isinstance(other, NUMERIC_TYPES):
+        elif isinstance(other, Number):
             return return_type(
                 "x_0 {op} ({constant})".format(op=op, constant=other),
                 binds=(self,),
@@ -129,7 +130,7 @@ def reflected_binary_operator(op):
 
         # Only have to handle the numeric case because in all other valid cases
         # the corresponding left-binding method will be called.
-        elif isinstance(other, NUMERIC_TYPES):
+        elif isinstance(other, Number):
             return NumExprFactor(
                 "{constant} {op} x_0".format(op=op, constant=other),
                 binds=(self,),
