@@ -316,14 +316,28 @@ class PositionTracker(object):
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self._update_asset(split.sid)
-            return leftover_cash
+    def handle_splits(self, splits):
+        """
+        Processes a list of splits by modifying any positions as needed.
+
+        Parameters
+        ----------
+        splits: list
+            A list of splits.  Each split is a tuple of (sid, ratio).
+
+        Returns
+        -------
+        None
+        """
+        for split in splits:
+            sid = split[0]
+            if sid in self.positions:
+                # Make the position object handle the split. It returns the
+                # leftover cash from a fractional share, if there is any.
+                position = self.positions[sid]
+                leftover_cash = position.handle_split(sid, split[1])
+                self._update_asset(split.sid)
+                return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
         """

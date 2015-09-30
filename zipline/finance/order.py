@@ -140,8 +140,8 @@ class Order(object):
 
         return (stop_reached, limit_reached, sl_stop_reached)
 
-    def handle_split(self, split_event):
-        ratio = split_event.ratio
+    def handle_split(self, ratio):
+        ratio = ratio
 
         # update the amount, limit_price, and stop_price
         # by the split's ratio
