@@ -80,7 +80,7 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
-    def transform(self, todo_remove):
+    def transform(self):
         """
         Main generator work loop.
         """

@@ -367,52 +367,6 @@ class TradingAlgorithm(object):
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
-    def _create_data_generator(self, source_filter, sim_params=None):
-        """
-        Create a merged data generator using the sources attached to this
-        algorithm.
-
-        ::source_filter:: is a method that receives events in date
-        sorted order, and returns True for those events that should be
-        processed by the zipline, and False for those that should be
-        skipped.
-        """
-        if sim_params is None:
-            sim_params = self.sim_params
-
-        if self.benchmark_return_source is None:
-            if sim_params.data_frequency == 'minute' or \
-               sim_params.emission_rate == 'minute':
-                def update_time(date):
-                    return self.trading_environment.get_open_and_close(date)[1]
-            else:
-                def update_time(date):
-                    return date
-            benchmark_return_source = [
-                Event({'dt': update_time(dt),
-                       'returns': ret,
-                       'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
-                       'source_id': 'benchmarks'})
-                for dt, ret in
-                self.trading_environment.benchmark_returns.iteritems()
-                if dt.date() >= sim_params.period_start.date() and
-                dt.date() <= sim_params.period_end.date()
-            ]
-        else:
-            benchmark_return_source = self.benchmark_return_source
-
-        date_sorted = date_sorted_sources(*self.sources)
-
-        if source_filter:
-            date_sorted = filter(source_filter, date_sorted)
-
-        with_benchmarks = date_sorted_sources(benchmark_return_source,
-                                              date_sorted)
-
-        # Group together events with the same dt field. This depends on the
-        # events already being sorted.
-        return groupby(with_benchmarks, attrgetter('dt'))
-
     def _create_generator(self, sim_params, source_filter=None):
         """
         Create a basic generator setup using the sources to this algorithm.
@@ -449,12 +403,10 @@ class TradingAlgorithm(object):
         self.account_needs_update = True
         self.performance_needs_update = True
 
-        self.data_gen = self._create_data_generator(source_filter, sim_params)
-
         self.trading_client = AlgorithmSimulator(self, sim_params,
                                                  self.data_portal)
 
-        return self.trading_client.transform(self.data_gen)
+        return self.trading_client.transform()
 
     def get_generator(self):
         """
