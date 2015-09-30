@@ -7,6 +7,8 @@ from os.path import (
     join,
     realpath,
 )
+
+from nose_parameterized import parameterized
 from numpy import (
     array,
     arange,
@@ -462,7 +464,11 @@ class FFCAlgorithmTestCase(TestCase):
 
         return vwaps
 
-    def test_handle_adjustment(self):
+    @parameterized.expand([
+        (True,),
+        (False,),
+    ])
+    def test_handle_adjustment(self, set_screen):
         AAPL, MSFT, BRK_A = assets = self.AAPL, self.MSFT, self.BRK_A
 
         window_lengths = [1, 2, 5, 10]
@@ -475,19 +481,38 @@ class FFCAlgorithmTestCase(TestCase):
             pipeline = Pipeline('test')
             context.vwaps = []
             for length in vwaps:
-                context.vwaps.append(VWAP(window_length=length))
-                pipeline.add(context.vwaps[-1], name=vwap_key(length))
+                name = vwap_key(length)
+                factor = VWAP(window_length=length)
+                context.vwaps.append(factor)
+                pipeline.add(factor, name=name)
+
+            filter_ = (USEquityPricing.close.latest > 300)
+            pipeline.add(filter_, 'filter')
+            if set_screen:
+                pipeline.set_screen(filter_)
 
             attach_pipeline(pipeline)
 
         def handle_data(context, data):
             today = get_datetime()
             results = drain_pipeline('test')
-            for length in vwaps:
-                for asset in assets:
+            expect_over_300 = {
+                AAPL: today < self.AAPL_split_date,
+                MSFT: False,
+                BRK_A: True,
+            }
+            for asset in assets:
+
+                should_pass_filter = expect_over_300[asset]
+                if set_screen and not should_pass_filter:
+                    self.assertNotIn(asset, results.index)
+                    continue
+
+                asset_results = results.loc[asset]
+                self.assertEqual(asset_results['filter'], should_pass_filter)
+                for length in vwaps:
                     computed = results.loc[asset, vwap_key(length)]
                     expected = vwaps[length][asset].loc[today]
-
                     # Only having two places of precision here is a bit
                     # unfortunate.
                     assert_almost_equal(computed, expected, decimal=2)
