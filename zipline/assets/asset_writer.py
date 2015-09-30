@@ -209,6 +209,29 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Returns data in standard format.
 
     """
+    def __init__(self, equities=None, futures=None, exchanges=None,
+                 root_symbols=None):
+
+        if equities is None:
+            equities = self.defaultval()
+        self._equities = equities
+
+        if futures is None:
+            futures = self.defaultval()
+        self._futures = futures
+
+        if exchanges is None:
+            exchanges = self.defaultval()
+        self._exchanges = exchanges
+
+        if root_symbols is None:
+            root_symbols = self.defaultval()
+        self._root_symbols = root_symbols
+
+    @abstractmethod
+    def defaultval(self):
+        raise NotImplementedError
+
     def write_all(self,
                   engine,
                   allow_sid_assignment=True,
@@ -400,10 +423,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         ###############################
 
         # HACK: If company_name is provided, map it to asset_name
-        if ('company_name' in data.equities.columns) \
-                and ('asset_name' not in data.equities.columns):
+        if ('company_name' in data.equities.columns
+                and 'asset_name' not in data.equities.columns):
             data.equities['asset_name'] = data.equities['company_name']
-        if ('file_name' in data.equities.columns):
+        if 'file_name' in data.equities.columns:
             data.equities['symbol'] = data.equities['file_name']
 
         equities_output = _generate_output_dataframe(
@@ -559,28 +582,7 @@ class AssetDBWriterFromList(AssetDBWriter):
     Class used to write list data to SQLite database.
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = []
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = []
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = []
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = []
+    defaultval = list
 
     def _load_data(self):
 
@@ -654,28 +656,7 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     {id_0: {attribute_1 : ...}, id_1: {attribute_2: ...}, ...}
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = {}
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = {}
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = {}
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = {}
+    defaultval = dict
 
     def _load_data(self):
 
@@ -696,42 +677,21 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
     Class used to write pandas.DataFrame data to SQLite database.
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = pd.DataFrame()
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = pd.DataFrame()
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = pd.DataFrame()
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = pd.DataFrame()
+    defaultval = pd.DataFrame
 
     def _load_data(self):
 
         # Check whether identifier columns have been provided.
         # If they have, set the index to this column.
         # If not, assume the index already cotains the identifier information.
-        if 'sid' in self._equities.columns:
-            self._equities.set_index(['sid'], inplace=True)
-        if 'sid' in self._futures.columns:
-            self._futures.set_index(['sid'], inplace=True)
-        if 'exchange_id' in self._exchanges.columns:
-            self._exchanges.set_index(['exchange'], inplace=True)
-        if 'root_symbol_id' in self._root_symbols.columns:
-            self._root_symbols.set_index(['root_symbol'], inplace=True)
+        for df, id_col in [
+            (self._equities, 'sid'),
+            (self._futures, 'sid'),
+            (self._exchanges, 'exchange'),
+            (self._root_symbols, 'root_symbol'),
+        ]:
+            if id_col in df.columns:
+                df.set_index([id_col], inplace=True)
 
         return AssetData(equities=self._equities,
                          futures=self._futures,
