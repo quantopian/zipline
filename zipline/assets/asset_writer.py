@@ -310,7 +310,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         constraints : bool, optional
             If True, create SQL ForeignKey and PrimaryKey constraints.
         """
-        self.sql_metadata = metadata = sa.MetaData(bind=engine)
+        metadata = sa.MetaData(bind=engine)
+
         self.equities = sa.Table(
             'equities',
             metadata,
