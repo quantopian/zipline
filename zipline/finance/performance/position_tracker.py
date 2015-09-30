@@ -493,3 +493,6 @@ class PositionTracker(object):
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
+
+        # FIXME
+        self._data_portal = None
