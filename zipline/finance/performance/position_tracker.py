@@ -174,8 +174,6 @@ class PositionTracker(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
         self._positions_store = zp.Positions()
-        # To prevent attribute error when accessed before patch.
-        self.data_portal = None
 
         # Dict, keyed on dates, that contains lists of close position events
         # for any Assets in this tracker's positions
@@ -450,7 +448,7 @@ class PositionTracker(object):
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price =\
-                self.data_portal.get_spot_price(sid, 'close')
+                self._data_portal.get_spot_price(sid, 'close')
         return positions
 
     def get_positions_list(self):
