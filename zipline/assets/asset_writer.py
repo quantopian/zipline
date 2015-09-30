@@ -209,6 +209,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Returns data in standard format.
 
     """
+    CHUNK_SIZE = 999
+
     def __init__(self, equities=None, futures=None, exchanges=None,
                  root_symbols=None):
 
@@ -262,43 +264,38 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_futures(data.futures, txn)
             self._write_equities(data.equities, txn)
 
-    def _write_exchanges(self, exchanges, bind=None):
-        recs = exchanges.reset_index().rename_axis(
-            {'index': 'exchange'},
-            1,
-        ).to_dict('records')
-        # In SQLAlchemy, insert().values([]) will insert NULLs,
-        # hence we check first to avoid violating NOT NULL constraints.
-        if recs:
-            self.futures_exchanges.insert().values(recs).execute(bind=bind)
+    def _write_df_to_table(self, df, tbl, bind):
+        df.to_sql(
+            tbl.name,
+            bind.connection,
+            index_label=[col.name for col in tbl.primary_key.columns][0],
+            if_exists='append',
+            chunksize=self.CHUNK_SIZE,
+        )
 
-    def _write_root_symbols(self, root_symbols, bind=None):
-        recs = root_symbols.reset_index().rename_axis(
-            {'index': 'root_symbol'},
-            1,
-        ).to_dict('records')
-        if recs:
-            self.futures_root_symbols.insert().values(recs).execute(bind=bind)
+    def _write_assets(self, assets, asset_tbl, asset_type, bind):
+        self._write_df_to_table(assets, asset_tbl, bind)
 
-    def _write_futures(self, futures, bind=None):
-        recs = futures.reset_index().rename_axis(
-            {'index': 'sid'},
-            1,
-        ).to_dict('records')
-        for record in recs:
-            self.futures_contracts.insert().values([record]).execute(bind=bind)
-            self.asset_router.insert().values([(record['sid'], 'future')])\
-                .execute(bind=bind)
+        pd.DataFrame({self.asset_router.c.sid.name: assets.index.values,
+                      self.asset_router.c.asset_type.name: asset_type}).to_sql(
+            self.asset_router.name,
+            bind.connection,
+            if_exists='append',
+            index=False,
+            chunksize=self.CHUNK_SIZE,
+        )
 
-    def _write_equities(self, equities, bind=None):
-        recs = equities.reset_index().rename_axis(
-            {'index': 'sid'},
-            1,
-        ).to_dict('records')
-        for record in recs:
-            self.equities.insert().values([record]).execute(bind=bind)
-            self.asset_router.insert().values((record['sid'], 'equity'))\
-                .execute(bind=bind)
+    def _write_exchanges(self, exchanges, bind):
+        self._write_df_to_table(exchanges, self.futures_exchanges, bind)
+
+    def _write_root_symbols(self, root_symbols, bind):
+        self._write_df_to_table(root_symbols, self.futures_root_symbols, bind)
+
+    def _write_futures(self, futures, bind):
+        self._write_assets(futures, self.futures_contracts, 'future', bind)
+
+    def _write_equities(self, equities, bind):
+        self._write_assets(equities, self.equities, 'equity', bind)
 
     def init_db(self, engine, constraints=True):
         """Connect to database and create tables.
