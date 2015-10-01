@@ -572,7 +572,7 @@ class PerformanceTracker(object):
 
         # properly setup the perf periods
         self.perf_periods = []
-        p_types = ['cumulative', 'todays', 'minute']
+        p_types = ['cumulative', 'todays']
         for p_type in p_types:
             name = p_type + '_performance'
             period = getattr(self, name, None)
