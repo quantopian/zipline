@@ -551,7 +551,7 @@ class AssetFinder(object):
 
         # Handle missing assets
         if len(missing) > 0:
-            warnings.warn("Missing assets for identifiers: " + missing)
+            warnings.warn("Missing assets for identifiers: %s" % missing)
 
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
