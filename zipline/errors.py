@@ -387,13 +387,13 @@ class AttachPipelineAfterInitialize(ZiplineError):
     )
 
 
-class DrainPipelineDuringInitialize(ZiplineError):
+class PipelineOutputDuringInitialize(ZiplineError):
     """
-    Raised when a user tries to call `drain_pipeline` during initialize.
+    Raised when a user tries to call `pipeline_output` during initialize.
     """
     msg = (
-        "Attempted to call drain_pipeline() during initialize. "
-        "drain_pipeline() can only be called once initialize has completed."
+        "Attempted to call pipeline_output() during initialize. "
+        "pipeline_output() can only be called once initialize has completed."
     )
 
 

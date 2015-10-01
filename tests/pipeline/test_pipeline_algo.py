@@ -32,12 +32,12 @@ from testfixtures import TempDirectory
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
     attach_pipeline,
-    drain_pipeline,
+    pipeline_output,
     get_datetime,
 )
 from zipline.errors import (
     AttachPipelineAfterInitialize,
-    DrainPipelineDuringInitialize,
+    PipelineOutputDuringInitialize,
     NoSuchPipeline,
 )
 from zipline.finance import trading
@@ -206,14 +206,14 @@ class ClosesOnly(TestCase):
         with self.assertRaises(AttachPipelineAfterInitialize):
             algo.run(source=self.closes)
 
-    def test_drain_pipeline_after_initialize(self):
+    def test_pipeline_output_after_initialize(self):
         """
-        Assert that calling drain_pipeline after initialize raises correctly.
+        Assert that calling pipeline_output after initialize raises correctly.
         """
         def initialize(context):
             attach_pipeline(Pipeline('test'))
-            drain_pipeline('test')
-            raise AssertionError("Shouldn't make it past drain_pipeline()")
+            pipeline_output('test')
+            raise AssertionError("Shouldn't make it past pipeline_output()")
 
         def handle_data(context, data):
             raise AssertionError("Shouldn't make it past initialize!")
@@ -232,10 +232,10 @@ class ClosesOnly(TestCase):
             env=self.env,
         )
 
-        with self.assertRaises(DrainPipelineDuringInitialize):
+        with self.assertRaises(PipelineOutputDuringInitialize):
             algo.run(source=self.closes)
 
-    def test_drain_nonexistent_pipeline(self):
+    def test_get_output_nonexistent_pipeline(self):
         """
         Assert that calling add_pipeline after initialize raises appropriately.
         """
@@ -246,8 +246,8 @@ class ClosesOnly(TestCase):
             raise AssertionError("Shouldn't make it past before_trading_start")
 
         def before_trading_start(context, data):
-            drain_pipeline('not_test')
-            raise AssertionError("Shouldn't make it past drain_pipeline!")
+            pipeline_output('not_test')
+            raise AssertionError("Shouldn't make it past pipeline_output!")
 
         algo = TradingAlgorithm(
             initialize=initialize,
@@ -275,7 +275,7 @@ class ClosesOnly(TestCase):
             attach_pipeline(p)
 
         def handle_data(context, data):
-            results = drain_pipeline('test')
+            results = pipeline_output('test')
             date = get_datetime().normalize()
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
@@ -494,7 +494,7 @@ class PipelineAlgorithmTestCase(TestCase):
 
         def handle_data(context, data):
             today = get_datetime()
-            results = drain_pipeline('test')
+            results = pipeline_output('test')
             expect_over_300 = {
                 AAPL: today < self.AAPL_split_date,
                 MSFT: False,

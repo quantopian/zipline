@@ -39,7 +39,7 @@ from zipline.errors import (
     OrderDuringInitialize,
     OverrideCommissionPostInit,
     OverrideSlippagePostInit,
-    DrainPipelineDuringInitialize,
+    PipelineOutputDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
     UnsupportedCommissionModel,
@@ -1346,8 +1346,8 @@ class TradingAlgorithm(object):
         self._pipelines.append(pipeline)
 
     @api_method
-    @require_initialized(DrainPipelineDuringInitialize())
-    def drain_pipeline(self, name=None):
+    @require_initialized(PipelineOutputDuringInitialize())
+    def pipeline_output(self, name):
         """
         Get the results of pipeline with name `name`.
 
@@ -1382,11 +1382,11 @@ class TradingAlgorithm(object):
                 name=name,
                 valid=[p.name for p in self._pipelines],
             )
-        return self._pipeline_results(p)
+        return self._pipeline_output(p)
 
-    def _pipeline_results(self, pipeline):
+    def _pipeline_output(self, pipeline):
         """
-        Internal implementation of `drain_pipeline`.
+        Internal implementation of `pipeline_output`.
         """
         today = normalize_date(self.get_datetime())
         try:
