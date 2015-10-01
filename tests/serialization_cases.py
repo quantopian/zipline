@@ -113,8 +113,11 @@ def assert_dict_equal(d1, d2):
         asserter = nt.assert_equal
         if isinstance(v1, pd.DataFrame):
             asserter = tm.assert_frame_equal
-        if isinstance(v1, pd.Series):
+        elif isinstance(v1, pd.Series):
             asserter = tm.assert_series_equal
+        elif hasattr(v1, '__dict__'):
+            v1 = v1.__dict__
+            v2 = v2.__dict__
 
         try:
             asserter(v1, v2)
