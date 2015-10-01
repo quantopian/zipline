@@ -170,13 +170,27 @@ class Blotter(object):
             # along with newly placed orders.
             self.new_orders.append(cur_order)
 
-    def process_split(self, split_event):
-        if split_event.sid not in self.open_orders:
-            return
+    def process_splits(self, splits):
+        """
+        Processes a list of splits by modifying any open orders as needed.
 
-        orders_to_modify = self.open_orders[split_event.sid]
-        for order in orders_to_modify:
-            order.handle_split(split_event)
+        Parameters
+        ----------
+        splits: list
+            A list of splits.  Each split is a tuple of (sid, ratio).
+
+        Returns
+        -------
+        None
+        """
+        for split in splits:
+            sid = split[0]
+            if sid not in self.open_orders:
+                return
+
+            orders_to_modify = self.open_orders[sid]
+            for order in orders_to_modify:
+                order.handle_split(split[1])
 
     def process_benchmark(self, benchmark_event):
         return
@@ -188,7 +202,7 @@ class Blotter(object):
         slippage model, and commission model.
 
         Parameters
-        ---------
+        ----------
         current_dt: pd.Timestamp
             The current simulation time.
 

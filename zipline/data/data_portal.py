@@ -8,9 +8,6 @@ import pandas as pd
 
 from zipline.utils import tradingcalendar
 
-from zipline.utils.algo_instance import get_algo_instance
-from zipline.utils.math_utils import nanstd, nanmean, nansum
-
 # FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
 FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
 
@@ -866,6 +863,39 @@ class DataPortal(object):
             self.asset_end_dates[sid] = asset.end_date
 
         return self.asset_start_dates[sid]
+
+    def get_splits(self, sids, dt):
+        """
+        Returns any splits for the given sids and the given dt.
+
+        Parameters
+        ----------
+        sids : list
+            Sids for which we want splits.
+
+        dt: pd.Timestamp
+            The date for which we are checking for splits.  Note: this is
+            expected to be midnight UTC.
+
+        Returns
+        -------
+        list: List of splits, where each split is a (sid, ratio) tuple.
+        """
+        if self.adjustments_conn is None or len(sids) == 0:
+            return {}
+
+        # convert dt to # of seconds since epoch, because that's what we use
+        # in the adjustments db
+        seconds = int(dt.value / 1e9)
+
+        splits = self.adjustments_conn.execute(
+            "SELECT sid, ratio FROM SPLITS WHERE effective_date = ?",
+            (seconds,)).fetchall()
+
+        sids_set = set(sids)
+        splits = [split for split in splits if split[0] in sids_set]
+
+        return splits
 
 
 class DataPortalSidView(object):

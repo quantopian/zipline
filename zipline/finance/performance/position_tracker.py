@@ -174,8 +174,6 @@ class PositionTracker(object):
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
         self._positions_store = zp.Positions()
-        # To prevent attribute error when accessed before patch.
-        self.data_portal = None
 
         # Dict, keyed on dates, that contains lists of close position events
         # for any Assets in this tracker's positions
@@ -316,14 +314,28 @@ class PositionTracker(object):
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self._update_asset(split.sid)
-            return leftover_cash
+    def handle_splits(self, splits):
+        """
+        Processes a list of splits by modifying any positions as needed.
+
+        Parameters
+        ----------
+        splits: list
+            A list of splits.  Each split is a tuple of (sid, ratio).
+
+        Returns
+        -------
+        None
+        """
+        for split in splits:
+            sid = split[0]
+            if sid in self.positions:
+                # Make the position object handle the split. It returns the
+                # leftover cash from a fractional share, if there is any.
+                position = self.positions[sid]
+                leftover_cash = position.handle_split(sid, split[1])
+                self._update_asset(split.sid)
+                return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
         """
@@ -436,7 +448,7 @@ class PositionTracker(object):
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price =\
-                self.data_portal.get_spot_price(sid, 'close')
+                self._data_portal.get_spot_price(sid, 'close')
         return positions
 
     def get_positions_list(self):
@@ -481,3 +493,6 @@ class PositionTracker(object):
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
+
+        # FIXME
+        self._data_portal = None

@@ -139,9 +139,24 @@ class AlgorithmSimulator(object):
                 for new_order in new_orders:
                     perf_process_order(new_order)
 
+        def apply_adjustments(dt):
+            # handle any splits or dividends that impact any positions or
+            # any open orders.
+            sids_we_care_about = \
+                list(set(perf_tracker.position_tracker.positions.keys() +
+                         blotter.open_orders.keys()))
+
+            if len(sids_we_care_about) > 0:
+                splits = data_portal.get_splits(sids_we_care_about, dt)
+                if len(splits) > 0:
+                    blotter.process_splits(splits)
+                    perf_tracker.position_tracker.handle_splits(splits)
+
         with self.processor.threadbound(), ZiplineAPI(self.algo):
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
+                    apply_adjustments(trading_day)
+
                     data_portal.current_dt = trading_day
                     data_portal.current_day = trading_day
 
@@ -157,6 +172,8 @@ class AlgorithmSimulator(object):
                     algo.performance_needs_update = True
             else:
                 for day_idx, trading_day in enumerate(trading_days):
+                    apply_adjustments(trading_day)
+
                     day_offset = (day_idx + first_trading_day_idx) * 390
                     minutes = pd.DatetimeIndex(day_engine.
                                                market_minutes(day_idx),

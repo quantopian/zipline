@@ -16,9 +16,9 @@ from zipline.finance.risk.period import RiskMetricsPeriod
 from zipline.finance.risk.report import RiskReport
 from zipline.finance.slippage import (
     FixedSlippage,
-    Transaction,
     VolumeShareSlippage
 )
+from zipline.finance.transaction import Transaction
 from zipline.protocol import Account
 from zipline.protocol import Portfolio
 from zipline.protocol import Position as ProtocolPosition
@@ -67,12 +67,12 @@ def object_serialization_cases(skip_daily=False):
         (PerTrade, (), {}, 'dict'),
         (PerDollar, (), {}, 'dict'),
         (PerformancePeriod,
-            (10000, cases_env.asset_finder),
-            {'position_tracker': PositionTracker(cases_env.asset_finder)},
+            (10000, cases_env.asset_finder, None),
+            {'position_tracker': PositionTracker(cases_env.asset_finder, None)},
             'to_dict'),
         (Position, (8554,), {}, 'dict'),
-        (PositionTracker, (cases_env.asset_finder,), {}, 'dict'),
-        (PerformanceTracker, (sim_params_minute, cases_env), {}, 'to_dict'),
+        (PositionTracker, (cases_env.asset_finder, None), {}, 'dict'),
+        (PerformanceTracker, (sim_params_minute, cases_env, None), {}, 'to_dict'),
         (RiskMetricsCumulative, (sim_params_minute, cases_env), {}, 'to_dict'),
         (RiskMetricsPeriod,
             (returns.index[0], returns.index[0], returns, cases_env),
@@ -91,7 +91,7 @@ def object_serialization_cases(skip_daily=False):
     if not skip_daily:
         cases.extend([
             (PerformanceTracker,
-             (sim_params_daily, cases_env), {}, 'to_dict'),
+             (sim_params_daily, cases_env, None), {}, 'to_dict'),
             (RiskMetricsCumulative,
              (sim_params_daily, cases_env), {}, 'to_dict'),
             (RiskReport,
