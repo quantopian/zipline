@@ -362,8 +362,8 @@ class TradingAlgorithm(object):
                    capital_base=self.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
-                   slippage=repr(self.slippage),
-                   commission=repr(self.commission),
+                   slippage=repr(self.blotter.slippage_func),
+                   commission=repr(self.blotter.commission),
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 

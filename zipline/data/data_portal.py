@@ -889,8 +889,8 @@ class DataPortal(object):
         seconds = int(dt.value / 1e9)
 
         splits = self.adjustments_conn.execute(
-            "SELECT sid, ratio FROM SPLITS WHERE effective_date = %s" %
-            seconds).fetchall()
+            "SELECT sid, ratio FROM SPLITS WHERE effective_date = ?",
+            (seconds,)).fetchall()
 
         sids_set = set(sids)
         splits = [split for split in splits if split[0] in sids_set]
