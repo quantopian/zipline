@@ -149,6 +149,8 @@ class PerformancePeriod(object):
         self.period_cash_flow = 0.0
         self.pnl = 0.0
 
+        self.returns = 0.0
+
         self.ending_cash = starting_cash
         # rollover initializes a number of self's attributes:
         self.rollover()
