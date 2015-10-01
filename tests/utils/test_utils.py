@@ -7,11 +7,18 @@ from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
 from .daily_bar_writer import DailyBarWriterFromDataFrames
 
 
-def create_data_portal(env, tempdir, sim_params, sids):
+def create_data_portal(env, tempdir, sim_params, sids, days=None):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
-        length = sim_params.days_in_period
+
+        if days is None:
+            days_to_use = sim_params.trading_days
+        else:
+            days_to_use = days
+
+        length = len(days_to_use)
+
         for sid_idx, sid in enumerate(sids):
             assets[sid] = pd.DataFrame({
                 "open": (np.array(range(10, 10 + length)) + sid_idx),
@@ -19,12 +26,12 @@ def create_data_portal(env, tempdir, sim_params, sids):
                 "low": (np.array(range(8, 8 + length)) + sid_idx),
                 "close": (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [day.value for day in sim_params.trading_days]
-            }, index=sim_params.trading_days)
+                "day": [day.value for day in days_to_use]
+            }, index=days_to_use)
 
         DailyBarWriterFromDataFrames(assets).write(
             path,
-            sim_params.trading_days,
+            days_to_use,
             assets
         )
 

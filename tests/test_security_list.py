@@ -1,4 +1,5 @@
-import pytz
+import pandas as pd
+
 from datetime import datetime, timedelta
 from unittest import TestCase
 from testfixtures import TempDirectory
@@ -65,15 +66,23 @@ class SecurityListTestCase(TestCase):
         cls.env = TradingEnvironment()
         symbols = ['AAPL', 'GOOG', 'BZQ', 'URTY', 'JFT']
 
+        days = cls.env.days_in_range(
+            list(LEVERAGED_ETFS.keys())[0],
+            pd.Timestamp("2015-02-17", tz='UTC')
+        )
+
         cls.sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0], num_days=4, env=cls.env)
+            start=list(LEVERAGED_ETFS.keys())[0],
+            num_days=4,
+            env=cls.env
+        )
 
         equities_metadata = {}
 
         for i, symbol in enumerate(symbols):
             equities_metadata[i] = {
-                'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end,
+                'start_date': days[0],
+                'end_date': days[-1],
                 'symbol': symbol
             }
 
@@ -84,15 +93,14 @@ class SecurityListTestCase(TestCase):
             env=cls.env,
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
-            sids=range(0, 5)
+            sids=range(0, 5),
+            days=days
 
         )
         setup_logger(cls)
 
-        cls.extra_knowledge_date = \
-            datetime(2015, 1, 27, 0, 0, tzinfo=pytz.utc)
-        cls.trading_day_before_first_kd = datetime(
-            2015, 1, 23, 0, 0, tzinfo=pytz.utc)
+        cls.extra_knowledge_date = pd.Timestamp("2015-01-27", tz='UTC')
+        cls.trading_day_before_first_kd = pd.Timestamp("2015-01-23", tz='UTC')
 
     @classmethod
     def tearDownClass(cls):
@@ -138,7 +146,7 @@ class SecurityListTestCase(TestCase):
 
     def test_security_add(self):
         def get_datetime():
-            return datetime(2015, 1, 27, tzinfo=pytz.utc)
+            return pd.Timestamp("2015-01-27", tz='UTC')
         with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
             rl = SecurityListSet(get_datetime, self.env.asset_finder)
@@ -155,7 +163,7 @@ class SecurityListTestCase(TestCase):
     def test_security_add_delete(self):
         with security_list_copy():
             def get_datetime():
-                return datetime(2015, 1, 27, tzinfo=pytz.utc)
+                return pd.Timestamp("2015-01-27", tz='UTC')
             rl = SecurityListSet(get_datetime, self.env.asset_finder)
             self.assertNotIn("BZQ", rl.leveraged_etf_list)
             self.assertNotIn("URTY", rl.leveraged_etf_list)
@@ -268,10 +276,14 @@ class SecurityListTestCase(TestCase):
             new_tempdir.cleanup()
 
     def test_algo_with_rl_violation_after_add(self):
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp("2015-01-23", tz="UTC"), num_days=4, env=self.env)
+
         with security_list_copy():
             add_security_data(['AAPL'], [])
+
             algo = RestrictedAlgoWithoutCheck(symbol='AAPL',
-                                              sim_params=self.sim_params,
+                                              sim_params=sim_params,
                                               env=self.env)
             with self.assertRaises(TradingControlViolation) as ctx:
                 algo.run(self.data_portal)
