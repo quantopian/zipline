@@ -317,9 +317,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('share_class_symbol', sa.Text),
             sa.Column('fuzzy_symbol', sa.Text, index=True),
             sa.Column('asset_name', sa.Text),
-            sa.Column('start_date', sa.Integer, default=0),
-            sa.Column('end_date', sa.Integer),
-            sa.Column('first_traded', sa.Integer),
+            sa.Column('start_date', sa.Integer, default=0, nullable=False),
+            sa.Column('end_date', sa.Integer, nullable=False),
+            sa.Column('first_traded', sa.Integer, nullable=False),
             sa.Column('exchange', sa.Text),
         )
         self.futures_exchanges = sa.Table(
@@ -372,18 +372,18 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                   if constraints else ())
             ),
             sa.Column('asset_name', sa.Text),
-            sa.Column('start_date', sa.Integer, default=0),
-            sa.Column('end_date', sa.Integer),
-            sa.Column('first_traded', sa.Integer),
+            sa.Column('start_date', sa.Integer, default=0, nullable=False),
+            sa.Column('end_date', sa.Integer, nullable=False),
+            sa.Column('first_traded', sa.Integer, nullable=False),
             sa.Column(
                 'exchange',
                 sa.Text,
                 *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
                   if constraints else ())
             ),
-            sa.Column('notice_date', sa.Integer),
-            sa.Column('expiration_date', sa.Integer),
-            sa.Column('auto_close_date', sa.Integer),
+            sa.Column('notice_date', sa.Integer, nullable=False),
+            sa.Column('expiration_date', sa.Integer, nullable=False),
+            sa.Column('auto_close_date', sa.Integer, nullable=False),
             sa.Column('contract_multiplier', sa.Float),
         )
         self.asset_router = sa.Table(
@@ -445,12 +445,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             equities_output.fuzzy_symbol.str.upper()
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
-        equities_output['start_date'] = \
-            equities_output['start_date'].apply(self.convert_datetime)
-        equities_output['end_date'] = \
-            equities_output['end_date'].apply(self.convert_datetime)
-        equities_output['first_traded'] = \
-            equities_output['first_traded'].apply(self.convert_datetime)
+        for date_col in ('start_date', 'end_date', 'first_traded'):
+            equities_output[date_col] = \
+                self.dt_to_epoch_ns(equities_output[date_col])
 
         ##############################
         # Generate futures DataFrame #
@@ -462,18 +459,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         )
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
-        futures_output['start_date'] = \
-            futures_output['start_date'].apply(self.convert_datetime)
-        futures_output['end_date'] = \
-            futures_output['end_date'].apply(self.convert_datetime)
-        futures_output['first_traded'] = \
-            futures_output['first_traded'].apply(self.convert_datetime)
-        futures_output['notice_date'] = \
-            futures_output['notice_date'].apply(self.convert_datetime)
-        futures_output['expiration_date'] = \
-            futures_output['expiration_date'].apply(self.convert_datetime)
-        futures_output['auto_close_date'] = \
-            futures_output['auto_close_date'].apply(self.convert_datetime)
+        for date_col in ('start_date', 'end_date', 'first_traded',
+                         'notice_date', 'expiration_date', 'auto_close_date'):
+            futures_output[date_col] = \
+                self.dt_to_epoch_ns(futures_output[date_col])
 
         # Convert symbols and root_symbols to upper case.
         futures_output['symbol'] = futures_output.symbol.str.upper()
@@ -502,56 +491,15 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                          exchanges=exchanges_output,
                          root_symbols=root_symbols_output)
 
-    def convert_datetime(self, dt):
-        """Convert a datetime variable to integer of nanoseconds
-           since UNIX Epoch.
-
-        Parameters
-        ----------
-        dt : datetime-coercible
-            A string, int or pd.Timestamp instance representing a datetime, or
-            None/NaN.
-
-        Returns
-        -------
-        int
-            nanoseconds since UNIX Epoch, or None if parameter 'dt' is null.
-        """
-
-        # Check for null parameter
-        if pd.isnull(dt):
-            return None
-
-        # If no timezone is specified, assume UTC.
-        # Otherwise, convert to UTC.
+    @staticmethod
+    def dt_to_epoch_ns(dt_series):
+        index = pd.to_datetime(dt_series.values)
         try:
-            dt = pd.Timestamp(dt).tz_localize('UTC')
+            index = index.tz_localize('UTC')
         except TypeError:
-            dt = pd.Timestamp(dt).tz_convert('UTC')
+            index = index.tz_convert('UTC')
 
-        # Get seconds from UNIX Epoch
-        total_seconds_from_epoch = self._seconds_from_unix_time(dt)
-
-        # Return nanoseconds since UNIX Epoch
-        return int(total_seconds_from_epoch * 1000000000)
-
-    def _seconds_from_unix_time(self, dt):
-        """Return seconds between dt and UNIX Epoch.
-
-        Parameters
-        ----------
-        dt: pandas.Timestamp
-            The time for which to calculate seconds since UNIX Epoch.
-
-        Returns
-        -------
-        float
-            Seconds between dt and UNIX Epoch.
-
-        """
-        epoch = pd.to_datetime(0, utc=True)
-        delta = dt - epoch
-        return delta.total_seconds()
+        return index.view(int)
 
     @abstractmethod
     def _load_data(self):

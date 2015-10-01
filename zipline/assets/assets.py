@@ -68,8 +68,9 @@ def _convert_asset_timestamp_fields(dict):
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
     for key, value in dict.items():
-        if (key in _asset_timestamp_fields) and (value is not None):
-            dict[key] = pd.Timestamp(value, tz='UTC')
+        if key in _asset_timestamp_fields:
+            value = pd.Timestamp(value, tz='UTC')
+            dict[key] = None if pd.isnull(value) else value
 
 
 class AssetFinder(object):
