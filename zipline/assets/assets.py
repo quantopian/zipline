@@ -21,7 +21,7 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
-from six import with_metaclass, string_types
+from six import with_metaclass, string_types, viewkeys
 import sqlalchemy as sa
 from toolz import compose
 
@@ -64,10 +64,9 @@ def _convert_asset_timestamp_fields(dict):
     """
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
-    for key, value in dict.items():
-        if key in _asset_timestamp_fields:
-            value = pd.Timestamp(value, tz='UTC')
-            dict[key] = None if pd.isnull(value) else value
+    for key in (_asset_timestamp_fields & viewkeys(dict)):
+        value = pd.Timestamp(dict[key], tz='UTC')
+        dict[key] = None if pd.isnull(value) else value
 
 
 class AssetFinder(object):
