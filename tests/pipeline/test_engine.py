@@ -39,7 +39,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline.factor import CustomFactor
+from zipline.pipeline import CustomFactor
 from zipline.pipeline.factor.technical import (
     MaxDrawdown,
     SimpleMovingAverage,

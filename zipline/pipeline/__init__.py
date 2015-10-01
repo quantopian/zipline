@@ -1,5 +1,5 @@
 from .classifier import Classifier
-from .factor import Factor
+from .factor import Factor, CustomFactor
 from .filter import Filter
 from .term import Term
 from .graph import TermGraph
