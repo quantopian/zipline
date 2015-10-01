@@ -162,21 +162,21 @@ def _generate_output_dataframe(data_subset, defaults):
     """
     # The columns provided.
     cols = set(data_subset.columns)
-    desired_cols = {col for col in defaults.keys()}
+    desired_cols = set(defaults)
 
     # Drop columns with unrecognised headers.
-    data_subset.drop(cols - (cols & desired_cols),
+    data_subset.drop(cols - desired_cols,
                      axis=1,
                      inplace=True)
 
     # Get those columns which we need but
     # for which no data has been supplied.
-    need = desired_cols - set(data_subset.columns)
+    need = desired_cols - cols
 
     # Combine the users supplied data with our required columns.
     output = pd.concat(
         (data_subset, pd.DataFrame(
-            _dict_subset(defaults, need),
+            {k: defaults[k] for k in need},
             data_subset.index,
         )),
         axis=1,
@@ -184,13 +184,6 @@ def _generate_output_dataframe(data_subset, defaults):
     )
 
     return output
-
-
-def _dict_subset(dict_, subset):
-    res = {}
-    for k in subset:
-        res[k] = dict_[k]
-    return res
 
 
 class AssetDBWriter(with_metaclass(ABCMeta)):
