@@ -142,7 +142,6 @@ class PerformanceTracker(object):
             serialize_positions=False,
             asset_finder=self.env.asset_finder,
         )
-        self.cumulative_performance.position_tracker = self.position_tracker
 
         # this performance period will span just the current market day
         self.todays_performance = PerformancePeriod(
@@ -156,7 +155,6 @@ class PerformanceTracker(object):
             serialize_positions=True,
             asset_finder=self.env.asset_finder,
         )
-        self.todays_performance.position_tracker = self.position_tracker
 
         self.saved_dt = self.period_start
         # one indexed so that we reach 100%
@@ -232,27 +230,30 @@ class PerformanceTracker(object):
             self.dividend_frame.sid != sid
         ]
 
-    def update_performance(self):
+    def update_performance(self, position_tracker):
         # calculate performance as of last trade
-        self.cumulative_performance.calculate_performance()
-        self.todays_performance.calculate_performance()
+        self.cumulative_performance.calculate_performance(position_tracker)
+        self.todays_performance.calculate_performance(position_tracker)
 
     def get_portfolio(self, performance_needs_update):
+        position_tracker = self.position_tracker
         if performance_needs_update:
-            self.update_performance()
+            self.update_performance(position_tracker)
             self.account_needs_update = True
-        return self.cumulative_performance.as_portfolio()
+        return self.cumulative_performance.as_portfolio(position_tracker)
 
     def get_account(self, performance_needs_update):
+        position_tracker = self.position_tracker
         if performance_needs_update:
-            self.update_performance()
+            self.update_performance(position_tracker)
             self.account_needs_update = True
         if self.account_needs_update:
-            self._update_account()
+            self._update_account(position_tracker)
         return self._account
 
-    def _update_account(self):
-        self._account = self.cumulative_performance.as_account()
+    def _update_account(self, position_tracker):
+        self._account = self.cumulative_performance.as_account(
+            position_tracker)
         self.account_needs_update = False
 
     def to_dict(self, emission_type=None):
@@ -265,18 +266,24 @@ class PerformanceTracker(object):
         if emission_type is None:
             emission_type = self.emission_rate
 
+        position_tracker = self.position_tracker
+
         _dict = {
             'period_start': self.period_start,
             'period_end': self.period_end,
             'capital_base': self.capital_base,
-            'cumulative_perf': self.cumulative_performance.to_dict(),
+            'cumulative_perf': self.cumulative_performance.to_dict(
+                position_tracker
+            ),
             'progress': self.progress,
             'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
         if emission_type == 'daily':
-            _dict['daily_perf'] = self.todays_performance.to_dict()
+            _dict['daily_perf'] = self.todays_performance.to_dict(
+                position_tracker)
         elif emission_type == 'minute':
             _dict['minute_perf'] = self.todays_performance.to_dict(
+                position_tracker,
                 self.saved_dt)
         else:
             raise ValueError("Invalid emission type: %s" % emission_type)
@@ -421,7 +428,7 @@ class PerformanceTracker(object):
             A tuple of the minute perf packet and daily perf packet.
             If the market day has not ended, the daily perf packet is None.
         """
-        self.update_performance()
+        self.update_performance(self.position_tracker)
         todays_date = normalize_date(dt)
         account = self.get_account(False)
 
@@ -448,7 +455,7 @@ class PerformanceTracker(object):
         Function called after handle_data when running with daily emission
         rate.
         """
-        self.update_performance()
+        self.update_performance(self.position_tracker)
         completed_date = self.day
         account = self.get_account(False)
 
@@ -560,12 +567,3 @@ class PerformanceTracker(object):
 
         # Handle the dividend frame specially
         self.dividend_frame = pickle.loads(state['dividend_frame'])
-
-        # properly setup the perf periods
-        p_types = ['cumulative', 'todays']
-        for p_type in p_types:
-            name = p_type + '_performance'
-            period = getattr(self, name, None)
-            if period is None:
-                continue
-            period._position_tracker = self.position_tracker

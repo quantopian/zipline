@@ -168,20 +168,6 @@ class PerformancePeriod(object):
         # keyed on sid
         self._execution_cash_flow_multipliers = {}
 
-    _position_tracker = None
-
-    @property
-    def position_tracker(self):
-        return self._position_tracker
-
-    @position_tracker.setter
-    def position_tracker(self, obj):
-        if obj is None:
-            raise ValueError("position_tracker can not be None")
-        self._position_tracker = obj
-        # we only calculate perf once we inject PositionTracker
-        self.calculate_performance()
-
     def rollover(self):
         self.starting_value = self.ending_value
         self.starting_exposure = self.ending_exposure
@@ -195,7 +181,6 @@ class PerformancePeriod(object):
     def handle_dividends_paid(self, net_cash_payment):
         if net_cash_payment:
             self.handle_cash_payment(net_cash_payment)
-        self.calculate_performance()
 
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
@@ -210,9 +195,8 @@ class PerformancePeriod(object):
     def adjust_field(self, field, value):
         setattr(self, field, value)
 
-    def calculate_performance(self):
-        pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+    def calculate_performance(self, position_tracker):
+        pos_stats = calc_position_stats(position_tracker)
         self.ending_value = pos_stats.net_value
         self.ending_exposure = pos_stats.net_exposure
 
@@ -271,8 +255,8 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    def __core_dict(self):
-        pos_stats = calc_position_stats(self.position_tracker)
+    def __core_dict(self, position_tracker):
+        pos_stats = calc_position_stats(position_tracker)
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         rval = {
@@ -302,7 +286,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def to_dict(self, dt=None):
+    def to_dict(self, position_tracker, dt=None):
         """
         Creates a dictionary representing the state of this performance
         period. See header comments for a detailed description.
@@ -310,10 +294,10 @@ class PerformancePeriod(object):
         Kwargs:
             dt (datetime): If present, only return transactions for the dt.
         """
-        rval = self.__core_dict()
+        rval = self.__core_dict(position_tracker)
 
         if self.serialize_positions:
-            positions = self.position_tracker.get_positions_list()
+            positions = position_tracker.get_positions_list()
             rval['positions'] = positions
 
         # we want the key to be absent, not just empty
@@ -346,7 +330,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def as_portfolio(self):
+    def as_portfolio(self, position_tracker):
         """
         The purpose of this method is to provide a portfolio
         object to algorithms running inside the same trading
@@ -368,16 +352,15 @@ class PerformancePeriod(object):
         portfolio.returns = self.returns
         portfolio.cash = self.ending_cash
         portfolio.start_date = self.period_open
-        portfolio.positions = self.position_tracker.get_positions()
+        portfolio.positions = position_tracker.get_positions()
         portfolio.positions_value = self.ending_value
         portfolio.positions_exposure = self.ending_exposure
         return portfolio
 
-    def as_account(self):
+    def as_account(self, position_tracker):
         account = self._account_store
 
-        pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = calc_position_stats(position_tracker)
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         # If no attribute is found on the PerformancePeriod resort to the
