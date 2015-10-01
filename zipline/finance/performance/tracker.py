@@ -86,7 +86,7 @@ class PerformanceTracker(object):
     Tracks the performance of the algorithm.
     """
     def __init__(self, sim_params, env, data_portal):
-
+        self.data_portal = data_portal
         self.sim_params = sim_params
         self.env = env
 
@@ -384,31 +384,27 @@ class PerformanceTracker(object):
         is the next trading day.  Apply all such benefits, then recalculate
         performance.
         """
-        if len(self.dividend_frame) == 0:
-            # We don't currently know about any dividends for this simulation
-            # period, so bail.
+        # FIXME this depends on the positions dict not returning BS due
+        # to defaultdict
+        sids = self.position_tracker.positions.keys()
+
+        if len(sids) == 0:
+            # we have no positions, so we don't care about dividends
             return
 
-        # Dividends whose ex_date is the next trading day.  We need to check if
-        # we own any of these stocks so we know to pay them out when the pay
-        # date comes.
-        ex_date_mask = (self.dividend_frame['ex_date'] == next_trading_day)
-        dividends_earnable = self.dividend_frame[ex_date_mask]
+        earnable_dividends, payable_dividends = \
+            self.data_portal.get_dividends(sids, next_trading_day)
 
-        # Dividends whose pay date is the next trading day.  If we held any of
-        # these stocks on midnight before the ex_date, we need to pay these out
-        # now.
-        pay_date_mask = (self.dividend_frame['pay_date'] == next_trading_day)
-        dividends_payable = self.dividend_frame[pay_date_mask]
-
-        position_tracker = self.position_tracker
-        if len(dividends_earnable):
-            position_tracker.earn_dividends(dividends_earnable)
-
-        if not len(dividends_payable):
+        if len(earnable_dividends) == 0 or len(payable_dividends) == 0:
+            # no dividends for our current positions
             return
 
-        net_cash_payment = position_tracker.pay_dividends(dividends_payable)
+        if len(earnable_dividends) > 0:
+            self.position_tracker.earn_dividends(earnable_dividends)
+
+        if len(payable_dividends) > 0:
+            net_cash_payment = self.position_tracker.\
+                pay_dividends(payable_dividends)
 
         # notify periods to update their stats
         self.cumulative_performance.handle_dividends_paid(net_cash_payment)
