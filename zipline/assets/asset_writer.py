@@ -13,6 +13,8 @@ import sqlalchemy as sa
 from zipline.errors import SidAssignmentError
 from zipline.assets._assets import Asset
 
+SQLITE_MAX_VARIABLE_NUMBER = 999
+
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
@@ -164,7 +166,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Returns data in standard format.
 
     """
-    CHUNK_SIZE = 999
+    CHUNK_SIZE = SQLITE_MAX_VARIABLE_NUMBER
 
     def __init__(self, equities=None, futures=None, exchanges=None,
                  root_symbols=None):
