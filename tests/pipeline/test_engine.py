@@ -40,7 +40,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 )
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline import CustomFactor
-from zipline.pipeline.factor.technical import (
+from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )

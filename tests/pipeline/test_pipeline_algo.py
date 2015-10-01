@@ -42,7 +42,7 @@ from zipline.errors import (
 )
 from zipline.finance import trading
 from zipline.pipeline import Pipeline
-from zipline.pipeline.factor.technical import VWAP
+from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (

@@ -33,7 +33,7 @@ from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
     UNARY_OPS,
 )
-from zipline.pipeline.filter import (
+from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
 )
@@ -273,7 +273,7 @@ class Factor(Term):
 
         Returns
         -------
-        filter : zipline.pipeline.filter.Filter
+        filter : zipline.pipeline.Filter
         """
         return self.rank(ascending=False, mask=mask) <= N
 
@@ -288,7 +288,7 @@ class Factor(Term):
 
         Returns
         -------
-        filter : zipline.pipeline.filter.Filter
+        filter : zipline.pipeline.Filter
         """
         return self.rank(ascending=True, mask=mask) <= N
 
@@ -308,12 +308,12 @@ class Factor(Term):
 
         Returns
         -------
-        out : zipline.pipeline.filter.PercentileFilter
+        out : zipline.pipeline.filters.PercentileFilter
             A new filter that will compute the specified percentile-range mask.
 
         See Also
         --------
-        zipline.pipeline.filter.PercentileFilter
+        zipline.pipeline.filters.PercentileFilter
         """
         return PercentileFilter(
             self,

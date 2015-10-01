@@ -7,7 +7,7 @@ from six import (
 )
 
 from zipline.pipeline.term import Term
-from zipline.pipeline.factor import Latest
+from zipline.pipeline.factors import Latest
 
 
 class Column(object):

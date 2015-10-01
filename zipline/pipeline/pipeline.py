@@ -1,7 +1,7 @@
 from zipline.utils.preprocess import expect_types, optional
 
 from .term import Term
-from .filter import Filter
+from .filters import Filter
 from .graph import TermGraph
 
 
@@ -121,8 +121,8 @@ class Pipeline(object):
 
         Parameter
         ---------
-        filter : zipline.pipeline.filter.Filter
-            The screen to apply.
+        filter : zipline.pipeline.Filter
+            The filter to apply as a screen.
         overwrite : bool
             Whether to overwrite any existing screen.  If overwrite is False
             and self.screen is not None, we raise an error.
