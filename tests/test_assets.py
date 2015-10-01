@@ -233,15 +233,30 @@ class AssetTestCase(TestCase):
 
 
 class TestFuture(TestCase):
-    future = Future(
-        2468,
-        symbol='OMH15',
-        root_symbol='OM',
-        notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
-        expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
-        auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
-        contract_multiplier=500
-    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.future = Future(
+            2468,
+            symbol='OMH15',
+            root_symbol='OM',
+            notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
+            expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
+            auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
+            contract_multiplier=500
+        )
+        cls.future2 = Future(
+            0,
+            symbol='CLG06',
+            root_symbol='CL',
+            start_date=pd.Timestamp('2005-12-01', tz='UTC'),
+            notice_date=pd.Timestamp('2005-12-20', tz='UTC'),
+            expiration_date=pd.Timestamp('2006-01-20', tz='UTC')
+        )
+        env = TradingEnvironment()
+        env.write_data(futures_identifiers=[TestFuture.future,
+                                            TestFuture.future2])
+        cls.asset_finder = env.asset_finder
 
     def test_str(self):
         strd = self.future.__str__()
@@ -279,6 +294,41 @@ class TestFuture(TestCase):
 
     def test_root_symbol(self):
         self.assertEqual('OM', self.future.root_symbol)
+
+    def test_lookup_future_symbol(self):
+        """
+        Test the lookup_future_symbol method.
+        """
+        om = TestFuture.asset_finder.lookup_future_symbol('OMH15')
+        self.assertEqual(om.sid, 2468)
+        self.assertEqual(om.symbol, 'OMH15')
+        self.assertEqual(om.root_symbol, 'OM')
+        self.assertEqual(om.notice_date, pd.Timestamp('2014-01-20', tz='UTC'))
+        self.assertEqual(om.expiration_date,
+                         pd.Timestamp('2014-02-20', tz='UTC'))
+        self.assertEqual(om.auto_close_date,
+                         pd.Timestamp('2014-01-18', tz='UTC'))
+
+        cl = TestFuture.asset_finder.lookup_future_symbol('CLG06')
+        self.assertEqual(cl.sid, 0)
+        self.assertEqual(cl.symbol, 'CLG06')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.start_date, pd.Timestamp('2005-12-01', tz='UTC'))
+        self.assertEqual(cl.notice_date, pd.Timestamp('2005-12-20', tz='UTC'))
+        self.assertEqual(cl.expiration_date,
+                         pd.Timestamp('2006-01-20', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('#&?!')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('FOOBAR')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('XXX99')
 
 
 class AssetFinderTestCase(TestCase):
@@ -599,10 +649,9 @@ class AssetFinderTestCase(TestCase):
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-05-14', tz='UTC')
             },
-            # Copy of the above future, but starts trading in August,
-            # so it isn't valid.
+            # Starts trading in August, so not valid.
             3: {
-                'symbol': 'ADF16',
+                'symbol': 'ADX16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),

@@ -326,7 +326,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 nullable=False,
                 primary_key=True,
             ),
-            sa.Column('symbol', sa.Text),
+            sa.Column('symbol', sa.Text, unique=True, index=True),
             sa.Column(
                 'root_symbol',
                 sa.Text,

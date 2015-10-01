@@ -175,6 +175,10 @@ class AssetFinder(object):
     def _select_asset_by_sid(asset_tbl, sid):
         return sa.select([asset_tbl]).where(asset_tbl.c.sid == int(sid))
 
+    @staticmethod
+    def _select_asset_by_symbol(asset_tbl, symbol):
+        return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
+
     def _retrieve_asset(self, sid, cache, asset_tbl, asset_type):
         try:
             return cache[sid]
@@ -296,6 +300,49 @@ class AssetFinder(object):
                         sids,
                     ))
                 )
+
+    def lookup_future_symbol(self, symbol):
+        """ Return the Future object for a given symbol.
+
+        Parameters
+        ----------
+        symbol : str
+            The symbol of the desired contract.
+
+        Returns
+        -------
+        Future
+            A Future object.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when no contract named 'symbol' is found.
+
+        """
+
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
+                   .execute().fetchone()
+
+        # If no data found, raise an exception
+        if not data:
+            raise SymbolNotFound(symbol=symbol)
+
+        # If we find a contract, check whether it's been cached
+        try:
+            return self._future_cache[data['sid']]
+        except KeyError:
+            pass
+
+        # Build the Future object from its parameters
+        data = dict(data.items())
+        _convert_asset_timestamp_fields(data)
+        future = Future(**data)
+
+        # Cache the Future object.
+        self._future_cache[data['sid']] = future
+
+        return future
 
     def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
