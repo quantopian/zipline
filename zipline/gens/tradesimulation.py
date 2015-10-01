@@ -116,7 +116,11 @@ class AlgorithmSimulator(object):
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
         def inner_loop(dt_to_use):
-            self.on_dt_changed(dt_to_use)
+            # called every tick (minute or day).
+
+            data_portal.current_dt = dt_to_use
+            self.simulation_dt = dt_to_use
+            algo.on_dt_changed(dt_to_use)
 
             new_transactions = blotter.process_open_orders(dt_to_use)
             for transaction in new_transactions:
@@ -139,7 +143,15 @@ class AlgorithmSimulator(object):
                 for new_order in new_orders:
                     perf_process_order(new_order)
 
-        def apply_adjustments(dt):
+        def once_a_day(midnight_dt):
+            # set all the timestamps
+            self.simulation_dt = midnight_dt
+            algo.on_dt_changed(midnight_dt)
+            data_portal.current_day = midnight_dt
+
+            # call before trading start
+            algo.before_trading_start(current_data)
+
             # handle any splits or dividends that impact any positions or
             # any open orders.
             sids_we_care_about = \
@@ -147,7 +159,8 @@ class AlgorithmSimulator(object):
                          blotter.open_orders.keys()))
 
             if len(sids_we_care_about) > 0:
-                splits = data_portal.get_splits(sids_we_care_about, dt)
+                splits = data_portal.get_splits(sids_we_care_about,
+                                                midnight_dt)
                 if len(splits) > 0:
                     blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
@@ -155,16 +168,11 @@ class AlgorithmSimulator(object):
         with self.processor.threadbound(), ZiplineAPI(self.algo):
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
-                    apply_adjustments(trading_day)
-
-                    data_portal.current_dt = trading_day
-                    data_portal.current_day = trading_day
-
+                    once_a_day(trading_day)
                     inner_loop(trading_day)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
-                    # use the last dt as market close
                     yield self.get_message(trading_day)
 
                     algo.portfolio_needs_update = True
@@ -172,23 +180,18 @@ class AlgorithmSimulator(object):
                     algo.performance_needs_update = True
             else:
                 for day_idx, trading_day in enumerate(trading_days):
-                    apply_adjustments(trading_day)
+                    once_a_day(trading_day)
 
                     day_offset = (day_idx + first_trading_day_idx) * 390
                     minutes = pd.DatetimeIndex(day_engine.
                                                market_minutes(day_idx),
                                                tz='UTC')
                     for minute_idx, minute in enumerate(minutes):
-                        data_portal.current_dt = minute.value
-                        blotter.current_dt = minute
-                        data_portal.current_day = trading_day
                         data_portal.cur_data_offset = day_offset + minute_idx
-
                         inner_loop(minute)
 
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
-                    # use the last dt as market close
                     yield self.get_message(minute)
 
                     algo.portfolio_needs_update = True
@@ -197,17 +200,6 @@ class AlgorithmSimulator(object):
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message
-
-    # FIXME nobody calls this
-    def _call_before_trading_start(self, dt):
-        dt = normalize_date(dt)
-        self.simulation_dt = dt
-        self.on_dt_changed(dt)
-        self.algo.before_trading_start()
-
-    def on_dt_changed(self, dt):
-        if self.algo.datetime != dt:
-            self.algo.on_dt_changed(dt)
 
     def get_message(self, dt):
         """
