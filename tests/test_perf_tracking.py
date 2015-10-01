@@ -1215,7 +1215,7 @@ class TestPositionPerformance(unittest.TestCase):
         # incorrectly show as sharply dipping if a transaction arrives
         # before a trade. This is caused by returns being based on holding
         # stocks with a last sale price of 0.
-        self.assertEqual(pp.positions[1].last_sale_price, 10.0)
+        self.assertEqual(pt.positions[1].last_sale_price, 10.0)
 
         for trade in trades:
             pt.update_last_sale(trade)
@@ -1230,17 +1230,17 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         self.assertEqual(
-            len(pp.positions),
+            len(pt.positions),
             1,
             "should be just one position")
 
         self.assertEqual(
-            pp.positions[1].sid,
+            pt.positions[1].sid,
             txn.sid,
             "position should be in security with id 1")
 
         self.assertEqual(
-            pp.positions[1].amount,
+            pt.positions[1].amount,
             txn.amount,
             "should have a position of {sharecount} shares".format(
                 sharecount=txn.amount
@@ -1248,18 +1248,18 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             trades[-1]['price'],
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
                 exp=trades[-1]['price'],
-                act=pp.positions[1].last_sale_price)
+                act=pt.positions[1].last_sale_price)
         )
 
         self.assertEqual(
@@ -1328,30 +1328,30 @@ single short-sale transaction"""
         )
 
         self.assertEqual(
-            len(pp.positions),
+            len(pt.positions),
             1,
             "should be just one position")
 
         self.assertEqual(
-            pp.positions[1].sid,
+            pt.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pp.positions[1].amount,
+            pt.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             trades_1[-1]['price'],
             "last sale should be price of last trade"
         )
@@ -1385,31 +1385,31 @@ single short-sale transaction"""
         )
 
         self.assertEqual(
-            len(pp.positions),
+            len(pt.positions),
             1,
             "should be just one position"
         )
 
         self.assertEqual(
-            pp.positions[1].sid,
+            pt.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pp.positions[1].amount,
+            pt.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
@@ -1450,30 +1450,30 @@ cost of sole txn in test"
         )
 
         self.assertEqual(
-            len(ppTotal.positions),
+            len(ptTotal.positions),
             1,
             "should be just one position"
         )
         self.assertEqual(
-            ppTotal.positions[1].sid,
+            ptTotal.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            ppTotal.positions[1].amount,
+            ptTotal.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            ppTotal.positions[1].cost_basis,
+            ptTotal.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            ppTotal.positions[1].last_sale_price,
+            ptTotal.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
@@ -1557,31 +1557,31 @@ trade after cover"""
         )
 
         self.assertEqual(
-            len(pp.positions),
+            len(pt.positions),
             1,
             "should be just one position"
         )
 
         self.assertEqual(
-            pp.positions[1].sid,
+            pt.positions[1].sid,
             short_txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pp.positions[1].amount,
+            pt.positions[1].amount,
             0,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             0,
             "a covered position should have a cost basis of 0"
         )
 
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             trades[-1].price,
             "last sale should be price of last trade"
         )
@@ -1642,7 +1642,7 @@ shares in position"
             pt.execute_transaction(txn)
             pp.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
-            self.assertEqual(pp.positions[1].cost_basis, average_cost)
+            self.assertEqual(pt.positions[1].cost_basis, average_cost)
 
         for trade in trades:
             pt.update_last_sale(trade)
@@ -1650,14 +1650,14 @@ shares in position"
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             trades[-1].price,
             "should have a last sale of 12, got {val}".format(
-                val=pp.positions[1].last_sale_price)
+                val=pt.positions[1].last_sale_price)
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             11,
             "should have a cost basis of 11"
         )
@@ -1686,14 +1686,14 @@ shares in position"
 
         pp.calculate_performance()
         self.assertEqual(
-            pp.positions[1].last_sale_price,
+            pt.positions[1].last_sale_price,
             10,
             "should have a last sale of 10, was {val}".format(
-                val=pp.positions[1].last_sale_price)
+                val=pt.positions[1].last_sale_price)
         )
 
         self.assertEqual(
-            pp.positions[1].cost_basis,
+            pt.positions[1].cost_basis,
             11,
             "should have a cost basis of 11"
         )
@@ -1709,7 +1709,7 @@ shares in position"
             pt3.execute_transaction(txn)
             pp3.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
-            self.assertEqual(pp3.positions[1].cost_basis, average_cost)
+            self.assertEqual(pt3.positions[1].cost_basis, average_cost)
 
         pt3.execute_transaction(sale_txn)
         pp3.handle_execution(sale_txn)
@@ -1720,13 +1720,13 @@ shares in position"
 
         pp3.calculate_performance()
         self.assertEqual(
-            pp3.positions[1].last_sale_price,
+            pt3.positions[1].last_sale_price,
             10,
             "should have a last sale of 10"
         )
 
         self.assertEqual(
-            pp3.positions[1].cost_basis,
+            pt3.positions[1].cost_basis,
             11,
             "should have a cost basis of 11"
         )
@@ -1758,14 +1758,14 @@ shares in position"
         for txn, cb in zip(transactions, cost_bases):
             pt.execute_transaction(txn)
             pp.handle_execution(txn)
-            self.assertEqual(pp.positions[1].cost_basis, cb)
+            self.assertEqual(pt.positions[1].cost_basis, cb)
 
         for trade in trades:
             pt.update_last_sale(trade)
 
         pp.calculate_performance()
 
-        self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
+        self.assertEqual(pt.positions[1].cost_basis, cost_bases[-1])
 
 
 class TestPerformanceTracker(unittest.TestCase):
@@ -1927,7 +1927,7 @@ class TestPerformanceTracker(unittest.TestCase):
         self.assertEqual(perf_tracker.txn_count, len(txns))
         self.assertEqual(perf_tracker.txn_count, len(orders))
 
-        positions = perf_tracker.cumulative_performance.positions
+        positions = perf_tracker.position_tracker.positions
         if len(txns) == 0:
             self.assertNotIn(sid, positions)
         else:

@@ -269,15 +269,6 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    # backwards compat. TODO: remove?
-    @property
-    def positions(self):
-        return self.position_tracker.positions
-
-    @property
-    def position_amounts(self):
-        return self.position_tracker.position_amounts
-
     def __core_dict(self):
         pos_stats = calc_position_stats(self.position_tracker)
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
