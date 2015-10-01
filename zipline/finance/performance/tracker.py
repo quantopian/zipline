@@ -69,7 +69,6 @@ from pandas.tseries.tools import normalize_date
 
 import zipline.finance.risk as risk
 from . period import (
-    PerformancePeriod,
     TodaysPerformance,
     CumulativePerformance
 )
@@ -132,25 +131,6 @@ class PerformanceTracker(object):
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params, self.env,
                                            create_first_day_stats=True)
-
-            self.minute_performance = PerformancePeriod(
-                # initial cash is your capital base.
-                starting_cash=self.capital_base,
-                # the cumulative period will be calculated over the
-                # entire test.
-                period_open=self.period_start,
-                period_close=self.period_end,
-                # don't save the transactions for the cumulative
-                # period
-                keep_transactions=False,
-                keep_orders=False,
-                # don't serialize positions for cumualtive period
-                serialize_positions=False,
-                asset_finder=self.env.asset_finder,
-                data_portal=data_portal,
-            )
-            self.minute_performance.position_tracker = self.position_tracker
-            self.perf_periods.append(self.minute_performance)
 
         # this performance period will span the entire simulation from
         # inception.
@@ -450,8 +430,6 @@ class PerformanceTracker(object):
         self.update_performance()
         todays_date = normalize_date(dt)
         account = self.get_account(False)
-
-        self.minute_performance.rollover()
 
         bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
         # cumulative returns
