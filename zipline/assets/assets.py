@@ -63,16 +63,6 @@ _asset_timestamp_fields = frozenset({
 })
 
 
-def _convert_asset_str_fields(dict):
-    """
-    Takes in a dict of Asset init args and converts from unicode to string
-    where applicable
-    """
-    for key, value in dict.items():
-        if key in _asset_str_fields:
-            dict[key] = str(value)
-
-
 def _convert_asset_timestamp_fields(dict):
     """
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
@@ -228,7 +218,6 @@ class AssetFinder(object):
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
-            _convert_asset_str_fields(data)
             _convert_asset_timestamp_fields(data)
 
             equity = Equity(**data)
@@ -251,7 +240,6 @@ class AssetFinder(object):
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
-            _convert_asset_str_fields(data)
             _convert_asset_timestamp_fields(data)
 
             future = Future(**data)
