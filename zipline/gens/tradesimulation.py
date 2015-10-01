@@ -124,7 +124,7 @@ class AlgorithmSimulator(object):
 
             # update the portfolio, so that if the user does
             # context.portfolio.positions, it's accurate
-            perf_tracker.get_portfolio(True)
+            perf_tracker.get_portfolio(dt_to_use)
 
             handle_data(algo, current_data, dt_to_use)
 
@@ -213,12 +213,6 @@ class AlgorithmSimulator(object):
         """
         Get a perf message for the given datetime.
         """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
@@ -236,12 +230,6 @@ class AlgorithmSimulator(object):
         """
         Generator that yields perf messages for the given datetime.
         """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
