@@ -191,8 +191,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
     def write_all(self,
                   engine,
-                  allow_sid_assignment=True,
-                  constraints=True):
+                  allow_sid_assignment=True):
         """ Write pre-supplied data to SQLite.
 
         Parameters
@@ -210,7 +209,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Begin an SQL transaction.
         with engine.begin() as txn:
             # Create SQL tables.
-            self.init_db(txn, constraints)
+            self.init_db(txn)
             # Get the data to add to SQL.
             data = self.load_data()
             # Write the data to SQL.
@@ -252,7 +251,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def _write_equities(self, equities, bind):
         self._write_assets(equities, self.equities, 'equity', bind)
 
-    def init_db(self, engine, constraints=True):
+    def init_db(self, engine):
         """Connect to database and create tables.
 
         Parameters
@@ -272,7 +271,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('symbol', sa.Text),
             sa.Column('company_symbol', sa.Text, index=True),
@@ -292,7 +291,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Text,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('timezone', sa.Text),
         )
@@ -304,7 +303,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Text,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('root_symbol_id', sa.Integer),
             sa.Column('sector', sa.Text),
@@ -312,8 +311,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'exchange',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_exchanges.c.exchange),
             ),
         )
         self.futures_contracts = sa.Table(
@@ -324,14 +322,13 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('symbol', sa.Text),
             sa.Column(
                 'root_symbol',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_root_symbols.c.root_symbol),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_root_symbols.c.root_symbol),
             ),
             sa.Column('asset_name', sa.Text),
             sa.Column('start_date', sa.Integer, default=0, nullable=False),
@@ -340,8 +337,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'exchange',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_exchanges.c.exchange),
             ),
             sa.Column('notice_date', sa.Integer, nullable=False),
             sa.Column('expiration_date', sa.Integer, nullable=False),
@@ -356,7 +352,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints),
+                primary_key=True),
             sa.Column('asset_type', sa.Text),
         )
         # Create the SQL tables if they do not already exist.
