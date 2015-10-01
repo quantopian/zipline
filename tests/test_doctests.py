@@ -25,6 +25,7 @@ class DoctestTestCase(TestCase):
             cls._skip = True
         else:
             cls._skip = False
+        cls.flags = doctest.REPORT_CDIFF | doctest.IGNORE_EXCEPTION_DETAIL
 
     def _check_docs(self, module):
         if self._skip:
