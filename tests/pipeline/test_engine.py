@@ -425,7 +425,7 @@ class SyntheticBcolzTestCase(TestCase):
                 cls.all_assets,
             )
 
-            cls.ffc_loader = USEquityPricingLoader(
+            cls.pipeline_loader = USEquityPricingLoader(
                 BcolzDailyBarReader(table),
                 NullAdjustmentReader(),
             )
@@ -469,7 +469,7 @@ class SyntheticBcolzTestCase(TestCase):
 
     def test_SMA(self):
         engine = SimplePipelineEngine(
-            self.ffc_loader,
+            self.pipeline_loader,
             self.env.trading_days,
             self.finder,
         )
@@ -521,7 +521,7 @@ class SyntheticBcolzTestCase(TestCase):
         # or zero, but verifying we correctly handle those corner cases is
         # valuable.
         engine = SimplePipelineEngine(
-            self.ffc_loader,
+            self.pipeline_loader,
             self.env.trading_days,
             self.finder,
         )

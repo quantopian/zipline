@@ -149,7 +149,7 @@ class ClosesOnly(TestCase):
         self.adj_closes = adj_closes = self.closes.copy()
         adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
 
-        self.ffc_loader = DataFrameLoader(
+        self.pipeline_loader = DataFrameLoader(
             column=USEquityPricing.close,
             baseline=self.closes,
             adjustments=self.adjustments,
@@ -180,7 +180,7 @@ class ClosesOnly(TestCase):
             initialize=initialize,
             handle_data=late_attach,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.first_asset_start - trading_day,
             end=self.last_asset_end + trading_day,
             env=self.env,
@@ -197,7 +197,7 @@ class ClosesOnly(TestCase):
             before_trading_start=late_attach,
             handle_data=barf,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.first_asset_start - trading_day,
             end=self.last_asset_end + trading_day,
             env=self.env,
@@ -226,7 +226,7 @@ class ClosesOnly(TestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.first_asset_start - trading_day,
             end=self.last_asset_end + trading_day,
             env=self.env,
@@ -254,7 +254,7 @@ class ClosesOnly(TestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.first_asset_start - trading_day,
             end=self.last_asset_end + trading_day,
             env=self.env,
@@ -294,7 +294,7 @@ class ClosesOnly(TestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.first_asset_start - trading_day,
             end=self.last_asset_end + trading_day,
             env=self.env,
@@ -325,7 +325,7 @@ class PipelineAlgorithmTestCase(TestCase):
         try:
             cls.raw_data, cls.bar_reader = cls.create_bar_reader(tempdir)
             cls.adj_reader = cls.create_adjustment_reader(tempdir)
-            cls.ffc_loader = USEquityPricingLoader(
+            cls.pipeline_loader = USEquityPricingLoader(
                 cls.bar_reader, cls.adj_reader
             )
         except:
@@ -524,7 +524,7 @@ class PipelineAlgorithmTestCase(TestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            ffc_loader=self.ffc_loader,
+            pipeline_loader=self.pipeline_loader,
             start=self.dates[max(window_lengths)],
             end=self.dates[-1],
             env=self.env,

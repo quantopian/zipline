@@ -230,7 +230,7 @@ class TradingAlgorithm(object):
         self.asset_finder = self.trading_environment.asset_finder
 
         # Initialize Pipeline API data.
-        self.init_engine(kwargs.pop('ffc_loader', None))
+        self.init_engine(kwargs.pop('pipeline_loader', None))
         self._pipelines = []
         # Create an always-expired cache so that we compute the first time data
         # is requested.
@@ -323,7 +323,7 @@ class TradingAlgorithm(object):
 
     def init_engine(self, loader):
         """
-        Construct and save a PipelineEngine from loader.
+        Construct and store a PipelineEngine from loader.
 
         If loader is None, constructs a NoOpPipelineEngine.
         """
