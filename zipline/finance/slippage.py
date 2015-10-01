@@ -15,161 +15,13 @@
 from __future__ import division
 
 import abc
-
+from copy import copy
 import math
 
-from copy import copy
-from functools import partial
-
 from six import with_metaclass
+from zipline.finance.transaction import create_transaction
 
-from zipline.protocol import DATASOURCE_TYPE
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
-SELL = 1 << 0
-BUY = 1 << 1
-STOP = 1 << 2
-LIMIT = 1 << 3
-
-
-def check_order_triggers(order, event):
-    """
-    Given an order and a trade event, return a tuple of
-    (stop_reached, limit_reached).
-    For market orders, will return (False, False).
-    For stop orders, limit_reached will always be False.
-    For limit orders, stop_reached will always be False.
-    For stop limit orders a Boolean is returned to flag
-    that the stop has been reached.
-
-    Orders that have been triggered already (price targets reached),
-    the order's current values are returned.
-    """
-    if order.triggered:
-        return (order.stop_reached, order.limit_reached, False)
-
-    stop_reached = False
-    limit_reached = False
-    sl_stop_reached = False
-
-    order_type = 0
-
-    if order.amount > 0:
-        order_type |= BUY
-    else:
-        order_type |= SELL
-
-    if order.stop is not None:
-        order_type |= STOP
-
-    if order.limit is not None:
-        order_type |= LIMIT
-
-    if order_type == BUY | STOP | LIMIT:
-        if event.price >= order.stop:
-            sl_stop_reached = True
-            if event.price <= order.limit:
-                limit_reached = True
-    elif order_type == SELL | STOP | LIMIT:
-        if event.price <= order.stop:
-            sl_stop_reached = True
-            if event.price >= order.limit:
-                limit_reached = True
-    elif order_type == BUY | STOP:
-        if event.price >= order.stop:
-            stop_reached = True
-    elif order_type == SELL | STOP:
-        if event.price <= order.stop:
-            stop_reached = True
-    elif order_type == BUY | LIMIT:
-        if event.price <= order.limit:
-            limit_reached = True
-    elif order_type == SELL | LIMIT:
-        # This is a SELL LIMIT order
-        if event.price >= order.limit:
-            limit_reached = True
-
-    return (stop_reached, limit_reached, sl_stop_reached)
-
-
-def transact_stub(slippage, commission, event, open_orders):
-    """
-    This is intended to be wrapped in a partial, so that the
-    slippage and commission models can be enclosed.
-    """
-    for order, transaction in slippage(event, open_orders):
-        if transaction and transaction.amount != 0:
-            direction = math.copysign(1, transaction.amount)
-            per_share, total_commission = commission.calculate(transaction)
-            transaction.price += per_share * direction
-            transaction.commission = total_commission
-        yield order, transaction
-
-
-def transact_partial(slippage, commission):
-    return partial(transact_stub, slippage, commission)
-
-
-class Transaction(object):
-
-    def __init__(self, sid, amount, dt, price, order_id, commission=None):
-        self.sid = sid
-        self.amount = amount
-        self.dt = dt
-        self.price = price
-        self.order_id = order_id
-        self.commission = commission
-        self.type = DATASOURCE_TYPE.TRANSACTION
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def to_dict(self):
-        py = copy(self.__dict__)
-        del py['type']
-        return py
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Transaction saved state is too old.")
-
-        self.__dict__.update(state)
-
-
-def create_transaction(event, order, price, amount):
-
-    # floor the amount to protect against non-whole number orders
-    # TODO: Investigate whether we can add a robust check in blotter
-    # and/or tradesimulation, as well.
-    amount_magnitude = int(abs(amount))
-
-    if amount_magnitude < 1:
-        raise Exception("Transaction magnitude must be at least 1.")
-
-    transaction = Transaction(
-        sid=event.sid,
-        amount=int(amount),
-        dt=event.dt,
-        price=price,
-        order_id=order.id
-    )
-
-    return transaction
+from zipline.utils.serialization_utils import VERSION_LABEL
 
 
 class LiquidityExceeded(Exception):
@@ -177,30 +29,33 @@ class LiquidityExceeded(Exception):
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
+    def __init__(self):
+        self.data_portal = None
+        self._volume_for_bar = 0
 
     @property
     def volume_for_bar(self):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, event, order):
+    def process_order(self, order, dt):
         pass
 
-    def simulate(self, event, current_orders):
-
+    def simulate(self, current_orders, dt):
         self._volume_for_bar = 0
 
         for order in current_orders:
-
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(event)
+            price = self.data_portal.get_spot_price(
+                order.sid, 'close', dt)
+            order.check_triggers(price, dt)
             if not order.triggered:
                 continue
 
             try:
-                txn = self.process_order(event, order)
+                txn = self.process_order(order, dt)
             except LiquidityExceeded:
                 break
 
@@ -208,16 +63,13 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, event, current_orders, **kwargs):
-        return self.simulate(event, current_orders, **kwargs)
+    def __call__(self, current_orders, dt, **kwargs):
+        return self.simulate(current_orders, dt, **kwargs)
 
 
 class VolumeShareSlippage(SlippageModel):
 
-    def __init__(self,
-                 volume_limit=.25,
-                 price_impact=0.1):
-
+    def __init__(self, volume_limit=0.25, price_impact=0.1):
         self.volume_limit = volume_limit
         self.price_impact = price_impact
 
@@ -230,9 +82,12 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, event, order):
-
-        max_volume = self.volume_limit * event.volume
+    def process_order(self, order, dt):
+        volume = self.data_portal.get_spot_price(
+            order.sid, 'volume', dt)
+        price = self.data_portal.get_spot_price(
+            order.sid, 'close', dt)
+        max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
@@ -252,13 +107,13 @@ class VolumeShareSlippage(SlippageModel):
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / event.volume,
+        volume_share = min(total_volume / volume,
                            self.volume_limit)
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
-            * event.price
-        impacted_price = event.price + simulated_impact
+            * price
+        impacted_price = price + simulated_impact
 
         if order.limit:
             # this is tricky! if an order with a limit price has reached
@@ -274,7 +129,8 @@ class VolumeShareSlippage(SlippageModel):
                 return
 
         return create_transaction(
-            event,
+            order.sid,
+            dt,
             order,
             impacted_price,
             math.copysign(cur_volume, order.direction)
@@ -310,16 +166,18 @@ class FixedSlippage(SlippageModel):
         """
         self.spread = spread
 
-    def process_order(self, event, order):
+    def process_order(self, order, dt):
+        price = self.data_portal.get_spot_price(order.sid, "close")
+
         return create_transaction(
-            event,
+            order.sid,
+            dt,
             order,
-            event.price + (self.spread / 2.0 * order.direction),
+            price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
 
     def __getstate__(self):
-
         state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
@@ -328,7 +186,6 @@ class FixedSlippage(SlippageModel):
         return state_dict
 
     def __setstate__(self, state):
-
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)
 

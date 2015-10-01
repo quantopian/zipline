@@ -26,6 +26,7 @@ import operator
 import unittest
 from nose_parameterized import parameterized
 import nose.tools as nt
+from testfixtures import TempDirectory
 import pytz
 import itertools
 
@@ -35,8 +36,7 @@ from six.moves import range, zip
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.performance import position_tracker
-from zipline.finance.slippage import Transaction, create_transaction
+from zipline.finance.transaction import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 
 from zipline.gens.composites import date_sorted_sources
@@ -51,6 +51,9 @@ from zipline.utils.serialization_utils import (
 import zipline.protocol as zp
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources.data_frame_source import DataPanelSource
+from .utils.test_utils import (
+    create_data_portal_from_trade_history
+)
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -130,7 +133,8 @@ def create_txn(trade_event, price, amount):
     of a given trade event.
     """
     mock_order = Order(trade_event.dt, trade_event.sid, amount, id=None)
-    return create_transaction(trade_event, mock_order, price, amount)
+    return create_transaction(trade_event, trade_event.dt,
+                              mock_order, price, amount)
 
 
 def benchmark_events_in_range(sim_params, env):
@@ -1006,6 +1010,7 @@ class TestPositionPerformance(unittest.TestCase):
         del cls.env
 
     def setUp(self):
+        self.tempdir = TempDirectory()
         self.sim_params = create_simulation_parameters(num_days=4)
 
         self.finder = self.env.asset_finder
@@ -1188,19 +1193,30 @@ class TestPositionPerformance(unittest.TestCase):
             verify that the performance period calculates properly for a
             single buy transaction
         """
+        sim_params = factory.create_simulation_parameters(
+            num_days=4, env=self.env
+        )
         # post some trades in the market
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             onesec,
-            self.sim_params,
+            sim_params,
             env=self.env
         )
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            sim_params,
+            {1: trades})
+
         txn = create_txn(trades[1], 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        pt = perf.PositionTracker(self.env.asset_finder, data_portal)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
+                                    period_open=sim_params.period_start,
+                                    period_close=sim_params.period_end)
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
@@ -1626,19 +1642,33 @@ shares in position"
                       net_liquidation=1300.0)
 
     def test_cost_basis_calc(self):
+        sim_params = factory.create_simulation_parameters(
+            num_days=4, env=self.env
+        )
         history_args = (
             1,
             [10, 11, 11, 12],
             [100, 100, 100, 100],
-            onesec,
-            self.sim_params,
+            oneday,
+            sim_params,
             self.env
         )
         trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)
 
-        pt = perf.PositionTracker(self.env.asset_finder)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            sim_params,
+            {1: trades})
+
+        pt = perf.PositionTracker(self.env.asset_finder, data_portal)
+        pp = perf.PerformancePeriod(
+            1000.0,
+            self.env.asset_finder,
+            period_open=sim_params.period_start,
+            period_close=sim_params.period_end,
+        )
 
         average_cost = 0
         for i, txn in enumerate(transactions):

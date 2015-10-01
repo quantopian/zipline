@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from unittest import TestCase
+from testfixtures import TempDirectory
 
 import zipline.utils.simfactory as simfactory
 import zipline.utils.factory as factory
@@ -33,6 +34,7 @@ from zipline.utils.test_utils import (
     teardown_logger,
     ExceptionSource,
 )
+from .utils.test_utils import create_data_portal
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
@@ -42,87 +44,58 @@ class ExceptionTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.sid = 133
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[133])
+        cls.env.write_data(equities_identifiers=[cls.sid])
+
+        cls.tempdir = TempDirectory()
+
+        cls.sim_params = factory.create_simulation_parameters(
+            num_days=4,
+            env=cls.env
+        )
+
+        cls.data_portal = create_data_portal(
+            env=cls.env,
+            tempdir=cls.tempdir,
+            sim_params=cls.sim_params ,
+            sids=[cls.sid]
+        )
+
+        setup_logger(cls)
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        self.zipline_test_config = {
-            'sid': 133,
-            'slippage': FixedSlippage()
-        }
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    def test_datasource_exception(self):
-        self.zipline_test_config['trade_source'] = ExceptionSource()
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
-
-        with self.assertRaises(ZeroDivisionError):
-            output, _ = drain_zipline(self, zipline)
+        cls.tempdir.cleanup()
+        teardown_logger(cls)
 
     def test_exception_in_handle_data(self):
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            ExceptionAlgorithm(
-                'handle_data',
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters(),
-                env=self.env
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = ExceptionAlgorithm('handle_data',
+                                  self.sid,
+                                  sim_params=self.sim_params,
+                                  env=self.env)
 
         with self.assertRaises(Exception) as ctx:
-            output, _ = drain_zipline(self, zipline)
+            algo.run(data_portal=self.data_portal)
 
         self.assertEqual(str(ctx.exception), 'Algo exception in handle_data')
 
     def test_zerodivision_exception_in_handle_data(self):
-
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            DivByZeroAlgorithm(
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters(),
-                env=self.env
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = DivByZeroAlgorithm(self.sid,
+                                  sim_params=self.sim_params,
+                                  env=self.env)
 
         with self.assertRaises(ZeroDivisionError):
-            output, _ = drain_zipline(self, zipline)
+            algo.run(data_portal=self.data_portal)
 
     def test_set_portfolio(self):
         """
         Are we protected against overwriting an algo's portfolio?
         """
-
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            SetPortfolioAlgorithm(
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters(),
-                env=self.env
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = SetPortfolioAlgorithm(self.sid,
+                                     sim_params=self.sim_params,
+                                     env=self.env)
 
         with self.assertRaises(AttributeError):
-            output, _ = drain_zipline(self, zipline)
+            algo.run(data_portal=self.data_portal)

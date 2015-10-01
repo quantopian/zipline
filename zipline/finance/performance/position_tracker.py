@@ -13,7 +13,7 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.finance.slippage import Transaction
+from zipline.finance.transaction import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -108,15 +108,20 @@ def calc_gross_value(long_value, short_value):
 
 def calc_position_stats(positions,
                         position_value_multipliers,
-                        position_exposure_multipliers):
+                        position_exposure_multipliers,
+                        data_portal,
+                        dt):
+    sids = []
     amounts = []
     last_sale_prices = []
-    for pos in itervalues(positions):
-        amounts.append(pos.amount)
-        last_sale_prices.append(pos.last_sale_price)
-
     position_value_multipliers = position_value_multipliers
     position_exposure_multipliers = position_exposure_multipliers
+
+    for sid, pos in iteritems(positions):
+        sids.append(sid)
+        amounts.append(pos.amount)
+        last_sale_prices.append(data_portal.get_spot_price(
+            sid, 'close', dt))
 
     position_values = calc_position_values(
         amounts,
@@ -157,8 +162,10 @@ def calc_position_stats(positions,
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder):
+    def __init__(self, asset_finder, data_portal):
         self.asset_finder = asset_finder
+
+        self._data_portal = data_portal
 
         # sid => position object
         self.positions = positiondict()
@@ -310,14 +317,28 @@ class PositionTracker(object):
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self._update_asset(split.sid)
-            return leftover_cash
+    def handle_splits(self, splits):
+        """
+        Processes a list of splits by modifying any positions as needed.
+
+        Parameters
+        ----------
+        splits: list
+            A list of splits.  Each split is a tuple of (sid, ratio).
+
+        Returns
+        -------
+        None
+        """
+        for split in splits:
+            sid = split[0]
+            if sid in self.positions:
+                # Make the position object handle the split. It returns the
+                # leftover cash from a fractional share, if there is any.
+                position = self.positions[sid]
+                leftover_cash = position.handle_split(sid, split[1])
+                self._update_asset(split.sid)
+                return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
         """
@@ -391,20 +412,15 @@ class PositionTracker(object):
         return net_cash_payment
 
     def maybe_create_close_position_transaction(self, event):
-        try:
-            pos = self.positions[event.sid]
-            amount = pos.amount
-            if amount == 0:
-                return None
-        except KeyError:
+        if not self.positions.get(event.sid):
             return None
-        if 'price' in event:
-            price = event.price
-        else:
-            price = pos.last_sale_price
+
+        amount = self.positions.get(event.sid).amount
+        price = self._data_portal.get_spot_price(event.sid, 'close')
+
         txn = Transaction(
             sid=event.sid,
-            amount=(-1 * pos.amount),
+            amount=(-1 * amount),
             dt=event.dt,
             price=price,
             commission=0,
@@ -434,7 +450,8 @@ class PositionTracker(object):
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
-            position.last_sale_price = pos.last_sale_price
+            position.last_sale_price =\
+                self._data_portal.get_spot_price(sid, 'close')
         return positions
 
     def get_positions_list(self):
@@ -444,10 +461,12 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
-    def stats(self):
+    def stats(self, data_portal, dt):
         return calc_position_stats(self.positions,
                                    self._position_value_multipliers,
-                                   self._position_exposure_multipliers)
+                                   self._position_exposure_multipliers,
+                                   data_portal,
+                                   dt)
 
     def __getstate__(self):
         state_dict = {}
@@ -484,3 +503,6 @@ class PositionTracker(object):
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
+
+        # FIXME
+        self._data_portal = None

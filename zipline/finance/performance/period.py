@@ -91,7 +91,6 @@ import zipline.protocol as zp
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
-from zipline.finance.performance.position_tracker import calc_position_stats
 
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
@@ -119,9 +118,9 @@ def calc_leverage(exposure, net_liq):
 
 
 def calc_period_stats(pos_stats, starting_cash, starting_value,
-                      period_cash_flow):
+                      period_cash_flow, payout):
     total_at_start = starting_cash + starting_value
-    ending_cash = starting_cash + period_cash_flow
+    ending_cash = starting_cash + period_cash_flow + payout
     total_at_end = ending_cash + pos_stats.net_value
 
     pnl = total_at_end - total_at_start
@@ -154,6 +153,7 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
+            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -161,6 +161,7 @@ class PerformancePeriod(object):
             serialize_positions=True):
 
         self.asset_finder = asset_finder
+        self.data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close
@@ -260,11 +261,36 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    def stats(self, pos_stats):
+    def stats(self, positions, pos_stats):
+        futures_payouts = []
+        for sid, pos in positions.iteritems():
+            asset = self.asset_finder.retrieve_asset(sid)
+            if isinstance(asset, Future):
+                old_price_dt = max(pos.last_sale_date,
+                                   self.period_open)
+                if old_price_dt == pos.last_sale_date:
+                    continue
+                old_price = self.data_portal.get_previous_price(
+                    sid,
+                    'close',
+                    dt=old_price_dt)
+                price = self.data_portal.get_spot_price(
+                    sid, 'close', dt=self.period_close)
+                payout = (
+                    (price - old_price)
+                    *
+                    asset.contract_multiplier
+                    *
+                    pos.amount
+                )
+                futures_payouts.append(payout)
+        futures_payout = sum(futures_payouts)
+
         return calc_period_stats(pos_stats,
                                  self.starting_cash,
                                  self.starting_value,
-                                 self.period_cash_flow)
+                                 self.period_cash_flow,
+                                 futures_payout)
 
     def __core_dict(self, pos_stats, period_stats):
         rval = {
@@ -365,13 +391,8 @@ class PerformancePeriod(object):
         portfolio.positions_exposure = pos_stats.net_exposure
         return portfolio
 
-    def as_account(self, pos_stats):
+    def as_account(self, pos_stats, period_stats):
         account = self._account_store
-
-        period_stats = calc_period_stats(pos_stats,
-                                         self.starting_cash,
-                                         self.starting_value,
-                                         self.period_cash_flow)
 
         # If no attribute is found on the PerformancePeriod resort to the
         # following default values. If an attribute is found use the existing
@@ -456,3 +477,11 @@ class PerformancePeriod(object):
         self._execution_cash_flow_multipliers = {}
 
         self.__dict__.update(state)
+
+
+class TodaysPerformance(PerformancePeriod):
+    pass
+
+
+class CumulativePerformance(PerformancePeriod):
+    pass

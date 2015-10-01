@@ -24,75 +24,138 @@ from unittest import TestCase
 
 from nose_parameterized import parameterized
 
+import numpy as np
 import pandas as pd
+from testfixtures import TempDirectory
 
 from zipline.finance.slippage import VolumeShareSlippage
+from zipline.finance.trading import TradingEnvironment, SimulationParameters
 
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
+import zipline.utils.factory as factory
+from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
+from zipline.data.data_portal import DataPortal
+
 
 class SlippageTestCase(TestCase):
 
-    def test_volume_share_slippage(self):
-        event = Event(
-            {'volume': 200,
-             'type': 4,
-             'price': 3.0,
-             'datetime': datetime.datetime(
-                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-             'high': 3.15,
-             'low': 2.85,
-             'sid': 133,
-             'source_id': 'test_source',
-             'close': 3.0,
-             'dt':
-             datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-             'open': 3.0}
+    @classmethod
+    def setUpClass(cls):
+        cls.tempdir = TempDirectory()
+        cls.env = TradingEnvironment()
+
+        cls.sim_params = SimulationParameters(
+            period_start=pd.Timestamp("2006-01-05 14:31", tz="utc"),
+            period_end=pd.Timestamp("2006-01-05 14:36", tz="utc"),
+            capital_base=1.0e5,
+            data_frequency="minute",
+            emission_rate='daily',
+            env=cls.env
         )
 
-        slippage_model = VolumeShareSlippage()
+        cls.sids = [133]
 
-        open_orders = [
-            Order(dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                  amount=100,
-                  filled=0,
-                  sid=133)
-        ]
+        cls.minutes = pd.DatetimeIndex(
+            start=pd.Timestamp("2006-01-05 14:31", tz="utc"),
+            end=pd.Timestamp("2006-01-05 14:35", tz="utc"),
+            freq="1min"
+        )
 
-        orders_txns = list(slippage_model.simulate(
-            event,
-            open_orders
-        ))
-
-        self.assertEquals(len(orders_txns), 1)
-        _, txn = orders_txns[0]
-
-        expected_txn = {
-            'price': float(3.01875),
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount': int(50),
-            'sid': int(133),
-            'commission': None,
-            'type': DATASOURCE_TYPE.TRANSACTION,
-            'order_id': open_orders[0].id
+        assets = {
+            133: pd.DataFrame({
+                "open": np.array([3.0, 3.0, 3.5, 4.0, 3.5]) * 1000,
+                "high": np.array([3.15, 3.15, 3.15, 3.15, 3.15]) * 1000,
+                "low": np.array([2.85, 2.85, 2.85, 2.85, 2.85]) * 1000,
+                "close": np.array([3.0, 3.5, 4.0, 3.5, 3.0]) * 1000,
+                "volume": [2000, 2000, 2000, 2000, 2000],
+                "minute": cls.minutes
+            })
         }
 
-        self.assertIsNotNone(txn)
+        MinuteBarWriterFromDataFrames().write(cls.tempdir.path, assets)
 
-        # TODO: Make expected_txn an Transaction object and ensure there
-        # is a __eq__ for that class.
-        self.assertEquals(expected_txn, txn.__dict__)
+        cls.data_portal = DataPortal(
+            cls.env,
+            minutes_equities_path=cls.tempdir.path,
+            sim_params=cls.sim_params,
+            asset_finder=cls.env.asset_finder
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+        del cls.env
+
+    def test_volume_share_slippage(self):
+        tempdir = TempDirectory()
+
+        try:
+            assets = {
+                133: pd.DataFrame({
+                    "open": [3000],
+                    "high": [3150],
+                    "low": [2850],
+                    "close": [3000],
+                    "volume": [200],
+                    "minute": [self.minutes[0]]
+                })
+            }
+
+            MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+
+            data_portal = DataPortal(
+                self.env,
+                minutes_equities_path=tempdir.path,
+                sim_params=self.sim_params,
+                asset_finder=self.env.asset_finder
+            )
+
+            slippage_model = VolumeShareSlippage()
+            slippage_model.data_portal = data_portal
+
+            open_orders = [
+                Order(
+                    dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    amount=100,
+                    filled=0,
+                    sid=133
+                )
+            ]
+
+            orders_txns = list(slippage_model.simulate(
+                open_orders,
+                self.minutes[0]
+            ))
+
+            self.assertEquals(len(orders_txns), 1)
+            _, txn = orders_txns[0]
+
+            expected_txn = {
+                'price': float(3.01875),
+                'dt': datetime.datetime(
+                    2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+                'amount': int(50),
+                'sid': int(133),
+                'commission': None,
+                'type': DATASOURCE_TYPE.TRANSACTION,
+                'order_id': open_orders[0].id
+            }
+
+            self.assertIsNotNone(txn)
+
+            # TODO: Make expected_txn an Transaction object and ensure there
+            # is a __eq__ for that class.
+            self.assertEquals(expected_txn, txn.__dict__)
+        finally:
+            tempdir.cleanup()
 
     def test_orders_limit(self):
-
-        events = self.gen_trades()
-
         slippage_model = VolumeShareSlippage()
+        slippage_model.data_portal = self.data_portal
 
         # long, does not trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -103,13 +166,12 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
         self.assertEquals(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -120,14 +182,13 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -138,8 +199,8 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -160,7 +221,6 @@ class SlippageTestCase(TestCase):
             self.assertEquals(value, txn[key])
 
         # short, does not trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -171,16 +231,13 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[0],
-            open_orders
+            open_orders,
+            self.minutes[0]
         ))
-
-        expected_txn = {}
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -191,14 +248,13 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
+            open_orders,
+            self.minutes[0]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -209,8 +265,8 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
+            open_orders,
+            self.minutes[1]
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -360,31 +416,56 @@ class SlippageTestCase(TestCase):
         for name, case in STOP_ORDER_CASES.items()
     ])
     def test_orders_stop(self, name, order_data, event_data, expected):
-        order = Order(**order_data)
-        event = Event(initial_values=event_data)
-
-        slippage_model = VolumeShareSlippage()
-
+        tempdir = TempDirectory()
         try:
-            _, txn = next(slippage_model.simulate(event, [order]))
-        except StopIteration:
-            txn = None
+            order = Order(**order_data)
 
-        if expected['transaction'] is None:
-            self.assertIsNone(txn)
-        else:
-            self.assertIsNotNone(txn)
+            assets = {
+                133: pd.DataFrame({
+                    "open": [event_data["open"] * 1000],
+                    "high": [event_data["high"] * 1000],
+                    "low": [event_data["low"] * 1000],
+                    "close": [event_data["close"] * 1000],
+                    "volume": [event_data["volume"]],
+                    "minute": [pd.Timestamp('2006-01-05 14:31', tz='UTC')]
+                })
+            }
 
-            for key, value in expected['transaction'].items():
-                self.assertEquals(value, txn[key])
+            MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+
+            data_portal = DataPortal(
+                self.env,
+                minutes_equities_path=tempdir.path,
+                sim_params=self.sim_params,
+                asset_finder=self.env.asset_finder
+            )
+
+            slippage_model = VolumeShareSlippage()
+            slippage_model.data_portal = data_portal
+
+            event = Event(initial_values=event_data)
+
+            try:
+                _, txn = next(slippage_model.simulate(
+                    [order], pd.Timestamp('2006-01-05 14:31', tz='UTC')))
+            except StopIteration:
+                txn = None
+
+            if expected['transaction'] is None:
+                self.assertIsNone(txn)
+            else:
+                self.assertIsNotNone(txn)
+
+                for key, value in expected['transaction'].items():
+                    self.assertEquals(value, txn[key])
+        finally:
+            tempdir.cleanup()
 
     def test_orders_stop_limit(self):
-
-        events = self.gen_trades()
         slippage_model = VolumeShareSlippage()
+        slippage_model.data_portal = self.data_portal
 
         # long, does not trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -396,21 +477,20 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[2],
-            open_orders
+            open_orders,
+            self.minutes[2]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -422,21 +502,20 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[2],
-            open_orders
+            open_orders,
+            self.minutes[2]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -448,15 +527,15 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[2],
-            open_orders
+            open_orders,
+            self.minutes[2]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[3],
-            open_orders
+            open_orders,
+            self.minutes[3]
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -486,21 +565,20 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[0],
-            open_orders
+            open_orders,
+            self.minutes[0]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
+            open_orders,
+            self.minutes[1]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -512,21 +590,20 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[0],
-            open_orders
+            open_orders,
+            self.minutes[0]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
+            open_orders,
+            self.minutes[1]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
-
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -538,15 +615,15 @@ class SlippageTestCase(TestCase):
         ]
 
         orders_txns = list(slippage_model.simulate(
-            events[0],
-            open_orders
+            open_orders,
+            self.minutes[0]
         ))
 
         self.assertEquals(len(orders_txns), 0)
 
         orders_txns = list(slippage_model.simulate(
-            events[1],
-            open_orders
+            open_orders,
+            self.minutes[1]
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -562,84 +639,3 @@ class SlippageTestCase(TestCase):
 
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
-
-    def gen_trades(self):
-        # create a sequence of trades
-        events = [
-            Event({
-                'volume': 2000,
-                'type': 4,
-                'price': 3.0,
-                'datetime': datetime.datetime(
-                    2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-                'high': 3.15,
-                'low': 2.85,
-                'sid': 133,
-                'source_id': 'test_source',
-                'close': 3.0,
-                'dt':
-                datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-                'open': 3.0
-            }),
-            Event({
-                'volume': 2000,
-                'type': 4,
-                'price': 3.5,
-                'datetime': datetime.datetime(
-                    2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-                'high': 3.15,
-                'low': 2.85,
-                'sid': 133,
-                'source_id': 'test_source',
-                'close': 3.5,
-                'dt':
-                datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-                'open': 3.0
-            }),
-            Event({
-                'volume': 2000,
-                'type': 4,
-                'price': 4.0,
-                'datetime': datetime.datetime(
-                    2006, 1, 5, 14, 33, tzinfo=pytz.utc),
-                'high': 3.15,
-                'low': 2.85,
-                'sid': 133,
-                'source_id': 'test_source',
-                'close': 4.0,
-                'dt':
-                datetime.datetime(2006, 1, 5, 14, 33, tzinfo=pytz.utc),
-                'open': 3.5
-            }),
-            Event({
-                'volume': 2000,
-                'type': 4,
-                'price': 3.5,
-                'datetime': datetime.datetime(
-                    2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-                'high': 3.15,
-                'low': 2.85,
-                'sid': 133,
-                'source_id': 'test_source',
-                'close': 3.5,
-                'dt':
-                datetime.datetime(2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-                'open': 4.0
-            }),
-            Event({
-                'volume': 2000,
-                'type': 4,
-                'price': 3.0,
-                'datetime': datetime.datetime(
-                    2006, 1, 5, 14, 35, tzinfo=pytz.utc),
-                'high': 3.15,
-                'low': 2.85,
-                'sid': 133,
-                'source_id': 'test_source',
-                'close': 3.0,
-                'dt':
-                datetime.datetime(2006, 1, 5, 14, 35, tzinfo=pytz.utc),
-                'open': 3.5
-            })
-        ]
-        return events

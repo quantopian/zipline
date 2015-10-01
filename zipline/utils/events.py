@@ -211,13 +211,10 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
 
 
 class EventRule(six.with_metaclass(ABCMeta)):
-    """
-    An event rule checks a datetime and sees if it should trigger.
-    """
     @abstractmethod
     def should_trigger(self, dt, env):
         """
-        Checks if the rule should trigger with it's current state.
+        Checks if the rule should trigger with its current state.
         This method should be pure and NOT mutate any state on the object.
         """
         raise NotImplementedError('should_trigger')
@@ -269,7 +266,7 @@ class ComposedRule(StatelessRule):
             self.first.should_trigger,
             self.second.should_trigger,
             dt,
-            env,
+            env
         )
 
     @staticmethod
@@ -324,6 +321,7 @@ class AfterOpen(StatelessRule):
         self._dt = None
 
     def should_trigger(self, dt, env):
+        dt = pd.Timestamp(dt, tz='UTC')
         return self._get_open(dt, env) + self.offset <= dt
 
     def _get_open(self, dt, env):
@@ -498,7 +496,7 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
         self.month = dt.month
 
         if dt.month == 12:
-            # Roll the year foward and start in January.
+            # Roll the year forward and start in January.
             year = dt.year + 1
             month = 1
         else:
@@ -534,16 +532,22 @@ class StatefulRule(EventRule):
 
 class OncePerDay(StatefulRule):
     def __init__(self, rule=None):
-        self.date = None
         self.triggered = False
+
+        self.date = None
+        self.next_date = None
+
         super(OncePerDay, self).__init__(rule)
 
     def should_trigger(self, dt, env):
-        dt_date = dt.date()
-        if self.date is None or self.date != dt_date:
+        if self.date is None or dt >= self.next_date:
             # initialize or reset for new date
             self.triggered = False
-            self.date = dt_date
+            self.date = dt
+
+            # record the timestamp for the next day, so that we can use it
+            # to know if we've moved to the next day
+            self.next_date = dt + pd.Timedelta(1, unit="d")
 
         if not self.triggered and self.rule.should_trigger(dt, env):
             self.triggered = True

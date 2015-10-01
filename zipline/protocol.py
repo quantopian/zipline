@@ -269,218 +269,6 @@ class Positions(dict):
         return pos
 
 
-class SIDData(object):
-    # Cache some data on the class so that this is shared for all instances of
-    # siddata.
-
-    # The dt where we cached the history.
-    _history_cache_dt = None
-    # _history_cache is a a dict mapping fields to pd.DataFrames. This is the
-    # most data we have for a given field for the _history_cache_dt.
-    _history_cache = {}
-
-    # This is the cache that is used for returns. This will have a different
-    # structure than the other history cache as this is always daily.
-    _returns_cache_dt = None
-    _returns_cache = None
-
-    # The last dt that we needed to cache the number of minutes.
-    _minute_bar_cache_dt = None
-    # If we are in minute mode, there is some cost associated with computing
-    # the number of minutes that we need to pass to the bar count of history.
-    # This will remain constant for a given bar and day count.
-    # This maps days to number of minutes.
-    _minute_bar_cache = {}
-
-    def __init__(self, sid, initial_values=None):
-        self._sid = sid
-        self._freqstr = None
-
-        # To check if we have data, we use the __len__ which depends on the
-        # __dict__. Because we are foward defining the attributes needed, we
-        # need to account for their entrys in the __dict__.
-        # We will add 1 because we need to account for the _initial_len entry
-        # itself.
-        self._initial_len = len(self.__dict__) + 1
-
-        if initial_values:
-            self.__dict__.update(initial_values)
-
-    @property
-    def datetime(self):
-        """
-        Provides an alias from data['foo'].datetime -> data['foo'].dt
-
-        `datetime` was previously provided by adding a seperate `datetime`
-        member of the SIDData object via a generator that wrapped the incoming
-        data feed and added the field to each equity event.
-
-        This alias is intended to be temporary, to provide backwards
-        compatibility with existing algorithms, but should be considered
-        deprecated, and may be removed in the future.
-        """
-        return self.dt
-
-    def get(self, name, default=None):
-        return self.__dict__.get(name, default)
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def __setitem__(self, name, value):
-        self.__dict__[name] = value
-
-    def __len__(self):
-        return len(self.__dict__) - self._initial_len
-
-    def __contains__(self, name):
-        return name in self.__dict__
-
-    def __repr__(self):
-        return "SIDData({0})".format(self.__dict__)
-
-    def _get_buffer(self, bars, field='price', raw=False):
-        """
-        Gets the result of history for the given number of bars and field.
-
-        This will cache the results internally.
-        """
-        cls = self.__class__
-        algo = get_algo_instance()
-
-        now = algo.datetime
-        if now != cls._history_cache_dt:
-            # For a given dt, the history call for this field will not change.
-            # We have a new dt, so we should reset the cache.
-            cls._history_cache_dt = now
-            cls._history_cache = {}
-
-        if field not in self._history_cache \
-           or bars > len(cls._history_cache[field][0].index):
-            # If we have never cached this field OR the amount of bars that we
-            # need for this field is greater than the amount we have cached,
-            # then we need to get more history.
-            hst = algo.history(
-                bars, self._freqstr, field, ffill=True,
-            )
-            # Assert that the column holds ints, not security objects.
-            if not isinstance(self._sid, str):
-                hst.columns = hst.columns.astype(int)
-            self._history_cache[field] = (hst, hst.values, hst.columns)
-
-        # Slice of only the bars needed. This is because we strore the LARGEST
-        # amount of history for the field, and we might request less than the
-        # largest from the cache.
-        buffer_, values, columns = cls._history_cache[field]
-        if raw:
-            sid_index = columns.get_loc(self._sid)
-            return values[-bars:, sid_index]
-        else:
-            return buffer_[self._sid][-bars:]
-
-    def _get_bars(self, days):
-        """
-        Gets the number of bars needed for the current number of days.
-
-        Figures this out based on the algo datafrequency and caches the result.
-        This caches the result by replacing this function on the object.
-        This means that after the first call to _get_bars, this method will
-        point to a new function object.
-
-        """
-        def daily_get_max_bars(days):
-            return days
-
-        def minute_get_max_bars(days):
-            # max number of minute. regardless of current days or short
-            # sessions
-            return days * 390
-
-        def daily_get_bars(days):
-            return days
-
-        def minute_get_bars(days):
-            cls = self.__class__
-
-            now = get_algo_instance().datetime
-            if now != cls._minute_bar_cache_dt:
-                cls._minute_bar_cache_dt = now
-                cls._minute_bar_cache = {}
-
-            if days not in cls._minute_bar_cache:
-                # Cache this calculation to happen once per bar, even if we
-                # use another transform with the same number of days.
-                env = get_algo_instance().trading_environment
-                prev = env.previous_trading_day(now)
-                ds = env.days_in_range(
-                    env.add_trading_days(-days + 2, prev),
-                    prev,
-                )
-                # compute the number of minutes in the (days - 1) days before
-                # today.
-                # 210 minutes in a an early close and 390 in a full day.
-                ms = sum(210 if d in env.early_closes else 390 for d in ds)
-                # Add the number of minutes for today.
-                ms += int(
-                    (now - env.get_open_and_close(now)[0]).total_seconds() / 60
-                )
-
-                cls._minute_bar_cache[days] = ms + 1  # Account for this minute
-
-            return cls._minute_bar_cache[days]
-
-        if get_algo_instance().sim_params.data_frequency == 'daily':
-            self._freqstr = '1d'
-            # update this method to point to the daily variant.
-            self._get_bars = daily_get_bars
-            self._get_max_bars = daily_get_max_bars
-        else:
-            self._freqstr = '1m'
-            # update this method to point to the minute variant.
-            self._get_bars = minute_get_bars
-            self._get_max_bars = minute_get_max_bars
-
-        # Not actually recursive because we have already cached the new method.
-        return self._get_bars(days)
-
-    def mavg(self, days):
-        bars = self._get_bars(days)
-        max_bars = self._get_max_bars(days)
-        prices = self._get_buffer(max_bars, raw=True)[-bars:]
-        return nanmean(prices)
-
-    def stddev(self, days):
-        bars = self._get_bars(days)
-        max_bars = self._get_max_bars(days)
-        prices = self._get_buffer(max_bars, raw=True)[-bars:]
-        return nanstd(prices, ddof=1)
-
-    def vwap(self, days):
-        bars = self._get_bars(days)
-        max_bars = self._get_max_bars(days)
-        prices = self._get_buffer(max_bars, raw=True)[-bars:]
-        vols = self._get_buffer(max_bars, field='volume', raw=True)[-bars:]
-
-        vol_sum = nansum(vols)
-        try:
-            ret = nansum(prices * vols) / vol_sum
-        except ZeroDivisionError:
-            ret = np.nan
-
-        return ret
-
-    def returns(self):
-        algo = get_algo_instance()
-
-        now = algo.datetime
-        if now != self._returns_cache_dt:
-            self._returns_cache_dt = now
-            self._returns_cache = algo.history(2, '1d', 'price', ffill=True)
-
-        hst = self._returns_cache[self._sid]
-        return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
-
-
 class BarData(object):
     """
     Holds the event data for all sids for a given dt.
@@ -491,11 +279,13 @@ class BarData(object):
     usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, data_portal=None):
         self._data = data or {}
         self._contains_override = None
         self._factor_matrix = None
         self._factor_matrix_expires = pd.Timestamp(0, tz='UTC')
+
+        self.data_portal = data_portal or {}
 
     @property
     def factors(self):
@@ -514,13 +304,7 @@ class BarData(object):
             )
 
     def __contains__(self, name):
-        if self._contains_override:
-            if self._contains_override(name):
-                return name in self._data
-            else:
-                return False
-        else:
-            return name in self._data
+        return self.data_portal.is_currently_alive(name)
 
     def has_key(self, name):
         """
@@ -530,13 +314,15 @@ class BarData(object):
         return name in self
 
     def __setitem__(self, name, value):
-        self._data[name] = value
+        # No longer supported.
+        pass
 
     def __getitem__(self, name):
-        return self._data[name]
+        return self.data_portal.get_equity_price_view(name)
 
     def __delitem__(self, name):
-        del self._data[name]
+        # No longer supported.
+        pass
 
     def __iter__(self):
         for sid, data in iteritems(self._data):
