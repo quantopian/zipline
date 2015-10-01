@@ -100,7 +100,11 @@ TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 PeriodStats = namedtuple('PeriodStats',
                          ['net_liquidation',
                           'gross_leverage',
-                          'net_leverage'])
+                          'net_leverage',
+                          'ending_cash',
+                          'pnl',
+                          'returns',
+                          'portfolio_value'])
 
 
 def calc_net_liquidation(ending_cash, long_value, short_value):
@@ -114,7 +118,20 @@ def calc_leverage(exposure, net_liq):
     return np.inf
 
 
-def calc_period_stats(pos_stats, ending_cash):
+def calc_period_stats(pos_stats, starting_cash, starting_value,
+                      period_cash_flow):
+    total_at_start = starting_cash + starting_value
+    ending_cash = starting_cash + period_cash_flow
+    total_at_end = ending_cash + pos_stats.net_value
+
+    pnl = total_at_end - total_at_start
+    if total_at_start != 0:
+        returns = pnl / total_at_start
+    else:
+        returns = 0.0
+
+    portfolio_value = ending_cash + pos_stats.net_value
+
     net_liq = calc_net_liquidation(ending_cash,
                                    pos_stats.long_value,
                                    pos_stats.short_value)
@@ -124,7 +141,11 @@ def calc_period_stats(pos_stats, ending_cash):
     return PeriodStats(
         net_liquidation=net_liq,
         gross_leverage=gross_leverage,
-        net_leverage=net_leverage)
+        net_leverage=net_leverage,
+        ending_cash=ending_cash,
+        pnl=pnl,
+        returns=returns,
+        portfolio_value=portfolio_value)
 
 
 class PerformancePeriod(object):
@@ -144,18 +165,18 @@ class PerformancePeriod(object):
         self.period_open = period_open
         self.period_close = period_close
 
-        self.ending_value = 0.0
-        self.ending_exposure = 0.0
         self.period_cash_flow = 0.0
-        self.pnl = 0.0
 
-        self.returns = 0.0
+        self.starting_cash = starting_cash
+        self.starting_value = 0.0
+        self.starting_exposure = 0.0
 
-        self.ending_cash = starting_cash
-        # rollover initializes a number of self's attributes:
-        self.rollover()
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
+
+        self.processed_transactions = {}
+        self.orders_by_modified = {}
+        self.orders_by_id = OrderedDict()
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
@@ -168,12 +189,11 @@ class PerformancePeriod(object):
         # keyed on sid
         self._execution_cash_flow_multipliers = {}
 
-    def rollover(self):
-        self.starting_value = self.ending_value
-        self.starting_exposure = self.ending_exposure
-        self.starting_cash = self.ending_cash
+    def rollover(self, pos_stats, prev_period_stats):
+        self.starting_value = pos_stats.net_value
+        self.starting_exposure = pos_stats.net_exposure
+        self.starting_cash = prev_period_stats.ending_cash
         self.period_cash_flow = 0.0
-        self.pnl = 0.0
         self.processed_transactions = {}
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
@@ -194,21 +214,6 @@ class PerformancePeriod(object):
 
     def adjust_field(self, field, value):
         setattr(self, field, value)
-
-    def calculate_performance(self, position_tracker):
-        pos_stats = calc_position_stats(position_tracker)
-        self.ending_value = pos_stats.net_value
-        self.ending_exposure = pos_stats.net_exposure
-
-        total_at_start = self.starting_cash + self.starting_value
-        self.ending_cash = self.starting_cash + self.period_cash_flow
-        total_at_end = self.ending_cash + self.ending_value
-
-        self.pnl = total_at_end - total_at_start
-        if total_at_start != 0:
-            self.returns = self.pnl / total_at_start
-        else:
-            self.returns = 0.0
 
     def record_order(self, order):
         if self.keep_orders:
@@ -255,23 +260,26 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    def __core_dict(self, position_tracker):
-        pos_stats = calc_position_stats(position_tracker)
-        period_stats = calc_period_stats(pos_stats, self.ending_cash)
+    def stats(self, pos_stats):
+        return calc_period_stats(pos_stats,
+                                 self.starting_cash,
+                                 self.starting_value,
+                                 self.period_cash_flow)
 
+    def __core_dict(self, pos_stats, period_stats):
         rval = {
-            'ending_value': self.ending_value,
-            'ending_exposure': self.ending_exposure,
+            'ending_value': pos_stats.net_value,
+            'ending_exposure': pos_stats.net_exposure,
             # this field is renamed to capital_used for backward
             # compatibility.
             'capital_used': self.period_cash_flow,
             'starting_value': self.starting_value,
             'starting_exposure': self.starting_exposure,
             'starting_cash': self.starting_cash,
-            'ending_cash': self.ending_cash,
-            'portfolio_value': self.ending_cash + self.ending_value,
-            'pnl': self.pnl,
-            'returns': self.returns,
+            'ending_cash': period_stats.ending_cash,
+            'portfolio_value': period_stats.portfolio_value,
+            'pnl': period_stats.pnl,
+            'returns': period_stats.returns,
             'period_open': self.period_open,
             'period_close': self.period_close,
             'gross_leverage': period_stats.gross_leverage,
@@ -286,7 +294,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def to_dict(self, position_tracker, dt=None):
+    def to_dict(self, pos_stats, period_stats, position_tracker, dt=None):
         """
         Creates a dictionary representing the state of this performance
         period. See header comments for a detailed description.
@@ -294,7 +302,7 @@ class PerformancePeriod(object):
         Kwargs:
             dt (datetime): If present, only return transactions for the dt.
         """
-        rval = self.__core_dict(position_tracker)
+        rval = self.__core_dict(pos_stats, period_stats)
 
         if self.serialize_positions:
             positions = position_tracker.get_positions_list()
@@ -330,7 +338,7 @@ class PerformancePeriod(object):
 
         return rval
 
-    def as_portfolio(self, position_tracker):
+    def as_portfolio(self, pos_stats, period_stats, position_tracker):
         """
         The purpose of this method is to provide a portfolio
         object to algorithms running inside the same trading
@@ -347,21 +355,23 @@ class PerformancePeriod(object):
         # backward compatibility
         portfolio.capital_used = self.period_cash_flow
         portfolio.starting_cash = self.starting_cash
-        portfolio.portfolio_value = self.ending_cash + self.ending_value
-        portfolio.pnl = self.pnl
-        portfolio.returns = self.returns
-        portfolio.cash = self.ending_cash
+        portfolio.portfolio_value = period_stats.portfolio_value
+        portfolio.pnl = period_stats.pnl
+        portfolio.returns = period_stats.returns
+        portfolio.cash = period_stats.ending_cash
         portfolio.start_date = self.period_open
         portfolio.positions = position_tracker.get_positions()
-        portfolio.positions_value = self.ending_value
-        portfolio.positions_exposure = self.ending_exposure
+        portfolio.positions_value = pos_stats.net_value
+        portfolio.positions_exposure = pos_stats.net_exposure
         return portfolio
 
-    def as_account(self, position_tracker):
+    def as_account(self, pos_stats):
         account = self._account_store
 
-        pos_stats = calc_position_stats(position_tracker)
-        period_stats = calc_period_stats(pos_stats, self.ending_cash)
+        period_stats = calc_period_stats(pos_stats,
+                                         self.starting_cash,
+                                         self.starting_value,
+                                         self.period_cash_flow)
 
         # If no attribute is found on the PerformancePeriod resort to the
         # following default values. If an attribute is found use the existing
@@ -369,20 +379,19 @@ class PerformancePeriod(object):
         # attributes. In this case we do not want to over write the broker
         # values with the default values.
         account.settled_cash = \
-            getattr(self, 'settled_cash', self.ending_cash)
+            getattr(self, 'settled_cash', period_stats.ending_cash)
         account.accrued_interest = \
             getattr(self, 'accrued_interest', 0.0)
         account.buying_power = \
             getattr(self, 'buying_power', float('inf'))
         account.equity_with_loan = \
-            getattr(self, 'equity_with_loan',
-                    self.ending_cash + self.ending_value)
+            getattr(self, 'equity_with_loan', period_stats.portfolio_value)
         account.total_positions_value = \
-            getattr(self, 'total_positions_value', self.ending_value)
+            getattr(self, 'total_positions_value', pos_stats.net_value)
         account.total_positions_value = \
-            getattr(self, 'total_positions_exposure', self.ending_exposure)
+            getattr(self, 'total_positions_exposure', pos_stats.net_exposure)
         account.regt_equity = \
-            getattr(self, 'regt_equity', self.ending_cash)
+            getattr(self, 'regt_equity', period_stats.ending_cash)
         account.regt_margin = \
             getattr(self, 'regt_margin', float('inf'))
         account.initial_margin_requirement = \
@@ -390,12 +399,12 @@ class PerformancePeriod(object):
         account.maintenance_margin_requirement = \
             getattr(self, 'maintenance_margin_requirement', 0.0)
         account.available_funds = \
-            getattr(self, 'available_funds', self.ending_cash)
+            getattr(self, 'available_funds', period_stats.ending_cash)
         account.excess_liquidity = \
-            getattr(self, 'excess_liquidity', self.ending_cash)
+            getattr(self, 'excess_liquidity', period_stats.ending_cash)
         account.cushion = \
             getattr(self, 'cushion',
-                    self.ending_cash / (self.ending_cash + self.ending_value))
+                    period_stats.ending_cash / period_stats.portfolio_value)
         account.day_trades_remaining = \
             getattr(self, 'day_trades_remaining', float('inf'))
         account.leverage = getattr(self, 'leverage',
