@@ -106,18 +106,21 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_position_stats(pt, dt=None):
-
+def calc_position_stats(positions,
+                        position_value_multipliers,
+                        position_exposure_multipliers,
+                        data_portal,
+                        dt):
     sids = []
     amounts = []
     last_sale_prices = []
-    position_value_multipliers = pt._position_value_multipliers
-    position_exposure_multipliers = pt._position_exposure_multipliers
+    position_value_multipliers = position_value_multipliers
+    position_exposure_multipliers = position_exposure_multipliers
 
-    for sid, pos in iteritems(pt.positions):
+    for sid, pos in iteritems(positions):
         sids.append(sid)
         amounts.append(pos.amount)
-        last_sale_prices.append(pt._data_portal.get_spot_price(
+        last_sale_prices.append(data_portal.get_spot_price(
             sid, 'close', dt))
 
     position_values = calc_position_values(
@@ -457,6 +460,13 @@ class PositionTracker(object):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
+
+    def stats(self, data_portal, dt):
+        return calc_position_stats(self.positions,
+                                   self._position_value_multipliers,
+                                   self._position_exposure_multipliers,
+                                   data_portal,
+                                   dt)
 
     def __getstate__(self):
         state_dict = {}

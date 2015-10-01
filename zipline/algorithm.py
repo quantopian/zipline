@@ -688,7 +688,7 @@ class TradingAlgorithm(object):
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
-                             self.updated_portfolio(),
+                             self.portfolio,
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -743,26 +743,18 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        return self.updated_portfolio()
-
-    def updated_portfolio(self):
-        if self.portfolio_needs_update:
+        if self._portfolio is None:
             self._portfolio = \
-                self.perf_tracker.get_portfolio(self.performance_needs_update)
+                self.perf_tracker.get_portfolio(self.datetime)
             self.portfolio_needs_update = False
             self.performance_needs_update = False
         return self._portfolio
 
     @property
     def account(self):
-        return self.updated_account()
-
-    def updated_account(self):
-        if self.account_needs_update:
+        if self._account is None:
             self._account = \
-                self.perf_tracker.get_account(self.performance_needs_update)
-            self.account_needs_update = False
-            self.performance_needs_update = False
+                self.perf_tracker.get_account(self.datetime)
         return self._account
 
     def set_logger(self, logger):
@@ -783,6 +775,9 @@ class TradingAlgorithm(object):
 
         self.datetime = dt
         self.perf_tracker.set_date(dt)
+
+        self._portfolio = None
+        self._account = None
 
     @api_method
     def get_datetime(self, tz=None):
@@ -978,8 +973,8 @@ class TradingAlgorithm(object):
 
     def validate_account_controls(self):
         for control in self.account_controls:
-            control.validate(self.updated_portfolio(),
-                             self.updated_account(),
+            control.validate(self.portfolio,
+                             self.account,
                              self.get_datetime(),
                              self.trading_client.current_data)
 

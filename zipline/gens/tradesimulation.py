@@ -122,10 +122,6 @@ class AlgorithmSimulator(object):
             for transaction in new_transactions:
                 perf_process_txn(transaction)
 
-            # update the portfolio, so that if the user does
-            # context.portfolio.positions, it's accurate
-            perf_tracker.get_portfolio(True)
-
             handle_data(algo, current_data, dt_to_use)
 
             # grab any new orders from the blotter, then clear the list.
@@ -208,17 +204,13 @@ class AlgorithmSimulator(object):
     def on_dt_changed(self, dt):
         if self.algo.datetime != dt:
             self.algo.on_dt_changed(dt)
+            self.algo._portfolio = None
+            self.algo._account = None
 
     def get_message(self, dt):
         """
         Get a perf message for the given datetime.
         """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \
@@ -236,12 +228,6 @@ class AlgorithmSimulator(object):
         """
         Generator that yields perf messages for the given datetime.
         """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \

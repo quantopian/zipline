@@ -66,13 +66,11 @@ def object_serialization_cases(skip_daily=False):
         (PerShare, (), {}, 'dict'),
         (PerTrade, (), {}, 'dict'),
         (PerDollar, (), {}, 'dict'),
-        (PerformancePeriod,
-            (10000, cases_env.asset_finder, None),
-            {'position_tracker': PositionTracker(cases_env.asset_finder, None)},
-            'to_dict'),
+        (PerformancePeriod, (10000, cases_env.asset_finder), {}, 'to_dict'),
         (Position, (8554,), {}, 'dict'),
         (PositionTracker, (cases_env.asset_finder, None), {}, 'dict'),
-        (PerformanceTracker, (sim_params_minute, cases_env, None), {}, 'to_dict'),
+        (PerformanceTracker, (sim_params_minute, cases_env, None), {},
+         'to_dict'),
         (RiskMetricsCumulative, (sim_params_minute, cases_env), {}, 'to_dict'),
         (RiskMetricsPeriod,
             (returns.index[0], returns.index[0], returns, cases_env),
@@ -113,8 +111,11 @@ def assert_dict_equal(d1, d2):
         asserter = nt.assert_equal
         if isinstance(v1, pd.DataFrame):
             asserter = tm.assert_frame_equal
-        if isinstance(v1, pd.Series):
+        elif isinstance(v1, pd.Series):
             asserter = tm.assert_series_equal
+        elif hasattr(v1, '__dict__'):
+            v1 = v1.__dict__
+            v2 = v2.__dict__
 
         try:
             asserter(v1, v2)
