@@ -425,6 +425,31 @@ class TestMiscellaneousAPI(TestCase):
         self.assertIsInstance(algo.sid(3), Equity)
         self.assertIsInstance(algo.sid(4), Equity)
 
+    def test_future_symbol(self):
+        """ Tests the future_symbol API function.
+        """
+        algo = TradingAlgorithm(env=self.env)
+        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+
+        # Check that we get the correct fields for the CLG06 symbol
+        cl = algo.future_symbol('CLG06')
+        self.assertEqual(cl.sid, 5)
+        self.assertEqual(cl.symbol, 'CLG06')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.start_date, pd.Timestamp('2005-12-01', tz='UTC'))
+        self.assertEqual(cl.notice_date, pd.Timestamp('2005-12-20', tz='UTC'))
+        self.assertEqual(cl.expiration_date,
+                         pd.Timestamp('2006-01-20', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('')
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('PLAY')
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('FOOBAR')
+
     def test_future_chain(self):
         """ Tests the future_chain API function.
         """

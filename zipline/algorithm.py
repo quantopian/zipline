@@ -770,6 +770,28 @@ class TradingAlgorithm(object):
         return self.asset_finder.retrieve_asset(a_sid)
 
     @api_method
+    def future_symbol(self, symbol):
+        """ Lookup a futures contract with a given symbol.
+
+        Parameters
+        ----------
+        symbol : str
+            The symbol of the desired contract.
+
+        Returns
+        -------
+        Future
+            A Future object.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when no contract named 'symbol' is found.
+
+        """
+        return self.asset_finder.lookup_future_symbol(symbol)
+
+    @api_method
     def future_chain(self, root_symbol, as_of_date=None):
         """ Look up a future chain with the specified parameters.
 
