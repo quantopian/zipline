@@ -1,5 +1,5 @@
 """
-FFC-specific extensions to networkx.DiGraph
+Dependency-Graph representation of Pipeline API terms.
 """
 from networkx import (
     DiGraph,
@@ -16,7 +16,7 @@ class CyclicDependency(Exception):
 
 class TermGraph(DiGraph):
     """
-    Graph represention of FFC Term dependencies.
+    Graph represention of Pipeline Term dependencies.
 
     Each node in the graph has an `extra_rows` attribute, indicating how many,
     if any, extra rows we should compute for the node.  Extra rows are most
@@ -99,8 +99,8 @@ class TermGraph(DiGraph):
         See Also
         --------
         zipline.pipeline.graph.TermGraph.offset
-        zipline.pipeline.engine.SimpleFFCEngine._inputs_for_term
-        zipline.pipeline.engine.SimpleFFCEngine._mask_for_term
+        zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
+        zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
         out = {}
         for term in self:

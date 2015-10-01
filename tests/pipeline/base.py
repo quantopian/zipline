@@ -1,5 +1,5 @@
 """
-Base class for FFC unit tests.
+Base class for Pipeline API  unittests.
 """
 from functools import wraps
 from unittest import TestCase
@@ -9,7 +9,7 @@ from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.pipeline.engine import SimpleFFCEngine
+from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.utils.pandas_utils import explode
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
@@ -43,7 +43,7 @@ def with_defaults(**default_funcs):
 with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 
-class BaseFFCTestCase(TestCase):
+class BasePipelineTestCase(TestCase):
 
     def setUp(self):
         self.__calendar = date_range('2014', '2015', freq=trading_day)
@@ -81,7 +81,7 @@ class BaseFFCTestCase(TestCase):
         graph : zipline.pipeline.graph.TermGraph
             Graph to run.
         initial_workspace : dict
-            Initial workspace to forward to SimpleFFCEngine.compute_chunk.
+            Initial workspace to forward to SimplePipelineEngine.compute_chunk.
         mask : DataFrame, optional
             This is a value to pass to `initial_workspace` as the mask from
             `AssetExists()`.  Defaults to a frame of shape `self.default_shape`
@@ -92,7 +92,7 @@ class BaseFFCTestCase(TestCase):
         results : dict
             Mapping from termname -> computed result.
         """
-        engine = SimpleFFCEngine(
+        engine = SimplePipelineEngine(
             ExplodingObject(),
             self.__calendar,
             self.__finder,

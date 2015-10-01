@@ -75,8 +75,8 @@ from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
-    NoOpFFCEngine,
-    SimpleFFCEngine,
+    NoOpPipelineEngine,
+    SimplePipelineEngine,
 )
 from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.api_support import (
@@ -323,18 +323,18 @@ class TradingAlgorithm(object):
 
     def init_engine(self, loader):
         """
-        Construct and save an FFCEngine from loader.
+        Construct and save a PipelineEngine from loader.
 
-        If loader is None, constructs a NoOpFFCEngine.
+        If loader is None, constructs a NoOpPipelineEngine.
         """
         if loader is not None:
-            self.engine = SimpleFFCEngine(
+            self.engine = SimplePipelineEngine(
                 loader,
                 self.trading_environment.trading_days,
                 self.asset_finder,
             )
         else:
-            self.engine = NoOpFFCEngine()
+            self.engine = NoOpPipelineEngine()
 
     def initialize(self, *args, **kwargs):
         """
@@ -1369,7 +1369,7 @@ class TradingAlgorithm(object):
 
         See Also
         --------
-        :meth:`zipline.pipeline.engine.FFCEngine.run_pipeline`
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         # NOTE: We don't currently support multiple pipelines, but we plan to
         # in the future.
@@ -1421,7 +1421,7 @@ class TradingAlgorithm(object):
 
         See Also
         --------
-        FFCEngine.run_pipeline
+        PipelineEngine.run_pipeline
         """
         days = self.trading_environment.trading_days
 

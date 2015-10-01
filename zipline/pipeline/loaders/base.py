@@ -1,5 +1,5 @@
 """
-Base class for FFC data loaders.
+Base class for Pipeline API data loaders.
 """
 from abc import (
     ABCMeta,
@@ -10,7 +10,7 @@ from abc import (
 from six import with_metaclass
 
 
-class FFCLoader(with_metaclass(ABCMeta)):
+class PipelineLoader(with_metaclass(ABCMeta)):
     """
     ABC for classes that can load data for use with zipline.pipeline APIs.
 

@@ -437,7 +437,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Base class for user-defined Factors operating on windows of raw data.
 
     TODO: This is basically the most important class to document in the whole
-    FFC API...
+    Pipeline API...
 
     We currently only support CustomFactors of type float64.
     """

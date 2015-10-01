@@ -1,5 +1,5 @@
 """
-Tests for zipline.pipeline.loaders.frame.DataFrameFFCLoader.
+Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
 from unittest import TestCase
 
@@ -20,14 +20,14 @@ from zipline.lib.adjustment import (
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import (
     ADD,
-    DataFrameFFCLoader,
+    DataFrameLoader,
     MULTIPLY,
     OVERWRITE,
 )
 from zipline.utils.tradingcalendar import trading_day
 
 
-class DataFrameFFCLoaderTestCase(TestCase):
+class DataFrameLoaderTestCase(TestCase):
 
     def setUp(self):
         self.nsids = 5
@@ -48,7 +48,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
     def test_bad_input(self):
         data = arange(100).reshape(self.ndates, self.nsids)
         baseline = DataFrame(data, index=self.dates, columns=self.sids)
-        loader = DataFrameFFCLoader(
+        loader = DataFrameLoader(
             USEquityPricing.close,
             baseline,
         )
@@ -71,10 +71,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
     def test_baseline(self):
         data = arange(100).reshape(self.ndates, self.nsids)
         baseline = DataFrame(data, index=self.dates, columns=self.sids)
-        loader = DataFrameFFCLoader(
-            USEquityPricing.close,
-            baseline,
-        )
+        loader = DataFrameLoader(USEquityPricing.close, baseline)
 
         dates_slice = slice(None, 10, None)
         sids_slice = slice(1, 3, None)
@@ -178,7 +175,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
         ]
 
         adjustments = DataFrame(relevant_adjustments + irrelevant_adjustments)
-        loader = DataFrameFFCLoader(
+        loader = DataFrameLoader(
             USEquityPricing.close,
             baseline,
             adjustments=adjustments,

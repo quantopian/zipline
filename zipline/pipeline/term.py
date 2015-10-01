@@ -40,7 +40,7 @@ class NotSpecified(object):
 
 class Term(object):
     """
-    Base class for terms in an FFC API compute graph.
+    Base class for terms in a Pipeline API compute graph.
     """
     # These are NotSpecified because a subclass is required to provide them.
     inputs = NotSpecified
@@ -63,7 +63,7 @@ class Term(object):
         Memoized constructor for Terms.
 
         Caching previously-constructed Terms is useful because it allows us to
-        only compute equivalent sub-expressions once when traversing an FFC
+        only compute equivalent sub-expressions once when traversing a Pipeline
         dependency graph.
 
         Caching previously-constructed Terms is **sane** because terms and
@@ -301,7 +301,7 @@ class AssetExists(Term):
 
     This is morally a Filter, in the sense that it produces a boolean value for
     every asset on every date.  We don't subclass Filter, however, because
-    `AssetExists` is computed directly by the FFCEngine.
+    `AssetExists` is computed directly by the PipelineEngine.
 
     See Also
     --------
@@ -314,7 +314,7 @@ class AssetExists(Term):
 
     def _compute(self, *args, **kwargs):
         # TODO: Consider moving the bulk of the logic from
-        # SimpleFFCEngine._compute_root_mask here.
+        # SimplePipelineEngine._compute_root_mask here.
         raise NotImplementedError(
             "Direct computation of AssetExists is not supported!"
         )

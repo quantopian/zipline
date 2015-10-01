@@ -6,7 +6,7 @@ from zipline.errors import UnknownRankMethod
 from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.utils.test_utils import check_arrays
 
-from .base import BaseFFCTestCase
+from .base import BasePipelineTestCase
 
 
 class F(Factor):
@@ -19,7 +19,7 @@ class Mask(Filter):
     window_length = 0
 
 
-class FactorTestCase(BaseFFCTestCase):
+class FactorTestCase(BasePipelineTestCase):
 
     def setUp(self):
         super(FactorTestCase, self).setUp()

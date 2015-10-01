@@ -1,5 +1,5 @@
 """
-Compute Engine for FFC API
+Compute Engine definitions for the Pipeline API.
 """
 from abc import (
     ABCMeta,
@@ -28,7 +28,7 @@ from zipline.utils.pandas_utils import explode
 from .term import AssetExists
 
 
-class FFCEngine(with_metaclass(ABCMeta)):
+class PipelineEngine(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date):
@@ -63,9 +63,9 @@ class FFCEngine(with_metaclass(ABCMeta)):
         raise NotImplementedError("run_pipeline")
 
 
-class NoOpFFCEngine(FFCEngine):
+class NoOpPipelineEngine(PipelineEngine):
     """
-    An FFCEngine that doesn't do anything.
+    A PipelineEngine that doesn't do anything.
     """
     def run_pipeline(self, pipeline, start_date, end_date):
         return DataFrame(
@@ -76,13 +76,13 @@ class NoOpFFCEngine(FFCEngine):
         )
 
 
-class SimpleFFCEngine(object):
+class SimplePipelineEngine(object):
     """
-    FFC Engine class that computes each term independently.
+    PipelineEngine class that computes each term independently.
 
     Parameters
     ----------
-    loader : FFCLoader
+    loader : PipelineLoader
         A loader to use to retrieve raw data for atomic terms.
     calendar : DatetimeIndex
         Array of dates to consider as trading days when computing a range
@@ -149,7 +149,7 @@ class SimpleFFCEngine(object):
 
         See Also
         --------
-        FFCEngine.run_pipeline
+        PipelineEngine.run_pipeline
         """
         if end_date <= start_date:
             raise ValueError(
@@ -205,7 +205,7 @@ class SimpleFFCEngine(object):
         start_idx, end_idx = self._calendar.slice_locs(start_date, end_date)
         if start_idx < extra_rows:
             raise NoFurtherDataError(
-                msg="Insufficient data to compute FFC Matrix: "
+                msg="Insufficient data to compute Pipeline mask: "
                 "start date was %s, "
                 "earliest known date was %s, "
                 "and %d extra rows were requested." % (
@@ -275,7 +275,7 @@ class SimpleFFCEngine(object):
 
     def compute_chunk(self, graph, dates, assets, initial_workspace):
         """
-        Compute the FFC terms in the graph for the requested start and end
+        Compute the Pipeline terms in the graph for the requested start and end
         dates.
 
         Parameters

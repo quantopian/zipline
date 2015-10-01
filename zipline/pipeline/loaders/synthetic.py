@@ -15,8 +15,8 @@ from pandas import DataFrame, Timestamp
 from six import iteritems
 from sqlite3 import connect as sqlite3_connect
 
-from .base import FFCLoader
-from .frame import DataFrameFFCLoader
+from .base import PipelineLoader
+from .frame import DataFrameLoader
 from .equity_pricing_loader import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentReader,
@@ -32,9 +32,9 @@ def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
 
 
-class MultiColumnLoader(FFCLoader):
+class MultiColumnLoader(PipelineLoader):
     """
-    FFCLoader that can delegate to sub-loaders.
+    PipelineLoader that can delegate to sub-loaders.
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ class MultiColumnLoader(FFCLoader):
 
 class ConstantLoader(MultiColumnLoader):
     """
-    Synthetic FFCLoader that returns a constant value for each column.
+    Synthetic PipelineLoader that returns a constant value for each column.
 
     Parameters
     ----------
@@ -85,7 +85,7 @@ class ConstantLoader(MultiColumnLoader):
                 columns=assets,
                 dtype=column.dtype,
             )
-            loaders[column] = DataFrameFFCLoader(
+            loaders[column] = DataFrameLoader(
                 column=column,
                 baseline=frame,
                 adjustments=None,

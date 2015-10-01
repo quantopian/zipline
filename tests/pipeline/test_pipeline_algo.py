@@ -1,5 +1,5 @@
 """
-Tests for Algorithms running the full FFC stack.
+Tests for Algorithms using the Pipeline API.
 """
 from unittest import TestCase
 from os.path import (
@@ -44,7 +44,7 @@ from zipline.finance import trading
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factor.technical import VWAP
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.loaders.frame import DataFrameFFCLoader, MULTIPLY
+from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarReader,
     DailyBarWriterFromCSVs,
@@ -149,7 +149,7 @@ class ClosesOnly(TestCase):
         self.adj_closes = adj_closes = self.closes.copy()
         adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
 
-        self.ffc_loader = DataFrameFFCLoader(
+        self.ffc_loader = DataFrameLoader(
             column=USEquityPricing.close,
             baseline=self.closes,
             adjustments=self.adjustments,
@@ -304,7 +304,7 @@ class ClosesOnly(TestCase):
         algo.run(source=self.closes.iloc[10:17])
 
 
-class FFCAlgorithmTestCase(TestCase):
+class PipelineAlgorithmTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):

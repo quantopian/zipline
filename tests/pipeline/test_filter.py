@@ -23,7 +23,7 @@ from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
 from zipline.utils.test_utils import check_arrays
 
-from .base import BaseFFCTestCase, with_default_shape
+from .base import BasePipelineTestCase, with_default_shape
 
 
 def rowwise_rank(array, mask=None):
@@ -69,7 +69,7 @@ class Mask(Filter):
     window_length = 0
 
 
-class FilterTestCase(BaseFFCTestCase):
+class FilterTestCase(BasePipelineTestCase):
 
     def setUp(self):
         super(FilterTestCase, self).setUp()

@@ -1,5 +1,5 @@
 """
-FFC Loader accepting a DataFrame as input.
+PipelineLoader accepting a DataFrame as input.
 """
 from numpy import (
     ix_,
@@ -18,7 +18,7 @@ from zipline.lib.adjustment import (
     Float64Overwrite,
 )
 
-from .base import FFCLoader
+from .base import PipelineLoader
 
 
 ADD, MULTIPLY, OVERWRITE = range(3)
@@ -37,9 +37,9 @@ ADJUSTMENT_COLUMNS = Index([
 ])
 
 
-class DataFrameFFCLoader(FFCLoader):
+class DataFrameLoader(PipelineLoader):
     """
-    An FFCLoader that reads its input from DataFrames.
+    A PipelineLoader that reads its input from DataFrames.
 
     Mostly useful for testing, but can also be used for real work if your data
     fits in memory.

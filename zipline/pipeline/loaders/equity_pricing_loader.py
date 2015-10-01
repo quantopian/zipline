@@ -52,7 +52,7 @@ from zipline.lib.adjusted_array import (
 )
 from zipline.errors import NoFurtherDataError
 
-from .base import FFCLoader
+from .base import PipelineLoader
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
 
@@ -571,9 +571,9 @@ class SQLiteAdjustmentReader(object):
         )
 
 
-class USEquityPricingLoader(FFCLoader):
+class USEquityPricingLoader(PipelineLoader):
     """
-    FFCLoader for US Equity Pricing
+    PipelineLoader for US Equity Pricing data
 
     Delegates loading of baselines and adjustments.
     """

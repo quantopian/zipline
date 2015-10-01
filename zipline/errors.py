@@ -318,8 +318,8 @@ class WindowLengthNotPositive(ZiplineError):
 
 class InputTermNotAtomic(ZiplineError):
     """
-    Raised when a non-atomic term is specified as an input to an FFC term with
-    a lookback window.
+    Raised when a non-atomic term is specified as an input to a Pipeline API
+    term with a lookback window.
     """
     msg = (
         "Can't compute {parent} with non-atomic input {child}."
@@ -409,7 +409,7 @@ class NoSuchPipeline(ZiplineError, KeyError):
 
 class UnsupportedDataType(ZiplineError):
     """
-    Raised by FFC CustomFactors with unsupported dtypes.
+    Raised by CustomFactors with unsupported dtypes.
     """
     msg = "CustomFactors with dtype {dtype} are not supported."
 
