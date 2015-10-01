@@ -13,11 +13,11 @@ from operator import attrgetter
 from zipline.errors import (
     BadPercentileBounds,
 )
-from zipline.modelling.term import (
+from zipline.pipeline.term import (
     SingleInputMixin,
     Term,
 )
-from zipline.modelling.expression import (
+from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
     method_name_for_op,
@@ -119,7 +119,7 @@ class PercentileFilter(SingleInputMixin, Filter):
 
     Parameters
     ----------
-    factor : zipline.modelling.factor.Factor
+    factor : zipline.pipeline.factor.Factor
         The factor over which to compute percentile bounds.
     min_percentile : float [0.0, 1.0]
         The minimum percentile rank of an asset that will pass the filter.

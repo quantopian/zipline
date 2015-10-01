@@ -11,17 +11,13 @@ from numpy import (
     iinfo,
     uint32,
 )
-from pandas import (
-    DataFrame,
-    Timestamp,
-)
+from pandas import DataFrame, Timestamp
+from six import iteritems
 from sqlite3 import connect as sqlite3_connect
 
-from six import iteritems
-
-from zipline.data.ffc.base import FFCLoader
-from zipline.data.ffc.frame import DataFrameFFCLoader
-from zipline.data.ffc.loaders.us_equity_pricing import (
+from .base import FFCLoader
+from .frame import DataFrameFFCLoader
+from .equity_pricing_loader import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,

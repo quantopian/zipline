@@ -17,7 +17,8 @@ from zipline.lib.adjustment import (
     Float64Multiply,
     Float64Overwrite,
 )
-from zipline.data.ffc.base import FFCLoader
+
+from .base import FFCLoader
 
 
 ADD, MULTIPLY, OVERWRITE = range(3)
@@ -45,7 +46,7 @@ class DataFrameFFCLoader(FFCLoader):
 
     Parameters
     ----------
-    column : zipline.data.dataset.BoundColumn
+    column : zipline.pipeline.data.BoundColumn
         The column whose data is loadable by this loader.
     baseline : pandas.DataFrame
         A DataFrame with index of type DatetimeIndex and columns of type
@@ -58,7 +59,7 @@ class DataFrameFFCLoader(FFCLoader):
         A DataFrame with the following columns:
             sid : int
             value : any
-            kind : int (zipline.data.ffc.frame.ADJUSTMENT_TYPES)
+            kind : int (zipline.pipeline.loaders.frame.ADJUSTMENT_TYPES)
             start_date : datetime64 (can be NaT)
             end_date : datetime64 (must be set)
             apply_date : datetime64 (must be set)

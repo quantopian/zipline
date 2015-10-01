@@ -16,14 +16,14 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.rank import rankdata_2d_ordinal
-from zipline.modelling.term import (
+from zipline.pipeline.term import (
     CustomTermMixin,
     NotSpecified,
     RequiredWindowLengthMixin,
     SingleInputMixin,
     Term,
 )
-from zipline.modelling.expression import (
+from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
     is_comparison,
@@ -33,7 +33,7 @@ from zipline.modelling.expression import (
     NUMEXPR_MATH_FUNCS,
     UNARY_OPS,
 )
-from zipline.modelling.filter import (
+from zipline.pipeline.filter import (
     NumExprFilter,
     PercentileFilter,
 )
@@ -230,7 +230,7 @@ class Factor(Term):
 
         Parameters
         ----------
-        ranks : zipline.modelling.factor.Rank
+        ranks : zipline.pipeline.factor.Rank
             A new factor that will compute the sorted indices of the data
             produced by `self`.
         method : str, {'ordinal', 'min', 'max', 'dense', 'average'}
@@ -243,7 +243,7 @@ class Factor(Term):
 
         Returns
         -------
-        ranks : zipline.modelling.factor.Rank
+        ranks : zipline.pipeline.factor.Rank
 
         Notes
         -----
@@ -258,7 +258,7 @@ class Factor(Term):
         --------
         scipy.stats.rankdata
         zipline.lib.rank
-        zipline.modelling.factor.Rank
+        zipline.pipeline.factor.Rank
         """
         return Rank(self if ascending else -self, method=method, mask=mask)
 
@@ -273,7 +273,7 @@ class Factor(Term):
 
         Returns
         -------
-        filter : zipline.modelling.filter.Filter
+        filter : zipline.pipeline.filter.Filter
         """
         return self.rank(ascending=False, mask=mask) <= N
 
@@ -288,7 +288,7 @@ class Factor(Term):
 
         Returns
         -------
-        filter : zipline.modelling.filter.Filter
+        filter : zipline.pipeline.filter.Filter
         """
         return self.rank(ascending=True, mask=mask) <= N
 
@@ -308,12 +308,12 @@ class Factor(Term):
 
         Returns
         -------
-        out : zipline.modelling.filter.PercentileFilter
+        out : zipline.pipeline.filter.PercentileFilter
             A new filter that will compute the specified percentile-range mask.
 
         See Also
         --------
-        zipline.modelling.filter.PercentileFilter
+        zipline.pipeline.filter.PercentileFilter
         """
         return PercentileFilter(
             self,
@@ -350,7 +350,7 @@ class Rank(SingleInputMixin, Factor):
 
     Parameters
     ----------
-    factor : zipline.modelling.factor.Factor
+    factor : zipline.pipeline.factor.Factor
         The factor on which to compute ranks.
     method : str, {'average', 'min', 'max', 'dense', 'ordinal'}
         The method used to assign ranks to tied elements.  See

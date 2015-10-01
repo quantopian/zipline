@@ -3,9 +3,7 @@ Tests for Factor terms.
 """
 from numpy import array, eye, nan, ones
 from zipline.errors import UnknownRankMethod
-from zipline.modelling.factor import Factor
-from zipline.modelling.filter import Filter
-from zipline.modelling.graph import TermGraph
+from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase

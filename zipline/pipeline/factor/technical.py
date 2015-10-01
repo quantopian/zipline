@@ -18,8 +18,8 @@ from numpy import (
 )
 from numexpr import evaluate
 
-from zipline.data.equities import USEquityPricing
-from zipline.modelling.term import SingleInputMixin
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.term import SingleInputMixin
 from zipline.utils.control_flow import ignore_nanwarnings
 from .factor import CustomFactor
 

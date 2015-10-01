@@ -7,7 +7,7 @@ from networkx import (
 )
 from six import itervalues, iteritems
 from zipline.utils.memoize import lazyval
-from zipline.modelling.visualize import display_graph
+from zipline.pipeline.visualize import display_graph
 
 
 class CyclicDependency(Exception):
@@ -98,9 +98,9 @@ class TermGraph(DiGraph):
 
         See Also
         --------
-        zipline.modelling.graph.TermGraph.offset
-        zipline.modelling.engine.SimpleFFCEngine._inputs_for_term
-        zipline.modelling.engine.SimpleFFCEngine._mask_for_term
+        zipline.pipeline.graph.TermGraph.offset
+        zipline.pipeline.engine.SimpleFFCEngine._inputs_for_term
+        zipline.pipeline.engine.SimpleFFCEngine._mask_for_term
         """
         out = {}
         for term in self:
@@ -147,8 +147,8 @@ class TermGraph(DiGraph):
 
         See Also
         --------
-        zipline.modelling.graph.TermGraph.offset
-        zipline.modelling.term.Term.extra_input_rows
+        zipline.pipeline.graph.TermGraph.offset
+        zipline.pipeline.term.Term.extra_input_rows
         """
         return {
             term: attrs['extra_rows']

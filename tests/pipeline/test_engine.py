@@ -24,29 +24,26 @@ from pandas import (
 from pandas.util.testing import assert_frame_equal
 from testfixtures import TempDirectory
 
-from zipline.data.equities import USEquityPricing
-from zipline.data.ffc.synthetic import (
+from zipline.pipeline.loaders.synthetic import (
     ConstantLoader,
     MultiColumnLoader,
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
-from zipline.data.ffc.frame import (
-    DataFrameFFCLoader,
-    MULTIPLY,
-)
-from zipline.data.ffc.loaders.us_equity_pricing import (
+from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline import Pipeline
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders.frame import DataFrameFFCLoader, MULTIPLY
+from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarReader,
     USEquityPricingLoader,
 )
-from zipline.finance.trading import TradingEnvironment
-from zipline.modelling.engine import SimpleFFCEngine
-from zipline.modelling.factor import CustomFactor
-from zipline.modelling.factor.technical import (
+from zipline.pipeline.engine import SimpleFFCEngine
+from zipline.pipeline.factor import CustomFactor
+from zipline.pipeline.factor.technical import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
-from zipline.modelling.pipeline import Pipeline
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
     make_rotating_asset_info,

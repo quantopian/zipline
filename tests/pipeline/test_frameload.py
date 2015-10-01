@@ -1,5 +1,5 @@
 """
-Tests for zipline.data.ffc.frame.DataFrameFFCLoader
+Tests for zipline.pipeline.loaders.frame.DataFrameFFCLoader.
 """
 from unittest import TestCase
 
@@ -17,8 +17,8 @@ from zipline.lib.adjustment import (
     Float64Multiply,
     Float64Overwrite,
 )
-from zipline.data.equities import USEquityPricing
-from zipline.data.ffc.frame import (
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders.frame import (
     ADD,
     DataFrameFFCLoader,
     MULTIPLY,
@@ -205,7 +205,7 @@ class DataFrameFFCLoaderTestCase(TestCase):
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch('zipline.data.ffc.frame.adjusted_array') as m:
+        with patch('zipline.pipeline.loaders.frame.adjusted_array') as m:
             loader.load_adjusted_array(
                 columns=[USEquityPricing.close],
                 dates=self.dates[dates_slice],

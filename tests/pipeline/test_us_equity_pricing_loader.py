@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Tests for zipline.data.ffc.loaders.us_equity_pricing
+Tests for USEquityPricingLoader and related classes.
 """
 from unittest import TestCase
 
@@ -40,12 +40,11 @@ from pandas.util.testing import assert_index_equal
 from testfixtures import TempDirectory
 
 from zipline.lib.adjustment import Float64Multiply
-from zipline.data.equities import USEquityPricing
-from zipline.data.ffc.synthetic import (
+from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
-from zipline.data.ffc.loaders.us_equity_pricing import (
+from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarReader,
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
@@ -53,6 +52,7 @@ from zipline.data.ffc.loaders.us_equity_pricing import (
 )
 from zipline.errors import WindowLengthTooLong
 from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline.data import USEquityPricing
 from zipline.utils.test_utils import (
     seconds_to_timestamp,
     str_to_seconds,

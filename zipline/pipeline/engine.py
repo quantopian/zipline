@@ -39,7 +39,7 @@ class FFCEngine(with_metaclass(ABCMeta)):
 
         Parameters
         ----------
-        pipeline : zipline.modelling.pipeline.Pipeline
+        pipeline : zipline.pipeline.Pipeline
             The pipeline to run.
         start_date : pd.Timestamp
             Start date of the computed matrix.
@@ -53,7 +53,7 @@ class FFCEngine(with_metaclass(ABCMeta)):
 
             The columns `result` correspond wil be the computed results of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of `zipline.modelling.term.Term`.
+            instances of `zipline.pipeline.term.Term`.
 
             For each date between `start_date` and `end_date`, `result` will
             contain a row for each asset that passed `pipeline.screen`.  A
@@ -111,7 +111,7 @@ class SimpleFFCEngine(object):
 
         Parameters
         ----------
-        pipeline : zipline.modelling.pipeline.Pipeline
+        pipeline : zipline.pipeline.Pipeline
             The pipeline to run.
         start_date : pd.Timestamp
             Start date of the computed matrix.
@@ -142,7 +142,7 @@ class SimpleFFCEngine(object):
 
         5. Stick the values computed in (4) into a DataFrame and return it.
 
-        Step 0 is performed by `zipline.modelling.graph.TermGraph`.
+        Step 0 is performed by `zipline.pipeline.graph.TermGraph`.
         Step 1 is performed in `self._compute_root_mask`.
         Step 2 is performed in `self.compute_chunk`.
         Steps 3, 4, and 5 are performed in self._format_factor_matrix.
@@ -280,7 +280,7 @@ class SimpleFFCEngine(object):
 
         Parameters
         ----------
-        graph : zipline.modelling.graph.TermGraph
+        graph : zipline.pipeline.graph.TermGraph
         dates : pd.DatetimeIndex
             Row labels for our root mask.
         assets : pd.Int64Index

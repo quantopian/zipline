@@ -4,7 +4,7 @@ import doctest
 from unittest import TestCase
 
 from zipline.lib import adjustment
-from zipline.modelling import (
+from zipline.pipeline import (
     engine,
     expression,
 )

@@ -20,9 +20,7 @@ from numpy import (
 from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
-from zipline.modelling.filter import Filter
-from zipline.modelling.factor import Factor
-from zipline.modelling.graph import TermGraph
+from zipline.pipeline import Filter, Factor, TermGraph
 from zipline.utils.test_utils import check_arrays
 
 from .base import BaseFFCTestCase, with_default_shape

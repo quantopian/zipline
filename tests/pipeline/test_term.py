@@ -10,19 +10,15 @@ from numpy import (
     uint8,
 )
 
-from zipline.data.dataset import (
-    Column,
-    DataSet,
-)
 from zipline.errors import (
     InputTermNotAtomic,
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
 )
-from zipline.modelling.expression import NUMEXPR_MATH_FUNCS
-from zipline.modelling.factor import Factor
-from zipline.modelling.graph import TermGraph
-from zipline.modelling.term import AssetExists, NotSpecified
+from zipline.pipeline import Factor, TermGraph
+from zipline.pipeline.data import Column, DataSet
+from zipline.pipeline.term import AssetExists, NotSpecified
+from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 
 
 class SomeDataSet(DataSet):

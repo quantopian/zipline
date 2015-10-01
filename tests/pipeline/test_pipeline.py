@@ -1,12 +1,10 @@
 """
-Tests for zipline.modelling.pipeline.Pipeline
+Tests for zipline.pipeline.Pipeline
 """
 from unittest import TestCase
 
-from zipline.data.equities import USEquityPricing
-from zipline.modelling.pipeline import Pipeline
-from zipline.modelling.factor import Factor
-from zipline.modelling.filter import Filter
+from zipline.pipeline import Factor, Filter, Pipeline
+from zipline.pipeline.data import USEquityPricing
 
 
 class SomeFactor(Factor):

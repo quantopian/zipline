@@ -1,7 +1,8 @@
 from zipline.utils.preprocess import expect_types, optional
-from zipline.modelling.term import Term
-from zipline.modelling.filter import Filter
-from zipline.modelling.graph import TermGraph
+
+from .term import Term
+from .filter import Filter
+from .graph import TermGraph
 
 
 class Pipeline(object):
@@ -12,7 +13,7 @@ class Pipeline(object):
         Name for this pipeline.
     columns : dict, optional
         Initial columns.
-    screen : zipline.modelling.term.Filter, optional
+    screen : zipline.pipeline.term.Filter, optional
         Initial screen.
 
     Methods
@@ -71,7 +72,7 @@ class Pipeline(object):
 
         Parameters
         ----------
-        column : zipline.modelling.Term
+        column : zipline.pipeline.Term
             A Filter, Factor, or Classifier to add to the pipeline.
         name : str
             Name of the column to add.
@@ -105,7 +106,7 @@ class Pipeline(object):
 
         Returns
         -------
-        removed : zipline.modelling.term.Term
+        removed : zipline.pipeline.term.Term
             The removed term.
         """
         return self.columns.pop(name)
@@ -120,7 +121,7 @@ class Pipeline(object):
 
         Parameter
         ---------
-        filter : zipline.modelling.filter.Filter
+        filter : zipline.pipeline.filter.Filter
             The screen to apply.
         overwrite : bool
             Whether to overwrite any existing screen.  If overwrite is False
@@ -145,7 +146,7 @@ class Pipeline(object):
         ----------
         screen_name : str
             Name to supply for self.screen.
-        default_screen : zipline.modelling.term.Term
+        default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
         """
         columns = self.columns.copy()

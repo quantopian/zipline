@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from errno import ENOENT
 from os import remove
 from os.path import exists
+import sqlite3
 
 from bcolz import (
     carray,
@@ -45,19 +46,15 @@ from six import (
     string_types,
     with_metaclass,
 )
-import sqlite3
 
-
-from zipline.data.ffc.base import FFCLoader
-from zipline.data.ffc.loaders._equities import (
-    _compute_row_slices,
-    _read_bcolz_data,
-)
-from zipline.data.ffc.loaders._adjustments import load_adjustments_from_sqlite
 from zipline.lib.adjusted_array import (
     adjusted_array,
 )
 from zipline.errors import NoFurtherDataError
+
+from .base import FFCLoader
+from ._equities import _compute_row_slices, _read_bcolz_data
+from ._adjustments import load_adjustments_from_sqlite
 
 OHLC = frozenset(['open', 'high', 'low', 'close'])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = [
@@ -624,7 +621,7 @@ def _shift_dates(dates, start_date, end_date, shift):
         if start_date < dates[0]:
             raise NoFurtherDataError(
                 msg=(
-                    "Modeling Query requested data starting on {query_start}, "
+                    "Pipeline Query requested data starting on {query_start}, "
                     "but first known date is {calendar_start}"
                 ).format(
                     query_start=str(start_date),
@@ -638,7 +635,7 @@ def _shift_dates(dates, start_date, end_date, shift):
     if start < shift:
         raise NoFurtherDataError(
             msg=(
-                "Modeling Query requested data from {shift}"
+                "Pipeline Query requested data from {shift}"
                 " days before {query_start}, but first known date is only "
                 "{start} days earlier."
             ).format(shift=shift, query_start=start_date, start=start),
@@ -650,7 +647,7 @@ def _shift_dates(dates, start_date, end_date, shift):
         if end_date > dates[-1]:
             raise NoFurtherDataError(
                 msg=(
-                    "Modeling Query requesting data up to {query_end}, "
+                    "Pipeline Query requesting data up to {query_end}, "
                     "but last known date is {calendar_end}"
                 ).format(
                     query_end=end_date,

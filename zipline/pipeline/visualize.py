@@ -12,10 +12,9 @@ from subprocess import Popen, PIPE
 from networkx import topological_sort
 from six import iteritems
 
-
-from zipline.data.dataset import BoundColumn
-from zipline.modelling import Filter, Factor, Classifier, Term
-from zipline.modelling.term import AssetExists
+from zipline.pipeline.data import BoundColumn
+from zipline.pipeline import Filter, Factor, Classifier, Term
+from zipline.pipeline.term import AssetExists
 
 
 class NoIPython(Exception):
@@ -82,7 +81,7 @@ def _render(g, out, format_, include_asset_exists=False):
 
     Parameters
     ----------
-    g : zipline.modelling.graph.TermGraph
+    g : zipline.pipeline.graph.TermGraph
         Graph to render.
     out : file-like object
     format_ : str {'png', 'svg'}

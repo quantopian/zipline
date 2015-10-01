@@ -74,7 +74,7 @@ from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.modelling.engine import (
+from zipline.pipeline.engine import (
     NoOpFFCEngine,
     SimpleFFCEngine,
 )
@@ -229,7 +229,7 @@ class TradingAlgorithm(object):
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
-        # Initialize Modeling API data.
+        # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('ffc_loader', None))
         self._pipelines = []
         # Create an always-expired cache so that we compute the first time data
@@ -1333,7 +1333,7 @@ class TradingAlgorithm(object):
         self.register_trading_control(LongOnly())
 
     ##############
-    # Modeling API
+    # Pipeline API
     ##############
     @api_method
     @require_not_initialized(AttachPipelineAfterInitialize())
@@ -1369,7 +1369,7 @@ class TradingAlgorithm(object):
 
         See Also
         --------
-        :meth:`zipline.modelling.FFCEngine.run_pipeline`
+        :meth:`zipline.pipeline.engine.FFCEngine.run_pipeline`
         """
         # NOTE: We don't currently support multiple pipelines, but we plan to
         # in the future.
@@ -1441,7 +1441,7 @@ class TradingAlgorithm(object):
             self.engine.run_pipeline(pipeline, start_date, end_date), end_date
 
     ##################
-    # End Modeling API
+    # End Pipeline API
     ##################
 
     def current_universe(self):

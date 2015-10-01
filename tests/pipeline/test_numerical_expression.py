@@ -24,11 +24,12 @@ from pandas import (
     Int64Index,
 )
 
-from zipline.modelling.expression import (
+from zipline.pipeline import Factor
+from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-from zipline.modelling.factor import Factor
+
 from zipline.utils.test_utils import check_arrays
 
 

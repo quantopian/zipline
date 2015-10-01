@@ -12,7 +12,7 @@ from six import with_metaclass
 
 class FFCLoader(with_metaclass(ABCMeta)):
     """
-    ABC for classes that can load data for use with zipline.modelling pipeline.
+    ABC for classes that can load data for use with zipline.pipeline APIs.
 
     TODO: DOCUMENT THIS MORE!
     """

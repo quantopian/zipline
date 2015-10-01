@@ -35,24 +35,23 @@ from zipline.api import (
     drain_pipeline,
     get_datetime,
 )
-from zipline.data.equities import USEquityPricing
-from zipline.data.ffc.frame import DataFrameFFCLoader, MULTIPLY
-from zipline.data.ffc.loaders.us_equity_pricing import (
-    BcolzDailyBarReader,
-    DailyBarWriterFromCSVs,
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
-    USEquityPricingLoader,
-)
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     DrainPipelineDuringInitialize,
     NoSuchPipeline,
 )
 from zipline.finance import trading
-
-from zipline.modelling.factor.technical import VWAP
-from zipline.modelling.pipeline import Pipeline
+from zipline.pipeline import Pipeline
+from zipline.pipeline.factor.technical import VWAP
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders.frame import DataFrameFFCLoader, MULTIPLY
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    BcolzDailyBarReader,
+    DailyBarWriterFromCSVs,
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+    USEquityPricingLoader,
+)
 from zipline.utils.test_utils import (
     make_simple_asset_info,
     str_to_seconds,
@@ -66,7 +65,7 @@ from zipline.utils.tradingcalendar import (
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
     'resources',
-    'modelling_inputs',
+    'pipeline_inputs',
 )
 
 

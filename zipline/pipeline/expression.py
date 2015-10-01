@@ -12,7 +12,7 @@ from numpy import (
     find_common_type,
 )
 
-from zipline.modelling.term import Term, NotSpecified
+from zipline.pipeline.term import Term, NotSpecified
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 

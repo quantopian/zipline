@@ -9,8 +9,8 @@ from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.modelling.engine import SimpleFFCEngine
-from zipline.modelling.term import AssetExists
+from zipline.pipeline.engine import SimpleFFCEngine
+from zipline.pipeline.term import AssetExists
 from zipline.utils.pandas_utils import explode
 from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
 from zipline.utils.tradingcalendar import trading_day

@@ -6,8 +6,8 @@ from six import (
     with_metaclass,
 )
 
-from zipline.modelling.term import Term
-from zipline.modelling.factor import Latest
+from zipline.pipeline.term import Term
+from zipline.pipeline.factor import Latest
 
 
 class Column(object):

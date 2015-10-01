@@ -1,12 +1,6 @@
-from numpy import (
-    float64,
-    uint32,
-)
+from numpy import float64, uint32
 
-from zipline.data.dataset import (
-    Column,
-    DataSet,
-)
+from .dataset import Column, DataSet
 
 
 class USEquityPricing(DataSet):

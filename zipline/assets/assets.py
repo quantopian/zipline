@@ -627,7 +627,7 @@ class AssetFinder(object):
         See Also
         --------
         numpy.putmask
-        zipline.modelling.engine.SimpleFFCEngine._compute_root_mask
+        zipline.pipeline.engine.SimpleFFCEngine._compute_root_mask
         """
         # This is a less than ideal place to do this, because if someone adds
         # assets to the finder after we've touched lifetimes we won't have
