@@ -210,45 +210,37 @@ class AssetFinder(object):
         """
         Retrieve the Equity object of a given sid.
         """
-        try:
-            return self._equity_cache[sid]
-        except KeyError:
-            pass
-
-        data = self.select_equity_by_sid(sid).execute().fetchone()
-        # Convert 'data' from a RowProxy object to a dict, to allow assignment
-        data = dict(data.items())
-        if data:
-            _convert_asset_timestamp_fields(data)
-
-            equity = Equity(**data)
-        else:
-            equity = None
-
-        self._equity_cache[sid] = equity
-        return equity
+        return self._retrieve_asset(
+            sid, self._equity_cache, self.select_equity_by_sid, Equity,
+        )
 
     def _retrieve_futures_contract(self, sid):
         """
         Retrieve the Future object of a given sid.
         """
+        return self._retrieve_asset(
+            sid, self._future_cache, self.select_future_by_sid, Future,
+        )
+
+    @staticmethod
+    def _retrieve_asset(sid, cache, select, asset_type):
         try:
-            return self._future_cache[sid]
+            return cache[sid]
         except KeyError:
             pass
 
-        data = self.select_future_by_sid(sid).execute().fetchone()
+        data = select(sid).execute().fetchone()
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
             _convert_asset_timestamp_fields(data)
 
-            future = Future(**data)
+            asset = asset_type(**data)
         else:
-            future = None
+            asset = None
 
-        self._future_cache[sid] = future
-        return future
+        cache[sid] = asset
+        return asset
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
