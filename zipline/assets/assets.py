@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from abc import ABCMeta
-from functools import partial
 from numbers import Integral
-from operator import getitem, itemgetter
+from operator import itemgetter
 import warnings
 
 from logbook import Logger
@@ -37,8 +36,6 @@ from zipline.assets import (
     Asset, Equity, Future,
 )
 from zipline.assets.asset_writer import (
-    FUTURE_TABLE_FIELDS,
-    EQUITY_TABLE_FIELDS,
     split_delimited_symbol,
 )
 
@@ -85,7 +82,7 @@ class AssetFinder(object):
 
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
-        self.equities = equities = sa.Table(
+        self.equities = sa.Table(
             'equities',
             metadata,
             autoload=True,
@@ -103,7 +100,7 @@ class AssetFinder(object):
             autoload=True,
             autoload_with=engine,
         )
-        self.futures_contracts = futures_contracts = sa.Table(
+        self.futures_contracts = sa.Table(
             'futures_contracts',
             metadata,
             autoload=True,
@@ -116,29 +113,6 @@ class AssetFinder(object):
             autoload_with=engine,
         )
 
-        # Create the equity and future queries once.
-        _equity_sid = equities.c.sid
-        _equity_by_sid = sa.select(
-            tuple(map(partial(getitem, equities.c), EQUITY_TABLE_FIELDS)),
-        )
-
-        def select_equity_by_sid(sid):
-            return _equity_by_sid.where(_equity_sid == int(sid))
-
-        self.select_equity_by_sid = select_equity_by_sid
-
-        _future_sid = futures_contracts.c.sid
-        _future_by_sid = sa.select(
-            tuple(map(
-                partial(getitem, futures_contracts.c),
-                FUTURE_TABLE_FIELDS,
-            )),
-        )
-
-        def select_future_by_sid(sid):
-            return _future_by_sid.where(_future_sid == int(sid))
-
-        self.select_future_by_sid = select_future_by_sid
         # Cache for lookup of assets by sid, the objects in the asset lookp may
         # be shared with the results from equity and future lookup caches.
         #
@@ -211,7 +185,7 @@ class AssetFinder(object):
         Retrieve the Equity object of a given sid.
         """
         return self._retrieve_asset(
-            sid, self._equity_cache, self.select_equity_by_sid, Equity,
+            sid, self._equity_cache, self.equities, Equity,
         )
 
     def _retrieve_futures_contract(self, sid):
@@ -219,17 +193,20 @@ class AssetFinder(object):
         Retrieve the Future object of a given sid.
         """
         return self._retrieve_asset(
-            sid, self._future_cache, self.select_future_by_sid, Future,
+            sid, self._future_cache, self.futures_contracts, Future,
         )
 
     @staticmethod
-    def _retrieve_asset(sid, cache, select, asset_type):
+    def _select_asset_by_sid(asset_tbl, sid):
+        return sa.select([asset_tbl]).where(asset_tbl.c.sid == int(sid))
+
+    def _retrieve_asset(self, sid, cache, asset_tbl, asset_type):
         try:
             return cache[sid]
         except KeyError:
             pass
 
-        data = select(sid).execute().fetchone()
+        data = self._select_asset_by_sid(asset_tbl, sid).execute().fetchone()
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:

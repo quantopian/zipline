@@ -16,44 +16,6 @@ from zipline.assets._assets import Asset
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
-# Expected fields for an Asset's metadata
-ASSET_TABLE_FIELDS = frozenset({
-    'sid',
-    'symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'exchange',
-})
-
-# Expected fields for a Future's metadata
-FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
-    'notice_date',
-    'expiration_date',
-    'auto_close_date',
-    'contract_multiplier',
-}
-
-# Expected fields for an Equity's metadata
-EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
-    'company_symbol',
-    'share_class_symbol',
-    'fuzzy_symbol',
-}
-
-EXCHANGE_TABLE_FIELDS = frozenset({
-    'exchange',
-    'timezone',
-})
-
-ROOT_SYMBOL_TABLE_FIELDS = frozenset({
-    'root_symbol',
-    'root_symbol_id',
-    'sector',
-    'description',
-    'exchange',
-})
 
 # Default values for the equities DataFrame
 _equities_defaults = {
