@@ -175,8 +175,9 @@ class PreprocessTestCase(TestCase):
                 foo(not_int(1), 2, 3)
             self.assertEqual(
                 e.exception.args[0],
-                "tests.utils.test_preprocess.foo() expected a value of type "
+                "{modname}.foo() expected a value of type "
                 "int for argument 'a', but got {t} instead.".format(
+                    modname=foo.__module__,
                     t=not_int.__name__,
                 )
             )
@@ -197,9 +198,9 @@ class PreprocessTestCase(TestCase):
             foo('1')
 
         expected_message = (
-            "tests.utils.test_preprocess.foo() expected a value of "
+            "{modname}.foo() expected a value of "
             "type int or float for argument 'a', but got str instead."
-        )
+        ).format(modname=foo.__module__)
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_optional_types(self):
@@ -219,7 +220,7 @@ class PreprocessTestCase(TestCase):
             foo('1')
 
         expected_message = (
-            "tests.utils.test_preprocess.foo() expected a value of "
+            "{modname}.foo() expected a value of "
             "type int or NoneType for argument 'a', but got str instead."
-        )
+        ).format(modname=foo.__module__)
         self.assertEqual(e.exception.args[0], expected_message)
