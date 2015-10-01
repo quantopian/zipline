@@ -56,7 +56,7 @@ _asset_str_fields = frozenset({
 _asset_timestamp_fields = frozenset({
     'start_date',
     'end_date',
-    'first_traded'
+    'first_traded',
     'notice_date',
     'expiration_date',
     'auto_close_date',
