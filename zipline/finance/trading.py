@@ -121,7 +121,10 @@ class TradingEnvironment(object):
         else:
             self.engine = engine = asset_db_path
 
-        self.asset_finder = AssetFinder(engine)
+        if engine is not None:
+            self.asset_finder = AssetFinder(engine)
+        else:
+            self.asset_finder = None
 
     def write_data(self,
                    engine=None,
