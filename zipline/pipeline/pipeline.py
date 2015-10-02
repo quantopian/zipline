@@ -7,10 +7,10 @@ from .graph import TermGraph
 
 class Pipeline(object):
     """
+    A computational Pipeline for use in trading algorithms.
+
     Parameters
     ----------
-    name : str, optional
-        Name for this pipeline.
     columns : dict, optional
         Initial columns.
     screen : zipline.pipeline.term.Filter, optional
@@ -20,33 +20,25 @@ class Pipeline(object):
     -------
     add
     remove
-    apply_screen
+    set_screen
 
     Attributes
     ----------
     columns
     screen
     """
-    __slots__ = ('_name', '_columns', '_screen', '__weakref__')
+    __slots__ = ('_columns', '_screen', '__weakref__')
 
     @expect_types(
-        name=str,
         columns=optional(dict),
         screen=optional(Filter),
     )
-    def __init__(self, name, columns=None, screen=None):
-        self._name = name
+    def __init__(self, columns=None, screen=None):
+
         if columns is None:
             columns = {}
         self._columns = columns
         self._screen = screen
-
-    @property
-    def name(self):
-        """
-        The name of this pipeline.
-        """
-        return self._name
 
     @property
     def columns(self):
@@ -114,10 +106,7 @@ class Pipeline(object):
     @expect_types(screen=Filter)
     def set_screen(self, screen, overwrite=False):
         """
-        Apply a screen to this Pipeline.
-
-        If no screen has yet been applied to the pipeline, this method sets
-        `screen` as the current screen.
+        Set a screen on this Pipeline.
 
         Parameter
         ---------

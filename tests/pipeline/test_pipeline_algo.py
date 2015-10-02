@@ -173,7 +173,7 @@ class ClosesOnly(TestCase):
             pass
 
         def late_attach(context, data):
-            attach_pipeline(Pipeline('test'))
+            attach_pipeline(Pipeline(), 'test')
             raise AssertionError("Shouldn't make it past attach_pipeline!")
 
         algo = TradingAlgorithm(
@@ -211,7 +211,7 @@ class ClosesOnly(TestCase):
         Assert that calling pipeline_output after initialize raises correctly.
         """
         def initialize(context):
-            attach_pipeline(Pipeline('test'))
+            attach_pipeline(Pipeline(), 'test')
             pipeline_output('test')
             raise AssertionError("Shouldn't make it past pipeline_output()")
 
@@ -240,7 +240,7 @@ class ClosesOnly(TestCase):
         Assert that calling add_pipeline after initialize raises appropriately.
         """
         def initialize(context):
-            attach_pipeline(Pipeline('test'))
+            attach_pipeline(Pipeline(), 'test')
 
         def handle_data(context, data):
             raise AssertionError("Shouldn't make it past before_trading_start")
@@ -269,10 +269,8 @@ class ClosesOnly(TestCase):
         correctly-adjusted close price values.
         """
         def initialize(context):
-            p = Pipeline('test')
+            p = attach_pipeline(Pipeline(), 'test')
             p.add(USEquityPricing.close.latest, 'close')
-
-            attach_pipeline(p)
 
         def handle_data(context, data):
             results = pipeline_output('test')
@@ -477,7 +475,7 @@ class PipelineAlgorithmTestCase(TestCase):
             return "vwap_%d" % length
 
         def initialize(context):
-            pipeline = Pipeline('test')
+            pipeline = Pipeline()
             context.vwaps = []
             for length in vwaps:
                 name = vwap_key(length)
@@ -490,7 +488,7 @@ class PipelineAlgorithmTestCase(TestCase):
             if set_screen:
                 pipeline.set_screen(filter_)
 
-            attach_pipeline(pipeline)
+            attach_pipeline(pipeline, 'test')
 
         def handle_data(context, data):
             today = get_datetime()

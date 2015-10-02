@@ -30,21 +30,20 @@ class SomeOtherFilter(Filter):
 class PipelineTestCase(TestCase):
 
     def test_construction(self):
-        p0 = Pipeline('arglebargle')
-        self.assertEqual(p0.name, 'arglebargle')
+        p0 = Pipeline()
         self.assertEqual(p0.columns, {})
         self.assertIs(p0.screen, None)
 
         columns = {'f': SomeFactor()}
-        p1 = Pipeline('test', columns=columns)
+        p1 = Pipeline(columns=columns)
         self.assertEqual(p1.columns, columns)
 
         screen = SomeFilter()
-        p2 = Pipeline('test', screen=screen)
+        p2 = Pipeline(screen=screen)
         self.assertEqual(p2.columns, {})
         self.assertEqual(p2.screen, screen)
 
-        p3 = Pipeline('test', columns=columns, screen=screen)
+        p3 = Pipeline(columns=columns, screen=screen)
         self.assertEqual(p3.columns, columns)
         self.assertEqual(p3.screen, screen)
 
@@ -53,21 +52,18 @@ class PipelineTestCase(TestCase):
         with self.assertRaises(TypeError):
             Pipeline(1)
 
-        with self.assertRaises(TypeError):
-            Pipeline('test', 1)
-
-        Pipeline('test', {})
+        Pipeline({})
 
         with self.assertRaises(TypeError):
-            Pipeline('test', {}, 1)
+            Pipeline({}, 1)
 
         with self.assertRaises(TypeError):
-            Pipeline('test', {}, SomeFactor())
+            Pipeline({}, SomeFactor())
 
-        Pipeline('test', {}, SomeFactor() > 5)
+        Pipeline({}, SomeFactor() > 5)
 
     def test_add(self):
-        p = Pipeline('test')
+        p = Pipeline()
         f = SomeFactor()
 
         p.add(f, 'f')
@@ -80,7 +76,7 @@ class PipelineTestCase(TestCase):
             p.add(f, 1)
 
     def test_overwrite(self):
-        p = Pipeline('test')
+        p = Pipeline()
         f = SomeFactor()
         other_f = SomeOtherFactor()
 
@@ -97,7 +93,7 @@ class PipelineTestCase(TestCase):
 
     def test_remove(self):
         f = SomeFactor()
-        p = Pipeline('test', columns={'f': f})
+        p = Pipeline(columns={'f': f})
 
         with self.assertRaises(KeyError) as e:
             p.remove('not_a_real_name')
@@ -112,7 +108,7 @@ class PipelineTestCase(TestCase):
     def test_set_screen(self):
         f, g = SomeFilter(), SomeOtherFilter()
 
-        p = Pipeline('test')
+        p = Pipeline()
         self.assertEqual(p.screen, None)
 
         p.set_screen(f)

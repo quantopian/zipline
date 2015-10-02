@@ -117,7 +117,7 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
 
-        p = Pipeline('test')
+        p = Pipeline()
 
         msg = "start_date must be before end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -135,7 +135,7 @@ class ConstantInputTestCase(TestCase):
 
         factor = AssetID()
         for asset in assets:
-            p = Pipeline('test', columns={'f': factor}, screen=factor <= asset)
+            p = Pipeline(columns={'f': factor}, screen=factor <= asset)
             result = engine.run_pipeline(p, dates[0], dates[-1])
 
             expected_sids = assets[assets <= asset]
@@ -161,9 +161,8 @@ class ConstantInputTestCase(TestCase):
 
         # Since every asset will pass the screen, these should be equivalent.
         pipelines = [
-            Pipeline('test', columns={'f': factor}),
+            Pipeline(columns={'f': factor}),
             Pipeline(
-                'test',
                 columns={'f': factor},
                 screen=factor.eq(expected_result),
             ),
@@ -198,7 +197,6 @@ class ConstantInputTestCase(TestCase):
         )
 
         pipeline = Pipeline(
-            'test',
             columns={
                 'short': short_factor,
                 'long': long_factor,
@@ -242,7 +240,6 @@ class ConstantInputTestCase(TestCase):
 
         results = engine.run_pipeline(
             Pipeline(
-                'test',
                 columns={
                     'high_low': high_minus_low,
                     'open_close': open_minus_close,
@@ -373,7 +370,6 @@ class FrameInputTestCase(TestCase):
             for start, stop in bounds:
                 results = engine.run_pipeline(
                     Pipeline(
-                        'test',
                         columns={'low': low_mavg, 'high': high_mavg}
                     ),
                     dates[start],
@@ -488,7 +484,7 @@ class SyntheticBcolzTestCase(TestCase):
         )
 
         results = engine.run_pipeline(
-            Pipeline('test', columns={'sma': SMA}),
+            Pipeline(columns={'sma': SMA}),
             dates_to_test[0],
             dates_to_test[-1],
         )
@@ -540,7 +536,7 @@ class SyntheticBcolzTestCase(TestCase):
         )
 
         results = engine.run_pipeline(
-            Pipeline('test', columns={'drawdown': drawdown}),
+            Pipeline(columns={'drawdown': drawdown}),
             dates_to_test[0],
             dates_to_test[-1],
         )
@@ -594,7 +590,6 @@ class MultiColumnLoaderTestCase(TestCase):
 
         result = engine.run_pipeline(
             Pipeline(
-                'test',
                 columns={
                     'sumdiff': sumdiff,
                     'open': open_.latest,

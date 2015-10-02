@@ -231,7 +231,7 @@ class TradingAlgorithm(object):
 
         # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('pipeline_loader', None))
-        self._pipelines = []
+        self._pipelines = {}
         # Create an always-expired cache so that we compute the first time data
         # is requested.
         self._pipeline_cache = CachedObject(None, pd.Timestamp(0, tz='UTC'))
@@ -1337,13 +1337,17 @@ class TradingAlgorithm(object):
     ##############
     @api_method
     @require_not_initialized(AttachPipelineAfterInitialize())
-    def attach_pipeline(self, pipeline):
+    def attach_pipeline(self, pipeline, name):
         """
         Register a pipeline to be computed at the start of each day.
         """
         if self._pipelines:
             raise NotImplementedError("Multiple pipelines are not supported.")
-        self._pipelines.append(pipeline)
+        self._pipelines[name] = pipeline
+
+        # Return the pipeline to allow expressions like
+        # p = attach_pipeline(Pipeline(), 'name')
+        return pipeline
 
     @api_method
     @require_initialized(PipelineOutputDuringInitialize())
@@ -1353,7 +1357,7 @@ class TradingAlgorithm(object):
 
         Parameters
         ----------
-        name : str or None
+        name : str
             Name of the pipeline for which results are requested.
 
         Returns
@@ -1373,14 +1377,12 @@ class TradingAlgorithm(object):
         """
         # NOTE: We don't currently support multiple pipelines, but we plan to
         # in the future.
-        for p in self._pipelines:
-            if p.name == name:
-                break
-        # This is a for-else block.  Yes, that's a thing in Python.
-        else:
+        try:
+            p = self._pipelines[name]
+        except KeyError:
             raise NoSuchPipeline(
                 name=name,
-                valid=[p.name for p in self._pipelines],
+                valid=list(self._pipelines.keys()),
             )
         return self._pipeline_output(p)
 
