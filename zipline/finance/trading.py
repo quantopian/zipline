@@ -121,7 +121,10 @@ class TradingEnvironment(object):
         else:
             self.engine = engine = asset_db_path
 
-        self.asset_finder = AssetFinder(engine)
+        if engine is not None:
+            self.asset_finder = AssetFinder(engine)
+        else:
+            self.asset_finder = None
 
     def write_data(self,
                    engine=None,
@@ -196,7 +199,7 @@ class TradingEnvironment(object):
             .write_all(self.engine, allow_sid_assignment=allow_sid_assignment)
 
     def _write_data_dicts(self, equities=None, futures=None, exchanges=None,
-                          root_symbols=None, allow_sid_assignment=True):
+                          root_symbols=None):
         AssetDBWriterFromDictionary(equities, futures, exchanges, root_symbols)\
             .write_all(self.engine)
 

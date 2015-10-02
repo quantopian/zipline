@@ -13,16 +13,15 @@
 # limitations under the License.
 
 from abc import ABCMeta
-from functools import partial
 from numbers import Integral
-from operator import getitem, itemgetter
+from operator import itemgetter
 import warnings
 
 from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
-from six import with_metaclass, string_types
+from six import with_metaclass, string_types, viewkeys
 import sqlalchemy as sa
 from toolz import compose
 
@@ -37,8 +36,6 @@ from zipline.assets import (
     Asset, Equity, Future,
 )
 from zipline.assets.asset_writer import (
-    FUTURE_TABLE_FIELDS,
-    EQUITY_TABLE_FIELDS,
     split_delimited_symbol,
 )
 
@@ -67,9 +64,9 @@ def _convert_asset_timestamp_fields(dict):
     """
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
-    for key, value in dict.items():
-        if (key in _asset_timestamp_fields) and (value is not None):
-            dict[key] = pd.Timestamp(value, tz='UTC')
+    for key in (_asset_timestamp_fields & viewkeys(dict)):
+        value = pd.Timestamp(dict[key], tz='UTC')
+        dict[key] = None if pd.isnull(value) else value
 
 
 class AssetFinder(object):
@@ -84,60 +81,13 @@ class AssetFinder(object):
 
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
-        self.equities = equities = sa.Table(
-            'equities',
-            metadata,
-            autoload=True,
-            autoload_with=engine,
-        )
-        self.futures_exchanges = sa.Table(
-            'futures_exchanges',
-            metadata,
-            autoload=True,
-            autoload_with=engine,
-        )
-        self.futures_root_symbols = sa.Table(
-            'futures_root_symbols',
-            metadata,
-            autoload=True,
-            autoload_with=engine,
-        )
-        self.futures_contracts = futures_contracts = sa.Table(
-            'futures_contracts',
-            metadata,
-            autoload=True,
-            autoload_with=engine,
-        )
-        self.asset_router = sa.Table(
-            'asset_router',
-            metadata,
-            autoload=True,
-            autoload_with=engine,
-        )
 
-        # Create the equity and future queries once.
-        _equity_sid = equities.c.sid
-        _equity_by_sid = sa.select(
-            tuple(map(partial(getitem, equities.c), EQUITY_TABLE_FIELDS)),
-        )
+        table_names = ['equities', 'futures_exchanges', 'futures_root_symbols',
+                       'futures_contracts', 'asset_router']
+        metadata.reflect(only=table_names)
+        for table_name in table_names:
+            setattr(self, table_name, metadata.tables[table_name])
 
-        def select_equity_by_sid(sid):
-            return _equity_by_sid.where(_equity_sid == int(sid))
-
-        self.select_equity_by_sid = select_equity_by_sid
-
-        _future_sid = futures_contracts.c.sid
-        _future_by_sid = sa.select(
-            tuple(map(
-                partial(getitem, futures_contracts.c),
-                FUTURE_TABLE_FIELDS,
-            )),
-        )
-
-        def select_future_by_sid(sid):
-            return _future_by_sid.where(_future_sid == int(sid))
-
-        self.select_future_by_sid = select_future_by_sid
         # Cache for lookup of assets by sid, the objects in the asset lookp may
         # be shared with the results from equity and future lookup caches.
         #
@@ -203,51 +153,46 @@ class AssetFinder(object):
             raise SidNotFound(sid=sid)
 
     def retrieve_all(self, sids, default_none=False):
-        return [self.retrieve_asset(sid) for sid in sids]
+        return [self.retrieve_asset(sid, default_none) for sid in sids]
 
     def _retrieve_equity(self, sid):
         """
         Retrieve the Equity object of a given sid.
         """
-        try:
-            return self._equity_cache[sid]
-        except KeyError:
-            pass
-
-        data = self.select_equity_by_sid(sid).execute().fetchone()
-        # Convert 'data' from a RowProxy object to a dict, to allow assignment
-        data = dict(data.items())
-        if data:
-            _convert_asset_timestamp_fields(data)
-
-            equity = Equity(**data)
-        else:
-            equity = None
-
-        self._equity_cache[sid] = equity
-        return equity
+        return self._retrieve_asset(
+            sid, self._equity_cache, self.equities, Equity,
+        )
 
     def _retrieve_futures_contract(self, sid):
         """
         Retrieve the Future object of a given sid.
         """
+        return self._retrieve_asset(
+            sid, self._future_cache, self.futures_contracts, Future,
+        )
+
+    @staticmethod
+    def _select_asset_by_sid(asset_tbl, sid):
+        return sa.select([asset_tbl]).where(asset_tbl.c.sid == int(sid))
+
+    def _retrieve_asset(self, sid, cache, asset_tbl, asset_type):
         try:
-            return self._future_cache[sid]
+            return cache[sid]
         except KeyError:
             pass
 
-        data = self.select_future_by_sid(sid).execute().fetchone()
+        data = self._select_asset_by_sid(asset_tbl, sid).execute().fetchone()
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
         data = dict(data.items())
         if data:
             _convert_asset_timestamp_fields(data)
 
-            future = Future(**data)
+            asset = asset_type(**data)
         else:
-            future = None
+            asset = None
 
-        self._future_cache[sid] = future
-        return future
+        cache[sid] = asset
+        return asset
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
@@ -558,7 +503,7 @@ class AssetFinder(object):
 
         # Handle missing assets
         if len(missing) > 0:
-            warnings.warn("Missing assets for identifiers: " + missing)
+            warnings.warn("Missing assets for identifiers: %s" % missing)
 
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]

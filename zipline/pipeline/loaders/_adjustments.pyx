@@ -28,6 +28,9 @@ ctypedef object DatetimeIndex_t
 ctypedef object Int64Index_t
 
 from zipline.lib.adjustment import Float64Multiply
+from zipline.assets.asset_writer import (
+    SQLITE_MAX_VARIABLE_NUMBER as SQLITE_MAX_IN_STATEMENT,
+)
 
 _SID_QUERY_TEMPLATE = """
 SELECT DISTINCT sid FROM {0}
@@ -44,7 +47,6 @@ FROM {0}
 WHERE sid IN ({1}) AND effective_date >= {2} AND effective_date <= {3}
 """
 
-cdef int SQLITE_MAX_IN_STATEMENT = 999
 EPOCH = Timestamp(0, tz='UTC')
 
 cdef set _get_sids_from_table(object db,
