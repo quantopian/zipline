@@ -106,19 +106,14 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_position_stats(pt, dt=None):
-
-    sids = []
+def calc_position_stats(positions,
+                        position_value_multipliers,
+                        position_exposure_multipliers):
     amounts = []
     last_sale_prices = []
-    position_value_multipliers = pt._position_value_multipliers
-    position_exposure_multipliers = pt._position_exposure_multipliers
-
-    for sid, pos in iteritems(pt.positions):
-        sids.append(sid)
+    for pos in itervalues(positions):
         amounts.append(pos.amount)
-        last_sale_prices.append(pt._data_portal.get_spot_price(
-            sid, 'close', dt))
+        last_sale_prices.append(pos.last_sale_price)
 
     position_values = calc_position_values(
         amounts,
@@ -334,7 +329,7 @@ class PositionTracker(object):
                 # leftover cash from a fractional share, if there is any.
                 position = self.positions[sid]
                 leftover_cash = position.handle_split(sid, split[1])
-                self._update_asset(split.sid)
+                self._update_asset(split[0])
                 return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
@@ -425,7 +420,7 @@ class PositionTracker(object):
         )
         return txn
 
-    def get_positions(self):
+    def get_positions(self, dt):
 
         positions = self._positions_store
 
@@ -448,7 +443,8 @@ class PositionTracker(object):
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price =\
-                self._data_portal.get_spot_price(sid, 'close')
+                self._data_portal.get_spot_price(sid, 'close', dt)
+            position.last_sale_date = pos.last_sale_date
         return positions
 
     def get_positions_list(self):
@@ -457,6 +453,17 @@ class PositionTracker(object):
             if pos.amount != 0:
                 positions.append(pos.to_dict())
         return positions
+
+    def sync_last_sale_prices(self, dt):
+        data_portal = self._data_portal
+        for sid, position in iteritems(self.positions):
+            position.last_sale_price = data_portal.get_spot_price(
+                sid, 'close', dt)
+
+    def stats(self):
+        return calc_position_stats(self.positions,
+                                   self._position_value_multipliers,
+                                   self._position_exposure_multipliers)
 
     def __getstate__(self):
         state_dict = {}
