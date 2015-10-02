@@ -1784,7 +1784,7 @@ shares in position"
             pt.positions[1].last_sale_price,
             10,
             "should have a last sale of 10, was {val}".format(
-                val=positions[1].last_sale_price)
+                val=pt.positions[1].last_sale_price)
         )
 
         self.assertEqual(
