@@ -344,12 +344,6 @@ class AlgorithmSimulator(object):
         """
         Generator that yields perf messages for the given datetime.
         """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
         rvars = self.algo.recorded_vars
         if self.algo.perf_tracker.emission_rate == 'daily':
             perf_message = \

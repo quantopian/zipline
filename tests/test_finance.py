@@ -317,7 +317,7 @@ class FinanceTestCase(TestCase):
         self.assertEqual(total_volume, expected_txn_volume)
         self.assertEqual(len(transactions), expected_txn_count)
 
-        cumulative_pos = tracker.cumulative_performance.positions[sid]
+        cumulative_pos = tracker.position_tracker.positions[sid]
         self.assertEqual(total_volume, cumulative_pos.amount)
 
         # the open orders should not contain sid.
