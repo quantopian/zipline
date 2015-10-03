@@ -199,6 +199,8 @@ class HistoryTestCase(TestCase):
         return DataPortal(
             self.env,
             asset_finder=asset_finder,
+            # TODO: Change this to a subdir.
+            minutes_equities_path=temp_path,
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustments_path=join(temp_path, adjustments_filename)
         )
