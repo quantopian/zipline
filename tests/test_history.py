@@ -766,7 +766,7 @@ class HistoryTestCase(TestCase):
         portal = self.get_portal()
 
         # bad fieldname
-        for field in ["open", "close", "foo", "bar", "", "5"]:
+        for field in ["foo", "bar", "", "5"]:
             with self.assertRaises(ValueError):
                 portal.get_history_window(
                     [self.AAPL],
