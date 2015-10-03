@@ -30,7 +30,7 @@ class DataPortal(object):
                  sid_path_func=None):
         self.env = env
         self.current_dt = None
-        self.current_day = sim_params.period_start
+        self.current_day = None
         self.cur_data_offset = 0
 
         self.views = {}

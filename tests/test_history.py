@@ -198,8 +198,6 @@ class HistoryTestCase(TestCase):
 
         return DataPortal(
             self.env,
-            None,
-            findata_dir=temp_path,
             asset_finder=asset_finder,
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustments_path=join(temp_path, adjustments_filename)
