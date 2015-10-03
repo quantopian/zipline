@@ -332,8 +332,8 @@ class PerformanceTracker(object):
 
         log.info("Ignoring DIVIDEND event.")
 
-    def process_split(self, event):
-        leftover_cash = self.position_tracker.handle_splits(event)
+    def handle_splits(self, splits):
+        leftover_cash = self.position_tracker.handle_splits(splits)
         if leftover_cash > 0:
             self.cumulative_performance.handle_cash_payment(leftover_cash)
             self.todays_performance.handle_cash_payment(leftover_cash)

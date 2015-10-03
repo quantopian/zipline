@@ -214,8 +214,6 @@ def calculate_results(sim_params,
             # Process txns for this date.
             perf_tracker.process_transaction(txn)
 
-        perf_tracker.position_tracker.sync_last_sale_prices(date)
-
         try:
             commissions_for_date = commissions[date]
             for comm in commissions_for_date:
@@ -225,7 +223,7 @@ def calculate_results(sim_params,
 
         try:
             splits_for_date = splits[date]
-            perf_tracker.position_tracker.handle_splits(splits_for_date)
+            perf_tracker.handle_splits(splits_for_date)
         except KeyError:
             pass
 
@@ -277,7 +275,9 @@ class TestSplitPerformance(unittest.TestCase):
     def test_split_long_position(self):
         events = factory.create_trade_history(
             1,
-            [20, 20],
+            # TODO: Should we provide adjusted prices in the tests, or provide
+            # raw prices and adjust via DataPortal?
+            [20, 60],
             [100, 100],
             oneday,
             self.sim_params,
@@ -324,7 +324,8 @@ class TestSplitPerformance(unittest.TestCase):
 
         self.assertTrue(
             zp_math.tolerant_equals(8020,
-                                    daily_perf['ending_cash'], 1))
+                                    daily_perf['ending_cash'], 1),
+            "ending_cash was {0}".format(daily_perf['ending_cash']))
 
         # Validate that the account attributes were updated.
         account = results[1]['account']

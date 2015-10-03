@@ -114,11 +114,7 @@ class Position(object):
         # adjust the cost basis to the nearest cent, e.g., 60.0
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
-        # adjust the last sale price
-        new_last_sale_price = round(self.last_sale_price * ratio, 2)
-
         self.cost_basis = new_cost_basis
-        self.last_sale_price = new_last_sale_price
         self.amount = full_share_count
 
         return_cash = round(float(fractional_share_count * new_cost_basis), 2)
