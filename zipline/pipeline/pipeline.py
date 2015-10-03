@@ -7,7 +7,18 @@ from .graph import TermGraph
 
 class Pipeline(object):
     """
-    A computational Pipeline for use in trading algorithms.
+    A Pipeline object represents a collection of named expressions to be
+    compiled and executed by a PipelineEngine.
+
+    A Pipeline has two important attributes: 'columns', a dictionary of named
+    `Term` instances, and 'screen', a Filter representing criteria for
+    including an asset in the results of a Pipeline.
+
+    To compute a pipeline in the context of a TradingAlgorithm, users should
+    call `attach_pipeline` in their `initialize` function to register that the
+    pipeline computed for each trading day.  The outputs of the pipeline on a
+    given day can be accessed by calling `pipeline_outputs` in `handle_data` or
+    `before_trading_start`.
 
     Parameters
     ----------

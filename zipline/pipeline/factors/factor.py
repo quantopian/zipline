@@ -434,12 +434,95 @@ class Rank(SingleInputMixin, Factor):
 
 class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     """
-    Base class for user-defined Factors operating on windows of raw data.
+    Base class for user-defined Factors.
 
-    TODO: This is basically the most important class to document in the whole
-    Pipeline API...
+    Parameters
+    ----------
+    inputs : iterable, optional
+        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
+        describing the data to load and pass to `self.compute`.  If this
+        argument is passed to the CustomFactor constructor, we look for a
+        class-level attribute named `inputs`.
+    window_length : (optional), int
+        Number of rows of rows to pass for each input.  If this
+        argument is passed to the CustomFactor constructor, we look for a
+        class-level attribute named `window_length`.
 
-    We currently only support CustomFactors of type float64.
+    Notes
+    -----
+    Users implementing their own Factors should subclass CustomFactor and
+    implement a method named `compute` with the following signature:
+
+        def compute(self, today, assets, out, *inputs):
+           ...
+
+    On each simulation date, `compute` will be called with the current date, an
+    array of sids, an output array, and an input array for each expression
+    passed as `inputs` to the CustomFactor constructor.
+
+    The specific types of the vaules passed to `compute` are as follows:
+
+        today : np.datetime64[ns]
+            Row label for the last row of all arrays passed as `inputs`.
+        assets : np.array[int64, ndim=1]
+            Column labels for `out` and`inputs`.
+        out : np.array[float64, ndim=1]
+            Output array of the same shape as `assets`.  `compute` should write
+            its desired return values into `out`.
+        *inputs : tuple of np.array
+            Raw data arrays corresponding to the values of `self.inputs`.
+
+    `compute` functions should expect to be passed NaN values for dates on
+    which no data was available for an asset.  This may include dates on which
+    an asset did not yet exist.
+
+    For example, if a CustomFactor requires 10 rows of close price data, and
+    asset A started trading on Monday June 2nd, 2014, then on Tuesday, June
+    3rd, 2014, the column of input data for asset A will have 9 leading NaNs
+    for the preceding days on which data was not yet available.
+
+    Examples
+    --------
+
+    class TenDayRange(CustomFactor):
+        '''
+        Computes the difference between the highest high in the last 10 days
+        and the lowest low.
+
+        Pre-declares high and low as default inputs and `window_length` as 10.
+        '''
+
+        inputs = [USEquityPricing.high, USEquityPricing.low]
+        window_length = 10
+
+        def compute(self, today, assets, out, highs, lows):
+            from numpy import nanmin, nanmax
+
+            highest_highs = nanmax(axis=0)
+            lowest_lows = nanmin(axis=0)
+            out[:] = highest_highs = lowest_lows
+
+    # Doesn't require passing inputs or window_length because they're
+    # pre-declared as defaults
+    ten_day_low = TenDayLow()
+
+    class MedianValue(CustomFactor):
+        '''
+        Computes the median value of an arbitrary single input over an
+        arbitrary window..
+
+        Does not declare any defaults, so values for `window_length` and
+        `inputs` must be passed explicitly on every construction.
+        '''
+
+        def compute(self, today, assets, out, data):
+            from numpy import nanmedian
+            out[:} = data.nanmedian(axis=0)
+
+
+    # Values for `inputs` and `window_length` must be passsed explitly.
+    median_close_10 = MedianValue([USEquityPricing.close], window_length=10)
+    median_low_15 = MedianValue([USEquityPricing.low], window_length=15)
     """
     ctx = nullctx()
 

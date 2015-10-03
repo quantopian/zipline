@@ -259,11 +259,19 @@ class CustomTermMixin(object):
     """
     Mixin for user-defined rolling-window Terms.
 
-    Implements `compute_from_windows` in terms of a user-defined `compute`
-    function, which is mapped over the input windows.
+    Implements `_compute` in terms of a user-defined `compute` function, which
+    is mapped over the input windows.
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
+
+    def __new__(cls, inputs=NotSpecified, window_length=NotSpecified):
+
+        return super(CustomTermMixin, cls).__new__(
+            cls,
+            inputs=inputs,
+            window_length=window_length,
+        )
 
     def compute(self, today, assets, out, *arrays):
         """
