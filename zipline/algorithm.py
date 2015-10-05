@@ -747,6 +747,12 @@ class TradingAlgorithm(object):
     def recorded_vars(self):
         return copy(self._recorded_vars)
 
+    def updated_portfolio(self):
+        return self.portfolio
+
+    def updated_account(self):
+        return self.account
+
     @property
     def portfolio(self):
         if self._portfolio is None:
