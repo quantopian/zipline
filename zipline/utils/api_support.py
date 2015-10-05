@@ -64,7 +64,7 @@ def require_not_initialized(exception):
 
     Usage
     -----
-    @require_not_initialized(SomeException, "Don't do that!")
+    @require_not_initialized(SomeException("Don't do that!"))
     def method(self):
         # Do stuff that should only be allowed during initialize.
     """
@@ -72,6 +72,28 @@ def require_not_initialized(exception):
         @wraps(method)
         def wrapped_method(self, *args, **kwargs):
             if self.initialized:
+                raise exception
+            return method(self, *args, **kwargs)
+        return wrapped_method
+    return decorator
+
+
+def require_initialized(exception):
+    """
+    Decorator for API methods that should only be called after
+    TradingAlgorithm.initialize.  `exception` will be raised if the method is
+    called before initialize has completed.
+
+    Usage
+    -----
+    @require_initialized(SomeException("Don't do that!"))
+    def method(self):
+        # Do stuff that should only be allowed after initialize.
+    """
+    def decorator(method):
+        @wraps(method)
+        def wrapped_method(self, *args, **kwargs):
+            if not self.initialized:
                 raise exception
             return method(self, *args, **kwargs)
         return wrapped_method

@@ -318,8 +318,8 @@ class WindowLengthNotPositive(ZiplineError):
 
 class InputTermNotAtomic(ZiplineError):
     """
-    Raised when a non-atomic term is specified as an input to an FFC term with
-    a lookback window.
+    Raised when a non-atomic term is specified as an input to a Pipeline API
+    term with a lookback window.
     """
     msg = (
         "Can't compute {parent} with non-atomic input {child}."
@@ -377,21 +377,39 @@ class UnknownRankMethod(ZiplineError):
     )
 
 
-class AddTermPostInit(ZiplineError):
+class AttachPipelineAfterInitialize(ZiplineError):
     """
-    Raised when a user tries to call add_{filter,factor,classifier}
-    outside of initialize.
+    Raised when a user tries to call add_pipeline outside of initialize.
     """
     msg = (
-        "Attempted to add a new filter, factor, or classifier "
-        "outside of initialize.\n"
-        "New FFC terms may only be added during initialize."
+        "Attempted to attach a pipeline after initialize()."
+        "attach_pipeline() can only be called during initialize."
+    )
+
+
+class PipelineOutputDuringInitialize(ZiplineError):
+    """
+    Raised when a user tries to call `pipeline_output` during initialize.
+    """
+    msg = (
+        "Attempted to call pipeline_output() during initialize. "
+        "pipeline_output() can only be called once initialize has completed."
+    )
+
+
+class NoSuchPipeline(ZiplineError, KeyError):
+    """
+    Raised when a user tries to access a non-existent pipeline by name.
+    """
+    msg = (
+        "No pipeline named '{name}' exists. Valid pipeline names are {valid}. "
+        "Did you forget to call attach_pipeline()?"
     )
 
 
 class UnsupportedDataType(ZiplineError):
     """
-    Raised by FFC CustomFactors with unsupported dtypes.
+    Raised by CustomFactors with unsupported dtypes.
     """
     msg = "CustomFactors with dtype {dtype} are not supported."
 

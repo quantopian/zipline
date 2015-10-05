@@ -13,47 +13,11 @@ import sqlalchemy as sa
 from zipline.errors import SidAssignmentError
 from zipline.assets._assets import Asset
 
+SQLITE_MAX_VARIABLE_NUMBER = 999
+
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
-# Expected fields for an Asset's metadata
-ASSET_TABLE_FIELDS = frozenset({
-    'sid',
-    'symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'exchange',
-})
-
-# Expected fields for a Future's metadata
-FUTURE_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
-    'notice_date',
-    'expiration_date',
-    'auto_close_date',
-    'contract_multiplier',
-}
-
-# Expected fields for an Equity's metadata
-EQUITY_TABLE_FIELDS = ASSET_TABLE_FIELDS | {
-    'company_symbol',
-    'share_class_symbol',
-    'fuzzy_symbol',
-}
-
-EXCHANGE_TABLE_FIELDS = frozenset({
-    'exchange',
-    'timezone',
-})
-
-ROOT_SYMBOL_TABLE_FIELDS = frozenset({
-    'root_symbol',
-    'root_symbol_id',
-    'sector',
-    'description',
-    'exchange',
-})
 
 # Default values for the equities DataFrame
 _equities_defaults = {
@@ -162,21 +126,21 @@ def _generate_output_dataframe(data_subset, defaults):
     """
     # The columns provided.
     cols = set(data_subset.columns)
-    desired_cols = {col for col in defaults.keys()}
+    desired_cols = set(defaults)
 
     # Drop columns with unrecognised headers.
-    data_subset.drop(cols - (cols & desired_cols),
+    data_subset.drop(cols - desired_cols,
                      axis=1,
                      inplace=True)
 
     # Get those columns which we need but
     # for which no data has been supplied.
-    need = desired_cols - set(data_subset.columns)
+    need = desired_cols - cols
 
     # Combine the users supplied data with our required columns.
     output = pd.concat(
         (data_subset, pd.DataFrame(
-            _dict_subset(defaults, need),
+            {k: defaults[k] for k in need},
             data_subset.index,
         )),
         axis=1,
@@ -184,13 +148,6 @@ def _generate_output_dataframe(data_subset, defaults):
     )
 
     return output
-
-
-def _dict_subset(dict_, subset):
-    res = {}
-    for k in subset:
-        res[k] = dict_[k]
-    return res
 
 
 class AssetDBWriter(with_metaclass(ABCMeta)):
@@ -209,10 +166,34 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         Returns data in standard format.
 
     """
+    CHUNK_SIZE = SQLITE_MAX_VARIABLE_NUMBER
+
+    def __init__(self, equities=None, futures=None, exchanges=None,
+                 root_symbols=None):
+
+        if equities is None:
+            equities = self.defaultval()
+        self._equities = equities
+
+        if futures is None:
+            futures = self.defaultval()
+        self._futures = futures
+
+        if exchanges is None:
+            exchanges = self.defaultval()
+        self._exchanges = exchanges
+
+        if root_symbols is None:
+            root_symbols = self.defaultval()
+        self._root_symbols = root_symbols
+
+    @abstractmethod
+    def defaultval(self):
+        raise NotImplementedError
+
     def write_all(self,
                   engine,
-                  allow_sid_assignment=True,
-                  constraints=True):
+                  allow_sid_assignment=True):
         """ Write pre-supplied data to SQLite.
 
         Parameters
@@ -230,7 +211,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Begin an SQL transaction.
         with engine.begin() as txn:
             # Create SQL tables.
-            self.init_db(txn, constraints)
+            self.init_db(txn)
             # Get the data to add to SQL.
             data = self.load_data()
             # Write the data to SQL.
@@ -239,45 +220,40 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_futures(data.futures, txn)
             self._write_equities(data.equities, txn)
 
-    def _write_exchanges(self, exchanges, bind=None):
-        recs = exchanges.reset_index().rename_axis(
-            {'index': 'exchange'},
-            1,
-        ).to_dict('records')
-        # In SQLAlchemy, insert().values([]) will insert NULLs,
-        # hence we check first to avoid violating NOT NULL constraints.
-        if recs:
-            self.futures_exchanges.insert().values(recs).execute(bind=bind)
+    def _write_df_to_table(self, df, tbl, bind):
+        df.to_sql(
+            tbl.name,
+            bind.connection,
+            index_label=[col.name for col in tbl.primary_key.columns][0],
+            if_exists='append',
+            chunksize=self.CHUNK_SIZE,
+        )
 
-    def _write_root_symbols(self, root_symbols, bind=None):
-        recs = root_symbols.reset_index().rename_axis(
-            {'index': 'root_symbol'},
-            1,
-        ).to_dict('records')
-        if recs:
-            self.futures_root_symbols.insert().values(recs).execute(bind=bind)
+    def _write_assets(self, assets, asset_tbl, asset_type, bind):
+        self._write_df_to_table(assets, asset_tbl, bind)
 
-    def _write_futures(self, futures, bind=None):
-        recs = futures.reset_index().rename_axis(
-            {'index': 'sid'},
-            1,
-        ).to_dict('records')
-        for record in recs:
-            self.futures_contracts.insert().values([record]).execute(bind=bind)
-            self.asset_router.insert().values([(record['sid'], 'future')])\
-                .execute(bind=bind)
+        pd.DataFrame({self.asset_router.c.sid.name: assets.index.values,
+                      self.asset_router.c.asset_type.name: asset_type}).to_sql(
+            self.asset_router.name,
+            bind.connection,
+            if_exists='append',
+            index=False,
+            chunksize=self.CHUNK_SIZE,
+        )
 
-    def _write_equities(self, equities, bind=None):
-        recs = equities.reset_index().rename_axis(
-            {'index': 'sid'},
-            1,
-        ).to_dict('records')
-        for record in recs:
-            self.equities.insert().values([record]).execute(bind=bind)
-            self.asset_router.insert().values((record['sid'], 'equity'))\
-                .execute(bind=bind)
+    def _write_exchanges(self, exchanges, bind):
+        self._write_df_to_table(exchanges, self.futures_exchanges, bind)
 
-    def init_db(self, engine, constraints=True):
+    def _write_root_symbols(self, root_symbols, bind):
+        self._write_df_to_table(root_symbols, self.futures_root_symbols, bind)
+
+    def _write_futures(self, futures, bind):
+        self._write_assets(futures, self.futures_contracts, 'future', bind)
+
+    def _write_equities(self, equities, bind):
+        self._write_assets(equities, self.equities, 'equity', bind)
+
+    def init_db(self, engine):
         """Connect to database and create tables.
 
         Parameters
@@ -287,7 +263,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         constraints : bool, optional
             If True, create SQL ForeignKey and PrimaryKey constraints.
         """
-        self.sql_metadata = metadata = sa.MetaData(bind=engine)
+        metadata = sa.MetaData(bind=engine)
+
         self.equities = sa.Table(
             'equities',
             metadata,
@@ -296,16 +273,16 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('symbol', sa.Text),
             sa.Column('company_symbol', sa.Text, index=True),
             sa.Column('share_class_symbol', sa.Text),
             sa.Column('fuzzy_symbol', sa.Text, index=True),
             sa.Column('asset_name', sa.Text),
-            sa.Column('start_date', sa.Integer, default=0),
-            sa.Column('end_date', sa.Integer),
-            sa.Column('first_traded', sa.Integer),
+            sa.Column('start_date', sa.Integer, default=0, nullable=False),
+            sa.Column('end_date', sa.Integer, nullable=False),
+            sa.Column('first_traded', sa.Integer, nullable=False),
             sa.Column('exchange', sa.Text),
         )
         self.futures_exchanges = sa.Table(
@@ -316,7 +293,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Text,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('timezone', sa.Text),
         )
@@ -328,7 +305,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Text,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('root_symbol_id', sa.Integer),
             sa.Column('sector', sa.Text),
@@ -336,8 +313,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column(
                 'exchange',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_exchanges.c.exchange),
             ),
         )
         self.futures_contracts = sa.Table(
@@ -348,28 +324,26 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints,
+                primary_key=True,
             ),
             sa.Column('symbol', sa.Text),
             sa.Column(
                 'root_symbol',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_root_symbols.c.root_symbol),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_root_symbols.c.root_symbol),
             ),
             sa.Column('asset_name', sa.Text),
-            sa.Column('start_date', sa.Integer, default=0),
-            sa.Column('end_date', sa.Integer),
-            sa.Column('first_traded', sa.Integer),
+            sa.Column('start_date', sa.Integer, default=0, nullable=False),
+            sa.Column('end_date', sa.Integer, nullable=False),
+            sa.Column('first_traded', sa.Integer, nullable=False),
             sa.Column(
                 'exchange',
                 sa.Text,
-                *((sa.ForeignKey(self.futures_exchanges.c.exchange),)
-                  if constraints else ())
+                sa.ForeignKey(self.futures_exchanges.c.exchange),
             ),
-            sa.Column('notice_date', sa.Integer),
-            sa.Column('expiration_date', sa.Integer),
-            sa.Column('auto_close_date', sa.Integer),
+            sa.Column('notice_date', sa.Integer, nullable=False),
+            sa.Column('expiration_date', sa.Integer, nullable=False),
+            sa.Column('auto_close_date', sa.Integer, nullable=False),
             sa.Column('contract_multiplier', sa.Float),
         )
         self.asset_router = sa.Table(
@@ -380,7 +354,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 sa.Integer,
                 unique=True,
                 nullable=False,
-                primary_key=constraints),
+                primary_key=True),
             sa.Column('asset_type', sa.Text),
         )
         # Create the SQL tables if they do not already exist.
@@ -400,10 +374,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         ###############################
 
         # HACK: If company_name is provided, map it to asset_name
-        if ('company_name' in data.equities.columns) \
-                and ('asset_name' not in data.equities.columns):
+        if ('company_name' in data.equities.columns
+                and 'asset_name' not in data.equities.columns):
             data.equities['asset_name'] = data.equities['company_name']
-        if ('file_name' in data.equities.columns):
+        if 'file_name' in data.equities.columns:
             data.equities['symbol'] = data.equities['file_name']
 
         equities_output = _generate_output_dataframe(
@@ -431,12 +405,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             equities_output.fuzzy_symbol.str.upper()
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
-        equities_output['start_date'] = \
-            equities_output['start_date'].apply(self.convert_datetime)
-        equities_output['end_date'] = \
-            equities_output['end_date'].apply(self.convert_datetime)
-        equities_output['first_traded'] = \
-            equities_output['first_traded'].apply(self.convert_datetime)
+        for date_col in ('start_date', 'end_date', 'first_traded'):
+            equities_output[date_col] = \
+                self.dt_to_epoch_ns(equities_output[date_col])
 
         ##############################
         # Generate futures DataFrame #
@@ -448,18 +419,10 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         )
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
-        futures_output['start_date'] = \
-            futures_output['start_date'].apply(self.convert_datetime)
-        futures_output['end_date'] = \
-            futures_output['end_date'].apply(self.convert_datetime)
-        futures_output['first_traded'] = \
-            futures_output['first_traded'].apply(self.convert_datetime)
-        futures_output['notice_date'] = \
-            futures_output['notice_date'].apply(self.convert_datetime)
-        futures_output['expiration_date'] = \
-            futures_output['expiration_date'].apply(self.convert_datetime)
-        futures_output['auto_close_date'] = \
-            futures_output['auto_close_date'].apply(self.convert_datetime)
+        for date_col in ('start_date', 'end_date', 'first_traded',
+                         'notice_date', 'expiration_date', 'auto_close_date'):
+            futures_output[date_col] = \
+                self.dt_to_epoch_ns(futures_output[date_col])
 
         # Convert symbols and root_symbols to upper case.
         futures_output['symbol'] = futures_output.symbol.str.upper()
@@ -488,56 +451,15 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                          exchanges=exchanges_output,
                          root_symbols=root_symbols_output)
 
-    def convert_datetime(self, dt):
-        """Convert a datetime variable to integer of nanoseconds
-           since UNIX Epoch.
-
-        Parameters
-        ----------
-        dt : datetime-coercible
-            A string, int or pd.Timestamp instance representing a datetime, or
-            None/NaN.
-
-        Returns
-        -------
-        int
-            nanoseconds since UNIX Epoch, or None if parameter 'dt' is null.
-        """
-
-        # Check for null parameter
-        if pd.isnull(dt):
-            return None
-
-        # If no timezone is specified, assume UTC.
-        # Otherwise, convert to UTC.
+    @staticmethod
+    def dt_to_epoch_ns(dt_series):
+        index = pd.to_datetime(dt_series.values)
         try:
-            dt = pd.Timestamp(dt).tz_localize('UTC')
+            index = index.tz_localize('UTC')
         except TypeError:
-            dt = pd.Timestamp(dt).tz_convert('UTC')
+            index = index.tz_convert('UTC')
 
-        # Get seconds from UNIX Epoch
-        total_seconds_from_epoch = self._seconds_from_unix_time(dt)
-
-        # Return nanoseconds since UNIX Epoch
-        return int(total_seconds_from_epoch * 1000000000)
-
-    def _seconds_from_unix_time(self, dt):
-        """Return seconds between dt and UNIX Epoch.
-
-        Parameters
-        ----------
-        dt: pandas.Timestamp
-            The time for which to calculate seconds since UNIX Epoch.
-
-        Returns
-        -------
-        float
-            Seconds between dt and UNIX Epoch.
-
-        """
-        epoch = pd.to_datetime(0, utc=True)
-        delta = dt - epoch
-        return delta.total_seconds()
+        return index.view(int)
 
     @abstractmethod
     def _load_data(self):
@@ -559,28 +481,7 @@ class AssetDBWriterFromList(AssetDBWriter):
     Class used to write list data to SQLite database.
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = []
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = []
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = []
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = []
+    defaultval = list
 
     def _load_data(self):
 
@@ -654,28 +555,7 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     {id_0: {attribute_1 : ...}, id_1: {attribute_2: ...}, ...}
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = {}
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = {}
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = {}
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = {}
+    defaultval = dict
 
     def _load_data(self):
 
@@ -696,42 +576,21 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
     Class used to write pandas.DataFrame data to SQLite database.
     """
 
-    def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
-
-        if equities is not None:
-            self._equities = equities
-        else:
-            self._equities = pd.DataFrame()
-
-        if futures is not None:
-            self._futures = futures
-        else:
-            self._futures = pd.DataFrame()
-
-        if exchanges is not None:
-            self._exchanges = exchanges
-        else:
-            self._exchanges = pd.DataFrame()
-
-        if root_symbols is not None:
-            self._root_symbols = root_symbols
-        else:
-            self._root_symbols = pd.DataFrame()
+    defaultval = pd.DataFrame
 
     def _load_data(self):
 
         # Check whether identifier columns have been provided.
         # If they have, set the index to this column.
         # If not, assume the index already cotains the identifier information.
-        if 'sid' in self._equities.columns:
-            self._equities.set_index(['sid'], inplace=True)
-        if 'sid' in self._futures.columns:
-            self._futures.set_index(['sid'], inplace=True)
-        if 'exchange_id' in self._exchanges.columns:
-            self._exchanges.set_index(['exchange'], inplace=True)
-        if 'root_symbol_id' in self._root_symbols.columns:
-            self._root_symbols.set_index(['root_symbol'], inplace=True)
+        for df, id_col in [
+            (self._equities, 'sid'),
+            (self._futures, 'sid'),
+            (self._exchanges, 'exchange'),
+            (self._root_symbols, 'root_symbol'),
+        ]:
+            if id_col in df.columns:
+                df.set_index([id_col], inplace=True)
 
         return AssetData(equities=self._equities,
                          futures=self._futures,

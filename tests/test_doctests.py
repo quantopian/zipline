@@ -4,13 +4,16 @@ import doctest
 from unittest import TestCase
 
 from zipline.lib import adjustment
-from zipline.modelling import (
+from zipline.pipeline import (
     engine,
     expression,
 )
 from zipline.utils import (
+    cache,
     memoize,
+    preprocess,
     test_utils,
+    numpy_utils,
 )
 
 
@@ -25,6 +28,7 @@ class DoctestTestCase(TestCase):
             cls._skip = True
         else:
             cls._skip = False
+        cls.flags = doctest.REPORT_CDIFF | doctest.IGNORE_EXCEPTION_DETAIL
 
     def _check_docs(self, module):
         if self._skip:
@@ -34,9 +38,18 @@ class DoctestTestCase(TestCase):
                   "pdbpp is installed." % module.__name__, file=sys.__stdout__)
             return
         try:
-            doctest.testmod(module, verbose=True, raise_on_error=True)
+            doctest.testmod(
+                module,
+                verbose=True,
+                raise_on_error=True,
+                optionflags=self.flags,
+            )
         except doctest.UnexpectedException as e:
             raise e.exc_info[1]
+        except doctest.DocTestFailure as e:
+            print("Got:")
+            print(e.got)
+            raise
 
     def test_adjustment_docs(self):
         self._check_docs(adjustment)
@@ -52,3 +65,12 @@ class DoctestTestCase(TestCase):
 
     def test_test_utils_docs(self):
         self._check_docs(test_utils)
+
+    def test_preprocess_docs(self):
+        self._check_docs(preprocess)
+
+    def test_cache_docs(self):
+        self._check_docs(cache)
+
+    def test_numpy_utils_docs(self):
+        self._check_docs(numpy_utils)

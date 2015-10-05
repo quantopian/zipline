@@ -65,14 +65,14 @@ def build_lookup_generic_cases():
         [
             {
                 'sid': 0,
-                'symbol': 'duplicated_0',
+                'symbol': 'duplicated',
                 'start_date': dupe_0_start.value,
                 'end_date': dupe_0_end.value,
                 'exchange': '',
             },
             {
                 'sid': 1,
-                'symbol': 'duplicated_1',
+                'symbol': 'duplicated',
                 'start_date': dupe_1_start.value,
                 'end_date': dupe_1_end.value,
                 'exchange': '',
@@ -109,8 +109,8 @@ def build_lookup_generic_cases():
         (finder, 1, None, assets[1]),
         (finder, 2, None, assets[2]),
         # Duplicated symbol with resolution date
-        (finder, 'duplicated_0', dupe_0_start, dupe_0),
-        (finder, 'duplicated_1', dupe_1_start, dupe_1),
+        (finder, 'duplicated', dupe_0_start, dupe_0),
+        (finder, 'duplicated', dupe_1_start, dupe_1),
         # Unique symbol, with or without resolution date.
         (finder, 'unique', unique_start, unique),
         (finder, 'unique', None, unique),
@@ -125,11 +125,11 @@ def build_lookup_generic_cases():
         (finder, (0, 1), None, assets[:-1]),
         (finder, iter((0, 1)), None, assets[:-1]),
         # Iterables of symbols.
-        (finder, ('duplicated_0', 'unique'), dupe_0_start, [dupe_0, unique]),
-        (finder, ('duplicated_1', 'unique'), dupe_1_start, [dupe_1, unique]),
+        (finder, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
+        (finder, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
         # Mixed types
         (finder,
-         ('duplicated_0', 2, 'unique', 1, dupe_1),
+         ('duplicated', 2, 'unique', 1, dupe_1),
          dupe_0_start,
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
     ]
