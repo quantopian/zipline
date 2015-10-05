@@ -119,8 +119,8 @@ class Pipeline(object):
         """
         Set a screen on this Pipeline.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         filter : zipline.pipeline.Filter
             The filter to apply as a screen.
         overwrite : bool
