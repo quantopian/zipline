@@ -20,9 +20,10 @@ from .frame import DataFrameLoader
 from .equity_pricing_loader import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
     US_EQUITY_PRICING_BCOLZ_COLUMNS,
 )
+
+from zipline.data.adjustments import SQLiteAdjustmentWriter
 
 
 UINT_32_MAX = iinfo(uint32).max

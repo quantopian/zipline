@@ -35,6 +35,7 @@ from zipline.api import (
     pipeline_output,
     get_datetime,
 )
+from zipline.data.adjustments import SQLiteAdjustmentWriter
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     PipelineOutputDuringInitialize,
@@ -49,7 +50,6 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarReader,
     DailyBarWriterFromCSVs,
     SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
 from zipline.utils.test_utils import (

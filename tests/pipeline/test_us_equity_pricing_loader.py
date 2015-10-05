@@ -39,6 +39,7 @@ from pandas import (
 from pandas.util.testing import assert_index_equal
 from testfixtures import TempDirectory
 
+from zipline.data.adjustments import SQLiteAdjustmentWriter
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
@@ -47,7 +48,6 @@ from zipline.pipeline.loaders.synthetic import (
 from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarReader,
     SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
 from zipline.errors import WindowLengthTooLong
