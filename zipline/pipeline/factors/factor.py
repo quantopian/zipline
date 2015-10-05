@@ -541,3 +541,48 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         if self.dtype != float64:
             raise UnsupportedDataType(dtype=self.dtype)
         return super(CustomFactor, self)._validate()
+
+    @classmethod
+    def from_function(cls, f, window_length, *inputs):
+        """Construct a new factor type or factor from an arbitrary callable.
+
+        Parameters
+        ----------
+        f : callable
+            The callable to reduce the input data with.
+            This will be called with ``*input_data`` where each input data is
+            the lookback array for the input.
+        window_length : int
+            The size of the window of data. This is the length of each
+            input_data array.
+        *inputs : iterable of DataSet, optional
+            The inputs to the new factor. If this is not passed, then a new
+            factor type is created instead of a factor instance.
+
+        Returns
+        -------
+        factor : type or CustomFactor
+            A new custom factor class if not inputs are passed, otherwise
+            a new instance of a new custom factor class.
+        """
+        try:
+            name = f.__name__
+        except AttributeError:
+            name = '<function>'
+
+        def compute(self, today, assets, out, *data):
+            """Compute the values for the output by calling:
+            out[:] = {fn}(*data)
+            """
+            out[:] = f(*data)
+
+        compute.__doc__ = compute.__doc__.format(fn=name)
+
+        factor = type(name, (cls,), {
+            'compute': compute,
+            'window_length': window_length,
+        })
+
+        if inputs:
+            factor = factor(inputs)
+        return factor
