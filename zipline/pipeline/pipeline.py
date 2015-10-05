@@ -14,11 +14,11 @@ class Pipeline(object):
     `Term` instances, and 'screen', a Filter representing criteria for
     including an asset in the results of a Pipeline.
 
-    To compute a pipeline in the context of a TradingAlgorithm, users should
-    call `attach_pipeline` in their `initialize` function to register that the
-    pipeline computed for each trading day.  The outputs of the pipeline on a
-    given day can be accessed by calling `pipeline_outputs` in `handle_data` or
-    `before_trading_start`.
+    To compute a pipeline in the context of a TradingAlgorithm, users must call
+    `attach_pipeline` in their `initialize` function to register that the
+    pipeline should be computed each trading day.  The outputs of a pipeline on
+    a given day can be accessed by calling `pipeline_outputs` in `handle_data`
+    or `before_trading_start`.
 
     Parameters
     ----------
