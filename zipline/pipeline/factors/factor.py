@@ -500,7 +500,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
             highest_highs = nanmax(axis=0)
             lowest_lows = nanmin(axis=0)
-            out[:] = highest_highs = lowest_lows
+            out[:] = highest_highs - lowest_lows
 
     # Doesn't require passing inputs or window_length because they're
     # pre-declared as defaults
