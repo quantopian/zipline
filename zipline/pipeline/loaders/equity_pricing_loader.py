@@ -26,10 +26,8 @@ from click import progressbar
 from numpy import (
     array,
     float64,
-    floating,
     full,
     iinfo,
-    integer,
     uint32,
 )
 from pandas import (
