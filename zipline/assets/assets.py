@@ -209,7 +209,6 @@ class AssetFinder(object):
         """
 
         # Format inputs
-        symbol = symbol.upper()
         if as_of_date is not None:
             as_of_date = pd.Timestamp(normalize_date(as_of_date))
 

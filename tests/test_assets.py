@@ -109,11 +109,11 @@ def build_lookup_generic_cases():
         (finder, 1, None, assets[1]),
         (finder, 2, None, assets[2]),
         # Duplicated symbol with resolution date
-        (finder, 'duplicated', dupe_0_start, dupe_0),
-        (finder, 'duplicated', dupe_1_start, dupe_1),
+        (finder, 'DUPLICATED', dupe_0_start, dupe_0),
+        (finder, 'DUPLICATED', dupe_1_start, dupe_1),
         # Unique symbol, with or without resolution date.
-        (finder, 'unique', unique_start, unique),
-        (finder, 'unique', None, unique),
+        (finder, 'UNIQUE', unique_start, unique),
+        (finder, 'UNIQUE', None, unique),
 
         ##
         # Iterables
@@ -125,11 +125,11 @@ def build_lookup_generic_cases():
         (finder, (0, 1), None, assets[:-1]),
         (finder, iter((0, 1)), None, assets[:-1]),
         # Iterables of symbols.
-        (finder, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
-        (finder, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
+        (finder, ('DUPLICATED', 'UNIQUE'), dupe_0_start, [dupe_0, unique]),
+        (finder, ('DUPLICATED', 'UNIQUE'), dupe_1_start, [dupe_1, unique]),
         # Mixed types
         (finder,
-         ('duplicated', 2, 'unique', 1, dupe_1),
+         ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
          dupe_0_start,
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
     ]
@@ -360,18 +360,18 @@ class AssetFinderTestCase(TestCase):
         # we do it twice to catch caching bugs
         for i in range(2):
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test', as_of)
+                finder.lookup_symbol('TEST', as_of)
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test1', as_of)
+                finder.lookup_symbol('TEST1', as_of)
             # '@' is not a supported delimiter
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test@1', as_of)
+                finder.lookup_symbol('TEST@1', as_of)
 
             # Adding an unnecessary fuzzy shouldn't matter.
             for fuzzy_char in ['-', '/', '_', '.']:
                 self.assertEqual(
                     asset_1,
-                    finder.lookup_symbol('test%s1' % fuzzy_char, as_of)
+                    finder.lookup_symbol('TEST%s1' % fuzzy_char, as_of)
                 )
 
     def test_lookup_symbol_fuzzy(self):
@@ -434,15 +434,15 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('non_existing', dates[0])
+                finder.lookup_symbol('NON_EXISTING', dates[0])
 
             with self.assertRaises(MultipleSymbolsFound):
-                finder.lookup_symbol('existing', None)
+                finder.lookup_symbol('EXISTING', None)
 
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                result = finder.lookup_symbol('existing', date)
+                result = finder.lookup_symbol('EXISTING', date)
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
@@ -497,7 +497,7 @@ class AssetFinderTestCase(TestCase):
         self.env.write_data(equities_df=data)
         finder = AssetFinder(self.env.engine)
         results, missing = finder.lookup_generic(
-            ['real', 1, 'fake', 'real_but_old', 'real_but_in_the_future'],
+            ['REAL', 1, 'FAKE', 'REAL_BUT_OLD', 'REAL_BUT_IN_THE_FUTURE'],
             pd.Timestamp('2013-02-01', tz='UTC'),
         )
 
@@ -510,8 +510,8 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(results[2].sid, 2)
 
         self.assertEqual(len(missing), 2)
-        self.assertEqual(missing[0], 'fake')
-        self.assertEqual(missing[1], 'real_but_in_the_future')
+        self.assertEqual(missing[0], 'FAKE')
+        self.assertEqual(missing[1], 'REAL_BUT_IN_THE_FUTURE')
 
     def test_insert_metadata(self):
         data = {0: {'asset_type': 'equity',

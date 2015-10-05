@@ -1,4 +1,4 @@
-from zipline.utils.preprocess import expect_types, optional
+from zipline.utils.input_validation import expect_types, optional
 
 from .term import Term
 from .filters import Filter
