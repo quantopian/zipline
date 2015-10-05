@@ -115,6 +115,9 @@ class DataSetMeta(type):
     def __lt__(self, other):
         return id(self) < id(other)
 
+    def __repr__(self):
+        return '<DataSet: %r>' % self.__name__
+
 
 class DataSet(with_metaclass(DataSetMeta)):
     domain = None
